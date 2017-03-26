@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/PostProcessingWork.iml" filepath="$PROJECT_DIR$/PostProcessingWork.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jogl/jogl.iml" filepath="$PROJECT_DIR$/jogl/jogl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/lwjgl/lwjgl.iml" filepath="$PROJECT_DIR$/lwjgl/lwjgl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/postprocessingcore/postprocessingcore.iml" filepath="$PROJECT_DIR$/postprocessingcore/postprocessingcore.iml" />
+      <module fileurl="file://$PROJECT_DIR$/testframewok/testframewok.iml" filepath="$PROJECT_DIR$/testframewok/testframewok.iml" />
+    </modules>
+  </component>
+</project>
