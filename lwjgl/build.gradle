@@ -3,6 +3,8 @@ apply plugin: 'java'
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile project(':testframewok')
+    compile project(':lwigl_impl')
+    compile project(':postprocessingcore')
 }
 
 sourceCompatibility = "1.8"

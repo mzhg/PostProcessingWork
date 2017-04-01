@@ -9,8 +9,12 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/android_impl" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/gl_math" />
             <option value="$PROJECT_DIR$/jogl" />
+            <option value="$PROJECT_DIR$/jogl_impl" />
+            <option value="$PROJECT_DIR$/lwigl_impl" />
             <option value="$PROJECT_DIR$/lwjgl" />
             <option value="$PROJECT_DIR$/postprocessingcore" />
             <option value="$PROJECT_DIR$/testframewok" />

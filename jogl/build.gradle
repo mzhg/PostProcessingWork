@@ -3,6 +3,7 @@ apply plugin: 'java'
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile project(':testframewok')
+    compile project(':jogl_impl')
 }
 
 sourceCompatibility = "1.8"
