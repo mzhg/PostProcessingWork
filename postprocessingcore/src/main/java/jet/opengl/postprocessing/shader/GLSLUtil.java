@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.function.IntConsumer;
 
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 
 public final class GLSLUtil {
@@ -14,7 +16,7 @@ public final class GLSLUtil {
 	}
 	
 	public static int compileShaderFromSource(CharSequence source, ShaderType type, boolean print_log){
-		GLFunctionProvider gl = GLSLWork.getGLFunctionProvider();
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int shader = gl.glCreateShader(type.shader);
 		gl.glShaderSource(shader, source);
 		gl.glCompileShader(shader);
@@ -26,7 +28,7 @@ public final class GLSLUtil {
 	}
 	
 	public static int createProgramFromShaders(int vertexShader,int tessControlShader, int tessEvalateShader, int geometyShader, int fragmentShader, IntConsumer taskBeforeLink){
-		GLFunctionProvider gl = GLSLWork.getGLFunctionProvider();
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		
 		int program = gl.glCreateProgram();
 		
@@ -58,7 +60,7 @@ public final class GLSLUtil {
 	 * @return
 	 */
 	public static int createProgramFromShaders(int computeShader, IntConsumer taskBeforeLink){
-		GLFunctionProvider gl = GLSLWork.getGLFunctionProvider();
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int program = gl.glCreateProgram();
 		
 		gl.glAttachShader(program, computeShader);
@@ -79,7 +81,7 @@ public final class GLSLUtil {
 	}
 	
 	public static void checkLinkError(int program){
-		GLFunctionProvider gl = GLSLWork.getGLFunctionProvider();
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		
 		int success = gl.glGetProgrami(program, GLenum.GL_LINK_STATUS);
 	    if(success == 0){
@@ -96,7 +98,7 @@ public final class GLSLUtil {
 	}
 	
 	public static boolean checkCompileError(int shader, String shaderName, CharSequence source, boolean print_log){
-		GLFunctionProvider gl = GLSLWork.getGLFunctionProvider();
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int compiled = gl.glGetShaderi(shader, GLenum.GL_COMPILE_STATUS);
 		
 		if(compiled == 0 || print_log){
@@ -192,7 +194,7 @@ public final class GLSLUtil {
 	}
 	
 	public static int getUniformLocation(int program, CharSequence name){
-		GLFunctionProvider gl = GLSLWork.getGLFunctionProvider();
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int location = gl.glGetUniformLocation(program, name);
 		if(location == -1){
 			throw new GLSLException("No found uniform location from the name: " + name);
@@ -202,7 +204,7 @@ public final class GLSLUtil {
 	}
 	
 	public static int getAttribLocation(int program, CharSequence name){
-		GLFunctionProvider gl = GLSLWork.getGLFunctionProvider();
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int location = gl.glGetAttribLocation(program, name);
 		if(location == -1){
 			throw new GLSLException("No found uniform location from the name: " + name);

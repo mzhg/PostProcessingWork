@@ -1463,11 +1463,11 @@ public interface GLFuncProvider {
     public int glGetSubroutineIndex(int program, int shader, String name);
     public void glUniformSubroutinesui(int shaderType, int index);
     public void glPolygonMode(int face, int mode);
-    public void glPatchParameterfv(int pname, FloatBuffer value);
+    public void glPatchParameterfv(int pname, Buffer value);
     public void glPatchParameteri(int pname, int value);
 
     public int glGenBuffers();
-    public void glBufferData(int target, FloatBuffer data, int mode);
+    public void glBufferData(int target, Buffer data, int mode);
     public int glGenVertexArrays();
 
     void glTextureParameteri(int textureID, int pname, int mode);
@@ -1505,4 +1505,8 @@ public interface GLFuncProvider {
 
     void glTextureSubImage3D(int textureID, int level, int x_offset, int y_offset, int z_offset, int width, int height, int depth, int format, int type, Buffer pixels);
     void glTextureSubImage3D(int textureID, int level, int x_offset, int y_offset, int z_offset, int width, int height, int depth, int format, int type, long offset);
+
+    void glDeleteBuffers(int m_vbo);
+
+    int glGetVertexAttribi(int index, int pname);
 }

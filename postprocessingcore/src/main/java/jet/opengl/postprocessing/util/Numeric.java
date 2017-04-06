@@ -39,7 +39,22 @@ public final class Numeric {
 		intBytes[2] = (byte) (x >> 16);
 		intBytes[1] = (byte) (x >> 8);
 		intBytes[0] = (byte) (x >> 0);
+
 		return intBytes;
+	}
+	public static void toBytes(int[] src, int srcOffset, byte[] dst, int dstOffset, int length){
+		if(length < 0)
+			throw new IllegalArgumentException("length must be >= 0, length = " + length);
+		byte[] intBytes = null;
+
+		for(int i = srcOffset; i < srcOffset + length; i++){
+			intBytes = toBytes(src[i], intBytes);
+
+			dst[dstOffset ++] = intBytes[0];
+			dst[dstOffset ++] = intBytes[1];
+			dst[dstOffset ++] = intBytes[2];
+			dst[dstOffset ++] = intBytes[3];
+		}
 	}
 
 	public static final int makeRGBA(int r, int g, int b, int a) {
@@ -53,11 +68,6 @@ public final class Numeric {
 		int d = data[position + 3] & 255;
 		
 		return makeRGBA(a, b, c, d);
-	}
-	
-	/** Return a random floating-point number ranged from -1.0 to 1.0. */
-	public static final float sfrand(){
-		return (float)(2.0 * Math.random() - 1.0);
 	}
 	
 	public static final float random(float low, float high){

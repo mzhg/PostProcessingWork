@@ -1,21 +1,19 @@
 package jet.opengl.postprocessing.texture;
 
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
-import org.lwjgl.opengl.GL13;
+import jet.opengl.postprocessing.common.GLenum;
 
 public class SamplerDesc {
 
 	/** Min filter, default value is LINEAR. */
-	public int minFilter = GL11.GL_LINEAR;
+	public int minFilter = GLenum.GL_LINEAR;
 	/** Mag filter, default value is LINEAR. */
-	public int magFilter = GL11.GL_LINEAR;
+	public int magFilter = GLenum.GL_LINEAR;
 	/** Default value is CLAMP_TO_EDGE. */
-	public int wrapS = GL12.GL_CLAMP_TO_EDGE;
+	public int wrapS = GLenum.GL_CLAMP_TO_EDGE;
 	/** Default value is CLAMP_TO_EDGE. */
-	public int wrapT = GL12.GL_CLAMP_TO_EDGE;
+	public int wrapT = GLenum.GL_CLAMP_TO_EDGE;
 	/** Default value is CLAMP_TO_EDGE. */
-	public int wrapR = GL12.GL_CLAMP_TO_EDGE;
+	public int wrapR = GLenum.GL_CLAMP_TO_EDGE;
 	/** The texture border color, default is 0. */
 	public int borderColor;
 	/** Default is 0. */
@@ -73,7 +71,7 @@ public class SamplerDesc {
 		result = prime * result + wrapS;
 		result = prime * result + wrapT;
 		
-		if(wrapR == GL13.GL_CLAMP_TO_BORDER || wrapS == GL13.GL_CLAMP_TO_BORDER || wrapT == GL13.GL_CLAMP_TO_BORDER){
+		if(wrapR == GLenum.GL_CLAMP_TO_BORDER || wrapS == GLenum.GL_CLAMP_TO_BORDER || wrapT == GLenum.GL_CLAMP_TO_BORDER){
 			result = prime * result + borderColor;
 		}
 		return result;
@@ -105,7 +103,7 @@ public class SamplerDesc {
 		if (wrapT != other.wrapT)
 			return false;
 		
-		if(wrapR == GL13.GL_CLAMP_TO_BORDER || wrapS == GL13.GL_CLAMP_TO_BORDER || wrapT == GL13.GL_CLAMP_TO_BORDER){
+		if(wrapR == GLenum.GL_CLAMP_TO_BORDER || wrapS == GLenum.GL_CLAMP_TO_BORDER || wrapT == GLenum.GL_CLAMP_TO_BORDER){
 			return borderColor == other.borderColor;
 		}
 		

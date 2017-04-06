@@ -2,8 +2,6 @@ package jet.opengl.postprocessing.texture;
 
 import java.util.Arrays;
 
-import jet.util.opengl.state.StateUtil;
-
 /**
  * Texture parameters control how the texel array is treated when specified or changed, and when 
  * applied to a fragment.
@@ -78,7 +76,7 @@ public class TextureDesc {
 			sb.append("GL_COMPARE_REF_TO_TEXTURE").append('\n');
 		else
 			sb.append("GL_NONE").append('\n');
-		sb.append("compareFunc: ").append(StateUtil.getCompareModeName(compareFunc)).append('\n');
+		sb.append("compareFunc: ").append(TextureUtils.getCompareModeName(compareFunc)).append('\n');
 		sb.append("lodBias: ").append(lodBias).append('\n');
 		
 		sb.append("magFilter: ").append(TextureUtils.getTextureFilterName(magFilter)).append('\n');

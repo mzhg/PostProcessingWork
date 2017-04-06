@@ -9,6 +9,7 @@ import java.util.function.IntConsumer;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.LogUtil;
 
 public class GLSLProgram {
 
@@ -335,7 +336,52 @@ public class GLSLProgram {
 	public int getProgram(){
 		return m_program;
 	}
-	
+
+	/**
+	 * Returns the index containing the named uniform
+	 * @param uniform the string name of the uniform
+	 * @return the non-negative index of the uniform if found.  -1 if not found
+	 */
+	public int getUniformLocation(String uniform) {
+		if(m_program == 0)
+			return -1;
+
+		return gl.glGetUniformLocation(m_program, uniform);
+	}
+
+	/**
+	 * Returns the index containing the named vertex attribute
+	 * @param attribute the string name of the attribute
+	 * @param isOptional if true, the function logs an error if the attribute is not found
+	 * @return the non-negative index of the attribute if found.  -1 if not found
+	 */
+	public int getAttribLocation(String attribute, boolean isOptional){
+		if(m_program == 0)
+			return -1;
+
+		int result = gl.glGetAttribLocation(m_program, attribute);
+
+		if (result == -1)
+		{
+			if((ms_logAllMissing || m_strict) && !isOptional) {
+				LogUtil.e(LogUtil.LogType.DEFAULT, String.format("could not find attribute \"%s\" in program %d",
+						attribute,
+						m_program));
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * @see #getAttribLocation(String, boolean)
+	 * @param attribute
+	 * @return
+     */
+	public int getAttribLocation(String attribute){
+		return getAttribLocation(attribute, false);
+	}
+
 	/**
 	 * Represents a piece of shader source and the shader type.<p>
 	 * Used with creation functions to pass in arrays of multiple shader source types.

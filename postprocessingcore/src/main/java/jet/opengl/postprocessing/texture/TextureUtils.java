@@ -1482,4 +1482,19 @@ public final class TextureUtils {
 		return desc;
 	}
 
+	public static String getCompareModeName(int mode){
+		switch (mode) {
+			case GLenum.GL_ALWAYS:  return "GL_ALWAYS";
+			case GLenum.GL_NEVER:  return "GL_NEVER";
+			case GLenum.GL_LESS:  return "GL_LESS";
+			case GLenum.GL_LEQUAL:  return "GL_LEQUAL";
+			case GLenum.GL_GREATER:  return "GL_GREATER";
+			case GLenum.GL_GEQUAL:  return "GL_GEQUAL";
+			case GLenum.GL_NOTEQUAL:  return "GL_NOTEQUAL";
+
+			default:
+				return "Unkown CompareMode(0x" + Integer.toHexString(mode) + ")";
+		}
+	}
+
 }
