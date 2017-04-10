@@ -163,9 +163,7 @@ public interface GLFuncProvider {
 
     public void glBlendFuncSeparate (int srcRGB, int dstRGB, int srcAlpha, int dstAlpha);
 
-    public void glBufferData (int target, int size, Buffer data, int usage);
-
-    public void glBufferSubData (int target, int offset, int size, Buffer data);
+    public void glBufferSubData (int target, int offset, Buffer data);
 
     public int glCheckFramebufferStatus (int target);
 
@@ -211,7 +209,7 @@ public interface GLFuncProvider {
     // deviates
     public String glGetActiveUniform (int program, int index, int maxLength, IntBuffer size, IntBuffer type);
 
-    public void glGetAttachedShaders (int program, int maxcount, ByteBuffer count, ByteBuffer shaders);
+    public void glGetAttachedShaders (int program, int[] count, int[] shaders);
 
     public int glGetAttribLocation (int program, CharSequence name);
 
@@ -306,7 +304,7 @@ public interface GLFuncProvider {
 
     public void glSampleCoverage (float value, boolean invert);
 
-    public void glShaderBinary (int count, ByteBuffer shaders, int binaryformat, ByteBuffer binary, int length);
+    public void glShaderBinary (IntBuffer shaders, int binaryformat, ByteBuffer binary);
 
     // Deviates
     public void glShaderSource (int shader, CharSequence string);
@@ -356,7 +354,6 @@ public interface GLFuncProvider {
     public void glUniformMatrix2fv (int location, boolean transpose, FloatBuffer value);
     public void glUniformMatrix3fv (int location, boolean transpose, FloatBuffer value);
     public void glUniformMatrix4fv (int location, boolean transpose, FloatBuffer value);
-    public void glUniformMatrix4fv (int location, boolean transpose, Matrix4f matrix);
 
     public void glUseProgram (int program);
 
@@ -561,7 +558,7 @@ public interface GLFuncProvider {
 
     // C function void glGetBufferPointerv ( GLenum target, GLenum pname, GLvoid** params )
 
-    public java.nio.Buffer glGetBufferPointerv (int target, int pname);
+    public java.nio.ByteBuffer glGetBufferPointerv (int target, int pname);
 
     // // C function void glDrawBuffers ( GLsizei n, const GLenum *bufs )
     //

@@ -1,18 +1,25 @@
 package jet.opengl.impl.lwjgl3;
 
+import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
+import org.lwjgl.opengl.GL14;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GL41;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
-import org.lwjgl.util.vector.Matrix4f;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
+import java.nio.ShortBuffer;
 
 import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
@@ -215,677 +222,681 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
 
     @Override
     public void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, Buffer pixels) {
-
+        GL11.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels != null ? MemoryUtil.memAddress0(pixels): 0);
     }
 
     @Override
     public void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, long pixels_offset) {
-
+        GL11.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels_offset);
     }
 
     @Override
     public void glTexParameterf(int target, int pname, float param) {
-
+        GL11.glTexParameterf(target, pname, param);
     }
 
     @Override
     public void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, Buffer pixels) {
-
+        GL11.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels != null ? MemoryUtil.memAddress0(pixels): 0);
     }
 
     @Override
     public void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, long pixels_offset) {
-
+        GL11.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels_offset);
     }
 
     @Override
     public void glViewport(int x, int y, int width, int height) {
-
+        GL11.glViewport(x,y,width, height);
     }
 
     @Override
     public void glAttachShader(int program, int shader) {
-
+        GL20.glAttachShader(program, shader);
     }
 
     @Override
     public void glBindAttribLocation(int program, int index, CharSequence name) {
-
+        GL20.glBindAttribLocation(program, index, name);
     }
 
     @Override
     public void glBindBuffer(int target, int buffer) {
-
+        GL15.glBindBuffer(target, buffer);
     }
 
     @Override
     public void glBindFramebuffer(int target, int framebuffer) {
-
+        GL30.glBindFramebuffer(target, framebuffer);
     }
 
     @Override
     public void glBindRenderbuffer(int target, int renderbuffer) {
-
+        GL30.glBindRenderbuffer(target, renderbuffer);
     }
 
     @Override
     public void glBlendColor(float red, float green, float blue, float alpha) {
-
+        GL14.glBlendColor(red, green, blue, alpha);
     }
 
     @Override
     public void glBlendEquation(int mode) {
-
+        GL14.glBlendEquation(mode);
     }
 
     @Override
     public void glBlendEquationSeparate(int modeRGB, int modeAlpha) {
-
+        GL20.glBlendEquationSeparate(modeRGB, modeAlpha);
     }
 
     @Override
     public void glBlendFuncSeparate(int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) {
-
+        GL14.glBlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha);
     }
 
     @Override
-    public void glBufferData(int target, int size, Buffer data, int usage) {
-
-    }
-
-    @Override
-    public void glBufferSubData(int target, int offset, int size, Buffer data) {
+    public void glBufferSubData(int target, int offset, Buffer data) {
+        if(data instanceof ByteBuffer){
+            GL15.glBufferSubData(target, offset, (ByteBuffer)data);
+        }else if(data instanceof ShortBuffer){
+            GL15.glBufferSubData(target, offset, (ShortBuffer)data);
+        }else if(data instanceof IntBuffer){
+            GL15.glBufferSubData(target, offset, (IntBuffer)data);
+        }else if(data instanceof FloatBuffer){
+            GL15.glBufferSubData(target, offset, (FloatBuffer)data);
+        }else{
+            throw new IllegalArgumentException("Unkown data type: " + data.getClass().getName());
+        }
 
     }
 
     @Override
     public int glCheckFramebufferStatus(int target) {
-        return 0;
+        return GL30.glCheckFramebufferStatus(target);
     }
 
     @Override
     public void glCompileShader(int shader) {
-
+        GL20.glCompileShader(shader);
     }
 
     @Override
     public int glCreateProgram() {
-        return 0;
+        return GL20.glCreateProgram();
     }
 
     @Override
     public int glCreateShader(int type) {
-        return 0;
+        return GL20.glCreateShader(type);
     }
 
     @Override
     public void glDeleteBuffer(int buffer) {
-
+        GL15.glDeleteBuffers(buffer);
     }
 
     @Override
     public void glDeleteFramebuffer(int framebuffer) {
-
+        GL30.glDeleteFramebuffers(framebuffer);
     }
 
     @Override
     public void glDeleteProgram(int program) {
-
+        GL20.glDeleteProgram(program);
     }
 
     @Override
     public void glDeleteRenderbuffer(int renderbuffer) {
-
+        GL30.glDeleteRenderbuffers(renderbuffer);
     }
 
     @Override
     public void glDeleteShader(int shader) {
-
+        GL20.glDeleteShader(shader);
     }
 
     @Override
     public void glDetachShader(int program, int shader) {
-
+        GL20.glDetachShader(program, shader);
     }
 
     @Override
     public void glDisableVertexAttribArray(int index) {
-
+        GL20.glDisableVertexAttribArray(index);
     }
 
     @Override
     public void glDrawElements(int mode, int count, int type, long indices) {
-
+        GL11.glDrawElements(mode, count, type, indices);
     }
 
     @Override
     public void glEnableVertexAttribArray(int index) {
-
+        GL20.glEnableVertexAttribArray(index);
     }
 
     @Override
     public void glFramebufferRenderbuffer(int target, int attachment, int renderbuffertarget, int renderbuffer) {
-
+        GL30.glFramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer);
     }
 
     @Override
     public void glFramebufferTexture2D(int target, int attachment, int textarget, int texture, int level) {
-
+        GL30.glFramebufferTexture2D(target, attachment, textarget, texture, level);
     }
 
     @Override
     public int glGenBuffer() {
-        return 0;
+        return GL15.glGenBuffers();
     }
 
     @Override
     public void glGenBuffers(IntBuffer buffers) {
-
+        GL15.glGenBuffers(buffers);
     }
 
     @Override
     public void glGenerateMipmap(int target) {
-
+        GL30.glGenerateMipmap(target);
     }
 
     @Override
     public int glGenFramebuffer() {
-        return 0;
+        return GL30.glGenFramebuffers();
     }
 
     @Override
     public int glGenRenderbuffer() {
-        return 0;
+        return GL30.glGenRenderbuffers();
     }
 
     @Override
     public String glGetActiveAttrib(int program, int index, int maxLength, IntBuffer size, IntBuffer type) {
-        return null;
+        return GL20.glGetActiveAttrib(program, index, maxLength, size, type);
     }
 
     @Override
     public String glGetActiveUniform(int program, int index, int maxLength, IntBuffer size, IntBuffer type) {
-        return null;
+        return GL20.glGetActiveUniform(program, index, maxLength, size, type);
     }
 
     @Override
-    public void glGetAttachedShaders(int program, int maxcount, ByteBuffer count, ByteBuffer shaders) {
-
+    public void glGetAttachedShaders(int program, int[] count, int[] shaders) {
+        GL20.glGetAttachedShaders(program, count, shaders);
     }
 
     @Override
     public int glGetAttribLocation(int program, CharSequence name) {
-        return 0;
+        return GL20.glGetAttribLocation(program,name);
     }
 
     @Override
     public boolean glGetBoolean(int pname) {
-        return false;
+        return GL11.glGetBoolean(pname);
     }
 
     @Override
     public void glGetBooleanv(int pname, ByteBuffer params) {
-
+         GL11.glGetBooleanv(pname, params);
     }
 
     @Override
     public int glGetBufferParameteri(int target, int pname) {
-        return 0;
+        return GL15.glGetBufferParameteri(target,pname);
     }
 
     @Override
     public void glGetBufferParameteriv(int target, int pname, IntBuffer params) {
-
+        GL15.glGetBufferParameteriv(target, pname, params);
     }
 
     @Override
     public float glGetFloat(int pname) {
-        return 0;
+        return GL11.glGetFloat(pname);
     }
 
     @Override
     public void glGetFloatv(int pname, FloatBuffer params) {
-
+        GL11.glGetFloatv(pname, params);
     }
 
     @Override
     public int glGetProgrami(int program, int pname) {
-        return 0;
+        return GL20.glGetProgrami(program, pname);
     }
 
     @Override
     public void glGetProgramiv(int program, int pname, IntBuffer params) {
-
+        GL20.glGetProgramiv(program, pname, params);
     }
 
     @Override
     public String glGetProgramInfoLog(int program) {
-        return null;
+        return GL20.glGetProgramInfoLog(program);
     }
 
     @Override
     public String glGetShaderInfoLog(int shader) {
-        return null;
+        return GL20.glGetShaderInfoLog(shader);
     }
 
     @Override
     public float glGetTexParameterf(int target, int pname) {
-        return 0;
+        return GL11.glGetTexParameterf(target, pname);
     }
 
     @Override
     public void glGetTexParameterfv(int target, int pname, FloatBuffer params) {
-
+        GL11.glGetTexParameterfv(target, pname, params);
     }
 
     @Override
     public int glGetTexParameteri(int target, int pname) {
-        return 0;
+        return GL11.glGetTexParameteri(target, pname);
     }
 
     @Override
     public void glGetTexParameteriv(int target, int pname, IntBuffer params) {
-
+        GL11.glGetTexParameteriv(target, pname, params);
     }
 
     @Override
     public float glGetUniformf(int program, int location) {
-        return 0;
+        return GL20.glGetUniformf(program, location);
     }
 
     @Override
     public void glGetUniformfv(int program, int location, FloatBuffer params) {
-
+        GL20.glGetUniformfv(program, location, params);
     }
 
     @Override
     public int glGetUniformi(int program, int location) {
-        return 0;
+        return GL20.glGetUniformi(program, location);
     }
 
     @Override
     public void glGetUniformiv(int program, int location, IntBuffer params) {
-
+        GL20.glGetUniformiv(program, location, params);
     }
 
     @Override
     public int glGetUniformLocation(int program, CharSequence name) {
-        return 0;
+        return GL20.glGetUniformLocation(program,name);
     }
 
     @Override
     public boolean glIsBuffer(int buffer) {
-        return false;
+        return GL15.glIsBuffer(buffer);
     }
 
     @Override
     public boolean glIsEnabled(int cap) {
-        return false;
+        return GL11.glIsEnabled(cap);
     }
 
     @Override
     public boolean glIsFramebuffer(int framebuffer) {
-        return false;
+        return GL30.glIsFramebuffer(framebuffer);
     }
 
     @Override
     public boolean glIsProgram(int program) {
-        return false;
+        return GL20.glIsProgram(program);
     }
 
     @Override
     public boolean glIsRenderbuffer(int renderbuffer) {
-        return false;
+        return GL30.glIsRenderbuffer(renderbuffer);
     }
 
     @Override
     public boolean glIsShader(int shader) {
-        return false;
+        return GL20.glIsShader(shader);
     }
 
     @Override
     public boolean glIsTexture(int texture) {
-        return false;
+        return GL11.glIsTexture(texture);
     }
 
     @Override
     public void glLinkProgram(int program) {
-
+        GL20.glLinkProgram(program);
     }
 
     @Override
     public void glReleaseShaderCompiler() {
-
+        GL41.glReleaseShaderCompiler();
     }
 
     @Override
     public void glRenderbufferStorage(int target, int internalformat, int width, int height) {
-
+        GL30.glRenderbufferStorage(target, internalformat, width, height);
     }
 
     @Override
     public void glSampleCoverage(float value, boolean invert) {
-
+        GL13.glSampleCoverage(value, invert);
     }
 
     @Override
-    public void glShaderBinary(int count, ByteBuffer shaders, int binaryformat, ByteBuffer binary, int length) {
-
+    public void glShaderBinary(IntBuffer shaders, int binaryformat, ByteBuffer binary) {
+        GL41.glShaderBinary(shaders,binaryformat, binary);
     }
 
     @Override
     public void glShaderSource(int shader, CharSequence string) {
-
+        GL20.glShaderSource(shader, string);
     }
 
     @Override
     public void glStencilFuncSeparate(int face, int func, int ref, int mask) {
-
+        GL20.glStencilFuncSeparate(face,func, ref, mask);
     }
 
     @Override
     public void glStencilMaskSeparate(int face, int mask) {
-
+        GL20.glStencilMaskSeparate(face, mask);
     }
 
     @Override
     public void glStencilOpSeparate(int face, int fail, int zfail, int zpass) {
-
+        GL20.glStencilOpSeparate(face, fail, zfail, zpass);
     }
 
     @Override
     public void glTexParameterfv(int target, int pname, FloatBuffer params) {
-
+        GL11.glTexParameterfv(target, pname, params);
     }
 
     @Override
     public void glTexParameteri(int target, int pname, int param) {
-
+        GL11.glTexParameteri(target, pname, param);
     }
 
     @Override
     public void glTexParameteriv(int target, int pname, int[] params) {
-
+        GL11.glTexParameteriv(target, pname, params);
     }
 
     @Override
     public void glUniform1f(int location, float x) {
-
+        GL20.glUniform1f(location, x);
     }
 
     @Override
     public void glUniform1fv(int location, FloatBuffer v) {
-
+        GL20.glUniform1fv(location, v);
     }
 
     @Override
     public void glUniform1i(int location, int x) {
-
+        GL20.glUniform1i(location, x);
     }
 
     @Override
     public void glUniform1iv(int location, IntBuffer v) {
-
+        GL20.glUniform1iv(location, v);
     }
 
     @Override
     public void glUniform2f(int location, float x, float y) {
-
+        GL20.glUniform2f(location, x, y);
     }
 
     @Override
     public void glUniform2fv(int location, FloatBuffer v) {
-
+        GL20.glUniform2fv(location, v);
     }
 
     @Override
     public void glUniform2i(int location, int x, int y) {
-
+        GL20.glUniform2i(location, x, y);
     }
 
     @Override
     public void glUniform2iv(int location, IntBuffer v) {
-
+        GL20.glUniform2iv(location, v);
     }
 
     @Override
     public void glUniform3f(int location, float x, float y, float z) {
-
+        GL20.glUniform3f(location, x, y, z);
     }
 
     @Override
     public void glUniform3fv(int location, FloatBuffer v) {
-
+        GL20.glUniform3fv(location, v);
     }
 
     @Override
     public void glUniform3i(int location, int x, int y, int z) {
-
+        GL20.glUniform3i(location, x, y, z);
     }
 
     @Override
     public void glUniform3iv(int location, IntBuffer v) {
-
+        GL20.glUniform3iv(location, v);
     }
 
     @Override
     public void glUniform4f(int location, float x, float y, float z, float w) {
-
+        GL20.glUniform4f(location, x, y, z, w);
     }
 
     @Override
     public void glUniform4fv(int location, FloatBuffer v) {
-
+        GL20.glUniform4fv(location, v);
     }
 
     @Override
     public void glUniform4i(int location, int x, int y, int z, int w) {
-
+        GL20.glUniform4i(location, x, y, z, w);
     }
 
     @Override
     public void glUniform4iv(int location, IntBuffer v) {
-
+        GL20.glUniform4iv(location, v);
     }
 
     @Override
     public void glUniformMatrix2fv(int location, boolean transpose, FloatBuffer value) {
-
+        GL20.glUniformMatrix2fv(location, transpose, value);
     }
 
     @Override
     public void glUniformMatrix3fv(int location, boolean transpose, FloatBuffer value) {
-
+        GL20.glUniformMatrix3fv(location, transpose, value);
     }
 
     @Override
     public void glUniformMatrix4fv(int location, boolean transpose, FloatBuffer value) {
-
-    }
-
-    @Override
-    public void glUniformMatrix4fv(int location, boolean transpose, Matrix4f matrix) {
-
+        GL20.glUniformMatrix4fv(location, transpose, value);
     }
 
     @Override
     public void glUseProgram(int program) {
-
+        GL20.glUseProgram(program);
     }
 
     @Override
     public void glValidateProgram(int program) {
-
+        GL20.glValidateProgram(program);
     }
 
     @Override
     public void glVertexAttrib1f(int indx, float x) {
-
+        GL20.glVertexAttrib1f(indx, x);
     }
 
     @Override
     public void glVertexAttrib1fv(int indx, FloatBuffer values) {
-
+        GL20.glVertexAttrib1fv(indx, values);
     }
 
     @Override
     public void glVertexAttrib2f(int indx, float x, float y) {
-
+        GL20.glVertexAttrib2f(indx, x, y);
     }
 
     @Override
     public void glVertexAttrib2fv(int indx, FloatBuffer values) {
-
+        GL20.glVertexAttrib2fv(indx, values);
     }
 
     @Override
     public void glVertexAttrib3f(int indx, float x, float y, float z) {
-
+        GL20.glVertexAttrib3f(indx, x, y, z);
     }
 
     @Override
     public void glVertexAttrib3fv(int indx, FloatBuffer values) {
-
+        GL20.glVertexAttrib3fv(indx, values);
     }
 
     @Override
     public void glVertexAttrib4f(int indx, float x, float y, float z, float w) {
-
+        GL20.glVertexAttrib4f(indx, x, y, z, w);
     }
 
     @Override
     public void glVertexAttrib4fv(int indx, FloatBuffer values) {
-
+        GL20.glVertexAttrib4fv(indx, values);
     }
 
     @Override
     public void glVertexAttribPointer(int indx, int size, int type, boolean normalized, int stride, Buffer ptr) {
-
+        GL20.glVertexAttribPointer(indx, size, type, normalized, stride, MemoryUtil.memAddress0(ptr));
     }
 
     @Override
     public void glVertexAttribPointer(int indx, int size, int type, boolean normalized, int stride, int ptr) {
-
+        GL20.glVertexAttribPointer(indx, size, type, normalized, stride, ptr);
     }
 
     @Override
     public void glReadBuffer(int mode) {
-
+        GL11.glReadBuffer(mode);
     }
 
     @Override
     public void glDrawRangeElements(int mode, int start, int end, int count, int type, Buffer indices) {
-
+        GL12.glDrawRangeElements(mode, start, end, count, type, MemoryUtil.memAddress0(indices));
     }
 
     @Override
     public void glDrawRangeElements(int mode, int start, int end, int count, int type, int offset) {
-
+        GL12.glDrawRangeElements(mode, start, end, count, type, offset);
     }
 
     @Override
     public void glTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, Buffer pixels) {
-
+        GL12.glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels != null ?MemoryUtil.memAddress0(pixels):0);
     }
 
     @Override
     public void glTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, long offset) {
-
+        GL12.glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, offset);
     }
 
     @Override
     public void glTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, Buffer pixels) {
-
+        GL12.glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, MemoryUtil.memAddress0(pixels));
     }
 
     @Override
     public void glTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, long pixels_offset) {
-
+        GL12.glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels_offset);
     }
 
     @Override
     public void glTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, int offset) {
-
+        GL12.glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, offset);
     }
 
     @Override
     public void glCopyTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int x, int y, int width, int height) {
-
+        GL12.glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
     }
 
     @Override
     public int glGenQuery() {
-        return 0;
+        return GL15.glGenQueries();
     }
 
     @Override
     public void glGenQueries(IntBuffer ids) {
-
+        GL15.glGenQueries(ids);
     }
 
     @Override
     public void glDeleteQuery(int query) {
-
+        GL15.glDeleteQueries(query);
     }
 
     @Override
     public void glDeleteQueries(IntBuffer ids) {
-
+        GL15.glDeleteQueries(ids);
     }
 
     @Override
     public boolean glIsQuery(int id) {
-        return false;
+        return GL15.glIsQuery(id);
     }
 
     @Override
     public void glBeginQuery(int target, int id) {
-
+        GL15.glBeginQuery(target, id);
     }
 
     @Override
     public void glEndQuery(int target) {
-
+        GL15.glEndQuery(target);
     }
 
     @Override
     public int glGetQueryi(int target, int pname) {
-        return 0;
+        return GL15.glGetQueryi(target, pname);
     }
 
     @Override
     public void glGetQueryiv(int target, int pname, IntBuffer params) {
-
+        GL15.glGetQueryiv(target, pname, params);
     }
 
     @Override
     public int glGetQueryObjectuiv(int id, int pname) {
-        return 0;
+        return GL15.glGetQueryObjectui(id, pname);
     }
 
     @Override
     public void glGetQueryObjectuiv(int id, int pname, IntBuffer params) {
-
+        GL15.glGetQueryObjectuiv(id, pname, params);
     }
 
     @Override
     public boolean glUnmapBuffer(int target) {
-        return false;
+        return GL15.glUnmapBuffer(target);
     }
 
     @Override
-    public Buffer glGetBufferPointerv(int target, int pname) {
-        return null;
+    public ByteBuffer glGetBufferPointerv(int target, int pname) {
+        PointerBuffer buffer = PointerBuffer.allocateDirect(1);
+        GL15.glGetBufferPointerv(target, pname, buffer);
+        int bufferSize = glGetBufferParameteri(target, GL15.GL_BUFFER_SIZE);
+        return buffer.getByteBuffer(bufferSize);
     }
 
     @Override
     public void glDrawBuffers(int buffer) {
-
+        GL20.glDrawBuffers(buffer);
     }
 
     @Override
     public void glDrawBuffers(IntBuffer bufs) {
-
+        GL20.glDrawBuffers(bufs);
     }
 
     @Override
