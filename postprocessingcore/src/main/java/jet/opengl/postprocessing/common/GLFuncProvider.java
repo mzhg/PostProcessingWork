@@ -189,7 +189,7 @@ public interface GLFuncProvider {
 
     public void glDisableVertexAttribArray (int index);
 
-    public void glDrawElements (int mode, int count, int type, int indices);
+    public void glDrawElements (int mode, int count, int type, long indices);
 
     public void glEnableVertexAttribArray (int index);
 
