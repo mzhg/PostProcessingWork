@@ -185,7 +185,7 @@ public final class TextureUtils {
 	
 	public static Texture2D createTextureView(TextureGL source, int target, int minlevel, int numlevels, int minlayer, int numlayers){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-		int texture = gl.glGenTextures();
+		int texture = gl.glGenTexture();
 		gl.glTextureView(texture, target, source.getTexture(), source.getFormat(), minlevel, numlevels, minlayer, numlayers);
 		GLError.checkError();
 		
@@ -203,7 +203,7 @@ public final class TextureUtils {
 	
 	public static Texture3D createTexture3DView(TextureGL source, int minlevel, int numlevels, int minlayer, int numlayers){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-		int texture = gl.glGenTextures();
+		int texture = gl.glGenTexture();
 		gl.glTextureView(texture, GLenum.GL_TEXTURE_3D, source.getTexture(), source.getFormat(), minlevel, numlevels, minlayer, numlayers);
 		GLError.checkError();
 		
@@ -346,7 +346,7 @@ public final class TextureUtils {
 			boolean allocateStorage = false;
 			
 			// 1. Generate texture ID
-			textureID = gl.glGenTextures();
+			textureID = gl.glGenTexture();
 			
 			// 2. Allocate storage for Texture Object
 //			final GLCapabilities cap = GL.getCapabilities();
@@ -548,7 +548,7 @@ public final class TextureUtils {
 			boolean allocateStorage = false;
 			
 			// 1. Generate texture ID
-			textureID = gl.glGenTextures();
+			textureID = gl.glGenTexture();
 			
 			// 2. Allocate storage for Texture Object
 //			final GLCapabilities cap = GL.getCapabilities();
@@ -824,11 +824,11 @@ public final class TextureUtils {
 	private static void compressedTexImage3D(int target, int width, int height, int depth, int level, int internalformat, int type, int imageSize,Object data){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		if(data == null){
-			gl.glCompressedTexImage3D(target, level, internalformat, width, height, depth, 0, (ByteBuffer)null);
-		}else if(data instanceof  Buffer){
-			gl.glCompressedTexImage3D(target, level, internalformat, width, height, depth, 0, (Buffer) data);
+			gl.glCompressedTexImage3D(target, level, internalformat, width, height, depth, 0, imageSize, 0L);
+		}else if(data instanceof  ByteBuffer){
+			gl.glCompressedTexImage3D(target, level, internalformat, width, height, depth, 0, (ByteBuffer) data);
 		}else if(data instanceof Number){
-			gl.glCompressedTexImage3D(target, level, internalformat, width, height, depth, 0, ((Number)data).longValue());
+			gl.glCompressedTexImage3D(target, level, internalformat, width, height, depth, 0, imageSize, ((Number)data).longValue());
 		}else{
 			gl.glCompressedTexImage3D(target, level, internalformat, width, height, depth, 0, CacheBuffer.wrapPrimitiveArray(data));
 		}
@@ -840,11 +840,11 @@ public final class TextureUtils {
 	private static void compressedTexImage2D(int target, int width, int height, int level, int internalformat, int type, int imageSize,Object data){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		if(data == null){
-			throw new NullPointerException("compressed texture data is null");
-		}else if(data instanceof  Buffer){
-			gl.glCompressedTexImage2D(target, level, internalformat, width, height, 0, (Buffer)data);
+			gl.glCompressedTexImage2D(target, level, internalformat, width, height, 0, imageSize, 0L);
+		}else if(data instanceof  ByteBuffer){
+			gl.glCompressedTexImage2D(target, level, internalformat, width, height, 0, (ByteBuffer)data);
 		}else if(data instanceof Number){
-			gl.glCompressedTexImage2D(target, level, internalformat, width, height, 0, ((Number)data).longValue());
+			gl.glCompressedTexImage2D(target, level, internalformat, width, height, 0, imageSize, ((Number)data).longValue());
 		}else{
 			gl.glCompressedTexImage2D(target, level, internalformat, width, height, 0, CacheBuffer.wrapPrimitiveArray(data));
 		}

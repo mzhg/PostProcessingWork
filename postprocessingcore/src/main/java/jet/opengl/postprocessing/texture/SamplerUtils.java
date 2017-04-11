@@ -42,7 +42,7 @@ public final class SamplerUtils {
 	
 	private static int _createSampler(SamplerDesc sampler){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-		int obj = gl.glGenSamplers();
+		int obj = gl.glGenSampler();
 		gl.glSamplerParameteri(obj, GLenum.GL_TEXTURE_MIN_FILTER, sampler.minFilter);
 		gl.glSamplerParameteri(obj, GLenum.GL_TEXTURE_MAG_FILTER, sampler.magFilter);
 		gl.glSamplerParameteri(obj, GLenum.GL_TEXTURE_WRAP_S, sampler.wrapS);

@@ -1228,13 +1228,6 @@ public interface GLFuncProvider {
     // C function void glGenSamplers ( GLsizei count, GLuint *samplers )
 
     public void glGenSamplers (java.nio.IntBuffer samplers);
-    public /*default*/ int glGenSamplers();
-//    {
-//        // No safe
-//        IntBuffer one= CacheBuffer.getCachedIntBuffer(1);
-//        glGenSamplers(one);
-//        return one.get(0);
-//    }
 
     // C function void glDeleteSamplers ( GLsizei count, const GLuint *samplers )
 
@@ -1449,23 +1442,23 @@ public interface GLFuncProvider {
     public void glInvalidateSubFramebuffer (int target, java.nio.IntBuffer attachments, int x, int y,
                                             int width, int height);
 
-    public ByteBuffer glGetProgramBinary(int program, IntBuffer format);
-
-    public int glGenTextures();
+    public void glGetProgramBinary(int program, int[] length, int[] binaryFormat, ByteBuffer binary);
 
     public void glBindImageTexture(int unit, int texture, int level, boolean layered, int layer, int access, int format);
     public void glDispatchCompute(int num_groups_x, int num_groups_y, int num_groups_z);
     public void glMemoryBarrier(int barriers);
 
-    public int glGetSubroutineIndex(int program, int shader, String name);
-    public void glUniformSubroutinesui(int shaderType, int index);
+    /**
+     * The method doesn't support on the mobine -device, declare here just for debugging on the descktop.
+     * @param face
+     * @param mode
+     */
     public void glPolygonMode(int face, int mode);
-    public void glPatchParameterfv(int pname, Buffer value);
+    public void glPatchParameterfv(int pname, float[] value);
     public void glPatchParameteri(int pname, int value);
 
-    public int glGenBuffers();
     public void glBufferData(int target, Buffer data, int mode);
-    public int glGenVertexArrays();
+    public void glBufferData(int target, int size, int mode);
 
     void glTextureParameteri(int textureID, int pname, int mode);
     void glTextureParameteriv(int textureID, int pname, int[] rgba);
@@ -1492,18 +1485,16 @@ public interface GLFuncProvider {
     void glTexStorage3DMultisample(int target, int sampleCount, int format, int width, int height, int arraySize, boolean fixedsamplelocations);
     void glTexImage3DMultisample(int target, int sampleCount, int format, int width, int height, int arraySize, boolean fixedsamplelocations);
     void glTexStorage2D(int target, int mipLevels, int format, int width, int height);
-    void glCompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, Buffer data);
-    void glCompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, long data_offset);
-    void glCompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int boder, Buffer byteBuffer);
-    void glCompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int boder, long data_offset);
+    void glCompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, ByteBuffer data);
+    void glCompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, int image_size, long offset);
+    void glCompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int boder, ByteBuffer byteBuffer);
+    void glCompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int boder, int image_size, long offset);
 
     void glTextureSubImage2D(int texture, int level, int x_offset, int y_offset, int width, int height, int format, int type, Buffer pixels);
     void glTextureSubImage2D(int texture, int level, int x_offset, int y_offset, int width, int height, int format, int type, long data_offset);
 
     void glTextureSubImage3D(int textureID, int level, int x_offset, int y_offset, int z_offset, int width, int height, int depth, int format, int type, Buffer pixels);
     void glTextureSubImage3D(int textureID, int level, int x_offset, int y_offset, int z_offset, int width, int height, int depth, int format, int type, long offset);
-
-    void glDeleteBuffers(int m_vbo);
 
     int glGetVertexAttribi(int index, int pname);
 }
