@@ -275,8 +275,8 @@ public class NvUIGraphic extends NvUIElement {
 	        vert[pos].uvY = 1;
 	        pos++;
 
-	        ms_ibo = gl.glGenBuffers();
-	        ms_vbo = gl.glGenBuffers();
+	        ms_ibo = gl.glGenBuffer();
+	        ms_vbo = gl.glGenBuffer();
 	        
 	        FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(4 * 4);
 	        for(int i = 0; i < 4;i++)
@@ -290,7 +290,7 @@ public class NvUIGraphic extends NvUIElement {
 			gl.glBufferData(GLenum.GL_ELEMENT_ARRAY_BUFFER, CacheBuffer.wrap(indices), GLenum.GL_STATIC_DRAW);
 
 	        // make a texture-Y-flipped vbo...
-	        ms_vboFlip = gl.glGenBuffers();
+	        ms_vboFlip = gl.glGenBuffer();
 	        pos = 0;
 	        
 	        vert[pos].posX = 0; 

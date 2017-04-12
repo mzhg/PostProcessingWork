@@ -224,7 +224,7 @@ class NvBitFont {
 	    // since this is our 'system initialization' function, allocate the master index VBO here.
 	    if (masterTextIndexVBO==0)
 	    {
-	    	masterTextIndexVBO = gl.glGenBuffers();
+	    	masterTextIndexVBO = gl.glGenBuffer();
 	    }
 
 	    for (j=0; j<count; j++)

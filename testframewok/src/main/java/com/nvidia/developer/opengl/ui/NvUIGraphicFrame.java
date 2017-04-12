@@ -229,8 +229,8 @@ public class NvUIGraphicFrame extends NvUIGraphic{
 
 	        ms_shader.load(s_frameVertShader, s_frameFragShader);
 
-	        ms_gfibo = gl.glGenBuffers();
-	        ms_gfvbo = gl.glGenBuffers();
+	        ms_gfibo = gl.glGenBuffer();
+	        ms_gfvbo = gl.glGenBuffer();
 
 			gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, ms_gfvbo);
 			gl.glBufferData(GLenum.GL_ARRAY_BUFFER, CacheBuffer.wrap(vert), GLenum.GL_STATIC_DRAW);

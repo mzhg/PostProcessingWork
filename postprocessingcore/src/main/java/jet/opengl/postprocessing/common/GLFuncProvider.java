@@ -1,7 +1,5 @@
 package jet.opengl.postprocessing.common;
 
-import org.lwjgl.util.vector.Matrix4f;
-
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -33,7 +31,7 @@ public interface GLFuncProvider {
 
     public void glClearDepthf (float depth);
 
-    public default void glClearStencil (int s) { defaultImplemented("glClearStencil");}
+    public void glClearStencil (int s);
 
     public void glColorMask (boolean red, boolean green, boolean blue, boolean alpha);
 
@@ -48,24 +46,13 @@ public interface GLFuncProvider {
     }
     */
 
-    public default void glCopyTexImage2D (int target, int level, int internalformat, int x, int y, int width, int height, int border){
-        defaultImplemented("glCopyTexImage2D");
-    }
-
-    public default void glCopyTexSubImage2D (int target, int level, int xoffset, int yoffset, int x, int y, int width, int height){
-        defaultImplemented("glCopyTexSubImage2D");
-    }
+    public void glCopyTexImage2D (int target, int level, int internalformat, int x, int y, int width, int height, int border);
+    public void glCopyTexSubImage2D (int target, int level, int xoffset, int yoffset, int x, int y, int width, int height);
 
     public void glCullFace (int mode);
 
-    public default void glDeleteTextures (int...textures) {
-        glDeleteTextures(textures, 0, textures.length);
-    }
-
-    public default void glDeleteTextures (int[]textures, int offset, int length){
-        for(int i = 0; i < length; i++)
-            glDeleteTexture(textures[i + offset]);
-    }
+    public void glDeleteTextures (int...textures);
+    public void glDeleteTextures (int[]textures, int offset, int length);
 
     static void defaultImplemented(String msg){
         throw new RuntimeException("Unsupport the func: " + msg);
@@ -77,7 +64,8 @@ public interface GLFuncProvider {
 
     public void glDepthMask (boolean flag);
 
-    public default void glDepthRangef (float zNear, float zFar){ defaultImplemented("glDepthRangef");}
+    // Default is OK.
+//    public default void glDepthRangef (float zNear, float zFar){ defaultImplemented("glDepthRangef");}
 
     public void glDisable (int cap);
 
@@ -108,27 +96,17 @@ public interface GLFuncProvider {
 
     public void glPixelStorei (int pname, int param);
 
-    public default void glPolygonOffset (float factor, float units) {defaultImplemented("glPolygonOffset");}
+    public void glPolygonOffset (float factor, float units);
 
-    public default void glReadPixels (int x, int y, int width, int height, int format, int type, Buffer pixels){
-        defaultImplemented("glReadPixels");
-    }
+    public void glReadPixels (int x, int y, int width, int height, int format, int type, ByteBuffer pixels);
 
-    public default void glScissor (int x, int y, int width, int height){
-        defaultImplemented("glScissor");
-    }
+    public void glScissor (int x, int y, int width, int height);
 
-    public default void glStencilFunc (int func, int ref, int mask){
-        defaultImplemented("glStencilFunc");
-    }
+    public void glStencilFunc (int func, int ref, int mask);
 
-    public default void glStencilMask (int mask){
-        defaultImplemented("glStencilMask");
-    }
+    public void glStencilMask (int mask);
 
-    public default void glStencilOp (int fail, int zfail, int zpass){
-        defaultImplemented("glStencilOp");
-    }
+    public void glStencilOp (int fail, int zfail, int zpass);
 
     public void glTexImage2D (int target, int level, int internalformat, int width, int height, int border, int format, int type, Buffer pixels);
     public void glTexImage2D (int target, int level, int internalformat, int width, int height, int border, int format, int type, long pixels_offset);
@@ -240,14 +218,9 @@ public interface GLFuncProvider {
         defaultImplemented("glGetRenderbufferParameteriv");
     }
 
-    public default int glGetShaderi(int shader, int pname){
-        defaultImplemented("glGetShaderi");
-        return 0;
-    }
+    public int glGetShaderi(int shader, int pname);
 
-    public default void glGetShaderiv (int shader, int pname, IntBuffer params){
-        defaultImplemented("glGetShaderiv");
-    }
+    public void glGetShaderiv (int shader, int pname, IntBuffer params);
 
     // deviates
     public String glGetShaderInfoLog (int shader);

@@ -269,7 +269,7 @@ public class InputAdapter implements GLFWListener, NvKey {
 				touchPoint[0].m_x = mouseX;
 				touchPoint[0].m_y = mouseY;
 				touchPoint[0].m_id = 1 << button;
-				mouseEvent.touchPressed(NvInputDeviceType.MOUSE, 1,touchPoint);
+				mouseEvent.touchReleased(NvInputDeviceType.MOUSE, 1,touchPoint);
 			}
 			break;
 		default:

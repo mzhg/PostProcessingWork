@@ -7,6 +7,11 @@ import com.nvidia.developer.opengl.app.NvPointerEvent;
 import com.nvidia.developer.opengl.app.TouchEventListener;
 import com.nvidia.developer.opengl.app.WindowEventListener;
 
+import jet.opengl.postprocessing.common.GLAPI;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
+
 final class InputAdapterTest implements GLEventListener, KeyEventListener, TouchEventListener, WindowEventListener {
 
 	public InputAdapterTest() {
@@ -63,6 +68,7 @@ final class InputAdapterTest implements GLEventListener, KeyEventListener, Touch
 	
 	@Override
 	public void onCreate() {
+		GLFuncProviderFactory.initlizeGLFuncProvider(GLAPI.LWJGL, null);
 		System.out.println("onCreate");
 	}
 
@@ -74,6 +80,9 @@ final class InputAdapterTest implements GLEventListener, KeyEventListener, Touch
 	@Override
 	public void draw() {
 //		System.out.println("draw");
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+		gl.glClearColor(0.29f,0.29f,0.29f, 1.0f);
+		gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
 	}
 
 	@Override

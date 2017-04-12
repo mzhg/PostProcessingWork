@@ -84,7 +84,7 @@ public class NvImage {
     @CachaRes
     public int updaloadTexture(){
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-        int texID = gl.glGenTextures();
+        int texID = gl.glGenTexture();
 
         NvGfxAPIVersion api = getAPIVersion();
         int internalFormat = api.isGLES ? getFormat() : getInternalFormat();

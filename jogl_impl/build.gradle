@@ -2,7 +2,9 @@ apply plugin: 'java'
 apply plugin: 'kotlin'
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile project(':postprocessingcore')
+    compile project(':gl_math')
 }
 
 sourceCompatibility = "1.8"
@@ -35,6 +37,7 @@ dependencies {
 
     compile "org.jogamp.gluegen:gluegen-rt-main:$joglVersion"
     compile "org.jogamp.jogl:jogl-all-main:$joglVersion"
+    compile project(path: ':postprocessingcore')
 }
 
 repositories {

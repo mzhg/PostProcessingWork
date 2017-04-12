@@ -5,7 +5,12 @@ package jet.opengl.postprocessing.common;
  */
 
 public enum GLAPI {
-    ANDROID,
-    LWJGL,
-    JOGL
+    ANDROID(null),
+    LWJGL("jet.opengl.impl.lwjgl3.Lwjgl3OpenglFuncProvider"),
+    JOGL(null);
+
+    final String className;
+    GLAPI(String _className){
+        className = _className;
+    }
 }

@@ -36,7 +36,7 @@ public enum NvGfxAPIVersion implements Comparable<NvGfxAPIVersion>{
     GLES2(2,0, true), GLES3_0(3,0, true), GLES3_1(3,1, true),
 	GLES3_2(3, 2, true),
     GL4(4,0, false), GL4_1(4,1, false), GL4_3(4,3, false),
-    GL4_4(4,4, false);
+    GL4_4(4,4, false), GL4_5(4,5, false);
 	
 	/** The major version (X.0) */
 	public final int majVersion;
@@ -67,6 +67,8 @@ public enum NvGfxAPIVersion implements Comparable<NvGfxAPIVersion>{
 					return GL4_3;
 				else if(minor == 4){
 					return GL4_4;
+				}else if(minor == 5){
+					return GL4_5;
 				}
 			}
 		}

@@ -129,7 +129,7 @@ public abstract class NvAppBase implements NvInputCallbacks, NvKey, GLEventListe
 	 *  wishes anything different in the GL configuration, it should change those values before
 	 *  returning from the function.  These are merely requests.
 	 */
-	protected void configurationCallback(NvEGLConfiguration config){}
+	public void configurationCallback(NvEGLConfiguration config){}
 	
 
 	/** return true if the application is in the process of exiting, false if not. */

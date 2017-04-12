@@ -58,8 +58,8 @@ public class NvBFText implements NvUITextAlign, Disposeable {
 	private static final int IND_PER_QUAD = 6;
 	private static final int VERT_PER_QUAD = 4;
 	
-	static float s_bfShadowMultiplier = 0.80f; // this is for android.
-//	static float s_bfShadowMultiplier = 0.40f;
+//	static float s_bfShadowMultiplier = 0.80f; // this is for android.
+	static float s_bfShadowMultiplier = 0.40f;
 	
 	private static final int[] s_charColorTable = {
 		Numeric.makeRGBA(0xFF, 0xFF, 0xFF, 0xFF), //white
@@ -128,7 +128,7 @@ public class NvBFText implements NvUITextAlign, Disposeable {
         m_calcLineWidth = null;
 
         if (m_vbo != 0)
-            GLFuncProviderFactory.getGLFuncProvider().glDeleteBuffers(m_vbo);
+            GLFuncProviderFactory.getGLFuncProvider().glDeleteBuffer(m_vbo);
         m_vbo = 0;
 
 //        if (m_string)
@@ -696,7 +696,7 @@ public class NvBFText implements NvUITextAlign, Disposeable {
         {
             int offset = 0;
             if (m_vbo == 0)
-            	m_vbo = gl.glGenBuffers(); // !!!!TBD TODO error handling.
+            	m_vbo = gl.glGenBuffer(); // !!!!TBD TODO error handling.
             gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_vbo);
 
             gl.glVertexAttribPointer(NvBitFont.fontProgAttribPos, 2, GLenum.GL_FLOAT, false, 20, 0);
@@ -1078,7 +1078,7 @@ public class NvBFText implements NvUITextAlign, Disposeable {
         if (!internal)
         {
             if (m_vbo == 0)
-            	m_vbo = gl.glGenBuffers(); // !!!!TBD TODO error handling.
+            	m_vbo = gl.glGenBuffer(); // !!!!TBD TODO error handling.
             gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_vbo);
         }
 

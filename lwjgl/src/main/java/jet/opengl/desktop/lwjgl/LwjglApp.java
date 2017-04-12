@@ -1,6 +1,8 @@
 package jet.opengl.desktop.lwjgl;
 
 import com.nvidia.developer.opengl.app.GLEventListener;
+import com.nvidia.developer.opengl.app.NvEGLConfiguration;
+import com.nvidia.developer.opengl.app.NvGLAppContext;
 
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWCharModsCallback;
@@ -25,7 +27,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LwjglApp {
+import jet.opengl.postprocessing.common.GLAPI;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+
+public class LwjglApp implements NvGLAppContext{
 
 	private static final int DEFAULT_WIDTH = 1280;
 	private static final int DEFAULT_HEIGHT = 720;
@@ -88,13 +93,51 @@ public class LwjglApp {
     public void setGLContextConfig(GLContextConfig config){
     }
     
-    public void setSwapInterval(int interval){
+    public boolean setSwapInterval(int interval){
     	if(window != 0){
     		GLFW.glfwSwapInterval(interval);
+			return true;
     	}
+
+		return false;
     }
-    
-    /**
+
+	@Override
+	public int width() {
+		return getWidth();
+	}
+
+	@Override
+	public int height() {
+		return getHeight();
+	}
+
+	@Override
+	public NvEGLConfiguration getConfiguration() {
+		return null;
+	}
+
+	@Override
+	public void requestExit() {
+		exit();
+	}
+
+	@Override
+	public void setAppTitle(String title) {
+		setTitle(title);
+	}
+
+	@Override
+	public void showDialog(String msg, String errorStr) {
+
+	}
+
+	@Override
+	public String getAppTitle() {
+		return getTitle().toString();
+	}
+
+	/**
      * Return the reference of the GLContextConfig
      * @return
      */
@@ -195,7 +238,7 @@ public class LwjglApp {
     	        // bindings available for use.
     	        // GLContext.createFromCurrent();
     			GL.createCapabilities();
-    	        
+				GLFuncProviderFactory.initlizeGLFuncProvider(GLAPI.LWJGL, null);
     	        for(int i = 0; i < glListeners.size(); i++){
     	        	glListeners.get(i).onCreate();
     	        }

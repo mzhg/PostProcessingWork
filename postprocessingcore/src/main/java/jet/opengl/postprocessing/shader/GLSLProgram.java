@@ -2,13 +2,13 @@ package jet.opengl.postprocessing.shader;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.util.LinkedList;
 import java.util.function.IntConsumer;
 
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.LogUtil;
 
 public class GLSLProgram {
@@ -312,18 +312,19 @@ public class GLSLProgram {
 	 * Retrieve the program binary data. Return null if the video card doesn't support the opengl-extension <i>ARB_get_program_binary</i>
 	 * @return
 	 */
-	public ByteBuffer getProgramBinary(IntBuffer format){
+	public ByteBuffer getProgramBinary(int[] format){
 		if(gl.isSupportExt("ARB_get_program_binary")){
 //			// Get the expected size of the program binary
-//			int binary_size = GL20.glGetProgrami(m_program, ARBGetProgramBinary.GL_PROGRAM_BINARY_LENGTH);
+			int binary_size = gl.glGetProgrami(m_program, GLenum.GL_PROGRAM_BINARY_LENGTH);
 //			
 //			// Allocate some memory to store the program binary
-//			ByteBuffer binary = BufferUtils.createByteBuffer(binary_size);
+			ByteBuffer binary = BufferUtils.createByteBuffer(binary_size);
 			
 //			IntBuffer format = GLUtil.getCachedIntBuffer(1);
 //			format.put(0).flip();
 			// Now retrieve the binary from the program obj ect
-			return gl.glGetProgramBinary(m_program, format);
+			gl.glGetProgramBinary(m_program, new int[1], format, binary);
+			return binary;
 		}
 		
 		return null;

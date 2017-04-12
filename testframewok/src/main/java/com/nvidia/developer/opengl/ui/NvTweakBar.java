@@ -3,6 +3,9 @@ package com.nvidia.developer.opengl.ui;
 import com.nvidia.developer.opengl.utils.FieldControl;
 import com.nvidia.developer.opengl.utils.NvUtils;
 
+import jet.opengl.postprocessing.common.GLAPI;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.util.Numeric;
 
 /**
@@ -33,10 +36,10 @@ public class NvTweakBar extends NvUIContainer {
 	static{
 		if(NvUtils.SHOW_PRESSED_BUTTON){
 			NVB_FONT_TO_HEIGHT_FACTOR = 2.0f;
-			NVB_HEIGHT_TO_FONT_FACTOR = 0.5f * 1.1f;
+			NVB_HEIGHT_TO_FONT_FACTOR = 0.5f;
 		}else{
 			NVB_FONT_TO_HEIGHT_FACTOR = 1.5f;
-			NVB_HEIGHT_TO_FONT_FACTOR = 0.66667f * 1.1f;
+			NVB_HEIGHT_TO_FONT_FACTOR = 0.66667f;
 		}
 	}
 	float m_lastElX;
@@ -73,7 +76,7 @@ public class NvTweakBar extends NvUIContainer {
 	    NvTweakBar twb = new NvTweakBar(bw, bh);
 
 	    // add it to the passed in window/container.
-	    window.add(twb, 10, 0);
+	    window.add(twb, GLFuncProviderFactory.getGLFuncProvider().getHostAPI() == GLAPI.ANDROID? 10 : 0, 0);
 
 	    return twb;
 	}
@@ -93,6 +96,16 @@ public class NvTweakBar extends NvUIContainer {
 	 */
 	public NvTweakBar(float width, float height) {
 		super(width, height, new NvUIGraphicFrame("info_text_box_thin.dds", 24, 24));
+
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+		float padFactor ;
+		if(gl.getHostAPI() == GLAPI.ANDROID){
+			m_defaultRows = 15;
+			padFactor = 0.5f;
+		}else{
+			m_defaultRows = 20;
+			padFactor = 0.35f;
+		}
 		
 		m_canFocus = true;
 		
@@ -105,7 +118,7 @@ public class NvTweakBar extends NvUIContainer {
 	    m_lastElY = getStartOffY();
 
 	    // can't do this in constructor, order of ops not guaranteed somehow...
-	    m_padHeight = getDefaultLineHeight()*0.5f;
+	    m_padHeight = getDefaultLineHeight()*padFactor;
 
 	// !!!TBD Hack to make it a little more see-through for the moment...
 //	    if (m_background)
@@ -307,8 +320,10 @@ public class NvTweakBar extends NvUIContainer {
 	private NvUIButton makeStdButton(String name, boolean val, int btntype/*= CHECK*/, int code/*=0*/, int subcode/*=0*/ ){
 		int actionCode = code==0?++m_lastActionCode:code;
 	    NvUIButton btn = null;
-	    float wide = getDefaultLineWidth() * 1.2f;
-	    float high = getDefaultLineHeight() * 1.2f;
+
+		float factor = GLFuncProviderFactory.getGLFuncProvider().getHostAPI() == GLAPI.ANDROID ? 1.2f : 1.f;
+	    float wide = getDefaultLineWidth() * factor;
+	    float high = getDefaultLineHeight() * factor;
 	    float fontFactor = NVB_HEIGHT_TO_FONT_FACTOR;    
 	    NvUIElement[] els = new NvUIElement[3];
 
@@ -566,7 +581,8 @@ public class NvTweakBar extends NvUIContainer {
 
 	/** Add a static text label to the tweakbar. */
 	public void addLabel(String title, boolean bold/*==false*/) {
-		float dpsize = getDefaultLineHeight()*NVB_HEIGHT_TO_FONT_FACTOR * 1.25f;//*(small?0.85f:1.0f);
+		float factor = GLFuncProviderFactory.getGLFuncProvider().getHostAPI() == GLAPI.ANDROID ? 1.25f : 1.f;
+		float dpsize = getDefaultLineHeight()*NVB_HEIGHT_TO_FONT_FACTOR * factor;//*(small?0.85f:1.0f);
 	    String s = bold? NvBftStyle.NVBF_STYLESTR_BOLD:"";
 //	    s.append(title);
 	    s += title;
