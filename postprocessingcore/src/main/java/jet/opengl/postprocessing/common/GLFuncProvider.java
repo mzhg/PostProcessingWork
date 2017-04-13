@@ -392,12 +392,6 @@ public interface GLFuncProvider {
     public void glTexSubImage3D (int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth,
                                  int format, int type, long pixels_offset);
 
-    // C function void glTexSubImage3D ( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width,
-    // GLsizei height, GLsizei depth, GLenum format, GLenum type, GLsizei offset )
-
-    public void glTexSubImage3D (int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth,
-                                 int format, int type, int offset);
-
     // C function void glCopyTexSubImage3D ( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x,
     // GLint y, GLsizei width, GLsizei height )
 
