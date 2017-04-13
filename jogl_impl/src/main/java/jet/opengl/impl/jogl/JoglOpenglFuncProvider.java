@@ -12,6 +12,7 @@ import java.nio.LongBuffer;
 import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.util.BufferUtils;
 
 /**
  * Created by mazhen'gui on 2017/4/12.
@@ -20,6 +21,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 public class JoglOpenglFuncProvider implements GLFuncProvider {
     private GL4 gl;
     private GLAPIVersion m_GLVersion;
+    private final int[] intValues = new int[1];
 
     public JoglOpenglFuncProvider(GL4 gl){
         this.gl = gl;
@@ -62,367 +64,391 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
 
     @Override
     public void glClear(int mask) {
-
+        gl.glClear(mask);
     }
 
     @Override
     public void glClearColor(float red, float green, float blue, float alpha) {
-
+        gl.glClearColor(red, green, blue, alpha);
     }
 
     @Override
     public void glClearDepthf(float depth) {
-
+        gl.glClearDepthf(depth);
     }
 
     @Override
     public void glClearStencil(int s) {
-
+        gl.glClearStencil(s);
     }
 
     @Override
     public void glColorMask(boolean red, boolean green, boolean blue, boolean alpha) {
-
+        gl.glColorMask(red, green, blue, alpha);
     }
 
     @Override
     public void glCopyTexImage2D(int target, int level, int internalformat, int x, int y, int width, int height, int border) {
-
+        gl.glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
     }
 
     @Override
     public void glCopyTexSubImage2D(int target, int level, int xoffset, int yoffset, int x, int y, int width, int height) {
-
+        gl.glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
     }
 
     @Override
     public void glCullFace(int mode) {
-
+        gl.glCullFace(mode);
     }
 
     @Override
     public void glDeleteTextures(int... textures) {
+        if(textures == null)
+            return;
 
+        glDeleteTextures(textures, 0, textures.length);
     }
 
     @Override
     public void glDeleteTextures(int[] textures, int offset, int length) {
-
+        gl.glDeleteTextures(length, textures, offset);
     }
 
     @Override
     public void glDeleteTexture(int texture) {
-
+        glDeleteTextures(texture);
     }
 
     @Override
     public void glDepthFunc(int func) {
-
+        gl.glDepthFunc(func);
     }
 
     @Override
     public void glDepthMask(boolean flag) {
-
+        gl.glDepthMask(flag);
     }
 
     @Override
     public void glDisable(int cap) {
-
+        gl.glDisable(cap);
     }
 
     @Override
     public void glDrawArrays(int mode, int first, int count) {
-
+        gl.glDrawArrays(mode, first, count);
     }
 
     @Override
     public void glDrawElements(int mode, int count, int type, Buffer indices) {
-
+        if(indices == null){
+            gl.glDrawElements(mode, count, type, 0);
+        }else{
+            throw new UnsupportedOperationException("JOGL doesn't support the Buffer with glDrawElements!!!");
+        }
     }
 
     @Override
     public void glEnable(int cap) {
-
+        gl.glEnable(cap);
     }
 
     @Override
     public void glFinish() {
-
+        gl.glFinish();
     }
 
     @Override
     public void glFlush() {
-
+        gl.glFlush();
     }
 
     @Override
     public void glFrontFace(int mode) {
-
+        gl.glFrontFace(mode);
     }
 
     @Override
     public int glGenTexture() {
-        return 0;
+        gl.glGenTextures(1, intValues, 0);
+        return intValues[0];
     }
 
     @Override
     public int glGetError() {
-        return 0;
+        return gl.glGetError();
     }
 
     @Override
     public int glGetInteger(int pname) {
-        return 0;
+        gl.glGetIntegerv(pname, intValues, 0);
+        return intValues[0];
     }
 
     @Override
     public void glGetInteger(int pname, IntBuffer params) {
-
+        gl.glGetIntegerv(pname, params);
     }
 
     @Override
     public String glGetString(int name) {
-        return null;
+        return gl.glGetString(name);
     }
 
     @Override
     public void glHint(int target, int mode) {
-
+        gl.glHint(target, mode);
     }
 
     @Override
     public void glLineWidth(float width) {
-
+        gl.glLineWidth(width);
     }
 
     @Override
     public void glPixelStorei(int pname, int param) {
-
+        gl.glPixelStorei(pname, param);
     }
 
     @Override
     public void glPolygonOffset(float factor, float units) {
-
+        gl.glPolygonOffset(factor, units);
     }
 
     @Override
     public void glReadPixels(int x, int y, int width, int height, int format, int type, ByteBuffer pixels) {
-
+        gl.glReadPixels(x, y, width, height, format, type, pixels);
     }
 
     @Override
     public void glScissor(int x, int y, int width, int height) {
-
+        gl.glScissor(x, y, width, height);
     }
 
     @Override
     public void glStencilFunc(int func, int ref, int mask) {
-
+        gl.glStencilFunc(func, ref, mask);
     }
 
     @Override
     public void glStencilMask(int mask) {
-
+        gl.glStencilMask(mask);
     }
 
     @Override
     public void glStencilOp(int fail, int zfail, int zpass) {
-
+        gl.glStencilOp(fail, zfail, zpass);
     }
 
     @Override
     public void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, Buffer pixels) {
-
+        gl.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
     }
 
     @Override
     public void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, long pixels_offset) {
-
+        gl.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels_offset);
     }
 
     @Override
     public void glTexParameterf(int target, int pname, float param) {
-
+        gl.glTexParameterf(target, pname, param);
     }
 
     @Override
     public void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, Buffer pixels) {
-
+        gl.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
     }
 
     @Override
     public void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, long pixels_offset) {
-
+        gl.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels_offset);
     }
 
     @Override
     public void glViewport(int x, int y, int width, int height) {
-
+        gl.glViewport(x, y, width, height);
     }
 
     @Override
     public void glAttachShader(int program, int shader) {
-
+        gl.glAttachShader(program, shader);
     }
 
     @Override
     public void glBindAttribLocation(int program, int index, CharSequence name) {
-
+        gl.glBindAttribLocation(program, index, name.toString());
     }
 
     @Override
     public void glBindBuffer(int target, int buffer) {
-
+        gl.glBindBuffer(target, buffer);
     }
 
     @Override
     public void glBindFramebuffer(int target, int framebuffer) {
-
+        gl.glBindFramebuffer(target, framebuffer);
     }
 
     @Override
     public void glBindRenderbuffer(int target, int renderbuffer) {
-
+        gl.glBindRenderbuffer(target, renderbuffer);
     }
 
     @Override
     public void glBlendColor(float red, float green, float blue, float alpha) {
-
+        gl.glBlendColor(red, green, blue, alpha);
     }
 
     @Override
     public void glBlendEquation(int mode) {
-
+        gl.glBlendEquation(mode);
     }
 
     @Override
     public void glBlendEquationSeparate(int modeRGB, int modeAlpha) {
-
+        gl.glBlendEquationSeparate(modeRGB, modeAlpha);
     }
 
     @Override
     public void glBlendFuncSeparate(int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) {
-
+        gl.glBlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha);
     }
 
     @Override
     public void glBufferSubData(int target, int offset, Buffer data) {
-
+        gl.glBufferSubData(target, offset, BufferUtils.measureSize(data), data);
     }
 
     @Override
     public int glCheckFramebufferStatus(int target) {
-        return 0;
+        return gl.glCheckFramebufferStatus(target);
     }
 
     @Override
     public void glCompileShader(int shader) {
-
+        gl.glCompileShader(shader);
     }
 
     @Override
     public int glCreateProgram() {
-        return 0;
+        return gl.glCreateProgram();
     }
 
     @Override
     public int glCreateShader(int type) {
-        return 0;
+        return gl.glCreateShader(type);
     }
+
+    final int[] wrap(int i){ intValues[0] = i; return intValues;}
 
     @Override
     public void glDeleteBuffer(int buffer) {
-
+        gl.glDeleteBuffers(1, wrap(buffer), 0);
     }
 
     @Override
     public void glDeleteFramebuffer(int framebuffer) {
-
+        gl.glDeleteFramebuffers(1, wrap(framebuffer), 0);
     }
 
     @Override
     public void glDeleteProgram(int program) {
-
+        gl.glDeleteProgram(program);
     }
 
     @Override
     public void glDeleteRenderbuffer(int renderbuffer) {
-
+        gl.glDeleteRenderbuffers(1, wrap(renderbuffer), 0);
     }
 
     @Override
     public void glDeleteShader(int shader) {
-
+        gl.glDeleteShader(shader);
     }
 
     @Override
     public void glDetachShader(int program, int shader) {
-
+        gl.glDetachShader(program, shader);
     }
 
     @Override
     public void glDisableVertexAttribArray(int index) {
-
+        gl.glDisableVertexAttribArray(index);
     }
 
     @Override
     public void glDrawElements(int mode, int count, int type, long indices) {
-
+        gl.glDrawElements(mode, count, type, indices);
     }
 
     @Override
     public void glEnableVertexAttribArray(int index) {
-
+        gl.glEnableVertexAttribArray(index);
     }
 
     @Override
     public void glFramebufferRenderbuffer(int target, int attachment, int renderbuffertarget, int renderbuffer) {
-
+        gl.glFramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer);
     }
 
     @Override
     public void glFramebufferTexture2D(int target, int attachment, int textarget, int texture, int level) {
-
+        gl.glFramebufferTexture2D(target, attachment, textarget, texture, level);
     }
 
     @Override
     public int glGenBuffer() {
-        return 0;
+        gl.glGenBuffers(1, intValues, 0);
+        return intValues[0];
     }
 
     @Override
     public void glGenBuffers(IntBuffer buffers) {
-
+        gl.glGenBuffers(buffers.remaining(), buffers);
     }
 
     @Override
     public void glGenerateMipmap(int target) {
-
+        gl.glGenerateMipmap(target);
     }
 
     @Override
     public int glGenFramebuffer() {
-        return 0;
+        gl.glGenFramebuffers(1, intValues, 0);
+        return intValues[0];
     }
 
     @Override
     public int glGenRenderbuffer() {
-        return 0;
+        gl.glGenRenderbuffers(1, intValues, 0);
+        return intValues[0];
     }
 
     @Override
     public String glGetActiveAttrib(int program, int index, int maxLength, IntBuffer size, IntBuffer type) {
-        return null;
+        IntBuffer length = BufferUtils.createIntBuffer(1);
+        ByteBuffer name = BufferUtils.createByteBuffer(maxLength); // TODO null-termined string
+        gl.glGetActiveAttrib(program, index, maxLength, length, size, type, name);
+        byte[] bytes = new byte[maxLength];
+        name.get(bytes);
+        return new String(bytes);
     }
 
     @Override
     public String glGetActiveUniform(int program, int index, int maxLength, IntBuffer size, IntBuffer type) {
-        return null;
+        IntBuffer length = BufferUtils.createIntBuffer(1);
+        ByteBuffer name = BufferUtils.createByteBuffer(maxLength); // TODO null-termined string
+        gl.glGetActiveUniform(program, index, maxLength, length, size, type, name);
+        byte[] bytes = new byte[maxLength];
+        name.get(bytes);
+        return new String(bytes);
     }
 
     @Override
     public void glGetAttachedShaders(int program, int[] count, int[] shaders) {
-
+        gl.glGetAttachedShaders(program, count.length, count, 0, shaders, 0);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package jet.opengl.postprocessing.util;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
@@ -95,5 +96,26 @@ public class BufferUtils {
      */
     public static DoubleBuffer createDoubleBuffer(int capacity) {
         return createByteBuffer(capacity << 3).asDoubleBuffer();
+    }
+
+    /**
+     * Compute the buffer size by the given buffer.
+     * @param buffer
+     * @return The size of the buffer.
+     */
+    public static int measureSize(Buffer buffer){
+        if(buffer == null){
+            return 0;
+        }else if(buffer instanceof ByteBuffer){
+            return buffer.remaining();
+        }else if(buffer instanceof ShortBuffer || buffer instanceof CharBuffer){
+            return buffer.remaining() * 2;
+        }else if(buffer instanceof  IntBuffer || buffer instanceof FloatBuffer){
+            return buffer.remaining() * 4;
+        }else if(buffer instanceof LongBuffer || buffer instanceof DoubleBuffer){
+            return buffer.remaining() * 8;
+        }else{
+            throw new IllegalArgumentException("Unkown buffer type: " + buffer.getClass().getName());
+        }
     }
 }
