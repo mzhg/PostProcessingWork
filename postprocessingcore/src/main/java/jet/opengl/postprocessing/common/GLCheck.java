@@ -4,7 +4,14 @@ package jet.opengl.postprocessing.common;
  * Created by mazhen'gui on 2017/4/1.
  */
 
-public class GLError {
+public class GLCheck {
+
+    public static final boolean CHECK;
+
+    static {
+        CHECK = Boolean.parseBoolean(System.getProperty("jet.opengl.postprocessing.debug", "false"));
+    }
+
     public static void checkError(){
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         int error = gl.glGetError();

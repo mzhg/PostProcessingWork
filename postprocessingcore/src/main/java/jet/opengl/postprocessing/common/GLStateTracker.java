@@ -35,9 +35,20 @@ public class GLStateTracker {
 
     }
 
+    @SuppressWarnings({"NoteSafe"})
+    public void bindBuffer(int target, int buffer){
+
+    }
+
     // bind the texture to current units
     public void bindTexture(int target, int textureID, int sampler){
 
+    }
+
+    public void bindVAO(int vao) {
+    }
+
+    public void bindFramebuffer(int target, int m_framebuffer) {
     }
 
     private static final class StateDesc{

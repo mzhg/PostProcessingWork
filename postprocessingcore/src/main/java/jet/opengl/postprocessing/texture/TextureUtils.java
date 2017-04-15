@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import jet.opengl.postprocessing.common.GLAPIVersion;
-import jet.opengl.postprocessing.common.GLError;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
@@ -18,6 +18,8 @@ import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
+import static jet.opengl.postprocessing.common.GLenum.GL_STENCIL;
+import static jet.opengl.postprocessing.common.GLenum.GL_STENCIL_INDEX8;
 import static jet.opengl.postprocessing.util.CacheBuffer.getCachedByteBuffer;
 
 public final class TextureUtils {
@@ -82,7 +84,7 @@ public final class TextureUtils {
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 
 		gl.glBindTexture(target, textureID);
-		GLError.checkError();
+		GLCheck.checkError();
 		int width = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_WIDTH);
 		int height = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_HEIGHT);
 		int depth = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_DEPTH);
@@ -102,7 +104,7 @@ public final class TextureUtils {
 //		System.out.println("blue_bits = " + blue_bits);
 //		System.out.println("alpha_bits = " + alpha_bits);
 		
-		GLError.checkError();
+		GLCheck.checkError();
 		
 		int totalBytes = Math.max(width, 1) * Math.max(height, 1) * Math.max(depth, 1) * 
 				(red_bits + green_bits + blue_bits + alpha_bits + depth_bits + stencil_bits) /8;
@@ -117,7 +119,7 @@ public final class TextureUtils {
 //		System.out.println("totalBytes = " + totalBytes);
 		gl.glGetTexImage(target, level, format, type, result);
 //		System.out.println("totalBytes = " + totalBytes);
-		GLError.checkError();
+		GLCheck.checkError();
 		return result;
 	}
 
@@ -187,7 +189,7 @@ public final class TextureUtils {
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int texture = gl.glGenTexture();
 		gl.glTextureView(texture, target, source.getTexture(), source.getFormat(), minlevel, numlevels, minlayer, numlayers);
-		GLError.checkError();
+		GLCheck.checkError();
 		
 		Texture2D result = new Texture2D();
 		result.arraySize = numlayers;
@@ -205,7 +207,7 @@ public final class TextureUtils {
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int texture = gl.glGenTexture();
 		gl.glTextureView(texture, GLenum.GL_TEXTURE_3D, source.getTexture(), source.getFormat(), minlevel, numlevels, minlayer, numlayers);
-		GLError.checkError();
+		GLCheck.checkError();
 		
 		Texture3D result = new Texture3D();
 		result.depth = numlayers;
@@ -313,7 +315,7 @@ public final class TextureUtils {
 		if(isDSA && !isCompressed){
 			// 1. Generate texture ID
 			textureID = gl.glCreateTextures(target);
-			if(valid_texture2D) GLError.checkError();
+			if(valid_texture2D) GLCheck.checkError();
 			
 			// 2. Allocate storage for Texture Object
 			gl.glTextureStorage3D(textureID, mipLevels, format, textureDesc.width, textureDesc.height, textureDesc.depth);
@@ -420,7 +422,7 @@ public final class TextureUtils {
 			gl.glBindTexture(target, 0);  // unbind Texture
 		}		
 		
-		GLError.checkError();
+		GLCheck.checkError();
 		Texture3D texture = out!=null ? out : new Texture3D();
 		texture.format = format;
 		texture.height = textureDesc.height;
@@ -477,27 +479,27 @@ public final class TextureUtils {
 		if(isDSA && !isCompressed){
 			// 1. Generate texture ID
 			textureID = gl.glCreateTextures(target);
-			if(valid_texture2D) GLError.checkError();
+			if(valid_texture2D) GLCheck.checkError();
 			
 			// 2. Allocate storage for Texture Object
 			switch (target) {
 			case GLenum.GL_TEXTURE_2D_MULTISAMPLE:
 				gl.glTextureStorage2DMultisample(textureID, textureDesc.sampleCount, format, textureDesc.width, textureDesc.height, false);
 				mipLevels = 1;  // multisample_texture doesn't support mipmaps.
-				if(valid_texture2D) GLError.checkError();
+				if(valid_texture2D) GLCheck.checkError();
 				break;
 			case GLenum.GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
 				gl.glTextureStorage3DMultisample(textureID, textureDesc.sampleCount, format, textureDesc.width, textureDesc.height, textureDesc.arraySize, false);
 				mipLevels = 1; // multisample_texture doesn't support mipmaps.
-				if(valid_texture2D) GLError.checkError();
+				if(valid_texture2D) GLCheck.checkError();
 				break;
 			case GLenum.GL_TEXTURE_2D_ARRAY:
 				gl.glTextureStorage3D(textureID, mipLevels, format, textureDesc.width, textureDesc.height, textureDesc.arraySize);
-				if(valid_texture2D) GLError.checkError();
+				if(valid_texture2D) GLCheck.checkError();
 				break;
 			case GLenum.GL_TEXTURE_2D:
 				gl.glTextureStorage2D(textureID, mipLevels, format, textureDesc.width, textureDesc.height);
-				if(valid_texture2D) GLError.checkError();
+				if(valid_texture2D) GLCheck.checkError();
 				break;
 			default:
 				break;
@@ -681,7 +683,7 @@ public final class TextureUtils {
 			gl.glBindTexture(target, 0);  // unbind Texture
 		}		
 		
-		GLError.checkError();
+		GLCheck.checkError();
 		Texture2D texture = (out != null ? out : new Texture2D());
 		texture.arraySize = textureDesc.arraySize;
 		texture.format = format;
@@ -716,7 +718,7 @@ public final class TextureUtils {
 //			System.out.println("width = " + width);
 //			System.out.println("height = " + height);
 //			System.out.println("depth = " + depth);
-			GLError.checkError();
+			GLCheck.checkError();
 		}
 	}
 
@@ -742,13 +744,13 @@ public final class TextureUtils {
 //			System.out.println("width = " + width);
 //			System.out.println("height = " + height);
 //			System.out.println("depth = " + depth);
-			GLError.checkError();
+			GLCheck.checkError();
 		}
 	}
 
 	@CachaRes
 	private static void subTexImage2DDAS(int texture, int width, int height, int level, int format, int type,  Object data){
-		if(valid_texture2D) GLError.checkError();
+		if(valid_texture2D) GLCheck.checkError();
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 
 //		System.out.println("width = " + width);
@@ -769,7 +771,7 @@ public final class TextureUtils {
 			gl.glTextureSubImage2D(texture, level, 0, 0, width, height, format, type, CacheBuffer.wrapPrimitiveArray(data));
 		}
 		
-		if(valid_texture2D) GLError.checkError();
+		if(valid_texture2D) GLCheck.checkError();
 	}
 
 	@CachaRes
@@ -785,7 +787,7 @@ public final class TextureUtils {
 			gl.glTexSubImage2D(target, level, 0, 0, width, height, format, type, CacheBuffer.wrapPrimitiveArray(data));
 		}
 
-		if(valid_texture2D) GLError.checkError();
+		if(valid_texture2D) GLCheck.checkError();
 	}
 
 	@CachaRes
@@ -801,7 +803,7 @@ public final class TextureUtils {
 			gl.glTexImage3D(target, level, internalformat, width, height, depth, 0, format, type, CacheBuffer.wrapPrimitiveArray(data));
 		}
 
-		if(valid_texture2D) GLError.checkError();
+		if(valid_texture2D) GLCheck.checkError();
 	}
 
 	@CachaRes
@@ -817,7 +819,7 @@ public final class TextureUtils {
 			gl.glTexImage2D(target, level, internalformat, width, height, 0, format, type, CacheBuffer.wrapPrimitiveArray(data));
 		}
 
-		if(valid_texture2D) GLError.checkError();
+		if(valid_texture2D) GLCheck.checkError();
 	}
 
 	@CachaRes
@@ -833,7 +835,7 @@ public final class TextureUtils {
 			gl.glCompressedTexImage3D(target, level, internalformat, width, height, depth, 0, CacheBuffer.wrapPrimitiveArray(data));
 		}
 		
-		if(valid_texture2D) GLError.checkError();
+		if(valid_texture2D) GLCheck.checkError();
 	}
 
 	@CachaRes
@@ -849,7 +851,7 @@ public final class TextureUtils {
 			gl.glCompressedTexImage2D(target, level, internalformat, width, height, 0, CacheBuffer.wrapPrimitiveArray(data));
 		}
 
-		if(valid_texture2D) GLError.checkError();
+		if(valid_texture2D) GLCheck.checkError();
 	}
 	
 	private static void enablePixelStore(TextureDataDesc desc){
@@ -909,7 +911,7 @@ public final class TextureUtils {
 		}
 		
 		if(valid_texture2D){
-			GLError.checkError();
+			GLCheck.checkError();
 		}
 	}
 	
@@ -1305,6 +1307,8 @@ public final class TextureUtils {
 		case GLenum.GL_DEPTH24_STENCIL8:
 		case GLenum.GL_DEPTH32F_STENCIL8:
 										return GLenum.GL_DEPTH_STENCIL;
+		case GLenum.GL_STENCIL_INDEX8:
+			return GL_STENCIL;
 		case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
 		case GLenum.GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
 		case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:

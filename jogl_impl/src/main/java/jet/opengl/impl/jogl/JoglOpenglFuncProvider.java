@@ -1491,4 +1491,19 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
         gl.glGetVertexAttribiv(index, pname, intValues, 0);
         return intValues[0];
     }
+
+    @Override
+    public void glFramebufferTexture(int target, int attachment, int texture, int level) {
+        gl.glFramebufferTexture(target, attachment, texture, level);
+    }
+
+    @Override
+    public void glFramebufferTexture1D(int target, int attachment, int texturetarget, int texture, int level) {
+        gl.glFramebufferTexture1D(target, attachment, texturetarget, texture, level);
+    }
+
+    @Override
+    public void glFramebufferTexture3D(int target, int attachment, int texturetarget, int texture, int level, int layer) {
+        gl.glFramebufferTexture3D(target, attachment, texturetarget, texture, level, layer);
+    }
 }

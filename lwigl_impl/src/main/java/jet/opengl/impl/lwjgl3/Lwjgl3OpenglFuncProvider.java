@@ -1523,4 +1523,19 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     public int glGetVertexAttribi(int index, int pname) {
         return GL20.glGetVertexAttribi(index, pname);
     }
+
+    @Override
+    public void glFramebufferTexture(int target, int i, int texture, int level) {
+        GL32.glFramebufferTexture(target, i, texture, level);
+    }
+
+    @Override
+    public void glFramebufferTexture1D(int glFramebuffer, int i, int glTexture1d, int texture, int level) {
+        GL30.glFramebufferTexture1D(glFramebuffer, i, glTexture1d, texture, level);
+    }
+
+    @Override
+    public void glFramebufferTexture3D(int glFramebuffer, int i, int glTexture3d, int texture, int level, int layer) {
+        GL30.glFramebufferTexture3D(glFramebuffer, i, glTexture3d, texture, level, layer);
+    }
 }

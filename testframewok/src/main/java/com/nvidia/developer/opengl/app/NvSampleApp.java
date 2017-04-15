@@ -60,7 +60,7 @@ import com.nvidia.developer.opengl.utils.NvStopWatch;
 import java.awt.Dimension;
 import java.util.HashMap;
 
-import jet.opengl.postprocessing.common.GLError;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.util.LogUtil;
@@ -214,7 +214,7 @@ public class NvSampleApp extends NvAppBase {
 	            mUIWindow.add(mTweakTab, high*0.25f, mTweakBar.getStartOffY()+high*0.125f);
 	        }
 
-			GLError.checkError();
+			GLCheck.checkError();
 	    }
 
 	    initUI();

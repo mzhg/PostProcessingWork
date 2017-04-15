@@ -1464,4 +1464,9 @@ public interface GLFuncProvider {
     void glTextureSubImage3D(int textureID, int level, int x_offset, int y_offset, int z_offset, int width, int height, int depth, int format, int type, long offset);
 
     int glGetVertexAttribi(int index, int pname);
+
+
+    void glFramebufferTexture(int target, int attachment, int texture, int level);
+    void glFramebufferTexture1D(int target, int attachment, int texturetarget, int texture, int level);
+    void glFramebufferTexture3D(int target, int attachment, int texturetarget, int texture, int level, int layer);
 }
