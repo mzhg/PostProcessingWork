@@ -1,5 +1,7 @@
 package jet.opengl.postprocessing.common;
 
+import jet.opengl.postprocessing.util.LogUtil;
+
 /**
  * Created by mazhen'gui on 2017/4/1.
  */
@@ -7,9 +9,11 @@ package jet.opengl.postprocessing.common;
 public class GLCheck {
 
     public static final boolean CHECK;
+    public static final boolean INGORE_UNSUPPORT_FUNC;
 
     static {
         CHECK = Boolean.parseBoolean(System.getProperty("jet.opengl.postprocessing.debug", "false"));
+        INGORE_UNSUPPORT_FUNC = Boolean.parseBoolean(System.getProperty("jet.opengl.postprocessing.ingore.unpport.func", "false"));
     }
 
     public static void checkError(){
@@ -17,6 +21,14 @@ public class GLCheck {
         int error = gl.glGetError();
         if(error != 0){
             throw new IllegalStateException(getErrorString(error));
+        }
+    }
+
+    public static void printUnsupportFuncError(String errorMsg){
+        if(GLCheck.INGORE_UNSUPPORT_FUNC){
+            LogUtil.e(LogUtil.LogType.DEFAULT, errorMsg);
+        }else{
+            throw new UnsupportedOperationException(errorMsg);
         }
     }
 
@@ -28,10 +40,6 @@ public class GLCheck {
             String s_msg = String.format("%s [0x%X] at %s", getErrorString(error), error, msg);
             throw new IllegalStateException(s_msg);
         }
-    }
-
-    public static void turnOnDebug(){
-        System.setProperty("org.lwjgl.util.Debug", "true");
     }
 
     static String getErrorString(int code){
