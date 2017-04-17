@@ -14,7 +14,7 @@ public class BufferBinding {
     public BufferBinding() {
     }
 
-    public BufferBinding(BufferGL bufferVBO, AttribDesc[] attribDescs) {
+    public BufferBinding(BufferGL bufferVBO, AttribDesc... attribDescs) {
         this.m_BufferVBO = bufferVBO;
         this.m_AttribDescs = attribDescs;
     }

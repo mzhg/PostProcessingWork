@@ -51,6 +51,12 @@ final class RenderTexturePool {
             }
 
             LogUtil.i(LogUtil.LogType.DEFAULT, "Put a unused texture into the RenderTexturePool." );
+            for(Texture2D texture2D : texture2DList){
+                if(texture2D == tex || texture2D.getTexture() == tex.getTexture()){
+                    return;
+                }
+            }
+
             texture2DList.add(tex);
         }else{
             LogUtil.e(LogUtil.LogType.DEFAULT, "Couldn't put the external texture into the RenderTexturePool");

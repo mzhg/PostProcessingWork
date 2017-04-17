@@ -6,4 +6,7 @@ package jet.opengl.postprocessing.util;
 
 public class Recti {
     public int x,y,width, height;
+
+    public boolean isValid(){ return width > 0 && height > 0;}
+    public void zero(){x=y = width = height = 0;}
 }
