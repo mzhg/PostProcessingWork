@@ -193,7 +193,7 @@ class NvBitFont {
 	    if (fontProg == null)
 	    { // then not one set already, load one...
 	    // this loads from a file
-	        fontProg = GLSLProgram.createFromStrings(s_fontVertShader, s_fontFragShader, false);
+	        fontProg = GLSLProgram.createFromStrings(s_fontVertShader, s_fontFragShader);
 	        //fontProg = nv_load_program_from_strings(s_fontVertShader, s_fontFragShader);  
 	        if (null==fontProg ) //|| 0==fontProg.getProgram())
 	        {

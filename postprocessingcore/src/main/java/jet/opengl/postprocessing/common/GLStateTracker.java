@@ -51,6 +51,10 @@ public class GLStateTracker {
     public void bindFramebuffer(int target, int m_framebuffer) {
     }
 
+    public void bindProgram(int program) {
+
+    }
+
     private static final class StateDesc{
 
     }

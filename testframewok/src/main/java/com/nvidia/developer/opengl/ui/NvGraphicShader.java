@@ -52,7 +52,7 @@ public class NvGraphicShader {
 	public int m_colorIndex;
 	
 	public void load(String vs, String fs){
-		GLSLProgram prog = GLSLProgram.createFromStrings(vs, fs, false);
+		GLSLProgram prog = GLSLProgram.createFromStrings(vs, fs);
 		
 		m_program = prog;
 		prog.enable();

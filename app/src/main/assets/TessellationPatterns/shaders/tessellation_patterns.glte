@@ -1,0 +1,52 @@
+#version 400 core
+
+subroutine void Technique();
+subroutine uniform Technique technique;
+
+#pattern
+
+uniform mat4 g_f4x4WorldViewProjection;
+
+subroutine (Technique) void Triangle()
+{
+    float fU = gl_TessCoord.x;
+    float fV = gl_TessCoord.y;
+    float fW = gl_TessCoord.z;
+    
+    vec3 f3Position = gl_in[0].gl_Position.xyz * fU +
+     				  gl_in[1].gl_Position.xyz * fV +
+     				  gl_in[2].gl_Position.xyz * fW;
+     				  
+    gl_Position = g_f4x4WorldViewProjection * vec4(f3Position, 1.0);
+}
+
+vec3 bilerpUV(vec3 v[4], vec2 uv)
+{
+    // bilerp the texture coordinates    
+    vec3 bottom = mix( v[0], v[1], uv.x );
+    vec3 top = mix( v[3], v[2], uv.x );
+    vec3 result = mix( bottom, top, uv.y );
+	
+    return result;    
+}
+
+subroutine (Technique) void Quad()
+{
+    vec3 f3Position; 
+
+	vec3 p[4]; 
+	// [unroll]
+	for (int i=0; i<4; i++)
+	{
+	    p[i]=gl_in[i].gl_Position.xyz;
+	}
+    f3Position = bilerpUV(p, gl_TessCoord.xy);
+
+    // O.f4Position = mul( float4( f3Position.xyz, 1.0 ), g_f4x4WorldViewProjection );
+    gl_Position = g_f4x4WorldViewProjection * vec4(f3Position, 1.0);
+}
+
+void main()
+{
+    technique();
+}

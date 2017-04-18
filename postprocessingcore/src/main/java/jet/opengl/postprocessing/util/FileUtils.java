@@ -14,7 +14,7 @@ import java.nio.charset.Charset;
 
 public class FileUtils {
 
-    static FileLoader g_IntenalFileLoader = FileLoader.g_DefaultFileLoader;
+    public static FileLoader g_IntenalFileLoader = FileLoader.g_DefaultFileLoader;
 
     private FileUtils(){}
 

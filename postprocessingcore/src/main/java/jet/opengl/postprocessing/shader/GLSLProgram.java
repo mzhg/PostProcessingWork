@@ -2,32 +2,33 @@ package jet.opengl.postprocessing.shader;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.function.IntConsumer;
+import java.util.Arrays;
 
+import jet.opengl.postprocessing.common.GLAPIVersion;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.radialblur.OpenGLProgram;
 import jet.opengl.postprocessing.util.BufferUtils;
-import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.StringUtils;
 
-public class GLSLProgram {
+import static jet.opengl.postprocessing.shader.GLSLUtil.checkLinkError;
 
-	protected static boolean ms_logAllMissing;
-	
-	protected boolean m_strict = true;
+public class GLSLProgram implements OpenGLProgram{
+
 	protected int m_program;
-	protected final LinkedList<IntConsumer> beforeLinks = new LinkedList<IntConsumer>();
 	protected final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-	
+	private AttribBinder[] m_Attribs;
+
 	/**
 	 * Creates and returns a shader object from a array of #{@link ShaderSourceItem}.<br>
 	 * @param items
 	 * @return a reference to an <code>GLSLProgram</code> on success and null on failure
 	 */
-	public static GLSLProgram createFromShaderItems(ShaderSourceItem[] items){
+	public static GLSLProgram createFromShaderItems(ShaderSourceItem... items){
 		GLSLProgram prog = new GLSLProgram();
-		prog.setSourceFromStrings(items, true);
+		prog.setSourceFromStrings(items);
 		return prog;
 	}
 	
@@ -35,114 +36,66 @@ public class GLSLProgram {
 	 * Creates and returns a shader object from a pair of filenames/paths.<br>
 	 * @param vertFilename the filename and partial path to the text file containing the vertex shader source
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
-	 * @param strict if set to true, then later calls to retrieve the locations of nonexistent uniforms and 
-	 * vertex attributes will log a warning to the output
 	 * @return a reference to an <code>GLSLProgram</code> on success and null on failure
 	 */
-	public static GLSLProgram createFromClassFiles(String vertFilename, String fragFilename, boolean strict) throws IOException{
+	public static GLSLProgram createFromClassFiles(String vertFilename, String fragFilename) throws IOException{
 		GLSLProgram prog = new GLSLProgram();
-		prog.setSourceFromClassFiles(vertFilename, fragFilename, strict);
+		prog.setSourceFromClassFiles(vertFilename, fragFilename);
 		return prog;
 	}
 	
 	/**
-	 * Creates and returns a shader object from a pair of filenames/paths.<br>
-	 * @param vertFilename the filename and partial path to the text file containing the vertex shader source
-	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
-	 * @return a reference to an <code>NvGLSLProgram</code> on success and null on failure
-	 */
-	public static GLSLProgram createFromClassFiles(String vertFilename, String fragFilename) throws IOException{
-		return createFromFiles(vertFilename, fragFilename, false);
-	}
-	
-	/**
-	 * Initializes an existing shader object from a pair of filenames/paths<br>
-	 * @param vertFilename the filename and partial path to the text file containing the vertex shader source
-	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
-	 * @param strict if set to true, then later calls to retrieve the 
-	 * locations of nonexistent uniforms and vertex attributes will 
-	 * log a warning to the output
-	 * @return true on success and false on failure
-	 */
-	protected void setSourceFromClassFiles(String vertFilename, String fragFilename, boolean strict) throws IOException{
-		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, true);
-		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, true);
-		setSourceFromStrings(vertSrc, fragSrc, strict);
-	}
-	
-	/**
 	 * Initializes an existing shader object from a pair of filenames/paths<br>
 	 * @param vertFilename the filename and partial path to the text file containing the vertex shader source
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
 	 * @return true on success and false on failure
-	 * @see #setSourceFromFiles(String, String, boolean)
 	 */
 	protected void setSourceFromClassFiles(String vertFilename, String fragFilename) throws IOException{
-		setSourceFromClassFiles(vertFilename, fragFilename, true);
+		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, true);
+		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, true);
+		ShaderSourceItem vs_item = new ShaderSourceItem(vertSrc, ShaderType.VERTEX);
+		ShaderSourceItem ps_item = new ShaderSourceItem(fragSrc, ShaderType.FRAGMENT);
+
+		setSourceFromStrings(vs_item, ps_item);
 	}
+
 	////------------------
 	/**
 	 * Creates and returns a shader object from a pair of filenames/paths.<br>
 	 * @param vertFilename the filename and partial path to the text file containing the vertex shader source
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
-	 * @param strict if set to true, then later calls to retrieve the locations of nonexistent uniforms and 
-	 * vertex attributes will log a warning to the output
 	 * @return a reference to an <code>GLSLProgram</code> on success and null on failure
 	 */
-	public static GLSLProgram createFromFiles(String vertFilename, String fragFilename, boolean strict) throws IOException{
+	public static GLSLProgram createFromFiles(String vertFilename, String fragFilename) throws IOException{
 		GLSLProgram prog = new GLSLProgram();
-		prog.setSourceFromFiles(vertFilename, fragFilename, strict);
+		prog.setSourceFromFiles(vertFilename, fragFilename);
 		return prog;
 	}
 	
 	/**
-	 * Creates and returns a shader object from a pair of filenames/paths.<br>
-	 * @param vertFilename the filename and partial path to the text file containing the vertex shader source
-	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
-	 * @return a reference to an <code>NvGLSLProgram</code> on success and null on failure
-	 */
-	public static GLSLProgram createFromFiles(String vertFilename, String fragFilename) throws IOException{
-		return createFromFiles(vertFilename, fragFilename, false);
-	}
-	
-	/**
-	 * Initializes an existing shader object from a pair of filenames/paths<br>
-	 * @param vertFilename the filename and partial path to the text file containing the vertex shader source
-	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
-	 * @param strict if set to true, then later calls to retrieve the 
-	 * locations of nonexistent uniforms and vertex attributes will 
-	 * log a warning to the output
-	 * @return true on success and false on failure
-	 */
-	protected void setSourceFromFiles(String vertFilename, String fragFilename, boolean strict) throws IOException{
-		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, false);
-		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, false);
-		setSourceFromStrings(vertSrc, fragSrc, strict);
-	}
-	
-	/**
 	 * Initializes an existing shader object from a pair of filenames/paths<br>
 	 * @param vertFilename the filename and partial path to the text file containing the vertex shader source
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
 	 * @return true on success and false on failure
-	 * @see #setSourceFromFiles(String, String, boolean)
 	 */
 	protected void setSourceFromFiles(String vertFilename, String fragFilename) throws IOException{
-		setSourceFromFiles(vertFilename, fragFilename, true);
+		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, false);
+		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, false);
+		ShaderSourceItem vs_item = new ShaderSourceItem(vertSrc, ShaderType.VERTEX);
+		ShaderSourceItem ps_item = new ShaderSourceItem(fragSrc, ShaderType.FRAGMENT);
+
+		setSourceFromStrings(vs_item, ps_item);
 	}
 	
 	/**
 	 * Creates and returns a shader object from a pair of source strings.
 	 * @param vertSrc the string containing the vertex shader source
 	 * @param fragSrc the string containing the fragment shader source
-	 * @param strict if set to true, then later calls to retrieve the 
-	 * locations of nonexistent uniforms and vertex attributes will 
-	 * log a warning to the output
 	 * @return a reference to an <code>NvGLSLProgram</code> on success and null on failure
 	 */
-	public static GLSLProgram createFromStrings(CharSequence vertSrc, CharSequence fragSrc, boolean strict){
+	public static GLSLProgram createFromStrings(CharSequence vertSrc, CharSequence fragSrc){
 		GLSLProgram prog = new GLSLProgram();
-		prog.setSourceFromStrings(vertSrc, fragSrc, strict);
+		prog.setSourceFromStrings(vertSrc, fragSrc);
 		return prog;
 	}
 	
@@ -150,75 +103,115 @@ public class GLSLProgram {
 	 * Creates and returns a shader object from a pair of source strings.
 	 * @param vertSrc the string containing the vertex shader source
 	 * @param fragSrc the string containing the fragment shader source
-	 * @return a reference to an <code>NvGLSLProgram</code> on success and null on failure
-	 * @see #createFromStrings(CharSequence, CharSequence, boolean)
-	 */
-	public static GLSLProgram createFromStrings(CharSequence vertSrc, CharSequence fragSrc){
-		return createFromStrings(vertSrc, fragSrc, true);
-	}
-	
-	public void addBeforeLinkTask(IntConsumer r){
-		if(r != null)
-			beforeLinks.add(r);
-	}
-	
-	public boolean removeBeforeLinkTask(IntConsumer r){
-		return beforeLinks.remove(r);
-	}
-	
-	public void clearTasks() { beforeLinks.clear();}
-	
-	/**
-	 * Creates and returns a shader object from a pair of source strings.
-	 * @param vertSrc the string containing the vertex shader source
-	 * @param fragSrc the string containing the fragment shader source
-	 * @param strict if set to true, then later calls to retrieve the 
-	 * locations of nonexistent uniforms and vertex attributes will 
-	 * log a warning to the output
 	 * @return true on success and false on failure
 	 */
-	protected void setSourceFromStrings(CharSequence vertSrc, CharSequence fragSrc, boolean strict){
-		if(m_program != 0){
-			gl.glDeleteProgram(m_program);
-			m_program = 0;
+	protected void setSourceFromStrings(CharSequence vertSrc, CharSequence fragSrc){
+		ShaderSourceItem vs_item = new ShaderSourceItem(vertSrc, ShaderType.VERTEX);
+		ShaderSourceItem ps_item = new ShaderSourceItem(fragSrc, ShaderType.FRAGMENT);
+
+		setSourceFromStrings(vs_item, ps_item);
+	}
+
+	static final int GL_VERSIONS[] = {
+			110, 120, 130, 140, 150, 300, 330, 400, 410, 420, 430, 440, 450
+	};
+
+	static final int GLES_VERSIONS[] = {
+			100, 300, 310, 320
+	};
+
+	private CharSequence constructSource(ShaderSourceItem item){
+		CharSequence source = item.source;
+
+		StringBuilder result = new StringBuilder(source);
+		int versionIndex = result.indexOf("#version");
+
+		if(item.attribs != null && item.type == ShaderType.VERTEX){
+			m_Attribs = item.attribs;
 		}
-		
-		 m_strict = strict;
-		 m_program = compileProgram(vertSrc, fragSrc);
+
+		if((item.macros == null || item.macros.length == 0) && (versionIndex != -1))
+			return source;
+
+		StringBuilder macroString = new StringBuilder();
+		GLAPIVersion version = GLFuncProviderFactory.getGLFuncProvider().getGLAPIVersion();
+
+		if(item.compileVersion == 0 && versionIndex == -1){
+			item.compileVersion = version.toInt();
+		}
+
+		if(item.compileVersion != 0){
+			if(!version.ES){
+				if(Arrays.binarySearch(GL_VERSIONS, item.compileVersion) < 0)
+					throw new IllegalArgumentException("Invalid OpenGL shader language version: " + item.compileVersion);
+
+				macroString.append("#version ").append(Integer.toString(item.compileVersion)).append('\n');
+			}else{
+				if(Arrays.binarySearch(GLES_VERSIONS, item.compileVersion) < 0)
+					throw new IllegalArgumentException("Invalid OpenGL shader language version: " + item.compileVersion);
+
+				macroString.append("#version ").append(Integer.toString(item.compileVersion)).append(" es\n");
+			}
+		}
+
+		if(item.macros != null){
+			for(Macro m : item.macros){
+				if(m == null /*|| StringUtils.isEmpty(m.name)*/)
+					continue;
+
+				if(!StringUtils.isEmpty(m.key)){
+					macroString.append("#define ").append(m.key).append(' ');
+				}
+				if(m.value != null){
+					if(m.value instanceof Boolean){
+						Boolean value = (Boolean)m.value;
+						macroString.append(value.booleanValue() ? 1 : 0);
+					}else{
+						macroString.append(m.value.toString());
+					}
+
+				}
+				macroString.append('\n');
+			}
+		}
+
+		int versionLineEnd = -1;
+		if(versionIndex >= 0){
+			versionLineEnd = result.indexOf("\n", versionIndex + 8);
+			if(versionLineEnd < 0){
+				System.err.println("Error glsl shader source, only contain version tag!");
+				versionLineEnd = source.length();
+			}
+		}
+
+		if(item.compileVersion != 0){  // the macros string contain version tag.
+			if(versionIndex >= 0){  // replace the old version.
+				result.replace(versionIndex, versionLineEnd, macroString.toString());
+			}else{ // insert the macroString to the head of old source.
+				result.insert(0, macroString);
+			}
+		}else{
+			result.insert(versionLineEnd + 1, macroString);
+		}
+
+		return result;
 	}
 	
 	/**
 	 * Creates and returns a shader object from an array of #ShaderSourceItem source objects
-	 * @param src an array of <code>ShaderSourceItem</code> objects containing the shaders sources to
+	 * @param srcs an array of <code>ShaderSourceItem</code> objects containing the shaders sources to
 	 * be loaded.  Unlike the vert/frag-only creation functions, this version can accept additional
 	 * shader types such as geometry and tessellation shaders (if supported)
-	 * @param strict if set to true, then later calls to retrieve the 
-	 * locations of nonexistent uniforms and vertex attributes will 
-	 * log a warning to the output
 	 * @return true on success and false on failure
 	 */
-	protected boolean setSourceFromStrings(ShaderSourceItem[] src, boolean strict){
+	protected boolean setSourceFromStrings(ShaderSourceItem... srcs){
 		if(m_program != 0){
 			gl.glDeleteProgram(m_program);
 			m_program = 0;
 		}
-		
-		 m_strict = strict;
-
-		 m_program = compileProgram(src, src.length);
+		 m_program = compileProgram(srcs);
 
 		 return m_program != 0;
-	}
-	
-	/**
-	 * Creates and returns a shader object from an array of #ShaderSourceItem source objects
-	 * @param src an array of <code>ShaderSourceItem</code> objects containing the shaders sources to
-	 * be loaded.  Unlike the vert/frag-only creation functions, this version can accept additional
-	 * shader types such as geometry and tessellation shaders (if supported)
-	 * @return true on success and false on failure
-	 */
-	public boolean setSourceFromStrings(ShaderSourceItem[] src){
-		return setSourceFromStrings(src, false);
 	}
 	
 	/** Binds the given shader program as current in the GL context */
@@ -230,53 +223,50 @@ public class GLSLProgram {
 	public void disable(){
 		gl.glUseProgram(0);
 	}
-	
-	private int compileProgram(CharSequence vsource, CharSequence fsource){
-//		int vertexShader = GL20.glCreateShader(GL20.GL_VERTEX_SHADER);
-//	    int fragmentShader = GL20.glCreateShader(GL20.GL_FRAGMENT_SHADER);
-//
-//	    GL20.glShaderSource(vertexShader, vsource);
-//	    GL20.glShaderSource(fragmentShader, fsource);
-//
-//	    GL20.glCompileShader(vertexShader);
-//	    if (!checkCompileError(vertexShader, GL20.GL_VERTEX_SHADER, vsource))
-//	        return 0;
-//
-//	    GL20.glCompileShader(fragmentShader);
-//	    if (!checkCompileError(fragmentShader, GL20.GL_FRAGMENT_SHADER, fsource))
-//	        return 0;
-		
-		int vertexShader = GLSLUtil.compileShaderFromSource(vsource, ShaderType.VERTEX, m_strict);
-		int fragmentShader = GLSLUtil.compileShaderFromSource(fsource, ShaderType.FRAGMENT, m_strict);
 
-	    int program  = GLSLUtil.createProgramFromShaders(vertexShader, 0, 0, 0, fragmentShader, this::bindAttributes);
-	 // can be deleted since the program will keep a reference
-	    gl.glDeleteShader(vertexShader);
-	    gl.glDeleteShader(fragmentShader);
-	    
-	    return program;
+	private String m_name;
+	@Override
+	public void setName(String name) {
+		m_name = name;
 	}
-	
-	private void bindAttributes(int programId){
-		if(!beforeLinks.isEmpty()){
-	    	for(IntConsumer r : beforeLinks){
-	    		r.accept(programId);
-	    	}
-	    }
-	}
-	
-	private int compileProgram(ShaderSourceItem[] src, int count){
+
+	public String getName(){return m_name;}
+
+	private int compileProgram(ShaderSourceItem[] src){
 		int program = gl.glCreateProgram();
+		int count = src.length;
+//
+//	    int i;
+//	    for (i = 0; i < count; i++) {
+//	        int shader = GLSLUtil.compileShaderFromSource(src[i].src, src[i].type, m_strict);
+//	        gl.glAttachShader(program, shader);
+//	        // can be deleted since the program will keep a reference
+//	        gl.glDeleteShader(shader);
+//	    }
+//
+//	    return linkProgram(program);
 
-	    int i;
-	    for (i = 0; i < count; i++) {
-	        int shader = GLSLUtil.compileShaderFromSource(src[i].src, src[i].type, m_strict);
-	        gl.glAttachShader(program, shader);
-	        // can be deleted since the program will keep a reference
-	        gl.glDeleteShader(shader);
-	    }
+		int i;
+		for (i = 0; i < count; i++) {
+			if(src[i] == null)
+				continue;
 
-	    return linkProgram(program);
+			CharSequence source = constructSource(src[i]);
+			int shader = /*GL20.glCreateShader(src[i].type);
+			CharSequence source = constructSource(src[i]);
+			GL20.glShaderSource(shader, source);
+			GL20.glCompileShader(shader);
+			if (!checkCompileError(shader, src[i].type, source))
+				return 0;*/
+					GLSLUtil.compileShaderFromSource(source, src[i].type, GLCheck.CHECK);
+
+			gl.glAttachShader(program, shader);
+
+			// can be deleted since the program will keep a reference
+			gl.glDeleteShader(shader);
+		}
+
+		return linkProgram(program);
 	}
 	
 	/** Relinks an existing shader program to update based on external changes */
@@ -285,20 +275,21 @@ public class GLSLProgram {
 	}
 	
 	private int linkProgram(int program){
-		if(!beforeLinks.isEmpty()){
-	    	for(IntConsumer r : beforeLinks){
-	    		r.accept(m_program);
-	    	}
-	    }
+		if(m_Attribs != null){
+			for(AttribBinder attrib:m_Attribs){
+				gl.glBindAttribLocation(program, attrib.index, attrib.attributeName);
+			}
+		}
 		
 		// Set the binary retrievable hint and link the program
 		if(gl.isSupportExt("ARB_get_program_binary")){
-	    	gl.glProgramParameteri(m_program, GLenum.GL_PROGRAM_BINARY_RETRIEVABLE_HINT, 1);
+	    	gl.glProgramParameteri(program, GLenum.GL_PROGRAM_BINARY_RETRIEVABLE_HINT, 1);
 	    }
 	    
 	    gl.glLinkProgram(program);
 	    try {
-			GLSLUtil.checkLinkError(program);
+			checkLinkError(program);
+			m_program = program;
 		} catch (GLSLException e) {
 			gl.glDeleteProgram(program);
 			e.printStackTrace();
@@ -338,74 +329,94 @@ public class GLSLProgram {
 		return m_program;
 	}
 
-	/**
-	 * Returns the index containing the named uniform
-	 * @param uniform the string name of the uniform
-	 * @return the non-negative index of the uniform if found.  -1 if not found
-	 */
-	public int getUniformLocation(String uniform) {
-		if(m_program == 0)
-			return -1;
 
-		return gl.glGetUniformLocation(m_program, uniform);
-	}
-
-	/**
-	 * Returns the index containing the named vertex attribute
-	 * @param attribute the string name of the attribute
-	 * @param isOptional if true, the function logs an error if the attribute is not found
-	 * @return the non-negative index of the attribute if found.  -1 if not found
-	 */
-	public int getAttribLocation(String attribute, boolean isOptional){
-		if(m_program == 0)
-			return -1;
-
-		int result = gl.glGetAttribLocation(m_program, attribute);
-
-		if (result == -1)
-		{
-			if((ms_logAllMissing || m_strict) && !isOptional) {
-				LogUtil.e(LogUtil.LogType.DEFAULT, String.format("could not find attribute \"%s\" in program %d",
-						attribute,
-						m_program));
-			}
-		}
-
-		return result;
-	}
-
-	/**
-	 * @see #getAttribLocation(String, boolean)
-	 * @param attribute
-	 * @return
-     */
-	public int getAttribLocation(String attribute){
-		return getAttribLocation(attribute, false);
-	}
-
-	/**
-	 * Represents a piece of shader source and the shader type.<p>
-	 * Used with creation functions to pass in arrays of multiple shader source types.
-	 */
-	public static final class ShaderSourceItem{
-		/** Shader source code */
-		public CharSequence src;
-		/** The GL_*_SHADER enum representing the shader type */
-		public ShaderType type;
-		
-		public ShaderSourceItem() {
-		}
-
-		public ShaderSourceItem(CharSequence src, ShaderType type) {
-			this.src = src;
-			this.type = type;
-		}
-	}
 
 	public void dispose() {
 		if(m_program != 0){
 			gl.glDeleteProgram(m_program);
 			m_program = 0;
 		}
+	}
+
+	public static GLSLProgram createProgram(String vertFile, String fragFile, Macro[] macros){
+		return createProgram(vertFile, null, null, null, fragFile, macros);
+	}
+
+	public static GLSLProgram createProgram(String vertFile, String gsFile, String fragFile, Macro[] macros){
+		return createProgram(vertFile, null, null, gsFile, fragFile, macros);
+	}
+
+	public static GLSLProgram createProgram(String vertFile, String tcFile, String teFile, String fragFile, Macro[] macros){
+		return createProgram(vertFile, tcFile, teFile, null, fragFile, macros);
+	}
+
+	/** Conversion method for creating program object, but not safe. */
+	public static GLSLProgram createProgram(String vertFile, String tcFile, String teFile, String gsFile, String fragFile, Macro[] macros){
+		ShaderSourceItem vs_item = new ShaderSourceItem();
+		if(vertFile != null){
+			try {
+				vs_item.source = ShaderLoader.loadShaderFile(vertFile, false);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			vs_item.macros = macros;
+			vs_item.type = ShaderType.VERTEX;
+		}
+
+		ShaderSourceItem tc_item = null;
+		if(tcFile != null){
+			tc_item = new ShaderSourceItem();
+			try {
+				tc_item.source = ShaderLoader.loadShaderFile(tcFile, false);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+//			tc_item.compileVersion = Integer.parseInt(GLSLUtil.getGLSLVersion());
+			tc_item.macros = macros;
+			tc_item.type = ShaderType.TESS_CONTROL;
+		}
+
+		ShaderSourceItem te_item = null;
+		if(teFile != null){
+			te_item = new ShaderSourceItem();
+			try {
+				te_item.source = ShaderLoader.loadShaderFile(teFile, false);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+//			te_item.compileVersion = Integer.parseInt(GLSLUtil.getGLSLVersion());
+			te_item.macros = macros;
+			te_item.type = ShaderType.TESS_EVAL;
+		}
+
+		ShaderSourceItem gs_item = null;
+		if(gsFile != null){
+			gs_item = new ShaderSourceItem();
+			try {
+				gs_item.source = ShaderLoader.loadShaderFile(gsFile, false);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+//			gs_item.compileVersion = Integer.parseInt(GLSLUtil.getGLSLVersion());
+			gs_item.macros = macros;
+			gs_item.type = ShaderType.GEOMETRY;
+		}
+
+		ShaderSourceItem ps_item = new ShaderSourceItem();
+		if(fragFile != null){
+			try {
+				ps_item.source = ShaderLoader.loadShaderFile(fragFile, false);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+//			ps_item.compileVersion = Integer.parseInt(GLSLUtil.getGLSLVersion());
+			ps_item.macros = macros;
+			ps_item.type = ShaderType.FRAGMENT;
+		}
+
+
+		GLSLProgram program = new GLSLProgram();
+		program.setSourceFromStrings(vs_item,tc_item, te_item, gs_item, ps_item);
+		return program;
 	}
 }

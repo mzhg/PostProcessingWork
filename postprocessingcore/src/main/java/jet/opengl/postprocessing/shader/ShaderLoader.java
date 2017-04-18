@@ -123,7 +123,7 @@ public class ShaderLoader {
 	
 	private static CharSequence internalLoadShaderFile(IncludeFile file, Set<String> processing, LoaderParameters params)throws IOException{
 		InputStream in = null;
-		FileLoader loader = params.fileLoader != null ? params.fileLoader : FileLoader.g_DefaultFileLoader;
+		FileLoader loader = params.fileLoader != null ? params.fileLoader : FileUtils.g_IntenalFileLoader;
 
 		String parent;
 		String key = file.getKey();

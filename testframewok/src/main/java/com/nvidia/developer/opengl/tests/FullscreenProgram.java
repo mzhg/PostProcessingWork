@@ -24,7 +24,7 @@ public class FullscreenProgram extends GLSLProgram {
 
 	public FullscreenProgram() {
 		try {
-			setSourceFromClassFiles("com/nvidia/developer/opengl/tests/fullscreen.vert", getFragShaderFile());
+			setSourceFromFiles("shaders/fullscreen.vert", getFragShaderFile());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -38,7 +38,7 @@ public class FullscreenProgram extends GLSLProgram {
 		gl.glUseProgram(0);
 	}
 	
-	protected String getFragShaderFile() { return "com/nvidia/developer/opengl/tests/fullscreen.frag";}
+	protected String getFragShaderFile() { return "shaders/fullscreen.frag";}
 	
 	protected void applyDefaultUniforms(){
 		gl.glUniform1i(texSamplerIndex, 0);

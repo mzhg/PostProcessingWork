@@ -16,4 +16,8 @@ public class GLAPIVersion {
         this.minor = minor;
         this.coreProfiler = coreProfiler;
     }
+
+    public int toInt(){
+        return major * 100 + minor * 10;
+    }
 }

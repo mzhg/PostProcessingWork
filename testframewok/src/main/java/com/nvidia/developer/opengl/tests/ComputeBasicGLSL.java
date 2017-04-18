@@ -44,7 +44,7 @@ public class ComputeBasicGLSL extends NvSampleApp{
 		//init shaders
 	    try {
 			fullScreenProgram = new FullscreenProgram();
-			CharSequence computeSource = ShaderLoader.loadShaderFile("assets\\ComputeBasicGLSL\\shaders\\invert.glsl", false);
+			CharSequence computeSource = ShaderLoader.loadShaderFile("ComputeBasicGLSL\\shaders\\invert.glsl", false);
 			int computeShader = GLSLUtil.compileShaderFromSource(computeSource, ShaderType.COMPUTE, true);
 			m_computeProg = GLSLUtil.createProgramFromShaders(computeShader, null);
 			gl.glDeleteShader(computeShader);
@@ -52,20 +52,20 @@ public class ComputeBasicGLSL extends NvSampleApp{
 			e1.printStackTrace();
 		}
 
-	    //load input texture 
+	    //load input texture
 	    try {
-			m_sourceImage = NvImage.createFromDDSFile("assets\\ComputeBasicGLSL\\textures\\flower1024.dds");
+			m_sourceImage = NvImage.createFromDDSFile("ComputeBasicGLSL\\textures\\flower1024.dds");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	    m_sourceTexture = m_sourceImage.updaloadTexture();
-	    
+
 	    gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_sourceTexture);
 	    gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
 	    gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
 	    gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
 
-	    //create output texture with same size and format as input 
+	    //create output texture with same size and format as input
 	    int w = m_sourceImage.getWidth();
 	    int h = m_sourceImage.getHeight();
 	    int intFormat = m_sourceImage.getInternalFormat();
@@ -77,7 +77,7 @@ public class ComputeBasicGLSL extends NvSampleApp{
 	    gl.glTexImage2D(GLenum.GL_TEXTURE_2D, 0, intFormat, w, h, 0, format, type, (ByteBuffer)null);
 	    gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
 	    gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-	    
+
 	    gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
 	    
 //	    setTitle("ComputeGLSL");
@@ -101,7 +101,7 @@ public class ComputeBasicGLSL extends NvSampleApp{
 
 		gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); 
 	}
-	
+
 	private void drawImage(int texture){
 		gl.glClearColor(0.2f, 0.0f, 0.2f, 1.0f);
 		gl.glClear(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);

@@ -11,10 +11,6 @@ import jet.opengl.postprocessing.common.GLenum;
 
 public final class GLSLUtil {
 
-	static void defaultImplemented(String functionName){
-		throw new UnsupportedOperationException(functionName + " is not implemented!");
-	}
-	
 	public static int compileShaderFromSource(CharSequence source, ShaderType type, boolean print_log){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int shader = gl.glCreateShader(type.shader);

@@ -29,4 +29,8 @@ public class PostProcessingRadialBlur extends PostProcessingRenderPass {
             input.getDesc(out);
         }
     }
+
+    public static void releaseResources(){
+
+    }
 }
