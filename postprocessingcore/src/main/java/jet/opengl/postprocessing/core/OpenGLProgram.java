@@ -1,9 +1,8 @@
-package jet.opengl.postprocessing.core.radialblur;
+package jet.opengl.postprocessing.core;
 
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.util.LogUtil;
 
@@ -15,11 +14,13 @@ public interface OpenGLProgram extends Disposeable{
     int getProgram();
 
     default void enable(){
-        GLStateTracker.getInstance().bindProgram(getProgram());
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glUseProgram(getProgram());
     }
 
     default void disable(){
-        GLStateTracker.getInstance().bindProgram(0);
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glUseProgram(0);
     }
 
     /**
@@ -71,8 +72,7 @@ public interface OpenGLProgram extends Disposeable{
 
         int result = gl.glGetUniformLocation(getProgram(), uniform);
 
-        if (!isOptional && result == -1)
-        {
+        if (!isOptional && result == -1) {
             LogUtil.e(LogUtil.LogType.DEFAULT, String.format("could not find uniform \"%s\" in program \"%s\"", uniform,  getName()));
         }
 

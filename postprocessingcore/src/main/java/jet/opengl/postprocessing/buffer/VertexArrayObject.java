@@ -22,20 +22,26 @@ public class VertexArrayObject implements Disposeable {
 
     private int m_vao;
 
-    public void initlize(BufferBinding[] bindings, BufferGL indices){
-        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-
+    public static boolean isSupportVAO(){
         if(g_VAOState == UNKOWN){
+            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
             // Query the state
             GLAPIVersion version = gl.getGLAPIVersion();
             g_VAOState = (version.major >= 3 ? ENABLE : DISABLE);
         }
 
-        if(m_vao == 0 && g_VAOState == ENABLE){
+        return g_VAOState ==ENABLE;
+    }
+
+    public int getVAO() {return m_vao;}
+
+    public void initlize(BufferBinding[] bindings, BufferGL indices){
+        if(m_vao == 0 && isSupportVAO()){
+            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
             m_vao = gl.glGenVertexArray();
         }
 
-        if((bindings == null && indices == null) || g_VAOState != ENABLE){
+        if((bindings == null && indices == null) || !isSupportVAO()){
             return;
         }
 

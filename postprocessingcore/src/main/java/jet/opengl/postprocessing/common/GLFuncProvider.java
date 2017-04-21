@@ -1469,4 +1469,10 @@ public interface GLFuncProvider {
     void glFramebufferTexture(int target, int attachment, int texture, int level);
     void glFramebufferTexture1D(int target, int attachment, int texturetarget, int texture, int level);
     void glFramebufferTexture3D(int target, int attachment, int texturetarget, int texture, int level, int layer);
+
+    void glBindProgramPipeline(int programPipeline);
+    void glDeleteProgramPipeline(int programPipeline);
+    int glGenProgramPipeline();
+    void glUseProgramStages(int programPipeline, int shaderBit, int program);
+    boolean glIsProgramPipeline(int programPipeline);
 }

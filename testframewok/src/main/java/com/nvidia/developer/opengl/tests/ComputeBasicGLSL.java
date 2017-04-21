@@ -99,7 +99,7 @@ public class ComputeBasicGLSL extends NvSampleApp{
 
 		gl.glDispatchCompute(width/WORKGROUP_SIZE, height/WORKGROUP_SIZE, 1);
 
-		gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); 
+		gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 
 	private void drawImage(int texture){

@@ -9,11 +9,9 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.core.radialblur.OpenGLProgram;
+import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.StringUtils;
-
-import static jet.opengl.postprocessing.shader.GLSLUtil.checkLinkError;
 
 public class GLSLProgram implements OpenGLProgram{
 
@@ -216,6 +214,7 @@ public class GLSLProgram implements OpenGLProgram{
 	
 	/** Binds the given shader program as current in the GL context */
 	public void enable(){
+//		GLStateTracker.getInstance().bindProgram(m_program);
 		gl.glUseProgram(m_program);
 	}
 	
@@ -288,7 +287,7 @@ public class GLSLProgram implements OpenGLProgram{
 	    
 	    gl.glLinkProgram(program);
 	    try {
-			checkLinkError(program);
+			GLSLUtil.checkLinkError(program);
 			m_program = program;
 		} catch (GLSLException e) {
 			gl.glDeleteProgram(program);

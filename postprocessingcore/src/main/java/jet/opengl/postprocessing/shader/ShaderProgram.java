@@ -1,7 +1,7 @@
 package jet.opengl.postprocessing.shader;
 
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.core.radialblur.OpenGLProgram;
+import jet.opengl.postprocessing.core.OpenGLProgram;
 
 /**
  * Created by mazhen'gui on 2017/4/18.
