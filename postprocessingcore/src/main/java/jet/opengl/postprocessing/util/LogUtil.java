@@ -32,6 +32,21 @@ public class LogUtil {
         }
     }
 
+    public interface GetMessage{
+        String get();
+    }
+
+    public static void i(LogType type, GetMessage msg){
+        switch (type) {
+            case DEFAULT:
+                getDefaultLogger().info(msg.get());
+                break;
+            case NV_FRAMEWROK:
+                getNVFrameworkLogger().info(msg.get());
+                break;
+        }
+    }
+
     public static void e(LogType type,  String msg){
         switch (type) {
             case DEFAULT:
@@ -39,6 +54,17 @@ public class LogUtil {
                 break;
             case NV_FRAMEWROK:
                 getNVFrameworkLogger().severe(msg);
+                break;
+        }
+    }
+
+    public static void e(LogType type,  GetMessage msg){
+        switch (type) {
+            case DEFAULT:
+                getDefaultLogger().severe(msg.get());
+                break;
+            case NV_FRAMEWROK:
+                getNVFrameworkLogger().severe(msg.get());
                 break;
         }
     }

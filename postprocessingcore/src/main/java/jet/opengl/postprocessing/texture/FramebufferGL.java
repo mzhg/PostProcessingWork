@@ -156,11 +156,11 @@ public class FramebufferGL implements Disposeable {
 //            g_FBOCaches.insert(std::pair<GLuint, FramebufferGL*>(m_Framebuffer, this));
         }
 
-        GLStateTracker.getInstance().bindFramebuffer(GLenum.GL_FRAMEBUFFER, m_Framebuffer);
+        GLStateTracker.getInstance().setFramebuffer(m_Framebuffer);
     }
 
     public void unbind(){
-        GLStateTracker.getInstance().bindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        GLStateTracker.getInstance().setFramebuffer(0);
     }
 
     @Override

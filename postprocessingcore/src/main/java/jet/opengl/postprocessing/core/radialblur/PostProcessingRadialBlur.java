@@ -12,6 +12,8 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 
 public class PostProcessingRadialBlur extends PostProcessingRenderPass {
 
+    private static PostProcessingRadialBlurProgram g_RadialBlurProgram;
+
     public PostProcessingRadialBlur() {
         super("Radial Blur");
         set(1,1);
@@ -31,6 +33,9 @@ public class PostProcessingRadialBlur extends PostProcessingRenderPass {
     }
 
     public static void releaseResources(){
-
+        if(g_RadialBlurProgram != null){
+            g_RadialBlurProgram.dispose();
+            g_RadialBlurProgram = null;
+        }
     }
 }

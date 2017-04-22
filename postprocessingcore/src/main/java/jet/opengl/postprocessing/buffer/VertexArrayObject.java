@@ -47,7 +47,7 @@ public class VertexArrayObject implements Disposeable {
 
         m_bindings = bindings;
         m_indices = indices;
-        GLStateTracker.getInstance().bindVAO(m_vao);
+        GLStateTracker.getInstance().setVAO(this);
         _bind();
     }
 
@@ -77,14 +77,14 @@ public class VertexArrayObject implements Disposeable {
 
     public void bind() {
         if(g_VAOState == ENABLE){
-            GLStateTracker.getInstance().bindVAO(m_vao);
+            GLStateTracker.getInstance().setVAO(this);
         }else{
             _bind();
         }
     }
     public void unbind() {
         if(g_VAOState ==ENABLE){
-            GLStateTracker.getInstance().bindVAO(0);
+            GLStateTracker.getInstance().setVAO(null);
         }else{
             _unbind();
         }

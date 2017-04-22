@@ -6,7 +6,6 @@ import android.opengl.GLES11;
 import android.opengl.GLES20;
 import android.opengl.GLES30;
 import android.opengl.GLES31;
-import android.opengl.GLES31Ext;
 import android.opengl.GLES32;
 
 import java.nio.Buffer;
@@ -22,7 +21,6 @@ import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.util.BufferUtils;
-import jet.opengl.postprocessing.util.LogUtil;
 
 /**
  * Created by mazhen'gui on 2017/4/14.
@@ -1529,5 +1527,36 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glFramebufferTexture3D(int target, int attachment, int texturetarget, int texture, int level, int layer) {
         GLCheck.printUnsupportFuncError("Unsupport 'glFramebufferTexture3D(int target, int attachment, int texturetarget, int texture, int level, int layer)' on Android Platform!");
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glBindProgramPipeline(int programPipeline) {
+        GLES31.glBindProgramPipeline(programPipeline);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glDeleteProgramPipeline(int programPipeline) {
+        GLES31.glDeleteProgramPipelines(1, wrap(programPipeline), 0);
+    }
+
+    @TargetApi(21)
+    @Override
+    public int glGenProgramPipeline() {
+        GLES31.glGenProgramPipelines(1, intValues, 0);
+        return intValues[0];
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glUseProgramStages(int programPipeline, int shaderBit, int program) {
+        GLES31.glUseProgramStages(programPipeline, shaderBit, program);
+    }
+
+    @TargetApi(21)
+    @Override
+    public boolean glIsProgramPipeline(int programPipeline) {
+        return GLES31.glIsProgramPipeline(programPipeline);
     }
 }

@@ -3,6 +3,7 @@ package jet.opengl.impl.lwjgl3;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.ARBDirectStateAccess;
+import org.lwjgl.opengl.ARBSeparateShaderObjects;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -1537,5 +1538,30 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glFramebufferTexture3D(int glFramebuffer, int i, int glTexture3d, int texture, int level, int layer) {
         GL30.glFramebufferTexture3D(glFramebuffer, i, glTexture3d, texture, level, layer);
+    }
+
+    @Override
+    public void glBindProgramPipeline(int programPipeline) {
+        ARBSeparateShaderObjects.glBindProgramPipeline(programPipeline);
+    }
+
+    @Override
+    public void glDeleteProgramPipeline(int programPipeline) {
+        ARBSeparateShaderObjects.glDeleteProgramPipelines(programPipeline);
+    }
+
+    @Override
+    public int glGenProgramPipeline() {
+        return ARBSeparateShaderObjects.glGenProgramPipelines();
+    }
+
+    @Override
+    public void glUseProgramStages(int programPipeline, int shaderBit, int program) {
+        ARBSeparateShaderObjects.glUseProgramStages(programPipeline, shaderBit, program);
+    }
+
+    @Override
+    public boolean glIsProgramPipeline(int programPipeline) {
+        return ARBSeparateShaderObjects.glIsProgramPipeline(programPipeline);
     }
 }

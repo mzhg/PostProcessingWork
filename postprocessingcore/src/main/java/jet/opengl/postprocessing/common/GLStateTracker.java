@@ -2,10 +2,12 @@ package jet.opengl.postprocessing.common;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 
 import jet.opengl.postprocessing.buffer.VertexArrayObject;
 import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
@@ -40,9 +42,34 @@ public class GLStateTracker {
     private final GLFuncProvider gl;
     private int m_flags;
 
+    @Deprecated
+    private TextureBinding[] m_TextureStates;
+    private int[]            m_TextureDiffUnits;
+    private int[]            m_SamplerDiffUnits;
+    private int[]            m_TextureNames;
+    private int[]            m_TextureSamplers;
+    private int[]            m_TextureTargets;
+    private int              m_TextureCount;
+    private int              m_MaxTextureBindingUnit;
+    private int              m_MaxSamplerBindingUnit;
+
     private static GLStateTracker instance;
     private GLStateTracker(){
         gl = GLFuncProviderFactory.getGLFuncProvider();
+
+        final int maxTextureUnits = getMaxCombinedTextureImageUnits();
+        LogUtil.i(LogUtil.LogType.DEFAULT, "MaxCombinedTextureImageUnits = " + maxTextureUnits);
+        m_TextureStates = new TextureBinding[maxTextureUnits];
+        for(int i = 0; i < m_TextureStates.length; i++){
+            m_TextureStates[i] = new TextureBinding();
+        }
+
+        m_TextureDiffUnits = new int[maxTextureUnits];
+        m_SamplerDiffUnits = new int[maxTextureUnits];
+
+        m_TextureNames = new int[maxTextureUnits];
+        m_TextureSamplers = new int[maxTextureUnits];
+        m_TextureTargets = new int[maxTextureUnits];
     }
 
     public static GLStateTracker getInstance(){
@@ -53,6 +80,21 @@ public class GLStateTracker {
         return instance;
     }
 
+    // Reset the internal states. e.g: Texture bindings, image bindings and sampler bindings
+    public void reset(){
+        if(m_MaxTextureBindingUnit > 0){
+            Arrays.fill(m_TextureDiffUnits,0, m_MaxTextureBindingUnit, 0);
+            Arrays.fill(m_TextureTargets,0, m_MaxTextureBindingUnit, 0);
+            m_MaxTextureBindingUnit = 0;
+        }
+
+        if(m_MaxSamplerBindingUnit > 0){
+            Arrays.fill(m_SamplerDiffUnits, 0, m_MaxSamplerBindingUnit, 0);
+            Arrays.fill(m_TextureSamplers, 0, m_MaxSamplerBindingUnit, 0);
+            m_MaxSamplerBindingUnit = 0;
+        }
+    }
+
     /**
      * Save the current GL states.
      */
@@ -60,6 +102,7 @@ public class GLStateTracker {
     public void saveStates(){
         m_SavedStates.framebuffer = gl.glGetInteger(GLenum.GL_DRAW_FRAMEBUFFER_BINDING);
         m_SavedStates.program  = gl.glGetInteger(GLenum.GL_CURRENT_PROGRAM);
+        m_SavedStates.activeTextureUnit = gl.glGetInteger(GLenum.GL_ACTIVE_TEXTURE)- GLenum.GL_TEXTURE0;
         IntBuffer ints = CacheBuffer.getCachedIntBuffer(4);
         gl.glGetIntegerv(GLenum.GL_VIEWPORT, ints);
         m_SavedStates.viewport.x = ints.get();
@@ -71,13 +114,19 @@ public class GLStateTracker {
         savedState(m_SavedStates.dsState);
         savedState(m_SavedStates.rsState);
 
-        GLAPIVersion version = gl.getGLAPIVersion();
-        if(version.major >= 4 && version.minor >= 1)
+        if(GLSLProgramPipeline.isSupportProgramPipeline())
             m_SavedStates.programPipeline = gl.glGetInteger(GLenum.GL_PROGRAM_PIPELINE_BINDING);
-        if(version.major >= 3)
+        if(VertexArrayObject.isSupportVAO())
             m_SavedStates.vao = gl.glGetInteger(GLenum.GL_VERTEX_ARRAY_BINDING);
 
         m_CurrentStates.set(m_SavedStates);
+    }
+
+    public void setActiveTexture(int unit){
+        if(unit != m_CurrentStates.activeTextureUnit){
+            m_CurrentStates.activeTextureUnit = unit;
+            gl.glActiveTexture(GLenum.GL_TEXTURE0 + unit);
+        }
     }
 
     public void setVAO(VertexArrayObject vao){
@@ -565,22 +614,275 @@ public class GLStateTracker {
 
     }
 
-    public void bindTexture(int unit, int target, int textureID, int sampler){
-
-    }
-
-    @SuppressWarnings({"NoteSafe"})
-    public void bindBuffer(int target, int buffer){
-
-    }
-
     // bind the texture to current units
-    public void bindTexture(int target, int textureID, int sampler){
+    public void bindTexture(TextureGL texture, int unit, int sampler){
+        int textureID = texture != null?texture.getTexture():0;
+        if(m_TextureNames[unit] != textureID){
+            m_TextureNames[unit] = textureID;
+            if(texture != null)
+                m_TextureTargets[unit] = texture.getTarget();
+
+            bindSingleTexture(m_TextureTargets[unit], textureID, unit);
+        }
+
+        if(sampler != m_TextureSamplers[unit]){
+            m_TextureSamplers[unit] = sampler;
+            gl.glBindSampler(unit, sampler);
+        }
+
+        if(texture != null && unit > m_MaxTextureBindingUnit){
+            m_MaxTextureBindingUnit = unit;
+        }
+
+        if(sampler != 0 && unit > m_MaxSamplerBindingUnit){
+            m_MaxSamplerBindingUnit = unit;
+        }
+    }
+
+    public void bindTextures(TextureGL[] textures, int[] units, int[] samplers) {
+        final int maxTextureUnits = getMaxCombinedTextureImageUnits();
+        if (GLCheck.CHECK) {
+            if (textures.length > maxTextureUnits) {
+                LogUtil.e(LogUtil.LogType.DEFAULT, () -> String.format("Binding texture units beyong the limits: count = %d, limits = %d.\n", textures.length, maxTextureUnits));
+            }
+        }
+
+        TextureGL[] pTextures = textures;
+        int diff_tex_count = 0;
+        int diff_sampler_count = 0;
+        int count = Math.min(textures.length, maxTextureUnits);
+        for(int i = 0; i < count; i++){
+            TextureGL textureGL = pTextures[i];
+            int unit = units!=null ? units[i] : i;
+
+            boolean needRebinding = false;
+            if(textureGL != null){
+                if(m_TextureNames[unit] != textureGL.getTexture()){
+                    m_TextureNames[unit] = textureGL.getTexture();
+                    m_TextureTargets[unit] = textureGL.getTarget();
+                    needRebinding = true;
+                }
+            }else if(m_TextureNames[unit] != 0){
+                m_TextureNames[unit] = 0;
+                needRebinding = true;
+            }
+
+            if(needRebinding) {
+                m_TextureDiffUnits[diff_tex_count++] = unit;
+            }
+
+            int sampler = samplers != null ? samplers[i] : 0;
+            if(sampler != m_TextureSamplers[unit]){
+                m_TextureSamplers[unit] = sampler;
+                m_SamplerDiffUnits[diff_sampler_count++] = unit;
+            }
+        }
+
+        GLAPIVersion version = gl.getGLAPIVersion();
+        if(diff_tex_count > 0){
+            if (version.major >= 4 && version.minor >= 4)
+            {
+                int lastIndex = 0;
+                int lastUnit = m_TextureDiffUnits[0];
+                int prevUnit = -1;
+                for (int i = 1; i < diff_tex_count; i++)
+                {
+                    final int unit = m_TextureDiffUnits[i];
+                    if((unit - lastUnit) != (i - lastIndex)){
+                        if(prevUnit != -1){
+                            gl.glBindTextures(lastUnit, CacheBuffer.wrap(m_TextureNames, lastIndex, prevUnit - lastUnit));
+                        }else{
+                            bindSingleTexture(m_TextureTargets[lastUnit], m_TextureNames[lastUnit], lastUnit);
+                        }
+
+                        lastIndex = i;
+                        lastUnit = m_TextureDiffUnits[i];
+                        prevUnit = -1;
+                    }else{
+                        prevUnit = unit;
+                    }
+                }
+
+                if(prevUnit != -1){
+                    gl.glBindTextures(lastUnit, CacheBuffer.wrap(m_TextureNames, lastIndex, prevUnit - lastUnit));
+                }else{
+                    bindSingleTexture(m_TextureTargets[lastUnit], m_TextureNames[lastUnit], lastUnit);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < diff_tex_count; i++)
+                {
+                    int unit = m_TextureDiffUnits[i];
+                    bindSingleTexture(m_TextureTargets[unit], m_TextureNames[unit], unit);
+                }
+            }
+        }
+
+        if(diff_sampler_count > 0){
+            if (version.major >= 4 && version.minor >= 4) {
+                int lastIndex = 0;
+                int lastUnit = m_SamplerDiffUnits[0];
+                int prevUnit = -1;
+                for (int i = 1; i < diff_sampler_count; i++) {
+                    final int unit = m_SamplerDiffUnits[i];
+                    if ((unit - lastUnit) != (i - lastIndex)) {
+                        if (prevUnit != -1) {
+                            gl.glBindSamplers(lastUnit, CacheBuffer.wrap(m_TextureSamplers, lastIndex, prevUnit - lastUnit));
+                        } else {
+//                        bindSingleTexture(m_TextureTargets[lastUnit], m_TextureNames[lastUnit], lastUnit);
+                            gl.glBindSampler(lastUnit, m_TextureSamplers[lastUnit]);
+                        }
+
+                        lastIndex = i;
+                        lastUnit = m_SamplerDiffUnits[i];
+                        prevUnit = -1;
+                    } else {
+                        prevUnit = unit;
+                    }
+                }
+
+                if (prevUnit != -1) {
+                    gl.glBindSamplers(lastUnit, CacheBuffer.wrap(m_TextureSamplers, lastIndex, prevUnit - lastUnit));
+                } else {
+//                bindSingleTexture(m_TextureTargets[lastUnit], m_TextureNames[lastUnit], lastUnit);
+                    gl.glBindSampler(lastUnit, m_TextureSamplers[lastUnit]);
+                }
+            } else {
+                for (int i = 0; i < diff_sampler_count; i++)
+                {
+                    int unit = m_SamplerDiffUnits[i];
+                    gl.glBindSampler(unit, m_TextureSamplers[unit]);
+                }
+            }
+        }
+    }
+
+    private void bindSingleTexture(int target, int texture, int unit){
+        GLAPIVersion version = gl.getGLAPIVersion();
+        if (version.major >= 4 && version.minor >= 5)
+        {
+            gl.glBindTextureUnit(unit, texture);
+        }
+        else
+        {
+            setActiveTexture(unit);
+            gl.glBindTexture(target, texture);
+        }
+    }
+
+    private void __bindTextures(TextureGL[] textures, int[] units, int[] samplers){
+        final int maxTextureUnits = getMaxCombinedTextureImageUnits();
+        if(GLCheck.CHECK){
+            if (textures.length > maxTextureUnits){
+                LogUtil.e(LogUtil.LogType.DEFAULT, ()->String.format("Binding texture units beyong the limits: count = %d, limits = %d.\n", textures.length, maxTextureUnits) );
+            }
+        }
+
+        TextureGL[] pTextures = textures;
+        GLAPIVersion version = gl.getGLAPIVersion();
+        int count = Math.min(textures.length, maxTextureUnits);
+        m_TextureCount = 0;
+        boolean ordered = true;
+        boolean tag = (units == null) && version.major >= 4 && version.minor >= 4;
+        int maxTexUnits = 0;
+
+        for (int i = 0; i < count; i++)
+        {
+            TextureGL textureGL = pTextures[i];
+            int target = textureGL != null ? textureGL.getTarget() : 0;
+            int texture = textureGL != null ? textureGL.getTexture() : 0;
+            int unit = units!=null ? units[i] : i;
+
+            if(texture != 0){
+                m_MaxTextureBindingUnit = Math.max(unit, m_MaxTextureBindingUnit);
+            }
+
+            if (tag)
+            {
+                if (m_TextureStates[unit].textureID != texture)
+                {
+                    m_TextureNames[unit] = texture;
+                    m_TextureStates[unit].target = target;
+                    m_TextureStates[unit].textureID = texture;
+                    m_TextureDiffUnits[unit] = unit;
+                    m_TextureCount++;
+
+                    maxTexUnits = Math.max(unit, maxTexUnits);
+                }
+            }
+            else if (m_TextureStates[unit].textureID != texture)
+            {
+                m_TextureNames[m_TextureCount] = texture;
+                m_TextureStates[unit].target = target;
+                m_TextureStates[unit].textureID = texture;
+                m_TextureDiffUnits[m_TextureCount] = unit;
+
+                if (m_TextureCount == 0 && unit != 0)
+                {
+                    ordered = false;
+                }
+
+                if (m_TextureCount!= 0 && unit - m_TextureDiffUnits[m_TextureCount - 1] != 1)
+                {
+                    ordered = false;
+                }
+
+                m_TextureCount++;
+            }
+        }
+
+        if (m_TextureCount == 0)
+        {
+            return;
+        }
+
+        if (ordered && version.major >= 4 && version.minor >= 4)
+        {
+            gl.glBindTextures(0, CacheBuffer.wrap(m_TextureNames, 0, maxTexUnits));
+        }
+        else
+        {
+            if (version.major >= 4 && version.minor >= 5)
+            {
+                for (int i = 0; i < m_TextureCount; i++)
+                {
+                    gl.glBindTextureUnit(m_TextureDiffUnits[i], m_TextureStates[m_TextureDiffUnits[i]].textureID);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < m_TextureCount; i++)
+                {
+                    setActiveTexture(m_TextureDiffUnits[i]);
+                    gl.glBindTexture(m_TextureStates[m_TextureDiffUnits[i]].target, m_TextureStates[m_TextureDiffUnits[i]].textureID);
+                }
+            }
+        }
+
 
     }
 
-    private static final class StateDesc{
+    private static int g_MaxCombinedTextureImageUnits = -1;
+    public static int getMaxCombinedTextureImageUnits()
+    {
+        if (g_MaxCombinedTextureImageUnits == -1){
+            GLCheck.checkError("getMaxCombinedTextureImageUnits");
 
+            try {
+                g_MaxCombinedTextureImageUnits = GLFuncProviderFactory.getGLFuncProvider().glGetInteger(GLenum.GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+                GLCheck.checkError();
+            } catch (IllegalStateException e) {
+                g_MaxCombinedTextureImageUnits = 8;
+            }
+        }
+        return g_MaxCombinedTextureImageUnits;
+    }
+
+    private static final class TextureBinding{
+        int target;
+        int textureID;
+        int sampler;
     }
 
     private static final class ImageBinding{
@@ -594,6 +896,7 @@ public class GLStateTracker {
         int program;
         int programPipeline;
         int vao;
+        int activeTextureUnit;
         final Recti viewport = new Recti();
         final BlendState blendState = new BlendState();
         final DepthStencilState dsState = new DepthStencilState();
@@ -604,6 +907,8 @@ public class GLStateTracker {
             program = other.program;
             programPipeline = other.programPipeline;
             vao = other.vao;
+            activeTextureUnit = other.activeTextureUnit;
+            viewport.set(other.viewport);
             blendState.set(other.blendState);
             dsState.set(other.dsState);
             rsState.set(other.rsState);

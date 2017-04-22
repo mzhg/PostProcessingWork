@@ -1,6 +1,7 @@
 package jet.opengl.postprocessing.shader;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -10,6 +11,12 @@ import jet.opengl.postprocessing.common.GLenum;
  */
 
 public class GLSLProgramPipeline implements Disposeable{
+
+    private static final int UNKOWN = 0;
+    private static final int ENABLE = 1;
+    private static final int DISABLE = 2;
+
+    private static int g_PipelineState = UNKOWN;
 
     private String name = "GLSLProgramPipeline";
     private int m_programPipeline;
@@ -26,6 +33,20 @@ public class GLSLProgramPipeline implements Disposeable{
     public GLSLProgramPipeline(){
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_programPipeline = gl.glGenProgramPipeline();
+    }
+
+    public static boolean isSupportProgramPipeline(){
+        if(g_PipelineState == UNKOWN){
+            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+            GLAPIVersion version = gl.getGLAPIVersion();
+            if(gl.isSupportExt("ARB_separate_shader_objects") || (version.ES && version.major >= 3 && version.minor >= 1)){
+                g_PipelineState = ENABLE;
+            }else{
+                g_PipelineState = DISABLE;
+            }
+        }
+
+        return g_PipelineState  == ENABLE;
     }
 
     private static int getProgramID(ShaderProgram shaderProgram){

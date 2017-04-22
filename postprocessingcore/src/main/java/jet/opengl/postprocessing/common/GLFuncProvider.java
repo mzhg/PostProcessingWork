@@ -1475,4 +1475,9 @@ public interface GLFuncProvider {
     int glGenProgramPipeline();
     void glUseProgramStages(int programPipeline, int shaderBit, int program);
     boolean glIsProgramPipeline(int programPipeline);
+
+    void glBindTextures(int first, IntBuffer texturenames);
+    void glBindTextureUnit(int unit, int texture);
+
+    void glBindSamplers(int first, IntBuffer samplernames);
 }

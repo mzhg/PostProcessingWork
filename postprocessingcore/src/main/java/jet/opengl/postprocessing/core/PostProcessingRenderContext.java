@@ -7,14 +7,23 @@ import jet.opengl.postprocessing.buffer.AttribDesc;
 import jet.opengl.postprocessing.buffer.BufferBinding;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.buffer.VertexArrayObject;
+import jet.opengl.postprocessing.common.BlendState;
+import jet.opengl.postprocessing.common.DepthStencilState;
 import jet.opengl.postprocessing.common.GLAPIVersion;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.common.RasterizerState;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
+import jet.opengl.postprocessing.texture.AttachType;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureAttachDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Recti;
 
@@ -23,12 +32,6 @@ import jet.opengl.postprocessing.util.Recti;
  */
 
 public final class PostProcessingRenderContext {
-
-    private static final int PROGRAM_BITS = 1;
-    private static final int VAO_BITS = 2;
-    private static final int RENDERTARGET_BITS = 4;
-    private static final int VIEWPORT_BITS = 8;
-
 
     private final List<PostProcessingRenderPass> m_RenderPassList = new ArrayList<>();
     private PostProcessingRenderPass m_PrevPass;
@@ -39,23 +42,31 @@ public final class PostProcessingRenderContext {
     private VertexArrayObject m_CurrentVAO;
     private VertexArrayObject m_DefaultVAO;
     private BufferGL          m_BufferQuad;
+    private GLStateTracker    m_StateTracker;
 
-    private GLSLProgram m_CurrentProgram;
+    private OpenGLProgram m_CurrentProgram;
     private GLSLProgram m_DefaultProgram;
 
     PostProcessingParameters m_Parameters;
-
-    private int m_FlagBits;
-    private final Recti m_Viewport = new Recti();
-
+    private TextureAttachDesc[] m_AttachDescs =new TextureAttachDesc[8];  // Default attchment description
+    private GLFuncProvider gl;
+    private String m_PassName;  // For debugging
     private boolean m_Initlized = false;
+
+    public PostProcessingRenderContext(){
+        for(int i = 0; i < m_AttachDescs.length; i++){
+            m_AttachDescs[i] = new TextureAttachDesc(i, AttachType.TEXTURE_2D, 0, 0);
+        }
+    }
 
     void initlizeGL(int width, int height){
         if(m_Initlized)
             return;
 
-        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        m_StateTracker = GLStateTracker.getInstance();
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         GLAPIVersion version = gl.getGLAPIVersion();
+        m_RenderTargets = new RenderTargets();
 
         // Initlize the VAO
         m_DefaultVAO = new VertexArrayObject();
@@ -89,36 +100,67 @@ public final class PostProcessingRenderContext {
     }
 
     public void setViewport(int x, int y, int width, int height){
-        m_Viewport.x = x;
-        m_Viewport.y = y;
-        m_Viewport.width = width;
-        m_Viewport.height = height;
-
-        m_FlagBits |= VIEWPORT_BITS;
+        m_StateTracker.setViewport(x, y, width, height);
     }
 
     public void setRenderTarget(Texture2D tex){
-
-
-        m_FlagBits |= RENDERTARGET_BITS;
+        m_StateTracker.setFramebuffer(m_RenderTargets.getFramebuffer());
+        m_RenderTargets.setRenderTexture(tex, m_AttachDescs[0]);
     }
 
     public void setRenderTargets(Texture2D[] texs){
+        m_StateTracker.setFramebuffer(m_RenderTargets.getFramebuffer());
+        m_RenderTargets.setRenderTextures(texs, m_AttachDescs);
+    }
 
+    public void setProgram(OpenGLProgram program){
+        if(program == null){
+            m_StateTracker.setProgram(m_DefaultProgram);
+        }else{
+            m_StateTracker.setProgram(program);
+            m_CurrentProgram = program;
+        }
+    }
 
-        m_FlagBits |= RENDERTARGET_BITS;
+    public void bindTexture(TextureGL textureGL, int unit, int sampler){
+        m_StateTracker.bindTexture(textureGL, unit, sampler);
+    }
+
+    public void bindTextures(TextureGL[] textures, int[] units, int[] samplers) {
+        m_StateTracker.bindTextures(textures, units, samplers);
+    }
+
+    public void setBlendState(BlendState state) {m_StateTracker.setBlendState(state);}
+    public void setDepthStencilState(DepthStencilState state) {m_StateTracker.setDepthStencilState(state);}
+    public void setRasterizerState(RasterizerState state) {m_StateTracker.setRasterizerState(state);}
+
+    public void setProgramPipeline(GLSLProgramPipeline pipeline){
+        m_StateTracker.setProgramPipeline(pipeline);
+    }
+
+    public void setVAO(VertexArrayObject vao){
+        m_StateTracker.setVAO(vao);
+    }
+
+    private void flush(){
+        if(GLCheck.CHECK)
+            m_StateTracker.checkFlags("", true);
     }
 
     public void drawArrays(int mode, int offset, int count){
+        flush();
 
+        gl.glDrawArrays(mode, offset, count);
     }
 
-    public void drawElements(int mode, int offset, int count){
+    public void drawElements(int mode, int count, int type, long offset){
+        flush();
 
+        gl.glDrawElements(mode, count, type, offset);
     }
 
     public void drawFullscreenQuad(){
-
+        drawArrays(GLenum.GL_TRIANGLES, 0, 3);
     }
 
     void setRenderPasses(List<PostProcessingRenderPass> inRenderPasses){
@@ -180,11 +222,14 @@ public final class PostProcessingRenderContext {
         }
     }
 
-    private final boolean isViewportSet() {return (m_FlagBits & VIEWPORT_BITS) != 0;}
-    private final boolean isProgramSet() {return (m_FlagBits & PROGRAM_BITS) != 0;}
-    private final boolean isVAOSet() {return (m_FlagBits & VAO_BITS) != 0;}
-    private final boolean isRenderTargetSet() {return (m_FlagBits & RENDERTARGET_BITS) != 0;}
-
     public void finish() {
+        if (!m_RenderPassList.isEmpty())
+        {
+//            std::vector<PostProcessingRenderPass*> lastPass(1);
+//            lastPass[0] = m_RenderPassList.back().get();
+            currentDependencyPasses.clear();
+            currentDependencyPasses.add(m_RenderPassList.get(m_RenderPassList.size() - 1));
+            resolveDependencies(currentDependencyPasses);
+        }
     }
 }

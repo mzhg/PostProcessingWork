@@ -1506,4 +1506,30 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     public void glFramebufferTexture3D(int target, int attachment, int texturetarget, int texture, int level, int layer) {
         gl.glFramebufferTexture3D(target, attachment, texturetarget, texture, level, layer);
     }
+
+    @Override
+    public void glBindProgramPipeline(int programPipeline) {
+        gl.glBindProgramPipeline(programPipeline);
+    }
+
+    @Override
+    public void glDeleteProgramPipeline(int programPipeline) {
+        gl.glDeleteProgramPipelines(1, wrap(programPipeline), 0);
+    }
+
+    @Override
+    public int glGenProgramPipeline() {
+        gl.glGenProgramPipelines(1, intValues, 0);
+        return intValues[0];
+    }
+
+    @Override
+    public void glUseProgramStages(int programPipeline, int shaderBit, int program) {
+        gl.glUseProgramStages(programPipeline, shaderBit, program);
+    }
+
+    @Override
+    public boolean glIsProgramPipeline(int programPipeline) {
+        return gl.glIsProgramPipeline(programPipeline);
+    }
 }

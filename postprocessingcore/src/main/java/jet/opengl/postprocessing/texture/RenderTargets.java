@@ -1,6 +1,7 @@
 package jet.opengl.postprocessing.texture;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
@@ -61,11 +62,13 @@ public class RenderTargets implements Disposeable{
 //            g_FBOCaches.insert(std::pair<GLuint, FramebufferGL*>(m_Framebuffer, this));
         }
 
-        GLStateTracker.getInstance().bindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer);
+        GLStateTracker.getInstance().setFramebuffer(m_Framebuffer);
     }
 
+    public int getFramebuffer() {return m_Framebuffer;}
+
     public void unbind(){
-        GLStateTracker.getInstance().bindFramebuffer(GL_FRAMEBUFFER, 0);
+        GLStateTracker.getInstance().setFramebuffer(0);
     }
 
     static void deAttachTexture(int attachment, AttachType type)
@@ -172,6 +175,9 @@ public class RenderTargets implements Disposeable{
                 m_ColorAttaches[i].attached = false;
             }
         }
+
+        if(GLCheck.CHECK)
+            GLCheck.checkError("RenderTargets::setRenderTextures");
     }
 
     private void handleTextureAttachment(TextureGL pTex, int attachment, TextureAttachDesc desc, AttachInfo info){

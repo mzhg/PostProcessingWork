@@ -7,11 +7,11 @@ precision highp float;
 // Original code: https://www.shadertoy.com/view/XsKGRW
 
 uniform vec3      iResolution;     
-uniform float     iGlobalTime;     
+//uniform float     iGlobalTime;
 uniform vec4      iMouse;          
 uniform sampler2D iChannel0; 
 uniform vec4 iChannelResolution0;
-uniform vec2      iCenter;
+//uniform vec2      iCenter;
 
 #if ENABLE_IN_OUT_FEATURE
 in vec4  m_f4UVAndScreenPos;
@@ -22,6 +22,10 @@ varying vec4 m_f4UVAndScreenPos;
 #define FragColor gl_FragColor
 #endif
 
+// xy: center; z: Global time
+uniform vec4 g_UniformValue;
+#define iCenter g_UniformValue.xy
+#define iGlobalTime g_UniformValue.z
 
 /*
 	Full Scene Radial Blur
@@ -58,7 +62,7 @@ varying vec4 m_f4UVAndScreenPos;
 
 
 // Radial blur samples. More is always better, but there's frame rate to consider.
-const float SAMPLES = 12.;
+//const float SAMPLES = 12.;  TODO use the macro instead.
 
 
 // 2x1 hash. Used to jitter the samples.
@@ -111,8 +115,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ){
     //
     // The range is centered on zero, which allows the accumulation to spread out in
     // all directions. Ie; It's radial.
-    vec2 tuv =  uv - .5 - l.xy*.45;
-//    vec2 tuv = uv - iCenter;
+//    vec2 tuv =  uv - .5 - l.xy*.45;
+    vec2 tuv = uv - iCenter;
     
     // Dividing the direction vector above by the sample number and a density factor
     // which controls how far the blur spreads out. Higher density means a greater 

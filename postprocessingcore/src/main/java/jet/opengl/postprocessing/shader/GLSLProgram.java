@@ -36,9 +36,9 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
 	 * @return a reference to an <code>GLSLProgram</code> on success and null on failure
 	 */
-	public static GLSLProgram createFromClassFiles(String vertFilename, String fragFilename) throws IOException{
+	public static GLSLProgram createFromClassFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
 		GLSLProgram prog = new GLSLProgram();
-		prog.setSourceFromClassFiles(vertFilename, fragFilename);
+		prog.setSourceFromClassFiles(vertFilename, fragFilename, macros);
 		return prog;
 	}
 	
@@ -48,13 +48,10 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
 	 * @return true on success and false on failure
 	 */
-	protected void setSourceFromClassFiles(String vertFilename, String fragFilename) throws IOException{
+	protected void setSourceFromClassFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
 		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, true);
 		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, true);
-		ShaderSourceItem vs_item = new ShaderSourceItem(vertSrc, ShaderType.VERTEX);
-		ShaderSourceItem ps_item = new ShaderSourceItem(fragSrc, ShaderType.FRAGMENT);
-
-		setSourceFromStrings(vs_item, ps_item);
+		setSourceFromStrings(vertSrc, fragSrc, macros);
 	}
 
 	////------------------
@@ -64,9 +61,9 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
 	 * @return a reference to an <code>GLSLProgram</code> on success and null on failure
 	 */
-	public static GLSLProgram createFromFiles(String vertFilename, String fragFilename) throws IOException{
+	public static GLSLProgram createFromFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
 		GLSLProgram prog = new GLSLProgram();
-		prog.setSourceFromFiles(vertFilename, fragFilename);
+		prog.setSourceFromFiles(vertFilename, fragFilename, macros);
 		return prog;
 	}
 	
@@ -76,13 +73,10 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
 	 * @return true on success and false on failure
 	 */
-	protected void setSourceFromFiles(String vertFilename, String fragFilename) throws IOException{
+	protected void setSourceFromFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
 		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, false);
 		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, false);
-		ShaderSourceItem vs_item = new ShaderSourceItem(vertSrc, ShaderType.VERTEX);
-		ShaderSourceItem ps_item = new ShaderSourceItem(fragSrc, ShaderType.FRAGMENT);
-
-		setSourceFromStrings(vs_item, ps_item);
+		setSourceFromStrings(vertSrc, fragSrc, macros);
 	}
 	
 	/**
@@ -91,9 +85,9 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param fragSrc the string containing the fragment shader source
 	 * @return a reference to an <code>NvGLSLProgram</code> on success and null on failure
 	 */
-	public static GLSLProgram createFromStrings(CharSequence vertSrc, CharSequence fragSrc){
+	public static GLSLProgram createFromStrings(CharSequence vertSrc, CharSequence fragSrc, Macro...macros){
 		GLSLProgram prog = new GLSLProgram();
-		prog.setSourceFromStrings(vertSrc, fragSrc);
+		prog.setSourceFromStrings(vertSrc, fragSrc, macros);
 		return prog;
 	}
 	
@@ -103,9 +97,12 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param fragSrc the string containing the fragment shader source
 	 * @return true on success and false on failure
 	 */
-	protected void setSourceFromStrings(CharSequence vertSrc, CharSequence fragSrc){
+	protected void setSourceFromStrings(CharSequence vertSrc, CharSequence fragSrc, Macro...macros){
 		ShaderSourceItem vs_item = new ShaderSourceItem(vertSrc, ShaderType.VERTEX);
 		ShaderSourceItem ps_item = new ShaderSourceItem(fragSrc, ShaderType.FRAGMENT);
+
+		vs_item.macros = macros;
+		ps_item.macros = macros;
 
 		setSourceFromStrings(vs_item, ps_item);
 	}
