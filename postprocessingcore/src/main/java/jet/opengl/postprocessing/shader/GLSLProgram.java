@@ -269,6 +269,10 @@ public class GLSLProgram implements OpenGLProgram{
 	public void relink(){
 		m_program = linkProgram(m_program);
 	}
+
+	public void setAttribBinding(AttribBinder...bindings){
+		m_Attribs = bindings;
+	}
 	
 	private int linkProgram(int program){
 		if(m_Attribs != null){

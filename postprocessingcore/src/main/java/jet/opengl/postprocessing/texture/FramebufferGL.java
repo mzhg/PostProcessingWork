@@ -1,9 +1,9 @@
 package jet.opengl.postprocessing.texture;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
 
 import static jet.opengl.postprocessing.common.GLenum.GL_FRAMEBUFFER;
@@ -54,7 +54,17 @@ public class FramebufferGL implements Disposeable {
 
     public void addTextures(TextureGL[] textures, TextureAttachDesc[] descs){
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-        bind();
+//        bind();
+        if(GLCheck.CHECK){
+            if(m_Framebuffer == 0){
+                throw new IllegalStateException("m_Framebuffer is 0.");
+            }
+            int fbo = gl.glGetInteger(GLenum.GL_DRAW_FRAMEBUFFER);
+            if(fbo != m_Framebuffer){
+                throw new IllegalStateException("No binding the current framebuffer.");
+            }
+        }
+
 
         for (int i = m_AttachCount; i < textures.length; i++)
         {
@@ -149,18 +159,18 @@ public class FramebufferGL implements Disposeable {
     }
 
     public void bind(){
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         if (m_Framebuffer == 0)
         {
-            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
             m_Framebuffer = gl.glGenFramebuffer();
 //            g_FBOCaches.insert(std::pair<GLuint, FramebufferGL*>(m_Framebuffer, this));
         }
 
-        GLStateTracker.getInstance().setFramebuffer(m_Framebuffer);
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_Framebuffer);
     }
 
     public void unbind(){
-        GLStateTracker.getInstance().setFramebuffer(0);
+        GLFuncProviderFactory.getGLFuncProvider().glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
     }
 
     @Override

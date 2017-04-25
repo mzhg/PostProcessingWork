@@ -36,7 +36,7 @@ public class PostProcessingRenderPassInput extends  PostProcessingRenderPass {
         return idx == 0 ? m_inputTexture : null;
     }
 
-    void setDependency(int slot, PostProcessingRenderPass dependencyPass, int depentSlot) {}
+    public void setDependency(int slot, PostProcessingRenderPass dependencyPass, int depentSlot) {}
 
     void reset() {}
 
@@ -54,4 +54,7 @@ public class PostProcessingRenderPassInput extends  PostProcessingRenderPass {
     void setInputTextures(Texture2D[] _inputTextures) {}
 
     void setOutputRenderTexture(int slot, Texture2D texture) {}
+
+    void increaseDependency(int depentSlot) {}
+    public void markOutputSlot(int slot) {}
 }

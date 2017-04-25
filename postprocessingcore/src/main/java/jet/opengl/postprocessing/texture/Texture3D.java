@@ -29,7 +29,7 @@ public class Texture3D extends TextureGL{
 		if(version.major >= 4 && version.minor >= 5){
 			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_R, mode);
     	}else{
-			bind();
+//			bind();
 			gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_R, mode);
     	}
     }

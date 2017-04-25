@@ -1,5 +1,6 @@
 package jet.opengl.postprocessing.util;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -11,6 +12,17 @@ public class LogUtil {
     public enum LogType{
         DEFAULT,
         NV_FRAMEWROK
+    }
+
+    public static void setLoggerLevel(LogType type, Level level){
+        switch (type){
+            case DEFAULT:
+                getDefaultLogger().setLevel(level);
+                break;
+            case NV_FRAMEWROK:
+                getNVFrameworkLogger().setLevel(level);
+                break;
+        }
     }
 
     public static Logger getDefaultLogger(){

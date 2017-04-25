@@ -1,6 +1,7 @@
 package jet.opengl.postprocessing.core;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import jet.opengl.postprocessing.buffer.AttribDesc;
@@ -16,7 +17,7 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.common.RasterizerState;
-import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
 import jet.opengl.postprocessing.texture.AttachType;
 import jet.opengl.postprocessing.texture.RenderTargets;
@@ -44,14 +45,15 @@ public final class PostProcessingRenderContext {
     private BufferGL          m_BufferQuad;
     private GLStateTracker    m_StateTracker;
 
-    private OpenGLProgram m_CurrentProgram;
-    private GLSLProgram m_DefaultProgram;
+//    private OpenGLProgram m_CurrentProgram;
+//    private GLSLProgram m_DefaultProgram;
 
     PostProcessingParameters m_Parameters;
     private TextureAttachDesc[] m_AttachDescs =new TextureAttachDesc[8];  // Default attchment description
     private GLFuncProvider gl;
     private String m_PassName;  // For debugging
     private boolean m_Initlized = false;
+    private FullscreenProgram m_ScreenQuadProgram;
 
     public PostProcessingRenderContext(){
         for(int i = 0; i < m_AttachDescs.length; i++){
@@ -67,6 +69,7 @@ public final class PostProcessingRenderContext {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         GLAPIVersion version = gl.getGLAPIVersion();
         m_RenderTargets = new RenderTargets();
+        m_RenderTargets.initlize();
 
         // Initlize the VAO
         m_DefaultVAO = new VertexArrayObject();
@@ -93,10 +96,7 @@ public final class PostProcessingRenderContext {
             m_DefaultVAO.initlize(new BufferBinding[]{new BufferBinding(m_BufferQuad, desc)}, null);
         }
 
-        // Initlize the program
-        // TODO Add it later.
-
-        //
+        m_ScreenQuadProgram = new FullscreenProgram();
     }
 
     public void setViewport(int x, int y, int width, int height){
@@ -114,12 +114,14 @@ public final class PostProcessingRenderContext {
     }
 
     public void setProgram(OpenGLProgram program){
-        if(program == null){
-            m_StateTracker.setProgram(m_DefaultProgram);
-        }else{
-            m_StateTracker.setProgram(program);
-            m_CurrentProgram = program;
-        }
+//        if(program == null){
+//            m_StateTracker.setProgram(m_DefaultProgram);
+//        }else{
+//
+//            m_CurrentProgram = program;
+//        }
+
+        m_StateTracker.setProgram(program);
     }
 
     public void bindTexture(TextureGL textureGL, int unit, int sampler){
@@ -139,11 +141,13 @@ public final class PostProcessingRenderContext {
     }
 
     public void setVAO(VertexArrayObject vao){
+        // TODO: need setup defualt vao if the specified vao is null.
+
         m_StateTracker.setVAO(vao);
     }
 
     private void flush(){
-        if(GLCheck.CHECK)
+//        if(GLCheck.CHECK)
             m_StateTracker.checkFlags("", true);
     }
 
@@ -163,13 +167,37 @@ public final class PostProcessingRenderContext {
         drawArrays(GLenum.GL_TRIANGLES, 0, 3);
     }
 
-    void setRenderPasses(List<PostProcessingRenderPass> inRenderPasses){
+    void setRenderPasses(Collection<PostProcessingRenderPass> inRenderPasses){
         m_RenderPassList.clear();
         m_RenderPassList.addAll(inRenderPasses);
     }
 
     void renderTo(Texture2D src, Texture2D dst, Recti viewport){
+        GLCheck.checkError("renderTo: begin");
+        m_StateTracker.clearFlags(false);
 
+        setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
+        if(dst != null) {
+            setRenderTarget(dst);
+        }else{
+            m_StateTracker.setFramebuffer(0);
+        }
+
+        m_StateTracker.bindTexture(src, 0, 0);
+        m_StateTracker.setVAO(null);
+        m_StateTracker.setProgram(m_ScreenQuadProgram);
+        m_StateTracker.setBlendState(null);
+        m_StateTracker.setDepthStencilState(null);
+        m_StateTracker.setRasterizerState(null);
+        drawFullscreenQuad();
+
+        // Use the current state settinmg
+//        gl.glViewport(0, 0, viewport.width, viewport.height);
+//        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+//        gl.glBindTexture(GLenum.GL_TEXTURE_2D, src.getTexture());
+//        gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
+
+        GLCheck.checkError("renderTo: end");
     }
 
     private final Texture2DDesc outputDesc = new Texture2DDesc();
@@ -177,6 +205,9 @@ public final class PostProcessingRenderContext {
     private final List<Texture2D> inputTextures = new ArrayList<>();
 
     void performancePostProcessing(){
+        if(m_RenderPassList.isEmpty())
+            return;
+
         for(PostProcessingRenderPass pass : m_RenderPassList){
             pass.reset();
         }
@@ -227,8 +258,10 @@ public final class PostProcessingRenderContext {
         {
 //            std::vector<PostProcessingRenderPass*> lastPass(1);
 //            lastPass[0] = m_RenderPassList.back().get();
+            PostProcessingRenderPass lastPass = m_RenderPassList.get(m_RenderPassList.size() - 1);
+            lastPass.markOutputSlot(0);
             currentDependencyPasses.clear();
-            currentDependencyPasses.add(m_RenderPassList.get(m_RenderPassList.size() - 1));
+            currentDependencyPasses.add(lastPass);
             resolveDependencies(currentDependencyPasses);
         }
     }

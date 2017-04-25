@@ -156,7 +156,7 @@ public class GLStateTracker {
 
         if(m_CurrentStates.program != program.getProgram()){
             m_CurrentStates.program = program.getProgram();
-            program.enable();
+            gl.glUseProgram(program.getProgram());
         }
     }
 
@@ -280,7 +280,7 @@ public class GLStateTracker {
     }
 
     /**
-     * Reset the GL states with the previous saved by {@link #saveStates()}
+     * Reset the GL states with previous saved by {@link #saveStates()}
      */
     public void restoreStates(){
         if(m_SavedStates.framebuffer != m_CurrentStates.framebuffer){
@@ -615,7 +615,24 @@ public class GLStateTracker {
     }
 
     // bind the texture to current units
+    public void bindTexture(int target, int textureID){
+        int unit = m_CurrentStates.activeTextureUnit;
+//        bindSingleTexture(m_TextureTargets[unit], textureID, unit);
+        if(m_TextureNames[unit] != textureID){
+            m_TextureNames[unit] = textureID;
+            m_TextureTargets[unit] = target;
+
+            bindSingleTexture(m_TextureTargets[unit], textureID, unit);
+        }
+    }
+
+    // bind the texture to current units
     public void bindTexture(TextureGL texture, int unit, int sampler){
+//        bindSingleTexture(texture.getTarget(), texture.getTexture(), unit);
+//
+//        if(texture != null)
+//            return;
+
         int textureID = texture != null?texture.getTexture():0;
         if(m_TextureNames[unit] != textureID){
             m_TextureNames[unit] = textureID;

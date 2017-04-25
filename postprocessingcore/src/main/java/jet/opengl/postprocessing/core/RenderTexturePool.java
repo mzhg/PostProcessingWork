@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
@@ -32,11 +33,13 @@ final class RenderTexturePool {
         List<Texture2D> texture2DList = m_RenderTexturePool.get(desc);
         if(texture2DList == null || texture2DList.isEmpty()){
             Texture2D texture2D = TextureUtils.createTexture2D(desc, null);
+            texture2D.setMagFilter(GLenum.GL_LINEAR);
+            texture2D.setMinFilter(GLenum.GL_LINEAR);
             m_CreatedTextures.add(texture2D);
             LogUtil.i(LogUtil.LogType.DEFAULT, "Create a new Texture in the RenderTexturePool. Created Texture Count: " + m_CreatedTextures.size());
             return texture2D;
         }else{
-            LogUtil.i(LogUtil.LogType.DEFAULT, "Retrive a Texture from the RenderTexturePool." );
+//            LogUtil.i(LogUtil.LogType.DEFAULT, "Retrive a Texture from the RenderTexturePool." );
             return texture2DList.remove(texture2DList.size() - 1);
         }
     }
@@ -50,7 +53,7 @@ final class RenderTexturePool {
                 m_RenderTexturePool.put(desc, texture2DList);
             }
 
-            LogUtil.i(LogUtil.LogType.DEFAULT, "Put a unused texture into the RenderTexturePool." );
+//            LogUtil.i(LogUtil.LogType.DEFAULT, "Put a unused texture into the RenderTexturePool." );
             for(Texture2D texture2D : texture2DList){
                 if(texture2D == tex || texture2D.getTexture() == tex.getTexture()){
                     return;

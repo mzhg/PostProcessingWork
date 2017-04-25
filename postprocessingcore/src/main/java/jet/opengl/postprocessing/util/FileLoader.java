@@ -27,9 +27,15 @@ public interface FileLoader {
         public String getCanonicalPath(String file) throws IOException {
             return new File(file).getCanonicalPath();
         }
+
+        @Override
+        public boolean exists(String file) {
+            return new File(file).exists();
+        }
     };
 
     public InputStream open(String file) throws FileNotFoundException;
     public String getParent(String file);
     public String getCanonicalPath(String file) throws IOException;
+    public boolean exists(String file);
 }

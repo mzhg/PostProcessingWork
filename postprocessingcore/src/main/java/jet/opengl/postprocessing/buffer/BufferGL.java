@@ -7,7 +7,6 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.util.BufferUtils;
 
 /**
@@ -21,15 +20,16 @@ public class BufferGL implements Disposeable{
 
     private ByteBuffer m_mapBuffer;
     private int m_bufferID;
+    private GLFuncProvider gl;
 
     public void initlize(int target, int size, Buffer data, int usage/*, boolean persistent*/){
-        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl = GLFuncProviderFactory.getGLFuncProvider();
 //        GLAPIVersion version = gl.getGLAPIVersion();
         if(m_bufferID == 0){
             m_bufferID = gl.glGenBuffer();
         }
 
-        GLStateTracker.getInstance().bindBuffer(target, m_bufferID);
+        gl.glBindBuffer(target, m_bufferID);
         if(data == null){
             gl.glBufferData(target, (int)size, usage);
         }else{
@@ -54,19 +54,19 @@ public class BufferGL implements Disposeable{
             }
         }
 
-        GLStateTracker.getInstance().bindBuffer(m_target, m_bufferID);
+        gl.glBindBuffer(m_target, m_bufferID);
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         gl.glBufferSubData(m_target, offset, data);
     }
 
-    public void bind(){GLStateTracker.getInstance().bindBuffer(m_target, m_bufferID);}
-    public void unbind(){GLStateTracker.getInstance().bindBuffer(m_target, 0);}
+    public void bind(){gl.glBindBuffer(m_target, m_bufferID);}
+    public void unbind(){gl.glBindBuffer(m_target, 0);}
     public int getTarget() { return m_target;}
     public int getUsage()  { return m_usage;}
 
     @Override
     public void dispose() {
-        GLFuncProviderFactory.getGLFuncProvider().glDeleteBuffer(m_bufferID);
+        gl.glDeleteBuffer(m_bufferID);
         m_bufferID = 0;
     }
 }

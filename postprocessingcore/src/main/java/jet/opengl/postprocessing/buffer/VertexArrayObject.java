@@ -4,7 +4,6 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.common.GLStateTracker;
 
 /**
  * Created by mazhen'gui on 2017/4/15.
@@ -36,18 +35,19 @@ public class VertexArrayObject implements Disposeable {
     public int getVAO() {return m_vao;}
 
     public void initlize(BufferBinding[] bindings, BufferGL indices){
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         if(m_vao == 0 && isSupportVAO()){
-            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
             m_vao = gl.glGenVertexArray();
         }
+
+        m_bindings = bindings;
+        m_indices = indices;
 
         if((bindings == null && indices == null) || !isSupportVAO()){
             return;
         }
 
-        m_bindings = bindings;
-        m_indices = indices;
-        GLStateTracker.getInstance().setVAO(this);
+        gl.glBindVertexArray(m_vao);
         _bind();
     }
 
@@ -77,14 +77,14 @@ public class VertexArrayObject implements Disposeable {
 
     public void bind() {
         if(g_VAOState == ENABLE){
-            GLStateTracker.getInstance().setVAO(this);
+            GLFuncProviderFactory.getGLFuncProvider().glBindVertexArray(m_vao);
         }else{
             _bind();
         }
     }
     public void unbind() {
         if(g_VAOState ==ENABLE){
-            GLStateTracker.getInstance().setVAO(null);
+            GLFuncProviderFactory.getGLFuncProvider().glBindVertexArray(0);
         }else{
             _unbind();
         }

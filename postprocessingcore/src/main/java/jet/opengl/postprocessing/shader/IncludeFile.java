@@ -1,11 +1,12 @@
 package jet.opengl.postprocessing.shader;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 
+import jet.opengl.postprocessing.util.FileLoader;
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.StringUtils;
 
 /**
@@ -138,24 +139,26 @@ final class IncludeFile {
 			
 			result.key = "<class>" + result.filepath;
 		}else{ // external file
-			File file = new File(result.filepath);
-			if(file.exists()){
-				result.key = "<file>" + file.getCanonicalPath();
+			FileLoader loader = FileUtils.g_IntenalFileLoader;
+			if(loader.exists(result.filepath)){
+				result.key = "<file>" + loader.getCanonicalPath(result.filepath);
 				return result;
 			}
 			
 			if(!parentFile.isClassFile){
 				if(parentFile.isDir){
-					file = new File(parentFile.filepath, result.filepath);
-					if(file.exists()){
-						result.filepath = file.getCanonicalPath();
+//					file = new File(parentFile.filepath, result.filepath);
+					String file = parentFile.filepath + '\\' + result.filepath;
+					if(loader.exists(file)){
+						result.filepath = loader.getCanonicalPath(file);
 						result.key = "<file>" + result.filepath;
 						return result;
 					}
 				}else{
-					file = new File(new File(parentFile.filepath).getParent(), result.filepath);
-					if(file.exists()){
-						result.filepath = file.getCanonicalPath();
+//					file = new File(new File(parentFile.filepath).getParent(), result.filepath);
+					String file = loader.getParent(parentFile.filepath) + "/" + result.filepath;
+					if(loader.exists(file)){
+						result.filepath = loader.getCanonicalPath(file);
 						result.key = "<file>" + result.filepath;
 						return result;
 					}

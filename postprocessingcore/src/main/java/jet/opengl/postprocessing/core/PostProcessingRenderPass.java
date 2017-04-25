@@ -92,7 +92,7 @@ public abstract class PostProcessingRenderPass {
         m_bProcessed = true;
     }
 
-    void setDependency(int slot, PostProcessingRenderPass dependencyPass, int depentSlot)
+    public void setDependency(int slot, PostProcessingRenderPass dependencyPass, int depentSlot)
     {
         m_InputDescs[slot].dependencyPass = dependencyPass;
         m_InputDescs[slot].slot = depentSlot;

@@ -19,7 +19,6 @@ import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 import static jet.opengl.postprocessing.common.GLenum.GL_STENCIL;
-import static jet.opengl.postprocessing.common.GLenum.GL_STENCIL_INDEX8;
 import static jet.opengl.postprocessing.util.CacheBuffer.getCachedByteBuffer;
 
 public final class TextureUtils {
@@ -286,6 +285,10 @@ public final class TextureUtils {
 	public static Texture3D createTexture3D(Texture3DDesc textureDesc, TextureDataDesc dataDesc){
 		return createTexture3D(textureDesc, dataDesc, null);
 	}
+
+	public static boolean isCompressedFormat(int format){
+		return Arrays.binarySearch(compressed_formats, format) >= 0;
+	}
 	
 	@SuppressWarnings("unchecked")
 	public static Texture3D createTexture3D(Texture3DDesc textureDesc, TextureDataDesc dataDesc, Texture3D out){
@@ -435,6 +438,13 @@ public final class TextureUtils {
 	}
 	
 	static boolean valid_texture2D = true;
+
+	private static void check(Texture2DDesc desc){
+		if(desc.width == 0 )
+			throw new IllegalArgumentException("width can't be 0.");
+		if(desc.height == 0 )
+			throw new IllegalArgumentException("height can't be 0.");
+	}
 	
 	public static Texture2D createTexture2D(Texture2DDesc textureDesc, TextureDataDesc dataDesc){
 		return createTexture2D(textureDesc, dataDesc, null);
@@ -450,6 +460,8 @@ public final class TextureUtils {
 		boolean multiSample; // = GL.getCapabilities().OpenGL32 && textureDesc.sampleDesc.count > 1;
 		int mipLevels = Math.max(1, textureDesc.mipLevels);
 		final boolean isSupportMSAA;
+
+		check(textureDesc);
 
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		GLAPIVersion version = gl.getGLAPIVersion();
@@ -1240,41 +1252,41 @@ public final class TextureUtils {
 		case GLenum.GL_R8:  				return RED;
 		case GLenum.GL_R8_SNORM:		    return RED;
 		case GLenum.GL_R16: 				return RED;
-		case GLenum.GL_R16_SNORM : 		return RED;
-		case GLenum.GL_RG8:				return RG;
+		case GLenum.GL_R16_SNORM : 			return RED;
+		case GLenum.GL_RG8:					return RG;
 		case GLenum.GL_RG8_SNORM:			return RG;
 		case GLenum.GL_RG16:				return RG;
-		case GLenum.GL_RG16_SNORM:		return RG;
+		case GLenum.GL_RG16_SNORM:			return RG;
 		case GLenum.GL_R3_G3_B2:			return RGB;
 		case GLenum.GL_RGB4:				return RGB;
 		case GLenum.GL_RGB5:				return RGB;
 		case GLenum.GL_RGB8:				return RGB;
-		case GLenum.GL_RGB8_SNORM:		return RGB;
+		case GLenum.GL_RGB8_SNORM:			return RGB;
 		case GLenum.GL_RGB10:				return RGB;
 		case GLenum.GL_RGB12:				return RGB;
-		case GLenum.GL_RGB16_SNORM:		return RGB;
+		case GLenum.GL_RGB16_SNORM:			return RGB;
 		case GLenum.GL_RGBA2:				return RGBA;  // TODO
 		case GLenum.GL_RGBA4:				return RGBA;  // TODO
-		case GLenum.GL_RGB5_A1:			return RGBA;  // TODO
+		case GLenum.GL_RGB5_A1:				return RGBA;  // TODO
 		case GLenum.GL_RGBA8:				return RGBA;
-		case GLenum.GL_RGBA8_SNORM:		return RGBA;
+		case GLenum.GL_RGBA8_SNORM:			return RGBA;
 		case GLenum.GL_RGB10_A2:			return RGBA;
-		case GLenum.GL_RGB10_A2UI:		return RGBA_INTEGER;
-		case GLenum.GL_RGBA12:			return RGBA;
-		case GLenum.GL_RGBA16:			return RGBA;
+		case GLenum.GL_RGB10_A2UI:			return RGBA_INTEGER;
+		case GLenum.GL_RGBA12:				return RGBA;
+		case GLenum.GL_RGBA16:				return RGBA;
 		case GLenum.GL_SRGB8:				return RGB;
 		case GLenum.GL_SRGB8_ALPHA8:		return RGBA;
 		case GLenum.GL_R16F:				return RED;
 		case GLenum.GL_RG16F:				return RG;
-		case GLenum.GL_RGB16F:			return RGB;
-		case GLenum.GL_RGBA16F:			return RGBA;
+		case GLenum.GL_RGB16F:				return RGB;
+		case GLenum.GL_RGBA16F:				return RGBA;
 		case GLenum.GL_R32F:				return RED;
 		case GLenum.GL_RG32F:				return RG;
-		case GLenum.GL_RGB32F:			return RGB;
-		case GLenum.GL_RGBA32F:			return RGBA;
-		case GLenum.GL_R11F_G11F_B10F:	return RGB;
-		case GLenum.GL_RGB9_E5:			return RGB; // TODO ?
-		case GLenum.GL_R8I:				return RED_INTEGER;
+		case GLenum.GL_RGB32F:				return RGB;
+		case GLenum.GL_RGBA32F:				return RGBA;
+		case GLenum.GL_R11F_G11F_B10F:		return RGB;
+		case GLenum.GL_RGB9_E5:				return RGB; // TODO ?
+		case GLenum.GL_R8I:					return RED_INTEGER;
 		case GLenum.GL_R8UI:				return RED_INTEGER;
 		case GLenum.GL_R16I:				return RED_INTEGER;
 		case GLenum.GL_R16UI:				return RED_INTEGER;
@@ -1283,37 +1295,37 @@ public final class TextureUtils {
 		case GLenum.GL_RG8I:				return RG_INTEGER;
 		case GLenum.GL_RG8UI:				return RG_INTEGER;
 		case GLenum.GL_RG16I:				return RG_INTEGER;
-		case GLenum.GL_RG16UI:			return RG_INTEGER;
+		case GLenum.GL_RG16UI:				return RG_INTEGER;
 		case GLenum.GL_RG32I:				return RG_INTEGER;
-		case GLenum.GL_RG32UI:			return RG_INTEGER;
+		case GLenum.GL_RG32UI:				return RG_INTEGER;
 		case GLenum.GL_RGB8I:				return RGB_INTEGER;
-		case GLenum.GL_RGB8UI:			return RGB_INTEGER;
-		case GLenum.GL_RGB16I:			return RGB_INTEGER;
-		case GLenum.GL_RGB16UI:			return RGB_INTEGER;
-		case GLenum.GL_RGB32I:			return RGB_INTEGER;
-		case GLenum.GL_RGB32UI:			return RGB_INTEGER;
+		case GLenum.GL_RGB8UI:				return RGB_INTEGER;
+		case GLenum.GL_RGB16I:				return RGB_INTEGER;
+		case GLenum.GL_RGB16UI:				return RGB_INTEGER;
+		case GLenum.GL_RGB32I:				return RGB_INTEGER;
+		case GLenum.GL_RGB32UI:				return RGB_INTEGER;
 		
-		case GLenum.GL_RGBA8I:			return RGBA_INTEGER;
-		case GLenum.GL_RGBA8UI:			return RGBA_INTEGER;
-		case GLenum.GL_RGBA16I:			return RGBA_INTEGER;
+		case GLenum.GL_RGBA8I:				return RGBA_INTEGER;
+		case GLenum.GL_RGBA8UI:				return RGBA_INTEGER;
+		case GLenum.GL_RGBA16I:				return RGBA_INTEGER;
 		case GLenum.GL_RGBA16UI:			return RGBA_INTEGER;
-		case GLenum.GL_RGBA32I:			return RGBA_INTEGER;
+		case GLenum.GL_RGBA32I:				return RGBA_INTEGER;
 		case GLenum.GL_RGBA32UI:			return RGBA_INTEGER;
 		case GLenum.GL_DEPTH_COMPONENT16:
 		case GLenum.GL_DEPTH_COMPONENT24:
 		case GLenum.GL_DEPTH_COMPONENT32:
 		case GLenum.GL_DEPTH_COMPONENT32F:
-										return GLenum.GL_DEPTH_COMPONENT;
+											return GLenum.GL_DEPTH_COMPONENT;
 		case GLenum.GL_DEPTH24_STENCIL8:
 		case GLenum.GL_DEPTH32F_STENCIL8:
-										return GLenum.GL_DEPTH_STENCIL;
+											return GLenum.GL_DEPTH_STENCIL;
 		case GLenum.GL_STENCIL_INDEX8:
-			return GL_STENCIL;
+											return GL_STENCIL;
 		case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
 		case GLenum.GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
 		case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
 		case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-										return GLenum.GL_NONE;
+											return GLenum.GL_NONE;
 		default:
 			throw new IllegalArgumentException("Unkown internalFormat: " + internalFormat);
 		}
@@ -1398,7 +1410,7 @@ public final class TextureUtils {
 	public static TextureDesc getTexParameters(int target, int textureID){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 
-		GLStateTracker.getInstance().bindTexture(target, textureID, 0);
+		GLStateTracker.getInstance().bindTexture(target, textureID);
 
 		TextureDesc desc = new TextureDesc();
 		desc.target = target;

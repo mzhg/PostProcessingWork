@@ -22,10 +22,11 @@ varying vec4 m_f4UVAndScreenPos;
 #define FragColor gl_FragColor
 #endif
 
-// xy: center; z: Global time
+// xy: center; z: Global time; w: sampler count
 uniform vec4 g_UniformValue;
 #define iCenter g_UniformValue.xy
 #define iGlobalTime g_UniformValue.z
+#define SAMPLES  g_UniformValue.w
 
 /*
 	Full Scene Radial Blur
@@ -62,7 +63,7 @@ uniform vec4 g_UniformValue;
 
 
 // Radial blur samples. More is always better, but there's frame rate to consider.
-//const float SAMPLES = 12.;  TODO use the macro instead.
+//const float SAMPLES = 12.;
 
 
 // 2x1 hash. Used to jitter the samples.
@@ -95,7 +96,7 @@ vec3 lOff(){
 void mainImage( out vec4 fragColor, in vec2 fragCoord ){
     
     // Screen coordinates.
-    vec2 uv = ScreenSpaceUV.xy;
+    vec2 uv = m_f4UVAndScreenPos.xy;
 
     // Radial blur factors.
     //
@@ -104,7 +105,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ){
     // Controls the sample density, which in turn, controls the sample spread.
     float density = 0.5; 
     // Sample weight. Decays as we radiate outwards.
-    float weight = 0.09; 
+    float weight = 1.0f/SAMPLES;
     
     // Light offset. Kind of fake. See above.
     vec3 l = lOff();

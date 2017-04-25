@@ -4,7 +4,6 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
 
 public abstract class TextureGL implements Disposeable {
@@ -25,13 +24,9 @@ public abstract class TextureGL implements Disposeable {
     public int getMipLevels() { return mipLevels;}
     public final int getTarget()  { return target; }
     public int getSampleCount() { return 1;}
-    
-    public void bindImage(int unit, int access, int format){
-//    	GL42.glBindImageTexture(unit, textureID, 0, false, 0, access, format);
-//
-//    	bindType = 2;
-//    	bindingUnit = unit;
 
+	/*
+    public void bindImage(int unit, int access, int format){
 		GLStateTracker.getInstance().bindImage(unit, textureID, 0, false, 0, access, format);
     }
     
@@ -47,6 +42,7 @@ public abstract class TextureGL implements Disposeable {
     public void bind(int unit, int sampler){
 		GLStateTracker.getInstance().bindTexture(0, target, textureID, sampler);
     }
+    */
     /*
     public void unbind(){
     	if(bindType == 1){
@@ -88,7 +84,7 @@ public abstract class TextureGL implements Disposeable {
     	if(version.major >= 4 && version.minor >= 5){
     		gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, minFilter);
     	}else{
-			bind();
+//			bind();
 			gl.glTexParameteri(target, GLenum.GL_TEXTURE_MIN_FILTER, minFilter);
     	}
     }
@@ -104,7 +100,7 @@ public abstract class TextureGL implements Disposeable {
     	if(version.major >= 4 && version.minor >= 5){
 			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MAG_FILTER, magFilter);
     	}else{
-			bind();
+//			bind();
 			gl.glTexParameteri(target, GLenum.GL_TEXTURE_MAG_FILTER, magFilter);
     	}
     }
@@ -120,7 +116,7 @@ public abstract class TextureGL implements Disposeable {
 		if(version.major >= 4 && version.minor >= 5){
 			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_S, mode);
     	}else{
-			bind();
+//			bind();
 			gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_S, mode);
     	}
     }
@@ -136,7 +132,7 @@ public abstract class TextureGL implements Disposeable {
 		if(version.major >= 4 && version.minor >= 5){
 			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_T, mode);
     	}else{
-			bind();
+//			bind();
 			gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_T, mode);
     	}
     }
@@ -153,7 +149,7 @@ public abstract class TextureGL implements Disposeable {
 		if(version.major >= 4 && version.minor >= 5){
 			gl.glTextureParameteriv(textureID, GLenum.GL_TEXTURE_SWIZZLE_RGBA, rgba);
     	}else{
-			bind();
+//			bind();
 			gl.glTexParameteriv(target, GLenum.GL_TEXTURE_SWIZZLE_RGBA, rgba);
     	}
     }

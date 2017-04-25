@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderType;
@@ -28,6 +29,10 @@ public class ComputeBasicGLSL extends NvSampleApp{
 	private FullscreenProgram fullScreenProgram;
 	private final Matrix4f modelMatrix = new Matrix4f();
 	private GLFuncProvider gl;
+
+	static {
+		System.setProperty("jet.opengl.postprocessing.debug", "true");
+	}
 	
 	@Override
 	public void initUI() {
@@ -43,7 +48,7 @@ public class ComputeBasicGLSL extends NvSampleApp{
 		
 		//init shaders
 	    try {
-			fullScreenProgram = new FullscreenProgram();
+			fullScreenProgram = new FullscreenProgram(true);
 			CharSequence computeSource = ShaderLoader.loadShaderFile("ComputeBasicGLSL\\shaders\\invert.glsl", false);
 			int computeShader = GLSLUtil.compileShaderFromSource(computeSource, ShaderType.COMPUTE, true);
 			m_computeProg = GLSLUtil.createProgramFromShaders(computeShader, null);

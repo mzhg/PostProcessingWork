@@ -3,6 +3,7 @@ package jet.opengl.impl.lwjgl3;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.ARBDirectStateAccess;
+import org.lwjgl.opengl.ARBMultiBind;
 import org.lwjgl.opengl.ARBSeparateShaderObjects;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -1563,5 +1564,20 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public boolean glIsProgramPipeline(int programPipeline) {
         return ARBSeparateShaderObjects.glIsProgramPipeline(programPipeline);
+    }
+
+    @Override
+    public void glBindTextures(int first, IntBuffer texturenames) {
+        ARBMultiBind.glBindTextures(first, texturenames);
+    }
+
+    @Override
+    public void glBindTextureUnit(int unit, int texture) {
+        GL45.glBindTextureUnit(unit, texture);
+    }
+
+    @Override
+    public void glBindSamplers(int first, IntBuffer samplernames) {
+        ARBMultiBind.glBindSamplers(first, samplernames);
     }
 }

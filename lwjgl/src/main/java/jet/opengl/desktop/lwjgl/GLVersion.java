@@ -1,18 +1,12 @@
 package jet.opengl.desktop.lwjgl;
 
-import static org.lwjgl.opengl.GL11.GL_EXTENSIONS;
-import static org.lwjgl.opengl.GL11.GL_VERSION;
-import static org.lwjgl.opengl.GL11.glGetInteger;
-import static org.lwjgl.opengl.GL11.glGetString;
-import static org.lwjgl.opengl.GL30.GL_NUM_EXTENSIONS;
-import static org.lwjgl.opengl.GL30.glGetStringi;
-import static org.lwjgl.opengl.GL32.GL_CONTEXT_PROFILE_MASK;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GL32;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.StringTokenizer;
-
-import org.lwjgl.opengl.GL11;
 
 public final class GLVersion {
 
@@ -66,7 +60,7 @@ public final class GLVersion {
 	static int getSupportedExtensions(final Set<String> supported_extensions) {
 		// Detect OpenGL version first
 
-		final String version = glGetString(GL_VERSION);
+		final String version = GL11.glGetString(GL11.GL_VERSION);
 		if ( version == null )
 			throw new IllegalStateException("glGetString(GL_VERSION) returned null - possibly caused by missing current context.");
 
@@ -102,7 +96,7 @@ public final class GLVersion {
 
 		if ( majorVersion < 3 ) {
 			// Parse EXTENSIONS string
-			final String extensions_string = glGetString(GL_EXTENSIONS);
+			final String extensions_string = GL11.glGetString(GL11.GL_EXTENSIONS);
 			if ( extensions_string == null )
 				throw new IllegalStateException("glGetString(GL_EXTENSIONS) returned null - is there a context current?");
 
@@ -111,17 +105,17 @@ public final class GLVersion {
 				supported_extensions.add(tokenizer.nextToken());
 		} else {
 			// Use forward compatible indexed EXTENSIONS
-			final int extensionCount = glGetInteger(GL_NUM_EXTENSIONS);
+			final int extensionCount = GL11.glGetInteger(GL30.GL_NUM_EXTENSIONS);
 
 			for ( int i = 0; i < extensionCount; i++ )
-				supported_extensions.add(glGetStringi(GL_EXTENSIONS, i));
+				supported_extensions.add(GL30.glGetStringi(GL11.GL_EXTENSIONS, i));
 
 			// Get the context profile mask for versions >= 3.2
 			if ( 3 < majorVersion || 2 <= minorVersion ) {
 //				Util.checkGLError(); // Make sure we have no errors up to this point
 
 				try {
-					profileMask = glGetInteger(GL_CONTEXT_PROFILE_MASK);
+					profileMask = GL11.glGetInteger(GL32.GL_CONTEXT_PROFILE_MASK);
 					// Retrieving GL_CONTEXT_PROFILE_MASK may generate an INVALID_OPERATION error on certain implementations, ignore.
 					// Happens on pre10.1 ATI drivers, when ContextAttribs.withProfileCompatibility is not used
 //					Util.checkGLError();
