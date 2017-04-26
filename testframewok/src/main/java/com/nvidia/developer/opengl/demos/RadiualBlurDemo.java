@@ -66,10 +66,21 @@ public class RadiualBlurDemo extends NvSampleApp {
 
     @Override
     public void display() {
+        m_framebuffer.bind();
         gl.glClearColor(0.2f, 0.0f, 0.2f, 1.0f);
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
 
-        m_frameAttribs.sceneColorTexture =m_screenTex;
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_sourceTexture);
+
+//         scale the position.x to the apect ratio.
+        m_ScreenQuadProgram.enable();
+        m_ScreenQuadProgram.applyPositionTransform(modelMatrix);
+        gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
+        m_ScreenQuadProgram.disable();
+        m_framebuffer.unbind();
+
+        m_frameAttribs.sceneColorTexture =m_fbo_tex;
         m_frameAttribs.viewport.set(0,0, getGLContext().width(), getGLContext().height());
         m_frameAttribs.outputTexture = null;
 
@@ -81,17 +92,10 @@ public class RadiualBlurDemo extends NvSampleApp {
 
         float centerX = radius * cos + 0.5f;
         float centerY = radius * sin + 0.5f;
-        m_PostProcessing.addRadialBlur(centerX, centerY, 20);
+//        m_PostProcessing.addRadialBlur(centerX, centerY, 20);
         m_PostProcessing.performancePostProcessing(m_frameAttribs);
 
-//        gl.glActiveTexture(GLenum.GL_TEXTURE0);
-//        gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_sourceTexture);
-//
-////         scale the position.x to the apect ratio.
-//        m_ScreenQuadProgram.enable();
-//        m_ScreenQuadProgram.applyPositionTransform(modelMatrix);
-//        gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
-//        m_ScreenQuadProgram.disable();
+
 
         m_globalTime += getFrameDeltaTime();
     }

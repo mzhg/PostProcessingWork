@@ -9,7 +9,6 @@ import java.util.Map;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
-import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.LogUtil;
 
@@ -98,34 +97,38 @@ public class PostProcessing {
                 return;
             }
 
-            m_RenderContext.setRenderPasses(m_AddedRenderPasses.values());
-            m_RenderContext.performancePostProcessing(/* TODO: don't forget the parameters */);
+            m_RenderContext.performancePostProcessing(frameAttribs.outputTexture);
+
+//            GLStateTracker.getInstance().setVAO(null);
+//            GLStateTracker.getInstance().setBlendState(null);
+//            GLStateTracker.getInstance().setDepthStencilState(null);
+//            GLStateTracker.getInstance().setRasterizerState(null);
+
             //      checkGLError();
-
             if (!m_AddedRenderPasses.isEmpty()) {
-                int size = m_AddedRenderPasses.size();
-                Texture2D src;
-                if(size > 2) {
-                    src = m_LastAddedPass.getOutputTexture(0);
-                }else{
-                    src = frameAttribs.sceneColorTexture;
-                }
-                if (m_bUsePortionTex) {
-                    // TODO The two step can combine in one pass.
-                    m_RenderContext.renderTo(frameAttribs.sceneColorTexture, frameAttribs.outputTexture, frameAttribs.viewport);
-                    m_RenderContext.renderTo(src, frameAttribs.outputTexture, frameAttribs.clipRect);
-                }
-                else {
-                    m_RenderContext.renderTo(src, frameAttribs.outputTexture, frameAttribs.viewport);
-                }
-
-                m_RenderContext.finish();
+//                int size = m_AddedRenderPasses.size();
+//                Texture2D src;
+//                if(size > 2) {
+//                    src = m_LastAddedPass.getOutputTexture(0);
+//                }else{
+//                    src = frameAttribs.sceneColorTexture;
+//                }
+//                if (m_bUsePortionTex) {
+//                    // TODO The two step can combine in one pass.
+//                    m_RenderContext.renderTo(frameAttribs.sceneColorTexture, frameAttribs.outputTexture, frameAttribs.viewport);
+//                    m_RenderContext.renderTo(src, frameAttribs.outputTexture, frameAttribs.clipRect);
+//                }
+//                else {
+//                    m_RenderContext.renderTo(src, frameAttribs.outputTexture, frameAttribs.viewport);
+//                }
+//                m_RenderContext.finish();
             }else /*if(m_OutputToScreen || frameAttribs.SceneColorBuffer != nullptr)*/{
                 m_RenderContext.renderTo(frameAttribs.sceneColorTexture, frameAttribs.outputTexture, m_bUsePortionTex? frameAttribs.clipRect: frameAttribs.viewport);
             }
 
         }finally {
             GLStateTracker.getInstance().restoreStates();
+            GLStateTracker.getInstance().reset();
         }
     }
 
@@ -180,8 +183,8 @@ public class PostProcessing {
             m_AddedRenderPasses.clear();
             m_LastAddedPass = null;
 
-            m_AddedRenderPasses.put("SceneColor", colorInputPass);
-            m_AddedRenderPasses.put("SceneDepth", depthInputPass);
+//            m_AddedRenderPasses.put("SceneColor", colorInputPass);  TODO maybe cause problems
+//            m_AddedRenderPasses.put("SceneDepth", depthInputPass);
 
             for(EffectTag effectTag : m_CurrentEffects){
                 PostProcessingEffect effect = m_RegisteredEffects.get(effectTag.name);
@@ -189,7 +192,11 @@ public class PostProcessing {
                 effect.fillRenderPass(this, colorInputPass, depthInputPass);
             }
 
-            m_LastAddedPass.setDependencies(0,1);
+            if(m_LastAddedPass != null) {
+                m_LastAddedPass.setDependencies(0, 1);
+            }
+
+            m_RenderContext.setRenderPasses(m_AddedRenderPasses.values());
         }
 
         releaseTags(m_PrevEffects);

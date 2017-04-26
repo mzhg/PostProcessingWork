@@ -34,6 +34,8 @@ import jet.opengl.postprocessing.util.Recti;
 
 public final class PostProcessingRenderContext {
 
+    private static final Texture2DDummy g_DummyTex = new Texture2DDummy();
+
     private final List<PostProcessingRenderPass> m_RenderPassList = new ArrayList<>();
     private PostProcessingRenderPass m_PrevPass;
     private PostProcessingRenderPass m_CurrentPass;
@@ -104,8 +106,12 @@ public final class PostProcessingRenderContext {
     }
 
     public void setRenderTarget(Texture2D tex){
-        m_StateTracker.setFramebuffer(m_RenderTargets.getFramebuffer());
-        m_RenderTargets.setRenderTexture(tex, m_AttachDescs[0]);
+        if(tex != g_DummyTex) {
+            m_StateTracker.setFramebuffer(m_RenderTargets.getFramebuffer());
+            m_RenderTargets.setRenderTexture(tex, m_AttachDescs[0]);
+        }else{ // tex == g_DummyTex
+            m_StateTracker.setFramebuffer(0);
+        }
     }
 
     public void setRenderTargets(Texture2D[] texs){
@@ -204,7 +210,7 @@ public final class PostProcessingRenderContext {
     private final List<PostProcessingRenderPass> currentDependencyPasses = new ArrayList<>();
     private final List<Texture2D> inputTextures = new ArrayList<>();
 
-    void performancePostProcessing(){
+    void performancePostProcessing(Texture2D output){
         if(m_RenderPassList.isEmpty())
             return;
 
@@ -212,6 +218,7 @@ public final class PostProcessingRenderContext {
             pass.reset();
         }
 
+        PostProcessingRenderPass lastPass = m_RenderPassList.get(m_RenderPassList.size() - 1);
         for(PostProcessingRenderPass it : m_RenderPassList){
             m_CurrentPass = it;
 
@@ -236,8 +243,23 @@ public final class PostProcessingRenderContext {
             m_CurrentPass.setInputTextures(inputTextures);
             for(int i = 0; i < m_CurrentPass.getOutputCount(); i++){
                 m_CurrentPass.computeOutDesc(i, outputDesc);
-                Texture2D temp = RenderTexturePool.getInstance().findFreeElement(outputDesc);
-                m_CurrentPass.setOutputRenderTexture(i, temp);
+
+                if(m_CurrentPass != lastPass) {
+                    Texture2D temp = RenderTexturePool.getInstance().findFreeElement(outputDesc);
+                    m_CurrentPass.setOutputRenderTexture(i, temp);
+                }else{ // m_CurrentPass == lastPass
+                    if(GLCheck.CHECK && m_CurrentPass.getOutputCount() != 1){
+                        throw new IllegalArgumentException();
+                    }
+
+                    if(output != null){
+                        m_CurrentPass.setOutputRenderTexture(i, output);
+                    }else{
+                        g_DummyTex._width = outputDesc.width;
+                        g_DummyTex._height = outputDesc.height;
+                        m_CurrentPass.setOutputRenderTexture(i, g_DummyTex);
+                    }
+                }
             }
 
             m_CurrentPass._process(this, m_Parameters);
@@ -263,6 +285,20 @@ public final class PostProcessingRenderContext {
             currentDependencyPasses.clear();
             currentDependencyPasses.add(lastPass);
             resolveDependencies(currentDependencyPasses);
+        }
+    }
+
+    private final static class Texture2DDummy extends Texture2D{
+        int _width, _height;
+
+        @Override
+        public int getWidth() {
+            return _width;
+        }
+
+        @Override
+        public int getHeight() {
+            return _height;
         }
     }
 }

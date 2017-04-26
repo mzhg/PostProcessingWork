@@ -2,7 +2,6 @@ package jet.opengl.postprocessing.common;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import java.util.Arrays;
 
 import jet.opengl.postprocessing.buffer.VertexArrayObject;
 import jet.opengl.postprocessing.core.OpenGLProgram;
@@ -50,8 +49,8 @@ public class GLStateTracker {
     private int[]            m_TextureSamplers;
     private int[]            m_TextureTargets;
     private int              m_TextureCount;
-    private int              m_MaxTextureBindingUnit;
-    private int              m_MaxSamplerBindingUnit;
+    private int              m_MaxTextureBindingUnit = -1;
+    private int              m_MaxSamplerBindingUnit = -1;
 
     private static GLStateTracker instance;
     private GLStateTracker(){
@@ -82,16 +81,23 @@ public class GLStateTracker {
 
     // Reset the internal states. e.g: Texture bindings, image bindings and sampler bindings
     public void reset(){
-        if(m_MaxTextureBindingUnit > 0){
-            Arrays.fill(m_TextureDiffUnits,0, m_MaxTextureBindingUnit, 0);
-            Arrays.fill(m_TextureTargets,0, m_MaxTextureBindingUnit, 0);
-            m_MaxTextureBindingUnit = 0;
+        if(m_MaxTextureBindingUnit > -1){
+            for(int i = 0; i <= m_MaxTextureBindingUnit; i++){
+                m_TextureDiffUnits[i] = 0;
+                m_TextureTargets[i] = 0;
+                m_TextureNames[i] = 0;
+            }
+
+            m_MaxTextureBindingUnit = -1;
         }
 
-        if(m_MaxSamplerBindingUnit > 0){
-            Arrays.fill(m_SamplerDiffUnits, 0, m_MaxSamplerBindingUnit, 0);
-            Arrays.fill(m_TextureSamplers, 0, m_MaxSamplerBindingUnit, 0);
-            m_MaxSamplerBindingUnit = 0;
+        if(m_MaxSamplerBindingUnit > -1){
+            for(int i = 0; i <= m_MaxSamplerBindingUnit; i++){
+                m_SamplerDiffUnits[i] = 0;
+                m_TextureSamplers[i] = 0;
+            }
+
+            m_MaxSamplerBindingUnit = -1;
         }
     }
 

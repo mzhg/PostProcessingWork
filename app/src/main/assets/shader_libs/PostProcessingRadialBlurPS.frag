@@ -94,7 +94,6 @@ vec3 lOff(){
 
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord ){
-    
     // Screen coordinates.
     vec2 uv = m_f4UVAndScreenPos.xy;
 

@@ -1,7 +1,6 @@
 package jet.opengl.postprocessing.core.radialblur;
 
 import java.io.IOException;
-import java.nio.FloatBuffer;
 
 import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -12,7 +11,6 @@ import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
-import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
  * Created by mazhen'gui on 2017/4/17.
@@ -44,6 +42,7 @@ public class PostProcessingRadialBlurPass extends PostProcessingRenderPass {
         }
 
         context.setViewport(0,0, input.getWidth(), input.getHeight());
+//        context.setViewport(0,0, 1280, 720);
         context.setVAO(null);
         context.setProgram(g_RadialBlurProgram);
         g_RadialBlurProgram.setUniformValue(parameters.getRadialBlurCenterX(), parameters.getRadialBlurCenterY(),
@@ -55,9 +54,8 @@ public class PostProcessingRadialBlurPass extends PostProcessingRenderPass {
         context.setRasterizerState(null);
         context.setRenderTarget(output);
 
-        FloatBuffer red = CacheBuffer.wrap(1.0f,0,0,0);
-        GLFuncProviderFactory.getGLFuncProvider().glClearBufferfv(GLenum.GL_COLOR, 0, red);
-
+//        FloatBuffer red = CacheBuffer.wrap(1.0f,0,0,0);
+//        GLFuncProviderFactory.getGLFuncProvider().glClearBufferfv(GLenum.GL_COLOR, 0, red);
         context.drawFullscreenQuad();
     }
 

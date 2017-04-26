@@ -14,7 +14,7 @@ public abstract class TextureGL implements Disposeable {
 	int format;
     int mipLevels;
 	
-    TextureGL() {}
+    public TextureGL() {}
     
     public final int getTexture() { return textureID;}
     public abstract int getWidth();

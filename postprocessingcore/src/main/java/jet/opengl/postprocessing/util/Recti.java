@@ -10,8 +10,8 @@ public class Recti {
     public boolean isValid(){ return width > 0 && height > 0;}
     public void zero(){x=y = width = height = 0;}
     public boolean equals(Recti rect){
-        return x != rect.x || y != rect.y||
-                width != rect.width || height != rect.height;
+        return (x == rect.x && y == rect.y&&
+                width == rect.width && height == rect.height);
     }
 
     public void set(Recti o){

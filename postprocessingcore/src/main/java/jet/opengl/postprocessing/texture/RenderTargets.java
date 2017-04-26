@@ -109,7 +109,7 @@ public class RenderTargets implements Disposeable{
                 throw new IllegalStateException("m_Framebuffer is 0.");
             }
             GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-            int fbo = gl.glGetInteger(GLenum.GL_DRAW_FRAMEBUFFER);
+            int fbo = gl.glGetInteger(GLenum.GL_DRAW_FRAMEBUFFER_BINDING);
             if(fbo != m_Framebuffer){
                 throw new IllegalStateException("No binding the current framebuffer.");
             }

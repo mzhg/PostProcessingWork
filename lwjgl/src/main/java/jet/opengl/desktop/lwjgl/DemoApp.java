@@ -21,6 +21,10 @@ import jet.opengl.postprocessing.util.LogUtil;
 
 public class DemoApp {
 
+    static {
+        System.setProperty("jet.opengl.postprocessing.debug", "true");
+    }
+
     public static void run(NvAppBase app){
         NvEGLConfiguration config = new NvEGLConfiguration();
         app.configurationCallback(config);
