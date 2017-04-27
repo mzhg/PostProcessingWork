@@ -1532,4 +1532,19 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     public boolean glIsProgramPipeline(int programPipeline) {
         return gl.glIsProgramPipeline(programPipeline);
     }
+
+    @Override
+    public void glBindTextures(int first, IntBuffer texturenames) {
+        gl.glBindTextures(first, texturenames.remaining(), texturenames);
+    }
+
+    @Override
+    public void glBindTextureUnit(int unit, int texture) {
+        gl.glBindTextureUnit(unit, texture);
+    }
+
+    @Override
+    public void glBindSamplers(int first, IntBuffer samplernames) {
+        gl.glBindSamplers(first, samplernames.remaining(), samplernames);
+    }
 }

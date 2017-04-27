@@ -1559,4 +1559,19 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     public boolean glIsProgramPipeline(int programPipeline) {
         return GLES31.glIsProgramPipeline(programPipeline);
     }
+
+    @Override
+    public void glBindTextures(int first, IntBuffer texturenames) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glBindTextures(int first, IntBuffer texturenames)' on Android Platform!");
+    }
+
+    @Override
+    public void glBindTextureUnit(int unit, int texture) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glBindTextureUnit(int unit, int texture)' on Android Platform!");
+    }
+
+    @Override
+    public void glBindSamplers(int first, IntBuffer samplernames) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glBindSamplers(int first, IntBuffer samplernames)' on Android Platform!");
+    }
 }

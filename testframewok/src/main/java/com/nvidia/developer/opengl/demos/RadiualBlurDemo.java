@@ -92,10 +92,8 @@ public class RadiualBlurDemo extends NvSampleApp {
 
         float centerX = radius * cos + 0.5f;
         float centerY = radius * sin + 0.5f;
-//        m_PostProcessing.addRadialBlur(centerX, centerY, 20);
+        m_PostProcessing.addRadialBlur(centerX, centerY, 20);
         m_PostProcessing.performancePostProcessing(m_frameAttribs);
-
-
 
         m_globalTime += getFrameDeltaTime();
     }

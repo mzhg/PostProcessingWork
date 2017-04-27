@@ -6,9 +6,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
+import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurPass;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.LogUtil;
 
@@ -16,7 +18,7 @@ import jet.opengl.postprocessing.util.LogUtil;
  * Created by mazhen'gui on 2017/4/17.
  */
 
-public class PostProcessing {
+public class PostProcessing implements Disposeable{
     public static final String BLOOM = "BLOOM";
     public static final String FXAA = "FXAA";
     public static final String CLIP_TEXTURE = "CLIP_TEXTURE";
@@ -229,6 +231,11 @@ public class PostProcessing {
 
         PostProcessingEffect effect = m_RegisteredEffects.get(RADIAL_BLUR);
         m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
+    }
+
+    @Override
+    public void dispose() {
+        PostProcessingRadialBlurPass.releaseResources();
     }
 
     private static final class EffectTag implements Comparable<EffectTag>{
