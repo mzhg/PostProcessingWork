@@ -1,4 +1,4 @@
-package jet.opengl.postprocessing.core.radialblur;
+package jet.opengl.postprocessing.core.bloom;
 
 import java.io.IOException;
 
@@ -16,21 +16,21 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
  * Created by mazhen'gui on 2017/4/17.
  */
 
-final class PostProcessingRadialBlurPass extends PostProcessingRenderPass {
+final class PostProcessingBloomSetupPass extends PostProcessingRenderPass {
 
-    private static PostProcessingRadialBlurProgram g_RadialBlurProgram;
+    private static PostProcessingBloomProgram g_BloomProgram;
 
-    public PostProcessingRadialBlurPass() {
-        super("Radial Blur");
+    public PostProcessingBloomSetupPass() {
+        super("Bloom");
         set(1,1);
     }
 
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
-        if(g_RadialBlurProgram == null){
+        if(g_BloomProgram == null){
             try {
-                g_RadialBlurProgram = new PostProcessingRadialBlurProgram();
-                addDisposedResource(g_RadialBlurProgram);
+                g_BloomProgram = new PostProcessingBloomProgram();
+                addDisposedResource(g_BloomProgram);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -44,9 +44,8 @@ final class PostProcessingRadialBlurPass extends PostProcessingRenderPass {
 
         context.setViewport(0,0, output.getWidth(), output.getHeight());
         context.setVAO(null);
-        context.setProgram(g_RadialBlurProgram);
-        g_RadialBlurProgram.setUniformValue(parameters.getRadialBlurCenterX(), parameters.getRadialBlurCenterY(),
-                                            parameters.getGlobalTime(), parameters.getRadialBlurSamples());
+        context.setProgram(g_BloomProgram);
+        g_BloomProgram.setUniforms(parameters.getBloomThreshold(), parameters.getExposureScale());
 
         context.bindTexture(input, 0, 0);
         context.setBlendState(null); 

@@ -10,7 +10,6 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
-import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurPass;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.LogUtil;
 
@@ -24,11 +23,14 @@ public class PostProcessing implements Disposeable{
     public static final String CLIP_TEXTURE = "CLIP_TEXTURE";
     public static final String GUASSION_BLUR = "GUASSION_BLUR";
     public static final String RADIAL_BLUR = "RADIAL_BLUR";
+    public static final String TOON = "TOON";
     public static final String FISH_EYE = "FISH_EYE";
 
     private static final int NUM_TAG_CACHE = 32;
 
-    public static final int GUASSION_BLUR_PRIPORTY = 0;
+    public static final int RADIAL_BLUR_PRIPORTY = 0;
+    public static final int TOON_PRIPORTY = 100;
+    public static final int FISH_EYE_PRIPORTY = 50;
 
     private PostProcessingRenderContext m_RenderContext;
 
@@ -235,7 +237,7 @@ public class PostProcessing implements Disposeable{
 
     @Override
     public void dispose() {
-        PostProcessingRadialBlurPass.releaseResources();
+        PostProcessingRenderPass.releaseResources();
     }
 
     private static final class EffectTag implements Comparable<EffectTag>{

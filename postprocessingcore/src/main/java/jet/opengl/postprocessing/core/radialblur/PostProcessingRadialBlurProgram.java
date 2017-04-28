@@ -9,7 +9,7 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
  * Created by mazhen'gui on 2017/4/18.
  */
 
-public final class PostProcessingRadialBlurProgram extends GLSLProgram{
+final class PostProcessingRadialBlurProgram extends GLSLProgram{
 
     private int centerIndex = -1;
 

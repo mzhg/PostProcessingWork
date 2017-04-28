@@ -1,6 +1,7 @@
-package jet.opengl.postprocessing.core.radialblur;
+package jet.opengl.postprocessing.core.bloom;
 
 import jet.opengl.postprocessing.core.PostProcessing;
+import jet.opengl.postprocessing.core.PostProcessingDownsamplePass;
 import jet.opengl.postprocessing.core.PostProcessingEffect;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 
@@ -8,13 +9,25 @@ import jet.opengl.postprocessing.core.PostProcessingRenderPass;
  * Created by mazhen'gui on 2017/4/24.
  */
 
-public class PostProcessingRadialBlurEffect extends PostProcessingEffect {
+public class PostProcessingBloomEffect extends PostProcessingEffect {
 
     @Override
     protected void fillRenderPass(PostProcessing context, PostProcessingRenderPass sceneColorTexture, PostProcessingRenderPass sceneDepthTexture) {
         PostProcessingRenderPass lastPass = getLastRenderPass();
 
-        PostProcessingRadialBlurPass radialBlurPass = new PostProcessingRadialBlurPass();
+        PostProcessingDownsamplePass downsamplePass = new PostProcessingDownsamplePass();
+        {
+            if(lastPass == null){
+                downsamplePass.setDependency(0, sceneColorTexture, 0);
+            }else{
+                downsamplePass.setDependency(0, lastPass, 0);
+            }
+
+
+        }
+
+
+        PostProcessingBloomSetupPass radialBlurPass = new PostProcessingBloomSetupPass();
 
         if(lastPass == null){
             radialBlurPass.setDependency(0, sceneColorTexture, 0);
@@ -23,15 +36,17 @@ public class PostProcessingRadialBlurEffect extends PostProcessingEffect {
         }
 
         context.appendRenderPass(getEffectName(), radialBlurPass);
+
+
     }
 
     @Override
     public String getEffectName() {
-        return PostProcessing.RADIAL_BLUR;
+        return PostProcessing.TOON;
     }
 
     @Override
     public int getPriority() {
-        return PostProcessing.RADIAL_BLUR_PRIPORTY;
+        return PostProcessing.TOON_PRIPORTY;
     }
 }

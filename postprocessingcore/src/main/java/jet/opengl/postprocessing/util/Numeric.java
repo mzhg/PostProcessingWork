@@ -525,4 +525,9 @@ public final class Numeric {
 		// this algorithm may be not right
 		return ( ((c)&0xFFFFFF) | ((((a))&0xFF)<<24) );
 	}
+
+	/** Divides two integers and rounds up */
+	public static int divideAndRoundUp(int dividend, int divisor) {
+		return (dividend + divisor - 1) / divisor;
+	}
 }

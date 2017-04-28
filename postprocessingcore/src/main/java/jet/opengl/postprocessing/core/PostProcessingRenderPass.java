@@ -1,8 +1,10 @@
 package jet.opengl.postprocessing.core;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.util.Numeric;
@@ -12,6 +14,8 @@ import jet.opengl.postprocessing.util.Numeric;
  */
 
 public abstract class PostProcessingRenderPass {
+
+    private static final List<Disposeable> g_Resources = new ArrayList<>();
 
     private static final Texture2D[] EMPTY_TEX2D = new Texture2D[0];
 
@@ -160,5 +164,16 @@ public abstract class PostProcessingRenderPass {
     void setOutputRenderTexture(int slot, Texture2D texture)
     {
         m_PassOutputs[slot] = texture;
+    }
+
+    protected static void addDisposedResource(Disposeable disposeable){
+        g_Resources.add(disposeable);
+    }
+
+    static void releaseResources(){
+        for(Disposeable res : g_Resources ){
+            res.dispose();
+        }
+        g_Resources.clear();
     }
 }

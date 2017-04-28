@@ -1,4 +1,4 @@
-package jet.opengl.postprocessing.core.radialblur;
+package jet.opengl.postprocessing.core.toon;
 
 import java.io.IOException;
 
@@ -16,21 +16,21 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
  * Created by mazhen'gui on 2017/4/17.
  */
 
-final class PostProcessingRadialBlurPass extends PostProcessingRenderPass {
+final class PostProcessingToonPass extends PostProcessingRenderPass {
 
-    private static PostProcessingRadialBlurProgram g_RadialBlurProgram;
+    private static PostProcessingToonProgram g_ToonProgram;
 
-    public PostProcessingRadialBlurPass() {
+    public PostProcessingToonPass() {
         super("Radial Blur");
         set(1,1);
     }
 
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
-        if(g_RadialBlurProgram == null){
+        if(g_ToonProgram == null){
             try {
-                g_RadialBlurProgram = new PostProcessingRadialBlurProgram();
-                addDisposedResource(g_RadialBlurProgram);
+                g_ToonProgram = new PostProcessingToonProgram();
+                addDisposedResource(g_ToonProgram);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -44,9 +44,8 @@ final class PostProcessingRadialBlurPass extends PostProcessingRenderPass {
 
         context.setViewport(0,0, output.getWidth(), output.getHeight());
         context.setVAO(null);
-        context.setProgram(g_RadialBlurProgram);
-        g_RadialBlurProgram.setUniformValue(parameters.getRadialBlurCenterX(), parameters.getRadialBlurCenterY(),
-                                            parameters.getGlobalTime(), parameters.getRadialBlurSamples());
+        context.setProgram(g_ToonProgram);
+        g_ToonProgram.setUniforms(parameters.getEdgeThreshold(), parameters.getEdgeThreshold2(), 1.0f/input.getWidth(), 1.0f/input.getHeight());
 
         context.bindTexture(input, 0, 0);
         context.setBlendState(null); 

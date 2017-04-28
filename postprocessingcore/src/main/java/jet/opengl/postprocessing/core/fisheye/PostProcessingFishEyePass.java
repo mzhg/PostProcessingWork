@@ -1,11 +1,7 @@
-package jet.opengl.postprocessing.core.radialblur;
+package jet.opengl.postprocessing.core.fisheye;
 
 import java.io.IOException;
 
-import jet.opengl.postprocessing.common.GLAPI;
-import jet.opengl.postprocessing.common.GLFuncProvider;
-import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
@@ -16,21 +12,21 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
  * Created by mazhen'gui on 2017/4/17.
  */
 
-final class PostProcessingRadialBlurPass extends PostProcessingRenderPass {
+final class PostProcessingFishEyePass extends PostProcessingRenderPass {
 
-    private static PostProcessingRadialBlurProgram g_RadialBlurProgram;
+    private static PostProcessingFishEyeProgram g_FishEyeProgram;
 
-    public PostProcessingRadialBlurPass() {
-        super("Radial Blur");
+    public PostProcessingFishEyePass() {
+        super("Fish Eye");
         set(1,1);
     }
 
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
-        if(g_RadialBlurProgram == null){
+        if(g_FishEyeProgram == null){
             try {
-                g_RadialBlurProgram = new PostProcessingRadialBlurProgram();
-                addDisposedResource(g_RadialBlurProgram);
+                g_FishEyeProgram = new PostProcessingFishEyeProgram();
+                addDisposedResource(g_FishEyeProgram);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -44,9 +40,8 @@ final class PostProcessingRadialBlurPass extends PostProcessingRenderPass {
 
         context.setViewport(0,0, output.getWidth(), output.getHeight());
         context.setVAO(null);
-        context.setProgram(g_RadialBlurProgram);
-        g_RadialBlurProgram.setUniformValue(parameters.getRadialBlurCenterX(), parameters.getRadialBlurCenterY(),
-                                            parameters.getGlobalTime(), parameters.getRadialBlurSamples());
+        context.setProgram(g_FishEyeProgram);
+        g_FishEyeProgram.setUniforms(output.getWidth(), output.getHeight(), parameters.getFishEyeFactor());
 
         context.bindTexture(input, 0, 0);
         context.setBlendState(null); 
@@ -62,11 +57,6 @@ final class PostProcessingRadialBlurPass extends PostProcessingRenderPass {
         Texture2D input = getInput(0);
         if(input != null){
             input.getDesc(out);
-            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-//            if(TextureUtils.isCompressedFormat(out.format))
-            {
-                out.format = gl.getHostAPI() == GLAPI.ANDROID ? GLenum.GL_RGB: GLenum.GL_RGB8;
-            }
         }
     }
 }

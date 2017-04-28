@@ -1,9 +1,5 @@
 
-#include "PostProcessingCommon.glsl"
-
-#if GL_ES
-precision highp float;
-#endif
+#include "PostProcessingCommonPS.frag"
 // Original code: https://www.shadertoy.com/view/XsKGRW
 
 uniform vec3      iResolution;     
@@ -13,14 +9,6 @@ uniform sampler2D iChannel0;
 uniform vec4 iChannelResolution0;
 //uniform vec2      iCenter;
 
-#if ENABLE_IN_OUT_FEATURE
-in vec4  m_f4UVAndScreenPos;
-out vec4 FragColor;
-#else
-varying vec4 m_f4UVAndScreenPos;
-#define texture(x, y) texture2D(x, y)
-#define FragColor gl_FragColor
-#endif
 
 // xy: center; z: Global time; w: sampler count
 uniform vec4 g_UniformValue;
@@ -156,4 +144,4 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ){
 
 
 
-void main( void ){vec4 color = vec4(0.0,0.0,0.0,1.0);mainImage( color, gl_FragCoord.xy );color.w = 1.0;FragColor = color;}
+void main( void ){vec4 color = vec4(0.0,0.0,0.0,1.0);mainImage( color, gl_FragCoord.xy );color.w = 1.0;Out_f4Color = color;}
