@@ -2,6 +2,7 @@ package jet.opengl.postprocessing.core;
 
 import java.io.IOException;
 
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.util.Numeric;
@@ -16,8 +17,16 @@ public class PostProcessingDownsamplePass extends PostProcessingRenderPass {
     public static final int DOWMSAMPLE_NORMAL = 1;
     public static final int DOWMSAMPLE_COMBINED_DEPTH = 2;
 
-    // TODO：this need declare as arrays.
-    private static PostProcessingDownsampleProgram g_DownsampleProgram = null;
+    private static final PostProcessingDownsampleProgram[] g_DownsamplePrograms = new PostProcessingDownsampleProgram[3];
+    private static final Disposeable g_CleanArray = new Disposeable() {
+        @Override
+        public void dispose() {
+            g_DownsamplePrograms[0] = null;
+            g_DownsamplePrograms[1] = null;
+            g_DownsamplePrograms[2] = null;
+        }
+    };
+
     private final int m_DownsampleCount;  // 2 or 4
     private final int m_DownsampleMethod;
 
@@ -35,10 +44,11 @@ public class PostProcessingDownsamplePass extends PostProcessingRenderPass {
 
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
-        if(g_DownsampleProgram == null){
+        if(g_DownsamplePrograms[m_DownsampleMethod] == null){
             try {
-                g_DownsampleProgram = new PostProcessingDownsampleProgram(m_DownsampleMethod);
-                addDisposedResource(g_DownsampleProgram);
+                g_DownsamplePrograms[m_DownsampleMethod] = new PostProcessingDownsampleProgram(m_DownsampleMethod);
+                addDisposedResource(g_DownsamplePrograms[m_DownsampleMethod]);
+                addDisposedResource(g_CleanArray);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -53,8 +63,8 @@ public class PostProcessingDownsamplePass extends PostProcessingRenderPass {
         context.setViewport(0,0, output.getWidth(), output.getHeight());
 //        context.setViewport(0,0, 1280, 720);
         context.setVAO(null);
-        context.setProgram(g_DownsampleProgram);
-        g_DownsampleProgram.setTexelSize(1.0f/input0.getWidth(), 1.0f/input0.getHeight());
+        context.setProgram(g_DownsamplePrograms[m_DownsampleMethod]);
+        g_DownsamplePrograms[m_DownsampleMethod].setTexelSize(1.0f/input0.getWidth(), 1.0f/input0.getHeight());
 
         context.bindTexture(input0, 0, 0);
         context.setBlendState(null);

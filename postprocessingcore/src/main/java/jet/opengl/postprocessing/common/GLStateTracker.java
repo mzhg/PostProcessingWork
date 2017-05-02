@@ -676,7 +676,7 @@ public class GLStateTracker {
         int count = Math.min(textures.length, maxTextureUnits);
         for(int i = 0; i < count; i++){
             TextureGL textureGL = pTextures[i];
-            int unit = units!=null ? units[i] : i;
+            int unit = (units!=null ? units[i] : i);
 
             boolean needRebinding = false;
             if(textureGL != null){
@@ -698,6 +698,14 @@ public class GLStateTracker {
             if(sampler != m_TextureSamplers[unit]){
                 m_TextureSamplers[unit] = sampler;
                 m_SamplerDiffUnits[diff_sampler_count++] = unit;
+            }
+
+            if(textureGL != null && unit > m_MaxTextureBindingUnit){
+                m_MaxTextureBindingUnit = unit;
+            }
+
+            if(sampler != 0 && unit > m_MaxSamplerBindingUnit){
+                m_MaxSamplerBindingUnit = unit;
             }
         }
 
@@ -727,7 +735,7 @@ public class GLStateTracker {
                 }
 
                 if(prevUnit != -1){
-                    gl.glBindTextures(lastUnit, CacheBuffer.wrap(m_TextureNames, lastIndex, prevUnit - lastUnit));
+                    gl.glBindTextures(lastUnit, CacheBuffer.wrap(m_TextureNames, lastIndex, prevUnit - lastUnit + 1));
                 }else{
                     bindSingleTexture(m_TextureTargets[lastUnit], m_TextureNames[lastUnit], lastUnit);
                 }

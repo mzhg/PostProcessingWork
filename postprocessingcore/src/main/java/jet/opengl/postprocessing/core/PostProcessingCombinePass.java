@@ -53,6 +53,8 @@ public class PostProcessingCombinePass extends PostProcessingRenderPass {
         m_bindTextures[1] = input1;
 
         context.bindTextures(m_bindTextures, null, null);
+//        context.bindTexture(input0, 0, 0);
+//        context.bindTexture(input1, 1, 0);
         context.setBlendState(null);
         context.setDepthStencilState(null);
         context.setRasterizerState(null);

@@ -21,6 +21,8 @@ public class PostProcessingParameters {
     float bloomThreshold;
     float exposureScale;
 
+    int fxaaQuality;
+
     PostProcessing postProcessing;
 
     PostProcessingParameters(PostProcessing postProcessing){
@@ -42,4 +44,5 @@ public class PostProcessingParameters {
 
     public float getBloomThreshold()	{ return bloomThreshold; }
     public float getExposureScale() { return exposureScale; }
+    public int   getFXAAQuality() { return fxaaQuality;}
 }

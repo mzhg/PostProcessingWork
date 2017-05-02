@@ -7,11 +7,18 @@ import java.util.List;
 import java.util.Map;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
+import jet.opengl.postprocessing.core.bloom.PostProcessingBloomEffect;
+import jet.opengl.postprocessing.core.fisheye.PostProcessingFishEyeEffect;
+import jet.opengl.postprocessing.core.fxaa.PostProcessingFXAAEffect;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
+import jet.opengl.postprocessing.core.toon.PostProcessingToonEffect;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.Numeric;
 
 /**
  * Created by mazhen'gui on 2017/4/17.
@@ -31,6 +38,8 @@ public class PostProcessing implements Disposeable{
     public static final int RADIAL_BLUR_PRIPORTY = 0;
     public static final int TOON_PRIPORTY = 100;
     public static final int FISH_EYE_PRIPORTY = 50;
+    public static final int BLOOM_PRIPORTY = 200;
+    public static final int FXAA_PRIPORTY = 1000;
 
     private PostProcessingRenderContext m_RenderContext;
 
@@ -51,6 +60,10 @@ public class PostProcessing implements Disposeable{
     public PostProcessing(){
         m_Parameters = new PostProcessingParameters(this);
         registerEffect(new PostProcessingRadialBlurEffect());
+        registerEffect(new PostProcessingBloomEffect());
+        registerEffect(new PostProcessingFishEyeEffect());
+        registerEffect(new PostProcessingToonEffect());
+        registerEffect(new PostProcessingFXAAEffect());
     }
 
     public void registerEffect(PostProcessingEffect effect){
@@ -226,6 +239,11 @@ public class PostProcessing implements Disposeable{
         return m_AddedRenderPasses.get(name);
     }
 
+    public void addRadialBlur(float centerX, float centerY){
+        int samples = GLFuncProviderFactory.getGLFuncProvider().getHostAPI() == GLAPI.ANDROID ? 12 : 24;
+        addRadialBlur(centerX, centerY, samples);
+    }
+
     public void addRadialBlur(float centerX, float centerY, int samples){
         m_Parameters.radialBlurCenterX =centerX;
         m_Parameters.radialBlurCenterY = centerY;
@@ -233,6 +251,49 @@ public class PostProcessing implements Disposeable{
 
         PostProcessingEffect effect = m_RegisteredEffects.get(RADIAL_BLUR);
         m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
+    }
+
+    public void addToon(){
+        addToon(0.2f, 5.0f);
+    }
+
+    public void addToon(float edgeThreshold, float edgeThreshold2){
+        m_Parameters.edgeThreshold = edgeThreshold;
+        m_Parameters.edgeThreshold2 = edgeThreshold2;
+
+        PostProcessingEffect effect = m_RegisteredEffects.get(TOON);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
+    }
+
+    public void addFishEye(float factor){
+        m_Parameters.fishEyeFactor = factor;
+
+        PostProcessingEffect effect = m_RegisteredEffects.get(FISH_EYE);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
+    }
+
+    public void addBloom(){
+        addBloom(0.25f, 1.02f, 1.12f);
+    }
+
+    public void addBloom(float bloomThreshold, float exposureScale, float bloomIntensity){
+        m_Parameters.bloomThreshold = Math.max(bloomThreshold, 0.25f);
+        m_Parameters.exposureScale = exposureScale;
+        m_Parameters.bloomIntensity = Math.max(bloomIntensity, 0.01f);
+
+        PostProcessingEffect effect = m_RegisteredEffects.get(BLOOM);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
+    }
+
+    /**
+     * Add the FXAA post-processing.
+     * @param quality The FXAA qyality, ranged [0, 5]
+     */
+    public void addFXAA(int quality){
+        m_Parameters.fxaaQuality = Numeric.clamp(quality, 0, 5);
+
+        PostProcessingEffect effect = m_RegisteredEffects.get(FXAA);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), m_Parameters.fxaaQuality, null));
     }
 
     @Override

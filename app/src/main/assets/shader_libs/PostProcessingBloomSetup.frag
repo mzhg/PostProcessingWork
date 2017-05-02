@@ -11,7 +11,7 @@ void main()
 	vec4 f4SceneColor = texture(g_Texture, f2UV);
 
 	// clamp to avoid artifacts from exceeding fp16 through framebuffer blending of multiple very bright lights
-	f4SceneColor.rgb = min(vec3(256 * 256, 256 * 256, 256 * 256), f4SceneColor.rgb);
+	f4SceneColor.rgb = min(vec3(256 * 256), f4SceneColor.rgb);
 
 	vec3 f3LinearColor = f4SceneColor.rgb;
 

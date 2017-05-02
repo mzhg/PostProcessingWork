@@ -37,6 +37,12 @@ public class RadiualBlurDemo extends NvSampleApp {
     private final Matrix4f modelMatrix = new Matrix4f();
     private PostProcessingFrameAttribs m_frameAttribs;
     private float m_globalTime = 0;
+    private boolean m_enableEffect;
+
+    @Override
+    public void initUI() {
+        mTweakBar.addValue("Enable", createControl("m_enableEffect"));
+    }
 
     @Override
     protected void initRendering() {
@@ -92,7 +98,9 @@ public class RadiualBlurDemo extends NvSampleApp {
 
         float centerX = radius * cos + 0.5f;
         float centerY = radius * sin + 0.5f;
-        m_PostProcessing.addRadialBlur(centerX, centerY, 20);
+//        m_PostProcessing.addRadialBlur(centerX, centerY, 20);
+        if(m_enableEffect)
+            m_PostProcessing.addToon();
         m_PostProcessing.performancePostProcessing(m_frameAttribs);
 
         m_globalTime += getFrameDeltaTime();
