@@ -153,7 +153,7 @@ public final class PostProcessingRenderContext {
     }
 
     private void flush(){
-//        if(GLCheck.CHECK)
+        if(GLCheck.CHECK)
             m_StateTracker.checkFlags("", true);
     }
 
@@ -245,8 +245,10 @@ public final class PostProcessingRenderContext {
                 m_CurrentPass.computeOutDesc(i, outputDesc);
 
                 if(m_CurrentPass != lastPass) {
-                    Texture2D temp = RenderTexturePool.getInstance().findFreeElement(outputDesc);
-                    m_CurrentPass.setOutputRenderTexture(i, temp);
+                    if(!m_CurrentPass.useIntenalOutputTexture()) {
+                        Texture2D temp = RenderTexturePool.getInstance().findFreeElement(outputDesc);
+                        m_CurrentPass.setOutputRenderTexture(i, temp);
+                    }
                 }else{ // m_CurrentPass == lastPass
                     if(GLCheck.CHECK && m_CurrentPass.getOutputCount() != 1){
                         throw new IllegalArgumentException();

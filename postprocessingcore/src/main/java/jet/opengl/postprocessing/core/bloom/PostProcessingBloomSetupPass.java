@@ -67,5 +67,7 @@ final class PostProcessingBloomSetupPass extends PostProcessingRenderPass {
                 out.format = gl.getHostAPI() == GLAPI.ANDROID ? GLenum.GL_RGB: GLenum.GL_RGB8;
             }
         }
+
+        super.computeOutDesc(index, out);
     }
 }

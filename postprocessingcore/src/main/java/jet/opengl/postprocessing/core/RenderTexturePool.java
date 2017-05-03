@@ -14,11 +14,12 @@ import jet.opengl.postprocessing.util.LogUtil;
 /**
  * Created by mazhen'gui on 2017/4/13.
  */
-final class RenderTexturePool {
+public final class RenderTexturePool {
 
     private final HashSet<Texture2D> m_CreatedTextures = new HashSet<>();
     private final HashMap<Texture2DDesc, List<Texture2D>> m_RenderTexturePool = new HashMap<>();
     private static RenderTexturePool g_Instance;
+    private static final Texture2DDesc m_TempDesc = new Texture2DDesc();
 
     private RenderTexturePool(){}
 
@@ -27,6 +28,14 @@ final class RenderTexturePool {
             g_Instance = new RenderTexturePool();
 
         return g_Instance;
+    }
+
+    public Texture2D findFreeElement(int width, int height, int format){
+        m_TempDesc.width = width;
+        m_TempDesc.height = height;
+        m_TempDesc.format = format;
+
+        return findFreeElement(m_TempDesc);
     }
 
     public Texture2D findFreeElement(Texture2DDesc desc){
@@ -45,6 +54,11 @@ final class RenderTexturePool {
     }
 
     public void freeUnusedResource(Texture2D tex){
+        if(tex == null){
+            LogUtil.i(LogUtil.LogType.DEFAULT, "Couldn't put the null texture into the RenderTexturePool");
+            return;
+        }
+
         if(m_CreatedTextures.contains(tex)){
             Texture2DDesc desc = tex.getDesc();
             List<Texture2D> texture2DList = m_RenderTexturePool.get(desc);

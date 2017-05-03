@@ -24,10 +24,12 @@ public abstract class PostProcessingRenderPass {
     private int[] m_DependencyCount;
     boolean m_bProcessed;
 
-    private Texture2D[] m_PassInputs;
+    protected Texture2D[] m_PassInputs;
     private Texture2D[] m_PassOutputs;
-
     private InputDesc[] m_InputDescs;
+
+    private int[] m_FixOutputWidth;
+    private int[] m_FixOutputHeight;
 
     private String name;
 
@@ -53,11 +55,17 @@ public abstract class PostProcessingRenderPass {
             m_Dependencies = new int[outputCount];
             m_FixDependencies = new int[outputCount];
             m_DependencyCount = new int[outputCount];
+
+            m_FixOutputWidth = new int[outputCount];
+            m_FixOutputHeight = new int[outputCount];
         }else{
             m_PassOutputs = EMPTY_TEX2D;
             m_Dependencies = Numeric.EMPTY_INT;
             m_FixDependencies = Numeric.EMPTY_INT;
             m_DependencyCount = Numeric.EMPTY_INT;
+
+            m_FixOutputWidth = Numeric.EMPTY_INT;
+            m_FixOutputHeight = Numeric.EMPTY_INT;
         }
     }
 
@@ -86,8 +94,24 @@ public abstract class PostProcessingRenderPass {
         m_PassOutputs[idx] = null;
     }
 
+    public void setOutputFixSize(int slot, int width, int height){
+        m_FixOutputWidth[slot] = width;
+        m_FixOutputHeight[slot] = height;
+    }
 
-    public abstract void computeOutDesc(int index, Texture2DDesc out);
+    public void computeOutDesc(int index, Texture2DDesc out){
+        int fixWidth = m_FixOutputWidth[index];
+        int fixHeight = m_FixOutputHeight[index];
+
+        if(fixWidth > 0 && fixHeight > 0){
+            out.width = fixWidth;
+            out.height = fixHeight;
+        }
+    }
+
+
+
+    protected boolean useIntenalOutputTexture(){ return false;}
 
     void _process(PostProcessingRenderContext context, PostProcessingParameters parameters)
     {

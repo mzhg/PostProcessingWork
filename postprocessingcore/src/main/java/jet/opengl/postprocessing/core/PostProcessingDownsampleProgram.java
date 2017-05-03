@@ -9,11 +9,11 @@ import jet.opengl.postprocessing.shader.Macro;
  * Created by mazhen'gui on 2017/4/18.
  */
 
-final class PostProcessingDownsampleProgram extends GLSLProgram{
+public class PostProcessingDownsampleProgram extends GLSLProgram{
 
     private int centerIndex = -1;
 
-    PostProcessingDownsampleProgram(int method) throws IOException {
+    public PostProcessingDownsampleProgram(int method) throws IOException {
         setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingDownsamplePS.frag",
                 new Macro("METHOD", method));
         enable();

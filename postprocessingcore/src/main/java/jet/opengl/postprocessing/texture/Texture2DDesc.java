@@ -7,7 +7,7 @@ public class Texture2DDesc {
     public int mipLevels = 1;
     public int arraySize = 1;
     public int format;
-    public int sampleCount;
+    public int sampleCount = 1;
 //    public int bindFlags;
 //    public int cpuAccessFlags;
 //    public int miscFlags;

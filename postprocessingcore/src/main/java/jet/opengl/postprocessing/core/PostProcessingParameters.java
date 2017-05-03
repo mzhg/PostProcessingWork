@@ -12,6 +12,7 @@ public class PostProcessingParameters {
     float radialBlurCenterY = 0.5f;
     int   radialBlurSamples = 24;
     float gloablTime;
+    float elapsedTime;
 
     float bloomIntensity;
     float edgeThreshold;
@@ -22,6 +23,7 @@ public class PostProcessingParameters {
     float exposureScale;
 
     int fxaaQuality;
+    boolean startStreaker;
 
     PostProcessing postProcessing;
 
@@ -45,4 +47,10 @@ public class PostProcessingParameters {
     public float getBloomThreshold()	{ return bloomThreshold; }
     public float getExposureScale() { return exposureScale; }
     public int   getFXAAQuality() { return fxaaQuality;}
+
+    public float getElapsedTime() {
+        return elapsedTime;
+    }
+    // TODO Not safe
+    public boolean isStartStreaker() {return startStreaker;}
 }

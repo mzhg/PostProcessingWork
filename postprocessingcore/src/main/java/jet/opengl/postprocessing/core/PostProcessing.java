@@ -206,6 +206,8 @@ public class PostProcessing implements Disposeable{
             for(EffectTag effectTag : m_CurrentEffects){
                 PostProcessingEffect effect = m_RegisteredEffects.get(effectTag.name);
                 effect.m_LastRenderPass = m_LastAddedPass;
+                effect.initValue = effectTag.initValue;
+                effect.uniformValue = effectTag.uniformValue;
                 effect.fillRenderPass(this, colorInputPass, depthInputPass);
             }
 

@@ -3,6 +3,7 @@ package jet.opengl.postprocessing.core;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.util.Numeric;
@@ -29,6 +30,7 @@ public class PostProcessingDownsamplePass extends PostProcessingRenderPass {
 
     private final int m_DownsampleCount;  // 2 or 4
     private final int m_DownsampleMethod;
+    private final float m_TexelFactor;
 
     public PostProcessingDownsamplePass(){
         this(2, DOWMSAMPLE_NORMAL);
@@ -40,6 +42,17 @@ public class PostProcessingDownsamplePass extends PostProcessingRenderPass {
 
         m_DownsampleCount = downsampleCount;
         m_DownsampleMethod = downsampleMethod;
+        m_TexelFactor = (float) (Math.log(m_DownsampleCount)/Math.log(2));
+
+        if(GLCheck.CHECK){
+            if(m_DownsampleCount == 2 && m_TexelFactor != 1.0f){
+                throw new IllegalArgumentException();
+            }
+
+            if(m_DownsampleCount == 4 && m_TexelFactor != 2.0f){
+                throw new IllegalArgumentException();
+            }
+        }
     }
 
     @Override
@@ -64,7 +77,7 @@ public class PostProcessingDownsamplePass extends PostProcessingRenderPass {
 //        context.setViewport(0,0, 1280, 720);
         context.setVAO(null);
         context.setProgram(g_DownsamplePrograms[m_DownsampleMethod]);
-        g_DownsamplePrograms[m_DownsampleMethod].setTexelSize(1.0f/input0.getWidth(), 1.0f/input0.getHeight());
+        g_DownsamplePrograms[m_DownsampleMethod].setTexelSize(m_TexelFactor/input0.getWidth(), m_TexelFactor/input0.getHeight());
 
         context.bindTexture(input0, 0, 0);
         context.setBlendState(null);
@@ -84,5 +97,7 @@ public class PostProcessingDownsamplePass extends PostProcessingRenderPass {
             out.width = Numeric.divideAndRoundUp(out.width, m_DownsampleCount);
             out.height = Numeric.divideAndRoundUp(out.height, m_DownsampleCount);
         }
+
+        super.computeOutDesc(index, out);
     }
 }
