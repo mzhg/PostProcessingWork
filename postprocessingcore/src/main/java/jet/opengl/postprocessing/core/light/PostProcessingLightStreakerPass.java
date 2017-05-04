@@ -17,12 +17,16 @@ final class PostProcessingLightStreakerPass extends PostProcessingRenderPass{
 
     static final ColorModulation g_ColorModulation = new ColorModulation();
     private static PostProcessingLightStreakerProgram g_LightStreakerProgram = null;
+    private static PostProcessingLightStreakerComposeProgram g_CombineProgram = null;
+
     private Texture2D m_TempTexture;
+//    private final boolean startSteaker;
 
-    public PostProcessingLightStreakerPass(int output) {
+    public PostProcessingLightStreakerPass() {
         super("LightStreaker");
+//        this.startSteaker = startSteaker;
 
-        set(1, output);
+        set(1, 1);
     }
 
     @Override
@@ -37,17 +41,22 @@ final class PostProcessingLightStreakerPass extends PostProcessingRenderPass{
         }
 
         Texture2D input0 = getInput(0);
-        Texture2D output0 = getOutputTexture(0);
-        Texture2D output1 = getOutputTexture(1);
+
         if(input0 == null){
             return;
         }
 
-        m_TempTexture = RenderTexturePool.getInstance().findFreeElement(input0.getWidth(), input0.getHeight(), input0.getFormat());
+        final RenderTexturePool pool = RenderTexturePool.getInstance();
+        Texture2D output0 = pool.findFreeElement(input0.getWidth(), input0.getHeight(), input0.getFormat());
+        Texture2D output1 = pool.findFreeElement(input0.getWidth(), input0.getHeight(), input0.getFormat());
+        Texture2D output2 = null;
+        Texture2D output3 = null;
+
+        m_TempTexture = pool.findFreeElement(input0.getWidth(), input0.getHeight(), input0.getFormat());
 
         if(parameters.isStartStreaker()){
-            Texture2D output2 = getOutputTexture(2);
-            Texture2D output3 = getOutputTexture(3);
+            output2 = pool.findFreeElement(input0.getWidth(), input0.getHeight(), input0.getFormat());
+            output3 = pool.findFreeElement(input0.getWidth(), input0.getHeight(), input0.getFormat());
 
             float ratio = (float) output0.getWidth() / output0.getHeight();
             genStarStreak(context, 0, ratio, output0);
@@ -59,9 +68,47 @@ final class PostProcessingLightStreakerPass extends PostProcessingRenderPass{
             genHorizontalGlare(context, 0, output0);
             genHorizontalGlare(context, 1, output1);
         }
-
-        RenderTexturePool.getInstance().freeUnusedResource(m_TempTexture);
+        pool.freeUnusedResource(m_TempTexture);
         m_TempTexture = null;
+
+        // Compose Streakers and output
+        composeStreaker(context, output0, output1, output2, output3);
+
+        pool.freeUnusedResource(output0);
+        pool.freeUnusedResource(output1);
+        if(parameters.isStartStreaker()) {
+            pool.freeUnusedResource(output2);
+            pool.freeUnusedResource(output3);
+        }
+    }
+
+    private void composeStreaker(PostProcessingRenderContext context, Texture2D input0, Texture2D input1, Texture2D input2, Texture2D input3){
+        if(g_CombineProgram == null){
+            try {
+                g_CombineProgram = new PostProcessingLightStreakerComposeProgram();
+                addDisposedResource(g_CombineProgram);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        Texture2D output = getOutputTexture(0);
+
+        context.setViewport(0,0, output.getWidth(), output.getHeight());
+        context.setVAO(null);
+        context.setProgram(g_CombineProgram);
+
+        context.bindTexture(input0, 0, 0);
+        context.bindTexture(input1, 1, 0);
+        context.bindTexture(input2, 2, 0);
+        context.bindTexture(input3, 3, 0);
+
+        context.setBlendState(null);
+        context.setDepthStencilState(null);
+        context.setRasterizerState(null);
+        context.setRenderTarget(output);
+
+        context.drawFullscreenQuad();
     }
 
     private void drawAxisAlignedQuad(PostProcessingRenderContext context, Texture2D output){

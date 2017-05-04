@@ -2,10 +2,6 @@ package jet.opengl.postprocessing.core;
 
 import java.io.IOException;
 
-import jet.opengl.postprocessing.common.GLAPI;
-import jet.opengl.postprocessing.common.GLFuncProvider;
-import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.util.LogUtil;
@@ -66,10 +62,8 @@ public class PostProcessingCombinePass extends PostProcessingRenderPass {
         Texture2D input = getInput(0);
         if(input != null){
             input.getDesc(out);
-            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-            {
-                out.format = gl.getHostAPI() == GLAPI.ANDROID ? GLenum.GL_RGB: GLenum.GL_RGB8;
-            }
         }
+
+        super.computeOutDesc(index, out);
     }
 }

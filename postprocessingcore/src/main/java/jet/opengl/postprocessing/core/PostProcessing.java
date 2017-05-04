@@ -12,8 +12,10 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.core.bloom.PostProcessingBloomEffect;
+import jet.opengl.postprocessing.core.eyeAdaption.PostProcessingEyeAdaptationEffect;
 import jet.opengl.postprocessing.core.fisheye.PostProcessingFishEyeEffect;
 import jet.opengl.postprocessing.core.fxaa.PostProcessingFXAAEffect;
+import jet.opengl.postprocessing.core.light.PostProcessingLightEffect;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
 import jet.opengl.postprocessing.core.toon.PostProcessingToonEffect;
 import jet.opengl.postprocessing.util.CommonUtil;
@@ -32,6 +34,8 @@ public class PostProcessing implements Disposeable{
     public static final String RADIAL_BLUR = "RADIAL_BLUR";
     public static final String TOON = "TOON";
     public static final String FISH_EYE = "FISH_EYE";
+    public static final String LIGHT_EFFECT = "LIGHT_EFFECT";
+    public static final String EYE_ADAPATION = "EYE_ADAPATION";
 
     private static final int NUM_TAG_CACHE = 32;
 
@@ -40,6 +44,8 @@ public class PostProcessing implements Disposeable{
     public static final int FISH_EYE_PRIPORTY = 50;
     public static final int BLOOM_PRIPORTY = 200;
     public static final int FXAA_PRIPORTY = 1000;
+    public static final int LIGHT_EFFECT_PRIPORTY = 2000;
+    public static final int EYE_ADAPATION_PRIPORTY = -100;
 
     private PostProcessingRenderContext m_RenderContext;
 
@@ -64,6 +70,8 @@ public class PostProcessing implements Disposeable{
         registerEffect(new PostProcessingFishEyeEffect());
         registerEffect(new PostProcessingToonEffect());
         registerEffect(new PostProcessingFXAAEffect());
+        registerEffect(new PostProcessingLightEffect());
+        registerEffect(new PostProcessingEyeAdaptationEffect());
     }
 
     public void registerEffect(PostProcessingEffect effect){
@@ -114,13 +122,7 @@ public class PostProcessing implements Disposeable{
                 return;
             }
 
-            m_RenderContext.performancePostProcessing(frameAttribs.outputTexture);
-
-//            GLStateTracker.getInstance().setVAO(null);
-//            GLStateTracker.getInstance().setBlendState(null);
-//            GLStateTracker.getInstance().setDepthStencilState(null);
-//            GLStateTracker.getInstance().setRasterizerState(null);
-
+            m_RenderContext.performancePostProcessing(frameAttribs.outputTexture, frameAttribs.viewport);
             //      checkGLError();
             if (!m_AddedRenderPasses.isEmpty()) {
 //                int size = m_AddedRenderPasses.size();
@@ -185,29 +187,45 @@ public class PostProcessing implements Disposeable{
         }
     }
 
+    public boolean isHDREnabled(){
+        // TODO
+        return false;
+    }
+
     private void prepare(PostProcessingFrameAttribs frameAttribs){
         initlizeContext();
+
+        if(!frameAttribs.viewport.isValid()){
+            frameAttribs.viewport.set(0,0, frameAttribs.sceneColorTexture.getWidth(), frameAttribs.sceneColorTexture.getHeight());
+        }
 
         if(m_CurrentEffects.isEmpty() && m_PrevEffects.isEmpty()){
             return;
         }
-
-        PostProcessingRenderPassInput colorInputPass = new PostProcessingRenderPassInput("SceneColor", frameAttribs.sceneColorTexture);
-        PostProcessingRenderPassInput depthInputPass = new PostProcessingRenderPassInput("SceneDepth", frameAttribs.sceneDepthTexture);
 
         m_CurrentEffects.sort(null);
         if(m_CurrentEffects.size() != m_PrevEffects.size() || !m_CurrentEffects.equals(m_PrevEffects)){
             m_AddedRenderPasses.clear();
             m_LastAddedPass = null;
 
+            PostProcessingRenderPassInput colorInputPass = new PostProcessingRenderPassInput("SceneColor", frameAttribs.sceneColorTexture);
+            PostProcessingRenderPassInput depthInputPass = new PostProcessingRenderPassInput("SceneDepth", frameAttribs.sceneDepthTexture);
+
 //            m_AddedRenderPasses.put("SceneColor", colorInputPass);  TODO maybe cause problems
 //            m_AddedRenderPasses.put("SceneDepth", depthInputPass);
+            EffectTag lastTag = null;
+            if(m_CurrentEffects.size() > 0)
+                m_CurrentEffects.get(m_CurrentEffects.size() - 1);
 
             for(EffectTag effectTag : m_CurrentEffects){
                 PostProcessingEffect effect = m_RegisteredEffects.get(effectTag.name);
+
+                effect.isLastEffect = (lastTag == effectTag);
                 effect.m_LastRenderPass = m_LastAddedPass;
                 effect.initValue = effectTag.initValue;
                 effect.uniformValue = effectTag.uniformValue;
+                effect.m_Parameters = m_Parameters;
+
                 effect.fillRenderPass(this, colorInputPass, depthInputPass);
             }
 
@@ -239,6 +257,20 @@ public class PostProcessing implements Disposeable{
 
     public PostProcessingRenderPass findPass(String name){
         return m_AddedRenderPasses.get(name);
+    }
+
+    public void addEyeAdaptation(){
+        PostProcessingEffect effect = m_RegisteredEffects.get(EYE_ADAPATION);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
+    }
+
+    public void addLightEffect(boolean enableLightStreaker, boolean enableLensFlare, float elpsedTime){
+        m_Parameters.enableLensFlare = enableLensFlare;
+        m_Parameters.enableLightStreaker = enableLightStreaker;
+        m_Parameters.elapsedTime = elpsedTime;
+
+        PostProcessingEffect effect = m_RegisteredEffects.get(LIGHT_EFFECT);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
     }
 
     public void addRadialBlur(float centerX, float centerY){

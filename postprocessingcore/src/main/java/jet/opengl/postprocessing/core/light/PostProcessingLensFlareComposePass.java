@@ -26,11 +26,12 @@ final class PostProcessingLensFlareComposePass extends PostProcessingRenderPass 
     private final Texture2D[] blur_bufferB = new Texture2D[4];
     private final Texture2D[] compose_buffer = new Texture2D[3];
 
-    public PostProcessingLensFlareComposePass() {
+    public PostProcessingLensFlareComposePass(int inputCount) {
         super("BlurCompose");
 
-        // Two output: 0 for Blur Compose, 1 for Ghost Compose.
-        set(1, 2);
+        // Input0: HightLight Texture
+        // Input1: Option, Light Streaker
+        set(inputCount, 1);
     }
 
     @Override
@@ -64,39 +65,30 @@ final class PostProcessingLensFlareComposePass extends PostProcessingRenderPass 
 
         releaseTempTextures();
 
-        // generate ghost image and output to index 1
+        // generate ghost image
+        Texture2D lenMask = parameters.getLensMask();
+        int width = Math.max(input.getWidth(), lenMask.getWidth());
+        int height = Math.max(input.getHeight(), lenMask.getHeight());
+        Texture2D ghostFinal = RenderTexturePool.getInstance().findFreeElement(width, height, input.getFormat());
         ColorModulation colorModulation = PostProcessingLightStreakerPass.g_ColorModulation;
         if(parameters.isStartStreaker()){
-            genGhostImage(context, colorModulation.camera_ghost_modulation1st, colorModulation.camera_ghost_modulation2nd);
+            genGhostImage(context, ghostFinal, lenMask, colorModulation.camera_ghost_modulation1st, colorModulation.camera_ghost_modulation2nd);
         }else{
-            genGhostImage(context, colorModulation.filmic_ghost_modulation1st, colorModulation.filmic_ghost_modulation2nd);
+            genGhostImage(context, ghostFinal, lenMask, colorModulation.filmic_ghost_modulation1st, colorModulation.filmic_ghost_modulation2nd);
         }
 
-        // Compose the blur image and output result to index 0
+        // Compose the blur image
+        Texture2D blur_compose = RenderTexturePool.getInstance().findFreeElement(input.getWidth(), input.getHeight(), input.getFormat());
+        composeBlurImage(context, blur_compose);
 
+        glareComposeProgram(context, blur_compose, getInput(1), ghostFinal, parameters.isStartStreaker(), output);
 
         releaseTextures();
+        RenderTexturePool.getInstance().freeUnusedResource(ghostFinal);
+        RenderTexturePool.getInstance().freeUnusedResource(blur_compose);
     }
 
     private void composeBlurImage(PostProcessingRenderContext context, Texture2D output){
-        context.setViewport(0,0, output.getWidth(), output.getHeight());
-        context.setVAO(null);
-        context.setProgram(g_GlareComposeProgram);
-        g_GlareComposeProgram.setMixCoeff(0.3f, 0.3f, 0.25f, 0.20f);
-
-        context.bindTexture(blur_bufferA[0], 0, 0);   // Blur compose
-        context.bindTexture(blur_bufferA[1], 1, 0);   // Light Streaker compose
-        context.bindTexture(blur_bufferA[2], 2, 0);   // Ghost Image
-        context.bindTexture(null, 3, 0);
-        context.setBlendState(null);
-        context.setDepthStencilState(null);
-        context.setRasterizerState(null);
-        context.setRenderTarget(output);
-
-        context.drawFullscreenQuad();
-    }
-
-    private void glareComposeProgram(PostProcessingRenderContext context, Texture2D output){
         context.setViewport(0,0, output.getWidth(), output.getHeight());
         context.setVAO(null);
         context.setProgram(g_GlareComposeProgram);
@@ -114,8 +106,31 @@ final class PostProcessingLensFlareComposePass extends PostProcessingRenderPass 
         context.drawFullscreenQuad();
     }
 
-    private void genGhostImage(PostProcessingRenderContext context, float[] ghost_modulation1st, float[] ghost_modulation2nd) {
-        final Texture2D ghost2nd_buffer = getOutputTexture(1);
+    private static final float cameraMixCoeff[]={1.2f, 0.8f, 0.1f, 0.0f};
+    private static final float filmicMixCoeff[]={0.6f, 0.55f, 0.08f, 0.0f};
+
+    private void glareComposeProgram(PostProcessingRenderContext context, Texture2D blurCompose, Texture2D lightStreaker, Texture2D ghostImage,
+                                     boolean startSteaker, Texture2D output){
+        context.setViewport(0,0, output.getWidth(), output.getHeight());
+        context.setVAO(null);
+        context.setProgram(g_GlareComposeProgram);
+
+        float[] mixCoeff = startSteaker ? cameraMixCoeff : filmicMixCoeff;
+        g_GlareComposeProgram.setMixCoeff(mixCoeff[0], mixCoeff[1], mixCoeff[2], mixCoeff[3]);
+
+        context.bindTexture(blurCompose, 0, 0);   // Blur compose
+        context.bindTexture(lightStreaker, 1, 0);   // Light Streaker compose
+        context.bindTexture(ghostImage, 2, 0);   // Ghost Image
+        context.bindTexture(null, 3, 0);         // null
+        context.setBlendState(null);
+        context.setDepthStencilState(null);
+        context.setRasterizerState(null);
+        context.setRenderTarget(output);
+
+        context.drawFullscreenQuad();
+    }
+
+    private void genGhostImage(PostProcessingRenderContext context, Texture2D ghost2nd_buffer, Texture2D lenMask, float[] ghost_modulation1st, float[] ghost_modulation2nd) {
         final Texture2D ghost1st_buffer = RenderTexturePool.getInstance().findFreeElement(ghost2nd_buffer.getWidth(), ghost2nd_buffer.getHeight(), ghost2nd_buffer.getFormat());
 
         context.setViewport(0,0, ghost1st_buffer.getWidth(), ghost1st_buffer.getHeight());
@@ -127,7 +142,7 @@ final class PostProcessingLensFlareComposePass extends PostProcessingRenderPass 
         context.bindTexture(blur_bufferA[0], 0, 0);
         context.bindTexture(blur_bufferA[1], 1, 0);
         context.bindTexture(blur_bufferA[1], 2, 0);
-        context.bindTexture(blur_bufferA[0], 3, 0);  // TODO Lens Mask
+        context.bindTexture(lenMask, 3, 0);  // TODO Lens Mask
         context.setBlendState(null);
         context.setDepthStencilState(null);
         context.setRasterizerState(null);
@@ -144,7 +159,7 @@ final class PostProcessingLensFlareComposePass extends PostProcessingRenderPass 
         context.bindTexture(ghost1st_buffer, 0, 0);
         context.bindTexture(ghost1st_buffer, 1, 0);
         context.bindTexture(blur_bufferA[1], 2, 0);
-        context.bindTexture(blur_bufferA[0], 3, 0);  // TODO Lens Mask
+        context.bindTexture(lenMask, 3, 0);  // TODO Lens Mask
         context.setBlendState(null);
         context.setDepthStencilState(null);
         context.setRasterizerState(null);

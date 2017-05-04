@@ -6,8 +6,10 @@ package jet.opengl.postprocessing.core;
 
 public abstract class PostProcessingEffect {
     PostProcessingRenderPass m_LastRenderPass;
+    PostProcessingParameters m_Parameters;
     Object initValue;
     Object uniformValue;
+    boolean isLastEffect;
 
     protected abstract void fillRenderPass(PostProcessing context, PostProcessingRenderPass sceneColorTexture, PostProcessingRenderPass sceneDepthTexture);
 
@@ -21,4 +23,6 @@ public abstract class PostProcessingEffect {
 
     protected Object getInitValue() {return initValue;}
     protected Object getUniformValue() {return uniformValue;}
+    protected boolean isLastEffect() { return isLastEffect;}
+    protected PostProcessingParameters getParameters() {return m_Parameters;}
 }

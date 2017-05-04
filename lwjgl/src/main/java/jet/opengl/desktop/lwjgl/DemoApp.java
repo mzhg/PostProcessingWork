@@ -2,7 +2,7 @@ package jet.opengl.desktop.lwjgl;
 
 import com.nvidia.developer.opengl.app.NvAppBase;
 import com.nvidia.developer.opengl.app.NvEGLConfiguration;
-import com.nvidia.developer.opengl.demos.RadiualBlurDemo;
+import com.nvidia.developer.opengl.demos.hdr.HDRDemo;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -87,9 +87,6 @@ public class DemoApp {
         });
 
 //        System.out.println(new File("").getAbsolutePath());
-        run(new RadiualBlurDemo());
-
-//        System.out.println("1280/720 = " + 720f/1280f);
-//        System.out.println("800/600 = " + 600f/800f);
+        run(new HDRDemo());
     }
 }

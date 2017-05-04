@@ -19,7 +19,8 @@ public class PostProcessingEyeAdaptationEffect extends PostProcessingEffect {
         PostProcessingRenderPass downsample4xPass1 = null;
         PostProcessingRenderPass downsample4xPass2 = null;
 
-        final int downsampleMethod = GLFuncProviderFactory.getGLFuncProvider().getHostAPI() == GLAPI.ANDROID ? PostProcessingDownsamplePass.DOWMSAMPLE_FASTEST:
+        final int downsampleMethod = GLFuncProviderFactory.getGLFuncProvider().getHostAPI() == GLAPI.ANDROID ?
+                PostProcessingDownsamplePass.DOWMSAMPLE_FASTEST:
                 PostProcessingDownsamplePass.DOWMSAMPLE_NORMAL;
 
         // search the dowmsample pass from context
@@ -52,7 +53,7 @@ public class PostProcessingEyeAdaptationEffect extends PostProcessingEffect {
         downsample4xPass2.setDependency(0, downsample4xPass1, 0);
         context.appendRenderPass("DownsampleScene4x_2", downsample4xPass2);
 
-        // Calculate the scene lumiance.
+//         Calculate the scene lumiance.
         PostProcessingCalculateLuminancePass calculateLuminancePass = new PostProcessingCalculateLuminancePass();
         calculateLuminancePass.setDependency(0, downsample4xPass2, 0);
         context.appendRenderPass("EyeAdaptation", calculateLuminancePass);
@@ -60,11 +61,11 @@ public class PostProcessingEyeAdaptationEffect extends PostProcessingEffect {
 
     @Override
     public String getEffectName() {
-        return null;
+        return PostProcessing.EYE_ADAPATION;
     }
 
     @Override
     public int getPriority() {
-        return 0;
+        return PostProcessing.EYE_ADAPATION_PRIPORTY;
     }
 }

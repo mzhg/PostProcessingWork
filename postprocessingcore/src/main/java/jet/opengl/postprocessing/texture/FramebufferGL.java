@@ -66,7 +66,7 @@ public class FramebufferGL implements Disposeable {
         }
 
 
-        for (int i = m_AttachCount; i < textures.length; i++)
+        for (int i = 0; i < textures.length; i++)
         {
             TextureGL pTex = textures[i];
             TextureAttachDesc desc = descs[i];

@@ -210,7 +210,7 @@ public final class PostProcessingRenderContext {
     private final List<PostProcessingRenderPass> currentDependencyPasses = new ArrayList<>();
     private final List<Texture2D> inputTextures = new ArrayList<>();
 
-    void performancePostProcessing(Texture2D output){
+    void performancePostProcessing(Texture2D output, Recti viewport){
         if(m_RenderPassList.isEmpty())
             return;
 
@@ -254,11 +254,15 @@ public final class PostProcessingRenderContext {
                         throw new IllegalArgumentException();
                     }
 
+                    if(m_CurrentPass.useIntenalOutputTexture()){
+                        break;
+                    }
+
                     if(output != null){
                         m_CurrentPass.setOutputRenderTexture(i, output);
                     }else{
-                        g_DummyTex._width = outputDesc.width;
-                        g_DummyTex._height = outputDesc.height;
+                        g_DummyTex._width = viewport.width;
+                        g_DummyTex._height = viewport.height;
                         m_CurrentPass.setOutputRenderTexture(i, g_DummyTex);
                     }
                 }
