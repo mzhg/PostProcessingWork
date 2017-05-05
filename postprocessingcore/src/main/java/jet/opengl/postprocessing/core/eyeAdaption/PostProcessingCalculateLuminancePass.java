@@ -76,7 +76,7 @@ final class PostProcessingCalculateLuminancePass extends PostProcessingRenderPas
 
     @Override
     public Texture2D getOutputTexture(int idx) {
-        return idx == 0 ? m_DstLum : null;
+        return idx == 0 ? m_SrcLum : null;
     }
 
     @Override

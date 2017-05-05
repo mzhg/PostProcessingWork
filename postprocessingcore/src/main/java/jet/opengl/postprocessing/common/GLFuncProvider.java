@@ -1429,6 +1429,8 @@ public interface GLFuncProvider {
 
     void glTextureParameteri(int textureID, int pname, int mode);
     void glTextureParameteriv(int textureID, int pname, int[] rgba);
+    void glTextureParameterf(int textureID, int pname, float mode);
+    void glTextureParameterfv(int textureID, int pname, float[] mode);
 
     int glGetTexLevelParameteri(int target, int level, int pname);
 

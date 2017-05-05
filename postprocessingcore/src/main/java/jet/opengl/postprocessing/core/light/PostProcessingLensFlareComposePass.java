@@ -43,7 +43,7 @@ final class PostProcessingLensFlareComposePass extends PostProcessingRenderPass 
         }
 
         try {
-            initPrograms(input.getWidth(), input.getHeight());
+            initPrograms((int) (input.getWidth() * 16.0f/9.0f), input.getHeight());
             allocateTempTextures(input.getWidth(), input.getHeight(), input.getFormat());
         } catch (IOException e) {
             e.printStackTrace();
@@ -92,7 +92,7 @@ final class PostProcessingLensFlareComposePass extends PostProcessingRenderPass 
         context.setViewport(0,0, output.getWidth(), output.getHeight());
         context.setVAO(null);
         context.setProgram(g_GlareComposeProgram);
-        g_GlareComposeProgram.setMixCoeff(1.2f, 0.8f, 0.1f, 0.0f);  // TODO
+        g_GlareComposeProgram.setMixCoeff(0.3f, 0.3f, 0.25f, 0.20f);  // TODO
 
         context.bindTexture(blur_bufferA[0], 0, 0);
         context.bindTexture(blur_bufferA[1], 1, 0);

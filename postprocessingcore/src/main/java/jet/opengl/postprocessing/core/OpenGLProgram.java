@@ -1,9 +1,16 @@
 package jet.opengl.postprocessing.core;
 
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.util.BufferUtils;
+import jet.opengl.postprocessing.util.CachaRes;
+import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -96,5 +103,27 @@ public interface OpenGLProgram extends Disposeable{
         }
         GLFuncProviderFactory.getGLFuncProvider().glLinkProgram(programID);
         GLSLUtil.checkLinkError(programID);
+    }
+
+    @CachaRes
+    default ByteBuffer getProgramBinary(){
+        int programId = getProgram();
+        if(programId == 0){
+            LogUtil.i(LogUtil.LogType.DEFAULT, "getProgramBinary:: return null when programId is 0.");
+            return null;
+        }
+
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+
+        int formats = gl.glGetInteger(GLenum.GL_NUM_PROGRAM_BINARY_FORMATS);
+        int[] binaryFormats = new int[formats];
+        IntBuffer _binaryFormats = CacheBuffer.getCachedIntBuffer(formats);
+        gl.glGetIntegerv(GLenum.GL_PROGRAM_BINARY_FORMATS, _binaryFormats);
+        int len = gl.glGetProgrami(programId, GLenum.GL_PROGRAM_BINARY_LENGTH);
+        _binaryFormats.get(binaryFormats);
+
+        ByteBuffer binary = BufferUtils.createByteBuffer(len);
+        gl.glGetProgramBinary(programId, new int[len], binaryFormats, binary);
+        return  binary;
     }
 }

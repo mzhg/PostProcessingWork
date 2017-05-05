@@ -31,6 +31,7 @@ public class PostProcessingEyeAdaptationEffect extends PostProcessingEffect {
 
         if(downsample4xPass0 == null){
             downsample4xPass0 = new PostProcessingDownsamplePass(4, downsampleMethod);
+//            downsample4xPass0 = new Downsample4xPass();
             downsample4xPass0.setOutputFixSize(0, 256, 256);
             downsample4xPass0.setDependency(0, sceneColorTexture, 0);
             context.appendRenderPass("DownsampleScene4x_0", downsample4xPass0);
@@ -43,12 +44,14 @@ public class PostProcessingEyeAdaptationEffect extends PostProcessingEffect {
 
         if(downsample4xPass1 == null) {
             downsample4xPass1 = new PostProcessingDownsamplePass(4, downsampleMethod);
+//            downsample4xPass1 = new Downsample4xPass();
             downsample4xPass1.setOutputFixSize(0, 64, 64);
             downsample4xPass1.setDependency(0, downsample4xPass0, 0);
             context.appendRenderPass("DownsampleScene4x_1", downsample4xPass1);
         }
 
         downsample4xPass2 = new PostProcessingDownsamplePass(4, downsampleMethod);
+//        downsample4xPass2 = new Downsample4xPass();
         downsample4xPass2.setOutputFixSize(0, 16, 16);
         downsample4xPass2.setDependency(0, downsample4xPass1, 0);
         context.appendRenderPass("DownsampleScene4x_2", downsample4xPass2);

@@ -1,7 +1,7 @@
 #include "PostProcessingCommonPS.frag"
 
-uniform sampler2D g_LastLumTex;
 uniform sampler2D g_InputImage;
+uniform sampler2D g_LastLumTex;
 const vec3 LUMINANCE_VECTOR = vec3(0.2125f, 0.7154f, 0.0721f);
 
 uniform float g_ElapsedTime;

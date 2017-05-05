@@ -2,6 +2,7 @@ package jet.opengl.postprocessing.core.tonemapping;
 
 import java.io.IOException;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
 
@@ -15,7 +16,7 @@ final class PostProcessingTonemappingProgram extends GLSLProgram{
 
     PostProcessingTonemappingProgram(boolean eyeAdaption) throws IOException {
         setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingTonemappingPS.frag",
-                new Macro("EYE_ADAPATION", eyeAdaption));
+                new Macro("EYE_ADAPATION", eyeAdaption?1:0));
 
         enable();
         centerIndex = getUniformLocation("g_Uniforms");
@@ -29,6 +30,7 @@ final class PostProcessingTonemappingProgram extends GLSLProgram{
 
         iChannel0Loc = getUniformLocation("g_LumTex");
         gl.glUniform1i(iChannel0Loc, 2);  // set the LumTex location.
+        GLCheck.checkError();
     }
 
     public void setUniforms(float blurAmout, float exposure, float gamma){

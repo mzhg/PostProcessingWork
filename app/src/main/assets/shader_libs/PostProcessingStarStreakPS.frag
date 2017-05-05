@@ -3,10 +3,10 @@
 uniform vec4 g_ColorCoeff[4];
 
 #if ENABLE_IN_OUT_FEATURE
-	out vec2 m_TexCoord1;
-	out vec2 m_TexCoord2;
-	out vec2 m_TexCoord3;
-	out vec2 m_TexCoord4;
+	in vec2 m_TexCoord1;
+	in vec2 m_TexCoord2;
+	in vec2 m_TexCoord3;
+	in vec2 m_TexCoord4;
 #else
 	varying vec2 m_TexCoord1;
     varying vec2 m_TexCoord2;

@@ -13,7 +13,7 @@ public class PostProcessingParameters {
     float radialBlurCenterY = 0.5f;
     int   radialBlurSamples = 24;
     float gloablTime;
-    float elapsedTime;
+    float elapsedTime = 1.0F/60.0F;
 
     float bloomIntensity;
     float edgeThreshold;
@@ -34,7 +34,7 @@ public class PostProcessingParameters {
 
     // light effect parameters
     float blurAmout = 0.33f;
-    float expose = 1.4f;
+    float expose = 3.3654366f;
     float gamma = 1.0f/1.8f;
 
     PostProcessing postProcessing;
@@ -69,7 +69,7 @@ public class PostProcessingParameters {
     // TODO Not safe
     public boolean isStartStreaker() {return startStreaker;}
 
-    public Texture2D getLensMask() {return lensMask;}
+    public Texture2D getLensMask() {return lensMask != null ? lensMask : postProcessing.getOrCreateLensMask();}
 
     public float getLightEffectAmout() {return blurAmout;}
     public float getLightEffectExpose() { return expose;}

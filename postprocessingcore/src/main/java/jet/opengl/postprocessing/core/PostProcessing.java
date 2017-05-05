@@ -1,5 +1,6 @@
 package jet.opengl.postprocessing.core;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -11,6 +12,7 @@ import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.bloom.PostProcessingBloomEffect;
 import jet.opengl.postprocessing.core.eyeAdaption.PostProcessingEyeAdaptationEffect;
 import jet.opengl.postprocessing.core.fisheye.PostProcessingFishEyeEffect;
@@ -18,7 +20,12 @@ import jet.opengl.postprocessing.core.fxaa.PostProcessingFXAAEffect;
 import jet.opengl.postprocessing.core.light.PostProcessingLightEffect;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
 import jet.opengl.postprocessing.core.toon.PostProcessingToonEffect;
+import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureDataDesc;
+import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
@@ -62,6 +69,7 @@ public class PostProcessing implements Disposeable{
     private boolean m_bEnablePostProcessing = true;
     private boolean m_SplitScreenDebug;
     private boolean m_bUsePortionTex;
+    private Texture2D m_DefaultLensMask;
 
     public PostProcessing(){
         m_Parameters = new PostProcessingParameters(this);
@@ -188,8 +196,8 @@ public class PostProcessing implements Disposeable{
     }
 
     public boolean isHDREnabled(){
-        // TODO
-        return false;
+        // TODO  return true for debug only!!!
+        return true;
     }
 
     private void prepare(PostProcessingFrameAttribs frameAttribs){
@@ -215,7 +223,7 @@ public class PostProcessing implements Disposeable{
 //            m_AddedRenderPasses.put("SceneDepth", depthInputPass);
             EffectTag lastTag = null;
             if(m_CurrentEffects.size() > 0)
-                m_CurrentEffects.get(m_CurrentEffects.size() - 1);
+                lastTag = m_CurrentEffects.get(m_CurrentEffects.size() - 1);
 
             for(EffectTag effectTag : m_CurrentEffects){
                 PostProcessingEffect effect = m_RegisteredEffects.get(effectTag.name);
@@ -330,9 +338,36 @@ public class PostProcessing implements Disposeable{
         m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), m_Parameters.fxaaQuality, null));
     }
 
+    Texture2D getOrCreateLensMask(){
+        if(m_DefaultLensMask == null){
+            try {
+                byte[] data = FileUtils.loadBytes("shader_libs/PostProcessingDefaultLensMask.data");
+                Texture2DDesc desc = new Texture2DDesc(128,128, GLenum.GL_RGBA8);
+                TextureDataDesc dataDesc = new TextureDataDesc(GLenum.GL_RGBA, GLenum.GL_UNSIGNED_BYTE, data);
+                m_DefaultLensMask = TextureUtils.createTexture2D(desc, dataDesc);
+                GLStateTracker.getInstance().bindTexture(m_DefaultLensMask, 0,0 );
+
+                m_DefaultLensMask.setMagFilter(GLenum.GL_LINEAR);
+                m_DefaultLensMask.setMinFilter(GLenum.GL_LINEAR);
+                m_DefaultLensMask.setWrapS(GLenum.GL_CLAMP_TO_EDGE);
+                m_DefaultLensMask.setWrapT(GLenum.GL_CLAMP_TO_EDGE);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return  m_DefaultLensMask;
+    }
+
     @Override
     public void dispose() {
         PostProcessingRenderPass.releaseResources();
+
+        if(m_DefaultLensMask != null){
+            m_DefaultLensMask.dispose();
+            m_DefaultLensMask = null;
+        }
     }
 
     private static final class EffectTag implements Comparable<EffectTag>{

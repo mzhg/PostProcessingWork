@@ -36,6 +36,7 @@ public class PostProcessingLightEffect extends PostProcessingEffect {
 
         if(downsample4xPass0 == null){
             downsample4xPass0 = new PostProcessingDownsamplePass(4, downsampleMethod);
+//            downsample4xPass0 = new Downsample4xPass();
             downsample4xPass0.setOutputFixSize(0, 256, 256);
             downsample4xPass0.setDependency(0, sceneColorTexture, 0);
             context.appendRenderPass("DownsampleScene4x_0", downsample4xPass0);
@@ -48,8 +49,8 @@ public class PostProcessingLightEffect extends PostProcessingEffect {
 
         PostProcessingRenderPass lastPass = null;
         int lensFlareInputCount = 1;
-        PostProcessingLightStreakerPass lightStreakerPass = null;
 
+        PostProcessingLightStreakerPass lightStreakerPass = null;
         if(parameters.isLightStreakerEnabled()){
             lightStreakerPass = new PostProcessingLightStreakerPass();
             lightStreakerPass.setDependency(0, extractHighLightPass, 0);
@@ -68,10 +69,9 @@ public class PostProcessingLightEffect extends PostProcessingEffect {
                 lensFlareComposePass.setDependency(1, lightStreakerPass, 0);
             }
 
-            context.appendRenderPass("LensFlareCompose", lightStreakerPass);
+            context.appendRenderPass("LensFlareCompose", lensFlareComposePass);
             lastPass = lensFlareComposePass;
         }
-
 
         if(context.isHDREnabled() && isLastEffect()){
             // Compose the light effect and scene color, and apply tone-map on it.

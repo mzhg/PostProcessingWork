@@ -105,8 +105,8 @@ final class GaussionBlurProgram extends GLSLProgram {
         ost.append("#version 300 es\n");
         ost.append("precision highp float;\n");
         ost.append("uniform sampler2D TexSampler;\n");
-        ost.append("in vec2 m_f4UVAndScreenPos;\n");
-        ost.append("out vec4 gl_FragColor;\n");
+        ost.append("in vec4 m_f4UVAndScreenPos;\n");
+        ost.append("out vec4 FragColor;\n");
         ost.append("void main()\n");
         ost.append("{\n");
         ost.append("vec4 sum = vec4(0);\n");
@@ -132,7 +132,7 @@ final class GaussionBlurProgram extends GLSLProgram {
         }
 
 //	    ost <<
-        ost.append("gl_FragColor = sum;\n");
+        ost.append("FragColor = sum;\n");
         ost.append("}\n");
 
 //	    delete [] weights2;

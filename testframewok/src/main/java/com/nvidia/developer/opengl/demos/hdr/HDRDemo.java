@@ -128,45 +128,45 @@ public class HDRDemo extends NvSampleApp {
 //        tweakBar.addPadding();
         tweakBar.addPadding();
         NvTweakEnumi sceneIndex[] =
-                {
-                        new NvTweakEnumi( "Nature", 0 ),
-                        new NvTweakEnumi( "Grace", 1 ),
-                        new NvTweakEnumi( "Altar", 2 ),
-                        new NvTweakEnumi( "Uffizi", 3 ),
-                };
+        {
+                new NvTweakEnumi( "Nature", 0 ),
+                new NvTweakEnumi( "Grace", 1 ),
+                new NvTweakEnumi( "Altar", 2 ),
+                new NvTweakEnumi( "Uffizi", 3 ),
+        };
         tweakBar.addMenu("Select Scene:", createControl("m_sceneIndex"), sceneIndex, 0x22);
 
         tweakBar.addPadding();
         NvTweakEnumi materialIndex[] =
-                {
-                        new NvTweakEnumi( "Matte", 0 ),
-                        new NvTweakEnumi( "Alum", 1 ),
-                        new NvTweakEnumi( "Silver", 2 ),
-                        new NvTweakEnumi( "Golden", 3 ),
-                        new NvTweakEnumi( "Metalic", 4 ),
-                        new NvTweakEnumi( "Diamond", 5 ),
-                        new NvTweakEnumi( "Emerald", 6 ),
-                        new NvTweakEnumi( "Ruby", 7 ),
-                };
+        {
+                new NvTweakEnumi( "Matte", 0 ),
+                new NvTweakEnumi( "Alum", 1 ),
+                new NvTweakEnumi( "Silver", 2 ),
+                new NvTweakEnumi( "Golden", 3 ),
+                new NvTweakEnumi( "Metalic", 4 ),
+                new NvTweakEnumi( "Diamond", 5 ),
+                new NvTweakEnumi( "Emerald", 6 ),
+                new NvTweakEnumi( "Ruby", 7 ),
+        };
         tweakBar.addMenu("Select Material:", createControl("m_materialIndex"), materialIndex, 0x33);
 
         tweakBar.addPadding();
         tweakBar.addPadding();
         NvTweakEnumi objectIndex[] =
-                {
-                        new NvTweakEnumi( "Venus", 0 ),
-                        new NvTweakEnumi( "Teapot", 1 ),
-                        new NvTweakEnumi( "Knot", 2 ),
-                };
+        {
+                new NvTweakEnumi( "Venus", 0 ),
+                new NvTweakEnumi( "Teapot", 1 ),
+                new NvTweakEnumi( "Knot", 2 ),
+        };
 
         tweakBar.addEnum("Select Object:", createControl("m_objectIndex"), objectIndex, 0x55);
 
         tweakBar.addPadding();
         NvTweakEnumi glareType[] =
-                {
-                        new NvTweakEnumi( "Camera", CAMERA_GLARE ),
-                        new NvTweakEnumi( "Filmic", FILMIC_GLARE ),
-                };
+        {
+                new NvTweakEnumi( "Camera", CAMERA_GLARE ),
+                new NvTweakEnumi( "Filmic", FILMIC_GLARE ),
+        };
 
         tweakBar.addEnum("Glare Type:", createControl("m_glareType"), glareType, 0x44);
         tweakBar.syncValues();
@@ -304,7 +304,7 @@ public class HDRDemo extends NvSampleApp {
             m_frameAttribs.outputTexture = null;
 
             m_PostProcessing.addEyeAdaptation();
-//            m_PostProcessing.addLightEffect(true, true, getFrameDeltaTime());
+            m_PostProcessing.addLightEffect(true, true, getFrameDeltaTime());
             m_PostProcessing.performancePostProcessing(m_frameAttribs);
 //            gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
         }else{

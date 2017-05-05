@@ -13,7 +13,6 @@ final class PostProcessingLightStreakerProgram extends GLSLProgram{
     private int uniformIndex = -1;
     private int colorCoeffIndex = -1;
 
-
     PostProcessingLightStreakerProgram() throws IOException {
         setSourceFromFiles("shader_libs/PostProcessingStarStreakVS.vert", "shader_libs/PostProcessingStarStreakPS.frag");
         enable();

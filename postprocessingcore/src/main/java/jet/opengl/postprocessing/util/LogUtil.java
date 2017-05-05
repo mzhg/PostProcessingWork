@@ -9,6 +9,9 @@ import java.util.logging.Logger;
 
 public class LogUtil {
 
+    private static final Logger g_DefaultLogger = Logger.getLogger("PostProcessing");
+    private static final Logger g_NV_FRAMWORK_Logger = Logger.getLogger("NvLogger");
+
     public enum LogType{
         DEFAULT,
         NV_FRAMEWROK
@@ -26,20 +29,20 @@ public class LogUtil {
     }
 
     public static Logger getDefaultLogger(){
-        return Logger.getLogger("PostProcessing");
+        return g_DefaultLogger;
     }
 
     public static Logger getNVFrameworkLogger(){
-        return Logger.getLogger("NvLogger");
+        return g_NV_FRAMWORK_Logger;
     }
 
     public static void i(LogType type,  String msg){
         switch (type) {
             case DEFAULT:
-                getDefaultLogger().info(msg);
+                g_DefaultLogger.info(msg);
                 break;
             case NV_FRAMEWROK:
-                getNVFrameworkLogger().info(msg);
+                g_NV_FRAMWORK_Logger.info(msg);
                 break;
         }
     }
@@ -51,10 +54,10 @@ public class LogUtil {
     public static void i(LogType type, GetMessage msg){
         switch (type) {
             case DEFAULT:
-                getDefaultLogger().info(msg.get());
+                g_DefaultLogger.info(msg.get());
                 break;
             case NV_FRAMEWROK:
-                getNVFrameworkLogger().info(msg.get());
+                g_NV_FRAMWORK_Logger.info(msg.get());
                 break;
         }
     }
@@ -62,10 +65,10 @@ public class LogUtil {
     public static void e(LogType type,  String msg){
         switch (type) {
             case DEFAULT:
-                getDefaultLogger().severe(msg);
+                g_DefaultLogger.severe(msg);
                 break;
             case NV_FRAMEWROK:
-                getNVFrameworkLogger().severe(msg);
+                g_NV_FRAMWORK_Logger.severe(msg);
                 break;
         }
     }
@@ -73,10 +76,10 @@ public class LogUtil {
     public static void e(LogType type,  GetMessage msg){
         switch (type) {
             case DEFAULT:
-                getDefaultLogger().severe(msg.get());
+                g_DefaultLogger.severe(msg.get());
                 break;
             case NV_FRAMEWROK:
-                getNVFrameworkLogger().severe(msg.get());
+                g_NV_FRAMWORK_Logger.severe(msg.get());
                 break;
         }
     }

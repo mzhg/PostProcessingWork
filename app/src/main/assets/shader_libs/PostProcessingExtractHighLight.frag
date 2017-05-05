@@ -11,7 +11,5 @@ uniform sampler2D g_Texture;
 void main()
 {
     vec4 sceneColor = texture(g_Texture, m_f4UVAndScreenPos.xy);
-    sceneColor = min(vec4(256.0 * 256.0), sceneColor);
-	gl_FragColor = max((sceneColor - threshold)*scalar, vec4(0.0,0.0,0.0,0.0));
-
+	Out_f4Color = max((sceneColor - threshold)*scalar, vec4(0.0,0.0,0.0,0.0));
 }

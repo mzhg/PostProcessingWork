@@ -9,15 +9,12 @@ uniform vec4 g_Uniforms;
 #define exposure   g_Uniforms.y
 #define gamma      g_Uniforms.z
 
-#ifndef EYE_ADAPATION
-#define EYE_ADAPATION 0
-#endif
 
 float GetAverageSceneLuminance()
 {
 #if EYE_ADAPATION
 //    float fAveLogLum = g_tex2DAverageLuminance.Load( int3(0,0,0) );
-	float fAveLogLum = texture(g_LumTex, vec2(0)).r;
+	float fAveLogLum = textureLod(g_LumTex, vec2(0), 0.0).r;
 #else
     float fAveLogLum =  0.1;
 #endif
@@ -67,5 +64,5 @@ void main()
     c.g = pow(c.g, gamma);
     c.b = pow(c.b, gamma);
 	Out_f4Color = vec4(c, 1.0);
-	Out_f4Color = min(vec4(256.0 * 256.0), gl_FragColor);
+	Out_f4Color = min(vec4(256.0 * 256.0), Out_f4Color);
 }

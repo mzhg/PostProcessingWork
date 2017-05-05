@@ -41,7 +41,6 @@ final class PostProcessingLightStreakerPass extends PostProcessingRenderPass{
         }
 
         Texture2D input0 = getInput(0);
-
         if(input0 == null){
             return;
         }
@@ -58,7 +57,8 @@ final class PostProcessingLightStreakerPass extends PostProcessingRenderPass{
             output2 = pool.findFreeElement(input0.getWidth(), input0.getHeight(), input0.getFormat());
             output3 = pool.findFreeElement(input0.getWidth(), input0.getHeight(), input0.getFormat());
 
-            float ratio = (float) output0.getWidth() / output0.getHeight();
+//            float ratio = (float) output0.getWidth() / output0.getHeight();
+            float ratio = 16.0f/9.0f;
             genStarStreak(context, 0, ratio, output0);
             genStarStreak(context, 1, ratio, output1);
             genStarStreak(context, 2, ratio, output2);

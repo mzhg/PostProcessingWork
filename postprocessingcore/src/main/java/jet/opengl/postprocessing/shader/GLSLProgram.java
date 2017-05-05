@@ -2,6 +2,7 @@ package jet.opengl.postprocessing.shader;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.Arrays;
 
 import jet.opengl.postprocessing.common.GLAPIVersion;
@@ -11,7 +12,12 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.util.BufferUtils;
+import jet.opengl.postprocessing.util.CachaRes;
+import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.StringUtils;
+
+import static jet.opengl.postprocessing.common.GLenum.GL_NUM_PROGRAM_BINARY_FORMATS;
+import static jet.opengl.postprocessing.common.GLenum.GL_PROGRAM_BINARY_FORMATS;
 
 public class GLSLProgram implements OpenGLProgram{
 
@@ -52,6 +58,24 @@ public class GLSLProgram implements OpenGLProgram{
 		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, true);
 		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, true);
 		setSourceFromStrings(vertSrc, fragSrc, macros);
+	}
+
+	/**
+	 * Initializes an existing shader object from a given binary data <br>
+	 * @param binary the binary data used to initlize the program.
+	 */
+	@CachaRes
+	protected void setSourceFromBinary(byte[] binary){
+		dispose();
+
+		int formats = gl.glGetInteger(GL_NUM_PROGRAM_BINARY_FORMATS);
+		int[] binaryFormats = new int[formats];
+		IntBuffer _binaryFormats = CacheBuffer.getCachedIntBuffer(formats);
+		gl.glGetIntegerv(GL_PROGRAM_BINARY_FORMATS, _binaryFormats);
+		_binaryFormats.get(binaryFormats);
+
+		m_program = gl.glCreateProgram();
+//		gl.glProgramBinary(m_program, binaryFormats, CacheBuffer.wrap(binary));
 	}
 
 	////------------------
@@ -220,7 +244,7 @@ public class GLSLProgram implements OpenGLProgram{
 		gl.glUseProgram(0);
 	}
 
-	private String m_name;
+	private String m_name = getClass().getSimpleName();
 	@Override
 	public void setName(String name) {
 		m_name = name;
