@@ -13,7 +13,7 @@ import jet.opengl.postprocessing.util.Numeric;
  * Created by mazhen'gui on 2017/4/17.
  */
 
-public abstract class PostProcessingRenderPass {
+public abstract class PostProcessingRenderPass implements Disposeable{
 
     private static final List<Disposeable> g_Resources = new ArrayList<>();
 
@@ -88,6 +88,10 @@ public abstract class PostProcessingRenderPass {
         m_DependencyCount[slot]++;
     }
 
+    /**
+     * Release the output texture resources.
+     * @param idx
+     */
     public void releaseResource(int idx)
     {
         RenderTexturePool.getInstance().freeUnusedResource(m_PassOutputs[idx]);
@@ -109,7 +113,11 @@ public abstract class PostProcessingRenderPass {
         }
     }
 
-
+    /**
+     * Release the resources associted to the RenderPass.
+     */
+    @Override
+    public void dispose() {}
 
     protected boolean useIntenalOutputTexture(){ return false;}
 

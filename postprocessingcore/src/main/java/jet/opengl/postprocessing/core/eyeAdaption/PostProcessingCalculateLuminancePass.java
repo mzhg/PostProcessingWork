@@ -6,6 +6,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
+import jet.opengl.postprocessing.core.RenderTexturePool;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
@@ -32,10 +33,9 @@ final class PostProcessingCalculateLuminancePass extends PostProcessingRenderPas
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
         if(g_CalculateLumianceProgram == null){
-            Texture2DDesc desc = new Texture2DDesc(1,1, GLenum.GL_R16F);
-
-            m_SrcLum = TextureUtils.createTexture2D(desc, null);
-            m_DstLum = TextureUtils.createTexture2D(desc, null);
+            final RenderTexturePool pool = RenderTexturePool.getInstance();
+            m_SrcLum = pool.findFreeElement(1, 1, GLenum.GL_R16F);
+            m_DstLum = pool.findFreeElement(1, 1, GLenum.GL_R16F);
 
             try {
                 g_CalculateLumianceProgram = new PostProcessingCalculateLuminanceProgram();
@@ -92,6 +92,15 @@ final class PostProcessingCalculateLuminancePass extends PostProcessingRenderPas
             out.width = 1;
             out.height = 1;
             out.format = GLenum.GL_R16F;
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if(m_DstLum !=null){
+            final RenderTexturePool pool = RenderTexturePool.getInstance();
+            pool.freeUnusedResource(m_DstLum);
+            pool.freeUnusedResource(m_SrcLum);
         }
     }
 }

@@ -174,7 +174,11 @@ public final class PostProcessingRenderContext {
     }
 
     void setRenderPasses(Collection<PostProcessingRenderPass> inRenderPasses){
+        for(PostProcessingRenderPass renderPass : m_RenderPassList){
+            renderPass.dispose();
+        }
         m_RenderPassList.clear();
+
         m_RenderPassList.addAll(inRenderPasses);
     }
 

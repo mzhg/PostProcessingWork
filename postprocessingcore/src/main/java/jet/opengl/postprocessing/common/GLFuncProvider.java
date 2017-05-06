@@ -6,6 +6,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.Collection;
 
+import jet.opengl.postprocessing.texture.ImageLoader;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
@@ -1482,4 +1483,6 @@ public interface GLFuncProvider {
     void glBindTextureUnit(int unit, int texture);
 
     void glBindSamplers(int first, IntBuffer samplernames);
+
+    ImageLoader getImageLoader();
 }

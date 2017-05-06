@@ -1,5 +1,6 @@
 package jet.opengl.postprocessing.texture;
 
+import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -154,6 +155,18 @@ public final class TextureUtils {
 		data.internalFormat = internalFormat;
 		data.pixels = result;
 		return data;
+	}
+
+	public static Texture2D createTexture2DFromFile(String filename, boolean flip,Texture2D out) throws IOException{
+		ImageLoader loader = GLFuncProviderFactory.getGLFuncProvider().getImageLoader();
+		ImageData data = loader.load(filename, flip);
+
+		Texture2DDesc desc = new Texture2DDesc(data.width, data.height, data.internalFormat);
+		return createTexture2D(desc, new TextureDataDesc(measureFormat(data.internalFormat), GLenum.GL_UNSIGNED_BYTE, data.pixels), out);
+	}
+
+	public static Texture2D createTexture2DFromFile(String filename, boolean flip) throws IOException {
+		return createTexture2DFromFile(filename, flip, null);
 	}
 
 	public static void flipY(ByteBuffer bytes, int height){
@@ -516,16 +529,12 @@ public final class TextureUtils {
 			default:
 				break;
 			}
-			
-//			System.out.println("Target = " + getTextureTargetName(target));
-//			TextureDesc desc = getTexParameters(target, textureID);
-//			try {
-//				FileUtils.write(desc.toString(), "texture.txt", false);
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-			
+
+			// setup the defualt properties.
+			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+
 			// 3. Fill the texture Data
 			if(dataDesc != null && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE_ARRAY && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE){
 				enablePixelStore(dataDesc);
@@ -535,6 +544,7 @@ public final class TextureUtils {
 				int depth = textureDesc.arraySize;
 				
 				if(mipLevels > 1){
+					gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
 					List<Object> mipData = (List<Object>)dataDesc.data;
 					int loop = Math.min(mipData.size(), mipLevels);
 					for(int i = 0; i < loop; i++){
@@ -549,6 +559,7 @@ public final class TextureUtils {
 						depth = Math.max(1, depth >> 1);
 					}
 				}else{
+					gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
 					if(target == GLenum.GL_TEXTURE_2D_ARRAY){
 						subTexImage3DDAS(textureID, width, height, depth, 0, dataDesc.format, dataDesc.type, dataDesc.data);
 					}else if(target == GLenum.GL_TEXTURE_2D){
@@ -557,6 +568,8 @@ public final class TextureUtils {
 				}
 				
 				disablePixelStore(dataDesc);
+			}else{
+				gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
 			}
 		}else{
 			boolean allocateStorage = false;
@@ -615,6 +628,12 @@ public final class TextureUtils {
 
 				gl.glBindTexture(target, textureID);
 			}
+
+			// setup the defualt parameters.
+			gl.glTexParameteri(target, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+			gl.glTexParameteri(target, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
+			gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+			gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
 			
 			// 3. Fill the texture Data�� Ignore the multisample texture.
 			if(target != GLenum.GL_TEXTURE_2D_MULTISAMPLE_ARRAY && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE){
@@ -670,6 +689,8 @@ public final class TextureUtils {
 						height = Math.max(1, height >> 1);
 						depth = Math.max(1, depth >> 1);
 					}
+
+					gl.glTexParameteri(target, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
 				}else{
 					if(isCompressed){
 						compressedTexImage3D(target, width, height, depth, 0, dataDesc.format, dataDesc.type, dataDesc.imageSize, dataDesc.data);

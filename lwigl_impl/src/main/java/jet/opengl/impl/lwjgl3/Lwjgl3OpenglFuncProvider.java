@@ -37,12 +37,14 @@ import java.util.Arrays;
 import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.texture.ImageLoader;
 
 /**
  * Created by mazhen'gui on 2017/4/10.
  */
 
 public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
+    private Lwjgl3ImageLoader m_ImageLoader;
     @Override
     public boolean isSupportExt(String ext) {
         return GLFW.glfwExtensionSupported(ext);
@@ -1407,6 +1409,16 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glTextureParameterf(int textureID, int pname, float mode) {
+        ARBDirectStateAccess.glTextureParameterf(textureID, pname, mode);
+    }
+
+    @Override
+    public void glTextureParameterfv(int textureID, int pname, float[] mode) {
+        ARBDirectStateAccess.glTextureParameterfv(textureID, pname, mode);
+    }
+
+    @Override
     public int glGetTexLevelParameteri(int target, int level, int pname) {
         return GL11.glGetTexLevelParameteri(target, level, pname);
     }
@@ -1579,5 +1591,12 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glBindSamplers(int first, IntBuffer samplernames) {
         ARBMultiBind.glBindSamplers(first, samplernames);
+    }
+
+    @Override
+    public ImageLoader getImageLoader() {
+        if(m_ImageLoader == null)
+            m_ImageLoader = new Lwjgl3ImageLoader();
+        return m_ImageLoader;
     }
 }

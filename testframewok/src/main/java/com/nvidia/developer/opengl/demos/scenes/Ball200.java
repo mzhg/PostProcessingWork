@@ -12,6 +12,7 @@ import com.nvidia.developer.opengl.models.QuadricMesh;
 import com.nvidia.developer.opengl.models.QuadricPlane;
 import com.nvidia.developer.opengl.models.QuadricSphere;
 import com.nvidia.developer.opengl.utils.NvStopWatch;
+import com.nvidia.developer.opengl.utils.ShadowmapGenerateProgram;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
@@ -27,15 +28,11 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.shader.AttribBinder;
 import jet.opengl.postprocessing.shader.GLSLProgram;
-import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
-
-import static jdk.nashorn.internal.objects.NativeRegExp.compile;
-
 
 @SuppressWarnings("unused")
 public class Ball200 implements GLEventListener {
@@ -71,7 +68,7 @@ public class Ball200 implements GLEventListener {
 	
 	private PhongProgram phong_prog;
 	private ColorProgram color_prog;
-//	private ShadowmapGenerateProgram zpass_prog;  TODO
+	private ShadowmapGenerateProgram zpass_prog;
 	private ShadowMappingPassProg shadow_mapping_prog;
 	private ZpassInstanceProgram zpass_prog_gi;
 	private ShadowMappingPassInstanceProg shadow_mapping_prog_gi;
@@ -214,8 +211,8 @@ public class Ball200 implements GLEventListener {
 		{
 			// load textures
 			try {
-//				ground_tex_diffuse = TextureUtils.createTexture2DFromFile(TEXTURES_PATH + "plastic_bluethingroove_df_.jpg", false);  TODO
-//				sphere_tex_diffuse = TextureUtils.createTexture2DFromFile(TEXTURES_PATH + "redvelvet.jpg", false);  TODO
+				ground_tex_diffuse = TextureUtils.createTexture2DFromFile(TEXTURES_PATH + "plastic_bluethingroove_df_.jpg", false);
+				sphere_tex_diffuse = TextureUtils.createTexture2DFromFile(TEXTURES_PATH + "redvelvet.jpg", false);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -378,7 +375,7 @@ public class Ball200 implements GLEventListener {
 //		GL11.glPolygonOffset(1.0f, 2.5f);
 		zpass_prog.enable();
 		zpass_prog.applyMVPMat(m_LightMVP);
-		GLError.checkError();
+		GLCheck.checkError();
 		planeVAO.bind();
 		planeVAO.draw(DrawMode.FILL.getGLMode());
 		planeVAO.unbind();
