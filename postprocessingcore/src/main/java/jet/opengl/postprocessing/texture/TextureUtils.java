@@ -797,7 +797,7 @@ public final class TextureUtils {
 		if(data == null){
 			gl.glTextureSubImage2D(texture, level, 0, 0, width, height, format, type, (ByteBuffer)null);
 		}else if(data instanceof  Buffer){
-			gl.glTextureSubImage2D(texture, level, 0, 0, width, height, format, type, (Buffer)null);
+			gl.glTextureSubImage2D(texture, level, 0, 0, width, height, format, type, (Buffer)data);
 		}else if(data instanceof Number){
 			gl.glTextureSubImage2D(texture, level, 0, 0, width, height, format, type, ((Number)data).longValue());
 		}else{

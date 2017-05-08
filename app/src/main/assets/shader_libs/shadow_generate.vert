@@ -1,5 +1,10 @@
-#version 110
+#include "PostProcessingCommon.glsl"
+
+#if ENABLE_VERTEX_ID
+in vec3 a_Position;
+#else
 attribute vec3 a_Position;
+#endif
 
 uniform mat4 u_ViewProjMatrix;
 

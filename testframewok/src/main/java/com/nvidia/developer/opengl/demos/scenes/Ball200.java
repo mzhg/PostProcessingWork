@@ -39,8 +39,8 @@ public class Ball200 implements GLEventListener {
 
 	private static final int SHADOW_MAP_SIZE = 1024;
 	private static final int NUM_SPHERES = 200;
-	private static final String SHADER_PATH = "scenes\\Ball200\\shaders\\";
-	private static final String TEXTURES_PATH = "scenes\\Ball200\\textures\\";
+	private static final String SHADER_PATH = "Scenes\\Ball200\\shaders\\";
+	private static final String TEXTURES_PATH = "Scenes\\Ball200\\textures\\";
 	
 	private static final AttribBinder POSITION = new AttribBinder("gxl3d_Position", 0);
 	private static final AttribBinder NORMAL = new AttribBinder("gxl3d_Normal", 1);
@@ -137,7 +137,7 @@ public class Ball200 implements GLEventListener {
 			// create shaders
 			phong_prog = new PhongProgram();
 			color_prog = new ColorProgram();
-//			zpass_prog = new ShadowmapGenerateProgram();  TODO
+			zpass_prog = new ShadowmapGenerateProgram();
 			shadow_mapping_prog = new ShadowMappingPassProg();
 			zpass_prog_gi = new ZpassInstanceProgram();
 			shadow_mapping_prog_gi = new ShadowMappingPassInstanceProg();
@@ -213,6 +213,8 @@ public class Ball200 implements GLEventListener {
 			try {
 				ground_tex_diffuse = TextureUtils.createTexture2DFromFile(TEXTURES_PATH + "plastic_bluethingroove_df_.jpg", false);
 				sphere_tex_diffuse = TextureUtils.createTexture2DFromFile(TEXTURES_PATH + "redvelvet.jpg", false);
+				sphere_tex_diffuse.setWrapS(GLenum.GL_REPEAT);
+				sphere_tex_diffuse.setWrapT(GLenum.GL_REPEAT);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -494,7 +496,7 @@ public class Ball200 implements GLEventListener {
 	}
 	
 	public static void printProgram(OpenGLProgram program, String debugName){
-		System.out.println("----------------------------"+debugName +"-----------------------------------------" );
+//		System.out.println("----------------------------"+debugName +"-----------------------------------------" );
 //		ProgramProperties props = GLSLUtil.getProperties(program.getProgram());
 //		System.out.println(props);
 	}

@@ -51,6 +51,8 @@ public final class PostProcessingRenderContext {
 //    private GLSLProgram m_DefaultProgram;
 
     PostProcessingParameters m_Parameters;
+    PostProcessingFrameAttribs m_FrameAttribs;
+
     private TextureAttachDesc[] m_AttachDescs =new TextureAttachDesc[8];  // Default attchment description
     private GLFuncProvider gl;
     private String m_PassName;  // For debugging
@@ -276,6 +278,8 @@ public final class PostProcessingRenderContext {
             resolveDependencies(currentDependencyPasses);
         }
     }
+
+    public PostProcessingFrameAttribs getFrameAttribs() {return m_FrameAttribs;}
 
     void resolveDependencies(List<PostProcessingRenderPass> currentDependencyPasses)
     {

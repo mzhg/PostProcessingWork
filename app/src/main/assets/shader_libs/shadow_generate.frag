@@ -1,6 +1,6 @@
-#version 110
+#include "PostProcessingCommonPS.frag"
 
 void main() 
 {
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
+    Out_f4Color = vec4(1.0, 0.0, 0.0, 0.0);
 }

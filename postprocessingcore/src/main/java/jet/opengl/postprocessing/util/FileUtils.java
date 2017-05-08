@@ -1,11 +1,15 @@
 package jet.opengl.postprocessing.util;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 
 /**
@@ -55,6 +59,25 @@ public class FileUtils {
 
     public static InputStream open(String file) throws FileNotFoundException {
         return g_IntenalFileLoader.open(file);
+    }
+
+    public static ByteBuffer loadNative(String filepath) throws IOException{
+        try(InputStream inputStream = g_IntenalFileLoader.open(filepath)){
+            ByteBuffer buf = ByteBuffer.allocateDirect(inputStream.available()).order(ByteOrder.nativeOrder());
+
+            if(inputStream instanceof FileInputStream){
+                FileChannel in = ((FileInputStream)inputStream).getChannel();
+                in.read(buf);
+                in.close();
+                buf.flip();
+            }else{
+                byte[] bytes = new byte[inputStream.available()];
+                inputStream.read(bytes);
+                buf.put(bytes).flip();
+            }
+
+            return buf;
+        }
     }
 
     public static byte[] loadBytes(String file) throws  IOException{

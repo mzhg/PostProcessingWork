@@ -14,6 +14,7 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.bloom.PostProcessingBloomEffect;
+import jet.opengl.postprocessing.core.dof.PostProcessingDOFBokehEffect;
 import jet.opengl.postprocessing.core.eyeAdaption.PostProcessingEyeAdaptationEffect;
 import jet.opengl.postprocessing.core.fisheye.PostProcessingFishEyeEffect;
 import jet.opengl.postprocessing.core.fxaa.PostProcessingFXAAEffect;
@@ -43,6 +44,7 @@ public class PostProcessing implements Disposeable{
     public static final String FISH_EYE = "FISH_EYE";
     public static final String LIGHT_EFFECT = "LIGHT_EFFECT";
     public static final String EYE_ADAPATION = "EYE_ADAPATION";
+    public static final String DOF_BOKEH = "DOF_BOKEH";
 
     private static final int NUM_TAG_CACHE = 32;
 
@@ -52,6 +54,7 @@ public class PostProcessing implements Disposeable{
     public static final int BLOOM_PRIPORTY = 200;
     public static final int FXAA_PRIPORTY = 1000;
     public static final int LIGHT_EFFECT_PRIPORTY = 2000;
+    public static final int DOF_BOKEH_PRIPORTY = 3000;
     public static final int EYE_ADAPATION_PRIPORTY = -100;
 
     private PostProcessingRenderContext m_RenderContext;
@@ -80,6 +83,7 @@ public class PostProcessing implements Disposeable{
         registerEffect(new PostProcessingFXAAEffect());
         registerEffect(new PostProcessingLightEffect());
         registerEffect(new PostProcessingEyeAdaptationEffect());
+        registerEffect(new PostProcessingDOFBokehEffect());
     }
 
     public void registerEffect(PostProcessingEffect effect){
@@ -203,6 +207,7 @@ public class PostProcessing implements Disposeable{
     private void prepare(PostProcessingFrameAttribs frameAttribs){
         initlizeContext();
 
+        m_RenderContext.m_FrameAttribs = frameAttribs;
         if(!frameAttribs.viewport.isValid()){
             frameAttribs.viewport.set(0,0, frameAttribs.sceneColorTexture.getWidth(), frameAttribs.sceneColorTexture.getHeight());
         }
@@ -265,6 +270,15 @@ public class PostProcessing implements Disposeable{
 
     public PostProcessingRenderPass findPass(String name){
         return m_AddedRenderPasses.get(name);
+    }
+
+    public void addDOFBokeh(float focalDepth, float focalRange, float fstop){
+        m_Parameters.focalDepth = focalDepth;
+        m_Parameters.focalLength = focalRange;
+        m_Parameters.fstop = fstop;
+
+        PostProcessingEffect effect = m_RegisteredEffects.get(DOF_BOKEH);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
     }
 
     public void addEyeAdaptation(){

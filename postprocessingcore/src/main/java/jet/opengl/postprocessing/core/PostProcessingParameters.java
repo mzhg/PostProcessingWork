@@ -37,6 +37,11 @@ public class PostProcessingParameters {
     float expose = 3.3654366f;
     float gamma = 1.0f/1.8f;
 
+    // depth of field bokeh
+    float focalDepth;
+    float focalLength;
+    float fstop;
+
     PostProcessing postProcessing;
 
     PostProcessingParameters(PostProcessing postProcessing){
@@ -77,4 +82,8 @@ public class PostProcessingParameters {
 
     public boolean isLightStreakerEnabled() {return enableLightStreaker;}
     public boolean isLensFlareEnable()      {return enableLensFlare;}
+
+    public float getFocalDepth() {return focalDepth;}
+    public float getFocalLength() {return focalLength;}
+    public float getFstop()      {return fstop;}
 }
