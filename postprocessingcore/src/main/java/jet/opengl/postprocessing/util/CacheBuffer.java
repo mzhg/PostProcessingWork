@@ -20,7 +20,8 @@ import java.util.List;
 
 public class CacheBuffer {
 
-	private static final int INIT_CAPACITY = 1024 * 1024;
+	/* default to allocate 128kb memory. */
+	private static final int INIT_CAPACITY = 128 * 1024;
 	private static ByteBuffer nativeBuffer;
 	
 	private static IntBuffer intBuffer;
@@ -30,7 +31,6 @@ public class CacheBuffer {
 	private static LongBuffer longBuffer;
 	
 	static{
-		/* default to allocate 1MB memory. */
 		remolloc(INIT_CAPACITY);
 	}
 	

@@ -34,9 +34,11 @@ public class DOFBokehDemo extends NvSampleApp {
     int sampler;
 
     private boolean m_showShadowMap;
-    private float m_focalDepth = 10;
-    private float m_focalRange = 8;
+    private float m_focalDepth = 35;
+    private float m_focalRange = 10;
     private float m_fStop = 5;
+    private float nearTransitionRegion = 5;
+    private float farTransitionRegion = 10;
 
     private GLFuncProvider gl;
     private PostProcessing m_PostProcessing;
@@ -48,6 +50,8 @@ public class DOFBokehDemo extends NvSampleApp {
         tweakBar.addValue("Show ShadowMap", createControl("m_showShadowMap"));
         tweakBar.addValue("Focal Depth", createControl("m_focalDepth"), 3f, 50);
         tweakBar.addValue("Focal Range", createControl("m_focalRange"), 3f, 50);
+        tweakBar.addValue("Near Transition", createControl("nearTransitionRegion"), 3f, 50);
+        tweakBar.addValue("Far Transition", createControl("farTransitionRegion"), 3f, 50);
         tweakBar.addValue("FStop", createControl("m_fStop"), 3f, 50);
     }
 
@@ -130,8 +134,11 @@ public class DOFBokehDemo extends NvSampleApp {
             m_frameAttribs.cameraFar =  sceneBall.getSceneFarPlane();
             m_frameAttribs.outputTexture = null;
             m_frameAttribs.viewport.set(0,0, getGLContext().width(), getGLContext().height());
+            m_frameAttribs.viewMat = sceneBall.getViewMat();
+            m_frameAttribs.projMat = sceneBall.getProjMat();
 
-            m_PostProcessing.addDOFBokeh(m_focalDepth, m_focalRange, m_fStop);
+//            m_PostProcessing.addDOFBokeh(m_focalDepth, m_focalRange, m_fStop);
+            m_PostProcessing.addDOFGaussion(m_focalDepth, m_focalRange, nearTransitionRegion, farTransitionRegion, 1, true, false);
             m_PostProcessing.performancePostProcessing(m_frameAttribs);
         }
 

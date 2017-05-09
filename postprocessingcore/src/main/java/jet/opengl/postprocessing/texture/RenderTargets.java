@@ -1,10 +1,13 @@
 package jet.opengl.postprocessing.texture;
 
+import java.nio.IntBuffer;
+
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
  * Created by mazhen'gui on 2017/4/15.
@@ -115,6 +118,7 @@ public class RenderTargets implements Disposeable{
             }
         }
 
+        IntBuffer buffers = CacheBuffer.getCachedIntBuffer(textures.length);
         for (int i = 0; i < textures.length; i++)
         {
             TextureGL pTex = textures[i];
@@ -145,8 +149,18 @@ public class RenderTargets implements Disposeable{
                     assert(!colorHandled[index]);
                     handleTextureAttachment(pTex, GLenum.GL_COLOR_ATTACHMENT0 + index, desc, m_ColorAttaches[index]);
                     colorHandled[index] = true;
+
+                    buffers.put(GLenum.GL_COLOR_ATTACHMENT0 + index);
                     break;
             }
+        }
+
+        // TODO Performance isuee.
+        buffers.flip();
+        if(buffers.remaining() > 0){
+            GLFuncProviderFactory.getGLFuncProvider().glDrawBuffers(buffers);
+        }else{
+            GLFuncProviderFactory.getGLFuncProvider().glDrawBuffers(GLenum.GL_NONE);
         }
 
         // unbind the previouse textures attchment.

@@ -8,7 +8,6 @@ precision highp float;
     in vec4 m_f4UVAndScreenPos;
     LAYOUT_LOC(0) out vec4 Out_f4Color;
 #else
-    #define texture(x, y) texture2D(x, y)
     varying vec4 m_f4UVAndScreenPos;
    #define Out_f4Color gl_FragColor
 #endif

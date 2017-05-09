@@ -42,6 +42,12 @@ public class PostProcessingParameters {
     float focalLength;
     float fstop;
 
+    float nearTransitionRegion;
+    float farTransitionRegion;
+    float fieldScale = 0.1f;
+    boolean enableNearBlur;
+    boolean enableFarBlur;
+
     PostProcessing postProcessing;
 
     PostProcessingParameters(PostProcessing postProcessing){
@@ -86,4 +92,11 @@ public class PostProcessingParameters {
     public float getFocalDepth() {return focalDepth;}
     public float getFocalLength() {return focalLength;}
     public float getFstop()      {return fstop;}
+
+    public float getNearTransitionRegion()  {return nearTransitionRegion;}
+    public float getFarTransitionRegion()   {return farTransitionRegion;}
+    public float getFieldScale()            {return fieldScale;}
+
+    public boolean isFarBlur() {             return enableFarBlur;}
+    public boolean isNearBlur() {            return enableNearBlur;}
 }

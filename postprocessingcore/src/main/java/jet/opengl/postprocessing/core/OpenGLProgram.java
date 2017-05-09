@@ -95,6 +95,13 @@ public interface OpenGLProgram extends Disposeable{
         return getUniformLocation(uniform, false);
     }
 
+    default void setTextureUniform(String name, int unit){
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        int loc = getUniformLocation(name);
+        if(loc >= 0)
+            gl.glUniform1i(loc, unit);
+    }
+
     default void relink(){
         int programID = getProgram();
         if(programID == 0){

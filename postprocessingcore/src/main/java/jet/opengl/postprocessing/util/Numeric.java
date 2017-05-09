@@ -530,4 +530,30 @@ public final class Numeric {
 	public static int divideAndRoundUp(int dividend, int divisor) {
 		return (dividend + divisor - 1) / divisor;
 	}
+
+	public static int encode(short first, short second){
+		return (second << 16) | (first & 0xFFFF);
+	}
+
+	public static int decodeFirst(int value){
+		return value & 0xFFFF;
+	}
+
+	public static int decodeSecond(int value){
+		return (value >> 16) & 0xFFFF;
+	}
+
+	public static long encode(int first, int second){
+		long s = second;
+		long f = first;
+		return (s << 32) | (f & 0xFFFFFFFFl);
+	}
+
+	public static int decodeFirst(long value){
+		return (int) (value & 0xFFFFFFFFl);
+	}
+
+	public static int decodeSecond(long value){
+		return (int) ((value >> 32) & 0xFFFFFFFFl);
+	}
 }

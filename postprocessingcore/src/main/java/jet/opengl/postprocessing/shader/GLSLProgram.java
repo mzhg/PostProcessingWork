@@ -353,7 +353,12 @@ public class GLSLProgram implements OpenGLProgram{
 		return m_program;
 	}
 
-
+	@Override
+	public void setTextureUniform(String name, int unit){
+		int loc = getUniformLocation(name);
+		if(loc >= 0)
+			gl.glUniform1i(loc, unit);
+	}
 
 	public void dispose() {
 		if(m_program != 0){

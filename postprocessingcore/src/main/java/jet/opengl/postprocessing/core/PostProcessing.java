@@ -15,6 +15,7 @@ import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.bloom.PostProcessingBloomEffect;
 import jet.opengl.postprocessing.core.dof.PostProcessingDOFBokehEffect;
+import jet.opengl.postprocessing.core.dof.PostProcessingDOFGaussionEffect;
 import jet.opengl.postprocessing.core.eyeAdaption.PostProcessingEyeAdaptationEffect;
 import jet.opengl.postprocessing.core.fisheye.PostProcessingFishEyeEffect;
 import jet.opengl.postprocessing.core.fxaa.PostProcessingFXAAEffect;
@@ -45,6 +46,7 @@ public class PostProcessing implements Disposeable{
     public static final String LIGHT_EFFECT = "LIGHT_EFFECT";
     public static final String EYE_ADAPATION = "EYE_ADAPATION";
     public static final String DOF_BOKEH = "DOF_BOKEH";
+    public static final String DOF_GAUSSION = "DOF_GAUSSION";
 
     private static final int NUM_TAG_CACHE = 32;
 
@@ -55,6 +57,8 @@ public class PostProcessing implements Disposeable{
     public static final int FXAA_PRIPORTY = 1000;
     public static final int LIGHT_EFFECT_PRIPORTY = 2000;
     public static final int DOF_BOKEH_PRIPORTY = 3000;
+    public static final int DOF_GAUSSION_PRIPORTY = 3000;
+
     public static final int EYE_ADAPATION_PRIPORTY = -100;
 
     private PostProcessingRenderContext m_RenderContext;
@@ -84,6 +88,7 @@ public class PostProcessing implements Disposeable{
         registerEffect(new PostProcessingLightEffect());
         registerEffect(new PostProcessingEyeAdaptationEffect());
         registerEffect(new PostProcessingDOFBokehEffect());
+        registerEffect(new PostProcessingDOFGaussionEffect());
     }
 
     public void registerEffect(PostProcessingEffect effect){
@@ -160,6 +165,8 @@ public class PostProcessing implements Disposeable{
         }finally {
             GLStateTracker.getInstance().restoreStates();
             GLStateTracker.getInstance().reset();
+
+            frameAttribs.reset();
         }
     }
 
@@ -259,6 +266,7 @@ public class PostProcessing implements Disposeable{
             throw new NullPointerException("renderPass is null");
         }
 
+        renderPass.setName(name);
         m_AddedRenderPasses.put(name, renderPass);
         m_LastAddedPass = renderPass;
     }
@@ -279,6 +287,31 @@ public class PostProcessing implements Disposeable{
 
         PostProcessingEffect effect = m_RegisteredEffects.get(DOF_BOKEH);
         m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
+    }
+
+    public void addDOFGaussion(float focalDepth, float focalRange, float nearTransitionRegion,
+                               float farTransitionRegion, float fieldScale, boolean enableNearBlur, boolean enableFarBlur){
+        if(!enableNearBlur && !enableFarBlur){
+            LogUtil.e(LogUtil.LogType.DEFAULT, "Both of nearBlur and farBlur are disabled, igoren the DOFGaussion effect!");
+            return;
+        }
+
+        m_Parameters.focalDepth = focalDepth;
+        m_Parameters.focalLength = focalRange;
+        m_Parameters.nearTransitionRegion = nearTransitionRegion;
+        m_Parameters.farTransitionRegion = farTransitionRegion;
+        m_Parameters.fieldScale = fieldScale;
+        m_Parameters.enableNearBlur = enableNearBlur;
+        m_Parameters.enableFarBlur = enableFarBlur;
+
+        int code = Numeric.encode((short)(enableNearBlur?1:0), (short)(enableFarBlur?1:0));
+        PostProcessingEffect effect = m_RegisteredEffects.get(DOF_GAUSSION);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), code, null));
+    }
+
+    public void addDOFGaussion(float focalDepth, float focalRange, float nearTransitionRegion,
+                               float farTransitionRegion){
+        addDOFGaussion(focalDepth, focalRange, nearTransitionRegion, farTransitionRegion, 1.0f, true, true);
     }
 
     public void addEyeAdaptation(){

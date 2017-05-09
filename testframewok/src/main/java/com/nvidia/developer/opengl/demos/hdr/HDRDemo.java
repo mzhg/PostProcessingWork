@@ -174,6 +174,7 @@ public class HDRDemo extends NvSampleApp {
 
     @Override
     protected void initRendering() {
+        getGLContext().setSwapInterval(0);
         gl = GLFuncProviderFactory.getGLFuncProvider();
 
         try {

@@ -25,7 +25,7 @@ public abstract class PostProcessingRenderPass implements Disposeable{
     boolean m_bProcessed;
 
     protected Texture2D[] m_PassInputs;
-    private Texture2D[] m_PassOutputs;
+    protected Texture2D[] m_PassOutputs;
     private InputDesc[] m_InputDescs;
 
     private int[] m_FixOutputWidth;
@@ -37,6 +37,9 @@ public abstract class PostProcessingRenderPass implements Disposeable{
         this.name = name;
     }
 
+    public void setName(String name){
+        this.name = name;
+    }
     public String getName() {return  name;}
 
     protected void set(int inputCount, int outputCount){

@@ -478,7 +478,8 @@ public class Ball200 implements GLEventListener {
 	public Texture2D getShadowMap() { return depth_tex;}
 	public float getShadowNearPlane() { return 1.0f;}
 	public float getShadowFarPlane()  { return 200.0f;}
-	
+	public Matrix4f getViewMat()    { return m_View;}
+
 	private static boolean checkPosition(AttribFloatArray sphere_positions, int spheres_count, float radius, float x, float z){
 		Vector3f p = new Vector3f();
 		for(int i = 0; i < spheres_count; i++){
