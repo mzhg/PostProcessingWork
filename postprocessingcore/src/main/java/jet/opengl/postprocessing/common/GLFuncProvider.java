@@ -1483,6 +1483,7 @@ public interface GLFuncProvider {
     void glBindTextureUnit(int unit, int texture);
 
     void glBindSamplers(int first, IntBuffer samplernames);
+    void glDrawElementsInstancedBaseVertex(int mode, int count, int type, int offset, int instance_count, int base_vertex);
 
     ImageLoader getImageLoader();
 }

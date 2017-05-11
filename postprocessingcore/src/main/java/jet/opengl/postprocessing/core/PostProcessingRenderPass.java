@@ -122,7 +122,12 @@ public abstract class PostProcessingRenderPass implements Disposeable{
     @Override
     public void dispose() {}
 
+    @Deprecated
     protected boolean useIntenalOutputTexture(){ return false;}
+
+    protected PostProcessingRenderPassOutputTarget getOutputTarget() {
+        return PostProcessingRenderPassOutputTarget.DEFAULT;
+    }
 
     void _process(PostProcessingRenderContext context, PostProcessingParameters parameters)
     {

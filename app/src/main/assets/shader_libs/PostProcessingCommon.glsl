@@ -1,3 +1,5 @@
+#include "PostProcessingHLSLCompatiable.glsl"
+
 #if GL_ES
 
 #if __VERSION__ < 300
@@ -59,7 +61,3 @@
 
 #endif
 
-
-#define rcp(x) 1.0/x
-#define saturate(x) clamp(x, 0.0, 1.0)
-#define lerp(x,a,b) mix(x,a,b)

@@ -25,15 +25,6 @@ public class Texture2DDesc {
     	this.sampleCount = samples;
     }
     
-    public Texture2DDesc(int width, int height, int mipLevels, int arraySize, int format, int samples, int qulity){
-    	this.width = width;
-    	this.height = height;
-    	this.mipLevels = mipLevels;
-    	this.arraySize = arraySize;
-    	this.format = format;
-    	this.sampleCount = samples;
-    }
-    
 	public Texture2DDesc() {}
 	
 	public Texture2DDesc(Texture2DDesc o) {

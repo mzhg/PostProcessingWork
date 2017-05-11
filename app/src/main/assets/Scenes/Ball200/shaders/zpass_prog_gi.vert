@@ -1,6 +1,6 @@
 #include "../../../shader_libs/PostProcessingCommon.glsl"
 #ifndef GL_ES
-#extension GL_ARB_draw_instanced: enable
+//#extension GL_ARB_draw_instanced: enable
 #endif
 
 #if ENABLE_IN_OUT_FEATURE

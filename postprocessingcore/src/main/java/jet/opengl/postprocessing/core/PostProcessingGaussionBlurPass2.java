@@ -91,7 +91,6 @@ public class PostProcessingGaussionBlurPass2 extends PostProcessingRenderPass {
         }
 
         RenderTexturePool.getInstance().freeUnusedResource(tempTex);
-
     }
 
     @Override

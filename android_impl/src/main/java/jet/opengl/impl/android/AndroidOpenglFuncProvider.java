@@ -20,6 +20,7 @@ import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.texture.ImageLoader;
 import jet.opengl.postprocessing.util.BufferUtils;
 
 /**
@@ -1382,6 +1383,16 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
         GLCheck.printUnsupportFuncError("Unsupport glTextureParameteriv(int textureID, int pname, int[] rgba) on Android Platform!");
     }
 
+    @Override
+    public void glTextureParameterf(int textureID, int pname, float mode) {
+        GLCheck.printUnsupportFuncError("Unsupport glTextureParameterf(int textureID, int pname, float mode) on Android Platform!");
+    }
+
+    @Override
+    public void glTextureParameterfv(int textureID, int pname, float[] mode) {
+        GLCheck.printUnsupportFuncError("Unsupport glTextureParameterfv(int textureID, int pname, float[] mode) on Android Platform!");
+    }
+
     @TargetApi(21)
     @Override
     public int glGetTexLevelParameteri(int target, int level, int pname) {
@@ -1573,5 +1584,10 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glBindSamplers(int first, IntBuffer samplernames) {
         GLCheck.printUnsupportFuncError("Unsupport 'glBindSamplers(int first, IntBuffer samplernames)' on Android Platform!");
+    }
+
+    @Override
+    public ImageLoader getImageLoader() {
+        return null;
     }
 }

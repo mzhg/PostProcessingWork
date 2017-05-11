@@ -12,6 +12,7 @@ import java.nio.LongBuffer;
 import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.texture.ImageLoader;
 import jet.opengl.postprocessing.util.BufferUtils;
 
 /**
@@ -1370,6 +1371,16 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glTextureParameterf(int textureID, int pname, float mode) {
+        gl.glTextureParameterf(textureID, pname, mode);
+    }
+
+    @Override
+    public void glTextureParameterfv(int textureID, int pname, float[] mode) {
+        gl.glTextureParameterfv(textureID, pname, mode, 0);
+    }
+
+    @Override
     public int glGetTexLevelParameteri(int target, int level, int pname) {
         gl.glGetTexLevelParameteriv(target, level, pname, intValues, 0);
         return intValues[0];
@@ -1546,5 +1557,10 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glBindSamplers(int first, IntBuffer samplernames) {
         gl.glBindSamplers(first, samplernames.remaining(), samplernames);
+    }
+
+    @Override
+    public ImageLoader getImageLoader() {
+        return null;
     }
 }

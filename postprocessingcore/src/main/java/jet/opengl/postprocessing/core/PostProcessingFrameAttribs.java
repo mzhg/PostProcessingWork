@@ -24,12 +24,17 @@ public class PostProcessingFrameAttribs {
     private boolean  bViewProjSetted = false;
     private Matrix4f viewProjInvertMatrix;
     private boolean  bViewProjInvertSetted = false;
+    private Matrix4f projInvertMatrix;
+    private boolean bProjInvertSetted = false;
 
     public float cameraNear, cameraFar;
 
     void reset(){
+        viewMat = null;
+        projMat = null;
         bViewProjSetted = false;
         bViewProjInvertSetted = false;
+        bProjInvertSetted = false;
     }
 
     public void setViewProjMatrix(Matrix4f matrix){
@@ -74,5 +79,25 @@ public class PostProcessingFrameAttribs {
         Matrix4f.invert(viewProjMat, viewProjInvertMatrix);
         bViewProjInvertSetted = true;
         return viewProjInvertMatrix;
+    }
+
+    /**
+     * Get the invers of the projection matrix.
+     * @return
+     */
+    public Matrix4f getProjInvertMatrix(){
+        if(bProjInvertSetted){
+            return projInvertMatrix;
+        }
+
+        if(projMat == null)
+            throw new NullPointerException("projection matrix is null.");
+
+        if(projInvertMatrix == null){
+            projInvertMatrix = new Matrix4f();
+        }
+        Matrix4f.invert(projMat, projInvertMatrix);
+        bProjInvertSetted = true;
+        return projInvertMatrix;
     }
 }

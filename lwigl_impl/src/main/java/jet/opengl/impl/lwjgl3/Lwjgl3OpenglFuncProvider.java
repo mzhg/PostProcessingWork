@@ -1594,9 +1594,15 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glDrawElementsInstancedBaseVertex(int mode, int count, int type, int offset, int instance_count, int base_vertex) {
+        GL32.glDrawElementsInstancedBaseVertex(mode, count, type, offset, instance_count, base_vertex);
+    }
+
+    @Override
     public ImageLoader getImageLoader() {
         if(m_ImageLoader == null)
             m_ImageLoader = new Lwjgl3ImageLoader();
+
         return m_ImageLoader;
     }
 }
