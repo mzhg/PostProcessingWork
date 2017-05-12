@@ -17,6 +17,10 @@ public class BlendState {
     public int destBlendAlpha = GLenum.GL_ZERO;
     public int blendOpAlpha = GLenum.GL_FUNC_ADD;
 
+    // multi-sample
+    public boolean sampleMask;
+    public int sampleMaskValue = ~0;
+
     public boolean equals(BlendState that){
         if (blendEnable != that.blendEnable) return false;
         if (srcBlend != that.srcBlend) return false;
@@ -24,6 +28,8 @@ public class BlendState {
         if (blendOp != that.blendOp) return false;
         if (srcBlendAlpha != that.srcBlendAlpha) return false;
         if (destBlendAlpha != that.destBlendAlpha) return false;
+        if (sampleMask != that.sampleMask) return false;
+        if (sampleMaskValue != that.sampleMaskValue) return false;
         return blendOpAlpha == that.blendOpAlpha;
     }
 
@@ -35,6 +41,8 @@ public class BlendState {
         srcBlendAlpha = o.srcBlendAlpha;
         destBlendAlpha = o.destBlendAlpha;
         blendOpAlpha = o.blendOpAlpha;
+        sampleMask = o.sampleMask;
+        sampleMaskValue = o.sampleMaskValue;
     }
 
     @Override
@@ -56,6 +64,8 @@ public class BlendState {
         result = 31 * result + srcBlendAlpha;
         result = 31 * result + destBlendAlpha;
         result = 31 * result + blendOpAlpha;
+        result = 31 * result + sampleMaskValue;
+        result = 31 * result + (sampleMask ? 1: 0);
         return result;
     }
 }

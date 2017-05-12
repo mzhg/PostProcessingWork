@@ -2,6 +2,7 @@ package jet.opengl.postprocessing.core;
 
 import java.io.IOException;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
@@ -67,6 +68,9 @@ public class PostProcessingReconstructCameraZPass extends PostProcessingRenderPa
 
         context.drawFullscreenQuad();
         context.bindTexture(input0, 0, 0);  // unbind sampler.
+
+        if(GLCheck.CHECK)
+            GLCheck.checkError("ReconstructCameraZPass");
     }
 
     @Override

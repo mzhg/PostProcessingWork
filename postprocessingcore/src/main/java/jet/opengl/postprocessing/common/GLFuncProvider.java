@@ -1486,4 +1486,15 @@ public interface GLFuncProvider {
     void glDrawElementsInstancedBaseVertex(int mode, int count, int type, int offset, int instance_count, int base_vertex);
 
     ImageLoader getImageLoader();
+
+    int glGetIntegeri(int panme, int index);
+    /**
+     * <p><a href="http://www.opengl.org/sdk/docs/man/html/glSampleMaski.xhtml">OpenGL SDK Reference</a></p>
+     *
+     * Sets the value of a sub-word of the sample mask.
+     *
+     * @param index which 32-bit sub-word of the sample mask to update
+     * @param mask  the new value of the mask sub-word
+     */
+    void glSampleMaski(int index, int mask);
 }

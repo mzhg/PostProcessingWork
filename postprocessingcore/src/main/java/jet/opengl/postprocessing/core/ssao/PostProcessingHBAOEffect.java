@@ -1,20 +1,18 @@
 package jet.opengl.postprocessing.core.ssao;
 
-import jet.opengl.postprocessing.common.GLAPI;
-import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.core.PostProcessing;
-import jet.opengl.postprocessing.core.PostProcessingCombinePass;
-import jet.opengl.postprocessing.core.PostProcessingDownsamplePass;
 import jet.opengl.postprocessing.core.PostProcessingEffect;
-import jet.opengl.postprocessing.core.PostProcessingGaussionBlurPass;
+import jet.opengl.postprocessing.core.PostProcessingReconstructCameraZPass;
+import jet.opengl.postprocessing.core.PostProcessingReconstructNormalPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.texture.Texture2D;
 
 /**
- * Created by mazhen'gui on 2017/4/24.
+ * Created by mazhen'gui on 2017-05-12 13:52:50.
  */
 
 public class PostProcessingHBAOEffect extends PostProcessingEffect {
+    static final boolean USE_FP32 = true;
 
     @Override
     protected void fillRenderPass(PostProcessing context, PostProcessingRenderPass sceneColorTexture, PostProcessingRenderPass sceneDepthTexture) {
@@ -22,69 +20,53 @@ public class PostProcessingHBAOEffect extends PostProcessingEffect {
 
         Texture2D texture = sceneColorTexture.getOutputTexture(0);
         final int sampleCount = texture.getSampleCount();
+        final int width = sceneDepthTexture.getOutputTexture(0).getWidth();
+        final int height = sceneDepthTexture.getOutputTexture(0).getHeight();
+//        final int quarterWidth  = ((width +3)/4);
+//        final int quarterHeight = ((height+3)/4);
 
-        for(int i = 0; i < sampleCount; i++){
+        final boolean enableMSAA = sampleCount > 1;
+        for(int sampleIdx = 0; sampleIdx < sampleCount; sampleIdx++){
+            final String linearDepthPassName = "ReconstructCameraZ" + (enableMSAA ? ("MSAA" + sampleIdx):"");
+            PostProcessingReconstructCameraZPass linearDepthPass = (PostProcessingReconstructCameraZPass) context.findPass(linearDepthPassName);
 
-        }
+            if(linearDepthPass == null) {
+                linearDepthPass = new PostProcessingReconstructCameraZPass(sampleCount > 1, sampleIdx, USE_FP32);
+                linearDepthPass.setDependency(0, sceneDepthTexture, 0);
 
-        PostProcessingDownsamplePass downsamplePass = new PostProcessingDownsamplePass();
-        { // dowmsample the scene
-            if(lastPass == null){
-                downsamplePass.setDependency(0, sceneColorTexture, 0);
-            }else{
-                downsamplePass.setDependency(0, lastPass, 0);
+                context.appendRenderPass(linearDepthPassName, linearDepthPass);
             }
 
-            int dowmsampleIndex = 0;
-            context.appendRenderPass("Downsample2x2_" + dowmsampleIndex, downsamplePass);
-            dowmsampleIndex++;
+            PostProcessingReconstructNormalPass  viewNormalPass = new PostProcessingReconstructNormalPass();
+            viewNormalPass.setDependency(0, linearDepthPass, 0);
+            context.appendRenderPass("ReconstructNormal" + sampleIdx, viewNormalPass);
 
-            if(GLFuncProviderFactory.getGLFuncProvider().getHostAPI() == GLAPI.ANDROID){
-                int count = 3;
-                int width = sceneColorTexture.getInput(0).getWidth();
-                int height = sceneColorTexture.getInput(0).getHeight();
+            PostProcessingDeinterleavePass deinterleavePass = new PostProcessingDeinterleavePass(USE_FP32);
+            deinterleavePass.setDependency(0, linearDepthPass, 0);
+            context.appendRenderPass("Deinterleave" + sampleIdx, deinterleavePass);
 
-                PostProcessingDownsamplePass lastdownsamplePass = downsamplePass;
-                while (count > 0 && width >= 256 && height >= 256){
-                    downsamplePass = new PostProcessingDownsamplePass();
-                    downsamplePass.setDependency(0, lastdownsamplePass, 0);
+            PostProcessingHBAOCalculatePass hbaoCalculatePass = new PostProcessingHBAOCalculatePass();
+            hbaoCalculatePass.setDependency(0, deinterleavePass, 0);
+            hbaoCalculatePass.setDependency(1, viewNormalPass, 0);
+            context.appendRenderPass("HBAOCalculate" + sampleIdx, hbaoCalculatePass);
 
-                    context.appendRenderPass("Downsample2x2_" + dowmsampleIndex, downsamplePass);
-                    dowmsampleIndex++;
+            PostProcessingReinterleavePass reinterleavePass = new PostProcessingReinterleavePass();
+            reinterleavePass.setDependency(0, hbaoCalculatePass, 0);
+            context.appendRenderPass("Reinterleave" + sampleIdx, reinterleavePass);
 
-                    lastdownsamplePass = downsamplePass;
-
-                    width /= 2;
-                    height /= 2;
-                    count--;
-                }
-            }
+            PostProcessingHBAOBlurPass hbaoBlurPass = new PostProcessingHBAOBlurPass(enableMSAA, sampleIdx);
+            hbaoBlurPass.setDependency(0, reinterleavePass, 0);
+            context.appendRenderPass("HBAOBlur" + sampleIdx, hbaoBlurPass);
         }
-
-        // Bloom Setup
-        PostProcessingBloomSetupPass bloomSetupPass =new PostProcessingBloomSetupPass();
-        bloomSetupPass.setDependency(0, downsamplePass, 0);
-        context.appendRenderPass("BloomSetup", bloomSetupPass);
-
-        // Gaussion Blur
-        PostProcessingGaussionBlurPass gaussionBlurPass = new PostProcessingGaussionBlurPass(7);
-        gaussionBlurPass.setDependency(0, bloomSetupPass, 0);
-        context.appendRenderPass("Bloom::GaussionBlur", gaussionBlurPass);
-
-        // Combine the source image and the blured image.
-        PostProcessingCombinePass combinePass = new PostProcessingCombinePass();
-        combinePass.setDependency(0, sceneColorTexture, 0);
-        combinePass.setDependency(1, gaussionBlurPass, 0);
-        context.appendRenderPass("Bloom::CombinePass", combinePass);
     }
 
     @Override
     public String getEffectName() {
-        return PostProcessing.BLOOM;
+        return PostProcessing.HBAO;
     }
 
     @Override
     public int getPriority() {
-        return PostProcessing.BLOOM_PRIPORTY;
+        return PostProcessing.HBAO_PRIPORTY;
     }
 }

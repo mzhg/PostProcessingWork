@@ -21,6 +21,7 @@ import jet.opengl.postprocessing.core.fisheye.PostProcessingFishEyeEffect;
 import jet.opengl.postprocessing.core.fxaa.PostProcessingFXAAEffect;
 import jet.opengl.postprocessing.core.light.PostProcessingLightEffect;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
+import jet.opengl.postprocessing.core.ssao.PostProcessingHBAOEffect;
 import jet.opengl.postprocessing.core.toon.PostProcessingToonEffect;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
@@ -47,6 +48,7 @@ public class PostProcessing implements Disposeable{
     public static final String EYE_ADAPATION = "EYE_ADAPATION";
     public static final String DOF_BOKEH = "DOF_BOKEH";
     public static final String DOF_GAUSSION = "DOF_GAUSSION";
+    public static final String HBAO = "HBAO";
 
     private static final int NUM_TAG_CACHE = 32;
 
@@ -58,6 +60,7 @@ public class PostProcessing implements Disposeable{
     public static final int LIGHT_EFFECT_PRIPORTY = 2000;
     public static final int DOF_BOKEH_PRIPORTY = 3000;
     public static final int DOF_GAUSSION_PRIPORTY = 3000;
+    public static final int HBAO_PRIPORTY = 1;
 
     public static final int EYE_ADAPATION_PRIPORTY = -100;
 
@@ -89,6 +92,7 @@ public class PostProcessing implements Disposeable{
         registerEffect(new PostProcessingEyeAdaptationEffect());
         registerEffect(new PostProcessingDOFBokehEffect());
         registerEffect(new PostProcessingDOFGaussionEffect());
+        registerEffect(new PostProcessingHBAOEffect());
     }
 
     public void registerEffect(PostProcessingEffect effect){
@@ -251,6 +255,7 @@ public class PostProcessing implements Disposeable{
 
             if(m_LastAddedPass != null) {
                 m_LastAddedPass.setDependencies(0, 1);
+                m_LastAddedPass.setOutputTarget(PostProcessingRenderPassOutputTarget.SCREEN);
             }
 
             m_RenderContext.setRenderPasses(m_AddedRenderPasses.values());
@@ -278,6 +283,11 @@ public class PostProcessing implements Disposeable{
 
     public PostProcessingRenderPass findPass(String name){
         return m_AddedRenderPasses.get(name);
+    }
+
+    public void addHBAO(){
+        PostProcessingEffect effect = m_RegisteredEffects.get(HBAO);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
     }
 
     public void addDOFBokeh(float focalDepth, float focalRange, float fstop){

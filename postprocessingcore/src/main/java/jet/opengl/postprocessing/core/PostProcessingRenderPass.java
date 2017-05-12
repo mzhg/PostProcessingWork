@@ -33,6 +33,8 @@ public abstract class PostProcessingRenderPass implements Disposeable{
 
     private String name;
 
+    private PostProcessingRenderPassOutputTarget m_OutputTarget = PostProcessingRenderPassOutputTarget.DEFAULT;
+
     public PostProcessingRenderPass(String name){
         this.name = name;
     }
@@ -122,11 +124,12 @@ public abstract class PostProcessingRenderPass implements Disposeable{
     @Override
     public void dispose() {}
 
-    @Deprecated
-    protected boolean useIntenalOutputTexture(){ return false;}
+    protected final PostProcessingRenderPassOutputTarget getOutputTarget() {
+        return m_OutputTarget;
+    }
 
-    protected PostProcessingRenderPassOutputTarget getOutputTarget() {
-        return PostProcessingRenderPassOutputTarget.DEFAULT;
+    protected final void setOutputTarget(PostProcessingRenderPassOutputTarget target){
+        m_OutputTarget = target;
     }
 
     void _process(PostProcessingRenderContext context, PostProcessingParameters parameters)

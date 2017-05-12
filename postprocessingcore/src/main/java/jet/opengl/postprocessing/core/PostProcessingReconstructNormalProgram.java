@@ -5,6 +5,7 @@ import org.lwjgl.util.vector.Matrix4f;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -16,14 +17,16 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 public class PostProcessingReconstructNormalProgram extends GLSLProgram{
 
     private int centerIndex = -1;
+    private int texelIndex = -1;
 
     public PostProcessingReconstructNormalProgram() throws IOException {
-        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingReconstructCamSpaceZPS.frag");
+        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingReconstructNormalPS.frag");
 
         enable();
         int iChannel0Loc = getUniformLocation("g_LinearDepthTex");
         gl.glUniform1i(iChannel0Loc, 0);  // set the texture0 location.
         centerIndex = getUniformLocation("g_Uniforms");
+        texelIndex = getUniformLocation("g_InvFullResolution");
     }
 
     @CachaRes
@@ -33,5 +36,10 @@ public class PostProcessingReconstructNormalProgram extends GLSLProgram{
         invert.store(buffer);
         buffer.flip();
         gl.glUniformMatrix4fv(centerIndex, false, buffer);
+        GLCheck.checkError("ReconstructNormalProgram::setCameraMatrixs");
+    }
+
+    public void setTexelSize(float texelSizeX, float texelSizeY){
+        gl.glUniform2f(texelIndex, texelSizeX, texelSizeY);
     }
 }

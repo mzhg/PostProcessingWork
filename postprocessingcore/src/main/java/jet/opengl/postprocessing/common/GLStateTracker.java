@@ -321,6 +321,8 @@ public class GLStateTracker {
         bsstate.destBlend = gl.glGetInteger(GLenum.GL_BLEND_DST_RGB);
         bsstate.destBlendAlpha = gl.glGetInteger(GLenum.GL_BLEND_DST_ALPHA);
         bsstate.blendEnable = gl.glIsEnabled(GLenum.GL_BLEND);
+        bsstate.sampleMask  = gl.glIsEnabled(GLenum.GL_SAMPLE_MASK);
+        bsstate.sampleMaskValue = gl.glGetIntegeri(GLenum.GL_SAMPLE_MASK_VALUE, 0);
     }
 
     /**
@@ -330,6 +332,20 @@ public class GLStateTracker {
      * @param force Whether igore the blend details setting if the blend disabled, this can be improving performance.
      */
     private void setBSState(BlendState dst, BlendState src, boolean force){
+        if(dst.sampleMask != src.sampleMask){
+            src.sampleMask = dst.sampleMask;
+            if(src.sampleMask){
+                gl.glEnable(GLenum.GL_SAMPLE_MASK);
+            }else{
+                gl.glDisable(GLenum.GL_SAMPLE_MASK);
+            }
+        }
+
+        if(src.sampleMask && src.sampleMaskValue != dst.sampleMaskValue){
+            gl.glSampleMaski(0, dst.sampleMaskValue);
+            src.sampleMaskValue =dst.sampleMaskValue;
+        }
+
         if (dst.blendEnable != src.blendEnable)
         {
             src.blendEnable = dst.blendEnable;

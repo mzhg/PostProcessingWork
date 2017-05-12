@@ -122,7 +122,7 @@ vec3 UVToView(vec2 uv, float eye_z)
 
 vec3 FetchQuarterResViewPos(vec2 UV)
 {
-  float ViewDepth = textureLod(texLinearDepth,getQuarterCoord(UV),0).x;
+  float ViewDepth = textureLod(g_LinearDepthTex,getQuarterCoord(UV),0).x;
   return UVToView(UV, ViewDepth);
 }
 
@@ -130,7 +130,7 @@ vec3 FetchQuarterResViewPos(vec2 UV)
 
 vec3 FetchViewPos(vec2 UV)
 {
-  float ViewDepth = textureLod(texLinearDepth,UV,0).x;
+  float ViewDepth = textureLod(g_LinearDepthTex,UV,0).x;
   return UVToView(UV, ViewDepth);
 }
 
@@ -245,7 +245,7 @@ void main()
   vec2 uv = base * (control.InvQuarterResolution / 4.0);
 
   vec3 ViewPosition = FetchQuarterResViewPos(uv);
-  vec4 NormalAndAO =  texelFetch( texViewNormal, ivec2(base), 0);
+  vec4 NormalAndAO =  texelFetch( g_ViewNormalTex, ivec2(base), 0);
   vec3 ViewNormal =  -(NormalAndAO.xyz * 2.0 - 1.0);
 #else
   vec2 uv = texCoord;

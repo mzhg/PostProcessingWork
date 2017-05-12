@@ -1605,4 +1605,14 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
 
         return m_ImageLoader;
     }
+
+    @Override
+    public int glGetIntegeri(int panme, int index) {
+        return GL30.glGetIntegeri(panme, index);
+    }
+
+    @Override
+    public void glSampleMaski(int index, int mask) {
+        GL32.glSampleMaski(index, mask);
+    }
 }

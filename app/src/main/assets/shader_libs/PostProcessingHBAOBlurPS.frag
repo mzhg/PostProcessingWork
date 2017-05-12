@@ -46,13 +46,13 @@ void main()
   
   for (float r = 1; r <= KERNEL_RADIUS; ++r)
   {
-    vec2 uv = texCoord + g_InvResolutionDirection * r;
+    vec2 uv = m_f4UVAndScreenPos.xy + g_InvResolutionDirection * r;
     c_total += BlurFunction(uv, r, center_c, center_d, w_total);  
   }
   
   for (float r = 1; r <= KERNEL_RADIUS; ++r)
   {
-    vec2 uv = texCoord - g_InvResolutionDirection * r;
+    vec2 uv = m_f4UVAndScreenPos.xy - g_InvResolutionDirection * r;
     c_total += BlurFunction(uv, r, center_c, center_d, w_total);  
   }
   

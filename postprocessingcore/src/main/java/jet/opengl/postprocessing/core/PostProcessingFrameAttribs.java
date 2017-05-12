@@ -19,6 +19,8 @@ public class PostProcessingFrameAttribs {
 
     public Matrix4f viewMat;
     public Matrix4f projMat;
+    public float    fov;
+    public boolean  ortho;
 
     private Matrix4f viewProjMatrix;
     private boolean  bViewProjSetted = false;

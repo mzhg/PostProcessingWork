@@ -3,6 +3,7 @@ package jet.opengl.postprocessing.core.ssao;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderLoader;
@@ -40,16 +41,14 @@ final class PostProcessingHBAOProgram extends GLSLProgram{
             new Macro("AO_BLUR", blur)
         };
         ps_item.macros = macros;
-
         setSourceFromStrings(vs_item, gs_item, ps_item);
         enable();
-        int iChannel0Loc = getUniformLocation("g_LinearDepthTex");
-        gl.glUniform1i(iChannel0Loc, 0);  // set the texture0 location.
-
         setTextureUniform("g_LinearDepthTex", 0);
         setTextureUniform("g_ViewNormalTex", 1);
         setTextureUniform("g_TexRandom", 2);
         centerIndex = getUniformLocation("g_Uniforms");
+        if(GLCheck.CHECK)
+            GLCheck.checkError("PostProcessingHBAOProgram::init()");
     }
 
     @CachaRes

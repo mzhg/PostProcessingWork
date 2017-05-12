@@ -99,6 +99,10 @@ public class RenderTargets implements Disposeable{
         descArrays[0] = desc;
 
         setRenderTextures(texArrays, descArrays);
+
+        if(GLCheck.CHECK){
+            GLCheck.checkFramebufferStatus();
+        }
     }
 
     public void setRenderTextures(TextureGL[] textures, TextureAttachDesc[] descs){
@@ -157,7 +161,8 @@ public class RenderTargets implements Disposeable{
 
         // TODO Performance isuee.
         buffers.flip();
-        if(buffers.remaining() > 0){
+        final int colorAttachedCount = buffers.remaining();
+        if(colorAttachedCount > 0){
             GLFuncProviderFactory.getGLFuncProvider().glDrawBuffers(buffers);
         }else{
             GLFuncProviderFactory.getGLFuncProvider().glDrawBuffers(GLenum.GL_NONE);
@@ -192,11 +197,19 @@ public class RenderTargets implements Disposeable{
         }
 
         if(GLCheck.CHECK)
-            GLCheck.checkError("RenderTargets::setRenderTextures");
+            GLCheck.checkError("RenderTargets::setRenderTextures::end");
+
+        for(int i = 0; i < colorAttachedCount; i++){
+            colorHandled[i] = false;
+        }
     }
 
     private void handleTextureAttachment(TextureGL pTex, int attachment, TextureAttachDesc desc, AttachInfo info){
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+//        if(info.type != null && info.type != desc.type){
+//            deAttachTexture(attachment, info.type);
+//        }
+
         info.type = desc.type;
         switch (desc.type)
         {
@@ -293,7 +306,6 @@ public class RenderTargets implements Disposeable{
                 break;
             case TEXTURE:
                 if (pTex !=null)
-
                 {
                     if (!info.attached || info.textureId != pTex.getTexture() || info.level != desc.level)
                     {
@@ -313,6 +325,7 @@ public class RenderTargets implements Disposeable{
                         info.level = 0;
                     }
                 }
+
                 break;
             case TEXTURE_LAYER:
                 if (pTex != null)

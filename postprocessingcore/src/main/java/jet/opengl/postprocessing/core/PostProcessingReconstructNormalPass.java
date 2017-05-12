@@ -2,6 +2,7 @@ package jet.opengl.postprocessing.core;
 
 import java.io.IOException;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
@@ -44,6 +45,7 @@ public class PostProcessingReconstructNormalPass extends PostProcessingRenderPas
         context.setProgram(g_ReconstructNormalProgram);
         PostProcessingFrameAttribs frameAttribs = context.getFrameAttribs();
         g_ReconstructNormalProgram.setCameraMatrixs(frameAttribs.projMat, frameAttribs.getProjInvertMatrix());
+        g_ReconstructNormalProgram.setTexelSize(1.0f/input0.getWidth(), 1.0f/input0.getHeight());
 
         context.bindTexture(input0, 0, 0);
         context.setBlendState(null);
@@ -53,6 +55,9 @@ public class PostProcessingReconstructNormalPass extends PostProcessingRenderPas
 
         context.drawFullscreenQuad();
         context.bindTexture(input0, 0, 0);  // unbind sampler.
+
+        if(GLCheck.CHECK)
+            GLCheck.checkError("ReconstructNormalPass");
     }
 
     @Override

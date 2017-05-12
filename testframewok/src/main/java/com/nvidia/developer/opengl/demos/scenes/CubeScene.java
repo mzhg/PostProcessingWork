@@ -59,6 +59,7 @@ public class CubeScene implements GLEventListener {
 		m_Transformer.setTranslationVec(new Vector3f(0.0f, 0.0f, -4.2f));
 		m_Transformer.setRotationVec(new Vector3f(Numeric.PI*0.35f, 0.0f, 0.0f));
 
+		System.out.println("CubeScene::OnCreate");
 		gl = GLFuncProviderFactory.getGLFuncProvider();
 
 		gl.glEnable(GLenum.GL_CULL_FACE);
@@ -70,7 +71,7 @@ public class CubeScene implements GLEventListener {
 		{
 			String root = "Scenes/CubeScene/shaders/";
 			try {
-				m_Program = GLSLProgram.createFromFiles(root + "scene.vert.glsl", root + "scene.frag.glsl");
+				m_Program = GLSLProgram.createFromFiles(root + "scene.vert", root + "scene.frag");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -450,7 +451,7 @@ public class CubeScene implements GLEventListener {
 		m_Projection.update(width,height);
 
 
-		gl.glBindBuffer(GLenum.GL_FRAMEBUFFER,m_FrameBuffer);
+		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER,m_FrameBuffer);
 	    {
 //	      NV_PROFILE_SECTION("Scene");
 			gl.glViewport(0, 0, width, height);
@@ -491,10 +492,16 @@ public class CubeScene implements GLEventListener {
 			gl.glBindVertexArray(0);
 	    }
 
-		gl.glBindBuffer(GLenum.GL_FRAMEBUFFER,0);
+		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER,0);
 	}
 	
 	public void getViewProjMatrix(Matrix4f out){ Matrix4f.mul(m_Projection.matrix, m_SceneUbo.viewMatrix, out);}
+	public Texture2D getSceneColor() {return m_SceneColorTex;}
+	public Texture2D getSceneDepth() {return m_SceneDepthTex;}
+	public Matrix4f getProjMat()    { return m_Projection.matrix;}
+	public Matrix4f getViewMat(){ return m_SceneUbo.viewMatrix;}
+	public float getSceneNearPlane() { return m_Projection.nearplane;}
+	public float getSceneFarPlane() { return m_Projection.farplane;}
 
 	@Override
 	public void onDestroy() {

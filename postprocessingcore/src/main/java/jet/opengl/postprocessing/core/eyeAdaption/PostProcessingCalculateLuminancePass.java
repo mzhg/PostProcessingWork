@@ -6,10 +6,10 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
+import jet.opengl.postprocessing.core.PostProcessingRenderPassOutputTarget;
 import jet.opengl.postprocessing.core.RenderTexturePool;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
-import jet.opengl.postprocessing.texture.TextureUtils;
 
 /**
  * Created by mazhen'gui on 2017/5/3.
@@ -28,6 +28,7 @@ final class PostProcessingCalculateLuminancePass extends PostProcessingRenderPas
         super("CalculateLuminance");
 
         set(1, 1);
+        setOutputTarget(PostProcessingRenderPassOutputTarget.INTERNAL);
     }
 
     @Override
@@ -77,11 +78,6 @@ final class PostProcessingCalculateLuminancePass extends PostProcessingRenderPas
     @Override
     public Texture2D getOutputTexture(int idx) {
         return idx == 0 ? m_SrcLum : null;
-    }
-
-    @Override
-    protected final boolean useIntenalOutputTexture() {
-        return true;
     }
 
     @Override

@@ -3,10 +3,12 @@ package jet.opengl.postprocessing.core.ssao;
 import java.io.IOException;
 import java.util.Arrays;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
+import jet.opengl.postprocessing.core.PostProcessingRenderPassOutputTarget;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
@@ -22,8 +24,8 @@ final class PostProcessingDeinterleavePass extends PostProcessingRenderPass {
     static final int NUM_MRT = 8;
 
     private static PostProcessingDeinterleaveProgram g_DeinterleaveProgram = null;
-    private Texture2D m_DepthArray;
-    private final Texture2D[][] m_DepthView = new Texture2D[2][NUM_MRT];
+    private static Texture2D m_DepthArray;
+    private static final Texture2D[][] m_DepthView = new Texture2D[2][NUM_MRT];
     private final boolean m_bUse32FP;
 
     public PostProcessingDeinterleavePass(boolean use32FP) {
@@ -31,6 +33,7 @@ final class PostProcessingDeinterleavePass extends PostProcessingRenderPass {
         m_bUse32FP = use32FP;
 
         set(1,1);
+        setOutputTarget(PostProcessingRenderPassOutputTarget.INTERNAL);
     }
 
     @Override
@@ -62,8 +65,7 @@ final class PostProcessingDeinterleavePass extends PostProcessingRenderPass {
             m_DepthArray = TextureUtils.createTexture2D(desc, null);
 
             for(int i = 0; i < HBAO_RANDOM_ELEMENTS; i++){
-                int idx = i / NUM_MRT;
-                m_DepthView[idx][i] = TextureUtils.createTextureView(m_DepthArray, GLenum.GL_TEXTURE_2D, 0, 1, i, 1);
+                m_DepthView[i/NUM_MRT][i%NUM_MRT] = TextureUtils.createTextureView(m_DepthArray, GLenum.GL_TEXTURE_2D, 0, 1, i, 1);
             }
         }
 
@@ -81,11 +83,9 @@ final class PostProcessingDeinterleavePass extends PostProcessingRenderPass {
             context.setRenderTargets(m_DepthView[(i+1)/NUM_MRT]);
             context.drawFullscreenQuad();
         }
-    }
 
-    @Override
-    protected boolean useIntenalOutputTexture() {
-        return true;
+        if(GLCheck.CHECK)
+            GLCheck.checkError("DeinterleavePass");
     }
 
     @Override
@@ -98,7 +98,8 @@ final class PostProcessingDeinterleavePass extends PostProcessingRenderPass {
         Texture2D input = getInput(0);
         if(input != null){
             input.getDesc(out);
-            out.format = GLenum.GL_RG8;
+            out.format = GLenum.GL_RG16F;
+
         }
 
         super.computeOutDesc(index, out);

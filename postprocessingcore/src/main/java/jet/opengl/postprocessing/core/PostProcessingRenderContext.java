@@ -61,7 +61,7 @@ public final class PostProcessingRenderContext {
 
     public PostProcessingRenderContext(){
         for(int i = 0; i < m_AttachDescs.length; i++){
-            m_AttachDescs[i] = new TextureAttachDesc(i, AttachType.TEXTURE_2D, 0, 0);
+            m_AttachDescs[i] = new TextureAttachDesc(i, AttachType.TEXTURE, 0, 0);
         }
     }
 
@@ -110,6 +110,11 @@ public final class PostProcessingRenderContext {
     public void setRenderTarget(Texture2D tex){
         if(tex != g_DummyTex) {
             m_StateTracker.setFramebuffer(m_RenderTargets.getFramebuffer());
+            if(tex.getArraySize() > 1)
+                m_AttachDescs[0].type = AttachType.TEXTURE;
+            else
+                m_AttachDescs[0].type = AttachType.TEXTURE_2D;
+
             m_RenderTargets.setRenderTexture(tex, m_AttachDescs[0]);
         }else{ // tex == g_DummyTex
             m_StateTracker.setFramebuffer(0);
@@ -224,7 +229,7 @@ public final class PostProcessingRenderContext {
             pass.reset();
         }
 
-        PostProcessingRenderPass lastPass = m_RenderPassList.get(m_RenderPassList.size() - 1);
+//        PostProcessingRenderPass lastPass = m_RenderPassList.get(m_RenderPassList.size() - 1);
         for(PostProcessingRenderPass it : m_RenderPassList){
             m_CurrentPass = it;
 
@@ -250,27 +255,27 @@ public final class PostProcessingRenderContext {
             for(int i = 0; i < m_CurrentPass.getOutputCount(); i++){
                 m_CurrentPass.computeOutDesc(i, outputDesc);
 
-                if(m_CurrentPass != lastPass) {
-                    if(!m_CurrentPass.useIntenalOutputTexture()) {
+                PostProcessingRenderPassOutputTarget outputTarget = m_CurrentPass.getOutputTarget();
+                switch (outputTarget){
+                    case DEFAULT:
                         Texture2D temp = RenderTexturePool.getInstance().findFreeElement(outputDesc);
                         m_CurrentPass.setOutputRenderTexture(i, temp);
-                    }
-                }else{ // m_CurrentPass == lastPass
-                    if(GLCheck.CHECK && m_CurrentPass.getOutputCount() != 1){
-                        throw new IllegalArgumentException();
-                    }
-
-                    if(m_CurrentPass.useIntenalOutputTexture()){
                         break;
-                    }
-
-                    if(output != null){
-                        m_CurrentPass.setOutputRenderTexture(i, output);
-                    }else{
-                        g_DummyTex._width = viewport.width;
-                        g_DummyTex._height = viewport.height;
-                        m_CurrentPass.setOutputRenderTexture(i, g_DummyTex);
-                    }
+                    case INTERNAL:
+                        // nothing need to do.
+                        break;
+                    case SCREEN:
+                        if(output != null){
+                            m_CurrentPass.setOutputRenderTexture(i, output);
+                        }else {
+                            g_DummyTex._width = viewport.width;
+                            g_DummyTex._height = viewport.height;
+                            m_CurrentPass.setOutputRenderTexture(i, g_DummyTex);
+                        }
+                        break;
+                    case SOURCE_COLOR:
+                        m_CurrentPass.setOutputRenderTexture(i, m_FrameAttribs.sceneColorTexture);
+                        break;
                 }
             }
 

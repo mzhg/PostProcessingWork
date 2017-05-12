@@ -1,4 +1,6 @@
 
+layout(triangles) in;
+layout(triangle_strip,max_vertices=3) out;
   in Inputs {
     vec4 m_f4UVAndScreenPos;
   } IN[];
