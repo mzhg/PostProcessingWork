@@ -135,6 +135,7 @@ public class PostProcessing implements Disposeable{
         prepare(frameAttribs);
 
         GLStateTracker.getInstance().saveStates();
+        GLStateTracker.getInstance().clearFlags(true);
         try{
             if(!m_bEnablePostProcessing){
                 if(frameAttribs.sceneColorTexture != null) {
@@ -255,7 +256,9 @@ public class PostProcessing implements Disposeable{
 
             if(m_LastAddedPass != null) {
                 m_LastAddedPass.setDependencies(0, 1);
-                m_LastAddedPass.setOutputTarget(PostProcessingRenderPassOutputTarget.SCREEN);
+                PostProcessingRenderPassOutputTarget outputTarget  = m_LastAddedPass.getOutputTarget();
+                if(outputTarget == PostProcessingRenderPassOutputTarget.DEFAULT)
+                    m_LastAddedPass.setOutputTarget(PostProcessingRenderPassOutputTarget.SCREEN);
             }
 
             m_RenderContext.setRenderPasses(m_AddedRenderPasses.values());

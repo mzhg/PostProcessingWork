@@ -4,13 +4,21 @@
 // uniform mat4 g_ProjMat;
 // uniform mat4 g_InvMat;
 
-uniform mat4 g_Uniforms[2];
-#define g_ProjMat g_Uniforms[0]
-#define g_InvMat  g_Uniforms[1]
-
 uniform sampler2D g_LinearDepthTex;
 uniform vec2 g_InvFullResolution;
 
+#if 1
+uniform vec4 projInfo;
+uniform int  projOrtho;
+vec3 UVToView(vec2 uv, float eye_z)
+{
+  return vec3((uv * projInfo.xy + projInfo.zw) * (projOrtho != 0 ? 1. : eye_z), eye_z);
+}
+
+#else
+uniform mat4 g_Uniforms[2];
+#define g_ProjMat g_Uniforms[0]
+#define g_InvMat  g_Uniforms[1]
 vec3 UVToView(vec2 uv, float eye_z)
 {
 //  return vec3((uv * projInfo.xy + projInfo.zw) * (projOrtho != 0 ? 1. : eye_z), eye_z);
@@ -20,6 +28,7 @@ vec3 UVToView(vec2 uv, float eye_z)
     ReconstructedPosWS /= ReconstructedPosWS.w;
     return ReconstructedPosWS.xyz;
 }
+#endif
 
 vec3 FetchViewPos(vec2 UV)
 {

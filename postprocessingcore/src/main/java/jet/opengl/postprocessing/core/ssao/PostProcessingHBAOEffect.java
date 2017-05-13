@@ -3,7 +3,6 @@ package jet.opengl.postprocessing.core.ssao;
 import jet.opengl.postprocessing.core.PostProcessing;
 import jet.opengl.postprocessing.core.PostProcessingEffect;
 import jet.opengl.postprocessing.core.PostProcessingReconstructCameraZPass;
-import jet.opengl.postprocessing.core.PostProcessingReconstructNormalPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.texture.Texture2D;
 
@@ -20,8 +19,8 @@ public class PostProcessingHBAOEffect extends PostProcessingEffect {
 
         Texture2D texture = sceneColorTexture.getOutputTexture(0);
         final int sampleCount = texture.getSampleCount();
-        final int width = sceneDepthTexture.getOutputTexture(0).getWidth();
-        final int height = sceneDepthTexture.getOutputTexture(0).getHeight();
+//        final int width = sceneDepthTexture.getOutputTexture(0).getWidth();
+//        final int height = sceneDepthTexture.getOutputTexture(0).getHeight();
 //        final int quarterWidth  = ((width +3)/4);
 //        final int quarterHeight = ((height+3)/4);
 
@@ -31,7 +30,7 @@ public class PostProcessingHBAOEffect extends PostProcessingEffect {
             PostProcessingReconstructCameraZPass linearDepthPass = (PostProcessingReconstructCameraZPass) context.findPass(linearDepthPassName);
 
             if(linearDepthPass == null) {
-                linearDepthPass = new PostProcessingReconstructCameraZPass(sampleCount > 1, sampleIdx, USE_FP32);
+                linearDepthPass = new PostProcessingReconstructCameraZPass(enableMSAA, sampleIdx, USE_FP32);
                 linearDepthPass.setDependency(0, sceneDepthTexture, 0);
 
                 context.appendRenderPass(linearDepthPassName, linearDepthPass);

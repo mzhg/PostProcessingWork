@@ -310,6 +310,7 @@ public final class PostProcessingRenderContext {
     private final static class Texture2DDummy extends Texture2D{
         int _width, _height;
 
+        Texture2DDummy(){super("DummyTex2D");}
         @Override
         public int getWidth() {
             return _width;

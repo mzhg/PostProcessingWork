@@ -3,6 +3,7 @@ package jet.opengl.postprocessing.core.ssao;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.util.CachaRes;
 
 /**
@@ -13,8 +14,9 @@ final class PostProcessingHBAOBlurProgram extends GLSLProgram{
 
     private int centerIndex = -1;
 
-    public PostProcessingHBAOBlurProgram() throws IOException {
-        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingHBAOBlurPS.frag");
+    public PostProcessingHBAOBlurProgram(int blur_present ) throws IOException {
+        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingHBAOBlurPS.frag",
+                new Macro("AO_BLUR_PRESENT", blur_present));
 
         enable();
         int iChannel0Loc = getUniformLocation("g_TexSource");

@@ -9,6 +9,8 @@ import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPassOutputTarget;
+import jet.opengl.postprocessing.texture.SamplerDesc;
+import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
@@ -27,6 +29,7 @@ final class PostProcessingDeinterleavePass extends PostProcessingRenderPass {
     private static Texture2D m_DepthArray;
     private static final Texture2D[][] m_DepthView = new Texture2D[2][NUM_MRT];
     private final boolean m_bUse32FP;
+    private int m_SamplerPointClamp;
 
     public PostProcessingDeinterleavePass(boolean use32FP) {
         super("Deinterleave");
@@ -47,6 +50,12 @@ final class PostProcessingDeinterleavePass extends PostProcessingRenderPass {
             }
         }
 
+        if(m_SamplerPointClamp == 0){
+            SamplerDesc desc = new SamplerDesc();
+            desc.minFilter = desc.magFilter = GLenum.GL_NEAREST;
+            m_SamplerPointClamp = SamplerUtils.createSampler(desc);
+        }
+
         Texture2D input0 = getInput(0);
         if(input0 == null){
             LogUtil.e(LogUtil.LogType.DEFAULT, "ReinterleavePass:: Missing depth texture!");
@@ -63,27 +72,28 @@ final class PostProcessingDeinterleavePass extends PostProcessingRenderPass {
             Texture2DDesc desc = new Texture2DDesc(quarterWidth, quarterHeight, m_bUse32FP? GLenum.GL_R32F:GLenum.GL_R16F);
             desc.arraySize = HBAO_RANDOM_ELEMENTS;
             m_DepthArray = TextureUtils.createTexture2D(desc, null);
-
+            m_DepthArray.setName("Deinterleave");
             for(int i = 0; i < HBAO_RANDOM_ELEMENTS; i++){
                 m_DepthView[i/NUM_MRT][i%NUM_MRT] = TextureUtils.createTextureView(m_DepthArray, GLenum.GL_TEXTURE_2D, 0, 1, i, 1);
             }
         }
 
-        context.setViewport(0,0, quarterWidth, quarterHeight);
-        context.setVAO(null);
-        context.setProgram(g_DeinterleaveProgram);
-
-        context.bindTexture(input0, 0, 0);
-        context.setBlendState(null);
-        context.setDepthStencilState(null);
-        context.setRasterizerState(null);
-
         for(int i = 0; i < HBAO_RANDOM_ELEMENTS; i+=NUM_MRT){
+            context.setViewport(0,0, quarterWidth, quarterHeight);
+            context.setVAO(null);
+            context.setProgram(g_DeinterleaveProgram);
+
+            context.bindTexture(input0, 0, m_SamplerPointClamp);
+            context.setBlendState(null);
+            context.setDepthStencilState(null);
+            context.setRasterizerState(null);
+
             g_DeinterleaveProgram.setUVAndResolution((float)(i % 4) + 0.5f, (float)(i / 4) + 0.5f, 1.0f/input0.getWidth(), 1.0f/input0.getHeight());
             context.setRenderTargets(m_DepthView[(i+1)/NUM_MRT]);
             context.drawFullscreenQuad();
         }
 
+        context.bindTexture(input0, 0, 0);  // unbind samplers.
         if(GLCheck.CHECK)
             GLCheck.checkError("DeinterleavePass");
     }
@@ -99,7 +109,6 @@ final class PostProcessingDeinterleavePass extends PostProcessingRenderPass {
         if(input != null){
             input.getDesc(out);
             out.format = GLenum.GL_RG16F;
-
         }
 
         super.computeOutDesc(index, out);

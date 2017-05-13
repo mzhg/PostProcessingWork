@@ -14,13 +14,13 @@ import jet.opengl.postprocessing.core.PostProcessingFrameAttribs;
 import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
+import jet.opengl.postprocessing.texture.SamplerDesc;
+import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
-
-import static jet.opengl.postprocessing.core.ssao.PostProcessingDeinterleavePass.HBAO_RANDOM_ELEMENTS;
 
 /**
  * Created by mazhen'gui on 2017-05-11 16:36:43.
@@ -33,7 +33,7 @@ final class PostProcessingHBAOCalculatePass extends PostProcessingRenderPass {
 
     static {
         final float numDir = 8; // keep in sync to glsl
-        for(int i=0; i<HBAO_RANDOM_ELEMENTS*MAX_SAMPLES; i++)
+        for(int i=0; i<PostProcessingDeinterleavePass.HBAO_RANDOM_ELEMENTS*MAX_SAMPLES; i++)
         {
             float Rand1 = Numeric.random(0, 1);
             float Rand2 = Numeric.random(0, 1);
@@ -51,6 +51,7 @@ final class PostProcessingHBAOCalculatePass extends PostProcessingRenderPass {
     private static PostProcessingHBAOProgram g_HBAOProgram = null;
     private final HBAOData hbaoUbo = new HBAOData();
     private int m_hbao_buffer;
+    private int m_SamplerPointClamp;
 
     public PostProcessingHBAOCalculatePass() {
         super("HBAOCalculateBlur");
@@ -74,16 +75,13 @@ final class PostProcessingHBAOCalculatePass extends PostProcessingRenderPass {
         Texture2D input0 = getInput(0);
         Texture2D input1 = getInput(1);
         Texture2D output = getOutputTexture(0);
+        output.setName("HBAOCalculate");
         if(input0 == null){
             LogUtil.e(LogUtil.LogType.DEFAULT, "ReinterleavePass:: Missing depth texture!");
             return;
         }
 
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-
-        if(!gl.glIsTexture(output.getTexture())){
-            throw new NullPointerException();
-        }
 
         {
             // prepare uniform data
@@ -102,24 +100,30 @@ final class PostProcessingHBAOCalculatePass extends PostProcessingRenderPass {
             gl.glBufferSubData(GLenum.GL_UNIFORM_BUFFER, 0, buf);
         }
 
+        if(m_SamplerPointClamp == 0){
+            SamplerDesc desc = new SamplerDesc();
+            desc.minFilter = desc.magFilter = GLenum.GL_NEAREST;
+            m_SamplerPointClamp = SamplerUtils.createSampler(desc);
+        }
+
         context.setViewport(0,0, output.getWidth(), output.getHeight());
         context.setVAO(null);
         context.setProgram(g_HBAOProgram);
 //        g_HBAOProgram.setUniform();  TODO uniform data...
 
-        context.bindTexture(input0, 0, 0);
-        context.bindTexture(input1, 1, 0);
+        context.bindTexture(input0, 0, m_SamplerPointClamp);
+        context.bindTexture(input1, 1, m_SamplerPointClamp);
         context.setBlendState(null);
         context.setDepthStencilState(null);
         context.setRasterizerState(null);
 
-        if(GLCheck.CHECK)
-            GLCheck.checkError("HBAOCalculatePass");
         context.setRenderTarget(output);
 
         context.drawArrays(GLenum.GL_TRIANGLES, 0, 3*PostProcessingDeinterleavePass.HBAO_RANDOM_ELEMENTS);
 
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
+        context.bindTexture(input0, 0, 0);  // unbind sampler
+        context.bindTexture(input1, 1, 0);  // unbind sampler
 
         if(GLCheck.CHECK)
             GLCheck.checkError("HBAOCalculatePass");
@@ -184,6 +188,13 @@ final class PostProcessingHBAOCalculatePass extends PostProcessingRenderPass {
 
         hbaoUbo.projMat.load(projMat);
         Matrix4f.invert(viewProjMatrix, hbaoUbo.viewProjInvMat);
+    }
+
+    @Override
+    public void dispose() {
+        if(m_hbao_buffer != 0){
+            GLFuncProviderFactory.getGLFuncProvider().glDeleteBuffer(m_hbao_buffer);
+        }
     }
 
     @Override

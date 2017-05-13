@@ -25,6 +25,7 @@ public class HBAODemo extends NvSampleApp {
 
     @Override
     protected void initRendering() {
+        getGLContext().setSwapInterval(0);
         m_Scene = new CubeScene(m_transformer);
         m_Scene.onCreate();
         fullscreenProgram = new FullscreenProgram();
@@ -56,12 +57,14 @@ public class HBAODemo extends NvSampleApp {
             m_frameAttribs.viewport.set(0,0, getGLContext().width(), getGLContext().height());
             m_frameAttribs.viewMat = m_Scene.getViewMat();
             m_frameAttribs.projMat = m_Scene.getProjMat();
+            m_frameAttribs.fov =     m_Scene.getFovInRadian();
 
             m_PostProcessing.addHBAO();
             m_PostProcessing.performancePostProcessing(m_frameAttribs);
         }
 
-        if(true )return;
+        m_Scene.resoveMultisampleTexture();
+        if(true)return;
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
         gl.glViewport(0, 0, getGLContext().width(), getGLContext().height());
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);

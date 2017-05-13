@@ -44,7 +44,8 @@ void main()
         gl_Position = vec4(QuadVertices[gl_VertexID], 0, 1);
         m_f4UVAndScreenPos = vec4(0.5 * gl_Position.xy + 0.5, gl_Position.xy);
     #else
-        m_f4UVAndScreenPos.xy = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
+        int idx = gl_VertexID % 3;  // allows rendering multiple fullscreen triangles
+        m_f4UVAndScreenPos.xy = vec2((idx << 1) & 2, idx & 2);
         gl_Position = vec4(m_f4UVAndScreenPos.xy * 2.0 - 1.0, 0, 1);
         m_f4UVAndScreenPos.zw = gl_Position.xy;
     #endif

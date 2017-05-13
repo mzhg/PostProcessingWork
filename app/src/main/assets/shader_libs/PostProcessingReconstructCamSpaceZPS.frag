@@ -4,7 +4,7 @@
 #define DEPTHLINEARIZE_USEMSAA 0
 #endif
 
-#if DEPTHLINEARIZE_MSAA
+#if DEPTHLINEARIZE_USEMSAA
 uniform int g_SampleIndex;
 uniform sampler2DMS g_DepthTexture;
 #else
@@ -18,7 +18,11 @@ uniform float2 g_Uniforms;
 
 void main()
 {
+#if DEPTHLINEARIZE_USEMSAA
+    float dDepth = texelFetch(g_DepthTexture, ivec2(gl_FragCoord.xy), g_SampleIndex).r;
+#else
     float dDepth = textureLod(g_DepthTexture, m_f4UVAndScreenPos.xy, 0.0).r;
+#endif
 
     float mZFar =g_fFarPlaneZ;
     float mZNear = g_fNearPlaneZ;

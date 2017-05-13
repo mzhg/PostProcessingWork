@@ -9,6 +9,11 @@ public class Texture2D extends TextureGL{
 	int samples;
     
     public Texture2D() {
+		super("Texture2D");
+	}
+
+	public Texture2D(String name) {
+		super(name);
 	}
     
     public int getArraySize() { return arraySize;}

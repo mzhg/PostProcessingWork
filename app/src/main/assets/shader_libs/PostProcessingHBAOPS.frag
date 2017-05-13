@@ -92,10 +92,9 @@ in vec2 texCoord;
 
 //----------------------------------------------------------------------------------
 
-#if 0
+#if 1
 vec3 UVToView(vec2 uv, float eye_z)
 {
-	eye_z  = abs(eye_z);
   return vec3((uv * control.projInfo.xy + control.projInfo.zw) * (control.projOrtho != 0 ? 1. : eye_z), eye_z);
 }
 

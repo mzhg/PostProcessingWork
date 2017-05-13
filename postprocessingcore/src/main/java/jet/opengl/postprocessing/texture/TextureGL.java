@@ -8,6 +8,7 @@ import jet.opengl.postprocessing.common.GLenum;
 
 public abstract class TextureGL implements Disposeable {
 
+	String name;  // Only for debugging.
 	int textureID;
 	int target;
 	
@@ -15,6 +16,7 @@ public abstract class TextureGL implements Disposeable {
     int mipLevels;
 	
     public TextureGL() {}
+	public TextureGL(String name) {this.name = name;}
     
     public final int getTexture() { return textureID;}
     public abstract int getWidth();
@@ -24,6 +26,8 @@ public abstract class TextureGL implements Disposeable {
     public int getMipLevels() { return mipLevels;}
     public final int getTarget()  { return target; }
     public int getSampleCount() { return 1;}
+	public void setName(String name) {this.name = name;}
+	public String getName() { return name;}
 
 	/*
     public void bindImage(int unit, int access, int format){

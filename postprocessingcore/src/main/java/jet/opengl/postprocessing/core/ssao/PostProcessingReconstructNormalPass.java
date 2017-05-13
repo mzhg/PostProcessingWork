@@ -1,9 +1,17 @@
-package jet.opengl.postprocessing.core;
+package jet.opengl.postprocessing.core.ssao;
+
+import org.lwjgl.util.vector.Matrix4f;
 
 import java.io.IOException;
 
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.PostProcessingFrameAttribs;
+import jet.opengl.postprocessing.core.PostProcessingParameters;
+import jet.opengl.postprocessing.core.PostProcessingRenderContext;
+import jet.opengl.postprocessing.core.PostProcessingRenderPass;
+import jet.opengl.postprocessing.texture.SamplerDesc;
+import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.util.LogUtil;
@@ -15,7 +23,7 @@ import jet.opengl.postprocessing.util.LogUtil;
 public class PostProcessingReconstructNormalPass extends PostProcessingRenderPass {
 
     private static PostProcessingReconstructNormalProgram g_ReconstructNormalProgram = null;
-
+    private int m_SamplerPointClamp;
     public PostProcessingReconstructNormalPass() {
         super("ReconstructNormalPass");
 
@@ -33,8 +41,15 @@ public class PostProcessingReconstructNormalPass extends PostProcessingRenderPas
             }
         }
 
+        if(m_SamplerPointClamp == 0){
+            SamplerDesc desc = new SamplerDesc();
+            desc.minFilter = desc.magFilter = GLenum.GL_NEAREST;
+            m_SamplerPointClamp = SamplerUtils.createSampler(desc);
+        }
+
         Texture2D input0 = getInput(0);
         Texture2D output = getOutputTexture(0);
+        output.setName("ReconstructNormal");
         if(input0 == null){
             LogUtil.e(LogUtil.LogType.DEFAULT, "ReconstructNormalPass:: Missing input texture!");
             return;
@@ -47,7 +62,15 @@ public class PostProcessingReconstructNormalPass extends PostProcessingRenderPas
         g_ReconstructNormalProgram.setCameraMatrixs(frameAttribs.projMat, frameAttribs.getProjInvertMatrix());
         g_ReconstructNormalProgram.setTexelSize(1.0f/input0.getWidth(), 1.0f/input0.getHeight());
 
-        context.bindTexture(input0, 0, 0);
+        Matrix4f projMat = frameAttribs.projMat;
+        float x = 2.0f/projMat.m00,     // (x) * (R - L)/N
+              y = 2.0f/projMat.m11,     // (y) * (T - B)/N
+              z = -( 1.0f - projMat.m20) / projMat.m00, // L/N
+              w = -( 1.0f + projMat.m21) / projMat.m11;  // B/N
+        g_ReconstructNormalProgram.setProjInfo(x, y, z, w);
+        g_ReconstructNormalProgram.setProjOrtho(0);
+
+        context.bindTexture(input0, 0, m_SamplerPointClamp);
         context.setBlendState(null);
         context.setDepthStencilState(null);
         context.setRasterizerState(null);

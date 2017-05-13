@@ -47,7 +47,7 @@ public class CubeScene implements GLEventListener {
 	
 	private NvInputTransformer m_Transformer;
 	private GLFuncProvider gl;
-	private int m_SampleCount = 1; // MSAA count.
+	private int m_SampleCount = 4; // MSAA count.
 	private int m_SampleLastCount = 1; // MSAA count.
 
 	public CubeScene(NvInputTransformer transformer){
@@ -288,6 +288,16 @@ public class CubeScene implements GLEventListener {
 			initFramebuffers(width, height, m_SampleCount);
 		}
 	}
+	public boolean isMultiSample(){ return m_SceneColorTex.getSampleCount() > 1;}
+
+	public void resoveMultisampleTexture(){
+		gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, m_FrameBuffer);
+		gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, 0);
+		gl.glBlitFramebuffer(0,0,m_SceneColorTex.getWidth(),m_SceneColorTex.getHeight(),
+				 			 0,0,m_SceneColorTex.getWidth(),m_SceneColorTex.getHeight(),
+							 GLenum.GL_COLOR_BUFFER_BIT, GLenum.GL_NEAREST);
+		gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, 0);
+	}
 
 	void initFramebuffers(int width, int height, int sampples){
 		if(m_SceneColorTex != null){
@@ -304,9 +314,11 @@ public class CubeScene implements GLEventListener {
 		desc.sampleCount = sampples;
 
 		m_SceneColorTex = TextureUtils.createTexture2D(desc, null);
+		m_SceneColorTex.setName("SceneColor");
 
 		desc.format = GLenum.GL_DEPTH24_STENCIL8;
 		m_SceneDepthTex = TextureUtils.createTexture2D(desc, null);
+		m_SceneDepthTex.setName("SceneDepth");
 
 		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_FrameBuffer);
 		{
@@ -502,6 +514,7 @@ public class CubeScene implements GLEventListener {
 	public Matrix4f getViewMat(){ return m_SceneUbo.viewMatrix;}
 	public float getSceneNearPlane() { return m_Projection.nearplane;}
 	public float getSceneFarPlane() { return m_Projection.farplane;}
+	public float getFovInRadian()   { return (float)Math.toRadians(m_Projection.fov);}
 
 	@Override
 	public void onDestroy() {

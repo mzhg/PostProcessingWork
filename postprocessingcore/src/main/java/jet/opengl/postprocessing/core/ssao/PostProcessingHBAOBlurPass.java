@@ -4,6 +4,8 @@ import java.io.IOException;
 
 import jet.opengl.postprocessing.common.BlendState;
 import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
@@ -19,7 +21,8 @@ import jet.opengl.postprocessing.util.LogUtil;
 
 final class PostProcessingHBAOBlurPass extends PostProcessingRenderPass {
 
-    private static PostProcessingHBAOBlurProgram g_HBAOBlurProgram = null;
+    private static PostProcessingHBAOBlurProgram g_HBAOBlurProgram0 = null;
+    private static PostProcessingHBAOBlurProgram g_HBAOBlurProgram1 = null;
     private final boolean m_bMSAA;
     private final BlendState m_bsstate;
 
@@ -43,10 +46,13 @@ final class PostProcessingHBAOBlurPass extends PostProcessingRenderPass {
 
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
-        if(g_HBAOBlurProgram == null){
+        if(g_HBAOBlurProgram0 == null){
             try {
-                g_HBAOBlurProgram = new PostProcessingHBAOBlurProgram();
-                addDisposedResource(g_HBAOBlurProgram);
+                g_HBAOBlurProgram0 = new PostProcessingHBAOBlurProgram(0);
+                addDisposedResource(g_HBAOBlurProgram0);
+
+                g_HBAOBlurProgram1 = new PostProcessingHBAOBlurProgram(1);
+                addDisposedResource(g_HBAOBlurProgram1);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -65,8 +71,8 @@ final class PostProcessingHBAOBlurPass extends PostProcessingRenderPass {
         {   // first pass: blur the input to tempTex
             context.setViewport(0,0, tempTex.getWidth(), tempTex.getHeight());
             context.setVAO(null);
-            context.setProgram(g_HBAOBlurProgram);
-            g_HBAOBlurProgram.setUVAndResolution(1.0f/input0.getWidth(), 0, 40.0f); // TODO sharpness
+            context.setProgram(g_HBAOBlurProgram0);
+            g_HBAOBlurProgram0.setUVAndResolution(1.0f/input0.getWidth(), 0, 40.0f); // TODO sharpness
 
             context.bindTexture(input0, 0, 0);
             context.setBlendState(null);
@@ -80,16 +86,28 @@ final class PostProcessingHBAOBlurPass extends PostProcessingRenderPass {
         {   // second pass: blur the tempTex to output
             context.setViewport(0,0, output.getWidth(), output.getHeight());
             context.setVAO(null);
-            context.setProgram(g_HBAOBlurProgram);
-            g_HBAOBlurProgram.setUVAndResolution(0, 1.0f/input0.getHeight(), 40.0f); // TODO sharpness
+            context.setProgram(g_HBAOBlurProgram1);
+            g_HBAOBlurProgram1.setUVAndResolution(0, 1.0f/input0.getHeight(), 40.0f); // TODO sharpness
 
             context.bindTexture(tempTex, 0, 0);
-            context.setBlendState(m_bsstate);       // TODO blend enabled.
+            context.setBlendState(null);       // TODO blend enabled.
             context.setDepthStencilState(null);
             context.setRasterizerState(null);
             context.setRenderTarget(output);
 
+            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+            gl.glEnable(GLenum.GL_BLEND);
+            gl.glBlendFunc(GLenum.GL_ZERO,GLenum.GL_SRC_COLOR);
+            if(m_bMSAA){
+                gl.glEnable(GLenum.GL_SAMPLE_MASK);
+                gl.glSampleMaski(0, m_bsstate.sampleMaskValue);
+            }
+
             context.drawFullscreenQuad();
+
+            gl.glDisable(GLenum.GL_BLEND);
+            gl.glDisable(GLenum.GL_SAMPLE_MASK);
+            gl.glSampleMaski(0, ~0);
         }
 
         RenderTexturePool.getInstance().freeUnusedResource(tempTex);
