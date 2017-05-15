@@ -126,7 +126,7 @@ public class DOFBokehDemo extends NvSampleApp {
 
         {
             gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
-            gl.glDisable(GLenum.GL_DEPTH_TEST);
+//            gl.glDisable(GLenum.GL_DEPTH_TEST);
             // Apply the DOF Bokeh and render result to scene_rt2
             m_frameAttribs.sceneColorTexture = sceneBall.getSceneColor();
             m_frameAttribs.sceneDepthTexture = sceneBall.getSceneDepth();
@@ -137,8 +137,8 @@ public class DOFBokehDemo extends NvSampleApp {
             m_frameAttribs.viewMat = sceneBall.getViewMat();
             m_frameAttribs.projMat = sceneBall.getProjMat();
 
-//            m_PostProcessing.addDOFBokeh(m_focalDepth, m_focalRange, m_fStop);
-            m_PostProcessing.addDOFGaussion(m_focalDepth, m_focalRange, nearTransitionRegion, farTransitionRegion, 1, true, false);
+            m_PostProcessing.addDOFBokeh(m_focalDepth, m_focalRange, m_fStop);
+//            m_PostProcessing.addDOFGaussion(m_focalDepth, m_focalRange, nearTransitionRegion, farTransitionRegion, 1, true, false);
             m_PostProcessing.performancePostProcessing(m_frameAttribs);
         }
 

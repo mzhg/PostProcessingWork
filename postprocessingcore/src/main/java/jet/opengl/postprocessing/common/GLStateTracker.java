@@ -126,6 +126,7 @@ public class GLStateTracker {
             m_SavedStates.vao = gl.glGetInteger(GLenum.GL_VERTEX_ARRAY_BINDING);
 
         m_CurrentStates.set(m_SavedStates);
+        m_flags = 0;
     }
 
     public void setActiveTexture(int unit){
@@ -368,7 +369,7 @@ public class GLStateTracker {
                 dst.destBlend != src.destBlend ||
                 dst.destBlendAlpha != src.destBlendAlpha)
         {
-            gl.glBlendFuncSeparate(src.srcBlend,src.destBlend,src.srcBlendAlpha,src.destBlendAlpha);
+            gl.glBlendFuncSeparate(dst.srcBlend,dst.destBlend,dst.srcBlendAlpha,dst.destBlendAlpha);
 
             src.srcBlend = dst.srcBlend;
             src.srcBlendAlpha = dst.srcBlendAlpha;
@@ -378,7 +379,7 @@ public class GLStateTracker {
 
         if (dst.blendOp != src.blendOp || dst.blendOpAlpha != src.blendOpAlpha)
         {
-            gl.glBlendEquationSeparate(src.blendOp, src.blendOpAlpha);
+            gl.glBlendEquationSeparate(dst.blendOp, dst.blendOpAlpha);
 
             src.blendOp = dst.blendOp;
             src.blendOpAlpha = dst.blendOpAlpha;
@@ -959,6 +960,21 @@ public class GLStateTracker {
             blendState.set(other.blendState);
             dsState.set(other.dsState);
             rsState.set(other.rsState);
+        }
+
+        @Override
+        public String toString() {
+            return "SavedStates{" +
+                    "framebuffer=" + framebuffer +
+                    ", program=" + program +
+                    ", programPipeline=" + programPipeline +
+                    ", vao=" + vao +
+                    ", activeTextureUnit=" + activeTextureUnit +
+                    ", viewport=" + viewport +
+                    ", blendState=" + blendState +
+                    ", dsState=" + dsState +
+                    ", rsState=" + rsState +
+                    '}';
         }
     }
 }

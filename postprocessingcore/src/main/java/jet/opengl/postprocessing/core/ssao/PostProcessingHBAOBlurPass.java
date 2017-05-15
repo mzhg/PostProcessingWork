@@ -4,8 +4,6 @@ import java.io.IOException;
 
 import jet.opengl.postprocessing.common.BlendState;
 import jet.opengl.postprocessing.common.GLCheck;
-import jet.opengl.postprocessing.common.GLFuncProvider;
-import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
@@ -38,7 +36,7 @@ final class PostProcessingHBAOBlurPass extends PostProcessingRenderPass {
         m_bsstate.srcBlend = GLenum.GL_ZERO;
         m_bsstate.srcBlendAlpha = GLenum.GL_ZERO;
         m_bsstate.destBlend = GLenum.GL_SRC_COLOR;
-        m_bsstate.destBlendAlpha = GLenum.GL_ONE;
+        m_bsstate.destBlendAlpha = GLenum.GL_SRC_COLOR;
 
         m_bsstate.sampleMask = enableMSAA;
         m_bsstate.sampleMaskValue = 1 << sampleIndex;
@@ -90,24 +88,27 @@ final class PostProcessingHBAOBlurPass extends PostProcessingRenderPass {
             g_HBAOBlurProgram1.setUVAndResolution(0, 1.0f/input0.getHeight(), 40.0f); // TODO sharpness
 
             context.bindTexture(tempTex, 0, 0);
-            context.setBlendState(null);       // TODO blend enabled.
+            context.setBlendState(m_bsstate);       // TODO blend enabled.
             context.setDepthStencilState(null);
             context.setRasterizerState(null);
             context.setRenderTarget(output);
 
-            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-            gl.glEnable(GLenum.GL_BLEND);
-            gl.glBlendFunc(GLenum.GL_ZERO,GLenum.GL_SRC_COLOR);
-            if(m_bMSAA){
-                gl.glEnable(GLenum.GL_SAMPLE_MASK);
-                gl.glSampleMaski(0, m_bsstate.sampleMaskValue);
-            }
+//            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+//            gl.glEnable(GLenum.GL_BLEND);
+//            gl.glBlendFunc(GLenum.GL_ZERO,GLenum.GL_SRC_COLOR);
+//            if(m_bMSAA){
+//                gl.glEnable(GLenum.GL_SAMPLE_MASK);
+//                gl.glSampleMaski(0, m_bsstate.sampleMaskValue);
+//            }
 
             context.drawFullscreenQuad();
 
-            gl.glDisable(GLenum.GL_BLEND);
-            gl.glDisable(GLenum.GL_SAMPLE_MASK);
-            gl.glSampleMaski(0, ~0);
+//            if(m_bMSAA){
+//                gl.glDisable(GLenum.GL_SAMPLE_MASK);
+//                gl.glSampleMaski(0, -1);
+//            }
+//
+//            gl.glDisable(GLenum.GL_BLEND);
         }
 
         RenderTexturePool.getInstance().freeUnusedResource(tempTex);

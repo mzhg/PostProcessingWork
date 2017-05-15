@@ -708,4 +708,5 @@ public class NvSampleApp extends NvAppBase {
 		}
 
 	public NvTweakBar getTweakBar() { return mTweakBar; }
+	public NvInputTransformer getInputTransformer() { return m_transformer;}
 }

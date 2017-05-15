@@ -5,7 +5,6 @@ package jet.opengl.postprocessing.common;
  */
 
 public class BlendState {
-
     /**Readonly value, don't modify it. */
     public static final BlendState g_DefaultBlendState = new BlendState();
 
@@ -67,5 +66,51 @@ public class BlendState {
         result = 31 * result + sampleMaskValue;
         result = 31 * result + (sampleMask ? 1: 0);
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "BlendState{" +
+                "blendEnable=" + blendEnable +
+                ", srcBlend=" + getBlendFuncName(srcBlend) +
+                ", destBlend=" + getBlendFuncName(destBlend) +
+                ", blendOp=" + getBlendEquationName(blendOp) +
+                ", srcBlendAlpha=" + getBlendFuncName(srcBlendAlpha) +
+                ", destBlendAlpha=" + getBlendFuncName(destBlendAlpha) +
+                ", blendOpAlpha=" + getBlendEquationName(blendOpAlpha) +
+                ", sampleMask=" + sampleMask +
+                ", sampleMaskValue=" + sampleMaskValue +
+                '}';
+    }
+
+    public static String getBlendFuncName(int blend){
+        switch(blend){
+            case GLenum.GL_ZERO: return "GL_ZERO";
+            case GLenum.GL_ONE: return "GL_ONE";
+            case GLenum.GL_SRC_COLOR: return "GL_SRC_COLOR";
+            case GLenum.GL_ONE_MINUS_SRC_COLOR: return "GL_ONE_MINUS_SRC_COLOR";
+            case GLenum.GL_DST_COLOR: return "GL_DST_COLOR";
+            case GLenum.GL_ONE_MINUS_DST_COLOR: return "GL_ONE_MINUS_DST_COLOR";
+            case GLenum.GL_SRC_ALPHA: return "GL_SRC_ALPHA";
+            case GLenum.GL_ONE_MINUS_SRC_ALPHA: return "GL_ONE_MINUS_SRC_ALPHA";
+            case GLenum.GL_DST_ALPHA: return "GL_DST_ALPHA";
+            case GLenum.GL_ONE_MINUS_DST_ALPHA: return "GL_ONE_MINUS_DST_ALPHA";
+            case GLenum.GL_CONSTANT_COLOR: return "GL_CONSTANT_COLOR";
+            case GLenum.GL_ONE_MINUS_CONSTANT_COLOR: return "GL_ONE_MINUS_CONSTANT_COLOR";
+            case GLenum.GL_CONSTANT_ALPHA: return "GL_CONSTANT_ALPHA";
+            case GLenum.GL_ONE_MINUS_CONSTANT_ALPHA: return "GL_ONE_MINUS_CONSTANT_ALPHA";
+            default: return "Unkonw(" + Integer.toHexString(blend) + ')';
+        }
+    }
+
+    public static String getBlendEquationName(int blendEquation){
+        switch(blendEquation){
+            case GLenum.GL_FUNC_ADD: return "GL_FUNC_ADD";
+            case GLenum.GL_FUNC_SUBTRACT: return "GL_FUNC_SUBTRACT";
+            case GLenum.GL_FUNC_REVERSE_SUBTRACT: return "GL_FUNC_REVERSE_SUBTRACT";
+            case GLenum.GL_MIN: return "GL_MIN";
+            case GLenum.GL_MAX: return "GL_MAX";
+            default: return "Unkonw(" + Integer.toHexString(blendEquation) + ')';
+        }
     }
 }

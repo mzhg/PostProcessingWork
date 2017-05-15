@@ -27,4 +27,14 @@ public class Recti {
         this.width =width;
         this.height =height;
     }
+
+    @Override
+    public String toString() {
+        return "Recti{" +
+                "x=" + x +
+                ", y=" + y +
+                ", width=" + width +
+                ", height=" + height +
+                '}';
+    }
 }

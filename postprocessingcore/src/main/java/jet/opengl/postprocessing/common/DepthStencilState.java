@@ -1,5 +1,7 @@
 package jet.opengl.postprocessing.common;
 
+import jet.opengl.postprocessing.texture.TextureUtils;
+
 /**
  * Created by mazhen'gui on 2017/4/20.
  */
@@ -23,5 +25,17 @@ public class DepthStencilState {
         stencilEnable = o.stencilEnable;
         frontFace.set(o.frontFace);
         backFace.set(o.backFace);
+    }
+
+    @Override
+    public String toString() {
+        return "DepthStencilState{" +
+                "depthEnable=" + depthEnable +
+                ", depthWriteMask=" + depthWriteMask +
+                ", depthFunc=" + TextureUtils.getCompareModeName(depthFunc) +
+                ", stencilEnable=" + stencilEnable +
+                ", frontFace=" + frontFace +
+                ", backFace=" + backFace +
+                '}';
     }
 }

@@ -167,6 +167,7 @@ public class PostProcessing implements Disposeable{
                 m_RenderContext.renderTo(frameAttribs.sceneColorTexture, frameAttribs.outputTexture, m_bUsePortionTex? frameAttribs.clipRect: frameAttribs.viewport);
             }
 
+//            System.out.println("----------------------");
         }finally {
             GLStateTracker.getInstance().restoreStates();
             GLStateTracker.getInstance().reset();

@@ -52,7 +52,7 @@ final class PostProcessingReinterleavePass extends PostProcessingRenderPass {
             m_SamplerPointClamp = SamplerUtils.createSampler(desc);
         }
 
-        context.setViewport(0,0, output.getWidth() * 4, output.getHeight() * 4);
+        context.setViewport(0,0, output.getWidth(), output.getHeight());
         context.setVAO(null);
         context.setProgram(g_ReinterleaveProgram);
 
