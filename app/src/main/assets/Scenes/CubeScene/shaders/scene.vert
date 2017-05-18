@@ -1,5 +1,5 @@
 #version 430
-#include "../../../shader_libs/PostProcessingHBAOCommon.h"
+#include "../../../shader_libs/HBAO/PostProcessingHBAOCommon.h"
 
 #extension GL_ARB_shading_language_include : enable
 

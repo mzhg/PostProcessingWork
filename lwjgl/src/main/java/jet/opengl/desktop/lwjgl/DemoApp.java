@@ -2,7 +2,7 @@ package jet.opengl.desktop.lwjgl;
 
 import com.nvidia.developer.opengl.app.NvAppBase;
 import com.nvidia.developer.opengl.app.NvEGLConfiguration;
-import com.nvidia.developer.opengl.demos.LightingVolumeDemo;
+import com.nvidia.developer.opengl.demos.HBAODemo;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -87,6 +87,6 @@ public class DemoApp {
         });
 
 //        System.out.println(new File("").getAbsolutePath());
-        run(new LightingVolumeDemo());
+        run(new HBAODemo());
     }
 }

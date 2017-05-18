@@ -1,4 +1,4 @@
-#include "PostProcessingCommonPS.frag"
+#include "../PostProcessingCommonPS.frag"
 
 #ifndef AO_BLUR
 #define AO_BLUR 1

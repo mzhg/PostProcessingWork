@@ -24,12 +24,12 @@ final class PostProcessingHBAOProgram extends GLSLProgram{
         CharSequence vertSrc = ShaderLoader.loadShaderFile("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", false);
         CharSequence geomSrc = null;
         if(gl.isSupportExt("GL_NV_geometry_shader_passthrough")){
-            geomSrc = ShaderLoader.loadShaderFile("shader_libs/PostProcessingHBAOGS_NV.geom", false);
+            geomSrc = ShaderLoader.loadShaderFile("shader_libs/HBAO/PostProcessingHBAOGS_NV.geom", false);
         }else{
-            geomSrc = ShaderLoader.loadShaderFile("shader_libs/PostProcessingHBAOGS.geom", false);
+            geomSrc = ShaderLoader.loadShaderFile("shader_libs/HBAO/PostProcessingHBAOGS.geom", false);
         }
 
-        CharSequence fragSrc = ShaderLoader.loadShaderFile("shader_libs/PostProcessingHBAOPS.frag", false);
+        CharSequence fragSrc = ShaderLoader.loadShaderFile("shader_libs/HBAO/PostProcessingHBAOPS.frag", false);
 
         ShaderSourceItem vs_item = new ShaderSourceItem(vertSrc, ShaderType.VERTEX);
         ShaderSourceItem gs_item = new ShaderSourceItem(geomSrc, ShaderType.GEOMETRY);

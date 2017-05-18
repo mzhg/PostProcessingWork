@@ -14,7 +14,7 @@ final class PostProcessingDeinterleaveProgram extends GLSLProgram{
     private int centerIndex = -1;
 
     public PostProcessingDeinterleaveProgram() throws IOException {
-        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingHBAODeinterleavePS.frag");
+        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/HBAO/PostProcessingHBAODeinterleavePS.frag");
 
         enable();
         int iChannel0Loc = getUniformLocation("g_LinearDepthTex");

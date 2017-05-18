@@ -10,7 +10,7 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 
 final class PostProcessingReinterleaveProgram extends GLSLProgram{
     public PostProcessingReinterleaveProgram() throws IOException {
-        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingHBAOReinterleavePS.frag");
+        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/HBAO/PostProcessingHBAOReinterleavePS.frag");
 
         enable();
         int iChannel0Loc = getUniformLocation("texResultsArray");

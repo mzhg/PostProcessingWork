@@ -1,4 +1,4 @@
-#include "PostProcessingCommon.glsl"
+#include "../PostProcessingCommon.glsl"
 
 #if GL_ES
 precision highp float;

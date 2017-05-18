@@ -23,7 +23,7 @@ public class PostProcessingReconstructNormalProgram extends GLSLProgram{
     private int projOrthoIndex;
 
     public PostProcessingReconstructNormalProgram() throws IOException {
-        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingReconstructNormalPS.frag");
+        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/HBAO/PostProcessingReconstructNormalPS.frag");
 
         enable();
         int iChannel0Loc = getUniformLocation("g_LinearDepthTex");

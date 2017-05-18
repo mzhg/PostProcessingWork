@@ -185,6 +185,8 @@ public class GLSLProgram implements OpenGLProgram{
 					if(m.value instanceof Boolean){
 						Boolean value = (Boolean)m.value;
 						macroString.append(value.booleanValue() ? 1 : 0);
+					}else if(m.value.getClass().isEnum()){
+						macroString.append(((Enum<?>)m.value).ordinal());
 					}else{
 						macroString.append(m.value.toString());
 					}

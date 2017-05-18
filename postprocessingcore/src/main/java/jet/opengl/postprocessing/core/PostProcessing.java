@@ -49,6 +49,7 @@ public class PostProcessing implements Disposeable{
     public static final String DOF_BOKEH = "DOF_BOKEH";
     public static final String DOF_GAUSSION = "DOF_GAUSSION";
     public static final String HBAO = "HBAO";
+    public static final String VOLUMETRIC_LIGHTING = "VOLUMETRIC_LIGHTING";
 
     private static final int NUM_TAG_CACHE = 32;
 
@@ -63,6 +64,7 @@ public class PostProcessing implements Disposeable{
     public static final int HBAO_PRIPORTY = 1;
 
     public static final int EYE_ADAPATION_PRIPORTY = -100;
+    public static final int VOLUMETRIC_LIGHTING_PRIPORTY = 10;
 
     private PostProcessingRenderContext m_RenderContext;
 

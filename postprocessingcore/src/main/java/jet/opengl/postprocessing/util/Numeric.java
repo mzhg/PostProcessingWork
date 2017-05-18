@@ -3,6 +3,7 @@ package jet.opengl.postprocessing.util;
 public final class Numeric {
 	
 	public static final float PI = (float)Math.PI;
+	public static final float EPSILON =1.e-6f;
 	
 	public static final int MAX_UBYTE = 255;
 	public static final int MAX_USHORT = 65535;

@@ -6,7 +6,7 @@ https://github.com/NVIDIAGameWorks/D3DSamples/tree/master/samples/DeinterleavedT
 
 #version 430
 
-#include "PostProcessingCommonPS.frag"
+#include "../PostProcessingCommonPS.frag"
 #include "PostProcessingHBAOCommon.h"
 
 #ifndef AO_DEINTERLEAVED

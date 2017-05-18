@@ -1,4 +1,4 @@
-#include "PostProcessingCommonPS.frag"
+#include "../PostProcessingCommonPS.frag"
 
 
 // uniform mat4 g_ProjMat;

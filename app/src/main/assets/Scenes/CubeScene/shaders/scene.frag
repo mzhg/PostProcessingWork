@@ -2,7 +2,7 @@
 /**/
 
 #extension GL_ARB_shading_language_include : enable
-#include "../../../shader_libs/PostProcessingHBAOCommon.h"
+#include "../../../shader_libs/HBAO/PostProcessingHBAOCommon.h"
 
 layout(std140,binding=UBO_SCENE) uniform sceneBuffer {
   SceneData   scene;

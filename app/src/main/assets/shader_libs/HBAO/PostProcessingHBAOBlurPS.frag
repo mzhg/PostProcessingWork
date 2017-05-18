@@ -1,4 +1,4 @@
-#include "PostProcessingCommonPS.frag"
+#include "../PostProcessingCommonPS.frag"
 
 const float KERNEL_RADIUS = 3;
 

@@ -1497,4 +1497,21 @@ public interface GLFuncProvider {
      * @param mask  the new value of the mask sub-word
      */
     void glSampleMaski(int index, int mask);
+
+    /** perform a raw data copy between two images */
+    void glCopyImageSubData(int srcName,
+                            int srcTarget,
+                            int srcLevel,
+                            int srcX,
+                            int srcY,
+                            int srcZ,
+                            int dstName,
+                            int dstTarget,
+                            int dstLevel,
+                            int dstX,
+                            int dstY,
+                            int dstZ,
+                            int srcWidth,
+                            int srcHeight,
+                            int srcDepth);
 }

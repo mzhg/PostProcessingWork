@@ -15,7 +15,7 @@ final class PostProcessingHBAOBlurProgram extends GLSLProgram{
     private int centerIndex = -1;
 
     public PostProcessingHBAOBlurProgram(int blur_present ) throws IOException {
-        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingHBAOBlurPS.frag",
+        setSourceFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/HBAO/PostProcessingHBAOBlurPS.frag",
                 new Macro("AO_BLUR_PRESENT", blur_present));
 
         enable();
