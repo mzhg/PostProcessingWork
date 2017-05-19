@@ -18,7 +18,6 @@ final class PostProcessingPrecomputedPointLightInscatteringPass extends PostProc
 
     private VolumetricLightingProgram g_PrecomputePointLightInsctrTech = null;
     private SharedData m_sharedData;
-    private boolean m_invoked = false;
     private Texture2D m_ptex2DPrecomputedPointLightInsctrSRV;
 
     public PostProcessingPrecomputedPointLightInscatteringPass(SharedData sharedData) {
@@ -33,7 +32,7 @@ final class PostProcessingPrecomputedPointLightInscatteringPass extends PostProc
 
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
-        if(m_invoked)
+        if(!m_sharedData.m_bRecomputeSctrCoeffs)
             return;
 
         InscaterringIntegralEvalution m_uiInsctrIntglEvalMethod = m_sharedData.m_ScatteringInitAttribs.m_uiInsctrIntglEvalMethod;
@@ -64,7 +63,6 @@ final class PostProcessingPrecomputedPointLightInscatteringPass extends PostProc
 
         context.drawFullscreenQuad();
         g_PrecomputePointLightInsctrTech.dispose();  // release the program.
-        m_invoked = true;
     }
 
     @Override

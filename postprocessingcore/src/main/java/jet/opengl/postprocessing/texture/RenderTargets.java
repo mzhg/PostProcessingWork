@@ -126,6 +126,9 @@ public class RenderTargets implements Disposeable{
         for (int i = 0; i < textures.length; i++)
         {
             TextureGL pTex = textures[i];
+            if(pTex == null)
+                continue;
+
             TextureAttachDesc desc = descs[i];
             int index = desc.index;
 

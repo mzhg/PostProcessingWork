@@ -9,7 +9,6 @@ import java.util.Arrays;
 import jet.opengl.postprocessing.common.DepthStencilState;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingFrameAttribs;
-import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
@@ -36,6 +35,11 @@ final class SharedData {
 
     // Shadred Stencil mask texture2D
     private Texture2D m_ptex2DEpipolarImageDSV;
+    private Texture2D m_ptex2DDownsampleDSV;
+    private Texture2D m_ptex2DDownsampleRTV;
+
+    private Texture2D m_ptex2DScreenSizedDSV;
+    private Texture2D m_ptex2DScreenSizedRTV;
 
     private VolumetricLightingProgram m_ReconstrCamSpaceZTech;
     private VolumetricLightingProgram m_RendedSliceEndpointsTech;
@@ -60,7 +64,7 @@ final class SharedData {
      */
     private VolumetricLightingProgram[] m_FixInsctrAtDepthBreaksTech = new VolumetricLightingProgram[2];
     private VolumetricLightingProgram m_UpscaleInsctrdRadianceTech;
-    private GLSLProgram m_RenderSampleLocationsTech;
+    private VolumetricLightingProgram m_RenderSampleLocationsTech;
 
     int m_psamLinearClamp = 0;
     int m_psamLinearBorder0 = 0;
@@ -70,11 +74,14 @@ final class SharedData {
     int m_uiSampleRefinementCSThreadGroupSize;
     int m_uiSampleRefinementCSMinimumThreadGroupSize = 128;
 
+    boolean m_bRecomputeSctrCoeffs;
+
     // stencil state
     DepthStencilState m_pDisableDepthTestIncrStencilDS;
     DepthStencilState m_pNoDepth_StEqual_IncrStencilDS;
 
-    SharedData(){
+    SharedData(PostProcessingFrameAttribs frameAttribs){
+        m_CommonFrameAttribs = frameAttribs;
         m_pDisableDepthTestIncrStencilDS = new DepthStencilState();
         m_pDisableDepthTestIncrStencilDS.depthEnable = false;
         m_pDisableDepthTestIncrStencilDS.stencilEnable = true;
@@ -110,8 +117,6 @@ final class SharedData {
      * @param frameAttribs
      */
     void prepare(PostProcessingFrameAttribs commonAttribs, LightScatteringInitAttribs initAttribs, LightScatteringFrameAttribs frameAttribs){
-        m_CommonFrameAttribs = commonAttribs;
-
         boolean bReconstructMacros = false;
         if(m_ScatteringInitAttribs == null){
             m_ScatteringInitAttribs = new LightScatteringInitAttribs();
@@ -140,15 +145,15 @@ final class SharedData {
             m_MacrosWithFrag[m_Macros.length] = new Macro("__FRAG_SHADER__", 1);
         }
 
-        boolean bRecomputeSctrCoeffs = false;
+        m_bRecomputeSctrCoeffs = false;
 
         if(m_ScatteringFrameAttribs == null){
             m_ScatteringFrameAttribs = new LightScatteringFrameAttribs();
-            bRecomputeSctrCoeffs = true;
+            m_bRecomputeSctrCoeffs = true;
         }
 
-        if(!bRecomputeSctrCoeffs) {
-            bRecomputeSctrCoeffs = m_ScatteringFrameAttribs.m_fDistanceScaler != frameAttribs.m_fDistanceScaler ||
+        if(!m_bRecomputeSctrCoeffs) {
+            m_bRecomputeSctrCoeffs = m_ScatteringFrameAttribs.m_fDistanceScaler != frameAttribs.m_fDistanceScaler ||
                     !m_ScatteringFrameAttribs.m_f4RayleighBeta.equals(frameAttribs.m_f4RayleighBeta) ||
                     !m_ScatteringFrameAttribs.m_f4MieBeta.equals(frameAttribs.m_f4MieBeta)
 //                   || m_ScatteringInitAttribs.m_uiInsctrIntglEvalMethod != initAttribs.m_uiInsctrIntglEvalMethod ||  TODO  Redundant check
@@ -156,7 +161,7 @@ final class SharedData {
                     ;
         }
 
-        if(bRecomputeSctrCoeffs){
+        if(m_bRecomputeSctrCoeffs){
             computeScatteringCoefficients();
         }
 
@@ -254,6 +259,64 @@ final class SharedData {
             program.setUniform(miscParams);
     }
 
+    VolumetricLightingProgram getRenderSampleLocationsProgram(){
+        if(m_RenderSampleLocationsTech == null){
+            m_RenderSampleLocationsTech = new VolumetricLightingProgram("RenderSamplePositions.vert", "RenderSamplePositions.geom", "RenderSamplePositions.frag", getMacros());
+        }
+
+        return m_RenderSampleLocationsTech;
+    }
+
+    VolumetricLightingProgram getUpscaleInsctrdRadianceProgram(){
+        if(m_UpscaleInsctrdRadianceTech == null){
+            m_UpscaleInsctrdRadianceTech = new VolumetricLightingProgram("UpscaleInscatteredRadiance.frag", getMacros());
+        }
+
+        return m_UpscaleInsctrdRadianceTech;
+    }
+
+    VolumetricLightingProgram getFixInsctrAtDepthBreaksProgram(boolean bAttenuateBackground){
+        VolumetricLightingProgram fixInsctrAtDepthBreaksTech = m_FixInsctrAtDepthBreaksTech[bAttenuateBackground ? 1 : 0];
+        if(fixInsctrAtDepthBreaksTech == null){
+            fixInsctrAtDepthBreaksTech = m_FixInsctrAtDepthBreaksTech[bAttenuateBackground ? 1 : 0]
+                    = new VolumetricLightingProgram((bAttenuateBackground ? "FixAndApplyInscatteredRadiance.frag" : "FixInscatteredRadiance.frag"), getMacros());
+        }
+
+        return fixInsctrAtDepthBreaksTech;
+    }
+
+    VolumetricLightingProgram getRayMarchProgram(){
+        final int slot = m_ScatteringInitAttribs.m_uiAccelStruct.ordinal() > 0 ? 1 : 0;
+        VolumetricLightingProgram doRayMarchTech = m_DoRayMarchTech[slot];
+        if(doRayMarchTech == null){
+            String filename = slot > 0 ? "RayMarchMinMaxOpt.frag" : "RayMarch.frag";
+            doRayMarchTech = m_DoRayMarchTech[slot] = new VolumetricLightingProgram(filename, getMacros());
+        }
+
+        return doRayMarchTech;
+    }
+
+    VolumetricLightingProgram getUnwarpEpipolarSctrImgTechProgram(){
+        int iApplyBackground = (m_ScatteringInitAttribs.m_iDownscaleFactor == 1) ? 1 : 0;
+        VolumetricLightingProgram unwarpEpipolarSctrImgTech = m_UnwarpEpipolarSctrImgTech[iApplyBackground];
+
+        if(unwarpEpipolarSctrImgTech == null){
+            String filename = iApplyBackground != 0 ? "ApplyInscatteredRadiance.frag" : "UnwarpEpipolarInsctrImage.frag";
+            unwarpEpipolarSctrImgTech = m_UnwarpEpipolarSctrImgTech[iApplyBackground] = new VolumetricLightingProgram(filename, getMacros(true));
+        }
+
+        return unwarpEpipolarSctrImgTech;
+    }
+
+    VolumetricLightingProgram getInterpolateIrradianceProgram(){
+        if(m_InterpolateIrradianceTech == null){
+            m_InterpolateIrradianceTech = new VolumetricLightingProgram("InterpolateIrradiance.frag", getMacros());
+        }
+
+        return m_InterpolateIrradianceTech;
+    }
+
+
     VolumetricLightingProgram getComputeMinMaxSMLevelProgram(){
         if(m_ComputeMinMaxSMLevelTech == null){
             m_ComputeMinMaxSMLevelTech = new VolumetricLightingProgram("ComputeMinMaxShadowMapLevel.frag", getMacros());
@@ -330,9 +393,58 @@ final class SharedData {
         return m_ptex2DEpipolarImageDSV;
     }
 
+    Texture2D getDownsampleDSV(){
+        if(m_ptex2DDownsampleDSV == null){
+            Texture2DDesc desc = new Texture2DDesc(m_ScatteringInitAttribs.m_uiBackBufferWidth/m_ScatteringInitAttribs.m_iDownscaleFactor,
+                                                    m_ScatteringInitAttribs.m_uiBackBufferHeight/m_ScatteringInitAttribs.m_iDownscaleFactor,
+                                                    GLenum.GL_DEPTH24_STENCIL8);
+            m_ptex2DDownsampleDSV = TextureUtils.createTexture2D(desc, null);
+        }
+
+        return m_ptex2DDownsampleDSV;
+    }
+
+    Texture2D getDownsampleRTV(){
+        if(m_ptex2DDownsampleRTV == null){
+            Texture2DDesc desc = new Texture2DDesc(m_ScatteringInitAttribs.m_uiBackBufferWidth/m_ScatteringInitAttribs.m_iDownscaleFactor,
+                    m_ScatteringInitAttribs.m_uiBackBufferHeight/m_ScatteringInitAttribs.m_iDownscaleFactor,
+                    GLenum.GL_RGBA8);
+            m_ptex2DDownsampleRTV = TextureUtils.createTexture2D(desc, null);
+        }
+
+        return m_ptex2DDownsampleRTV;
+    }
+
+    Texture2D getScreenSizedDSV(){
+        if(m_CommonFrameAttribs.outputTexture != null &&
+                m_CommonFrameAttribs.outputTexture.getWidth() == m_ScatteringInitAttribs.m_uiBackBufferWidth &&
+                m_CommonFrameAttribs.outputTexture.getHeight() == m_ScatteringInitAttribs.m_uiBackBufferHeight) {
+            return m_CommonFrameAttribs.outputTexture;
+        }
+
+        if(m_ptex2DScreenSizedDSV == null){
+            Texture2DDesc desc = new Texture2DDesc(m_ScatteringInitAttribs.m_uiBackBufferWidth,
+                                                    m_ScatteringInitAttribs.m_uiBackBufferHeight,
+                                                    GLenum.GL_DEPTH24_STENCIL8);
+            m_ptex2DScreenSizedDSV = TextureUtils.createTexture2D(desc, null);
+        }
+
+        return m_ptex2DScreenSizedDSV;
+    }
+
+    Texture2D getScreenSizedRTV(){
+        if(m_ptex2DScreenSizedRTV == null){
+            Texture2DDesc desc = new Texture2DDesc(m_ScatteringInitAttribs.m_uiBackBufferWidth,
+                                                   m_ScatteringInitAttribs.m_uiBackBufferHeight,
+                                                   GLenum.GL_RGBA8);
+            m_ptex2DScreenSizedRTV = TextureUtils.createTexture2D(desc, null);
+        }
+
+        return m_ptex2DScreenSizedRTV;
+    }
+
     Macro[] getMacros() { return getMacros(false);}
     Macro[] getMacros(boolean includeFrag) { return includeFrag ? m_MacrosWithFrag:m_Macros;}
-    boolean use32FP() { return false;}
 
     private void computeScatteringCoefficients(/*ID3D11DeviceContext *pDeviceCtx = NULL*/){
         m_MediaParams.f4TotalRayleighBeta.set(m_ScatteringFrameAttribs.m_f4RayleighBeta);
@@ -492,6 +604,26 @@ final class SharedData {
         if(m_RenderSampleLocationsTech != null){
             m_RenderSampleLocationsTech.dispose();
             m_RenderSampleLocationsTech = null;
+        }
+
+        if(m_ptex2DDownsampleDSV != null){
+            m_ptex2DDownsampleDSV.dispose();
+            m_ptex2DDownsampleDSV = null;
+        }
+
+        if(m_ptex2DDownsampleRTV != null){
+            m_ptex2DDownsampleRTV.dispose();
+            m_ptex2DDownsampleRTV = null;
+        }
+
+        if(m_ptex2DScreenSizedRTV != null){
+            m_ptex2DScreenSizedRTV.dispose();
+            m_ptex2DScreenSizedRTV = null;
+        }
+
+        if(m_ptex2DScreenSizedDSV != null){
+            m_ptex2DScreenSizedDSV.dispose();
+            m_ptex2DScreenSizedDSV = null;
         }
     }
 }
