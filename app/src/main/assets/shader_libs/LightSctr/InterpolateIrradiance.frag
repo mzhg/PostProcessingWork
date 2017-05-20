@@ -1,7 +1,5 @@
 #include "PostProcessingLightScatteringCommon.frag"
 
-in float4 UVAndScreenPos;
-
 layout(location = 0) out float4 OutColor;
 
 void main()

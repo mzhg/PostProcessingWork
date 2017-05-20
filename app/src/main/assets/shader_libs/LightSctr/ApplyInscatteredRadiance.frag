@@ -1,7 +1,5 @@
 #include "PostProcessingLightScatteringCommon.frag"
 
-in float4 UVAndScreenPos;
-
 // The scene correction just work for the static scene test.
 #if CORRECT_STATIC_SCENE == 0
 //layout(origin_upper_left) in vec4 gl_FragCoord;

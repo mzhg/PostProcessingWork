@@ -1,13 +1,11 @@
 
 #include "PostProcessingLightScatteringCommon.frag"
 
-in float4 UVAndScreenPos;
-
 layout(location = 0) out float3 OutColor;
 
 void main()
 {
-	float2 f2UV = UVAndScreenPos.xy;  //ProjToUV(In.m_f2PosPS);
+	float2 f2UV = m_f4UVAndScreenPos.xy;  //ProjToUV(In.m_f2PosPS);
 
     // We need to manually perform bilateral filtering of the downscaled scattered radiance texture to
     // eliminate artifacts at depth discontinuities
@@ -36,7 +34,7 @@ void main()
 
     float3 f3InsctrIntegral = PerformBilateralInterpolation(f2BilinearWeights, f2LeftBottomSrcTexelUV, f4SrcLocationsCamSpaceZ, fCamSpaceZ, g_tex2DDownscaledInsctrRadiance, f2DownscaledInsctrTexDim/*, samLinearClamp*/);
     
-    float3 f3ReconstructedPosWS = ProjSpaceXYZToWorldSpace( float3(UVAndScreenPos.zw,fCamSpaceZ) );
+    float3 f3ReconstructedPosWS = ProjSpaceXYZToWorldSpace( float3(m_f4UVAndScreenPos.zw,fCamSpaceZ) );
     float3 f3EyeVector = f3ReconstructedPosWS.xyz - g_f4CameraPos.xyz;
     float fDistToCamera = length(f3EyeVector);
 

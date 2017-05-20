@@ -1,8 +1,6 @@
 
 #include "CalculateInscattering.frag"
 
-in float4 UVAndScreenPos;
-
 layout(location = 0) out float3 OutColor;
 
 void main()

@@ -1,29 +1,12 @@
 
 #include "CalculateInscattering.frag"
 
-// Set TEST_STATIC_SCENE_FLIP true, can make the pixels print as same as the directx form.
-//#define TEST_STATIC_SCENE_FLIP 1
-
-/*
-#if TEST_STATIC_SCENE
-layout(origin_upper_left) in vec4 gl_FragCoord;
-#endif
-*/
-
-// The scene correction just work for the static scene test.
-#if CORRECT_STATIC_SCENE == 0
-//layout(origin_upper_left) in vec4 gl_FragCoord;
-#endif
-
-//layout(origin_upper_left) in vec4 gl_FragCoord;
-in float4 UVAndScreenPos;
-
 layout(location = 0) out float3 OutColor;
 layout(location = 1) out float4 InsctrColor;
 
 void main()
 {
-	float2 f2PosPS = UVAndScreenPos.zw;
+	float2 f2PosPS = m_f4UVAndScreenPos.zw;
 #if CORRECT_STATIC_SCENE == 1
 	// remap the lower-left corner to upper_left corner.
 	f2PosPS.y = -f2PosPS.y;

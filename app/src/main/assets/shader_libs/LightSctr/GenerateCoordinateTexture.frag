@@ -1,8 +1,6 @@
 
 #include "PostProcessingLightScatteringCommon.frag"
 
-in float4 UVAndScreenPos;
-
 layout(location = 0) out float2 f2XY;
 layout(location = 1) out float fCamSpaceZ;
 
@@ -22,7 +20,7 @@ void main()
         discard;
     }
 
-    float2 f2UV = UVAndScreenPos.xy;  //ProjToUV(In.m_f2PosPS);
+    float2 f2UV = m_f4UVAndScreenPos.xy;  //ProjToUV(In.m_f2PosPS);
 
     // Note that due to the rasterization rules, UV coordinates are biased by 0.5 texel size.
     //

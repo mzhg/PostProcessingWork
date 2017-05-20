@@ -1,8 +1,6 @@
 
 #include "PostProcessingLightScatteringCommon.frag"
 
-in float4 UVAndScreenPos;
-
 layout(location = 0) out float4 OutColor;
 
 void main()
@@ -21,8 +19,8 @@ void main()
 	    //                  \
 	    //                  fStartDistFromProjection
 	    //
-	    float2 f2UV = UVAndScreenPos.xy; //ProjToUV(In.m_f2PosPS.xy);
-	    float fStartDistFromProjection = /*In.m_f2PosPS.x*/ UVAndScreenPos.z * fMaxTracingDistance;
+	    float2 f2UV = m_f4UVAndScreenPos.xy; //ProjToUV(In.m_f2PosPS.xy);
+	    float fStartDistFromProjection = /*In.m_f2PosPS.x*/ m_f4UVAndScreenPos.z * fMaxTracingDistance;
 	    float fClosestDistToLight = f2UV.y * fMaxTracingDistance;
 
 	    float3 f3InsctrRadinance = float3(0);
@@ -61,7 +59,7 @@ void main()
 	#elif INSCTR_INTGL_EVAL_METHOD == INSCTR_INTGL_EVAL_METHOD_SRNN05
 	    
 	    float fPrecomputedFuncValue = 0;
-	    float2 f2UV = UVAndScreenPos.xy; //ProjToUV(In.m_f2PosPS.xy);
+	    float2 f2UV = m_f4UVAndScreenPos.xy; //ProjToUV(In.m_f2PosPS.xy);
 	    f2UV *= GetSRNN05LUTParamLimits();
 	    float fKsiStep = dFdy(f2UV.y);
 	    for(float fKsi = 0; fKsi < f2UV.y; fKsi += fKsiStep)

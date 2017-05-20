@@ -1,8 +1,6 @@
 
 #include "PostProcessingLightScatteringCommon.frag"
 
-in float4 UVAndScreenPos;
-
 layout(location = 0) out float4 OutColor;
 
 //Note that min/max shadow map does not contain finest resolution level

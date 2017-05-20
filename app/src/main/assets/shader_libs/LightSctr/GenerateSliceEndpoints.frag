@@ -1,8 +1,6 @@
 
 #include "PostProcessingLightScatteringCommon.frag"
 
-in float4 UVAndScreenPos;
-
 layout(location = 0) out float4 OutColor;
 
 //This function computes entry point of the epipolar line given its exit point
@@ -99,7 +97,7 @@ float2 GetEpipolarLineEntryPoint(float2 f2ExitPoint)
 
 void main()
 {
-	float2 f2UV = UVAndScreenPos.xy; //ProjToUV(In.m_f2PosPS);
+	float2 f2UV = m_f4UVAndScreenPos.xy; //ProjToUV(In.m_f2PosPS);
 
     // Note that due to the rasterization rules, UV coordinates are biased by 0.5 texel size.
     //

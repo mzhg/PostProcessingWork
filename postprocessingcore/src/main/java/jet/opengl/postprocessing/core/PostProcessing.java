@@ -23,6 +23,8 @@ import jet.opengl.postprocessing.core.light.PostProcessingLightEffect;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
 import jet.opengl.postprocessing.core.ssao.PostProcessingHBAOEffect;
 import jet.opengl.postprocessing.core.toon.PostProcessingToonEffect;
+import jet.opengl.postprocessing.core.volumetricLighting.LightScatteringFrameAttribs;
+import jet.opengl.postprocessing.core.volumetricLighting.LightScatteringInitAttribs;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
@@ -31,6 +33,7 @@ import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.RecycledPool;
 
 /**
  * Created by mazhen'gui on 2017/4/17.
@@ -82,6 +85,7 @@ public class PostProcessing implements Disposeable{
     private boolean m_SplitScreenDebug;
     private boolean m_bUsePortionTex;
     private Texture2D m_DefaultLensMask;
+    private RecycledPool<LightScatteringInitAttribs> m_LightScatteringInitAttribsPool;
 
     public PostProcessing(){
         m_Parameters = new PostProcessingParameters(this);
@@ -238,6 +242,13 @@ public class PostProcessing implements Disposeable{
 
             PostProcessingRenderPassInput colorInputPass = new PostProcessingRenderPassInput("SceneColor", frameAttribs.sceneColorTexture);
             PostProcessingRenderPassInput depthInputPass = new PostProcessingRenderPassInput("SceneDepth", frameAttribs.sceneDepthTexture);
+            PostProcessingRenderPassInput shadowMapInput = new PostProcessingRenderPassInput("shadowMap", frameAttribs.shadowMapTexture);
+
+            PostProcessingCommonData commonData = new PostProcessingCommonData();
+            commonData.frameAttribs = frameAttribs;
+            commonData.sceneColorTexture = colorInputPass;
+            commonData.sceneDepthTexture = depthInputPass;
+            commonData.shadowMapTexture = shadowMapInput;
 
 //            m_AddedRenderPasses.put("SceneColor", colorInputPass);  TODO maybe cause problems
 //            m_AddedRenderPasses.put("SceneDepth", depthInputPass);
@@ -254,7 +265,7 @@ public class PostProcessing implements Disposeable{
                 effect.uniformValue = effectTag.uniformValue;
                 effect.m_Parameters = m_Parameters;
 
-                effect.fillRenderPass(this, colorInputPass, depthInputPass);
+                effect.fillRenderPass(this, commonData);
             }
 
             if(m_LastAddedPass != null) {
@@ -289,6 +300,26 @@ public class PostProcessing implements Disposeable{
 
     public PostProcessingRenderPass findPass(String name){
         return m_AddedRenderPasses.get(name);
+    }
+
+    private PostProcessingEffect findEffect(String name){
+        return m_RegisteredEffects.get(name);
+    }
+
+    public void addVolumeLight(LightScatteringInitAttribs initAttribs, LightScatteringFrameAttribs frameAttribs){
+        PostProcessingEffect effect = findEffect(VOLUMETRIC_LIGHTING);
+        LightScatteringInitAttribs initAttribsCopyed = null;
+        if(m_LightScatteringInitAttribsPool == null){
+            m_LightScatteringInitAttribsPool = new RecycledPool<>(()->new LightScatteringInitAttribs(), 2);
+        }
+
+        initAttribsCopyed = m_LightScatteringInitAttribsPool.obtain();
+        initAttribsCopyed.set(initAttribs);
+
+        effect.initValue = initAttribs;
+        effect.uniformValue = frameAttribs;
+
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), initAttribsCopyed, null));
     }
 
     public void addHBAO(){
