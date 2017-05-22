@@ -209,19 +209,6 @@ float3 ApplyPhaseFunction(in float3 f3InsctrIntegral, in float cosTheta)
     return f3InscatteredLight;
 }
 
-#if TEST_STATIC_SCENE == 1
-
-float3 ProjSpaceXYZToWorldSpace(in float3 f3PosPS)
-{
-    // We need to compute depth before applying view-proj inverse matrix
-    float fDepth = g_Proj[2][2] + g_Proj[3][2] / f3PosPS.z;
-    float4 ReconstructedPosWS = mul( float4(f3PosPS.xy,fDepth,1), g_ViewProjInv );
-    ReconstructedPosWS /= ReconstructedPosWS.w;
-    return ReconstructedPosWS.xyz;
-}
-
-#else
-
 float3 ProjSpaceXYZToWorldSpace(in float3 f3PosPS)
 {
     // We need to compute depth before applying view-proj inverse matrix
@@ -235,10 +222,8 @@ float3 ProjSpaceXYZToWorldSpace(in float3 f3PosPS)
     float4 projPosition = float4(f3PosPS.xy, fDepth, 1) /** f3PosPS.z*/;
     float4 ReconstructedPosWS = g_ViewProjInv * projPosition;
     ReconstructedPosWS /= ReconstructedPosWS.w;
-    return ReconstructedPosWS.xyz; 
+    return ReconstructedPosWS.xyz;
 }
-
-#endif
 
 float Sign(float v)
 {
@@ -304,20 +289,6 @@ bool PlanePlaneIntersect(float3 f3N1, float3 f3P1, float3 f3N2, float3 f3P2,
     return true;
 }
 
-#if TEST_STATIC_SCENE == 1
-
-float2 ProjToUV(in float2 f2ProjSpaceXY)
-{
-    return float2(0.5, 0.5) + float2(0.5, -0.5) * f2ProjSpaceXY;
-}
-
-float2 UVToProj(in float2 f2UV)
-{
-    return float2(-1.0, 1.0) + float2(2.0, -2.0) * f2UV;
-}
-
-#else
-
 float2 ProjToUV(in float2 f2ProjSpaceXY)
 {
     return 0.5 + 0.5 * f2ProjSpaceXY;
@@ -327,8 +298,6 @@ float2 UVToProj(in float2 f2UV)
 {
     return -1.0 + 2.0 * f2UV;
 }
-
-#endif
 
 float GetCamSpaceZ(in float2 ScreenSpaceUV)
 {

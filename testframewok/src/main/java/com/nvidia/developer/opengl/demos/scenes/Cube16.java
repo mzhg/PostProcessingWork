@@ -4,6 +4,7 @@ import com.nvidia.developer.opengl.app.GLEventListener;
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvInputTransformer;
 import com.nvidia.developer.opengl.app.NvKey;
+import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.ui.NvTweakBar;
 import com.nvidia.developer.opengl.ui.NvTweakVarBase;
@@ -239,15 +240,21 @@ public class Cube16 implements GLEventListener {
 		fullscreenProgram.disable();
 	}
 	
-	public boolean handleKeyInput(int code, int action) {
-		switch (code) {
-        case NvKey.K_V:
-        	m_pScene.toggleViewpoint();
-        	return true;
-        
-		default:
-			return false;
+	public boolean handleKeyInput(int code, NvKeyActionType action) {
+		if(action == NvKeyActionType.DOWN) {
+			switch (code) {
+				case NvKey.K_V:
+					m_pScene.toggleViewpoint();
+					return true;
+				case NvKey.K_L:
+					m_pScene.toggleLightMode();
+					return true;
+				default:
+					return false;
+			}
 		}
+
+		return false;
 	}
 	
 	private void renderShadowMap(){
@@ -257,29 +264,39 @@ public class Cube16 implements GLEventListener {
 		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_RenderTarget);
 		gl.glViewport(0, 0, m_pShadowMap.getWidth(), m_pShadowMap.getHeight());
     	BaseProgram program;
-    	if(m_pScene.getLightMode() == LIGHT_TYPE_POINT){
+//    	if(m_pScene.getLightMode() == LIGHT_TYPE_POINT){
 //    		rtManager.setTexture2DArrayRenderTarget(0, pParaboloidShadowMap_.getTexture());
 //    		rtManager.clearDepthStencilTarget(1, 0);
 //    		GL41.glViewportIndexedf(0, 0, 0, Scene.SHADOWMAP_RESOLUTION, Scene.SHADOWMAP_RESOLUTION);
 //    		GL41.glViewportIndexedf(1, 0, 0, Scene.SHADOWMAP_RESOLUTION, Scene.SHADOWMAP_RESOLUTION);
-//    		
+//
 //    		GLError.checkError();
 //    		if(depthGSProgram == null)
 //    			depthGSProgram  = new DepthGSProgram(this);
 //    		program = depthGSProgram;
-    		
-    		throw new RuntimeException();
-    	}else{
-			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
-    		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, m_pShadowMap.getTarget(), m_pShadowMap.getTexture(), 0);
-    		gl.glDrawBuffers(GLenum.GL_NONE);
-    		
-    		GLCheck.checkError();
-    		if(m_DepthProgram == null)
-    			m_DepthProgram = new DepthProgram(null);
-    		
-    		program = m_DepthProgram;
-    	}
+//
+//    		throw new RuntimeException();
+//    	}else{
+//			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
+//    		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, m_pShadowMap.getTarget(), m_pShadowMap.getTexture(), 0);
+//    		gl.glDrawBuffers(GLenum.GL_NONE);
+//
+//    		GLCheck.checkError();
+//    		if(m_DepthProgram == null)
+//    			m_DepthProgram = new DepthProgram(null);
+//
+//    		program = m_DepthProgram;
+//    	}
+
+		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
+		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, m_pShadowMap.getTarget(), m_pShadowMap.getTexture(), 0);
+		gl.glDrawBuffers(GLenum.GL_NONE);
+
+		GLCheck.checkError();
+		if(m_DepthProgram == null)
+			m_DepthProgram = new DepthProgram(null);
+
+		program = m_DepthProgram;
     	
     	FloatBuffer depth = CacheBuffer.wrap(1.0f);
     	gl.glClearBufferfv(GLenum.GL_DEPTH, 0, depth);
@@ -455,6 +472,20 @@ public class Cube16 implements GLEventListener {
 		}
 	}
 
+	public float getSceneNearPlane(){ return m_ViewCBStruct.zNear;}
+	public float getSceneFarPlane() { return m_ViewCBStruct.zFar;}
+	public Matrix4f getViewMat()    { return m_ViewCBStruct.mView; }
+	public Matrix4f getProjMat()    { return m_ViewCBStruct.mProj;}
+	public Matrix4f getProjViewMat(){ return m_ViewCBStruct.mProjView;}
+	public float getFovInRadian()   { return SPOTLIGHT_FALLOFF_ANGLE * 2.0f;}
+	public Vector3f getLightDir()   { return m_LightCBStruct.vLightDirection;}
+	public Vector3f getLightPos()   { return m_LightCBStruct.vLightPos;}
+	public Matrix4f getLightProjMat() { return m_pScene.lightProj;}
+	public Matrix4f getLightViewMat() { return m_LightCBStruct.mLightView;}
+	public int getLightMode() {	return m_pScene.getLightMode();}
+
+	public Texture2D getShadowMap() { return m_pShadowMap;}
+
 	final class SceneController {
 
 		int lightMode = LIGHT_TYPE_SPOT;
@@ -503,8 +534,6 @@ public class Cube16 implements GLEventListener {
 			m_transformer.setMaxTranslationVel(20);
 		}
 
-		private final Matrix4f m_tempView = new Matrix4f();
-		private final Matrix4f m_tempProj = new Matrix4f();
 		void setupSceneCBs(ViewCB pView, LightCB pLight){
 			getViewerDesc(pView);
 //			pView.mProj.load(viewAttribs.mViewProjT);
@@ -513,7 +542,7 @@ public class Cube16 implements GLEventListener {
 //			pView.zFar = 50.0f;
 
 //			getLightDesc(lightAttribs);
-			getLightViewpoint(pLight.vLightPos, pLight.mLightViewProj);
+			getLightViewpoint(pLight.vLightPos, pLight.mLightView, pLight.mLightViewProj);
 
 //			Vector4f vDirOnLight = lightAttribs.f4DirOnLight;
 //        pLight.vLightDirection = (-pLight.vLightPos);
@@ -572,9 +601,9 @@ public class Cube16 implements GLEventListener {
 			final ReadableVector3f vOrigin = Vector3f.ZERO;
 
 			final ReadableVector3f vEyePos = VIEWPOINTS[viewpoint_];
-			final Matrix4f view      = m_tempView;
-			final Matrix4f mViewProj = attribs.mProj;
-			final Matrix4f mProj     = m_tempProj;
+			final Matrix4f view      = attribs.mView;
+			final Matrix4f mViewProj = attribs.mProjView;
+			final Matrix4f mProj     = attribs.mProj;
 
 			final float near = 0.5f;
 			final float far  = 200.0f;
@@ -590,7 +619,7 @@ public class Cube16 implements GLEventListener {
 			attribs.zFar  = far;
 		}
 
-		void getLightViewpoint(org.lwjgl.util.vector.Vector _vPos, Matrix4f mViewProj) {
+		void getLightViewpoint(org.lwjgl.util.vector.Vector _vPos, Matrix4f view, Matrix4f mViewProj) {
 			final ReadableVector3f vOrigin = Vector3f.ZERO;
 			final ReadableVector3f vUp = Vector3f.Y_AXIS;
 
@@ -610,23 +639,23 @@ public class Cube16 implements GLEventListener {
 
 				case LIGHT_TYPE_SPOT: {
 					vPos.set(10, 15, 5);
-					Matrix4f.lookAt(rvPos, vOrigin, vUp, mViewProj);
+					Matrix4f.lookAt(rvPos, vOrigin, vUp, view);
 					Matrix4f.perspective((float) Math.toDegrees(SPOTLIGHT_FALLOFF_ANGLE * 2.0f),
 							1.0f,
 							0.50f, LIGHT_RANGE, lightProj);
-					Matrix4f.mul(lightProj, mViewProj, mViewProj);
+					Matrix4f.mul(lightProj, view, mViewProj);
 				}
 				break;
 
 				default:
 				case LIGHT_TYPE_DIRECTIONAL: {
 					vPos.set(10, 15, 5);
-					Matrix4f.lookAt(rvPos, vOrigin, vUp, mViewProj);
+					Matrix4f.lookAt(rvPos, vOrigin, vUp, view);
 					float min = -25.0f;
 					float max = 25.0f;
 					Matrix4f.ortho(min, max, min, max, 0.50f, LIGHT_RANGE, lightProj);
 
-					Matrix4f.mul(lightProj, mViewProj, mViewProj);
+					Matrix4f.mul(lightProj, view, mViewProj);
 				}
 				break;
 			}
@@ -666,7 +695,7 @@ public class Cube16 implements GLEventListener {
 		}
 
 		void setupLightViewCB(ViewCB pView) {
-			getLightViewpoint(pView.vEyePos, pView.mProj);
+			getLightViewpoint(pView.vEyePos, pView.mView,  pView.mProjView);
 			pView.zNear = 0.50f;
 			pView.zFar = LIGHT_RANGE;
 		}
@@ -695,6 +724,7 @@ public class Cube16 implements GLEventListener {
 		void toggleViewpoint() {
 			viewpoint_ = (viewpoint_ + 1) % 4;
 		}
+		void toggleLightMode() { lightMode = (lightMode + 1) % 3;}
 	}
 
 	final class SCameraAttribs implements Writable {
@@ -728,6 +758,8 @@ public class Cube16 implements GLEventListener {
 
 	final class ViewCB {
 		public final Matrix4f mProj = new Matrix4f();
+		public final Matrix4f mView = new Matrix4f();
+		public final Matrix4f mProjView = new Matrix4f();
 		public final Vector3f vEyePos = new Vector3f();
 		public float zNear;
 		public float zFar;
@@ -735,6 +767,8 @@ public class Cube16 implements GLEventListener {
 
 	final class LightCB {
 		public final Matrix4f mLightViewProj = new Matrix4f();
+		public final Matrix4f mLightView = new Matrix4f();
+//		public final Matrix4f mLightProj = new Matrix4f();
 		public final Vector3f vLightDirection = new Vector3f();
 		public float fLightFalloffCosTheta;
 		public final Vector3f vLightPos = new Vector3f();
@@ -815,7 +849,7 @@ public class Cube16 implements GLEventListener {
 		}
 
 		public void setupUniforms(ViewCB data){
-			setViewProj(data.mProj);
+			setViewProj(data.mProjView);
 			setEyePos(data.vEyePos);
 			setZNear(data.zNear);
 			setZFar(data.zFar);

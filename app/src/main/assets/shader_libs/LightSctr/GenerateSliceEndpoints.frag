@@ -2,6 +2,7 @@
 #include "PostProcessingLightScatteringCommon.frag"
 
 layout(location = 0) out float4 OutColor;
+in vec4 m_f4UVAndScreenPos;
 
 //This function computes entry point of the epipolar line given its exit point
 //

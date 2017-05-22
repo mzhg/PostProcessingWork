@@ -64,9 +64,4 @@ final class PostProcessingRefineSampleLocationsPass extends PostProcessingRender
            out.format = GLenum.GL_RG16UI;
        }
     }
-
-    @Override
-    public void dispose() {
-        m_sharedData.dispose();
-    }
 }

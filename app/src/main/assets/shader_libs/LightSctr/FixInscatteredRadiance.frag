@@ -2,7 +2,7 @@
 #include "CalculateInscattering.frag"
 
 layout(location = 0) out float3 OutColor;
-
+in vec4 m_f4UVAndScreenPos;
 void main()
 {
 	if( g_bShowDepthBreaks )

@@ -1,7 +1,9 @@
 package jet.opengl.postprocessing.core.volumetricLighting;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.util.Arrays;
@@ -161,11 +163,10 @@ final class SharedData {
                     ;
         }
 
+        m_ScatteringFrameAttribs.set(frameAttribs);
         if(m_bRecomputeSctrCoeffs){
             computeScatteringCoefficients();
         }
-
-        m_ScatteringFrameAttribs.set(frameAttribs);
         calculateLightAttribs(commonAttribs, frameAttribs);
 
         createSamplers();
@@ -469,15 +470,33 @@ final class SharedData {
         m_MediaParams.f4HG_g.y = 1 + fGH_g*fGH_g;
         m_MediaParams.f4HG_g.z = -2*fGH_g;
         m_MediaParams.f4HG_g.w = 1.0f;
+
+//        m_MediaParams.f4AngularMieBeta.set(4.7746477E-7f, 4.7746477E-7f, 4.7746477E-7f, 0.0f);
+//        m_MediaParams.f4AngularRayleighBeta.set(2.076972E-5f, 4.8343314E-5f, 1.1853064E-4f, 0.0f);
+//        m_MediaParams.f4SummTotalBeta.set(3.54E-4f, 8.16E-4f, 0.001992f, 0.0f);
+//        m_MediaParams.f4TotalMieBeta.set(5.9999993E-6f, 5.9999993E-6f, 5.9999993E-6f, 0.0f);
+//        m_MediaParams.f4TotalRayleighBeta.set(3.48E-4f, 8.1E-4f, 0.001986f, 0.0f);
     }
 
     private void calculateLightAttribs(PostProcessingFrameAttribs commonAttribs, LightScatteringFrameAttribs frameAttribs){
-        m_LightAttribs.f4DirOnLight.set(commonAttribs.lightDirection);  // TODO f4DirOnLight.w must be 0.
+//        m_LightAttribs.f4DirOnLight.set(commonAttribs.lightDirection);  // TODO f4DirOnLight.w must be 0.
+
         m_LightAttribs.f4LightColorAndIntensity = frameAttribs.m_f4LightColorAndIntensity;
         if(m_LightAttribs.f4LightWorldPos == null){
             m_LightAttribs.f4LightWorldPos = new Vector4f(0,0,0,1);
         }
         m_LightAttribs.f4LightWorldPos.set(commonAttribs.lightPos);
+
+        Vector4f vDirOnLight = m_LightAttribs.f4DirOnLight;
+        vDirOnLight.w = 0;
+        final ReadableVector3f f3CameraPos = commonAttribs.getCameraPos();
+        if (m_ScatteringInitAttribs.m_uiLightType == LightType.SPOT || m_ScatteringInitAttribs.m_uiLightType == LightType.POINT)
+        {
+            Vector3f.sub(m_LightAttribs.f4LightWorldPos, f3CameraPos,vDirOnLight);
+        } else {  // Direction Light
+            vDirOnLight.set(10, 15, 5);
+        }
+        vDirOnLight.normalise();
 
         Matrix4f lightViewProjMat = commonAttribs.getLightViewProjMatrix();
         Matrix4f.transformCoord(lightViewProjMat, commonAttribs.getCameraPos(), m_LightAttribs.f4CameraUVAndDepthInShadowMap);
@@ -500,6 +519,7 @@ final class SharedData {
 
         if(m_ScatteringInitAttribs.m_uiLightType == LightType.SPOT) {
             m_LightAttribs.f4SpotLightAxisAndCosAngle.set(m_LightAttribs.f4LightWorldPos);
+            m_LightAttribs.f4SpotLightAxisAndCosAngle.scale(-1);
             m_LightAttribs.f4SpotLightAxisAndCosAngle.w = 0;
             m_LightAttribs.f4SpotLightAxisAndCosAngle.normalise();
 

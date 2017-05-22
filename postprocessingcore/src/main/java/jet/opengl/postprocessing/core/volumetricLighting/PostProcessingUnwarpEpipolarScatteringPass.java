@@ -56,8 +56,6 @@ final class PostProcessingUnwarpEpipolarScatteringPass extends PostProcessingRen
         }
 
         Texture2D output = getOutputTexture(0);
-        if(output == null)
-            output = m_RenderTargets[0];
 
         output.setName("UnwarpEpipolarScatteringTexture");
         context.setViewport(0,0, output.getWidth(), output.getHeight());
@@ -97,6 +95,15 @@ final class PostProcessingUnwarpEpipolarScatteringPass extends PostProcessingRen
         GLFuncProviderFactory.getGLFuncProvider().glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 0.0f, 0);
 
         context.drawFullscreenQuad();
+    }
+
+    @Override
+    public Texture2D getOutputTexture(int idx) {
+        if(getOutputTarget() == PostProcessingRenderPassOutputTarget.INTERNAL){
+            return idx == 0 ? m_RenderTargets[0] : null;
+        }else {
+            return super.getOutputTexture(idx);
+        }
     }
 
     @Override

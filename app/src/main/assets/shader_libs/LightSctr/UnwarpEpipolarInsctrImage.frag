@@ -1,7 +1,7 @@
 #include "PostProcessingLightScatteringCommon.frag"
 
 layout(location = 0) out float4 OutColor;
-
+in vec4 m_f4UVAndScreenPos;
 void main()
 {
 	// Get camera space z of the current screen pixel

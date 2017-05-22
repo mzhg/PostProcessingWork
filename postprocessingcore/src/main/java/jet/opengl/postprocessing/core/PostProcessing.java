@@ -25,6 +25,7 @@ import jet.opengl.postprocessing.core.ssao.PostProcessingHBAOEffect;
 import jet.opengl.postprocessing.core.toon.PostProcessingToonEffect;
 import jet.opengl.postprocessing.core.volumetricLighting.LightScatteringFrameAttribs;
 import jet.opengl.postprocessing.core.volumetricLighting.LightScatteringInitAttribs;
+import jet.opengl.postprocessing.core.volumetricLighting.PostProcessingVolumetricLightingEffect;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
@@ -99,6 +100,7 @@ public class PostProcessing implements Disposeable{
         registerEffect(new PostProcessingDOFBokehEffect());
         registerEffect(new PostProcessingDOFGaussionEffect());
         registerEffect(new PostProcessingHBAOEffect());
+        registerEffect(new PostProcessingVolumetricLightingEffect());
     }
 
     public void registerEffect(PostProcessingEffect effect){
@@ -316,10 +318,7 @@ public class PostProcessing implements Disposeable{
         initAttribsCopyed = m_LightScatteringInitAttribsPool.obtain();
         initAttribsCopyed.set(initAttribs);
 
-        effect.initValue = initAttribs;
-        effect.uniformValue = frameAttribs;
-
-        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), initAttribsCopyed, null));
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), initAttribsCopyed, frameAttribs));
     }
 
     public void addHBAO(){

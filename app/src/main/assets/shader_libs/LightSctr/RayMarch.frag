@@ -1,6 +1,7 @@
 
 #include "CalculateInscattering.frag"
 
+in vec4 m_f4UVAndScreenPos;
 layout(location = 0) out float3 OutColor;
 
 void main()

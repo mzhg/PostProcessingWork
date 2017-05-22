@@ -2,6 +2,7 @@ package jet.opengl.postprocessing.core.volumetricLighting;
 
 import jet.opengl.postprocessing.core.PostProcessing;
 import jet.opengl.postprocessing.core.PostProcessingCommonData;
+import jet.opengl.postprocessing.core.PostProcessingDownsamplePass;
 import jet.opengl.postprocessing.core.PostProcessingEffect;
 import jet.opengl.postprocessing.core.PostProcessingReconstructCameraZPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
@@ -18,6 +19,7 @@ public class PostProcessingVolumetricLightingEffect extends PostProcessingEffect
     protected void fillRenderPass(PostProcessing context, PostProcessingCommonData commonData) {
         if(m_sharedData == null)
             m_sharedData = new SharedData(commonData.frameAttribs);
+        m_sharedData.prepare(commonData.frameAttribs, (LightScatteringInitAttribs)getInitValue(), (LightScatteringFrameAttribs)getUniformValue());
 
         // no inputs and no outputs.
         PostProcessingPreparePass preparePass = new PostProcessingPreparePass(m_sharedData, (LightScatteringInitAttribs)getInitValue(), (LightScatteringFrameAttribs)getUniformValue());
@@ -37,6 +39,7 @@ public class PostProcessingVolumetricLightingEffect extends PostProcessingEffect
 
         if(m_sharedData.m_ScatteringInitAttribs.m_bEnableEpipolarSampling){
             PostProcessingGenerateSliceEndpointsPass generateSliceEndpointsPass = new PostProcessingGenerateSliceEndpointsPass(m_sharedData);
+            generateSliceEndpointsPass.setOutputFixSize(0, m_sharedData.m_ScatteringInitAttribs.m_uiNumEpipolarSlices, 1);
             context.appendRenderPass("GenerateSliceEndpoints", generateSliceEndpointsPass);
 
             PostProcessingGenerateCoordinateTexturePass generateCoordinateTexturePass = new PostProcessingGenerateCoordinateTexturePass(m_sharedData);
@@ -70,7 +73,8 @@ public class PostProcessingVolumetricLightingEffect extends PostProcessingEffect
             doRayMarchingPass.setDependency(2, commonData.shadowMapTexture, 0);
             doRayMarchingPass.setDependency(3, build1DMinMaxMipMapPass, 1);
             doRayMarchingPass.setDependency(4, build1DMinMaxMipMapPass, 0);
-            doRayMarchingPass.setDependency(5, precomputedPointLightInscatteringPass, 0);
+            if(precomputedPointLightInscatteringPass != null)
+                doRayMarchingPass.setDependency(5, precomputedPointLightInscatteringPass, 0);
             context.appendRenderPass("RayMarching", doRayMarchingPass);
 
             PostProcessingInterpolateInsctrIrradiancePass interpolateInsctrIrradiancePass = new PostProcessingInterpolateInsctrIrradiancePass(m_sharedData);
@@ -112,6 +116,7 @@ public class PostProcessingVolumetricLightingEffect extends PostProcessingEffect
             unwarpEpipolarScatteringPass.setDependency(4, generateSliceEndpointsPass, 0);
             context.appendRenderPass("UnwarpEpipolarScattering", unwarpEpipolarScatteringPass);
 
+            PostProcessingRenderPass lastPass = null;
             // Correct inscattering for pixels, for which no suitable interpolation sources were found
             if( m_sharedData.m_ScatteringInitAttribs.m_bCorrectScatteringAtDepthBreaks ){
                 PostProcessingFixInscatteringAtDepthBreaksPass fixInscatteringAtDepthBreaksPass =
@@ -124,6 +129,8 @@ public class PostProcessingVolumetricLightingEffect extends PostProcessingEffect
                     fixInscatteringAtDepthBreaksPass.setDependency(3, precomputedPointLightInscatteringPass, 0);
 
                 context.appendRenderPass("FixInscatteringAtDepthBreaksUnwrap", fixInscatteringAtDepthBreaksPass);
+
+                lastPass = fixInscatteringAtDepthBreaksPass;
             }
 
             if( m_sharedData.m_ScatteringInitAttribs.m_iDownscaleFactor > 1 ){
@@ -153,7 +160,16 @@ public class PostProcessingVolumetricLightingEffect extends PostProcessingEffect
                         fixInscatteringAtDepthBreaksPass.setDependency(3, precomputedPointLightInscatteringPass, 0);
 
                     context.appendRenderPass("FixInscatteringAtDepthBreaksUpscale", fixInscatteringAtDepthBreaksPass);
+                    lastPass = fixInscatteringAtDepthBreaksPass;
                 }
+            }
+
+            // output to the screen
+            if(isLastEffect() && lastPass != null){ // TODO we could optmise this step in further.
+                PostProcessingDownsamplePass blitPass = new PostProcessingDownsamplePass(1, PostProcessingDownsamplePass.DOWMSAMPLE_FASTEST);
+                blitPass.setDependency(0, lastPass, 0);
+                blitPass.setOutputFixSize(0, colorTexture.getWidth(), colorTexture.getHeight());
+                context.appendRenderPass("BlitInternalTexture", blitPass);
             }
 
         }else{

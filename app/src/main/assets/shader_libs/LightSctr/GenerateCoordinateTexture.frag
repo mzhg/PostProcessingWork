@@ -4,6 +4,7 @@
 layout(location = 0) out float2 f2XY;
 layout(location = 1) out float fCamSpaceZ;
 
+in vec4 m_f4UVAndScreenPos;
 void main()
 {
 	float4 f4SliceEndPoints = // g_tex2DSliceEndPoints.Load( int3(In.m_f4Pos.y,0,0) );

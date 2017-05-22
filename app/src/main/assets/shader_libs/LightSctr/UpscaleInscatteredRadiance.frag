@@ -2,7 +2,7 @@
 #include "PostProcessingLightScatteringCommon.frag"
 
 layout(location = 0) out float3 OutColor;
-
+in vec4 m_f4UVAndScreenPos;
 void main()
 {
 	float2 f2UV = m_f4UVAndScreenPos.xy;  //ProjToUV(In.m_f2PosPS);

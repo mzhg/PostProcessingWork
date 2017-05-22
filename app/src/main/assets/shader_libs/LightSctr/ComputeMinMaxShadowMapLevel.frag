@@ -18,7 +18,9 @@ layout(location = 0) out float4 OutColor;
 //      |     |
 //      |    uiMinMaxShadowMapResolution/
 //   uiMinMaxShadowMapResolution/2
-//                      
+//
+
+in vec4 m_f4UVAndScreenPos;
 void main()
 {
 	int2 uiDstSampleInd = int2(gl_FragCoord.xy);

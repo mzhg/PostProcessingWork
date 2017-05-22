@@ -2,7 +2,7 @@
 #include "PostProcessingLightScatteringCommon.frag"
 
 layout(location = 0) out float4 OutColor;
-
+in vec4 m_f4UVAndScreenPos;
 void main()
 {
 	int uiSliceInd = int(gl_FragCoord.x);

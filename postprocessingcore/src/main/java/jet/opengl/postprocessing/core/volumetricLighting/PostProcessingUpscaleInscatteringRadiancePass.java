@@ -47,8 +47,6 @@ final class PostProcessingUpscaleInscatteringRadiancePass extends PostProcessing
         }
 
         Texture2D output = getOutputTexture(0);
-        if(output == null)
-            output = m_RenderTargets[0];
 
         context.setViewport(0,0, output.getWidth(), output.getHeight());
         context.setVAO(null);
@@ -80,6 +78,15 @@ final class PostProcessingUpscaleInscatteringRadiancePass extends PostProcessing
         GLFuncProviderFactory.getGLFuncProvider().glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 0.0f, 0);
 
         context.drawFullscreenQuad();
+    }
+
+    @Override
+    public Texture2D getOutputTexture(int idx) {
+        if(getOutputTarget() == PostProcessingRenderPassOutputTarget.INTERNAL){
+            return idx == 0 ? m_RenderTargets[0] : null;
+        }else {
+            return super.getOutputTexture(idx);
+        }
     }
 
     @Override

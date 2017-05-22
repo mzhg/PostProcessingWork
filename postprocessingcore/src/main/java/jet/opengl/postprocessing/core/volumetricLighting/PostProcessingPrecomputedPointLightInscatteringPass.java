@@ -32,7 +32,7 @@ final class PostProcessingPrecomputedPointLightInscatteringPass extends PostProc
 
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
-        if(!m_sharedData.m_bRecomputeSctrCoeffs)
+        if(!m_sharedData.m_bRecomputeSctrCoeffs && m_ptex2DPrecomputedPointLightInsctrSRV != null)
             return;
 
         InscaterringIntegralEvalution m_uiInsctrIntglEvalMethod = m_sharedData.m_ScatteringInitAttribs.m_uiInsctrIntglEvalMethod;
@@ -44,9 +44,12 @@ final class PostProcessingPrecomputedPointLightInscatteringPass extends PostProc
             format = GLenum.GL_R32F;
         else
             throw new IllegalArgumentException("Invalid InscaterringIntegralEvalution value: " + m_uiInsctrIntglEvalMethod.name());
-        Texture2DDesc desc = new Texture2DDesc(512, 512, format);
-        m_ptex2DPrecomputedPointLightInsctrSRV = TextureUtils.createTexture2D(desc, null);
-        g_PrecomputePointLightInsctrTech = new VolumetricLightingProgram("PrecomputePointLightInsctr.frag", m_sharedData.getMacros());
+
+        if(m_ptex2DPrecomputedPointLightInsctrSRV == null) {
+            Texture2DDesc desc = new Texture2DDesc(512, 512, format);
+            m_ptex2DPrecomputedPointLightInsctrSRV = TextureUtils.createTexture2D(desc, null);
+            g_PrecomputePointLightInsctrTech = new VolumetricLightingProgram("PrecomputePointLightInsctr.frag", m_sharedData.getMacros());
+        }
 
         Texture2D output = m_ptex2DPrecomputedPointLightInsctrSRV;
         output.setName("PrecomputedPointLightInscatteringTexture");
@@ -62,7 +65,6 @@ final class PostProcessingPrecomputedPointLightInscatteringPass extends PostProc
         context.setRenderTarget(output);
 
         context.drawFullscreenQuad();
-        g_PrecomputePointLightInsctrTech.dispose();  // release the program.
     }
 
     @Override
@@ -75,6 +77,9 @@ final class PostProcessingPrecomputedPointLightInscatteringPass extends PostProc
         if(m_ptex2DPrecomputedPointLightInsctrSRV !=null){
             m_ptex2DPrecomputedPointLightInsctrSRV.dispose();
             m_ptex2DPrecomputedPointLightInsctrSRV = null;
+
+            g_PrecomputePointLightInsctrTech.dispose();
+            g_PrecomputePointLightInsctrTech = null;
         }
     }
 }

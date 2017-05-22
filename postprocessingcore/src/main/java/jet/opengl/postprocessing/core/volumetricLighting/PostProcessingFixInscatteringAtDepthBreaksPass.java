@@ -58,8 +58,6 @@ final class PostProcessingFixInscatteringAtDepthBreaksPass extends PostProcessin
         }
 
         Texture2D output = getOutputTexture(0);
-        if(output == null)
-            output = m_RenderTargets[0];
 
         context.setViewport(0,0, output.getWidth(), output.getHeight());
         context.setVAO(null);
@@ -92,7 +90,7 @@ final class PostProcessingFixInscatteringAtDepthBreaksPass extends PostProcessin
         context.setBlendState(null);
         m_sharedData.m_pNoDepth_StEqual_IncrStencilDS.backFace.stencilRef = 0;
         m_sharedData.m_pNoDepth_StEqual_IncrStencilDS.frontFace.stencilRef = 0;
-        context.setDepthStencilState(m_sharedData.m_pNoDepth_StEqual_IncrStencilDS);
+        context.setDepthStencilState(null);
         context.setRasterizerState(null);
         if(m_RenderTargets != null){
             if(m_RenderTargets[0] == null)
@@ -103,6 +101,15 @@ final class PostProcessingFixInscatteringAtDepthBreaksPass extends PostProcessin
         }
 
         context.drawFullscreenQuad();
+    }
+
+    @Override
+    public Texture2D getOutputTexture(int idx) {
+        if(getOutputTarget() == PostProcessingRenderPassOutputTarget.INTERNAL){
+            return idx == 0 ? m_RenderTargets[0] : null;
+        }else {
+            return super.getOutputTexture(idx);
+        }
     }
 
     @Override

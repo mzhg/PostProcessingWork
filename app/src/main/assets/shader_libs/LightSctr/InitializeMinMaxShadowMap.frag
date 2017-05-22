@@ -2,6 +2,7 @@
 #include "PostProcessingLightScatteringCommon.frag"
 
 layout(location = 0) out float4 OutColor;
+in vec4 m_f4UVAndScreenPos;
 
 //Note that min/max shadow map does not contain finest resolution level
 //The first level it contains corresponds to step == 2

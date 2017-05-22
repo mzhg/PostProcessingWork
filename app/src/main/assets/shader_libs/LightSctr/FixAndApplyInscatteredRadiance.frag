@@ -4,13 +4,10 @@
 layout(location = 0) out float3 OutColor;
 layout(location = 1) out float4 InsctrColor;
 
+in vec4 m_f4UVAndScreenPos;
 void main()
 {
 	float2 f2PosPS = m_f4UVAndScreenPos.zw;
-#if CORRECT_STATIC_SCENE == 1
-	// remap the lower-left corner to upper_left corner.
-	f2PosPS.y = -f2PosPS.y;
-#endif
 	if( g_bShowDepthBreaks )
 	{
 		OutColor = float3(0,1,0);
