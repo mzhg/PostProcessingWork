@@ -1514,4 +1514,6 @@ public interface GLFuncProvider {
                             int srcWidth,
                             int srcHeight,
                             int srcDepth);
+
+    void glPrimitiveRestartIndex(int restartIndex);
 }

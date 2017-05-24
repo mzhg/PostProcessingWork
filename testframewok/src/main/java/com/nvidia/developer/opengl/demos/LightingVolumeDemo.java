@@ -94,8 +94,8 @@ public class LightingVolumeDemo extends NvSampleApp {
             m_frameAttribs.lightPos = m_Scene.getLightPos();
             m_frameAttribs.lightProjMat = m_Scene.getLightProjMat();
             m_frameAttribs.lightViewMat = m_Scene.getLightViewMat();
-            m_LightFrameAttribs.m_f4LightColorAndIntensity.set(80.0f, 80.0f, 80.0f, 5711.714f);
-//            m_LightFrameAttribs.m_f4LightColorAndIntensity.set(0.904016f, 0.843299f, 0.70132f, 1000.0f);
+            m_LightFrameAttribs.m_f4LightColorAndIntensity.set(80.0f, 80.0f, 80.0f, 5711.714f);   // For the spot light
+            m_LightFrameAttribs.m_f4LightColorAndIntensity.set(0.904016f, 0.843299f, 0.70132f, 200.0f);  // for the direction light.
 
             m_InitAttribs.m_uiLightType = LightType.values()[m_Scene.getLightMode()];
             float fSceneExtent = 100;

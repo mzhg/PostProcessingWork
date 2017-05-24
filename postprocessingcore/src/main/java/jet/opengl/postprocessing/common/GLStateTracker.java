@@ -158,6 +158,10 @@ public class GLStateTracker {
         }
     }
 
+    public void setCurrentFramebuffer(){
+        setFramebuffer(m_CurrentStates.framebuffer);
+    }
+
     public void setProgram(OpenGLProgram program){
         m_flags |= MASK_PROGRAM;
 
@@ -185,6 +189,10 @@ public class GLStateTracker {
 
             gl.glViewport(x, y, width, height);
         }
+    }
+
+    public void setCurrentViewport(){
+        m_flags |= MASK_VIEWPORT;
     }
 
     public void setBlendState(BlendState state){

@@ -1,7 +1,5 @@
 package jet.opengl.postprocessing.common;
 
-import static jet.opengl.postprocessing.common.GLenum.GL_BACK;
-
 /**
  * Created by mazhen'gui on 2017/4/20.
  */
@@ -17,7 +15,7 @@ public class RasterizerState {
     /** Defualt value, readonly, don't modify it. */
     public static final RasterizerState g_DefaultRSState = new RasterizerState();
 
-    public int cullMode = GL_BACK;
+    public int cullMode = GLenum.GL_BACK;
     public boolean frontCounterClockwise = false;
     public boolean cullFaceEnable = false;
     public boolean rasterizedDiscardEnable = false;

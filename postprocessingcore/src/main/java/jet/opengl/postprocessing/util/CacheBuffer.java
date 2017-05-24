@@ -302,17 +302,8 @@ public class CacheBuffer {
 		buffer.flip();
 		return buffer;
 	}
-	
-	public static FloatBuffer wrap4fv(List<Vector4f> vertexs){
-		FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(4 * vertexs.size());
-		for(Vector4f v : vertexs)
-			v.store(buffer);
-		buffer.flip();
-		
-		return buffer;
-	}
 
-	public static FloatBuffer wrap3fv(List<Vector3f> vertexs) {
+	public static FloatBuffer wrap(List<Vector3f> vertexs) {
 		FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(3 * vertexs.size());
 		for(Vector3f v : vertexs)
 			v.store(buffer);
@@ -331,6 +322,20 @@ public class CacheBuffer {
 				buffer.put(0).put(0).put(0);
 		}
 		
+		buffer.flip();
+		return buffer;
+	}
+
+	public static FloatBuffer wrap(Vector4f[] vec){
+		int size = vec == null ? 0 : vec.length;
+		FloatBuffer buffer = getCachedFloatBuffer(size * 4);
+		for(int i = 0; i < size; i++){
+			if(vec[i] != null)
+				vec[i].store(buffer);
+			else
+				buffer.put(0).put(0).put(0).put(0);
+		}
+
 		buffer.flip();
 		return buffer;
 	}

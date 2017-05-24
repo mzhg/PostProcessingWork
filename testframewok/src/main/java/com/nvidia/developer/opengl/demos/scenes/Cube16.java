@@ -14,11 +14,9 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
-import org.lwjgl.util.vector.Writable;
 import org.lwjgl.util.vector.WritableVector3f;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import jet.opengl.postprocessing.common.GLCheck;
@@ -73,9 +71,7 @@ public class Cube16 implements GLEventListener {
 	private Texture2D m_pOffscreenRenderTarget;
 	private Texture2D m_pOffscreenDepth;
 	private Texture2D m_pShadowMap;
-	@Deprecated  // Will removed later.
-	private Texture2D mpBackBufferRTV;
-	
+
 	private SceneController m_pScene;
 	
 	private int m_RenderTarget;
@@ -171,11 +167,7 @@ public class Cube16 implements GLEventListener {
 			m_pOffscreenDepth = null;
 		}
 		
-		if(mpBackBufferRTV != null){
-			mpBackBufferRTV.dispose();
-			mpBackBufferRTV = null;
-		}
-		
+
 		final int buffer_format = GLenum.GL_RGBA8;
 		Texture2DDesc offscreenDesc = new Texture2DDesc();
 		offscreenDesc.width = width;
@@ -185,12 +177,7 @@ public class Cube16 implements GLEventListener {
 		offscreenDesc.format = buffer_format;
 		offscreenDesc.sampleCount = 1;
 
-		mpBackBufferRTV          = TextureUtils.createTexture2D(offscreenDesc, null);
-		mpBackBufferRTV.setMagFilter(GLenum.GL_LINEAR);
-		mpBackBufferRTV.setMinFilter(GLenum.GL_LINEAR);
-		mpBackBufferRTV.setWrapS(GLenum.GL_CLAMP_TO_EDGE);
-		mpBackBufferRTV.setWrapT(GLenum.GL_CLAMP_TO_EDGE);
-		
+
 		m_pOffscreenRenderTarget = TextureUtils.createTexture2D(offscreenDesc, null);
 		offscreenDesc.format = GLenum.GL_DEPTH_COMPONENT32F;
 		m_pOffscreenDepth = TextureUtils.createTexture2D(offscreenDesc, null);
@@ -488,7 +475,7 @@ public class Cube16 implements GLEventListener {
 
 	final class SceneController {
 
-		int lightMode = LIGHT_TYPE_SPOT;
+		int lightMode = LIGHT_TYPE_DIRECTIONAL;
 		int lightPower_;
 		int viewpoint_;
 
@@ -725,30 +712,6 @@ public class Cube16 implements GLEventListener {
 			viewpoint_ = (viewpoint_ + 1) % 4;
 		}
 		void toggleLightMode() { lightMode = (lightMode + 1) % 3;}
-	}
-
-	final class SCameraAttribs implements Writable {
-
-		final Vector4f f4CameraPos = new Vector4f();
-		final Matrix4f mViewT = new Matrix4f();
-		final Matrix4f mProjT = new Matrix4f();
-		final Matrix4f mViewProjT = new Matrix4f();
-		final Matrix4f mViewProjInvT = new Matrix4f();
-		float mZFar;
-		float mZNear;
-
-		@Override
-		public Writable load(ByteBuffer buf) {
-			f4CameraPos.load(buf);
-			mViewT.load(buf); mViewT.transpose();
-			mProjT.load(buf); mProjT.transpose();
-//		mViewProjT.load(buf);
-			mViewProjInvT.load(buf); mViewProjInvT.transpose();
-//		mZFar = buf.getFloat();
-//		mZNear = buf.getFloat();
-
-			return this;
-		}
 	}
 
 	final class ObjectCB {
