@@ -1620,4 +1620,9 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     public void glCopyImageSubData(int srcName, int srcTarget, int srcLevel, int srcX, int srcY, int srcZ, int dstName, int dstTarget, int dstLevel, int dstX, int dstY, int dstZ, int srcWidth, int srcHeight, int srcDepth) {
         GL43.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget, dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
     }
+
+    @Override
+    public void glPrimitiveRestartIndex(int restartIndex) {
+        GL31.glPrimitiveRestartIndex(restartIndex);
+    }
 }

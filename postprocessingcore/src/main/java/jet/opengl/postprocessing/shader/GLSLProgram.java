@@ -14,10 +14,12 @@ import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.StringUtils;
 
 import static jet.opengl.postprocessing.common.GLenum.GL_NUM_PROGRAM_BINARY_FORMATS;
 import static jet.opengl.postprocessing.common.GLenum.GL_PROGRAM_BINARY_FORMATS;
+import static jet.opengl.postprocessing.shader.GLSLUtil.getShaderName;
 
 public class GLSLProgram implements OpenGLProgram{
 
@@ -139,15 +141,53 @@ public class GLSLProgram implements OpenGLProgram{
 			100, 300, 310, 320
 	};
 
-	private CharSequence constructSource(ShaderSourceItem item){
+	public static void createFromString(ShaderSourceItem item, ShaderProgram program, String debugName){
+		CharSequence source = constructSourceImpl(item);
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+		GLAPIVersion version = gl.getGLAPIVersion();
+
+		int target = item.type.shader;
+		int object;
+		int intVersion = version.toInt();
+		if(intVersion >= 410 || (version.ES && intVersion >= 310)){
+			int status;
+			object = gl.glCreateShaderProgramv( target, source );
+			status = gl.glGetProgrami(object, GLenum.GL_LINK_STATUS);
+
+			if (status == 0)
+			{
+//				int infoLogLength;
+//				infoLogLength = gl.glGetProgrami(object, GL20.GL_INFO_LOG_LENGTH);
+				String infoLog = gl.glGetProgramInfoLog(object);
+				LogUtil.e(LogUtil.LogType.DEFAULT, String.format("Error compiling %s, %s:\n", debugName, getShaderName(target)));
+				LogUtil.e(LogUtil.LogType.DEFAULT, String.format("Log: %s", infoLog));
+
+//				try {
+//					FileUtils.write(source, "error_shader.txt", false);
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+
+				gl.glDeleteProgram( object);
+				object = 0;
+
+				throw new GLSLException("Compiling program " + debugName + " occur error!");
+			}
+		}else{
+			object = GLSLUtil.compileShaderFromSource(source, item.type, true);
+		}
+
+
+//		program.set(target, object);
+		program.m_programId = object;
+		program.m_target = target;
+	}
+
+	private static CharSequence constructSourceImpl(ShaderSourceItem item){
 		CharSequence source = item.source;
 
 		StringBuilder result = new StringBuilder(source);
 		int versionIndex = result.indexOf("#version");
-
-		if(item.attribs != null && item.type == ShaderType.VERTEX){
-			m_Attribs = item.attribs;
-		}
 
 		if((item.macros == null || item.macros.length == 0) && (versionIndex != -1))
 			return source;
@@ -216,6 +256,14 @@ public class GLSLProgram implements OpenGLProgram{
 		}
 
 		return result;
+	}
+
+	private CharSequence constructSource(ShaderSourceItem item){
+		if(item.attribs != null && item.type == ShaderType.VERTEX){
+			m_Attribs = item.attribs;
+		}
+
+		return constructSourceImpl(item);
 	}
 	
 	/**

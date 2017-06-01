@@ -1516,4 +1516,13 @@ public interface GLFuncProvider {
                             int srcDepth);
 
     void glPrimitiveRestartIndex(int restartIndex);
+
+    int glCreateShaderProgramv(int target, CharSequence source);
+    void glProgramUniform1f(int program, int index, float radius);
+    void glProgramUniform2f(int program, int index, float x, float y);
+    void glProgramUniform4f(int program, int index, float x, float y, float z, float w);
+    void glProgramUniformMatrix4fv(int program, int index, boolean transpose, FloatBuffer data);
+    void glProgramUniform4fv(int program, int index, FloatBuffer data);
+    void glProgramUniform1fv(int program, int index, FloatBuffer data);
+    void glProgramUniform1i(int program, int index, int i);
 }

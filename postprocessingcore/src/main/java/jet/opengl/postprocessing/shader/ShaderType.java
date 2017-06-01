@@ -16,4 +16,14 @@ public enum ShaderType {
 	private ShaderType(int shader) {
 		this.shader = shader;
 	}
+
+	public static ShaderType wrap(int shader){
+		ShaderType[] items = ShaderType.values();
+		for(ShaderType type : items){
+			if(type.shader == shader)
+				return type;
+		}
+
+		return null;
+	}
 }
