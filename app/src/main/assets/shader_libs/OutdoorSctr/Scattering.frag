@@ -83,7 +83,7 @@
 #endif
 
 #ifndef PRECOMPUTED_SCTR_LUT_DIM
-#   define PRECOMPUTED_SCTR_LUT_DIM float4(32,128,64,16)
+#   define PRECOMPUTED_SCTR_LUT_DIM float4(32,128,64,16)  // TODO predefine macros.
 #endif
 
 #ifndef NUM_RANDOM_SPHERE_SAMPLES

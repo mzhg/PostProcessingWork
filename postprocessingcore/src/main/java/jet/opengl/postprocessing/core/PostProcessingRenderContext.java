@@ -23,6 +23,7 @@ import jet.opengl.postprocessing.texture.AttachType;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.Texture3D;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -119,6 +120,14 @@ public final class PostProcessingRenderContext {
         }else{ // tex == g_DummyTex
             m_StateTracker.setFramebuffer(0);
         }
+    }
+
+    public void setRenderTargetLayer(Texture3D tex, int slice){
+        m_StateTracker.setFramebuffer(m_RenderTargets.getFramebuffer());
+        m_AttachDescs[0].type = AttachType.TEXTURE_LAYER;
+        m_AttachDescs[0].layer = slice;
+        m_AttachDescs[0].level = 0;
+        m_RenderTargets.setRenderTexture(tex, m_AttachDescs[0]);
     }
 
     public void setRenderTargets(Texture2D[] texs){
@@ -219,7 +228,7 @@ public final class PostProcessingRenderContext {
 
     private final Texture2DDesc outputDesc = new Texture2DDesc();
     private final List<PostProcessingRenderPass> currentDependencyPasses = new ArrayList<>();
-    private final List<Texture2D> inputTextures = new ArrayList<>();
+    private final List<TextureGL> inputTextures = new ArrayList<>();
 
     void performancePostProcessing(Texture2D output, Recti viewport){
         if(m_RenderPassList.isEmpty())

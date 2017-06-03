@@ -5,6 +5,7 @@ import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector4f;
 
 final class SLightAttribs{
+	/** The direction from eye to light source. */
 	final Vector4f f4DirOnLight = new Vector4f();
 
 	Vector4f f4LightColorAndIntensity;

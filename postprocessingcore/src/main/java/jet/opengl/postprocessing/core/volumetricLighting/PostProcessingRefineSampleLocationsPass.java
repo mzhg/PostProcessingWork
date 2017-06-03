@@ -19,7 +19,7 @@ final class PostProcessingRefineSampleLocationsPass extends PostProcessingRender
     private SharedData m_sharedData;
 
     public PostProcessingRefineSampleLocationsPass(SharedData sharedData) {
-        super("GenerateSliceEndpoints");
+        super("RefineSampleLocations");
 
         m_sharedData = sharedData;
 

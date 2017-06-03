@@ -8,6 +8,7 @@ import java.io.IOException;
 
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
@@ -63,6 +64,7 @@ abstract class RenderTechnique extends ShaderProgram {
 	}
 	
 	public RenderTechnique(String filename, Macro[] macros, int type) {
+		gl = GLFuncProviderFactory.getGLFuncProvider();
 		compile(filename, type, macros);
 	}
 	

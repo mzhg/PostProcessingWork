@@ -1,6 +1,6 @@
 #include "Scattering.frag"
 
-in float4 UVAndScreenPos;
+in float4 m_f4UVAndScreenPos;
 
 layout(location = 0) out float4 OutColor;
 
@@ -99,7 +99,7 @@ float2 GetEpipolarLineEntryPoint(float2 f2ExitPoint)
 
 void main()
 {
-	float2 f2UV = ProjToUV(UVAndScreenPos.zw);
+	float2 f2UV = ProjToUV(m_f4UVAndScreenPos.zw);
 
     // Note that due to the rasterization rules, UV coordinates are biased by 0.5 texel size.
     //

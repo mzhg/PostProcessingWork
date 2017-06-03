@@ -2,7 +2,7 @@
 
 #include "ComputeUnshadowedInscattering.frag"
 
-in float4 UVAndScreenPos;
+in float4 m_f4UVAndScreenPos;
 in float m_fInstID;
 
 #if CORRECT_STATIC_SCENE == 0
@@ -13,7 +13,7 @@ layout(location = 0) out float3 OutColor;
 
 void main()
 {
-	float2 f2UV = UVAndScreenPos.zw;
+	float2 f2UV = m_f4UVAndScreenPos.zw;
 #if CORRECT_STATIC_SCENE == 1
 	// remap the lower-left corner to upper_left corner.
 	f2UV.y = -f2UV.y;

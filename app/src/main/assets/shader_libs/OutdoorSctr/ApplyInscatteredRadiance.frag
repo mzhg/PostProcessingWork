@@ -1,7 +1,7 @@
 #include "Scattering.frag"
 #include "Tonemap.frag"
 
-in float4 UVAndScreenPos;
+in float4 m_f4UVAndScreenPos;
 
 layout(location = 0) out float3 OutColor;
 
@@ -10,7 +10,7 @@ void UnwarpEpipolarInsctrImage( /*in float2 m_f2PosPS,*/
                                 out float3 f3Inscattering,
                                 out float3 f3Extinction )
 {
-	float2 m_f2PosPS = UVAndScreenPos.zw;
+	float2 m_f2PosPS = m_f4UVAndScreenPos.zw;
     // Compute direction of the ray going from the light through the pixel
     float2 f2RayDir = normalize( m_f2PosPS - g_f4LightScreenPos.xy );
 
@@ -240,11 +240,11 @@ void test_func(
 
 void main()
 {
-	float2 f2UV = ProjToUV(UVAndScreenPos.zw);
+	float2 f2UV = ProjToUV(m_f4UVAndScreenPos.zw);
     float fCamSpaceZ = GetCamSpaceZ( f2UV );
     
     float3 f3Inscttering, f3Extinction;
-    UnwarpEpipolarInsctrImage(/*UVAndScreenPos.zw, */fCamSpaceZ, f3Inscttering, f3Extinction);
+    UnwarpEpipolarInsctrImage(/*m_f4UVAndScreenPos.zw, */fCamSpaceZ, f3Inscttering, f3Extinction);
 
     float3 f3BackgroundColor = float3(0);
 //    [branch]
@@ -257,7 +257,7 @@ void main()
         f3BackgroundColor *= (fCamSpaceZ > g_fFarPlaneZ) ? g_f4ExtraterrestrialSunColor.rgb : float3(1);
 
 #if EXTINCTION_EVAL_MODE == EXTINCTION_EVAL_MODE_PER_PIXEL
-        float3 f3ReconstructedPosWS = ProjSpaceXYZToWorldSpace(float3(UVAndScreenPos.zw, fCamSpaceZ));
+        float3 f3ReconstructedPosWS = ProjSpaceXYZToWorldSpace(float3(m_f4UVAndScreenPos.zw, fCamSpaceZ));
         f3Extinction = GetExtinction(g_f4CameraPos.xyz, f3ReconstructedPosWS);
 #endif
         f3BackgroundColor *= f3Extinction;

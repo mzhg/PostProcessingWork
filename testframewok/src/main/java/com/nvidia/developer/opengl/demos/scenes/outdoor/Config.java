@@ -1,18 +1,20 @@
 package com.nvidia.developer.opengl.demos.scenes.outdoor;
 
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
+
+import jet.opengl.postprocessing.util.FileUtils;
 
 final class Config {
 
-	static final String CONFIG_PATH = "advance\\OutdoorLightScatteringSample\\";
+	static final String CONFIG_PATH = "Scenes/Outdoor/";
 	
 	static void parseConfigurationFile(OutDoorScene demo, boolean out_print){
 		String filename = CONFIG_PATH + "Default_Config.txt";
 		Properties properties = new Properties();
 		
-		try (FileReader in = new FileReader(filename)){
+		try (InputStream in = FileUtils.open(filename)){
 			properties.load(in);
 		} catch (IOException e) {
 			e.printStackTrace();

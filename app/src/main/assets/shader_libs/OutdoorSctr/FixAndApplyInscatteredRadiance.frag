@@ -1,7 +1,7 @@
 #include "ComputeUnshadowedInscattering.frag"
 #include "Tonemap.frag"
 
-in float4 UVAndScreenPos;
+in float4 m_f4UVAndScreenPos;
 in float  m_fInstID;
 
 #if CORRECT_STATIC_SCENE == 0
@@ -13,7 +13,7 @@ layout(location = 1) out float4 OutColor1;
 
 void main()
 {
-	float2 f2UV = UVAndScreenPos.zw;
+	float2 f2UV = m_f4UVAndScreenPos.zw;
 #if CORRECT_STATIC_SCENE == 1
 	// remap the lower-left corner to upper_left corner.
 	f2UV.y = -f2UV.y;
@@ -25,9 +25,9 @@ void main()
         return;
 	}
 	
-    float fCamSpaceZ = GetCamSpaceZ( UVAndScreenPos.xy );
+    float fCamSpaceZ = GetCamSpaceZ( m_f4UVAndScreenPos.xy );
     float3 f3BackgroundColor = float3(0);
-//	float3 f3BackgroundColor = textureLod(g_tex2DColorBuffer, UVAndScreenPos.xy, 0.0).rgb;
+//	float3 f3BackgroundColor = textureLod(g_tex2DColorBuffer, m_f4UVAndScreenPos.xy, 0.0).rgb;
 //    [branch]
 //    if( !g_PPAttribs.m_bShowLightingOnly )
     {

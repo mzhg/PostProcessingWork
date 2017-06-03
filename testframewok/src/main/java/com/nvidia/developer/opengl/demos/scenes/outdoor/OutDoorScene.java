@@ -120,7 +120,7 @@ public class OutDoorScene {
     private NvInputTransformer m_transformer;
     private GLFuncProvider gl;
 
-    private OutDoorScene(NvSampleApp app){
+    public OutDoorScene(NvSampleApp app){
         nvApp =app.getGLContext();
         m_transformer = app.getInputTransformer();
     }
@@ -172,16 +172,12 @@ public class OutDoorScene {
 //        initTestData();
     }
 
-    public String getShaderResourcePath(){return "Outdoor/Cube16/shaders/";}
+    public String getShaderResourcePath(){return "Scenes/Outdoor/shaders/";}
 
     public void draw(float dt) {
         update(dt);
         render(dt);
     }
-
-    private final Vector3f m_orgin = new Vector3f();
-    private final Vector3f m_center = new Vector3f();
-    private final Vector3f m_up = new Vector3f();
 
     private void render(float deltaSeconds){
         renderNormalScene(deltaSeconds);
@@ -319,6 +315,8 @@ public class OutDoorScene {
         m_visTexShader.disable();
         gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, 0);
     }
+
+    public Texture2D getSceneColor() { return m_pOffscreenRenderTarget;}
 
     public boolean handleCharacterInput(char c) {
         switch (c) {
@@ -531,18 +529,6 @@ public class OutDoorScene {
                     );
             Matrix4f.mul(ScaledBiasMat, WorldToLightProjSpaceMatr, ScaledBiasMat);
 
-//          D3D11_VIEWPORT NewViewPort;
-//          NewViewPort.TopLeftX = 0;
-//          NewViewPort.TopLeftY = 0;
-//          NewViewPort.Width  = static_cast<float>( m_uiShadowMapResolution );
-//          NewViewPort.Height = static_cast<float>( m_uiShadowMapResolution );
-//          NewViewPort.MinDepth = 0;
-//          NewViewPort.MaxDepth = 1;
-//          // Set the viewport
-//          pContext->RSSetViewports(1, &NewViewPort);
-
-//          pContext->OMSetRenderTargets(0, nullptr, m_pShadowMapDSVs[iCascade]);
-//          pContext->ClearDepthStencilView(m_pShadowMapDSVs[iCascade], D3D11_CLEAR_DEPTH, 0.f, 0);
             gl.glViewport(0, 0, m_uiShadowMapResolution, m_uiShadowMapResolution);
 //          rtManager.setTexture2DRenderTargets(0, m_pShadowMapDSVs.get(iCascade).getTexture());
 //          GLError.checkError();
@@ -650,10 +636,6 @@ public class OutDoorScene {
                 if( fNearIsecWithBottomSphere > 0 )
                 {
                     // The ray hits the Earth. Use hit point to compute camera space Z
-//                    D3DXVECTOR3 HitPointWS = CameraPos + DirFromCamera*fNearIsecWithBottomSphere;
-//                    D3DXVECTOR3 HitPointCamSpace;
-//                    D3DXVec3TransformCoord(&HitPointCamSpace, &HitPointWS, &ViewMatr);
-//                    fFarPlaneZ = max(fFarPlaneZ, HitPointCamSpace.z);
                     Vector3f HitPointWS = Vector3f.linear(CameraPos, DirFromCamera, fNearIsecWithBottomSphere, vLightSpaceX);
                     Vector3f HitPointCamSpace = Matrix4f.transformVector(ViewMatr, HitPointWS, vLightSpaceY);
                     fFarPlaneZ = Math.max(fFarPlaneZ, Math.abs(HitPointCamSpace.z));

@@ -493,10 +493,11 @@ final class SharedData {
         if (m_ScatteringInitAttribs.m_uiLightType == LightType.SPOT || m_ScatteringInitAttribs.m_uiLightType == LightType.POINT)
         {
             Vector3f.sub(m_LightAttribs.f4LightWorldPos, f3CameraPos,vDirOnLight);
+            vDirOnLight.normalise();
         } else {  // Direction Light
-            vDirOnLight.set(10, 15, 5);
+            vDirOnLight.set(commonAttribs.lightDirection);
+            vDirOnLight.scale(-1);
         }
-        vDirOnLight.normalise();
 
         Matrix4f lightViewProjMat = commonAttribs.getLightViewProjMatrix();
         Matrix4f.transformCoord(lightViewProjMat, commonAttribs.getCameraPos(), m_LightAttribs.f4CameraUVAndDepthInShadowMap);

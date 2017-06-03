@@ -17,7 +17,7 @@
 //#ifndef _STRCUTURES_FXH_
 //#define _STRCUTURES_FXH_
 
-#include "<std-class>hlsl_compatiable.glsl"
+#include "../PostProcessingHLSLCompatiable.glsl"
 
 #define PI 3.1415928
 

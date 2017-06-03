@@ -28,6 +28,7 @@ public class PostProcessingFrameAttribs {
 
     /** The light position in world space.*/
     public Vector3f lightPos;
+    /** The direction from light source to receiver. */
     public Vector3f lightDirection;
     public Matrix4f lightProjMat;
     public Matrix4f lightViewMat;  // TODO should be a array.
@@ -43,6 +44,7 @@ public class PostProcessingFrameAttribs {
     private boolean  bLightViewProjSetted = false;
 
     private final Vector3f cameraPos = new Vector3f();
+    public CascadeShadowMapAttribs cascadeShadowMapAttribs;
 
     public float cameraNear, cameraFar;
 

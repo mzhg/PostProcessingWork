@@ -7,6 +7,7 @@ import java.util.List;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.Numeric;
 
 /**
@@ -24,8 +25,8 @@ public abstract class PostProcessingRenderPass implements Disposeable{
     private int[] m_DependencyCount;
     boolean m_bProcessed;
 
-    protected Texture2D[] m_PassInputs;
-    protected Texture2D[] m_PassOutputs;
+    protected TextureGL[] m_PassInputs;
+    protected TextureGL[] m_PassOutputs;
     private InputDesc[] m_InputDescs;
 
     private int[] m_FixOutputWidth;
@@ -50,13 +51,13 @@ public abstract class PostProcessingRenderPass implements Disposeable{
             for(int i = 0; i < inputCount; i++)
                 m_InputDescs[i] = new InputDesc();
 
-            m_PassInputs = new Texture2D[inputCount];
+            m_PassInputs = new TextureGL[inputCount];
         }else{
             m_PassInputs = EMPTY_TEX2D;
         }
 
         if(outputCount > 0){
-            m_PassOutputs = new Texture2D[outputCount];
+            m_PassOutputs = new TextureGL[outputCount];
             m_Dependencies = new int[outputCount];
             m_FixDependencies = new int[outputCount];
             m_DependencyCount = new int[outputCount];
@@ -77,16 +78,16 @@ public abstract class PostProcessingRenderPass implements Disposeable{
     public int getInputCount() {return m_PassInputs.length;}
     public int getOutputCount() {return m_PassOutputs.length;}
 
-    public Texture2D getInput(int idx) {
+    public <T extends TextureGL> T getInput(int idx) {
         int length = m_PassInputs.length;
-        return idx >= length ? null : m_PassInputs[idx];
+        return idx >= length ? null : (T)m_PassInputs[idx];
     }
 
     public abstract void process(PostProcessingRenderContext context, PostProcessingParameters parameters);
 
-    public Texture2D getOutputTexture(int idx) {
+    public <T extends TextureGL> T getOutputTexture(int idx) {
         int length = m_PassOutputs.length;
-        return idx >= length ? null : m_PassOutputs[idx];
+        return idx >= length ? null : (T)m_PassOutputs[idx];
     }
 
     public void markOutputSlot(int slot){
@@ -99,7 +100,10 @@ public abstract class PostProcessingRenderPass implements Disposeable{
      */
     public void releaseResource(int idx)
     {
-        RenderTexturePool.getInstance().freeUnusedResource(m_PassOutputs[idx]);
+        if(m_OutputTarget != PostProcessingRenderPassOutputTarget.DEFAULT)
+            return;
+
+        RenderTexturePool.getInstance().freeUnusedResource((Texture2D)m_PassOutputs[idx]);
         m_PassOutputs[idx] = null;
     }
 
@@ -195,7 +199,7 @@ public abstract class PostProcessingRenderPass implements Disposeable{
 //        return false;
     }
 
-    void setInputTextures(List<Texture2D> _inputTextures)
+    void setInputTextures(List<TextureGL> _inputTextures)
     {
         //				mInputTextures = _inputTextures;
         for (int i = 0; i < m_PassInputs.length; i++)

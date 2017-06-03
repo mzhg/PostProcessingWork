@@ -1,8 +1,7 @@
 #include "InsctrLUTCoords2WorldParams.frag"
 #include "LookUpPrecomputedScattering.frag"
 
-in float4 UVAndScreenPos;
-in float  m_fInstID;
+in float4 m_f4UVAndScreenPos;
 
 layout(location = 0) out float3 OutColor;
 
@@ -11,7 +10,7 @@ layout(location = 0) out float3 OutColor;
 void main()
 {
 	// Get attributes for the current point
-    float2 f2UV = ProjToUV(UVAndScreenPos.zw);
+    float2 f2UV = ProjToUV(m_f4UVAndScreenPos.zw);
     float fHeight, fCosViewZenithAngle, fCosSunZenithAngle, fCosSunViewAngle;
     InsctrLUTCoords2WorldParams(float4(f2UV, g_f2WQ), fHeight, fCosViewZenithAngle, fCosSunZenithAngle, fCosSunViewAngle );
     float3 f3EarthCentre =  - float3(0,1,0) * g_fEarthRadius;

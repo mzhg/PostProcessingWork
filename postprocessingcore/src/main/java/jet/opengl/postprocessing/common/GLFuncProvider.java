@@ -1525,4 +1525,6 @@ public interface GLFuncProvider {
     void glProgramUniform4fv(int program, int index, FloatBuffer data);
     void glProgramUniform1fv(int program, int index, FloatBuffer data);
     void glProgramUniform1i(int program, int index, int i);
+    void glProgramUniform4i(int program, int index, int x, int y, int z, int w);
+    void glProgramUniform2fv(int program, int index, FloatBuffer values);
 }

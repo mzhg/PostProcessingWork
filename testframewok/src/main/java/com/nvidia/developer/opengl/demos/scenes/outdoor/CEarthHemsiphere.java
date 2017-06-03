@@ -1,5 +1,6 @@
 package com.nvidia.developer.opengl.demos.scenes.outdoor;
 
+import com.nvidia.developer.opengl.utils.NvImage;
 import com.nvidia.developer.opengl.utils.StackFloat;
 import com.nvidia.developer.opengl.utils.StackInt;
 
@@ -29,7 +30,6 @@ import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
-//This class renders the adaptive model using DX11 API
 final class CEarthHemsiphere {
 
 	// // One base material + 4 masked materials
@@ -122,22 +122,26 @@ final class CEarthHemsiphere {
 //			System.err.println(m_ptex2DMtrlMaskSRV.toString("m_ptex2DMtrlMaskSRV"));
 			// Load tiles
 			for(int iTileTex = 0; iTileTex < NUM_TILE_TEXTURES; iTileTex++){
-				m_ptex2DTilesSRV[iTileTex] = TextureUtils.createTexture2DFromFile(TileTexturePath[iTileTex], true);
-				
+				NvImage.upperLeftOrigin(false);  // TODO
+				int textureID = NvImage.uploadTextureFromDDSFile(TileTexturePath[iTileTex]);
+				m_ptex2DTilesSRV[iTileTex] = TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, textureID);
+
 				m_ptex2DTilesSRV[iTileTex].setMagFilter(GLenum.GL_LINEAR);
 				m_ptex2DTilesSRV[iTileTex].setMinFilter(m_ptex2DTilesSRV[iTileTex].getMipLevels() > 1 ? GLenum.GL_LINEAR_MIPMAP_LINEAR : GLenum.GL_LINEAR);
 				m_ptex2DTilesSRV[iTileTex].setWrapS(GLenum.GL_REPEAT);
 				m_ptex2DTilesSRV[iTileTex].setWrapT(GLenum.GL_REPEAT);
-				
-				m_ptex2DTilNormalMapsSRV[iTileTex] = TextureUtils.createTexture2DFromFile(TileNormalMapPath[iTileTex], true);
+
+				if(TileNormalMapPath[iTileTex].endsWith(".dds")) {
+					textureID = NvImage.uploadTextureFromDDSFile(TileNormalMapPath[iTileTex]);
+					m_ptex2DTilNormalMapsSRV[iTileTex] = TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, textureID);
+				}else{
+					m_ptex2DTilNormalMapsSRV[iTileTex] = TextureUtils.createTexture2DFromFile(TileNormalMapPath[iTileTex], true);
+				}
 				
 				m_ptex2DTilNormalMapsSRV[iTileTex].setMagFilter(GLenum.GL_LINEAR);
 				m_ptex2DTilNormalMapsSRV[iTileTex].setMinFilter(m_ptex2DTilNormalMapsSRV[iTileTex].getMipLevels() > 1 ? GLenum.GL_LINEAR_MIPMAP_LINEAR : GLenum.GL_LINEAR);
 				m_ptex2DTilNormalMapsSRV[iTileTex].setWrapS(GLenum.GL_REPEAT);
 				m_ptex2DTilNormalMapsSRV[iTileTex].setWrapT(GLenum.GL_REPEAT);
-				
-//				System.err.println(m_ptex2DTilesSRV[iTileTex].toString("m_ptex2DTilesSRV" + iTileTex));
-//				System.err.println(m_ptex2DTilNormalMapsSRV[iTileTex].toString("m_ptex2DTilNormalMapsSRV" + iTileTex));
 			}
     	} catch (IOException e) {
 			e.printStackTrace();
@@ -241,7 +245,10 @@ final class CEarthHemsiphere {
 
 	private final void bind(TextureGL texture, int unit, int sampler){
 		gl.glActiveTexture(GLenum.GL_TEXTURE0 + unit);
-		gl.glBindTexture(texture.getTarget(), texture.getTexture());
+		if(texture != null)
+			gl.glBindTexture(texture.getTarget(), texture.getTexture());
+		else
+			gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
 		gl.glBindSampler(unit, sampler);
 	}
     
@@ -418,16 +425,12 @@ final class CEarthHemsiphere {
                          int iHeightMapDim){
     	Texture2DDesc HeightMapDesc = new Texture2DDesc
     	(
-    			iHeightMapDim,
-    	        iHeightMapDim,
+    			iHeightMapDim-1, // TODO
+    	        iHeightMapDim-1, // TODO
     			1,
     			1,
-				GLenum.GL_R16,
+				GLenum.GL_R16F,
     	        1
-//    			D3D11_USAGE_IMMUTABLE,
-//    			D3D11_BIND_SHADER_RESOURCE,
-//    			0,
-//    			0
     	);
     	
     	while( (iHeightMapDim >> HeightMapDesc.mipLevels) > 1 )

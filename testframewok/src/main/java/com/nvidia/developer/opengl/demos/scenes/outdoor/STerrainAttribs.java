@@ -1,11 +1,9 @@
 package com.nvidia.developer.opengl.demos.scenes.outdoor;
 
-import java.nio.ByteBuffer;
-
 import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector4f;
 
-import jet.util.CodeGen;
+import java.nio.ByteBuffer;
 
 final class STerrainAttribs implements Readable{
 
@@ -29,12 +27,8 @@ final class STerrainAttribs implements Readable{
 		f4CascadeColors[7] = new Vector4f(1, 0.7f, 0.3f, 1);
 	}
 	
-	public static void main(String[] args) {
-		CodeGen.genStoreBytebuffer(STerrainAttribs.class);
-	}
-
 	@Override
-	public Readable store(ByteBuffer buf) {
+	public ByteBuffer store(ByteBuffer buf) {
 		buf.putFloat(m_fElevationScale);
 		buf.putFloat(m_fElevationSamplingInterval);
 		buf.putFloat(m_fEarthRadius);
@@ -42,6 +36,6 @@ final class STerrainAttribs implements Readable{
 		m_f4TilingScale.store(buf);
 		for(int i = 0; i < f4CascadeColors.length; i++)
 			f4CascadeColors[i].store(buf);
-		return this;
+		return buf;
 	}
 }

@@ -1625,4 +1625,54 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     public void glPrimitiveRestartIndex(int restartIndex) {
         GL31.glPrimitiveRestartIndex(restartIndex);
     }
+
+    @Override
+    public int glCreateShaderProgramv(int target, CharSequence source) {
+        return GL41.glCreateShaderProgramv(target, source);
+    }
+
+    @Override
+    public void glProgramUniform1f(int program, int index, float radius) {
+        GL41.glProgramUniform1f(program, index, radius);
+    }
+
+    @Override
+    public void glProgramUniform2f(int program, int index, float x, float y) {
+        GL41.glProgramUniform2f(program, index, x, y);
+    }
+
+    @Override
+    public void glProgramUniform4f(int program, int index, float x, float y, float z, float w) {
+        GL41.glProgramUniform4f(program, index, x, y, z, w);
+    }
+
+    @Override
+    public void glProgramUniformMatrix4fv(int program, int index, boolean transpose, FloatBuffer data) {
+        GL41.glProgramUniformMatrix4fv(program, index, transpose, data);
+    }
+
+    @Override
+    public void glProgramUniform4fv(int program, int index, FloatBuffer data) {
+        GL41.glProgramUniform4fv(program, index, data);
+    }
+
+    @Override
+    public void glProgramUniform1fv(int program, int index, FloatBuffer data) {
+        GL41.glProgramUniform1fv(program, index, data);
+    }
+
+    @Override
+    public void glProgramUniform1i(int program, int index, int i) {
+        GL41.glProgramUniform1i(program, index, i);
+    }
+
+    @Override
+    public void glProgramUniform4i(int program, int index, int x, int y, int z, int w) {
+        GL41.glProgramUniform4i(program, index, x, y, z, w);
+    }
+
+    @Override
+    public void glProgramUniform2fv(int program, int index, FloatBuffer values) {
+        GL41.glProgramUniform2fv(program, index, values);
+    }
 }

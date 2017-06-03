@@ -1,13 +1,13 @@
 #include "LookUpPrecomputedScattering.frag"
 
-in float4 UVAndScreenPos;
+in float4 m_f4UVAndScreenPos;
 in float  m_fInstID;
 
 layout(location = 0) out float4 OutColor;
 
 void main()
 {
-	float fU = ProjToUV(UVAndScreenPos.zw).x;
+	float fU = ProjToUV(m_f4UVAndScreenPos.zw).x;
     float3 f3RayStart = float3(0,20,0);
     float3 f3EarthCentre =  -float3(0,1,0) * g_fEarthRadius;
     float fCosZenithAngle = clamp(fU * 2.0 - 1.0, -1.0, +1.0);

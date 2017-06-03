@@ -1,6 +1,6 @@
 #include "Scattering.frag"
 
-in float4 UVAndScreenPos;
+in float4 m_f4UVAndScreenPos;
 in float  m_fInstID;
 
 layout(location = 0) out float2 OutColor;
@@ -64,11 +64,11 @@ float2 IntegrateParticleDensityAlongRay(in float3 f3Pos,
 
 void main()
 {
-	float2 f2UV = ProjToUV(UVAndScreenPos.zw);
+	float2 f2UV = ProjToUV(m_f4UVAndScreenPos.zw);
     // Do not allow start point be at the Earth surface and on the top of the atmosphere
     float fStartHeight = clamp( lerp(0, g_fAtmTopHeight, f2UV.x), 10, g_fAtmTopHeight-10 );
 
-    float fCosTheta = UVAndScreenPos.w;  //-In.m_f2PosPS.y;  From cos(0)--cos(PI) Cause DX y-axis from top to down
+    float fCosTheta = m_f4UVAndScreenPos.w;  //-In.m_f2PosPS.y;  From cos(0)--cos(PI) Cause DX y-axis from top to down
     float fSinTheta = sqrt( saturate(1.0 - fCosTheta*fCosTheta) );
     float3 f3RayStart = float3(0, 0, fStartHeight);
     float3 f3RayDir = float3(fSinTheta, 0, fCosTheta);
