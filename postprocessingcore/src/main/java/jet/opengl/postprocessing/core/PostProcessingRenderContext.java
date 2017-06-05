@@ -179,6 +179,11 @@ public final class PostProcessingRenderContext {
         gl.glDrawArrays(mode, offset, count);
     }
 
+    public void drawArrays(int mode, int offset, int count, int instanceCount){
+        flush();
+        gl.glDrawArraysInstanced(mode, offset, count, instanceCount);
+    }
+
     public void drawElements(int mode, int count, int type, long offset){
         flush();
 
@@ -257,6 +262,8 @@ public final class PostProcessingRenderContext {
                     currentDependencyPasses.add(inputPass);
                     inputPass.markOutputSlot(inputDesc.slot);
                     inputTextures.add(inputPass.getOutputTexture(inputDesc.slot));
+                }else{
+                    inputTextures.add(null);
                 }
             }
 

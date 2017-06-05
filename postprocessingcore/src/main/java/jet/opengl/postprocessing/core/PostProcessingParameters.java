@@ -74,6 +74,7 @@ public class PostProcessingParameters {
     public float getExposureScale() { return exposureScale; }
     public int   getFXAAQuality() { return fxaaQuality;}
 
+    @Deprecated
     public float getElapsedTime() {
         return elapsedTime;
     }

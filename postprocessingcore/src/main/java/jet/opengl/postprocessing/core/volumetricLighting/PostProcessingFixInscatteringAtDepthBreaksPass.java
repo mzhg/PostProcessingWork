@@ -90,7 +90,7 @@ final class PostProcessingFixInscatteringAtDepthBreaksPass extends PostProcessin
         context.setBlendState(null);
         m_sharedData.m_pNoDepth_StEqual_IncrStencilDS.backFace.stencilRef = 0;
         m_sharedData.m_pNoDepth_StEqual_IncrStencilDS.frontFace.stencilRef = 0;
-        context.setDepthStencilState(null);
+        context.setDepthStencilState(m_sharedData.m_pNoDepth_StEqual_IncrStencilDS); // TODO
         context.setRasterizerState(null);
         if(m_RenderTargets != null){
             if(m_RenderTargets[0] == null)
@@ -114,8 +114,8 @@ final class PostProcessingFixInscatteringAtDepthBreaksPass extends PostProcessin
 
     @Override
     public void computeOutDesc(int index, Texture2DDesc out) {
-        out.arraySize = 1;
-        out.sampleCount = 1;
+        out.arraySize = m_sharedData.m_ScatteringInitAttribs.m_uiBackBufferWidth;
+        out.sampleCount = m_sharedData.m_ScatteringInitAttribs.m_uiBackBufferHeight;
         out.format = GLenum.GL_RGBA8;
 
         super.computeOutDesc(index, out);

@@ -23,6 +23,7 @@ const vec2 QuadVertices[4] = vec2[4]
 
 #if ENABLE_IN_OUT_FEATURE
 	out vec4 m_f4UVAndScreenPos;
+	out int  m_iInstID;
 
 	out gl_PerVertex
 	{
@@ -49,6 +50,8 @@ void main()
         gl_Position = vec4(m_f4UVAndScreenPos.xy * 2.0 - 1.0, 0, 1);
         m_f4UVAndScreenPos.zw = gl_Position.xy;
     #endif
+
+    m_iInstID = gl_InstanceID;
 #else
 	gl_Position = In_f4Postion;
 	m_f4UVAndScreenPos = vec4(0.5 * In_f4Postion.xy + 0.5, In_f4Postion.xy);

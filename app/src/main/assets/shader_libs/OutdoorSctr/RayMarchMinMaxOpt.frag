@@ -2,7 +2,7 @@
 #include "ComputeUnshadowedInscattering.frag"
 
 in float4 m_f4UVAndScreenPos;
-in float m_fInstID;
+in int m_iInstID;
 
 #if CORRECT_STATIC_SCENE == 0
 // layout(origin_upper_left) in vec4 gl_FragCoord;
@@ -25,7 +25,7 @@ void main()
         return;
     }
 
-    float fCascade = g_fCascadeInd + m_fInstID;
+    float fCascade = g_fCascadeInd + float(m_iInstID);
 
 #if ENABLE_LIGHT_SHAFTS
     OutColor = ComputeShadowedInscattering(f2SampleLocation, 

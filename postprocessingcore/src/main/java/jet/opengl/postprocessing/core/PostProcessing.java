@@ -20,6 +20,8 @@ import jet.opengl.postprocessing.core.eyeAdaption.PostProcessingEyeAdaptationEff
 import jet.opengl.postprocessing.core.fisheye.PostProcessingFishEyeEffect;
 import jet.opengl.postprocessing.core.fxaa.PostProcessingFXAAEffect;
 import jet.opengl.postprocessing.core.light.PostProcessingLightEffect;
+import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringFrameAttribs;
+import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringInitAttribs;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
 import jet.opengl.postprocessing.core.ssao.PostProcessingHBAOEffect;
 import jet.opengl.postprocessing.core.toon.PostProcessingToonEffect;
@@ -54,6 +56,7 @@ public class PostProcessing implements Disposeable{
     public static final String DOF_GAUSSION = "DOF_GAUSSION";
     public static final String HBAO = "HBAO";
     public static final String VOLUMETRIC_LIGHTING = "VOLUMETRIC_LIGHTING";
+    public static final String OUTDOOR_LIGHTING = "OUTDOOR_LIGHTING";
 
     private static final int NUM_TAG_CACHE = 32;
 
@@ -69,6 +72,7 @@ public class PostProcessing implements Disposeable{
 
     public static final int EYE_ADAPATION_PRIPORTY = -100;
     public static final int VOLUMETRIC_LIGHTING_PRIPORTY = 10;
+    public static final int OUTDOOR_LIGHTING_PRIPORTY = 7;
 
     private PostProcessingRenderContext m_RenderContext;
 
@@ -87,6 +91,7 @@ public class PostProcessing implements Disposeable{
     private boolean m_bUsePortionTex;
     private Texture2D m_DefaultLensMask;
     private RecycledPool<LightScatteringInitAttribs> m_LightScatteringInitAttribsPool;
+    private RecycledPool<OutdoorLightScatteringInitAttribs> m_OutdoorLightScatteringInitAttribsPool;
 
     public PostProcessing(){
         m_Parameters = new PostProcessingParameters(this);
@@ -306,6 +311,19 @@ public class PostProcessing implements Disposeable{
 
     private PostProcessingEffect findEffect(String name){
         return m_RegisteredEffects.get(name);
+    }
+
+    public void addOutdoorLight(OutdoorLightScatteringInitAttribs initAttribs, OutdoorLightScatteringFrameAttribs frameAttribs){
+        PostProcessingEffect effect = findEffect(OUTDOOR_LIGHTING);
+        OutdoorLightScatteringInitAttribs initAttribsCopyed = null;
+        if(m_OutdoorLightScatteringInitAttribsPool == null){
+            m_OutdoorLightScatteringInitAttribsPool = new RecycledPool<>(()->new OutdoorLightScatteringInitAttribs(), 2);
+        }
+
+        initAttribsCopyed = m_OutdoorLightScatteringInitAttribsPool.obtain();
+        initAttribsCopyed.set(initAttribs);
+
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), initAttribsCopyed, frameAttribs));
     }
 
     public void addVolumeLight(LightScatteringInitAttribs initAttribs, LightScatteringFrameAttribs frameAttribs){

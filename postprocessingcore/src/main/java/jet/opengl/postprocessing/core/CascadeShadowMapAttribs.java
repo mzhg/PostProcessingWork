@@ -14,4 +14,6 @@ public class CascadeShadowMapAttribs {
     public final Matrix4f[] worldToShadowMapUVDepth = new Matrix4f[MAX_CASCADES];
     public final Vector2f[] startEndZ = new Vector2f[MAX_CASCADES];
     public int numCascades;
+    public CascadePassMode mode =CascadePassMode.SINGLE;
+
 }

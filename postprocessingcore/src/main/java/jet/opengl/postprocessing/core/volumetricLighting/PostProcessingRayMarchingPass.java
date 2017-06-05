@@ -107,6 +107,6 @@ final class PostProcessingRayMarchingPass extends PostProcessingRenderPass{
         out.sampleCount = 1;
         out.width = m_sharedData.getEpipolarImageDSV().getWidth();
         out.height = m_sharedData.getEpipolarImageDSV().getHeight();
-        out.format = GLenum.GL_RGBA16F;
+        out.format = GLenum.GL_RGB16F;
     }
 }

@@ -16,7 +16,6 @@ public class OutdoorLightScatteringFrameAttribs {
     public final Vector4f m_f4CustomMieBeta = new Vector4f(2.0e-5f, 2.0e-5f, 2.0e-5f, 0.f);
     public int m_uiEpipoleSamplingDensityFactor = 2;
     public float m_fRefinementThreshold = 0.03f;
-    public int m_iFirstCascade = 0;
     public float m_fMaxShadowMapStep = 16.0f;
     public final Vector4f f4ExtraterrestrialSunColor = new Vector4f();
 
@@ -33,5 +32,24 @@ public class OutdoorLightScatteringFrameAttribs {
     public float m_fAerosolPhaseFuncG = 0.76f;
 
     public void set(OutdoorLightScatteringFrameAttribs other) {
+        m_bUseCustomSctrCoeffs = other.m_bUseCustomSctrCoeffs;
+        m_fAerosolDensityScale = other.m_fAerosolDensityScale;
+        m_fAerosolAbsorbtionScale = other.m_fAerosolAbsorbtionScale;
+
+        m_f4CustomRlghBeta.set(other.m_f4CustomRlghBeta);
+        m_f4CustomMieBeta.set(other.m_f4CustomMieBeta);
+
+        m_uiEpipoleSamplingDensityFactor = other.m_uiEpipoleSamplingDensityFactor;
+        m_fRefinementThreshold = other.m_fRefinementThreshold;
+        m_fMaxShadowMapStep = other.m_fMaxShadowMapStep;
+
+        f4ExtraterrestrialSunColor.set(other.f4ExtraterrestrialSunColor);
+
+        fEarthRadius = other.fEarthRadius;
+        fAtmTopHeight = other.fAtmTopHeight;
+        fTurbidity = other.fTurbidity;
+        m_fAerosolPhaseFuncG = other.m_fAerosolPhaseFuncG;
+
+        f2ParticleScaleHeight.set(other.f2ParticleScaleHeight);
     }
 }

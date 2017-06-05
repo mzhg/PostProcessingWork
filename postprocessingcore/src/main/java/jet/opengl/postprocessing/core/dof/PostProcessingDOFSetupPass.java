@@ -90,7 +90,10 @@ final class PostProcessingDOFSetupPass extends PostProcessingRenderPass {
         context.setBlendState(null);
         context.setDepthStencilState(null);
         context.setRasterizerState(null);
-        context.setRenderTargets(m_PassOutputs);  // Multi-output.
+        // Multi-output.
+        for(int i = 0; i < m_PassOutputs.length; i++){
+            context.setRenderTarget((Texture2D)m_PassOutputs[i]);
+        }
 
         context.drawFullscreenQuad();
 //        context.bindTexture(input1, 1, 0); // reset the sampler

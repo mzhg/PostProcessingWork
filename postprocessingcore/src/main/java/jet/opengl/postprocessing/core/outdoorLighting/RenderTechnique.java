@@ -143,7 +143,6 @@ final class RenderTechnique extends GLSLProgram {
 	public void setupUniforms(OutdoorLightScatteringFrameAttribs attribs){
 		setRefinementThreshold(attribs.m_fRefinementThreshold);
 		setEpipoleSamplingDensityFactor(attribs.m_uiEpipoleSamplingDensityFactor);
-		setFirstCascade(attribs.m_iFirstCascade);
 		setMaxShadowMapStep(attribs.m_fMaxShadowMapStep);
 
 		setEarthRadius(attribs.fEarthRadius);
@@ -161,6 +160,7 @@ final class RenderTechnique extends GLSLProgram {
 
 	public void setupUniforms(OutdoorLightScatteringInitAttribs attribs){
 		setNumEpipolarSlices(attribs.m_uiNumEpipolarSlices);
+		setFirstCascade(attribs.m_iFirstCascade);
 	}
 	
 	public void setupUniforms(SAirScatteringAttribs attribs){

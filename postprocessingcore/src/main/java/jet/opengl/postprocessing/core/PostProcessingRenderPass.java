@@ -148,7 +148,8 @@ public abstract class PostProcessingRenderPass implements Disposeable{
         m_InputDescs[slot].dependencyPass = dependencyPass;
         m_InputDescs[slot].slot = depentSlot;
 
-        dependencyPass.increaseDependency(depentSlot);
+        if(dependencyPass != null)
+            dependencyPass.increaseDependency(depentSlot);
     }
 
     protected InputDesc getInputDesc(int index){

@@ -19,12 +19,16 @@ public class PostProcessingFrameAttribs {
     public Texture2D shadowMapTexture;
 
     public Texture2D outputTexture;
+    public Texture2D ambientSkyLight;
     public boolean colorDepthCombined;
 
     public Matrix4f viewMat;
     public Matrix4f projMat;
     public float    fov;
     public boolean  ortho;
+
+    // frame elapsed time
+    public float   elapsedTime;
 
     /** The light position in world space.*/
     public Vector3f lightPos;

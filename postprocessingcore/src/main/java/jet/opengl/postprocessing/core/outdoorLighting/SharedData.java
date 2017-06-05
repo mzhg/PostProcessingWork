@@ -17,6 +17,8 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 
+import static jet.opengl.postprocessing.core.outdoorLighting.PostProcessingUnwarpEpipolarScatteringPass.sm_iLowResLuminanceMips;
+
 /**
  * Created by mazhen'gui on 2017/6/2.
  */
@@ -28,6 +30,7 @@ final class SharedData {
     final SAirScatteringAttribs m_MediaParams = new SAirScatteringAttribs();
     PostProcessingFrameAttribs  m_CommonFrameAttribs = null;
     private final SLightAttribs m_LightAttribs = new SLightAttribs();
+    final SMiscDynamicParams m_MiscDynamicParams = new SMiscDynamicParams();
 
     boolean m_bRecomputeSctrCoeffs;
     private Macro[] m_Macros = null;
@@ -67,8 +70,11 @@ final class SharedData {
     private RenderTechnique m_RenderSampleLocationsTech;
 
     private Texture2D m_ptex2DEpipolarImageDSV;
+    private Texture2D m_ptex2DScreenSizedDSV;
+    private Texture2D m_ptex2DScreenSizedRTV;
 
-    SharedData(){
+    SharedData(PostProcessingFrameAttribs commonAttribs){
+        m_CommonFrameAttribs = commonAttribs;
 
         m_additiveBlendBS = new BlendState();
         m_additiveBlendBS.blendEnable = true;
@@ -224,11 +230,11 @@ final class SharedData {
         // [BN08] follows [REK04] and gives the following values for Rayleigh scattering coefficients:
         // RayleighBetha(lambda = (680nm, 550nm, 440nm) ) = (5.8, 13.5, 33.1)e-6
         final double dWaveLengths[] =
-                {
-                        680e-9,     // red
-                        550e-9,     // green
-                        440e-9      // blue
-                };
+        {
+                680e-9,     // red
+                550e-9,     // green
+                440e-9      // blue
+        };
 
         // Calculate angular and total scattering coefficients for Rayleigh scattering:
         {
@@ -375,6 +381,111 @@ final class SharedData {
         setUniforms(shader, null);
     }
 
+    Texture2D getScreenSizedDSV(){
+        if(m_CommonFrameAttribs.outputTexture != null &&
+                m_CommonFrameAttribs.outputTexture.getWidth() == m_ScatteringInitAttribs.m_uiBackBufferWidth &&
+                m_CommonFrameAttribs.outputTexture.getHeight() == m_ScatteringInitAttribs.m_uiBackBufferHeight) {
+            return m_CommonFrameAttribs.outputTexture;
+        }
+
+        if(m_ptex2DScreenSizedDSV == null){
+            Texture2DDesc desc = new Texture2DDesc(m_ScatteringInitAttribs.m_uiBackBufferWidth,
+                    m_ScatteringInitAttribs.m_uiBackBufferHeight,
+                    GLenum.GL_DEPTH24_STENCIL8);
+            m_ptex2DScreenSizedDSV = TextureUtils.createTexture2D(desc, null);
+        }
+
+        return m_ptex2DScreenSizedDSV;
+    }
+
+    Texture2D getScreenSizedRTV(){
+        if(m_ptex2DScreenSizedRTV == null){
+            Texture2DDesc desc = new Texture2DDesc(m_ScatteringInitAttribs.m_uiBackBufferWidth,
+                    m_ScatteringInitAttribs.m_uiBackBufferHeight,
+                    GLenum.GL_RGBA8);
+            m_ptex2DScreenSizedRTV = TextureUtils.createTexture2D(desc, null);
+        }
+
+        return m_ptex2DScreenSizedRTV;
+    }
+
+    RenderTechnique getFixInsctrAtDepthBreaksProgram(){
+        boolean bApplBG = true;
+        boolean bRenderLuminance  = false;
+        final int index = (bApplBG ? 1 : 0) + (bRenderLuminance ? 2 : 0);
+
+        RenderTechnique fixInsctrAtDepthBreaksTech = m_FixInsctrAtDepthBreaksTech[index];
+        if(fixInsctrAtDepthBreaksTech == null){
+            Macro[] macros = getMacros();
+            int length = macros.length;
+            macros = Arrays.copyOf(macros, length+4);
+            macros[length++] = new Macro("CASCADE_PROCESSING_MODE", /*CASCADE_PROCESSING_MODE_SINGLE_PASS*/ 0);
+            macros[length++] = new Macro("PERFORM_TONE_MAPPING", bRenderLuminance?0:1);
+            macros[length++] = new Macro("AUTO_EXPOSURE", m_ScatteringInitAttribs.m_bAutoExposure?1:0);
+            macros[length++] = new Macro("TONE_MAPPING_MODE", m_ScatteringInitAttribs.m_uiToneMappingMode);
+
+            fixInsctrAtDepthBreaksTech = m_FixInsctrAtDepthBreaksTech[index] = new RenderTechnique((bApplBG ? "FixAndApplyInscatteredRadiance.frag" : "FixInscatteredRadiance.frag"), macros);
+        }
+
+        return fixInsctrAtDepthBreaksTech;
+    }
+
+    RenderTechnique getUpdateAverageLuminanceProgram(){
+        if(m_UpdateAverageLuminanceTech == null){
+            Macro[] macros = getMacros();
+            int length = macros.length;
+            macros = Arrays.copyOf(macros, length+2);
+            macros[length++] = new Macro("LIGHT_ADAPTATION", m_ScatteringInitAttribs.m_bLightAdaptation?1:0);
+            macros[length++] = new Macro("LOW_RES_LUMINANCE_MIPS", sm_iLowResLuminanceMips);
+            m_UpdateAverageLuminanceTech = new RenderTechnique("ApplyInscatteredRadiance.frag", macros);
+        }
+
+        return m_UpdateAverageLuminanceTech;
+    }
+
+    RenderTechnique getUnwarpEpipolarSctrImgProgram(){
+        if(m_UnwarpEpipolarSctrImgTech == null){
+            Macro[] macros = getMacros();
+            int length = macros.length;
+            macros = Arrays.copyOf(macros, length+4);
+            macros[length++] = new Macro("PERFORM_TONE_MAPPING", 1);
+            macros[length++] = new Macro("AUTO_EXPOSURE", m_ScatteringInitAttribs.m_bAutoExposure?1:0);
+            macros[length++] = new Macro("TONE_MAPPING_MODE", m_ScatteringInitAttribs.m_uiToneMappingMode);
+            macros[length++] = new Macro("CORRECT_INSCATTERING_AT_DEPTH_BREAKS", m_ScatteringInitAttribs.m_bCorrectScatteringAtDepthBreaks?1:0);
+            m_UnwarpEpipolarSctrImgTech = new RenderTechnique("ApplyInscatteredRadiance.frag", macros);
+        }
+
+        return m_UnwarpEpipolarSctrImgTech;
+    }
+
+    RenderTechnique getUnwarpAndRenderLuminanceProgram(){
+        if(m_UnwarpAndRenderLuminanceTech == null){
+            Macro[] macros = getMacros();
+            int length = macros.length;
+            macros = Arrays.copyOf(macros, length+2);
+            macros[length++] = new Macro("PERFORM_TONE_MAPPING", 0);
+            macros[length++] = new Macro("CORRECT_INSCATTERING_AT_DEPTH_BREAKS", 0);
+            m_UnwarpAndRenderLuminanceTech = new RenderTechnique("ApplyInscatteredRadiance.frag", macros);
+        }
+
+        return m_UnwarpAndRenderLuminanceTech;
+    }
+
+    RenderTechnique getRayMarchProgram(){
+        final int slot = m_ScatteringInitAttribs.m_bUse1DMinMaxTree ? 1 : 0;
+        RenderTechnique doRayMarchTech = m_DoRayMarchTech[slot];
+        Macro[] macros = getMacros();
+        if(doRayMarchTech == null){
+            String filename = slot > 0 ? "RayMarchMinMaxOpt.frag" : "RayMarch.frag";
+            int length = macros.length;
+            macros = Arrays.copyOf(macros, length+1);
+            macros[length] = new Macro("CASCADE_PROCESSING_MODE", m_ScatteringInitAttribs.m_uiCascadeProcessingMode);
+            doRayMarchTech = m_DoRayMarchTech[slot] = new RenderTechnique(filename, getMacros());
+        }
+
+        return doRayMarchTech;
+    }
+
     RenderTechnique getRenderSliceEndpointsProgram(){
         if(m_RendedSliceEndpointsTech == null){
             m_RendedSliceEndpointsTech = new RenderTechnique("GenerateSliceEndpoints.frag", getMacros());
@@ -397,6 +508,36 @@ final class SharedData {
         }
 
         return m_RenderSliceUVDirInSMTech;
+    }
+
+    RenderTechnique getComputeMinMaxSMLevelProgram(){
+        if(m_ComputeMinMaxSMLevelTech == null){
+            m_ComputeMinMaxSMLevelTech = new RenderTechnique("ComputeMinMaxShadowMapLevel.frag", getMacros());
+        }
+
+        return m_ComputeMinMaxSMLevelTech;
+    }
+
+    RenderTechnique getInitializeMinMaxShadowMapProgram(){
+        if(m_InitializeMinMaxShadowMapTech == null){
+            Macro[] macros = getMacros();
+            if(m_ScatteringInitAttribs.m_bIs32BitMinMaxMipMap){
+                int length = macros.length;
+                macros = Arrays.copyOf(macros, length+1);
+                macros[length] = new Macro("IS_32BIT_MIN_MAX_MAP", 1);
+            }
+            m_InitializeMinMaxShadowMapTech = new RenderTechnique("InitializeMinMaxShadowMap.frag", getMacros());
+        }
+
+        return m_InitializeMinMaxShadowMapTech;
+    }
+
+    RenderTechnique getInterpolateIrradianceProgram(){
+        if(m_InterpolateIrradianceTech == null){
+            m_InterpolateIrradianceTech = new RenderTechnique("InterpolateIrradiance.frag", getMacros());
+        }
+
+        return m_InterpolateIrradianceTech;
     }
 
     RenderTechnique getMarkRayMarchingSamplesInStencilProgram(){
@@ -447,7 +588,15 @@ final class SharedData {
     }
 
     void dispose(){
+        if(m_ptex2DScreenSizedRTV != null){
+            m_ptex2DScreenSizedRTV.dispose();
+            m_ptex2DScreenSizedRTV = null;
 
+            m_ptex2DScreenSizedDSV.dispose();
+            m_ptex2DScreenSizedDSV = null;
+        }
+
+        // TODO don't forget release the GL resources here!!!
     }
 
     private void createSamplers(){
