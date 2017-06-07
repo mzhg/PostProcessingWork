@@ -8,6 +8,7 @@ import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPassOutputTarget;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureUtils;
 
 /**
  * Created by mazhen'gui on 2017/6/5.
@@ -72,19 +73,34 @@ final class PostProcessingUnwarpEpipolarScatteringPass extends PostProcessingRen
 
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
-        Texture2D output = getOutputTexture(0);
-
-        context.setViewport(0,0, output.getWidth(), output.getHeight());
-        context.setVAO(null);
         if(m_bRenderLuminance){
             m_UnwarpAndRenderLuminanceTech = m_sharedData.getUnwarpAndRenderLuminanceProgram();
             context.setProgram(m_UnwarpAndRenderLuminanceTech);
             m_sharedData.setUniforms(m_UnwarpAndRenderLuminanceTech);
+
+            if(m_ptex2DLowResLuminance == null){
+                Texture2DDesc LowResLuminanceTexDesc = new Texture2DDesc
+                (
+                        1 << (sm_iLowResLuminanceMips-1),   //UINT Width;
+                        1 << (sm_iLowResLuminanceMips-1),   //UINT Height;
+                        sm_iLowResLuminanceMips,            //UINT MipLevels;
+                        1,                                  //UINT ArraySize;
+                        GLenum.GL_R16F,              			//DXGI_FORMAT Format;
+                        1                              	//DXGI_SAMPLE_DESC SampleDesc;
+                );
+
+                m_ptex2DLowResLuminance = TextureUtils.createTexture2D(LowResLuminanceTexDesc, null);
+            }
         }else{
             m_UnwarpEpipolarSctrImgProgram = m_sharedData.getUnwarpEpipolarSctrImgProgram();
             context.setProgram(m_UnwarpEpipolarSctrImgProgram);
             m_sharedData.setUniforms(m_UnwarpEpipolarSctrImgProgram);
         }
+
+        Texture2D output = getOutputTexture(0);
+
+        context.setViewport(0,0, output.getWidth(), output.getHeight());
+        context.setVAO(null);
 //        Uniform [sampler2D name=g_tex2DCamSpaceZ, location=8, value = 1]              :0
 //        Uniform [sampler2D name=g_tex2DColorBuffer, location=9, value = 10]           :1
 //        Uniform [sampler2D name=g_tex2DEpipolarCamSpaceZ, location=10, value = 4]     :2
@@ -121,7 +137,7 @@ final class PostProcessingUnwarpEpipolarScatteringPass extends PostProcessingRen
             context.bindTexture(ptex2DAverageLuminance, RenderTechnique.TEX2D_AVERAGE_LUMINACE, m_psamLinearClamp);
 
         context.setBlendState(null);
-        if(m_bRenderLuminance) {
+        if(m_bRenderLuminance || m_RenderTargets == null) {
             context.setDepthStencilState(null);
         }else{
             context.setDepthStencilState(m_sharedData.m_pDisableDepthTestIncrStencilDS);

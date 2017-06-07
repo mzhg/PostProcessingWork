@@ -117,9 +117,9 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
                 rayMarchingPass.setDependency(3, build1DMinMaxMipMapPass, 0);
                 rayMarchingPass.setDependency(4, generateSliceUVDirAndOrigPass, 0);
 
-                rayMarchingPass.setDependency(5, precomputeScatteringPass, 2);
-                rayMarchingPass.setDependency(6, precomputeScatteringPass, 3);
-                rayMarchingPass.setDependency(7, precomputeScatteringPass, 4);
+                rayMarchingPass.setDependency(5, precomputeScatteringPass, 1);
+                rayMarchingPass.setDependency(6, precomputeScatteringPass, 2);
+                rayMarchingPass.setDependency(7, precomputeScatteringPass, 3);
 
                 context.appendRenderPass("Outdoor_RayMarch" + iCascadeInd, rayMarchingPass);
                 lastRayMarchingPass = rayMarchingPass;

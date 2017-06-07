@@ -23,4 +23,6 @@ final class AppIcon {
         this.groupID = groupID;
         this.localID = localID;
     }
+
+    void setWorldLocationToDrawable() { drawable.transform.set(worldLocation);}
 }

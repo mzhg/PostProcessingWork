@@ -169,6 +169,8 @@ public class FramebufferGL implements Disposeable {
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_Framebuffer);
     }
 
+    public int getFramebuffer() { return m_Framebuffer;}
+
     public void unbind(){
         GLFuncProviderFactory.getGLFuncProvider().glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
     }

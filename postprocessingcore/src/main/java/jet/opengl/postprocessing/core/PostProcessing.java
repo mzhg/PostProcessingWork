@@ -22,6 +22,7 @@ import jet.opengl.postprocessing.core.fxaa.PostProcessingFXAAEffect;
 import jet.opengl.postprocessing.core.light.PostProcessingLightEffect;
 import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringFrameAttribs;
 import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringInitAttribs;
+import jet.opengl.postprocessing.core.outdoorLighting.PostProcessingOutdoorLightScatteringEffect;
 import jet.opengl.postprocessing.core.radialblur.PostProcessingRadialBlurEffect;
 import jet.opengl.postprocessing.core.ssao.PostProcessingHBAOEffect;
 import jet.opengl.postprocessing.core.toon.PostProcessingToonEffect;
@@ -106,6 +107,7 @@ public class PostProcessing implements Disposeable{
         registerEffect(new PostProcessingDOFGaussionEffect());
         registerEffect(new PostProcessingHBAOEffect());
         registerEffect(new PostProcessingVolumetricLightingEffect());
+        registerEffect(new PostProcessingOutdoorLightScatteringEffect());
     }
 
     public void registerEffect(PostProcessingEffect effect){

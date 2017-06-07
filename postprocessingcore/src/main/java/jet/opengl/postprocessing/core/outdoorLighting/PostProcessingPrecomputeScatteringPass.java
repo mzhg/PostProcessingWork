@@ -1,6 +1,11 @@
 package jet.opengl.postprocessing.core.outdoorLighting;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.channels.FileChannel;
 
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -64,12 +69,62 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
         set(0, 4);
     }
 
+    private static ByteBuffer loadBinary(String file) throws IOException{
+        @SuppressWarnings("resource")
+        FileChannel in = new FileInputStream(file).getChannel();
+        ByteBuffer buf;
+        buf = ByteBuffer.allocateDirect((int)in.size()).order(ByteOrder.nativeOrder());
+
+        in.read(buf);
+        in.close();
+        buf.flip();
+        return buf;
+    }
+
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
         if(!m_sharedData.m_bRecomputeSctrCoeffs)
             return;
 
         initResources();
+
+        boolean debug = true;
+        if(debug){
+//    		System.out.println("PrecomputedOpticalDepthTexture: " + compareData(folder + "PrecomputedOpticalDepthTexture\\") + "\n");
+//        	System.out.println("SingleScatterings: " + compareData(folder + "SingleScatterings\\") + "\n");
+//        	System.out.println("HighOrderScattering: " + compareData(folder + "HighOrderScattering\\") + "\n");
+//        	System.out.println("MultipleScattering: " + compareData(folder + "MultipleScattering\\") + "\n");;
+
+            String folder = "E:\\OutdoorResources\\";
+            ByteBuffer pixels = null;
+            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+
+            int width = 32;
+            int height = 128;
+            final int depth = 64 * 16;
+            try {
+                pixels = loadBinary(folder + "SingleScatterings\\OpenGL.data");
+//                m_ptex3DSingleScatteringSRV.bind();
+                gl.glBindTexture(m_ptex3DSingleScatteringSRV.getTarget(), m_ptex3DSingleScatteringSRV.getTexture());
+                gl.glTexSubImage3D(GLenum.GL_TEXTURE_3D, 0, 0, 0, 0, width, height, depth, GLenum.GL_RGBA, GLenum.GL_FLOAT, pixels);
+
+                pixels = loadBinary(folder + "HighOrderScattering\\OpenGL.data");
+//                m_ptex3DHighOrderScatteringSRV.bind();
+                gl.glBindTexture(m_ptex3DHighOrderScatteringSRV.getTarget(), m_ptex3DHighOrderScatteringSRV.getTexture());
+                gl.glTexSubImage3D(GLenum.GL_TEXTURE_3D, 0, 0, 0, 0, width, height, depth, GLenum.GL_RGBA, GLenum.GL_FLOAT, pixels);
+
+                pixels = loadBinary(folder + "MultipleScattering\\OpenGL.data");
+//                m_ptex3DMultipleScatteringSRV.bind();
+                gl.glBindTexture(m_ptex3DMultipleScatteringSRV.getTarget(), m_ptex3DMultipleScatteringSRV.getTexture());
+                gl.glTexSubImage3D(GLenum.GL_TEXTURE_3D, 0, 0, 0, 0, width, height, depth, GLenum.GL_RGBA, GLenum.GL_FLOAT, pixels);
+//                m_ptex3DMultipleScatteringSRV.unbind();
+//                GLError.checkError();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return;
+        }
 
         TextureGL textureGLs[] = {
                 m_ptex2DSphereRandomSamplingSRV,

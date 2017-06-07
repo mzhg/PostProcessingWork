@@ -1,5 +1,9 @@
 package jet.opengl.postprocessing.util;
 
+import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.WritableVector3f;
+
 public final class Numeric {
 	
 	public static final float PI = (float)Math.PI;
@@ -556,5 +560,60 @@ public final class Numeric {
 
 	public static int decodeSecond(long value){
 		return (int) ((value >> 32) & 0xFFFFFFFFl);
+	}
+
+	public static boolean testRayIntersectWithTriangle(ReadableVector3f orig, ReadableVector3f dir,
+													   ReadableVector3f v0, ReadableVector3f v1, ReadableVector3f v2,
+													   WritableVector3f tuv){
+		// Find vectors for two edges sharing vert0
+		Vector3f edge1 = Vector3f.sub(v1, v0, null);
+		Vector3f edge2 = Vector3f.sub(v2, v0, null);
+
+		// Begin calculating determinant - also used to calculate U parameter
+		Vector3f pvec = Vector3f.cross(dir, edge2, null);
+	//	D3DXVec3Cross(&pvec, &dir, &edge2);
+
+		// If determinant is near zero, ray lies in plane of triangle
+		float det = Vector3f.dot(edge1, pvec);
+
+		Vector3f tvec;
+		if (det > 0)
+		{
+			tvec = Vector3f.sub(orig, v0, null);
+		}
+		else
+		{
+			tvec = Vector3f.sub(v0, orig, null);
+			det = -det;
+		}
+
+		if (det < 0.0001f)
+			return false;
+
+		// Calculate U parameter and test bounds
+		float u = Vector3f.dot(tvec, pvec);
+		if (u < 0.0f || u > det)
+		return false;
+
+		// Prepare to test V parameter
+		Vector3f qvec = Vector3f.cross(tvec, edge1, pvec);
+
+		// Calculate V parameter and test bounds
+		float v = Vector3f.dot(dir, qvec);
+		if (v < 0.0f || u + v > det)
+			return false;
+
+		if(tuv != null){
+			// Calculate t, scale parameters, ray intersects triangle
+			float t = Vector3f.dot(edge2, qvec);
+			float fInvDet = 1.0f / det;
+			t *= fInvDet;
+			u *= fInvDet;
+			v *= fInvDet;
+
+			tuv.set(t,u,v);
+		}
+
+		return true;
 	}
 }

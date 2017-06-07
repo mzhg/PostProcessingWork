@@ -20,6 +20,8 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.CascadePassMode;
+import jet.opengl.postprocessing.core.CascadeShadowMapAttribs;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
 import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
@@ -317,6 +319,14 @@ public class OutDoorScene {
     }
 
     public Texture2D getSceneColor() { return m_pOffscreenRenderTarget;}
+    public Texture2D getSceneDepth() { return m_pOffscreenDepth;}
+    public Texture2D getShadowMap()  { return m_pShadowMapSRV;}
+    public float     getSceneNearPlane() { return m_fCameraNear;}
+    public float     getSceneFarPlane() {  return m_fCameraFar;}
+    public Matrix4f  getViewMat()       { return m_ViewMatrix;}
+    public Matrix4f  getProjMat()       { return m_ProjMatrix;}
+    public float     getFovInRadian()   { return (float)Math.toRadians(45);}
+    public Vector3f  getLightDirection(){ return new Vector3f(m_LightAttribs.f4DirOnLight);}
 
     public boolean handleCharacterInput(char c) {
         switch (c) {
@@ -329,6 +339,18 @@ public class OutDoorScene {
                 return true;
             default:
                 return false;
+        }
+    }
+
+    public void getCascadeShadowMapInformations(CascadeShadowMapAttribs attribs) {
+        attribs.mode = CascadePassMode.SINGLE;
+        attribs.numCascades = 4;
+        attribs.worldToLightView = m_LightAttribs.shadowAttribs.mWorldToLightViewT;
+
+        final Matrix4f[] worldToLgihtView = m_LightAttribs.shadowAttribs.mWorldToShadowMapUVDepthT;
+        for(int i = 0; i < attribs.numCascades; i++){
+            attribs.worldToShadowMapUVDepth[i].load(worldToLgihtView[i]);
+            attribs.startEndZ[i].set(m_LightAttribs.shadowAttribs.cascades[i].f4StartEndZ);
         }
     }
 
@@ -852,4 +874,5 @@ public class OutDoorScene {
             m_pOffscreenDepth = null;
         }
     }
+
 }

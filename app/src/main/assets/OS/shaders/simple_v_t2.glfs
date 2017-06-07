@@ -1,9 +1,10 @@
 
 precision highp float;
 uniform sampler2D uTexSampler;
+uniform vec4 g_MaskColor = vec4(1);
 varying vec2 a_texCoord;
 
 void main()
 {
-   gl_FragColor = texture2D(uTexSampler, a_texCoord);
+   gl_FragColor = texture2D(uTexSampler, a_texCoord) * g_MaskColor;
 }

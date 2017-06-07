@@ -13,7 +13,8 @@ import jet.opengl.postprocessing.util.CacheBuffer;
  */
 
 class SingleTextureProgram extends GLSLProgram{
-    int uniformMVP = -1;
+    private int uniformMVP = -1;
+    private int uniformColor = -1;
 
     SingleTextureProgram(){
         setAttribBinding(new AttribBinder("aPosition", 0), new AttribBinder("aTexCoord", 1));
@@ -24,9 +25,11 @@ class SingleTextureProgram extends GLSLProgram{
         }
 
         uniformMVP = getUniformLocation("uMvp");
+        uniformColor = getUniformLocation("g_MaskColor");
         enable();
         setTextureUniform("uTexSampler", 0);
     }
 
     void setMVP(Matrix4f mat){ gl.glUniformMatrix4fv(uniformMVP, false, CacheBuffer.wrap(mat));}
+    void setMaskColor(float r, float g, float b, float a) { gl.glUniform4f(uniformColor, r, g, b,a);}
 }

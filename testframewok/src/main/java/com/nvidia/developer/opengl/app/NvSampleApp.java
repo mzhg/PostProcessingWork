@@ -277,21 +277,6 @@ public class NvSampleApp extends NvAppBase {
 	public void drawUI() {
 	}
 
-	/*
-	 * The base class provides an implementation of the mainloop that calls the
-	 * virtual "callbacks" . Leaving this function as implemented in the App
-	 * base class allows the application to simply override the individual
-	 * callbacks to implement their app behavior.
-	 * <p>
-	 * However, apps can still copy the source of the App.mainLoop into their
-	 * own override of the function and either modify it slightly or completely
-	 * replace it.
-	 */
-//	@Override
-//	public final void mainLoop() {
-//
-//	}
-
 	/**
 	 * Get UI window.
 	 * <p>

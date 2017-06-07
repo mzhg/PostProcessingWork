@@ -3,7 +3,7 @@
 #include "ComputeUnshadowedInscattering.frag"
 
 in float4 m_f4UVAndScreenPos;
-in int m_iInstID;
+in flat int m_iInstID;
 
 #if CORRECT_STATIC_SCENE == 0
 // layout(origin_upper_left) in vec4 gl_FragCoord;
