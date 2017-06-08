@@ -10,6 +10,7 @@ import android.opengl.GLES32;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
@@ -1586,8 +1587,114 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
         GLCheck.printUnsupportFuncError("Unsupport 'glBindSamplers(int first, IntBuffer samplernames)' on Android Platform!");
     }
 
+    @TargetApi(24)
+    @Override
+    public void glDrawElementsInstancedBaseVertex(int mode, int count, int type, int offset, int instance_count, int base_vertex) {
+        GLES32.glDrawElementsInstancedBaseVertex(mode, count, type, offset, instance_count, base_vertex);
+    }
+
     @Override
     public ImageLoader getImageLoader() {
         return null;
+    }
+
+    @Override
+    public int glGetIntegeri(int panme, int index) {
+        GLES31.glGetIntegeri_v(panme, index, intValues, 0);
+        return intValues[0];
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glSampleMaski(int index, int mask) {
+        GLES31.glSampleMaski(index, mask);
+    }
+
+    @TargetApi(24)
+    @Override
+    public void glCopyImageSubData(int srcName, int srcTarget, int srcLevel, int srcX, int srcY, int srcZ, int dstName, int dstTarget, int dstLevel, int dstX, int dstY, int dstZ, int srcWidth, int srcHeight, int srcDepth) {
+        GLES32.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget, dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
+    }
+
+    @Override
+    public void glPrimitiveRestartIndex(int restartIndex) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glPrimitiveRestartIndex(int restartIndex)' on Android Platform!");
+    }
+
+    @TargetApi(21)
+    @Override
+    public int glCreateShaderProgramv(int target, CharSequence source) {
+        return GLES32.glCreateShaderProgramv(target, new String[]{source.toString()});
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glProgramUniform1f(int program, int index, float radius) {
+        GLES31.glProgramUniform1f(program, index, radius);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glProgramUniform2f(int program, int index, float x, float y) {
+        GLES31.glProgramUniform2f(program, index, x, y);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glProgramUniform4f(int program, int index, float x, float y, float z, float w) {
+        GLES31.glProgramUniform4f(program, index, x, y, z, w);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glProgramUniformMatrix4fv(int program, int index, boolean transpose, FloatBuffer data) {
+        GLES31.glProgramUniformMatrix4fv(program, index, data.remaining()/16, false, data);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glProgramUniform4fv(int program, int index, FloatBuffer data) {
+        GLES31.glProgramUniform4fv(program, index, data.remaining()/4, data);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glProgramUniform1fv(int program, int index, FloatBuffer data) {
+        GLES31.glProgramUniform1fv(program, index, data.remaining(), data);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glProgramUniform1i(int program, int index, int i) {
+        GLES31.glProgramUniform1i(program, index, i);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glProgramUniform4i(int program, int index, int x, int y, int z, int w) {
+        GLES31.glProgramUniform4i(program, index, x, y, z, w);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glProgramUniform2fv(int program, int index, FloatBuffer values) {
+        GLES31.glProgramUniform2fv(program, index, values.remaining()/2, values);
+    }
+
+    @Override
+    public int glGetUniformui(int programId, int location) {
+        GLES30.glGetUniformuiv(programId, location, intValues, 0);
+        return intValues[0];
+    }
+
+    @Override
+    public double glGetUniformd(int programId, int location) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glGetUniformd(int programId, int location)' on Android Platform!");
+        return 0;
+    }
+
+    @Override
+    public void glGetUniformdv(int programId, int location, DoubleBuffer buf) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glGetUniformdv(int programId, int location, DoubleBuffer buf)' on Android Platform!");
     }
 }

@@ -59,6 +59,7 @@ public final class PostProcessingRenderContext {
     private String m_PassName;  // For debugging
     private boolean m_Initlized = false;
     private FullscreenProgram m_ScreenQuadProgram;
+    private boolean m_bForceTextureBinding = true;
 
     public PostProcessingRenderContext(){
         for(int i = 0; i < m_AttachDescs.length; i++){
@@ -147,11 +148,39 @@ public final class PostProcessingRenderContext {
     }
 
     public void bindTexture(TextureGL textureGL, int unit, int sampler){
-        m_StateTracker.bindTexture(textureGL, unit, sampler);
+        if(m_bForceTextureBinding){
+            if(textureGL != null) {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + unit);
+                gl.glBindTexture(textureGL.getTarget(), textureGL.getTexture());
+            }else{
+                gl.glBindTextureUnit(unit, 0);
+            }
+
+            gl.glBindSampler(unit, sampler);
+        }else {
+            m_StateTracker.bindTexture(textureGL, unit, sampler);
+        }
     }
 
     public void bindTextures(TextureGL[] textures, int[] units, int[] samplers) {
-        m_StateTracker.bindTextures(textures, units, samplers);
+        if(m_bForceTextureBinding){
+            for(int i = 0; i < textures.length; i++){
+                TextureGL textureGL = textures[i];
+                int unit = (units != null ? units[i] : i);
+                int sampler = (samplers != null ? samplers[i] : 0);
+
+                if(textureGL != null) {
+                    gl.glActiveTexture(GLenum.GL_TEXTURE0 + unit);
+                    gl.glBindTexture(textureGL.getTarget(), textureGL.getTexture());
+                }else{
+                    gl.glBindTextureUnit(unit, 0);
+                }
+
+                gl.glBindSampler(unit, sampler);
+            }
+        }else {
+            m_StateTracker.bindTextures(textures, units, samplers);
+        }
     }
 
     public void setBlendState(BlendState state) {m_StateTracker.setBlendState(state);}

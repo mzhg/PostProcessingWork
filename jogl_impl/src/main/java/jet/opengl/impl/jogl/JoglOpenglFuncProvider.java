@@ -5,6 +5,7 @@ import com.jogamp.opengl.GL4;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
@@ -25,6 +26,7 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     private final int[] intValues = new int[1];
     private final byte[] byteValues = new byte[1];
     private final float[] floatValues = new float[1];
+    private final double[] doubleValues = new double[1];
 
     public JoglOpenglFuncProvider(GL4 gl){
         this.gl = gl;
@@ -1560,7 +1562,100 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glDrawElementsInstancedBaseVertex(int mode, int count, int type, int offset, int instance_count, int base_vertex) {
+        gl.glDrawElementsInstancedBaseVertex(mode, count, type, offset, instance_count, base_vertex);
+    }
+
+    @Override
     public ImageLoader getImageLoader() {
         return null;
+    }
+
+    @Override
+    public int glGetIntegeri(int panme, int index) {
+        gl.glGetIntegeri_v(panme, index, intValues, 0);
+        return intValues[0];
+    }
+
+    @Override
+    public void glSampleMaski(int index, int mask) {
+        gl.glSampleMaski(index, mask);
+    }
+
+    @Override
+    public void glCopyImageSubData(int srcName, int srcTarget, int srcLevel, int srcX, int srcY, int srcZ, int dstName, int dstTarget, int dstLevel, int dstX, int dstY, int dstZ, int srcWidth, int srcHeight, int srcDepth) {
+        gl.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget, dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
+    }
+
+    @Override
+    public void glPrimitiveRestartIndex(int restartIndex) {
+        gl.glPrimitiveRestartIndex(restartIndex);
+    }
+
+    @Override
+    public int glCreateShaderProgramv(int target, CharSequence source) {
+        return gl.glCreateShaderProgramv(target, 1, new String[]{source.toString()});
+    }
+
+    @Override
+    public void glProgramUniform1f(int program, int index, float radius) {
+        gl.glProgramUniform1f(program, index, radius);
+    }
+
+    @Override
+    public void glProgramUniform2f(int program, int index, float x, float y) {
+        gl.glProgramUniform2f(program, index, x, y);
+    }
+
+    @Override
+    public void glProgramUniform4f(int program, int index, float x, float y, float z, float w) {
+        gl.glProgramUniform4f(program, index, x, y, z, w);
+    }
+
+    @Override
+    public void glProgramUniformMatrix4fv(int program, int index, boolean transpose, FloatBuffer data) {
+        gl.glProgramUniformMatrix4fv(program, index, data.remaining()/16, transpose, data);
+    }
+
+    @Override
+    public void glProgramUniform4fv(int program, int index, FloatBuffer data) {
+        gl.glProgramUniform4fv(program, index, data.remaining()/4, data);
+    }
+
+    @Override
+    public void glProgramUniform1fv(int program, int index, FloatBuffer data) {
+        gl.glProgramUniform1fv(program, index, data.remaining(), data);
+    }
+
+    @Override
+    public void glProgramUniform1i(int program, int index, int i) {
+        gl.glProgramUniform1i(program, index, i);
+    }
+
+    @Override
+    public void glProgramUniform4i(int program, int index, int x, int y, int z, int w) {
+        gl.glProgramUniform4i(program, index, x, y, z, w);
+    }
+
+    @Override
+    public void glProgramUniform2fv(int program, int index, FloatBuffer values) {
+        gl.glProgramUniform2fv(program, index, values.remaining()/2, values);
+    }
+
+    @Override
+    public int glGetUniformui(int programId, int location) {
+        gl.glGetUniformuiv(programId, location, intValues, 0);
+        return intValues[0];
+    }
+
+    @Override
+    public double glGetUniformd(int programId, int location) {
+        gl.glGetUniformdv(programId, location, doubleValues, 0);
+        return doubleValues[0];
+    }
+
+    @Override
+    public void glGetUniformdv(int programId, int location, DoubleBuffer buf) {
+        gl.glGetUniformdv(programId, location, buf);
     }
 }
