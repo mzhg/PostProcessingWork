@@ -5,6 +5,7 @@ import jet.opengl.postprocessing.core.PostProcessing;
 import jet.opengl.postprocessing.core.PostProcessingCommonData;
 import jet.opengl.postprocessing.core.PostProcessingDownsamplePass;
 import jet.opengl.postprocessing.core.PostProcessingEffect;
+import jet.opengl.postprocessing.core.PostProcessingFrameAttribs;
 import jet.opengl.postprocessing.core.PostProcessingReconstructCameraZPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPassInput;
@@ -21,11 +22,13 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
     @Override
     protected void fillRenderPass(PostProcessing context, PostProcessingCommonData commonData) {
         SharedData m_sharedData = new SharedData(commonData.frameAttribs);
-        m_sharedData.prepare(commonData.frameAttribs, (OutdoorLightScatteringInitAttribs)getInitValue(), (OutdoorLightScatteringFrameAttribs) getUniformValue());
-
-        {
+        final OutdoorLightScatteringInitAttribs scatteringInitAttribs = (OutdoorLightScatteringInitAttribs)getInitValue();
+        final OutdoorLightScatteringFrameAttribs scatteringFrameAttribs = (OutdoorLightScatteringFrameAttribs)getUniformValue();
+        final PostProcessingFrameAttribs  commonFrameAttribs = commonData.frameAttribs;
+        m_sharedData.prepare(commonFrameAttribs, scatteringInitAttribs, scatteringFrameAttribs);
+                {
             // Add the prepare pass.
-            PostProcessingPreparePass preparePass = new PostProcessingPreparePass(m_sharedData, (OutdoorLightScatteringInitAttribs)getInitValue(), (OutdoorLightScatteringFrameAttribs)getUniformValue());
+            PostProcessingPreparePass preparePass = new PostProcessingPreparePass(m_sharedData, scatteringInitAttribs, scatteringFrameAttribs);
             context.appendRenderPass("Outdoor_VolumeLightingPrepare", preparePass);
         }
 
@@ -37,7 +40,7 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
         context.appendRenderPass("ReconstructCameraZ", reconstructCameraSpaceZ);
         int m_uiShadowMapResolution = commonData.frameAttribs.shadowMapTexture != null ? commonData.frameAttribs.shadowMapTexture.getWidth() : 1024;
 
-        if(m_sharedData.m_ScatteringInitAttribs.m_bEnableEpipolarSampling){
+        if(scatteringInitAttribs.m_bEnableEpipolarSampling){
             PostProcessingGenerateSliceEndpointsPass generateSliceEndpointsPass = new PostProcessingGenerateSliceEndpointsPass(m_sharedData);
             context.appendRenderPass("Outdoor_GenerateSliceEndpoints", generateSliceEndpointsPass);
 
@@ -47,10 +50,11 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
             context.appendRenderPass("Outdoor_GenerateCoordinateTexture", generateCoordinateTexturePass);
 
             PostProcessingGenerateCoarseUnshadowedInctrPass generateCoarseUnshadowedInctrPass = null;
-            if( m_sharedData.m_ScatteringInitAttribs.m_bRefinementCriterionInsctrDiff ||
-                    m_sharedData.m_ScatteringInitAttribs.m_bExtinctionEvalMode )
+            if( scatteringInitAttribs.m_bRefinementCriterionInsctrDiff ||
+                    scatteringInitAttribs.m_bExtinctionEvalMode )
             {
-                generateCoarseUnshadowedInctrPass = new PostProcessingGenerateCoarseUnshadowedInctrPass(m_sharedData);
+                generateCoarseUnshadowedInctrPass = new PostProcessingGenerateCoarseUnshadowedInctrPass(m_sharedData, scatteringInitAttribs.m_bExtinctionEvalMode,
+                                                                                                scatteringInitAttribs.m_bRefinementCriterionInsctrDiff);
                 generateCoarseUnshadowedInctrPass.setDependency(0, generateCoordinateTexturePass, 0);
                 generateCoarseUnshadowedInctrPass.setDependency(1, generateCoordinateTexturePass, 1);
                 generateCoarseUnshadowedInctrPass.setDependency(2, precomputeScatteringPass, 3);
@@ -58,7 +62,7 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
             }
 
             Texture2D m_ptex2DAverageLuminance = null;
-            if(m_sharedData.m_ScatteringInitAttribs.m_bAutoExposure){
+            if(scatteringInitAttribs.m_bAutoExposure){
                 // Create the scene average luminance texture if the auto exposure enabled.
                 Texture2DDesc desc = new Texture2DDesc(1,1, GLenum.GL_R16F);
                 m_ptex2DAverageLuminance = TextureUtils.createTexture2D(desc, null);
@@ -66,14 +70,14 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
 
             PostProcessingRenderPassInput luminanceTex = new PostProcessingRenderPassInput("AverageLuminance", m_ptex2DAverageLuminance);
 
-            PostProcessingRefineSampleLocationsPass refineSampleLocationsPass = new PostProcessingRefineSampleLocationsPass(m_sharedData);
+            PostProcessingRefineSampleLocationsPass refineSampleLocationsPass = new PostProcessingRefineSampleLocationsPass(m_sharedData, scatteringInitAttribs.m_bAutoExposure);
             refineSampleLocationsPass.setDependency(0, generateCoordinateTexturePass, 0);
-            if(m_sharedData.m_ScatteringInitAttribs.m_bRefinementCriterionInsctrDiff){
+            if(scatteringInitAttribs.m_bRefinementCriterionInsctrDiff){
                 refineSampleLocationsPass.setDependency(1, generateCoarseUnshadowedInctrPass, 0);
             }else{
                 refineSampleLocationsPass.setDependency(1, generateCoordinateTexturePass, 1);
             }
-            if(m_sharedData.m_ScatteringInitAttribs.m_bAutoExposure) {
+            if(scatteringInitAttribs.m_bAutoExposure) {
                 refineSampleLocationsPass.setDependency(2, luminanceTex, 0);
             }
             context.appendRenderPass("Outdoor_RefineSampleLocations", refineSampleLocationsPass);
@@ -83,22 +87,22 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
             context.appendRenderPass("Outdoor_MarkRayMarchingSamples", markRayMarchingSamplesPass);
 
             PostProcessingGenerateSliceUVDirAndOrigPass generateSliceUVDirAndOrigPass = null;
-            if( m_sharedData.m_ScatteringInitAttribs.m_bEnableLightShafts && m_sharedData.m_ScatteringInitAttribs.m_bUse1DMinMaxTree )
+            if( scatteringInitAttribs.m_bEnableLightShafts && scatteringInitAttribs.m_bUse1DMinMaxTree )
             {
                 generateSliceUVDirAndOrigPass = new PostProcessingGenerateSliceUVDirAndOrigPass(m_sharedData);
                 generateSliceUVDirAndOrigPass.setDependency(0, generateSliceEndpointsPass, 0);
-                context.appendRenderPass("Outdoor_MarkRayMarchingSamples", generateSliceUVDirAndOrigPass);
+                context.appendRenderPass("Outdoor_GenerateSliceUVDirAndOrig", generateSliceUVDirAndOrigPass);
             }
 
-            int iLastCascade = (m_sharedData.m_ScatteringInitAttribs.m_bEnableLightShafts && m_sharedData.m_ScatteringInitAttribs.m_uiCascadeProcessingMode == 1/*CASCADE_PROCESSING_MODE_MULTI_PASS*/) ?
-                    m_sharedData.m_CommonFrameAttribs.cascadeShadowMapAttribs.numCascades - 1 : m_sharedData.m_ScatteringInitAttribs.m_iFirstCascade;
+            int iLastCascade = (scatteringInitAttribs.m_bEnableLightShafts && scatteringInitAttribs.m_uiCascadeProcessingMode == 1/*CASCADE_PROCESSING_MODE_MULTI_PASS*/) ?
+                    commonFrameAttribs.cascadeShadowMapAttribs.numCascades - 1 : scatteringInitAttribs.m_iFirstCascade;
 
             PostProcessingRayMarchingPass lastRayMarchingPass = null;
-            for(int iCascadeInd = m_sharedData.m_ScatteringInitAttribs.m_iFirstCascade; iCascadeInd <= iLastCascade; ++iCascadeInd)
+            for(int iCascadeInd = scatteringInitAttribs.m_iFirstCascade; iCascadeInd <= iLastCascade; ++iCascadeInd)
             {
                 // Build min/max mip map
                 PostProcessingBuild1DMinMaxMipMapPass build1DMinMaxMipMapPass = null;
-                if( m_sharedData.m_ScatteringInitAttribs.m_bEnableLightShafts && m_sharedData.m_ScatteringInitAttribs.m_bUse1DMinMaxTree )
+                if( scatteringInitAttribs.m_bEnableLightShafts && scatteringInitAttribs.m_bUse1DMinMaxTree )
                 {
 //                    Build1DMinMaxMipMap(frameAttribs, iCascadeInd);
                     build1DMinMaxMipMapPass = new PostProcessingBuild1DMinMaxMipMapPass(m_sharedData, iCascadeInd);
@@ -134,7 +138,7 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
             final int uiMaxStepsAlongRayAtDepthBreak0 = Math.min(m_uiShadowMapResolution/4, 256);
             final int uiMaxStepsAlongRayAtDepthBreak1 = Math.min(m_uiShadowMapResolution/8, 128);
 
-            if( m_sharedData.m_ScatteringInitAttribs.m_bAutoExposure )
+            if( scatteringInitAttribs.m_bAutoExposure )
             {
                 // Render scene luminance to low-resolution texture
 //	            FrameAttribs.pd3dDeviceContext->OMSetRenderTargets(1, &m_ptex2DLowResLuminanceRTV.p, nullptr);
@@ -145,14 +149,10 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
                 unwarpEpipolarScatteringPass.setDependency(1, commonData.sceneColorTexture, 0);
                 unwarpEpipolarScatteringPass.setDependency(2, generateCoordinateTexturePass, 1);
                 unwarpEpipolarScatteringPass.setDependency(3, generateCoarseUnshadowedInctrPass, 1);
-                unwarpEpipolarScatteringPass.setDependency(4, generateCoarseUnshadowedInctrPass, 0);
+                unwarpEpipolarScatteringPass.setDependency(4, interpolateInsctrIrradiancePass, 0);
                 unwarpEpipolarScatteringPass.setDependency(5, generateSliceEndpointsPass, 0);
                 context.appendRenderPass("Outdoor_UnwrapSceneLumiance", unwarpEpipolarScatteringPass);
 
-//	            FrameAttribs.pd3dDeviceContext->GenerateMips(m_ptex2DLowResLuminanceSRV);
-//                GL45.glGenerateTextureMipmap(m_ptex2DLowResLuminance.getTexture());
-//
-//                updateAverageLuminance(frameAttribs);
                 PostProcessingUpdateAverageLuminancePass updateAverageLuminancePass = new PostProcessingUpdateAverageLuminancePass(m_sharedData, m_ptex2DAverageLuminance);
                 updateAverageLuminancePass.setDependency(0, unwarpEpipolarScatteringPass, 0);
                 context.appendRenderPass("Outdoor_UpdateAverageLuminance", updateAverageLuminancePass);
@@ -160,30 +160,33 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
 
             Texture2D depthStencilTexture = null;
             Texture2D colorTexture = null;
-            if(m_sharedData.m_ScatteringInitAttribs.m_bCorrectScatteringAtDepthBreaks){
+            if(scatteringInitAttribs.m_bCorrectScatteringAtDepthBreaks){
                 depthStencilTexture = m_sharedData.getScreenSizedDSV();
                 colorTexture = m_sharedData.getScreenSizedRTV();
             }
 
-            PostProcessingUnwarpEpipolarScatteringPass unwarpEpipolarScatteringPass = new PostProcessingUnwarpEpipolarScatteringPass(m_sharedData, colorTexture, depthStencilTexture);
+            PostProcessingUnwarpEpipolarScatteringPass unwarpEpipolarScatteringPass = new PostProcessingUnwarpEpipolarScatteringPass(m_sharedData, colorTexture, depthStencilTexture,
+                                scatteringInitAttribs.m_bAutoExposure);
             unwarpEpipolarScatteringPass.setDependency(0, reconstructCameraSpaceZ, 0);
             unwarpEpipolarScatteringPass.setDependency(1, commonData.sceneColorTexture, 0);
             unwarpEpipolarScatteringPass.setDependency(2, generateCoordinateTexturePass, 1);
             unwarpEpipolarScatteringPass.setDependency(3, generateCoarseUnshadowedInctrPass, 1);
-            unwarpEpipolarScatteringPass.setDependency(4, generateCoarseUnshadowedInctrPass, 0);
+            unwarpEpipolarScatteringPass.setDependency(4, interpolateInsctrIrradiancePass, 0);
             unwarpEpipolarScatteringPass.setDependency(5, generateSliceEndpointsPass, 0);
-            unwarpEpipolarScatteringPass.setDependency(6, luminanceTex, 0);
+            if(scatteringInitAttribs.m_bAutoExposure )
+                unwarpEpipolarScatteringPass.setDependency(6, luminanceTex, 0);
 
             context.appendRenderPass("Outdoor_UnwarpEpipolarScattering", unwarpEpipolarScatteringPass);
 
-            if( m_sharedData.m_ScatteringInitAttribs.m_bCorrectScatteringAtDepthBreaks ){
-                PostProcessingFixInscatteringAtDepthBreaksPass fixInscatteringAtDepthBreaksPass = new PostProcessingFixInscatteringAtDepthBreaksPass(m_sharedData, uiMaxStepsAlongRayAtDepthBreak0, colorTexture, depthStencilTexture);
+            if( scatteringInitAttribs.m_bCorrectScatteringAtDepthBreaks ){
+                PostProcessingFixInscatteringAtDepthBreaksPass fixInscatteringAtDepthBreaksPass = new PostProcessingFixInscatteringAtDepthBreaksPass(m_sharedData, uiMaxStepsAlongRayAtDepthBreak0,
+                        colorTexture, depthStencilTexture, scatteringInitAttribs.m_bEnableLightShafts);
 
                 fixInscatteringAtDepthBreaksPass.setDependency(0, reconstructCameraSpaceZ, 0);
                 fixInscatteringAtDepthBreaksPass.setDependency(1, commonData.sceneColorTexture, 0);
                 fixInscatteringAtDepthBreaksPass.setDependency(2, commonData.shadowMapTexture, 0);
-                fixInscatteringAtDepthBreaksPass.setDependency(3, precomputeScatteringPass, 3);
-                fixInscatteringAtDepthBreaksPass.setDependency(4, precomputeScatteringPass, 2);
+                fixInscatteringAtDepthBreaksPass.setDependency(3, precomputeScatteringPass, 2);
+                fixInscatteringAtDepthBreaksPass.setDependency(4, precomputeScatteringPass, 1);
                 fixInscatteringAtDepthBreaksPass.setDependency(5, luminanceTex, 0);
                 context.appendRenderPass("FixInscatteringAtDepthBreaks", fixInscatteringAtDepthBreaksPass);
 
@@ -194,11 +197,17 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
             }
         }else{
             // only for debug
-            PostProcessingFixInscatteringAtDepthBreaksPass fixInscatteringAtDepthBreaksPass = new PostProcessingFixInscatteringAtDepthBreaksPass(m_sharedData, m_uiShadowMapResolution, null, null);
+            PostProcessingFixInscatteringAtDepthBreaksPass fixInscatteringAtDepthBreaksPass = new PostProcessingFixInscatteringAtDepthBreaksPass(m_sharedData,
+                    m_uiShadowMapResolution, null, null, scatteringInitAttribs.m_bEnableLightShafts);
             fixInscatteringAtDepthBreaksPass.setDependency(0, reconstructCameraSpaceZ, 0);
             fixInscatteringAtDepthBreaksPass.setDependency(1, commonData.sceneColorTexture, 0);
-            fixInscatteringAtDepthBreaksPass.setDependency(2, precomputeScatteringPass, 3);
-//            fixInscatteringAtDepthBreaksPass.setDependency(3, null, 0);
+            if(scatteringInitAttribs.m_bEnableLightShafts) {
+                fixInscatteringAtDepthBreaksPass.setDependency(2, commonData.shadowMapTexture, 0);
+                fixInscatteringAtDepthBreaksPass.setDependency(3, precomputeScatteringPass, 2);
+                fixInscatteringAtDepthBreaksPass.setDependency(4, precomputeScatteringPass, 1);
+            }else{
+                fixInscatteringAtDepthBreaksPass.setDependency(2, precomputeScatteringPass, 3);
+            }
 
             context.appendRenderPass("FixInscatteringAtDepthBreaks", fixInscatteringAtDepthBreaksPass);
         }

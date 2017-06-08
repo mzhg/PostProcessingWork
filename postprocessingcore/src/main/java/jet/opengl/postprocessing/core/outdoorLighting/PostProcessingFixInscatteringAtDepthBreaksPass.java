@@ -22,7 +22,7 @@ final class PostProcessingFixInscatteringAtDepthBreaksPass extends PostProcessin
     private final Texture2D[] m_RenderTargets;
 
     public PostProcessingFixInscatteringAtDepthBreaksPass(SharedData sharedData, int iMaxStepsAlongRay,
-                                                          Texture2D colorTexture, Texture2D depthStencilTexture) {
+                                                          Texture2D colorTexture, Texture2D depthStencilTexture, boolean bEnableLightShafts) {
         super("FixInscatteringAtDepthBreaks");
 
         m_sharedData = sharedData;
@@ -47,7 +47,7 @@ final class PostProcessingFixInscatteringAtDepthBreaksPass extends PostProcessin
             setOutputTarget(PostProcessingRenderPassOutputTarget.INTERNAL);
 
         // no inputs.
-        int inputCount = m_sharedData.m_ScatteringInitAttribs.m_bEnableLightShafts ? 6 : 4;
+        int inputCount = bEnableLightShafts ? 6 : 4;
         set(inputCount, 1);
 
         if(depthStencilTexture != null || colorTexture != null){

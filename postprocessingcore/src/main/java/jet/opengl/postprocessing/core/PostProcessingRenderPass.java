@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
@@ -141,6 +142,11 @@ public abstract class PostProcessingRenderPass implements Disposeable{
         // TODO other stuff to do here.
         process(context, parameters);
         m_bProcessed = true;
+
+        PostProcessingFrameAttribs frameAttribs =  context.getFrameAttribs();
+        if(frameAttribs.outputCurrentFrameLog){
+            GLStateTracker.getInstance().printProgramProperties(getName());
+        }
     }
 
     public void setDependency(int slot, PostProcessingRenderPass dependencyPass, int depentSlot)

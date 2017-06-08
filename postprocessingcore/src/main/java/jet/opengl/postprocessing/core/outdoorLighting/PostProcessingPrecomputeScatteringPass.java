@@ -15,6 +15,8 @@ import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPassOutputTarget;
+import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.shader.ProgramProperties;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3D;
@@ -23,6 +25,8 @@ import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
 /**
@@ -83,7 +87,7 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
 
     @Override
     public void process(PostProcessingRenderContext context, PostProcessingParameters parameters) {
-        if(!m_sharedData.m_bRecomputeSctrCoeffs)
+        if(m_ptex3DSingleScatteringSRV != null && !m_sharedData.m_bRecomputeSctrCoeffs)
             return;
 
         initResources();
@@ -126,30 +130,38 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
             return;
         }
 
-        TextureGL textureGLs[] = {
-                m_ptex2DSphereRandomSamplingSRV,
-                m_ptex3DMultipleScatteringSRV,
-                m_ptex2DOccludedNetDensityToAtmTop,
-                m_ptex2DSphereRandomSamplingSRV,
-        };
-
-        int[] textureUnits ={
-                RenderTechnique.TEX2D_SPHERE_RANDOM,
-                RenderTechnique.TEX3D_PREVIOUS_RADIANCE,
-                RenderTechnique.TEX2D_OCCLUDED_NET_DENSITY,
-                RenderTechnique.TEX2D_SPHERE_RANDOM,
-        };
-
-        context.bindTextures(textureGLs, textureUnits, null);
+//        TextureGL textureGLs[] = {
+//                m_ptex2DSphereRandomSamplingSRV,
+//                m_ptex3DMultipleScatteringSRV,
+//                m_ptex2DOccludedNetDensityToAtmTop,
+//                m_ptex2DSphereRandomSamplingSRV,
+//        };
+//
+//        int[] textureUnits ={
+//                RenderTechnique.TEX2D_SPHERE_RANDOM,
+//                RenderTechnique.TEX3D_PREVIOUS_RADIANCE,
+//                RenderTechnique.TEX2D_OCCLUDED_NET_DENSITY,
+//                RenderTechnique.TEX2D_SPHERE_RANDOM,
+//        };
+//
+//        context.bindTextures(textureGLs, textureUnits, null);
 
         createPrecomputedOpticalDepthTexture(context);
         createPrecomputeSingleScattering(context);
         createPrecomputeMultipleScattering(context);
         createAmbientSkyLightTexture(context);
+
+//        saveBinaryData();
+//        saveTextData();
     }
 
     private void createPrecomputedOpticalDepthTexture(PostProcessingRenderContext context){
         drawQuad(context, m_PrecomputeNetDensityToAtmTopTech, m_ptex2DOccludedNetDensityToAtmTop);
+
+        String debugName = "PrecomputedOpticalDepthTexture";
+        LogUtil.i(LogUtil.LogType.DEFAULT, "----------------------------" + debugName + "-----------------------------------------");
+        ProgramProperties properties = GLSLUtil.getProperties(m_PrecomputeNetDensityToAtmTopTech.getProgram());
+        LogUtil.i(LogUtil.LogType.DEFAULT, properties.toString());
     }
 
     private void createAmbientSkyLightTexture(PostProcessingRenderContext context){
@@ -169,15 +181,13 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
     }
 
     private void createPrecomputeSingleScattering(PostProcessingRenderContext context){
-//        m_ptex2DOccludedNetDensityToAtmTop.bind(ScatteringRenderTechnique.TEX2D_OCCLUDED_NET_DENSITY, 0);
-//        m_PrecomputeSingleSctrTech.setupUniforms(mediaParams);
         final int sm_iPrecomputedSctrUDim = m_sharedData.m_ScatteringInitAttribs.m_iPrecomputedSctrUDim;
         final int sm_iPrecomputedSctrVDim = m_sharedData.m_ScatteringInitAttribs.m_iPrecomputedSctrVDim;
         final int sm_iPrecomputedSctrWDim = m_sharedData.m_ScatteringInitAttribs.m_iPrecomputedSctrWDim;
         final int sm_iPrecomputedSctrQDim = m_sharedData.m_ScatteringInitAttribs.m_iPrecomputedSctrQDim;
 
+        context.bindTexture(m_ptex2DOccludedNetDensityToAtmTop, RenderTechnique.TEX2D_OCCLUDED_NET_DENSITY, 0);
         for(int uiDepthSlice = 0; uiDepthSlice < m_ptex3DSingleScatteringSRV.getDepth(); ++uiDepthSlice){
-//    		Texture3D ptex3DCurrDepthSliceRTV = TextureUtils.createTexture3DView(m_ptex3DSingleScatteringSRV, 0, 1, uiDepthSlice, 1);
             int uiW = uiDepthSlice % sm_iPrecomputedSctrWDim;
             int uiQ = uiDepthSlice / sm_iPrecomputedSctrWDim;
             float f2WQX = ((float)uiW + 0.5f) / (float)sm_iPrecomputedSctrWDim;
@@ -186,14 +196,12 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
             assert(0 < f2WQY && f2WQY < 1);
 
 //            GL30.glFramebufferTextureLayer(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, m_ptex3DSingleScatteringSRV.getTexture(), 0, uiDepthSlice);
-//            GLError.checkError();
 //            drawQuad(m_PrecomputeSingleSctrTech, sm_iPrecomputedSctrUDim, sm_iPrecomputedSctrVDim);
-//            GLError.checkError();
 
             context.setViewport(0,0, sm_iPrecomputedSctrUDim, sm_iPrecomputedSctrVDim);
             context.setVAO(null);
             context.setProgram(m_PrecomputeSingleSctrTech);
-            m_PrecomputeSingleSctrTech.setupUniforms(m_sharedData.m_MediaParams);
+            m_sharedData.setUniforms(m_PrecomputeSingleSctrTech);
             m_PrecomputeSingleSctrTech.setWQ(f2WQX, f2WQY);
             context.setBlendState(null);
             context.setDepthStencilState(null);
@@ -205,23 +213,62 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
                 GLCheck.checkError();
         }
 
-//        m_PrecomputeSingleSctrTech.setDebugName("PrecomputeSingleSctr");
-//        m_PrecomputeSingleSctrTech.printPrograminfo();
+        String debugName = "PrecomputeSingleScattering";
+        LogUtil.i(LogUtil.LogType.DEFAULT, "----------------------------" + debugName + "-----------------------------------------");
+        ProgramProperties properties = GLSLUtil.getProperties(m_PrecomputeSingleSctrTech.getProgram());
+        LogUtil.i(LogUtil.LogType.DEFAULT, properties.toString());
     }
 
     private void drawQuad(PostProcessingRenderContext context, RenderTechnique shader, Texture2D target){
         context.setViewport(0,0, target.getWidth(), target.getHeight());
         context.setVAO(null);
         context.setProgram(shader);
-        shader.setupUniforms(m_sharedData.m_MediaParams);
+        m_sharedData.setUniforms(shader);
 
-//        context.bindTexture(input0, 0, 0);  TODO binding textures.
         context.setBlendState(null);
         context.setDepthStencilState(null);
         context.setRasterizerState(null);
         context.setRenderTarget(target);
 
         context.drawFullscreenQuad();
+    }
+
+    void saveTextData(){
+        String folder = "E:\\OutdoorResources2\\";
+
+        saveTextData(folder + "PrecomputedOpticalDepthTexture\\OpenGL.txt", m_ptex2DOccludedNetDensityToAtmTop);
+        saveTextData(folder + "SingleScatterings\\OpenGL.txt", m_ptex3DSingleScatteringSRV);
+        saveTextData(folder + "HighOrderScattering\\OpenGL.txt", m_ptex3DHighOrderScatteringSRV);
+        saveTextData(folder + "MultipleScattering\\OpenGL.txt", m_ptex3DMultipleScatteringSRV);
+    }
+
+    private static void saveTextData(String filename, TextureGL texture){
+        try {
+            DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    void saveBinaryData(){
+        boolean needSave = true;
+        if(!needSave) return;
+        String folder = "E:\\OutdoorResources2\\";
+
+        saveBinaryData(folder + "PrecomputedOpticalDepthTexture\\OpenGL.data", m_ptex2DOccludedNetDensityToAtmTop);
+        saveBinaryData(folder + "SingleScatterings\\OpenGL.data", m_ptex3DSingleScatteringSRV);
+        saveBinaryData(folder + "HighOrderScattering\\OpenGL.data", m_ptex3DHighOrderScatteringSRV);
+        saveBinaryData(folder + "MultipleScattering\\OpenGL.data", m_ptex3DMultipleScatteringSRV);
+    }
+
+    private static void saveBinaryData(String filename, TextureGL texture){
+        ByteBuffer pixels = TextureUtils.getTextureData(texture.getTarget(), texture.getTexture(), 0, true);
+
+        try {
+            DebugTools.write(pixels, filename, false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void createPrecomputeMultipleScattering(PostProcessingRenderContext context){
@@ -234,20 +281,17 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
 
         final int iNumScatteringOrders = 4;
         boolean bHighOrderRTVCleared = false;
+        context.bindTexture(m_ptex2DSphereRandomSamplingSRV, RenderTechnique.TEX2D_SPHERE_RANDOM, 0);
         for(int iSctrOrder = 1; iSctrOrder < iNumScatteringOrders; ++iSctrOrder)
         {
             for(int iPass = 0; iPass < 3; ++iPass)
             {
-//                pContext->OMSetRenderTargets(0, NULL, NULL);
                 // Pass 0: compute differential in-scattering
                 // Pass 1: integrate differential in-scattering
                 // Pass 2: accumulate total multiple scattering
-
-//                ID3D11ShaderResourceView *pSRVs[2] = {nullptr};
                 Texture3D pSRV = null;
                 int texureUnit = -1;
                 RenderTechnique pRenderTech = null;
-//                std::vector< CComPtr<ID3D11RenderTargetView> > *pRTVs;
                 Texture3D pRTVs = null;
                 switch(iPass)
                 {
@@ -256,10 +300,6 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
                         pRenderTech = m_ComputeSctrRadianceTech;
                         pRTVs = m_ptex3DSctrRadiance;
                         pSRV = (iSctrOrder == 1) ? m_ptex3DSingleScatteringSRV : m_ptex3DInsctrOrderp;
-//                        pSRVs[1] = m_ptex2DSphereRandomSamplingSRV;
-
-//                        texureUnits[0] = m_ComputeSctrRadianceTech.getTexture2DArrayUnit();
-//                        texureUnits[1] = m_ComputeSctrRadianceTech.getSphereRandomTextureUnit();
                         texureUnit = RenderTechnique.TEX3D_PREVIOUS_RADIANCE;
                         break;
 
@@ -280,47 +320,23 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
                         break;
                 }
 
-                // Binding the textures.
-//                for(int i = 0; i < pSRVs.length; i++){
-//                	if(pSRVs[i] != null)
-//                		pSRVs[i].bind(texureUnits[i], m_psamLinearClamp);  // TODO Don't forget samplers
-//                }
-//                pSRV.bind(texureUnit, 0);
-                context.bindTexture(pSRV, texureUnit, 0);
+                context.bindTexture(pSRV, texureUnit, m_sharedData.m_psamLinearClamp);
 
                 for(int uiDepthSlice = 0; uiDepthSlice < depth; ++uiDepthSlice)
                 {
-//                    pContext->PSSetShaderResources(0, _countof(pSRVs), pSRVs);
 
                     // Set sun zenith and sun view angles
-//                    SMiscDynamicParams MiscDynamicParams = m_MiscDynamicParams;
-//                    MiscDynamicParams.uiDepthSlice = uiDepthSlice;
                     int uiW = uiDepthSlice % sm_iPrecomputedSctrWDim;
                     int uiQ = uiDepthSlice / sm_iPrecomputedSctrWDim;
                     float f2WQX = ((float)uiW + 0.5f) / (float)sm_iPrecomputedSctrWDim;
                     assert(0 < f2WQX && f2WQX < 1);
                     float f2WQY = ((float)uiQ + 0.5f) / (float)sm_iPrecomputedSctrQDim;
                     assert(0 < f2WQY && f2WQY < 1);
-//                    UpdateConstantBuffer(pContext, m_pcbMiscParams, &MiscDynamicParams, sizeof(MiscDynamicParams));
-                    //cbuffer cbMiscDynamicParams : register( b4 )
-//                    pContext->PSSetConstantBuffers(4, 1, &m_pcbMiscParams.p);
-//                    bindBuffer(LSConstant.MISC_BINDING, m_pcbMiscParams, MiscDynamicParams);
-
-//                    auto *pRTV = (ID3D11RenderTargetView*)(*pRTVs)[uiDepthSlice];
-
-
-
-//                    GL30.glFramebufferTextureLayer(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, pRTVs.getTexture(), 0, uiDepthSlice);
-
-
-//                    drawQuad( /*pContext, */
-//                            pRenderTech,
-//                            sm_iPrecomputedSctrUDim, sm_iPrecomputedSctrVDim);
 
                     context.setViewport(0,0, sm_iPrecomputedSctrUDim, sm_iPrecomputedSctrVDim);
                     context.setVAO(null);
                     context.setProgram(pRenderTech);
-                    pRenderTech.setupUniforms(m_sharedData.m_MediaParams);
+                    m_sharedData.setUniforms(pRenderTech);
                     pRenderTech.setWQ(f2WQX, f2WQY);
                     pRenderTech.setDepthSlice(uiDepthSlice);
                     if(pRenderTech == m_AddScatteringOrderTech){
@@ -360,18 +376,6 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
         context.bindTexture(m_ptex3DHighOrderScatteringSRV, RenderTechnique.TEX3D_PREVIOUS_RADIANCE, 0);
         for(int uiDepthSlice = 0; uiDepthSlice < depth; ++uiDepthSlice)
         {
-//	        SMiscDynamicParams MiscDynamicParams = m_MiscDynamicParams;
-//	        MiscDynamicParams.uiDepthSlice = uiDepthSlice;
-            //          UpdateConstantBuffer(pContext, m_pcbMiscParams, &MiscDynamicParams, sizeof(MiscDynamicParams));
-            //cbuffer cbMiscDynamicParams : register( b4 )
-            //          pContext->PSSetConstantBuffers(4, 1, &m_pcbMiscParams.p);
-//	        bindBuffer(LSConstant.MISC_BINDING, m_pcbMiscParams, MiscDynamicParams);
-
-//            m_AddScatteringOrderTech.setDepthSlice(uiDepthSlice);
-            //          auto *pRTV = (ID3D11RenderTargetView*)ptex3DMultipleSctrRTVs[uiDepthSlice];
-            //          pContext->OMSetRenderTargets(1, &pRTV, NULL);
-//	        Texture3D pRTV = ptex3DMultipleSctrRTVs[uiDepthSlice];
-//	        m_RenderTargets.setTexture2DRenderTargets(pRTV.getTexture(), 0);
 //            GL30.glFramebufferTextureLayer(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, m_ptex3DMultipleScatteringSRV.getTexture(), 0, uiDepthSlice);
 //            drawQuad( /*pContext, */
 //                    m_AddScatteringOrderTech,
@@ -380,47 +384,55 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
             context.setViewport(0,0, sm_iPrecomputedSctrUDim, sm_iPrecomputedSctrVDim);
             context.setVAO(null);
             context.setProgram(m_AddScatteringOrderTech);
-            m_AddScatteringOrderTech.setupUniforms(m_sharedData.m_MediaParams);
+            m_sharedData.setUniforms(m_AddScatteringOrderTech);
             m_AddScatteringOrderTech.setDepthSlice(uiDepthSlice);
             context.setBlendState(m_sharedData.m_additiveBlendBS);
             context.setDepthStencilState(null);
             context.setRasterizerState(null);
             context.setRenderTargetLayer(m_ptex3DMultipleScatteringSRV, uiDepthSlice);
+            context.drawFullscreenQuad();
         }
-//        States.additiveBlendBS();
 
+//        context.setRenderTargetLayer(new Texture3D(), 0);
 
-//        m_ComputeSctrRadianceTech.setDebugName("ComputeSctrRadiance");
-//        m_ComputeSctrRadianceTech.printPrograminfo();
-//
-//        m_ComputeScatteringOrderTech.setDebugName("ComputeScatteringOrder");
-//        m_ComputeScatteringOrderTech.printPrograminfo();
+        {
+            String debugName = "ComputeSctrRadiance";
+            LogUtil.i(LogUtil.LogType.DEFAULT, "----------------------------" + debugName + "-----------------------------------------");
+            ProgramProperties properties = GLSLUtil.getProperties(m_ComputeSctrRadianceTech.getProgram());
+            LogUtil.i(LogUtil.LogType.DEFAULT, properties.toString());
+        }
+
+        {
+            String debugName = "ComputeScatteringOrder";
+            LogUtil.i(LogUtil.LogType.DEFAULT, "----------------------------" + debugName + "-----------------------------------------");
+            ProgramProperties properties = GLSLUtil.getProperties(m_ComputeScatteringOrderTech.getProgram());
+            LogUtil.i(LogUtil.LogType.DEFAULT, properties.toString());
+        }
     }
 
     private void initResources(){
         if(m_ptex3DSingleScatteringSRV != null)
             return;
 
-//        Texture2DDesc netDensityToAtmTopTexDesc = new Texture2DDesc();
-//        {
-//            netDensityToAtmTopTexDesc.width = sm_iNumPrecomputedHeights;
-//            netDensityToAtmTopTexDesc.height = sm_iNumPrecomputedAngles;
-//            netDensityToAtmTopTexDesc.mipLevels = 1;
-//            netDensityToAtmTopTexDesc.arraySize = 1;
-//            netDensityToAtmTopTexDesc.format = GL30.GL_RG32F;
-//            netDensityToAtmTopTexDesc.sampleDesc.count = 1;
-//        }
-//
-//        m_ptex2DOccludedNetDensityToAtmTop = TextureUtils.createTexture2D(netDensityToAtmTopTexDesc, null);
-//        m_ptex2DOccludedNetDensityToAtmTop.setMagFilter(GL11.GL_LINEAR);
-//        m_ptex2DOccludedNetDensityToAtmTop.setMinFilter(GL11.GL_LINEAR);
-//        m_ptex2DOccludedNetDensityToAtmTop.setWrapS(GL12.GL_CLAMP_TO_EDGE);
-//        m_ptex2DOccludedNetDensityToAtmTop.setWrapT(GL12.GL_CLAMP_TO_EDGE);
-
         final int sm_iPrecomputedSctrUDim = m_sharedData.m_ScatteringInitAttribs.m_iPrecomputedSctrUDim;
         final int sm_iPrecomputedSctrVDim = m_sharedData.m_ScatteringInitAttribs.m_iPrecomputedSctrVDim;
         final int sm_iPrecomputedSctrWDim = m_sharedData.m_ScatteringInitAttribs.m_iPrecomputedSctrWDim;
         final int sm_iPrecomputedSctrQDim = m_sharedData.m_ScatteringInitAttribs.m_iPrecomputedSctrQDim;
+
+        final int sm_iNumPrecomputedHeights = 256;
+        final int sm_iNumPrecomputedAngles = 256;
+
+        Texture2DDesc netDensityToAtmTopTexDesc = new Texture2DDesc();
+        {
+            netDensityToAtmTopTexDesc.width = sm_iNumPrecomputedHeights;
+            netDensityToAtmTopTexDesc.height = sm_iNumPrecomputedAngles;
+            netDensityToAtmTopTexDesc.mipLevels = 1;
+            netDensityToAtmTopTexDesc.arraySize = 1;
+            netDensityToAtmTopTexDesc.format = GLenum.GL_RG32F;
+            netDensityToAtmTopTexDesc.sampleCount = 1;
+        }
+
+        m_ptex2DOccludedNetDensityToAtmTop = TextureUtils.createTexture2D(netDensityToAtmTopTexDesc, null);
 
         Texture3DDesc precomputedSctrTexDesc = new Texture3DDesc
                 (
@@ -432,8 +444,11 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
                 );
 
         m_ptex3DSingleScatteringSRV = TextureUtils.createTexture3D(precomputedSctrTexDesc, null);
+        m_ptex3DSingleScatteringSRV.setName("tex3DSingleScattering");
         m_ptex3DHighOrderScatteringSRV = TextureUtils.createTexture3D(precomputedSctrTexDesc, null);
+        m_ptex3DHighOrderScatteringSRV.setName("tex3DHighOrderScattering");
         m_ptex3DMultipleScatteringSRV = TextureUtils.createTexture3D(precomputedSctrTexDesc, null);
+        m_ptex3DMultipleScatteringSRV.setName("tex3DMultipleScattering");
 
         // We need higher precision to store intermediate data
         precomputedSctrTexDesc.format = GLenum.GL_RGB32F;
@@ -454,10 +469,6 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
 ////		        0,                                  //UINT MiscFlags;
 //                );
 //        m_ptex2DAmbientSkyLight = TextureUtils.createTexture2D(ambientSkyLightTexDesc, null);
-//        m_ptex2DAmbientSkyLight.setMagFilter(GL11.GL_LINEAR);
-//        m_ptex2DAmbientSkyLight.setMinFilter(GL11.GL_LINEAR);
-//        m_ptex2DAmbientSkyLight.setWrapS(GL12.GL_CLAMP_TO_EDGE);
-//        m_ptex2DAmbientSkyLight.setWrapT(GL12.GL_CLAMP_TO_EDGE);
 
         final int sm_iNumRandomSamplesOnSphere = 128;
         Texture2DDesc RandomSphereSamplingTexDesc = new Texture2DDesc

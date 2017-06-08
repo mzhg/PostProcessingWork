@@ -297,6 +297,10 @@ public class PostProcessing implements Disposeable{
             throw new NullPointerException("renderPass is null");
         }
 
+        if(m_AddedRenderPasses.containsKey(name)){
+            throw new IllegalStateException("Dumplicate RenderPass: " + name);
+        }
+
         renderPass.setName(name);
         m_AddedRenderPasses.put(name, renderPass);
         m_LastAddedPass = renderPass;

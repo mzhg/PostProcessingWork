@@ -2,7 +2,11 @@ package com.nvidia.developer.opengl.demos;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.demos.scenes.outdoor.OutDoorScene;
+import com.nvidia.developer.opengl.utils.FieldControl;
 
+import java.io.IOException;
+
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -12,6 +16,7 @@ import jet.opengl.postprocessing.core.PostProcessingFrameAttribs;
 import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringFrameAttribs;
 import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringInitAttribs;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
+import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
 
 /**
  * Created by mazhen'gui on 2017/6/2.
@@ -21,12 +26,23 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
     private OutDoorScene m_Scene;
     private GLFuncProvider gl;
     private FullscreenProgram fullscreenProgram;
+    private VisualDepthTextureProgram m_visTexShader;
     private int m_DummyVAO;
 
     private PostProcessing m_PostProcessing;
     private PostProcessingFrameAttribs m_frameAttribs;
     private OutdoorLightScatteringInitAttribs m_InitAttribs;
     private OutdoorLightScatteringFrameAttribs m_RuntimeAttribs;
+
+    private boolean m_bVisualShadownMap;
+    private int m_slice = 0;
+
+    @Override
+    public void initUI() {
+        mTweakBar.addValue("Visualize Depth", new FieldControl(this, "m_bVisualShadownMap"));
+        mTweakBar.addValue("Slice of Depth Texture", new FieldControl(this, "m_slice"), 0, 4);
+        mTweakBar.syncValues();
+    }
 
     @Override
     protected void initRendering() {
@@ -42,7 +58,10 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
         m_frameAttribs.cascadeShadowMapAttribs = new CascadeShadowMapAttribs();
 
         m_InitAttribs = new OutdoorLightScatteringInitAttribs();
-        m_InitAttribs.m_bEnableEpipolarSampling = false;
+        m_InitAttribs.m_bEnableEpipolarSampling = true;
+        m_InitAttribs.m_bEnableLightShafts = true;
+        m_InitAttribs.m_bAutoExposure = true;
+        m_InitAttribs.m_bCorrectScatteringAtDepthBreaks = false;
         m_RuntimeAttribs = new OutdoorLightScatteringFrameAttribs();
         m_RuntimeAttribs.f4ExtraterrestrialSunColor.set(5,5,5,5);
     }
@@ -50,11 +69,20 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
     @Override
     protected void reshape(int width, int height) {
         m_Scene.onResize(width, height);
+
+        m_InitAttribs.m_uiBackBufferWidth = width;
+        m_InitAttribs.m_uiBackBufferHeight = height;
     }
 
     @Override
     public void display() {
         m_Scene.draw(getFrameDeltaTime());
+
+        if(m_bVisualShadownMap){
+            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+            showShadownMap();
+            return;
+        }
 
         {
             gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
@@ -63,6 +91,7 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
             m_frameAttribs.sceneColorTexture = m_Scene.getSceneColor();
             m_frameAttribs.sceneDepthTexture = m_Scene.getSceneDepth();
             m_frameAttribs.shadowMapTexture  = m_Scene.getShadowMap();
+            m_frameAttribs.elapsedTime       = getFrameDeltaTime();
             m_frameAttribs.cameraNear = m_Scene.getSceneNearPlane();
             m_frameAttribs.cameraFar =  m_Scene.getSceneFarPlane();
             m_frameAttribs.lightDirection    = m_Scene.getLightDirection();
@@ -95,8 +124,44 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
         gl.glBindVertexArray(0);
     }
 
+    private void showShadownMap() {
+        if(m_visTexShader == null)
+            try {
+                m_visTexShader = new VisualDepthTextureProgram(true);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        gl.glViewport(0, 0, getGLContext().width(), getGLContext().height());
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glClearColor(0, 0, 0, 0);
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
+
+        m_visTexShader.enable();
+        m_visTexShader.setUniforms(m_Scene.getSceneNearPlane(), m_Scene.getSceneFarPlane(), m_slice, 1.0f);
+//        m_visTexShader.setSlice(m_slice);
+//        m_visTexShader.setLightZFar(m_shadowMapInput.farPlane);
+//        m_visTexShader.setLightZNear(m_shadowMapInput.nearPlane);
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_Scene.getShadowMap().getTexture());
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_COMPARE_MODE, GLenum.GL_NONE);
+        GLCheck.checkError();
+
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_CULL_FACE);
+
+        gl.glBindVertexArray(m_DummyVAO);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        gl.glBindVertexArray(0);
+
+        m_visTexShader.disable();
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, 0);
+    }
+
     @Override
     public void onDestroy() {
+        m_PostProcessing.dispose();
         m_Scene.onDestroy();
         fullscreenProgram.dispose();
         gl.glDeleteVertexArray(m_DummyVAO);

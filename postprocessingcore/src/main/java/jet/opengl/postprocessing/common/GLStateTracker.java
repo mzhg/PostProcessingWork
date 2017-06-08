@@ -6,6 +6,8 @@ import java.nio.IntBuffer;
 import jet.opengl.postprocessing.buffer.VertexArrayObject;
 import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
+import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.shader.ProgramProperties;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -160,6 +162,16 @@ public class GLStateTracker {
 
     public void setCurrentFramebuffer(){
         setFramebuffer(m_CurrentStates.framebuffer);
+    }
+
+    public void printProgramProperties(String debugName){
+        if(m_CurrentStates.program == 0){
+            LogUtil.i(LogUtil.LogType.DEFAULT, debugName+ ": Current program is null!!!");
+        }else {
+            LogUtil.i(LogUtil.LogType.DEFAULT, "----------------------------" + debugName + "-----------------------------------------");
+            ProgramProperties properties = GLSLUtil.getProperties(m_CurrentStates.program);
+            LogUtil.i(LogUtil.LogType.DEFAULT, properties.toString());
+        }
     }
 
     public void setProgram(OpenGLProgram program){

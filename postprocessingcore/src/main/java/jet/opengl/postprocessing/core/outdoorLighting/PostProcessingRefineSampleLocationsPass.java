@@ -18,7 +18,7 @@ final class PostProcessingRefineSampleLocationsPass extends PostProcessingRender
     private RenderTechnique g_RefineSampleLocationsProgram = null;
     private SharedData m_sharedData;
 
-    public PostProcessingRefineSampleLocationsPass(SharedData sharedData) {
+    public PostProcessingRefineSampleLocationsPass(SharedData sharedData, boolean autoExposure) {
         super("RefineSampleLocations");
 
         m_sharedData = sharedData;
@@ -27,7 +27,7 @@ final class PostProcessingRefineSampleLocationsPass extends PostProcessingRender
         // input1: epipolar cam space Z  or tex2DInscattering
         // input2: tex2DAverageLuminance
 
-        int inputCount = sharedData.m_ScatteringInitAttribs.m_bAutoExposure ? 3 : 2;
+        int inputCount = autoExposure ? 3 : 2;
         set(inputCount, 1);
     }
 

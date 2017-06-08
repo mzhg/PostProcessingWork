@@ -33,19 +33,6 @@ public final class TextureUtils {
 	private static final int RGB_INTEGER = GLenum.GL_RGB_INTEGER;
 	private static final int RGBA_INTEGER = GLenum.GL_RGBA_INTEGER;
 	
-	/** The red or depth component */
-	public static final int RED_MASK = 0x1;
-	/** The green or stencil component */
-	public static final int GREEN_MASK = 0x2;
-	/** The blue component */
-	public static final int BLUE_MASK = 0x4;
-	/** The alpha component */
-	public static final int ALPHA_MASK = 0x8;
-	
-	private static final int[] RGBA_MASK = {
-			RED_MASK, GREEN_MASK, BLUE_MASK, ALPHA_MASK
-	};
-	
 	private static final int[] compressed_formats = {
 			0x8225,  // COMPRESSED_RED
 			0x8226,  // COMPRESSED_RG
@@ -335,7 +322,11 @@ public final class TextureUtils {
 			
 			// 2. Allocate storage for Texture Object
 			gl.glTextureStorage3D(textureID, mipLevels, format, textureDesc.width, textureDesc.height, textureDesc.depth);
-			
+			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
+			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+			gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+
 			// 3. Fill the texture Data
 			if(dataDesc != null){
 				enablePixelStore(dataDesc);
@@ -354,8 +345,10 @@ public final class TextureUtils {
 						height = Math.max(1, height >> 1);
 						depth = Math.max(1, depth >> 1);
 					}
+					gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
 				}else{
 					subTexImage3DDAS(textureID, width, height, depth, 0, dataDesc.format, dataDesc.type, dataDesc.data);
+					gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
 				}
 				
 				disablePixelStore(dataDesc);
@@ -374,7 +367,13 @@ public final class TextureUtils {
 				gl.glTexStorage3D(GLenum.GL_TEXTURE_2D_ARRAY, mipLevels, format, textureDesc.width, textureDesc.height, textureDesc.depth);
 				allocateStorage = true;
 			}
-			
+
+			gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
+			gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+			gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+			gl.glTexParameteri(target, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+			gl.glTexParameteri(target, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
+
 			// 3. Fill the texture Data�� Ignore the multisample texture.
 			if(dataDesc != null){
 				int width = textureDesc.width;
@@ -419,6 +418,8 @@ public final class TextureUtils {
 						height = Math.max(1, height >> 1);
 						depth = Math.max(1, depth >> 1);
 					}
+
+					gl.glTexParameteri(target, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
 				}else{
 					if(isCompressed){
 						compressedTexImage3D(target, width, height, depth, 0, dataDesc.format, dataDesc.type, dataDesc.imageSize, dataDesc.data);

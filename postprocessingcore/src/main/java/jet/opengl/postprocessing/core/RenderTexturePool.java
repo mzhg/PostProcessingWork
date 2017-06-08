@@ -40,6 +40,10 @@ public final class RenderTexturePool {
     public Texture2D findFreeElement(Texture2DDesc desc){
         List<Texture2D> texture2DList = m_RenderTexturePool.get(desc);
         if(texture2DList == null || texture2DList.isEmpty()){
+            if(m_CreatedTextures.size() > 30){
+                LogUtil.e(LogUtil.LogType.DEFAULT, "Allocated two many textures in the pool! Desc: " + desc.toString());
+            }
+
             Texture2D texture2D = TextureUtils.createTexture2D(desc, null);
             m_CreatedTextures.add(texture2D);
             LogUtil.i(LogUtil.LogType.DEFAULT, "Create a new Texture in the RenderTexturePool. Created Texture Count: " + m_CreatedTextures.size());

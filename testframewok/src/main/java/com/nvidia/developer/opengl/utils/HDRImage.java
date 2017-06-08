@@ -14,17 +14,6 @@ import jet.opengl.postprocessing.util.Numeric;
 
 public class HDRImage {
 
-	// -15 stored using a single precision bias of 127
-	public static final int  HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP = 0x38000000;
-	// max exponent value in single precision that will be converted
-	// to Inf or Nan when stored as a half-float
-	public static final int  HALF_FLOAT_MAX_BIASED_EXP_AS_SINGLE_FP_EXP = 0x47800000;
-
-	// 255 is the max exponent biased value
-	public static final int  FLOAT_MAX_BIASED_EXP = (0xFF << 23);
-
-	public static final int  HALF_FLOAT_MAX_BIASED_EXP = (0x1F << 10);
-	
 	protected int _width;
 	protected int _height;
 	protected int _depth;
@@ -277,207 +266,19 @@ public class HDRImage {
 	    return true;
 	}
 	
-	public static float convertHFloatToFloat(short hf)
-	{
-	    int    sign = (hf >> 15);
-	    int    mantissa = (hf & ((1 << 10) - 1));
-	    int    exp = (hf & HALF_FLOAT_MAX_BIASED_EXP);
-	    int    f;
-
-	    if (exp == HALF_FLOAT_MAX_BIASED_EXP)
-	    {
-	        // we have a half-float NaN or Inf
-	        // half-float NaNs will be converted to a single precision NaN
-	        // half-float Infs will be converted to a single precision Inf
-	        exp = FLOAT_MAX_BIASED_EXP;
-	        if (mantissa != 0)
-	            mantissa = (1 << 23) - 1;    // set all bits to indicate a NaN
-	    }
-	    else if (exp == 0x0)
-	    {
-	        // convert half-float zero/denorm to single precision value
-	        if (mantissa != 0)
-	        {
-	           mantissa <<= 1;
-	           exp = HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP;
-	           // check for leading 1 in denorm mantissa
-	           while ((mantissa & (1 << 10)) == 0)
-	           {
-	               // for every leading 0, decrement single precision exponent by 1
-	               // and shift half-float mantissa value to the left
-	               mantissa <<= 1;
-	               exp -= (1 << 23);
-	            }
-	            // clamp the mantissa to 10-bits
-	            mantissa &= ((1 << 10) - 1);
-	            // shift left to generate single-precision mantissa of 23-bits
-	            mantissa <<= 13;
-	        }
-	    }
-	    else
-	    {
-	        // shift left to generate single-precision mantissa of 23-bits
-	        mantissa <<= 13;
-	        // generate single precision biased exponent value
-	        exp = (exp << 13) + HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP;
-	    }
-
-	    f = (sign << 31) | exp | mantissa;
-
-	    return Float.intBitsToFloat(f);
-	}
-	
-	static short convertFloatToHFloat(float f)
-	{
-		int i = Float.floatToRawIntBits(f);
-	    int s =  (i >> 16) & 0x00008000;
-	    int e = ((i >> 23) & 0x000000ff) - (127 - 15);
-	    int m =   i        & 0x007fffff;
-
-	    //
-	    // Now reassemble s, e and m into a half:
-	    //
-
-	    if (e <= 0)
-	    {
-		    if (e < -10)
-		    {
-		        //
-		        // E is less than -10.  The absolute value of f is
-		        // less than HALF_MIN (f may be a small normalized
-		        // float, a denormalized float or a zero).
-		        //
-		        // We convert f to a half zero with the same sign as f.
-		        //
-
-//		        return *((hfloat *)&s);
-		    	return (short)s;
-		    }
-
-		    //
-		    // E is between -10 and 0.  F is a normalized float
-		    // whose magnitude is less than HALF_NRM_MIN.
-		    //
-		    // We convert f to a denormalized half.
-		    //
-
-		    //
-		    // Add an explicit leading 1 to the significand.
-		    // 
-
-		    m = m | 0x00800000;
-
-		    //
-		    // Round to m to the nearest (10+e)-bit value (with e between
-		    // -10 and 0); in case of a tie, round to the nearest even value.
-		    //
-		    // Rounding may cause the significand to overflow and make
-		    // our number normalized.  Because of the way a half's bits
-		    // are laid out, we don't have to treat this case separately;
-		    // the code below will handle it correctly.
-		    // 
-
-		    int t = 14 - e;
-		    int a = (1 << (t - 1)) - 1;
-		    int b = (m >> t) & 1;
-
-		    m = (m + a + b) >> t;
-
-		    //
-		    // Assemble the half from s, e (zero) and m.
-		    //
-
-	        int r = s | m;
-//		    return *((hfloat *)&r);
-	        return (short)r;
-	    }
-	    else if (e == 0xff - (127 - 15))
-	    {
-		    if (m == 0)
-		    {
-		        //
-		        // F is an infinity; convert f to a half
-		        // infinity with the same sign as f.
-		        //
-
-	            int r = s | 0x7c00;
-//		        return *((hfloat *)&r);
-	            return (short)r;
-		    }
-		    else
-		    {
-		        //
-		        // F is a NAN; we produce a half NAN that preserves
-		        // the sign bit and the 10 leftmost bits of the
-		        // significand of f, with one exception: If the 10
-		        // leftmost bits are all zero, the NAN would turn 
-		        // into an infinity, so we have to set at least one
-		        // bit in the significand.
-		        //
-
-		        m >>= 13;
-	            int r = s | 0x7c00 | m | ((m == 0) ? 1 : 0);
-//		        return *((hfloat *)&r);
-	            return (short)r;
-		    }
-	    }
-	    else
-	    {
-		    //
-		    // E is greater than zero.  F is a normalized float.
-		    // We try to convert f to a normalized half.
-		    //
-
-		    //
-		    // Round to m to the nearest 10-bit value.  In case of
-		    // a tie, round to the nearest even value.
-		    //
-
-		    m = m + 0x00000fff + ((m >> 13) & 1);
-
-		    if ((m & 0x00800000) != 0)
-		    {
-		        m =  0;		// overflow in significand,
-		        e += 1;		// adjust exponent
-		    }
-
-		    //
-		    // Handle exponent overflow
-		    //
-
-		    if (e > 30)
-		    {
-//		        overflow ();	// Cause a hardware floating point overflow;
-	            int r = s | 0x7c00; // if this returns, the half becomes an
-//		        return *((hfloat *)&r); // infinity with the same sign as f.
-	            return (short)r;
-	        }
-
-		    //
-		    // Assemble the half from s, e and m.
-		    //
-
-	        {
-	            int r = s | (e << 10) | (m >> 13);
-//		        return *((hfloat *)&r);
-	            return (short)r;
-	        }
-	    }
-	}
-	
 	public static void fp32toFp16(float[] pt, int pt_offset, short[] out, int out_offset, int width, int height)
 	{
 		for (int i=0;i<width*height;i++) {
-			out[i*3 + out_offset] = convertFloatToHFloat(pt[i*3 + pt_offset]);
-			out[i*3+1 + out_offset] = convertFloatToHFloat(pt[i*3+1 + pt_offset]);
-			out[i*3+2 + out_offset] = convertFloatToHFloat(pt[i*3+2] + pt_offset);
+			out[i*3 + out_offset] = Numeric.convertFloatToHFloat(pt[i*3 + pt_offset]);
+			out[i*3+1 + out_offset] = Numeric.convertFloatToHFloat(pt[i*3+1 + pt_offset]);
+			out[i*3+2 + out_offset] = Numeric.convertFloatToHFloat(pt[i*3+2] + pt_offset);
 		}
 	}
 	
 	public static void fp32toFp16(float[] pt, int pt_offset, short[] out, int out_offset, int length)
 	{
 		for (int i=0;i<length;i++) {
-			out[i] = convertFloatToHFloat(pt[i]);
+			out[i] = Numeric.convertFloatToHFloat(pt[i]);
 		}
 	}
 

@@ -51,8 +51,8 @@ final class PostProcessingGenerateSliceEndpointsPass extends PostProcessingRende
     public void computeOutDesc(int index, Texture2DDesc out) {
         out.arraySize = 1;
         out.sampleCount = 1;
-//        out.width = m_sharedData.m_ScatteringAttribs.m_uiNumEpipolarSlices;
-//        out.height = 1;
+        out.width = m_sharedData.m_ScatteringInitAttribs.m_uiNumEpipolarSlices;
+        out.height = 1;
         out.format = GLenum.GL_RGBA16F;  // 16FP or 32FP
 
         super.computeOutDesc(index, out);

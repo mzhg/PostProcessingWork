@@ -26,6 +26,7 @@ public class PostProcessingFrameAttribs {
     public Matrix4f projMat;
     public float    fov;
     public boolean  ortho;
+    public boolean outputCurrentFrameLog = true;
 
     // frame elapsed time
     public float   elapsedTime;
@@ -59,6 +60,7 @@ public class PostProcessingFrameAttribs {
         bViewProjInvertSetted = false;
         bProjInvertSetted = false;
         bLightViewProjSetted = false;
+        outputCurrentFrameLog = false;
     }
 
     public void setViewProjMatrix(Matrix4f matrix){

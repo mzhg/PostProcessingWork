@@ -285,7 +285,7 @@ layout(binding = TEX2D_SPHERE_RANDOM) uniform sampler2D g_tex2DSphereRandomSampl
 layout(binding = TEX3D_PREVIOUS_RADIANCE) uniform sampler3D g_tex3DPreviousSctrOrder      ;// register( t0 );
 layout(binding = TEX3D_POINT_TWISE_RANDIANCE) uniform sampler3D g_tex3DPointwiseSctrRadiance  ;// register( t0 );
 layout(binding = TEX2D_AVERAGE_LUMINACE) uniform sampler2D g_tex2DAverageLuminance       ;// register( t10 );
-layout(binding = TEX2D_LOW_RES_LUMINACE) uniform sampler2D  g_tex2DLowResLuminance        ;// register( t0 );
+//layout(binding = TEX2D_LOW_RES_LUMINACE) uniform sampler2D  g_tex2DLowResLuminance        ;// register( t0 );
 layout(binding = TEX2D_SHADOW_MAP) uniform sampler2DArrayShadow  g_tex2DShadowMapArray       ;// register( t0 );
 
 uniform float2 g_f4ShadowAttribs_Cascades_StartEndZ[4];

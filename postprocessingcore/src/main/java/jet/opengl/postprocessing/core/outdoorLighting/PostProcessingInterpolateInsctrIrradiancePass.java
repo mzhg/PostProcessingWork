@@ -17,7 +17,7 @@ final class PostProcessingInterpolateInsctrIrradiancePass extends PostProcessing
     private SharedData m_sharedData;
 
     public PostProcessingInterpolateInsctrIrradiancePass(SharedData sharedData) {
-        super("GenerateSliceEndpoints");
+        super("InterpolateInsctrIrradiance");
 
         m_sharedData = sharedData;
 
@@ -32,9 +32,8 @@ final class PostProcessingInterpolateInsctrIrradiancePass extends PostProcessing
         }
 
         Texture2D output = getOutputTexture(0);
-        output.setName("InterpolateInsctrIrradiance");
+        output.setName("InterpolateInsctrIrradianceTex");
         context.setViewport(0,0, output.getWidth(), output.getHeight());
-//        context.setViewport(0,0, 1280, 720);
         context.setVAO(null);
         context.setProgram(m_InterpolateIrradianceProgram);
         m_sharedData.setUniforms(m_InterpolateIrradianceProgram);
@@ -58,6 +57,7 @@ final class PostProcessingInterpolateInsctrIrradiancePass extends PostProcessing
     public void computeOutDesc(int index, Texture2DDesc out) {
         out.arraySize = 1;
         out.sampleCount = 1;
+        out.mipLevels = 1;
         out.width = m_sharedData.m_ScatteringInitAttribs.m_uiMaxSamplesInSlice;
         out.height = m_sharedData.m_ScatteringInitAttribs.m_uiNumEpipolarSlices;
         out.format = GLenum.GL_RGBA16F;  // 16FP or 32FP

@@ -30,7 +30,7 @@ final class PostProcessingGenerateSliceUVDirAndOrigPass extends PostProcessingRe
 
         Texture2D output = getOutputTexture(0);
         output.setName("SliceUVDirAndOrigTexture");
-        context.setViewport(0,0, output.getWidth(), output.getHeight());
+        context.setViewport(0,m_sharedData.m_ScatteringInitAttribs.m_iFirstCascade, output.getWidth(), output.getHeight() - m_sharedData.m_ScatteringInitAttribs.m_iFirstCascade);
         context.setVAO(null);
         context.setProgram(m_RenderSliceUVDirInSMProgram);
         m_sharedData.setUniforms(m_RenderSliceUVDirInSMProgram);
@@ -49,6 +49,7 @@ final class PostProcessingGenerateSliceUVDirAndOrigPass extends PostProcessingRe
     public void computeOutDesc(int index, Texture2DDesc out) {
         out.arraySize = 1;
         out.sampleCount = 1;
+        out.mipLevels = 1;
         out.width = m_sharedData.m_ScatteringInitAttribs.m_uiNumEpipolarSlices;
         out.height = m_sharedData.m_CommonFrameAttribs.cascadeShadowMapAttribs.numCascades;
         out.format = GLenum.GL_RGBA32F;  // 16FP or 32FP

@@ -1,7 +1,6 @@
 #include "Scattering.frag"
 
 in float4 m_f4UVAndScreenPos;
-in float  m_fInstID;
 
 layout(location = 0) out float2 OutColor;
 

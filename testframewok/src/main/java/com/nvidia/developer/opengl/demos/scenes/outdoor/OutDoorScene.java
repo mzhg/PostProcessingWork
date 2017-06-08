@@ -4,8 +4,6 @@ import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvGLAppContext;
 import com.nvidia.developer.opengl.app.NvInputTransformer;
 import com.nvidia.developer.opengl.app.NvSampleApp;
-import com.nvidia.developer.opengl.ui.NvTweakBar;
-import com.nvidia.developer.opengl.utils.FieldControl;
 import com.nvidia.developer.opengl.utils.ShadowmapGenerateProgram;
 
 import org.lwjgl.util.vector.Matrix4f;
@@ -13,8 +11,6 @@ import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
-
-import java.io.IOException;
 
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -48,8 +44,6 @@ public class OutDoorScene {
     private static final int EN_CUSTOM_SDM = 16;  // COSTUME SHADOWMAP
 
     boolean m_bAnimateSun = true;
-    private boolean m_bVisualShadownMap;
-    private int m_slice = 0;
     private float m_fScatteringScale = 0.5f;
 
     //    std::vector< CComPtr<ID3D11DepthStencilView> > m_pShadowMapDSVs;
@@ -127,12 +121,6 @@ public class OutDoorScene {
         m_transformer = app.getInputTransformer();
     }
 
-    public void initUI(NvTweakBar tweakBar) {
-        tweakBar.addValue("Visualize Depth", new FieldControl(this, "m_bVisualShadownMap"));
-        tweakBar.addValue("Slice of Depth Texture", new FieldControl(this, "m_slice"), 0, 4);
-        tweakBar.syncValues();
-    }
-
     public void onCreate() {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         nvApp.setSwapInterval(0);
@@ -199,19 +187,12 @@ public class OutDoorScene {
 
         RenderShadowMapOrigin(m_LightAttribs);
 
-        if(m_bVisualShadownMap){
-            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
-            showShadownMap();
-            return;
-        }
-
 //        LightAttribs.ShadowAttribs.bVisualizeCascades = ((CPUTCheckbox*)pGUI->GetControl(ID_SHOW_CASCADES_CHECK))->GetCheckboxState() == CPUT_CHECKBOX_CHECKED;
 
         m_LightAttribs.shadowAttribs.bVisualizeCascades = false;
         // Calculate location of the sun on the screen
         Vector4f f4LightPosPS = m_LightAttribs.f4LightScreenPos;
         Matrix4f.transform(m_ViewProj, m_LightAttribs.f4DirOnLight, f4LightPosPS);
-        Matrix4f.transformCoord(m_ViewProj, vLightPos, f4LightPosPS);
         f4LightPosPS.x /= f4LightPosPS.w;
         f4LightPosPS.y /= f4LightPosPS.w;
         f4LightPosPS.z /= f4LightPosPS.w;
@@ -283,41 +264,6 @@ public class OutDoorScene {
         gl.glDepthFunc(GLenum.GL_EQUAL);
     }
 
-    private void showShadownMap() {
-        if(m_visTexShader == null)
-            try {
-                m_visTexShader = new VisualDepthTextureProgram(true);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        gl.glViewport(0, 0, nvApp.width(), nvApp.height());
-        gl.glDisable(GLenum.GL_DEPTH_TEST);
-        gl.glDisable(GLenum.GL_CULL_FACE);
-        gl.glClearColor(0, 0, 0, 0);
-        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
-
-        m_visTexShader.enable();
-//        m_visTexShader.setUniforms(); TODO
-//        m_visTexShader.setSlice(m_slice);
-//        m_visTexShader.setLightZFar(m_shadowMapInput.farPlane);
-//        m_visTexShader.setLightZNear(m_shadowMapInput.nearPlane);
-        gl.glActiveTexture(GLenum.GL_TEXTURE0);
-        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_pShadowMapSRV.getTexture());
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_COMPARE_MODE, GLenum.GL_NONE);
-        GLCheck.checkError();
-
-        gl.glDisable(GLenum.GL_DEPTH_TEST);
-        gl.glDisable(GLenum.GL_CULL_FACE);
-
-        gl.glBindVertexArray(m_DummyVAO);
-        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
-        gl.glBindVertexArray(0);
-
-        m_visTexShader.disable();
-        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, 0);
-    }
-
     public Texture2D getSceneColor() { return m_pOffscreenRenderTarget;}
     public Texture2D getSceneDepth() { return m_pOffscreenDepth;}
     public Texture2D getShadowMap()  { return m_pShadowMapSRV;}
@@ -326,7 +272,12 @@ public class OutDoorScene {
     public Matrix4f  getViewMat()       { return m_ViewMatrix;}
     public Matrix4f  getProjMat()       { return m_ProjMatrix;}
     public float     getFovInRadian()   { return (float)Math.toRadians(45);}
-    public Vector3f  getLightDirection(){ return new Vector3f(m_LightAttribs.f4DirOnLight);}
+    public Vector3f  getLightDirection(){
+        Vector3f dir = new Vector3f(m_LightAttribs.f4DirOnLight);
+//        dir.scale(-1);
+        return dir;
+    }
+
 
     public boolean handleCharacterInput(char c) {
         switch (c) {
@@ -788,11 +739,13 @@ public class OutDoorScene {
 //        System.err.println("fNearPlaneZ = " + fNearPlaneZ);
 //        System.err.println("fFarPlaneZ = " + fFarPlaneZ);
 
+        m_fCameraFar = fFarPlaneZ;
+        m_fCameraNear = fNearPlaneZ;
+
         if(m_bFirstLoop){
             m_initViewMat.load(m_CameraViewMatrix);
 //        	m_bFirstLoop = false;
-            m_fCameraFar = fFarPlaneZ;
-            m_fCameraNear = fNearPlaneZ;
+
         }
     }
 

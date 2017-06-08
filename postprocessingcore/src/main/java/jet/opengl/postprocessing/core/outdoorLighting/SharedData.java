@@ -181,7 +181,9 @@ final class SharedData {
             computeScatteringCoefficients(frameAttribs);
         }
 
-        m_bRecomputeSctrCoeffs = (m_bRecomputeSctrCoeffs|bRecalculateScatteringTable);
+        if(bRecalculateScatteringTable){
+            m_bRecomputeSctrCoeffs = true;
+        }
 
         createSamplers();
         calculateLightAttribs(commonAttribs, frameAttribs);
@@ -582,6 +584,7 @@ final class SharedData {
         if(m_ptex2DEpipolarImageDSV == null){
             Texture2DDesc desc = new Texture2DDesc(m_ScatteringInitAttribs.m_uiMaxSamplesInSlice, m_ScatteringInitAttribs.m_uiNumEpipolarSlices, GLenum.GL_DEPTH24_STENCIL8);
             m_ptex2DEpipolarImageDSV = TextureUtils.createTexture2D(desc, null);
+            m_ptex2DEpipolarImageDSV.setName("tex2DEpipolarImage");
         }
 
         return m_ptex2DEpipolarImageDSV;

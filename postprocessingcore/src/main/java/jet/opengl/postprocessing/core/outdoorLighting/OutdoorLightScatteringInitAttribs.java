@@ -39,7 +39,7 @@ public class OutdoorLightScatteringInitAttribs {
     public boolean m_bShowSampling = false;
     public boolean m_bEnableEpipolarSampling = true;
     public boolean m_bAutoExposure = true;
-    public boolean m_bIs32BitMinMaxMipMap = false;
+    public boolean m_bIs32BitMinMaxMipMap = true;
     public boolean m_bUse1DMinMaxTree = true;
 
     public int m_iPrecomputedSctrUDim = 32;

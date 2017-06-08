@@ -23,7 +23,7 @@ final class PostProcessingGenerateCoarseUnshadowedInctrPass extends PostProcessi
     private SharedData m_sharedData;
     private final Texture2D[] m_RenderTargets = new Texture2D[3];
 
-    public PostProcessingGenerateCoarseUnshadowedInctrPass(SharedData sharedData) {
+    public PostProcessingGenerateCoarseUnshadowedInctrPass(SharedData sharedData, boolean bExtinctionEvalMode, boolean bRefinementCriterionInsctrDiff) {
         super("GenerateCoordinateTexture");
 
         m_sharedData = sharedData;
@@ -36,9 +36,8 @@ final class PostProcessingGenerateCoarseUnshadowedInctrPass extends PostProcessi
         // input2:  multiple sctr LUT
         // output0: Inscattering
         // output1: Extinction (Option)
-        // output2: EpipolarCamSpaceZ
-        int output = (sharedData.m_ScatteringInitAttribs.m_bExtinctionEvalMode ? 1 : 0) +
-                     (sharedData.m_ScatteringInitAttribs.m_bRefinementCriterionInsctrDiff ? 1 : 0);
+        int output = (bExtinctionEvalMode ? 1 : 0) +
+                     (bRefinementCriterionInsctrDiff ? 1 : 0);
         set(3, output);
     }
 
@@ -90,10 +89,10 @@ final class PostProcessingGenerateCoarseUnshadowedInctrPass extends PostProcessi
 
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         if(m_sharedData.m_ScatteringInitAttribs.m_bRefinementCriterionInsctrDiff){
-            final float fInvalidCoordinate = -1e+30f;
-            FloatBuffer invalidCoords = CacheBuffer.wrap(fInvalidCoordinate, fInvalidCoordinate,fInvalidCoordinate,fInvalidCoordinate);
+            float flt16max = 65504.f; // Epipolar Inscattering is 16-bit float
+            FloatBuffer invalidInsctr = CacheBuffer.wrap(-flt16max, -flt16max, -flt16max, -flt16max);
             // Clear both render targets with values that can't be correct projection space coordinates and camera space Z:
-            gl.glClearBufferfv(GLenum.GL_COLOR, 0, invalidCoords);
+            gl.glClearBufferfv(GLenum.GL_COLOR, 0, invalidInsctr);
         }
 
         if(m_sharedData.m_ScatteringInitAttribs.m_bExtinctionEvalMode) {

@@ -2,6 +2,7 @@ package jet.opengl.postprocessing.common;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.Collection;
@@ -1527,4 +1528,8 @@ public interface GLFuncProvider {
     void glProgramUniform1i(int program, int index, int i);
     void glProgramUniform4i(int program, int index, int x, int y, int z, int w);
     void glProgramUniform2fv(int program, int index, FloatBuffer values);
+
+    int glGetUniformui(int programId, int location);
+    double glGetUniformd(int programId, int location);
+    void glGetUniformdv(int programId, int location, DoubleBuffer buf);
 }

@@ -1,5 +1,8 @@
 package jet.opengl.postprocessing.core.outdoorLighting;
 
+import java.nio.FloatBuffer;
+
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
@@ -7,6 +10,7 @@ import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3D;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
  * Created by mazhen'gui on 2017/6/5.
@@ -96,11 +100,15 @@ final class PostProcessingRayMarchingPass extends PostProcessingRenderPass {
         m_RenderTargets[1] = m_sharedData.getEpipolarImageDSV();
         context.setRenderTargets(m_RenderTargets);
 
+        FloatBuffer zeros = CacheBuffer.wrap(0f,0,0,0);
+        GLFuncProviderFactory.getGLFuncProvider().glClearBufferfv(GLenum.GL_COLOR, 0, zeros);
+
+
         // Depth stencil view now contains 2 for these pixels, for which ray marchings is to be performed
         // Depth stencil state is configured to pass only these pixels and discard the rest
-        m_sharedData.m_pNoDepth_StEqual_IncrStencilDS.backFace.stencilRef = 2;
-        m_sharedData.m_pNoDepth_StEqual_IncrStencilDS.frontFace.stencilRef = 2;
-        context.setDepthStencilState(m_sharedData.m_pNoDepth_StEqual_IncrStencilDS);
+        m_sharedData.m_pNoDepth_StEqual_KeepStencilDS.backFace.stencilRef = 2;
+        m_sharedData.m_pNoDepth_StEqual_KeepStencilDS.frontFace.stencilRef = 2;
+        context.setDepthStencilState(m_sharedData.m_pNoDepth_StEqual_KeepStencilDS);
         context.setRasterizerState(null);
 
         int iNumInst = 0;

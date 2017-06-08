@@ -1675,4 +1675,19 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     public void glProgramUniform2fv(int program, int index, FloatBuffer values) {
         GL41.glProgramUniform2fv(program, index, values);
     }
+
+    @Override
+    public int glGetUniformui(int programId, int location) {
+        return GL30.glGetUniformui(programId, location);
+    }
+
+    @Override
+    public double glGetUniformd(int programId, int location) {
+        return GL40.glGetUniformd(programId, location);
+    }
+
+    @Override
+    public void glGetUniformdv(int programId, int location, DoubleBuffer buf) {
+        GL40.glGetUniformdv(programId, location, buf);
+    }
 }

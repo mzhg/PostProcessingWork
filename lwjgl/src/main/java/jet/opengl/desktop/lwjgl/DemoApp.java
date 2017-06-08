@@ -9,11 +9,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Level;
 
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
-import jet.opengl.postprocessing.util.LogUtil;
 
 /**
  * Created by mazhen'gui on 2017/4/12.
@@ -47,8 +45,8 @@ public class DemoApp {
     }
 
     public static void main(String[] args) {
-        LogUtil.setLoggerLevel(LogUtil.LogType.NV_FRAMEWROK, Level.OFF);
-        LogUtil.setLoggerLevel(LogUtil.LogType.DEFAULT, Level.OFF);
+//        LogUtil.setLoggerLevel(LogUtil.LogType.NV_FRAMEWROK, Level.OFF);
+//        LogUtil.setLoggerLevel(LogUtil.LogType.DEFAULT, Level.OFF);
 
         final String path = "app\\src\\main\\assets\\";
         FileUtils.setIntenalFileLoader(new FileLoader() {

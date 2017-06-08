@@ -42,7 +42,7 @@ final class PostProcessingUnwarpEpipolarScatteringPass extends PostProcessingRen
         setOutputTarget(PostProcessingRenderPassOutputTarget.INTERNAL);
     }
 
-    public PostProcessingUnwarpEpipolarScatteringPass(SharedData sharedData, Texture2D colorTexture, Texture2D depthStencilTexture) {
+    public PostProcessingUnwarpEpipolarScatteringPass(SharedData sharedData, Texture2D colorTexture, Texture2D depthStencilTexture, boolean bAutoExposure) {
         super("UnwarpEpipolarScattering");
 
         m_sharedData = sharedData;
@@ -55,7 +55,7 @@ final class PostProcessingUnwarpEpipolarScatteringPass extends PostProcessingRen
 //        Uniform [sampler2D name=g_tex2DScatteredColor, location=12, value = 11]       :4
 //        Uniform [sampler2D name=g_tex2DSliceEndPoints, location=13, value = 2         :5
 //        Uniform [sampler2D name=g_tex2DAverageLuminance, location=7, value = 20]      :6[optionl]
-        int inputCount = sharedData.m_ScatteringInitAttribs.m_bAutoExposure ? 7 : 6;
+        int inputCount = bAutoExposure ? 7 : 6;
         set(inputCount, 1);
 
         if(colorTexture != null){
@@ -137,11 +137,6 @@ final class PostProcessingUnwarpEpipolarScatteringPass extends PostProcessingRen
             context.bindTexture(ptex2DAverageLuminance, RenderTechnique.TEX2D_AVERAGE_LUMINACE, m_psamLinearClamp);
 
         context.setBlendState(null);
-        if(m_bRenderLuminance || m_RenderTargets == null) {
-            context.setDepthStencilState(null);
-        }else{
-            context.setDepthStencilState(m_sharedData.m_pDisableDepthTestIncrStencilDS);
-        }
         context.setRasterizerState(null);
         if(m_RenderTargets != null){
             if(m_RenderTargets[0] == null)
@@ -150,13 +145,24 @@ final class PostProcessingUnwarpEpipolarScatteringPass extends PostProcessingRen
         }else{
             context.setRenderTarget(output);
         }
+
+        if(m_bRenderLuminance || m_RenderTargets == null) {
+            context.setDepthStencilState(null);
+        }else{
+            context.setDepthStencilState(m_sharedData.m_pDisableDepthTestIncrStencilDS);
+        }
         GLFuncProviderFactory.getGLFuncProvider().glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 0.0f, 0);
 
         context.drawFullscreenQuad();
+//        context.bindTexture(null, RenderTechnique.TEX2D_CAM_SPACE, 0);
+//        context.bindTexture(null, RenderTechnique.TEX2D_COLOR, 0);
+//        context.bindTexture(null, RenderTechnique.TEX2D_EPIPOLAR_CAM_SPACE, 0);
+//        context.bindTexture(null, RenderTechnique.TEX2D_EPIPOLAR_EXTINCTION, 0);
+//        context.bindTexture(null, RenderTechnique.TEX2D_SCATTERED_COLOR, 0);
+//        context.bindTexture(null, RenderTechnique.TEX2D_SLICE_END_POINTS, 0);
 
         if(m_bRenderLuminance){
-            context.bindTexture(output, 1, 0);  // generate mipmap
-            GLFuncProviderFactory.getGLFuncProvider().glGenerateMipmap(output.getTarget());
+//            context.bindTexture(output, 1, 0);  // generate mipmap
         }
     }
 

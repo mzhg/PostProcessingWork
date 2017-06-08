@@ -27,6 +27,7 @@ final class PostProcessingUpdateAverageLuminancePass extends PostProcessingRende
         // no inputs.
         set(1, 1);
         setOutputTarget(PostProcessingRenderPassOutputTarget.INTERNAL);
+        m_PassOutputs[0] = m_ptex2DAverageLuminance;
     }
 
     @Override
@@ -46,10 +47,15 @@ final class PostProcessingUpdateAverageLuminancePass extends PostProcessingRende
         SMiscDynamicParams MiscDynamicParams = m_sharedData.m_MiscDynamicParams;
         MiscDynamicParams.fElapsedTime = m_sharedData.m_CommonFrameAttribs.elapsedTime;
 
-        m_sharedData.setUniforms(m_UpdateAverageLuminanceProgram);
+        m_sharedData.setUniforms(m_UpdateAverageLuminanceProgram, MiscDynamicParams);
 
-        context.bindTexture(input, RenderTechnique.TEX2D_LOW_RES_LUMINACE, 0);
-
+        context.bindTexture(input, RenderTechnique.TEX2D_LOW_RES_LUMINACE, m_sharedData.m_psamLinearClamp);
+        context.bindTexture(null, RenderTechnique.TEX2D_CAM_SPACE, 0);
+        context.bindTexture(null, RenderTechnique.TEX2D_COLOR, 0);
+        context.bindTexture(null, RenderTechnique.TEX2D_EPIPOLAR_CAM_SPACE, 0);
+        context.bindTexture(null, RenderTechnique.TEX2D_EPIPOLAR_EXTINCTION, 0);
+        context.bindTexture(null, RenderTechnique.TEX2D_SCATTERED_COLOR, 0);
+        context.bindTexture(null, RenderTechnique.TEX2D_SLICE_END_POINTS, 0);
         context.setBlendState(null);
         context.setDepthStencilState(null);
         context.setRasterizerState(null);

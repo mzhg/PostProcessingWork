@@ -2,7 +2,6 @@
 #include "LookUpPrecomputedScattering.frag"
 
 in float4 m_f4UVAndScreenPos;
-in float  m_fInstID;
 
 layout(location = 0) out float3 OutColor;
 
