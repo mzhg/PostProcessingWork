@@ -6,8 +6,11 @@ import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.core.RenderTexturePool;
+import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.shader.ProgramProperties;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.util.LogUtil;
 
 /**
  * Created by mazhen'gui on 2017/6/5.
@@ -171,6 +174,15 @@ final class PostProcessingBuild1DMinMaxMipMapPass extends PostProcessingRenderPa
         }
 
         RenderTexturePool.getInstance().freeUnusedResource(tempTex);
+
+        if(m_sharedData.m_CommonFrameAttribs.outputCurrentFrameLog){
+            String debugName = "InitializeMinMaxShadowMap";
+            LogUtil.i(LogUtil.LogType.DEFAULT, "----------------------------" + debugName + "-----------------------------------------");
+            ProgramProperties properties = GLSLUtil.getProperties(m_InitializeMinMaxShadowMapProgram.getProgram());
+            LogUtil.i(LogUtil.LogType.DEFAULT, properties.toString());
+
+            SharedData.saveTextureAsText(_output, "MinMaxMipMapDX.txt");
+        }
     }
 
     @Override

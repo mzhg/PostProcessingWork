@@ -122,7 +122,7 @@ final class RenderTechnique extends GLSLProgram {
 	/** Only for the compute shader. */
 	public RenderTechnique(Void unused, String filename, Macro[] macros) {
 		try {
-			CharSequence computeSrc = ShaderLoader.loadShaderFile("shader_libs/LightSctr/" + filename, false);
+			CharSequence computeSrc = ShaderLoader.loadShaderFile("shader_libs/OutdoorSctr/" + filename, false);
 			ShaderSourceItem cs_item = new ShaderSourceItem(computeSrc, ShaderType.COMPUTE);
 			cs_item.macros = macros;
 			setSourceFromStrings(cs_item);

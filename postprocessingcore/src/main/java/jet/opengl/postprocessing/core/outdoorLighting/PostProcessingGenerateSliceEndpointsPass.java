@@ -45,6 +45,10 @@ final class PostProcessingGenerateSliceEndpointsPass extends PostProcessingRende
         context.setRenderTarget(output);
 
         context.drawFullscreenQuad();
+
+        if(m_sharedData.m_CommonFrameAttribs.outputCurrentFrameLog){
+            SharedData.saveTextureAsText(output, "SliceEndpointsDX.txt");
+        }
     }
 
     @Override

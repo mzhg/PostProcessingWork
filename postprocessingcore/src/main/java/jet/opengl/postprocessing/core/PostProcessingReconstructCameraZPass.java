@@ -8,6 +8,8 @@ import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
+import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -22,6 +24,7 @@ public class PostProcessingReconstructCameraZPass extends PostProcessingRenderPa
     private final boolean m_bUse32FP;
     private int m_DefualtSampler;
     private final int m_sampleIdx;
+    private boolean m_outputTexture;
 
     public PostProcessingReconstructCameraZPass(boolean enableMSAA, int sampleIdx, boolean use32FP) {
         super("ReconstructCameraZ" + (enableMSAA ? ("MSAA" + sampleIdx):""));
@@ -31,6 +34,8 @@ public class PostProcessingReconstructCameraZPass extends PostProcessingRenderPa
 
         set(1,1);
     }
+
+    public void setOutputTexture(boolean flag) {m_outputTexture = flag;}
 
     private static PostProcessingReconstructCameraZProgram getReconstructCameraZProgram(boolean msaa){
         if(msaa){
@@ -99,6 +104,10 @@ public class PostProcessingReconstructCameraZPass extends PostProcessingRenderPa
 
         if(GLCheck.CHECK)
             GLCheck.checkError("ReconstructCameraZPass");
+
+        if(m_outputTexture && context.getFrameAttribs().outputCurrentFrameLog){
+            saveTextureAsText(output, "ReconstructCameraSpaceDX.txt");
+        }
     }
 
     @Override
@@ -111,5 +120,15 @@ public class PostProcessingReconstructCameraZPass extends PostProcessingRenderPa
         }
 
         super.computeOutDesc(index, out);
+    }
+
+    static void saveTextureAsText(TextureGL texture, String filename){
+        if(texture == null) return;
+
+        try {
+            DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, "E:/textures/OutdoorResources/" + filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

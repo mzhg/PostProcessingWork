@@ -15,4 +15,12 @@ public class Macro {
         this.key = key;
         this.value = value;
     }
+
+    @Override
+    public String toString() {
+        return "Macro{" +
+                "key='" + key + '\'' +
+                ", value=" + value +
+                '}';
+    }
 }

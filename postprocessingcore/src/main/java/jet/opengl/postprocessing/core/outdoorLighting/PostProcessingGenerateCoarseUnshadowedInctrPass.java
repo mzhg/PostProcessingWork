@@ -101,6 +101,14 @@ final class PostProcessingGenerateCoarseUnshadowedInctrPass extends PostProcessi
         }
 
         context.drawFullscreenQuad();
+
+        if(m_sharedData.m_CommonFrameAttribs.outputCurrentFrameLog){
+            gl.glFlush();
+
+            SharedData.saveTextureAsText(output0, "EpipolarInscatteringDX.txt");
+            SharedData.saveTextureAsText(output1, "EpipolarExtinctionDX.txt");
+            SharedData.saveTextureAsText(m_sharedData.getEpipolarImageDSV(), "EpipolarImage_CoarseUnshadowedInctrDX.txt");
+        }
     }
 
     @Override

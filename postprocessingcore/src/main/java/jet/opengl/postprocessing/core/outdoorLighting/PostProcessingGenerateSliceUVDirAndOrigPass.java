@@ -43,6 +43,10 @@ final class PostProcessingGenerateSliceUVDirAndOrigPass extends PostProcessingRe
         context.setRenderTarget(output);
 
         context.drawFullscreenQuad();
+
+        if(m_sharedData.m_CommonFrameAttribs.outputCurrentFrameLog){
+            SharedData.saveTextureAsText(output, "SliceUVDirAndOriginDX.txt");
+        }
     }
 
     @Override

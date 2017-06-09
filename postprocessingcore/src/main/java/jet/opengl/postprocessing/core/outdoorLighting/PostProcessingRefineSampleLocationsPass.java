@@ -44,7 +44,7 @@ final class PostProcessingRefineSampleLocationsPass extends PostProcessingRender
 
         output.setName("InterpolationSources");
 
-        g_RefineSampleLocationsProgram.enable();
+        context.setProgram(g_RefineSampleLocationsProgram);
         m_sharedData.setUniforms(g_RefineSampleLocationsProgram);
 
 //        context.bindTexture(input0, VolumetricLightingProgram.TEX2D_COORDINATES, m_sharedData.m_psamLinearClamp);
@@ -73,6 +73,11 @@ final class PostProcessingRefineSampleLocationsPass extends PostProcessingRender
                              1);
         gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, output.getFormat()); // unbind the image.
+
+        if(m_sharedData.m_CommonFrameAttribs.outputCurrentFrameLog){
+            gl.glFlush();
+            SharedData.saveTextureAsText(output, "RefineSampleLocationDX.txt");
+        }
     }
 
     @Override

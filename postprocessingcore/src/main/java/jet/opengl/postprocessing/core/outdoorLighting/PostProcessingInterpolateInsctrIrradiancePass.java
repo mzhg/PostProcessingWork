@@ -51,6 +51,10 @@ final class PostProcessingInterpolateInsctrIrradiancePass extends PostProcessing
         context.setRenderTarget(output);
 
         context.drawFullscreenQuad();
+
+        if(m_sharedData.m_CommonFrameAttribs.outputCurrentFrameLog){
+            SharedData.saveTextureAsText(output, "InterpolateInsctrIrradianceDX.txt");
+        }
     }
 
     @Override

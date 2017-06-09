@@ -127,7 +127,7 @@ public class OutDoorScene {
         m_frustumeRender = new FrustumeRender();
 //
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
-        m_transformer.setTranslation(-0.000000f, -4023.615234f, 0.000000f);
+        m_transformer.setTranslation(-0.000000f, -30023.615234f, 0.000000f);
         m_transformer.setRotationVec(new Vector3f(0.1f, Numeric.PI * 0.7f, 0));
         m_transformer.setMaxTranslationVel(1000);
 

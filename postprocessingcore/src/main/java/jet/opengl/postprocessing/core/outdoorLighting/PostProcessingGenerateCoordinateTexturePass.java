@@ -40,6 +40,7 @@ final class PostProcessingGenerateCoordinateTexturePass extends PostProcessingRe
             g_GenerateCoordinateTextureProgram = m_sharedData.getRenderCoordinateTextureProgram();
         }
 
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         Texture2D input0 = getInput(0);
         Texture2D input1 = getInput(1);
 
@@ -63,12 +64,16 @@ final class PostProcessingGenerateCoordinateTexturePass extends PostProcessingRe
 
         context.setBlendState(null);
         context.setDepthStencilState(m_sharedData.m_pDisableDepthTestIncrStencilDS);
+//        gl.glEnable(GLenum.GL_STENCIL_TEST);
+//        gl.glStencilFunc(GLenum.GL_ALWAYS, 0, 0xFF);
+//        gl.glStencilOp(GLenum.GL_INCR, GLenum.GL_INCR, GLenum.GL_INCR);
+//        gl.glStencilMask(0xFF);
         context.setRasterizerState(null);
         context.setRenderTargets(m_RenderTargets);
 
         // Clear depth stencil view. Since we use stencil part only, there is no need to clear depth
         // Set stencil value to 0
-        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+
         gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 0.0f, 0);
 
         final float fInvalidCoordinate = -1e+30f;
@@ -78,12 +83,20 @@ final class PostProcessingGenerateCoordinateTexturePass extends PostProcessingRe
         gl.glClearBufferfv(GLenum.GL_COLOR, 1, invalidCoords);
 
         context.drawFullscreenQuad();
+
+        if(m_sharedData.m_CommonFrameAttribs.outputCurrentFrameLog){
+            gl.glFlush();
+            SharedData.saveTextureAsText(output0, "CoordianteTextureDX.txt");
+            SharedData.saveTextureAsText(output1, "EpipolarCamSpaceZDX.txt");
+            SharedData.saveTextureAsText(m_sharedData.getEpipolarImageDSV(), "EpipolarImage_RenderCoordinateDX.txt");
+        }
     }
 
     @Override
     public void computeOutDesc(int index, Texture2DDesc out) {
         out.arraySize = 1;
         out.sampleCount = 1;
+        out.mipLevels = 1;
         out.width = m_sharedData.m_ScatteringInitAttribs.m_uiMaxSamplesInSlice;
         out.height = m_sharedData.m_ScatteringInitAttribs.m_uiNumEpipolarSlices;
         if(index == 0)

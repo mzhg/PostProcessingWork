@@ -24,6 +24,14 @@ void main()
     float dDepth = textureLod(g_DepthTexture, m_f4UVAndScreenPos.xy, 0.0).r;
 #endif
 
+#if 0
+    if(dDepth == 1.0)
+    {
+        Out_f4Color = vec4(g_fFarPlaneZ + 1000.0);
+        return;
+    }
+#endif
+
     float mZFar =g_fFarPlaneZ;
     float mZNear = g_fNearPlaneZ;
     float fCamSpaceZ = mZFar*mZNear/(mZFar-dDepth*(mZFar-mZNear));

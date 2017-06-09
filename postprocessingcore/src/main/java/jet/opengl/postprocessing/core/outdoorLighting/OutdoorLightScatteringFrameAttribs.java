@@ -16,7 +16,9 @@ public class OutdoorLightScatteringFrameAttribs {
     public final Vector4f m_f4CustomMieBeta = new Vector4f(2.0e-5f, 2.0e-5f, 2.0e-5f, 0.f);
     public int m_uiEpipoleSamplingDensityFactor = 2;
     public float m_fRefinementThreshold = 0.03f;
-    public float m_fMaxShadowMapStep = 16.0f;
+    /** The variable can be calculating in runtime. */
+    @Deprecated
+    public float m_fMaxShadowMapStep = 256.0f;
     public final Vector4f f4ExtraterrestrialSunColor = new Vector4f();
 
     /**
@@ -25,7 +27,7 @@ public class OutdoorLightScatteringFrameAttribs {
      */
     public float fEarthRadius = 6360000.f;
     public float fAtmTopHeight = 80000.f;
-    public final Vector2f f2ParticleScaleHeight = new Vector2f(7994.f, 1200.f);
+    public final Vector2f f2ParticleScaleHeight = new Vector2f(5994.f, 1200.f);
 
     public float fTurbidity = 1.02f;
 //    public float fAtmTopRadius = fEarthRadius + fAtmTopHeight;

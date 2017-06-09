@@ -477,7 +477,7 @@ public class Cube16 implements GLEventListener {
 
 		int lightMode = LIGHT_TYPE_DIRECTIONAL;
 		int lightPower_;
-		int viewpoint_;
+		int viewpoint_ = 1;
 
 		Texture2D m_ptex2DShadowMap;
 		final NvInputTransformer m_transformer;

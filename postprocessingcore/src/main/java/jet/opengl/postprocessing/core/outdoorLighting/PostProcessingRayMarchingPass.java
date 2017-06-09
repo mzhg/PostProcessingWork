@@ -131,6 +131,11 @@ final class PostProcessingRayMarchingPass extends PostProcessingRenderPass {
         }
 
         context.drawArrays(GLenum.GL_TRIANGLES, 0, 3, iNumInst);
+
+        if(m_sharedData.m_CommonFrameAttribs.outputCurrentFrameLog){
+            SharedData.saveTextureAsText(output, "InitialScatteredLightDX.txt");
+            SharedData.saveTextureAsText(m_sharedData.getEpipolarImageDSV(), "MarkRayMarchingSamples_DoRayMarchingDX.txt");
+        }
     }
 
     @Override

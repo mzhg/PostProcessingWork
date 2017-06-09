@@ -36,6 +36,7 @@ public class PostProcessingOutdoorLightScatteringEffect extends PostProcessingEf
         context.appendRenderPass("Outdoor_PrecomputeScattering", precomputeScatteringPass);
 
         PostProcessingReconstructCameraZPass reconstructCameraSpaceZ = new PostProcessingReconstructCameraZPass(false, 0, true);  // TODO could reuse the exsit cameraPss.
+        reconstructCameraSpaceZ.setOutputTexture(true);
         reconstructCameraSpaceZ.setDependency(0, commonData.sceneDepthTexture, 0);
         context.appendRenderPass("ReconstructCameraZ", reconstructCameraSpaceZ);
         int m_uiShadowMapResolution = commonData.frameAttribs.shadowMapTexture != null ? commonData.frameAttribs.shadowMapTexture.getWidth() : 1024;

@@ -36,6 +36,7 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
 
     private boolean m_bVisualShadownMap;
     private int m_slice = 0;
+    private int count = 0;
 
     @Override
     public void initUI() {
@@ -56,12 +57,14 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
         m_PostProcessing = new PostProcessing();
         m_frameAttribs = new PostProcessingFrameAttribs();
         m_frameAttribs.cascadeShadowMapAttribs = new CascadeShadowMapAttribs();
+        m_frameAttribs.outputCurrentFrameLog = false;
 
         m_InitAttribs = new OutdoorLightScatteringInitAttribs();
         m_InitAttribs.m_bEnableEpipolarSampling = true;
         m_InitAttribs.m_bEnableLightShafts = true;
         m_InitAttribs.m_bAutoExposure = true;
         m_InitAttribs.m_bCorrectScatteringAtDepthBreaks = false;
+        m_InitAttribs.m_bOptimizeSampleLocations = true;
         m_RuntimeAttribs = new OutdoorLightScatteringFrameAttribs();
         m_RuntimeAttribs.f4ExtraterrestrialSunColor.set(5,5,5,5);
     }
@@ -77,6 +80,11 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
     @Override
     public void display() {
         m_Scene.draw(getFrameDeltaTime());
+
+//        count ++;
+//        if(count == 3){
+//            m_frameAttribs.outputCurrentFrameLog = true;
+//        }
 
         if(m_bVisualShadownMap){
             gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
