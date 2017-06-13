@@ -1,12 +1,76 @@
 
+#define PI 3.1415928
+
 precision highp float;
 uniform sampler2D uTexSampler;
 uniform vec4 g_MaskColor = vec4(1);
+uniform bool g_RenderCircle;
+uniform bool g_Hovered;
+uniform vec4 g_HorverdColor;
+uniform float g_CircleTime;  // ranged [0..1]
+uniform vec3  g_CircleColor;
+uniform float g_CirlceBorder;   //  default 0.2
+uniform float g_CircleRadius;   // ranged (0, 1] defualt is 0.8
+
+uniform bool  g_RenderFilm;
+
 varying vec2 a_texCoord;
-
-
 
 void main()
 {
-   gl_FragColor = texture2D(uTexSampler, a_texCoord) * g_MaskColor;
+   vec3 circleColor = vec3(0);
+   float factor = 0.0;
+   bool renderCircle = false;
+   if(g_RenderCircle)
+   {
+        vec2 dir = 2.0 * a_texCoord - 1.0;  // remap to [-1, 1] on a unit cirlce
+        float len = length(dir);
+        dir /= len;
+        if(len  < g_CircleRadius){
+            factor = 1.0 - smoothstep(0.0, g_CirlceBorder, g_CircleRadius - len);
+        }else{ // len >= g_CircleRadius
+            factor = 1.0 - smoothstep(0.0, g_CirlceBorder, len - g_CircleRadius);
+        }
+
+        float angle = acos(dir.x);
+        if(dir.y < 0.0)
+        {
+            angle = 2.0 * PI - angle;
+        }
+
+        float currentAngle =  2.0 * PI * clamp(g_CircleTime, 0.0, 1.0);
+        if(angle < currentAngle)
+        {
+            circleColor = g_CircleColor;
+            renderCircle = true;
+        }
+   }
+
+   bool horverdRegion = false;
+   vec4 texColor = texture2D(uTexSampler, a_texCoord);
+   if(g_Hovered)
+   {
+      bvec3 result = greaterThanEqual(g_HorverdColor.xyz * g_HorverdColor.a, texColor.xyz);
+      if(texColor.a < g_HorverdColor.a)
+      {
+        texColor = g_HorverdColor;
+        horverdRegion = true;
+      }
+   }
+
+   if(g_RenderFilm && texColor.a == 0.0)
+   {
+       discard;
+   }
+
+   gl_FragColor = texColor  * g_MaskColor;
+   if(renderCircle && factor > 0.0)
+   {
+        gl_FragColor = vec4(circleColor, clamp(factor, 0.3, 1.0));
+        return;
+        gl_FragColor.rgb = mix(vec3(factor), gl_FragColor.rgb * gl_FragColor.a, circleColor);
+        gl_FragColor.a = factor;
+   }
+
+
 }

@@ -1,5 +1,6 @@
 package com.nvidia.developer.opengl.demos.os;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,6 +11,14 @@ import java.util.List;
 
 final class AnimatorController {
     private final List<Animator> m_animators = new LinkedList<>();
+    private final List<AnimationEventListener> m_listeners = new ArrayList<>();
+
+    void addEventListener(AnimationEventListener listener) {
+        if(listener == null || m_listeners.contains(listener))
+            return;
+
+        m_listeners.add(listener);
+    }
 
     void add(Animator animator){
         m_animators.add(animator);
@@ -24,9 +33,16 @@ final class AnimatorController {
             Animator animator = iterator.next();
             if(animator.isFinished()){
                 iterator.remove();
+                onFinished(animator);
             }
 
             animator.play(drawable.transform, dt);
+        }
+    }
+
+    private void onFinished(Animator animator){
+        for(AnimationEventListener listener : m_listeners){
+            listener.onFinished(animator.getID());
         }
     }
 }

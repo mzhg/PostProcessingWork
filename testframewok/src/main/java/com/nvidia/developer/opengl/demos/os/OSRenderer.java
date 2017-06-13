@@ -25,7 +25,7 @@ import jet.opengl.postprocessing.util.Numeric;
  * Created by mazhen'gui on 2017/6/5.
  */
 
-final class OSRenderer implements Constant, OnTouchEventListener{
+final class OSRenderer implements Constant{
 
     static final float REGION_INTERVAL = Numeric.PI * 2 / 6;
 
@@ -48,12 +48,15 @@ final class OSRenderer implements Constant, OnTouchEventListener{
 
     final Ray      m_ViewRay = new Ray();
     float          m_ScreenRatio;
-    SceneRaycastSelector m_Rayselector;
+//    SceneRaycastSelector m_Rayselector;
     boolean        m_Tocuhed;
+    Drawable       m_WatchedDrawable;
+    Drawable       m_CloseDrawable;
+    float          m_WatchingTime;
 
 //    final Ray      m_TouchRay = new Ray();
 
-    private int m_ActivedGroupID = -1;  // -1 mean invalid id
+    int m_ActivedGroupID = -1;  // -1 mean invalid id
     
     void initlize(){
         gl = GLFuncProviderFactory.getGLFuncProvider();
@@ -61,11 +64,11 @@ final class OSRenderer implements Constant, OnTouchEventListener{
 
         m_Eyepoint = new Eyepoint();
         m_Eyepoint.initlize();
-
-        m_Rayselector = new SceneRaycastSelector(this, m_ViewRay);
     }
 
     private void initAppIcons(){
+        m_CloseDrawable = createDrawable(-1,-1);
+
         final float PI = Numeric.PI;
         final float THETA = (float)Math.toRadians(15.0f);
         final float ALPHA = (float)Math.toRadians(5.0f);
@@ -90,13 +93,28 @@ final class OSRenderer implements Constant, OnTouchEventListener{
             scale.z = 1.0f;
             final float middleAngle = groudID * PI/3;
 
-            m_Groups[groudID] = new Group(this, groudID);
+            m_Groups[groudID] = new Group(this, groudID, m_CloseDrawable);
             Transform screenLocation = m_Groups[groudID].screenLocation;
-            screenLocation.translate.z = (float) (R * Math.cos(middleAngle)) * 0.6f;
-            screenLocation.translate.x = (float) (R * Math.sin(middleAngle)) * 0.6f;
+            screenLocation.translate.z = (float) (R * Math.cos(middleAngle)) * 0.4f;
+            screenLocation.translate.x = (float) (R * Math.sin(middleAngle)) * 0.4f;
             screenLocation.translate.y = 0;
             screenLocation.scale.set(scale);
             screenLocation.scale.y *= 9f/16f;
+            screenLocation.scale.scale(4);
+            screenLocation.rotation.setFromAxisAngle(Vector3f.Y_AXIS, middleAngle);
+
+            AppList appList = m_Groups[groudID].getAppList();
+            // calculating the location of AppList
+            Transform transform = appList.location;
+            transform.translate.z = (float) (R * Math.cos(middleAngle)) * 1.4f;  // more far
+            transform.translate.x = (float) (R * Math.sin(middleAngle)) * 1.4f;
+            transform.translate.y = 5;
+            transform.scale.set(scale);
+            transform.scale.y *= 9f/16f;
+            transform.scale.scale(4);
+            transform.rotation.setFromAxisAngle(Vector3f.Y_AXIS, middleAngle);
+            appList.appHeight = transform.scale.y * 2;
+
 
             for(int j = 0; j < MAX_NUM_ICONS_PER_GROUP;j++)
             {
@@ -136,22 +154,39 @@ final class OSRenderer implements Constant, OnTouchEventListener{
                 translate.x = (float) (R * Math.sin(baseAngle));
                 translate.y = 0;
 
-                readyLocation.translate.x = translate.x;
-                readyLocation.translate.z += (2 - row) * (2.1f * HH);
-                readyLocation.translate.y = (float) (-R * Math.sqrt(2) * 0.5);
-
                 if (row == 0){
                     translate.y -= (2.0f * HH + HP);
                 }else if (row == 2){
                     translate.y += (2.0f * HH + HP);
                 }
 
-                readyLocation.scale.set(scale);
-
 //                m_Groups[groudID][j].transform = OSTransform(translate, scale, Math.angleAxis(baseAngle, Math.vec3(0,1,0)));
                 appIcon.worldLocation.translate.set(translate);
                 appIcon.worldLocation.scale.set(scale);
                 appIcon.worldLocation.rotation.setFromAxisAngle(0,1,0, baseAngle);
+
+                {
+                    translate.z = (float) (R * Math.cos(middleAngle));
+                    translate.x = (float) (R * Math.sin(middleAngle));
+                    translate.y = 0;
+
+                    readyLocation.scale.set(scale);
+                    Matrix4f view = Matrix4f.lookAt(Vector3f.ZERO, translate, Vector3f.Y_AXIS, m_ProjView);
+                    view.invert();
+
+                    readyLocation.translate.y = (float) (-R * Math.sqrt(2) * 0.5);
+                    readyLocation.translate.x = (index - 1) * (2 * HW);
+                    readyLocation.translate.z = (1 - row) * (2 * HH) + readyLocation.translate.y;
+                    // transform the position in view space to world space.
+                    Matrix4f.transformVector(view, readyLocation.translate, readyLocation.translate);
+
+                    // calculate the rotation
+                    view.setIdentity();
+                    view.rotate((float)Math.toRadians(90), Vector3f.X_AXIS);
+                    view.rotate(-middleAngle, Vector3f.Y_AXIS);
+                    readyLocation.rotation.setFromMatrix(view);
+                }
+
                 drawable.transform.set(appIcon.unfocusedLocation);
 
                 appIcon.name = ("GroupID_") + (groudID) + ("_Index_") + (j);
@@ -195,7 +230,19 @@ final class OSRenderer implements Constant, OnTouchEventListener{
 
         groupID = (int)(angle_fei / REGION_INTERVAL);
         setActivedGroupID(groupID);
-        m_Rayselector.update(m_Groups[groupID], dt);
+
+        /*
+        if(m_State == STATE_NONE) {
+            m_Drawables.clear();
+            for (AppIcon appIcon : m_Groups[groupID].icons) {
+                m_Drawables.add(appIcon.drawable);
+            }
+            m_Rayselector.update(m_Drawables, dt);
+        }else if(m_State == STATE_FILE){
+            m_Drawables.clear();
+            m_Drawables.add(m_CloseDrawable);
+            m_Rayselector.update(m_Drawables, dt);
+        }*/
 
         // update the groups
         for(Group group: m_Groups){
@@ -235,22 +282,11 @@ final class OSRenderer implements Constant, OnTouchEventListener{
         gl.glEnable(GLenum.GL_DEPTH_TEST);
         gl.glEnable(GLenum.GL_BLEND);
         gl.glBlendFunc(GLenum.GL_SRC_ALPHA, GLenum.GL_ONE_MINUS_SRC_ALPHA);
-
-        m_DefaultProgram.enable();
-        m_RectVAO.bind();
-        gl.glActiveTexture(GLenum.GL_TEXTURE0);
-
+        // render the group to the scene  TODO
         for(Group group : m_Groups){
-            for(AppIcon appIcon : group.icons){
-                appIcon.drawable.transform.toMatrix(m_Model);
-                Matrix4f mvp = Matrix4f.mul(m_ProjView, m_Model, m_Model);
-                m_DefaultProgram.setMVP(mvp);
-
-                gl.glBindTexture(appIcon.drawable.texture.getTarget(), appIcon.drawable.texture.getTexture());
-                gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
-            }
+            group.renderer(m_ProjView);
         }
-        m_RectVAO.unbind();
+
         gl.glDisable(GLenum.GL_DEPTH_TEST);
         gl.glDisable(GLenum.GL_BLEND);
 
@@ -312,7 +348,13 @@ final class OSRenderer implements Constant, OnTouchEventListener{
         }
 
         int textureIdx = groupId * MAX_NUM_ICONS_PER_GROUP + index;
-        String filename = "OS/textures/Icon" + textureIdx + ".png";
+        String filename;
+        if(textureIdx >= 0){
+            filename = "OS/textures/Icon" + textureIdx + ".png";
+        }else{
+            filename = "OS/textures/Icon12.png";
+        }
+
         try {
             Texture2D texture = TextureUtils.createTexture2DFromFile(filename, true);
             gl.glBindTexture(texture.getTarget(), texture.getTexture());
@@ -335,10 +377,8 @@ final class OSRenderer implements Constant, OnTouchEventListener{
         return null;
     }
 
-    void draw(Drawable drawable){
 
-    }
-
+    /*
     public static void main(String[] args){
         float theta = 0.7f;
         float fei = Numeric.PI * 0.89f;
@@ -366,20 +406,5 @@ final class OSRenderer implements Constant, OnTouchEventListener{
         }
 
         System.out.println("angle_fei = " + angle_fei);
-    }
-
-    @Override
-    public void OnEnter(int id, Drawable drawable) {
-        m_Tocuhed = true;
-    }
-
-    @Override
-    public void OnLeval(int id, Drawable drawable) {
-        m_Tocuhed = false;
-    }
-
-    @Override
-    public void OnWatching(int id, Drawable drawable, float time) {
-
-    }
+    }*/
 }

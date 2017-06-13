@@ -3,6 +3,8 @@ package com.nvidia.developer.opengl.demos.os;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
+import java.util.List;
+
 import jet.opengl.postprocessing.util.Numeric;
 
 /**
@@ -27,7 +29,7 @@ final class SceneRaycastSelector extends RaycastSelector{
         m_RectPos[3] = new Vector3f(+1,+1, 0);
     }
 
-    void update(Group group, float dt){
+    void update(List<Drawable> drawables, float dt){
         if (!isActive())
             return;
 
@@ -35,7 +37,7 @@ final class SceneRaycastSelector extends RaycastSelector{
 //        glm::mat4 transform = glm::inverse(pScene->GetCamera()->GetViewMatrix());
 //        m_Ray.Transform(transform);
 //        m_PhysicalWorld->RaySingleCast(m_Ray, *pScene, result);
-        Drawable result = getIntersectDrawable(group, m_Ray);
+        Drawable result = getIntersectDrawable(drawables, m_Ray);
         if (result != null) {
 //        SpaLOGI("SceneRaycastSelector:Hit: %s\n", result.mHited->GetName().c_str());
             if (m_pSelectedDrawable == null) {  // m_pSelectedDrawable is nullptr
@@ -74,9 +76,12 @@ final class SceneRaycastSelector extends RaycastSelector{
         }
     }
 
-    private Drawable getIntersectDrawable(Group group, Ray ray){
-        for(AppIcon icon : group.icons){
-            Drawable drawable = icon.drawable;
+    private Drawable getIntersectDrawable(List<Drawable> drawables, Ray ray){
+        for(Drawable drawable : drawables){
+            if(!drawable.isVisible())
+                // igore the invisible drawable.
+                continue;
+
             drawable.transform.toMatrix(m_model);
 
             m_RectPos[0].set(-1,-1, 0);

@@ -9,9 +9,13 @@ import jet.opengl.postprocessing.util.Numeric;
 abstract class Animator {
     private float m_duration;  // seconds
     private float m_elpsedTime;
+    private int m_id;
 
     float time(){ return Numeric.clamp(m_elpsedTime / m_duration, 0, 1);}
     boolean isFinished() { return m_elpsedTime >= m_duration;}
+
+    void setID(int id) { m_id = id;}
+    int getID()   { return  m_id;}
 
     void play(Transform transform, float dt){
         if(isFinished())
