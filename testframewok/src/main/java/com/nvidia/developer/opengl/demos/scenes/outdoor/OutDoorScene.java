@@ -28,8 +28,6 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.render.debug.FrustumeRender;
 
-import static jet.opengl.postprocessing.common.GLCheck.checkError;
-
 /**
  * Created by mazhen'gui on 2017/6/1.
  */
@@ -157,7 +155,7 @@ public class OutDoorScene {
         m_pipeline    = new GLSLProgramPipeline();
         m_DummyVAO    = gl.glGenVertexArray();
         m_pShadowMapFBO = gl.glGenFramebuffer();
-        checkError();
+        GLCheck.checkError();
 
 //        initTestData();
     }

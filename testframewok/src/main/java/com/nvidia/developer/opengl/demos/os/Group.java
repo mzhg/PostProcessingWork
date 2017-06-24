@@ -15,12 +15,12 @@ import jet.opengl.postprocessing.common.GLenum;
 /**
  * Created by mazhen'gui on 2017/6/5.
  */
-
 final class Group implements Constant, OnTouchEventListener, AnimationEventListener{
     private static final int STATE_FOCUS = 1 << 0;
     private static final int STATE_FILM = 1 << 1;
     private static final int STATE_FILM_START_ANIMATION = 1 << 2;
     private static final int STATE_FILM_END_ANIMATION = 1 << 3;
+    private static final int STATE_FILM_CLOSE_ANIMATION = 1 << 4;
 
     final int groupID;
     final AppIcon[] icons = new AppIcon[MAX_NUM_ICONS_PER_GROUP];
@@ -34,7 +34,6 @@ final class Group implements Constant, OnTouchEventListener, AnimationEventListe
     private Drawable m_WatchedDrawable;
     private Drawable m_HoveredDrawable;
     private Drawable m_CloseDrawable;
-    private final Transform m_CloseTransform = new Transform();
     private  int m_States;
     private SceneRaycastSelector m_RaycastSelector;
     private final List<Drawable> m_Drawables = new ArrayList<>();
@@ -48,7 +47,11 @@ final class Group implements Constant, OnTouchEventListener, AnimationEventListe
         m_RaycastSelector = new SceneRaycastSelector(this, renderer.m_ViewRay);
         m_RaycastSelector.setWatchingThreshold(1.5f);
 
-        m_CloseDrawable = closeDrawable;
+        m_CloseDrawable = new Drawable();
+        m_CloseDrawable.program = closeDrawable.program;
+        m_CloseDrawable.texture = closeDrawable.texture;
+        m_CloseDrawable.buffer = closeDrawable.buffer;
+        m_CloseDrawable.setVisible(false);
     }
 
     void setAppIcon(int index, AppIcon icon) { icons[index] = icon;}
@@ -88,6 +91,8 @@ final class Group implements Constant, OnTouchEventListener, AnimationEventListe
             for(AppIcon appIcon : icons){
                 m_Drawables.add(appIcon.drawable);
             }
+
+            m_Drawables.add(m_CloseDrawable);
         }
 
         m_RaycastSelector.update(m_Drawables, dt);
@@ -112,12 +117,11 @@ final class Group implements Constant, OnTouchEventListener, AnimationEventListe
             renderDrawable(appIcon.drawable, viewProj);
         }
 
-        if(is(STATE_FILM) || is(STATE_FILM_START_ANIMATION) || is(STATE_FILM_END_ANIMATION)){
+        if(is(STATE_FILM | STATE_FILM_START_ANIMATION | STATE_FILM_CLOSE_ANIMATION | STATE_FILM_END_ANIMATION)){
             renderDrawable(m_FilmDrawable, viewProj);
         }
 
         if(isFilmState()){
-            m_CloseDrawable.transform.set(m_CloseTransform);
             m_CloseDrawable.setVisible(true);
             renderDrawable(m_CloseDrawable, viewProj);
         }
@@ -158,17 +162,16 @@ final class Group implements Constant, OnTouchEventListener, AnimationEventListe
             program.setRenderFilm(false);
         }
 
-
         rectVAO.unbind();
     }
 
     private void setState(boolean enabled, int bit){
         if(enabled){
             m_States |= bit;
-            m_RaycastSelector.enable();
+//            m_RaycastSelector.enable();
         }else{
             m_States &= (~bit);
-            m_RaycastSelector.disable();
+//            m_RaycastSelector.disable();
         }
     }
 
@@ -243,7 +246,6 @@ final class Group implements Constant, OnTouchEventListener, AnimationEventListe
                 m_FilmDrawable.buffer = drawable.buffer;
                 m_FilmDrawable.program = drawable.program;
 
-                m_FilmDrawable.addAnimationEventListener(this);
                 m_FilmDrawable.addTraslationAnimation(dest.translate.x, dest.translate.y, dest.translate.z, 1.0f);
                 m_FilmDrawable.addScaleAnimation(dest.scale.x, dest.scale.y, dest.scale.z, 1.0f);
 
@@ -262,7 +264,7 @@ final class Group implements Constant, OnTouchEventListener, AnimationEventListe
 
             // TODO
             final float scale_value = 0.15f;
-            Transform dest = m_CloseTransform;
+            Transform dest = m_CloseDrawable.transform;
             dest.set(m_FilmDrawable.transform);
             dest.scale.scale(scale_value);
 
@@ -277,9 +279,13 @@ final class Group implements Constant, OnTouchEventListener, AnimationEventListe
             dest.translate.y += dir.y * length * (1-scale_value*1.f);
             dest.translate.x += dir.x * length * (1-scale_value*1.f);
             dest.translate.z += dir.z * length * (1-scale_value*1.f);
-
         }else if(is(STATE_FILM_END_ANIMATION)){
             setState(false, STATE_FILM_END_ANIMATION);
+        }else if(is(STATE_FILM_CLOSE_ANIMATION)){
+            setState(false, STATE_FILM_CLOSE_ANIMATION);
+
+            icons[m_FilmAppIndex].drawable.setVisible(true);
+            m_FilmAppIndex = -1;
         }
     }
 
@@ -309,12 +315,32 @@ final class Group implements Constant, OnTouchEventListener, AnimationEventListe
     @Override
     public void OnWatching(int id, Drawable drawable, float time) {
         m_WatchedDrawable = drawable;
-        m_WatchingTime = (time - m_RaycastSelector.getWatchingThreshold()) / 4.0f;
-        int idx = findDrawableIndex(drawable);
-        AppIcon appIcon = icons[idx];
+        if(m_WatchedDrawable == m_CloseDrawable){
+            setState(false, STATE_FILM);
+            setState(true, STATE_FILM_CLOSE_ANIMATION);
+            m_CloseDrawable.setVisible(false);
 
-        if (m_WatchingTime > 1.f) {
-            setFilmState(true);
+            // set all of the drawable to the world location
+            for (AppIcon _appIcon : icons) {
+                if(_appIcon == icons[m_FilmAppIndex]){
+                    icons[m_FilmAppIndex].setWorldLocationToDrawable();
+                }else {
+                    Transform dest = _appIcon.worldLocation;
+                    _appIcon.drawable.addTraslationAnimation(dest.translate.x, dest.translate.y, dest.translate.z, 1.0f);
+                    _appIcon.drawable.addScaleAnimation(dest.scale.x, dest.scale.y, dest.scale.z, 1.0f);
+                    _appIcon.drawable.addRotationAnimation(dest.rotation, 1.0f);
+                }
+            }
+
+            Transform dest = icons[m_FilmAppIndex].worldLocation;
+            m_FilmDrawable.addTraslationAnimation(dest.translate.x, dest.translate.y, dest.translate.z, 1.0f);
+            m_FilmDrawable.addScaleAnimation(dest.scale.x, dest.scale.y, dest.scale.z, 1.0f);
+            m_FilmDrawable.addRotationAnimation(dest.rotation, 1.0f);
+        }else{
+            m_WatchingTime = (time - m_RaycastSelector.getWatchingThreshold()) / 4.0f;
+            if (m_WatchingTime > 1.f) {
+                setFilmState(true);
+            }
         }
 
 //        if(isFilmState()){

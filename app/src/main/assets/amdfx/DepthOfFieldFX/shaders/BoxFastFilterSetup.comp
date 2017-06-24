@@ -1,0 +1,17 @@
+#include "DepthOfFieldFX_Common.glsl"
+
+layout (local_size_x = 8, local_size_y = 8) in;
+//void FastFilterSetup(uint3 ThreadID : SV_DispatchThreadID)
+void main()
+{
+    uint3 ThreadID = gl_GlobalInvocationID;
+    if ((int(ThreadID.x) < sourceResolution.x) && (int(ThreadID.y) < sourceResolution.y))
+    {
+        // Read the coc from the coc\depth buffer
+        const float fcoc        = tCoc.Load(int3(ThreadID.xy, 0));
+        const int   blur_radius = CocToBlurRadius(fcoc, padding);
+        float3      vColor      = tColor.Load(int3(ThreadID.xy, 0)).rgb;
+
+        WriteBoxDeltaBartlett(intermediate, vColor, blur_radius, ThreadID.xy);
+    }
+}

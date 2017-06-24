@@ -1,8 +1,10 @@
 package org.lwjgl.util.vector;
 
+import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-public class Vector4i {
+public class Vector4i implements Readable, Writable {
+	public static final int SIZE = 16;
 
 	public int x,y,z,w;
 	
@@ -58,5 +60,23 @@ public class Vector4i {
 		y = buf.get();
 		z = buf.get();
 		w = buf.get();
+	}
+
+	@Override
+	public ByteBuffer store(ByteBuffer buf){
+		buf.putInt(x);
+		buf.putInt(y);
+		buf.putInt(z);
+		buf.putInt(w);
+		return buf;
+	}
+
+	@Override
+	public Vector4i load(ByteBuffer buf) {
+		x = buf.getInt();
+		y = buf.getInt();
+		z = buf.getInt();
+		w = buf.getInt();
+		return this;
 	}
 }

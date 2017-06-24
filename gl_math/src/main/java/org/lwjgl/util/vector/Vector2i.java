@@ -1,8 +1,9 @@
 package org.lwjgl.util.vector;
 
+import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-public class Vector2i {
+public class Vector2i implements Readable, Writable{
 
 	public int x,y;
 	
@@ -41,6 +42,20 @@ public class Vector2i {
 
 	public String toString() {
 		return toString(this);
+	}
+
+	@Override
+	public ByteBuffer store(ByteBuffer buf){
+		buf.putInt(x);
+		buf.putInt(y);
+		return buf;
+	}
+
+	@Override
+	public Vector2i load(ByteBuffer buf) {
+		x = buf.getInt();
+		y = buf.getInt();
+		return this;
 	}
 
 	public void load(IntBuffer buf) {

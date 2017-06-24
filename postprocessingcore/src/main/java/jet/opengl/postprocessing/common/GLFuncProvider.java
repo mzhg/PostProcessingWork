@@ -1532,4 +1532,8 @@ public interface GLFuncProvider {
     int glGetUniformui(int programId, int location);
     double glGetUniformd(int programId, int location);
     void glGetUniformdv(int programId, int location, DoubleBuffer buf);
+
+    void glDrawElementsBaseVertex(int primType, int count, int type, int start, int baseVertex);
+
+    void glTexBuffer(int target, int internalFormat, int buffer);
 }

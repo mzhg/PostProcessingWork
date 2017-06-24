@@ -20,7 +20,7 @@ import jet.opengl.postprocessing.util.StringUtils;
  */
 final class IncludeFile {
 	
-	static final String STANDARD_CLASS = "jet/util/opengl/shader/libs/";
+	static final String STANDARD_CLASS = "jet/opengl/shader/libs/";
 	
 	String filepath;
 	boolean isClassFile;

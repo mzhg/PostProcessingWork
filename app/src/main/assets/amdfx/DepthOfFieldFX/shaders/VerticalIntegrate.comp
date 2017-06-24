@@ -1,0 +1,42 @@
+#include "DepthOfFieldFX_Common.glsl"
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Integrate a single domain - write the results out transposed
+///////////////////////////////////////////////////////////////////////////////////////////////////
+layout (local_size_x = 64, local_size_y = 1) in;
+void main()
+{
+    uint3 Tid = gl_GlobalInvocationID;
+    // To perform double integration in a single step, we must keep two counters delta and color
+
+    if (int(Tid.x) < bufferResolution.x)
+    {
+        int2 addr = int2(Tid.x, 0);
+
+        // Initialization/////////////////////////////////////
+        // We want delta and color to be the same
+        // their value is just the first element of the domain
+        int4 delta = ReadFromBuffer(intermediate, addr);
+        int4 color = delta;
+        /////////////////////////////////////////////////////
+
+        uint chunkEnd = bufferResolution.y;
+
+        // Actually do the integration////////////////////////////////
+        /*[loop]*/ for (uint i = 1; i < chunkEnd; ++i)
+        {
+            addr = int2(Tid.x, i);
+            // Read from the current location
+            delta += ReadFromBuffer(intermediate, addr);
+
+#ifdef DOUBLE_INTEGRATE
+            // Accumulate to the delta
+            color += delta;
+#else
+            color = delta;
+#endif
+            // Write the delta integrated value to the output
+            WriteToBufferTransposed(intermediate_transposed, addr, color);
+        }
+    }
+}

@@ -20,6 +20,17 @@ public class LauncherDemo extends NvSampleApp{
     protected void initRendering() {
         m_renderer = new OSRenderer();
         m_renderer.initlize();
+
+//        Matrix4f rot0 = new Matrix4f();
+//
+//
+//        rot0.rotate(1.11f, 0,1,0);
+//        rot0.translate(1,1,1);
+//        System.out.println(rot0);
+//
+//        rot0.setIdentity();
+//        rot0.rotate(1.11f, 0,1,0);
+//        System.out.println(rot0);
     }
 
     @Override

@@ -1,0 +1,45 @@
+#include "DepthOfFieldFX_Common.glsl"
+
+//[numthreads(8, 8, 1)]
+//void QuarterResFastFilterSetup(uint3 ThreadID : SV_DispatchThreadID)
+
+layout (local_size_x = 8, local_size_y = 8) in;
+//void FastFilterSetup(uint3 ThreadID : SV_DispatchThreadID)
+void main()
+{
+    uint3 ThreadID = gl_GlobalInvocationID;
+    uint2 loc = ThreadID.xy * 2;
+    if ((int(loc.x) < sourceResolution.x) && (int(loc.y) < sourceResolution.y))
+    {
+        float2 texCoord = (float(loc.x) + 1.0) * invSourceResolution;
+
+        const int    maxRadius = padding;
+        float4 fCoc4     = textureGather(tCoc, texCoord);   // pointSampler
+//        const float4 focusMask = 2.0 < abs(fCoc4);
+        float4 focusMask = lessThan(float(2), abs(fCoc4));
+        float  weight    = dot(focusMask, focusMask);
+
+        float4 red4   = textureGather(tColor, texCoord);   // pointSampler
+        float4 green4 = textureGather(tColor, texCoord, 1);
+        float4 blue4  = textureGather(tColor, texCoord, 2);
+
+        if (weight >= 3.9)
+        {
+            float4  absCoc4     = abs(fCoc4);
+            float   fcoc        = max(max(absCoc4.x, absCoc4.y), max(absCoc4.z, absCoc4.w));
+            int     blur_radius = CocToBlurRadius(fcoc, padding);
+            float3      vColor;
+            vColor.r = dot(red4, focusMask) / weight;
+            vColor.g = dot(green4, focusMask) / weight;
+            vColor.b = dot(blue4, focusMask) / weight;
+            WriteDeltaBartlett(intermediate, vColor, blur_radius, loc);
+        }
+        else
+        {
+            WriteDeltaBartlett(intermediate, float3(red4.x, green4.x, blue4.x), CocToBlurRadius(fCoc4.x, padding), loc + int2(0, 1));
+            WriteDeltaBartlett(intermediate, float3(red4.y, green4.y, blue4.y), CocToBlurRadius(fCoc4.y, padding), loc + int2(1, 1));
+            WriteDeltaBartlett(intermediate, float3(red4.z, green4.z, blue4.z), CocToBlurRadius(fCoc4.z, padding), loc + int2(1, 0));
+            WriteDeltaBartlett(intermediate, float3(red4.w, green4.w, blue4.w), CocToBlurRadius(fCoc4.w, padding), loc + int2(0, 0));
+        }
+    }
+}

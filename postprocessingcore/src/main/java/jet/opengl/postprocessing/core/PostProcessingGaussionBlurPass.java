@@ -9,7 +9,7 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 /**
  * Created by mazhen'gui on 2017/4/28.
  */
-
+@Deprecated
 public class PostProcessingGaussionBlurPass extends PostProcessingRenderPass {
 
     private static final HashMap<Integer, PostProcessingGaussionBlurProgram> g_GaussionBlurPrograms = new HashMap<>();

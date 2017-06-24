@@ -19,6 +19,7 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
 /**
@@ -182,8 +183,9 @@ final class OSRenderer implements Constant{
 
                     // calculate the rotation
                     view.setIdentity();
+                    view.rotate(-middleAngle, Vector3f.Z_AXIS);
                     view.rotate((float)Math.toRadians(90), Vector3f.X_AXIS);
-                    view.rotate(-middleAngle, Vector3f.Y_AXIS);
+
                     readyLocation.rotation.setFromMatrix(view);
                 }
 
@@ -340,7 +342,7 @@ final class OSRenderer implements Constant{
             tex_desc.offset = 8;
 
             m_RectVAO = new VertexArrayObject();
-            m_RectVAO.initlize(new BufferBinding[] { new BufferBinding(buffer, pos_desc, tex_desc)}, null);
+            m_RectVAO.initlize(CommonUtil.toArray(new BufferBinding(buffer, pos_desc, tex_desc)), null);
             m_RectVAO.unbind();
             buffer.unbind();
 

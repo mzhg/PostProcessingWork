@@ -1,0 +1,35 @@
+#include "DepthOfFieldFX_Common.glsl"
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Read and normalize the results
+///////////////////////////////////////////////////////////////////////////////////////////////////
+float4 ReadResult(imageBuffer _buffer, int2 loc)
+{
+    float4 tex_read = ReadFromBuffer(_buffer, loc + padding);
+
+    // normalize the result
+    tex_read.rgba /= tex_read.a;
+
+    return tex_read;
+}
+
+float3 LinearToSRGB(float3 linColor) { return pow(abs(linColor), float3(1.0 / 2.2)); }
+
+layout (local_size_x = 8, local_size_y = 8) in;
+//void FastFilterSetup(uint3 ThreadID : SV_DispatchThreadID)
+void main()
+{
+    uint3 Tid = gl_GlobalInvocationID;
+
+    uint2 texCoord = Tid.xy;
+    float Coc      = tCoc[texCoord];
+
+    float4 result = ReadResult(intermediate, texCoord);
+
+#if CONVERT_TO_SRGB
+    result.rgb = LinearToSRGB(result.rgb);
+#endif
+
+//    resultColor[texCoord] = float4(result.rgb, 1.0);
+    imageStore(resultColor, int2(texCoord), float4(result.rgb, 1.0));
+}

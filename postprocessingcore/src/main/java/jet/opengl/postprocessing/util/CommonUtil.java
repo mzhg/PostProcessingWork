@@ -17,4 +17,8 @@ public class CommonUtil {
             return a.equals(b);
         }
     }
+
+    public static<T> T[] toArray(T...args){
+        return args;
+    }
 }
