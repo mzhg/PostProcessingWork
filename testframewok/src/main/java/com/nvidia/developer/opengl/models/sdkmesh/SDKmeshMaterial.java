@@ -5,21 +5,23 @@ import org.lwjgl.util.vector.Vector4f;
 import jet.opengl.postprocessing.util.Numeric;
 
 final class SDKmeshMaterial {
+	
+	public static final int SIZE = 1256;
 
 //	char    Name[MAX_MATERIAL_NAME];
-	String name;
+	String name;  // 100
 
     // Use MaterialInstancePath
 //    char    MaterialInstancePath[MAX_MATERIAL_PATH];
-	String materialInstancePath;
+	String materialInstancePath;  // 260
 
     // Or fall back to d3d8-type materials
 //    char    DiffuseTexture[MAX_TEXTURE_NAME];
 //    char    NormalTexture[MAX_TEXTURE_NAME];
 //    char    SpecularTexture[MAX_TEXTURE_NAME];
-	String diffuseTexture;
-	String normalTexture;
-	String specularTexture;
+	String diffuseTexture;  // 260
+	String normalTexture;   // 260
+	String specularTexture; // 260
 	
     final Vector4f diffuse = new Vector4f();
     final Vector4f ambient = new Vector4f();
@@ -27,18 +29,20 @@ final class SDKmeshMaterial {
     final Vector4f emissive = new Vector4f();
     float power;
     
-    int pDiffuseTexture;
-    int pNormalTexture;
-    int pSpecularTexture;
+    int pDiffuseTexture11;  // aligin 8
+    int pNormalTexture11;
+    int pSpecularTexture11;
+    int pDiffuseRV11;
+    int pNormalRV11;
+    int pSpecularRV11;
     
     int load(byte[] data, int position){
-    	name = new String(data, position, SDKmesh.MAX_MATERIAL_NAME).trim(); position+= SDKmesh.MAX_MATERIAL_NAME;
-    	materialInstancePath = new String(data, position, SDKmesh.MAX_MATERIAL_PATH).trim(); position+= SDKmesh.MAX_MATERIAL_PATH;
-    	
+    	name = SDKmesh.getString(data, position, SDKmesh.MAX_MATERIAL_NAME); position+= SDKmesh.MAX_MATERIAL_NAME;
     	int maxLen = SDKmesh.MAX_TEXTURE_NAME;
-    	diffuseTexture =  new String(data, position, maxLen).trim(); position += maxLen;
-    	normalTexture =   new String(data, position, maxLen).trim(); position += maxLen;
-    	specularTexture = new String(data, position, maxLen).trim(); position += maxLen;
+    	materialInstancePath = SDKmesh.getString(data, position, maxLen); position += maxLen;
+    	diffuseTexture 		 = SDKmesh.getString(data, position, maxLen); position += maxLen;
+    	normalTexture 		 = SDKmesh.getString(data, position, maxLen); position += maxLen;
+    	specularTexture 	 = SDKmesh.getString(data, position, maxLen); position += maxLen;
     	
     	diffuse.x = Numeric.getFloat(data, position); position += 4;
     	diffuse.y = Numeric.getFloat(data, position); position += 4;
@@ -62,7 +66,13 @@ final class SDKmeshMaterial {
     	
     	power = Numeric.getFloat(data, position); position += 4;
     	
-    	position += 6 * 8;  // 6 * sizeof(uint64)
+    	pDiffuseTexture11 = Numeric.getInt(data, position); position += 8;
+    	pNormalTexture11 = Numeric.getInt(data, position); position += 8;
+    	pSpecularTexture11 = Numeric.getInt(data, position); position += 8;
+    	pDiffuseRV11 = Numeric.getInt(data, position); position += 8;
+    	pNormalRV11 = Numeric.getInt(data, position); position += 8;
+    	pSpecularRV11 = Numeric.getInt(data, position); position += 8;
+    	
     	return position;
     }
 

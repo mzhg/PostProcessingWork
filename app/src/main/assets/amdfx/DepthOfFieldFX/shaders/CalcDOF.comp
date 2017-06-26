@@ -1,0 +1,19 @@
+#include "CsCalcDOF_Common.glsl"
+
+layout (local_size_x = 8, local_size_y = 8) in;
+void main()
+{
+    uint3 threadID = gl_GlobalInvocationID;
+    if ((threadID.x < ScreenParams.x) && (threadID.y < ScreenParams.y))
+    {
+        float depth          = texelFetch(tDepth, int2(threadID.xy), 0).r;
+        float camDepth       = CameraDepth(depth, zNear, zFar);
+        float       CoC      = clamp(CocFromDepth(camDepth, focusDistance, fStop, focalLength), -maxRadius, maxRadius);
+        if (abs(forceCoC) > 0.25)
+        {
+            CoC = -forceCoC;
+        }
+//        uCoC[int2(threadID.xy)] = CoC;
+        imageStore(uCoC, int2(threadID.xy), float4(CoC));
+    }
+}

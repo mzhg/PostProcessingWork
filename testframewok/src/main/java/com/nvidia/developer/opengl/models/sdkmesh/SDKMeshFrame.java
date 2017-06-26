@@ -5,6 +5,8 @@ import org.lwjgl.util.vector.Matrix4f;
 import jet.opengl.postprocessing.util.Numeric;
 
 final class SDKMeshFrame {
+	
+	static final int SIZE = 184;
 
 //	char Name[MAX_FRAME_NAME];
 	String name;       // 100
@@ -16,7 +18,8 @@ final class SDKMeshFrame {
     int animationDataIndex;		// 184 Used to index which set of keyframes transforms this frame
     
     int load(byte[] data, int position){
-    	name = new String(data, position, SDKmesh.MAX_FRAME_NAME).trim(); position+=SDKmesh.MAX_FRAME_NAME;
+    	name = SDKmesh.getString(data, position, SDKmesh.MAX_FRAME_NAME);
+    	position+=SDKmesh.MAX_FRAME_NAME;
     	
     	mesh = Numeric.getInt(data, position); position += 4;
     	parentFrame = Numeric.getInt(data, position); position += 4;

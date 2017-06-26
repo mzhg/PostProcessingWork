@@ -6,6 +6,8 @@ import org.lwjgl.util.vector.Vector3f;
 import jet.opengl.postprocessing.util.Numeric;
 
 final class SDKAnimationData {
+	
+	static final int SIZE = Vector3f.SIZE + Quaternion.SIZE + Vector3f.SIZE;
 
 	final Vector3f translation = new Vector3f();
 	final Quaternion orientation = new Quaternion();

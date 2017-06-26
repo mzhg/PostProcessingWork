@@ -3,6 +3,7 @@ package jet.opengl.postprocessing.util;
 import org.lwjgl.util.vector.Matrix2f;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -139,6 +140,10 @@ public class CacheBuffer {
 		floatBuffer.clear();
 		floatBuffer.put(f).flip();
 		return floatBuffer;
+	}
+
+	public static FloatBuffer wrap(ReadableVector4f v){
+		return wrap(v.getX(), v.getY(), v.getZ(), v.getW());
 	}
 	
 	public static FloatBuffer wrap(float x, float y, float z, float w){

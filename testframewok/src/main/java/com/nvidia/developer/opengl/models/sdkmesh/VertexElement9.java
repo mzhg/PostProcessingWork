@@ -3,6 +3,8 @@ package com.nvidia.developer.opengl.models.sdkmesh;
 import jet.opengl.postprocessing.util.Numeric;
 
 final class VertexElement9 {
+	
+	static final int SIZE = 8;
 
 	 short    stream;     // Stream index
 	 short    offset;     // Offset in the stream in bytes

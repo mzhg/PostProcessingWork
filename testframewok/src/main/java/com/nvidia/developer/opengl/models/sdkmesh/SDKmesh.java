@@ -21,17 +21,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StringUtils;
-
-import static jet.opengl.postprocessing.common.GLenum.GL_UNSIGNED_SHORT;
 
 //  This class reads the sdkmesh file format for use by the samples
 public class SDKmesh {
@@ -105,9 +106,7 @@ public class SDKmesh {
 	    PT_TRIANGLE_LIST_ADJ = 5,
 	    PT_TRIANGLE_STRIP_ADJ = 6,
 	    PT_LINE_LIST_ADJ =7,
-	    PT_LINE_STRIP_ADJ =8,
-        PT_QUAD_PATCH_LIST = 9,
-        PT_TRIANGLE_PATCH_LIST =10;
+	    PT_LINE_STRIP_ADJ =8;
 //	};
 	
 	public static final int
@@ -135,35 +134,36 @@ public class SDKmesh {
 	
 //	protected:
 	//These are the pointers to the two chunks of data loaded in from the mesh file
-    byte[] m_pStaticMeshData;
-    byte[] m_pHeapData;
-    byte[] m_pAnimationData;
-    int[] m_ppVertices;   // hold the offset
-    int[] m_ppIndices;    // hold the offset
+	protected byte[] m_pStaticMeshData;
+	protected byte[] m_pHeapData;
+	protected byte[] m_pAnimationData;
+	protected int[] m_ppVertices;   // hold the offset
+	protected int[] m_ppIndices;    // hold the offset
 
     //Keep track of the path
 //    WCHAR                           m_strPathW[MAX_PATH];
 //    char                            m_strPath[MAX_PATH];
-    String m_strPath;
+	protected String m_strPath;
 
     //General mesh info
-    SDKmeshHeader m_pMeshHeader;
-    SDKMeshVertexBufferHeader[] m_pVertexBufferArray;
-    SDKMeshIndexBufferHeader[] m_pIndexBufferArray;
-    SDKMeshMesh[] m_pMeshArray;
-    SDKMeshSubset[] m_pSubsetArray;
-    SDKMeshFrame[] m_pFrameArray;
-    SDKmeshMaterial[] m_pMaterialArray;
+	protected SDKmeshHeader m_pMeshHeader;
+	protected SDKMeshVertexBufferHeader[] m_pVertexBufferArray;
+	protected SDKMeshIndexBufferHeader[] m_pIndexBufferArray;
+	protected SDKMeshMesh[] m_pMeshArray;
+	protected SDKMeshSubset[] m_pSubsetArray;
+	protected SDKMeshFrame[] m_pFrameArray;
+	protected SDKmeshMaterial[] m_pMaterialArray;
+    private GLFuncProvider gl;
 
     // Adjacency information (not part of the m_pStaticMeshData, so it must be created and destroyed separately )
-    SDKMeshIndexBufferHeader[] m_pAdjacencyIndexBufferArray;
+	protected SDKMeshIndexBufferHeader[] m_pAdjacencyIndexBufferArray;
 
     //Animation (TODO: Add ability to load/track multiple animation sets)
-    SDKAnimationFileHeader m_pAnimationHeader;
-    SDKAnimationFrameData[] m_pAnimationFrameData;
-    Matrix4f[] m_pBindPoseFrameMatrices;
-    Matrix4f[] m_pTransformedFrameMatrices;
-    private GLFuncProvider gl;
+	protected SDKAnimationFileHeader m_pAnimationHeader;
+	protected SDKAnimationFrameData[] m_pAnimationFrameData;
+	protected Matrix4f[] m_pBindPoseFrameMatrices;
+	protected Matrix4f[] m_pTransformedFrameMatrices;
+	protected Matrix4f[] m_pWorldPoseFrameMatrices;
     
     void loadMaterials(SDKmeshMaterial[] pMaterials) throws IOException{ loadMaterials(pMaterials, null);}
     void loadMaterials(SDKmeshMaterial[] pMaterials, SDKmeshCallbacks pLoaderCallbacks) throws IOException{
@@ -174,31 +174,31 @@ public class SDKmesh {
         {
             for( int m = 0; m < numMaterials; m++ )
             {
-            	if(pMaterials[m] == null)
-            		continue;
-                pMaterials[m].pDiffuseTexture = NULL;
-                pMaterials[m].pNormalTexture = NULL;
-                pMaterials[m].pSpecularTexture = NULL;
-//                pMaterials[m].pDiffuseRV10 = NULL;
-//                pMaterials[m].pNormalRV10 = NULL;
-//                pMaterials[m].pSpecularRV10 = NULL;
+//            	if(pMaterials[m] == null)
+//            		continue;
+                pMaterials[m].pDiffuseTexture11 = NULL;
+                pMaterials[m].pNormalTexture11 = NULL;
+                pMaterials[m].pSpecularTexture11 = NULL;
+                pMaterials[m].pDiffuseRV11 = NULL;
+                pMaterials[m].pNormalRV11 = NULL;
+                pMaterials[m].pSpecularRV11 = NULL;
 
                 // load textures
                 if( !StringUtils.isEmpty(pMaterials[m].diffuseTexture))
                 {
-                	pMaterials[m].pDiffuseTexture = pLoaderCallbacks.createTextureFromFile( /*pd3dDevice,*/
+                	pMaterials[m].pDiffuseTexture11 = pLoaderCallbacks.createTextureFromFile( /*pd3dDevice,*/
                                                               pMaterials[m].diffuseTexture/*, &pMaterials[m].pDiffuseRV10,
                                                               pLoaderCallbacks->pContext*/ );
                 }
                 if( !StringUtils.isEmpty(pMaterials[m].normalTexture) )
                 {
-                	pMaterials[m].pNormalTexture = pLoaderCallbacks.createTextureFromFile( /*pd3dDevice,*/
+                	pMaterials[m].pNormalTexture11 = pLoaderCallbacks.createTextureFromFile( /*pd3dDevice,*/
                                                               pMaterials[m].normalTexture/*, &pMaterials[m].pNormalRV10,
                                                               pLoaderCallbacks->pContext*/ );
                 }
                 if( !StringUtils.isEmpty(pMaterials[m].specularTexture) )
                 {
-                	pMaterials[m].pSpecularTexture = pLoaderCallbacks.createTextureFromFile( /*pd3dDevice,*/
+                	pMaterials[m].pSpecularTexture11 = pLoaderCallbacks.createTextureFromFile( /*pd3dDevice,*/
                                                               pMaterials[m].specularTexture/*, &pMaterials[m].pSpecularRV10,
                                                               pLoaderCallbacks->pContext*/ );
                 }
@@ -209,14 +209,14 @@ public class SDKmesh {
         	int textureCount = 0;
             for( int m = 0; m < numMaterials; m++ )
             {
-            	if(pMaterials[m] == null)
-            		continue;
-                pMaterials[m].pDiffuseTexture = NULL;
-                pMaterials[m].pNormalTexture = NULL;
-                pMaterials[m].pSpecularTexture = NULL;
-//                pMaterials[m].pDiffuseRV10 = NULL;
-//                pMaterials[m].pNormalRV10 = NULL;
-//                pMaterials[m].pSpecularRV10 = NULL;
+//            	if(pMaterials[m] == null)
+//            		continue;
+                pMaterials[m].pDiffuseTexture11 = NULL;
+                pMaterials[m].pNormalTexture11 = NULL;
+                pMaterials[m].pSpecularTexture11 = NULL;
+                pMaterials[m].pDiffuseRV11 = NULL;
+                pMaterials[m].pNormalRV11 = NULL;
+                pMaterials[m].pSpecularRV11 = NULL;
 
                 // load textures
                 if( !StringUtils.isEmpty(pMaterials[m].diffuseTexture))
@@ -227,7 +227,10 @@ public class SDKmesh {
 //                                                                                    true ) ) )
 //                        pMaterials[m].pDiffuseRV10 = ( ID3D10ShaderResourceView* )ERROR_RESOURCE_VALUE;
                 	strPath = m_strPath + pMaterials[m].diffuseTexture;
-                	pMaterials[0].pDiffuseTexture = NvImage.uploadTextureFromDDSFile(strPath);
+                	if(new File(strPath).exists())
+                		pMaterials[0].pDiffuseTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
+                	else
+                		pMaterials[0].pDiffuseTexture11 = 0;
                 	textureCount ++;
                 }
                 if( !StringUtils.isEmpty(pMaterials[m].normalTexture) )
@@ -238,7 +241,10 @@ public class SDKmesh {
 //                                                                                    &pMaterials[m].pNormalRV10 ) ) )
 //                        pMaterials[m].pNormalRV10 = ( ID3D10ShaderResourceView* )ERROR_RESOURCE_VALUE;
                 	strPath = m_strPath + pMaterials[m].normalTexture;
-                	pMaterials[0].pNormalTexture = NvImage.uploadTextureFromDDSFile(strPath);
+                	if(new File(strPath).exists())
+                		pMaterials[0].pNormalTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
+                	else
+                		pMaterials[0].pNormalTexture11 = 0;
                 	textureCount ++;
                 }
                 if( !StringUtils.isEmpty(pMaterials[m].specularTexture) )
@@ -249,13 +255,16 @@ public class SDKmesh {
 //                                                                                    &pMaterials[m].pSpecularRV10 ) ) )
 //                        pMaterials[m].pSpecularRV10 = ( ID3D10ShaderResourceView* )ERROR_RESOURCE_VALUE;
                 	strPath = m_strPath + pMaterials[m].specularTexture;
-                	pMaterials[0].pSpecularTexture = NvImage.uploadTextureFromDDSFile(strPath);
+                	if(new File(strPath).exists())
+                		pMaterials[0].pSpecularTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
+                	else
+                		
                 	textureCount ++;
                 }
             }
             
             if(textureCount > 0)
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+            	gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
         }
     }
     
@@ -278,7 +287,7 @@ public class SDKmesh {
 
         if( pLoaderCallbacks != null )
         {
-        	pHeader.pVB11 = pLoaderCallbacks.createVertexBuffer( GLenum.GL_STATIC_DRAW, pVertices/*pd3dDevice, &pHeader->pVB10, bufferDesc, pVertices,
+        	pHeader.buffer = pLoaderCallbacks.createVertexBuffer( GLenum.GL_STATIC_DRAW, pVertices/*pd3dDevice, &pHeader->pVB10, bufferDesc, pVertices,
                                                    pLoaderCallbacks->pContext*/ );
         }
         else
@@ -291,8 +300,11 @@ public class SDKmesh {
             gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, buf);
             gl.glBufferData(GLenum.GL_ARRAY_BUFFER, pVertices, GLenum.GL_STATIC_DRAW);
             gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
-        	pHeader.pVB11 = buf;
+        	pHeader.buffer = buf;
         }
+
+        if(GLCheck.CHECK)
+            GLCheck.checkError();
     }
     
 //HRESULT                         CreateVertexBuffer( IDirect3DDevice9* pd3dDevice,
@@ -306,7 +318,7 @@ public class SDKmesh {
                 ByteBuffer pIndices, SDKmeshCallbacks pLoaderCallback ){
     	if( pLoaderCallback != null )
         {
-        	pHeader.pIB11 = pLoaderCallback.createIndexBuffer( GLenum.GL_STATIC_DRAW, pIndices/*pd3dDevice, &pHeader->pVB10, bufferDesc, pVertices,
+        	pHeader.buffer = pLoaderCallback.createIndexBuffer( GLenum.GL_STATIC_DRAW, pIndices/*pd3dDevice, &pHeader->pVB10, bufferDesc, pVertices,
                                                    pLoaderCallbacks->pContext*/ );
         }
         else
@@ -319,7 +331,7 @@ public class SDKmesh {
             gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, buf);
             gl.glBufferData(GLenum.GL_ELEMENT_ARRAY_BUFFER, pIndices, GLenum.GL_STATIC_DRAW);
             gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
-        	pHeader.pIB11 = buf;
+        	pHeader.buffer = buf;
         }
     }
 //HRESULT                         CreateIndexBuffer( IDirect3DDevice9* pd3dDevice,
@@ -329,6 +341,8 @@ public class SDKmesh {
     void createFromFile( /*ID3D10Device* pDev10, IDirect3DDevice9* pDev9,*/ String fileName,
              boolean bCreateAdjacencyIndices,
              SDKmeshCallbacks pLoaderCallbacks) throws IOException{
+        gl = GLFuncProviderFactory.getGLFuncProvider();
+    	m_strPath = new File(fileName).getParent();
     	byte[] pData = FileUtils.loadBytes(fileName);
     	createFromMemory(pData, bCreateAdjacencyIndices, false, pLoaderCallbacks);
     }
@@ -347,6 +361,7 @@ public class SDKmesh {
     	final Vector3f lower = new Vector3f();
     	final Vector3f upper = new Vector3f();
     	final Vector3f pt = new Vector3f();
+    	final int DataBytes = pData.length;
     	
     	// Set outstanding resources to zero
         m_NumOutstandingResources = 0;
@@ -356,6 +371,10 @@ public class SDKmesh {
         	header.load(pData, 0);
         	
         	int staticSize = (int) (header.headerSize + header.nonBufferDataSize);
+        	if ( DataBytes < staticSize ){
+        		throw new IllegalArgumentException();
+        	}
+        	
         	m_pHeapData = new byte[staticSize];
         	
         	m_pStaticMeshData = m_pHeapData;
@@ -472,7 +491,7 @@ public class SDKmesh {
         	
         	ByteBuffer bytes = CacheBuffer.getCachedByteBuffer((int) m_pVertexBufferArray[i].sizeBytes);
         	bytes.put(m_pStaticMeshData, pVertices, (int) m_pVertexBufferArray[i].sizeBytes).flip();
-//        	createVertexBuffer(m_pVertexBufferArray[i], bytes, pLoaderCallbacks);
+        	createVertexBuffer(m_pVertexBufferArray[i], bytes, pLoaderCallbacks);
         	
         	m_ppVertices[i] = pVertices;
         }
@@ -487,7 +506,7 @@ public class SDKmesh {
         	
         	ByteBuffer bytes = CacheBuffer.getCachedByteBuffer((int) m_pIndexBufferArray[i].sizeBytes);
         	bytes.put(m_pStaticMeshData, pIndices, (int) m_pIndexBufferArray[i].sizeBytes).flip();
-//        	createIndexBuffer(m_pIndexBufferArray[i], bytes, pLoaderCallbacks);
+        	createIndexBuffer(m_pIndexBufferArray[i], bytes, pLoaderCallbacks);
         	
 //        	if(debug){
 //        		int count = bytes.remaining()/4;
@@ -510,6 +529,7 @@ public class SDKmesh {
         
         // Create a place to store our transformed frame matrices
         m_pTransformedFrameMatrices = new Matrix4f[m_pMeshHeader.numFrames];
+        m_pWorldPoseFrameMatrices = new Matrix4f[m_pMeshHeader.numFrames];
         
         SDKMeshSubset pSubset = null;
         int PrimType;
@@ -581,9 +601,9 @@ public class SDKmesh {
                     tris++;
 //                    D3DXVECTOR3 *pt = (D3DXVECTOR3*)&(verts[stride * current_ind]);
                     int pt_offset = verts + (stride * current_ind);
-                    pt.x = Numeric.getFloat(pData, pt_offset++);
-                    pt.y = Numeric.getFloat(pData, pt_offset++);
-                    pt.z = Numeric.getFloat(pData, pt_offset++);
+                    pt.x = Numeric.getFloat(pData, pt_offset);  pt_offset += 4;
+                    pt.y = Numeric.getFloat(pData, pt_offset);  pt_offset += 4;
+                    pt.z = Numeric.getFloat(pData, pt_offset);  pt_offset += 4;
                     if (pt.x < lower.x) {
                         lower.x = pt.x;
                     }
@@ -678,9 +698,15 @@ public class SDKmesh {
 //            D3DXMatrixRotationQuaternion( &mQuat, &quat );
 //            LocalTransform = ( mQuat * mTranslate );
             
+            if(pData.orientation.isZero()){
+            	pData.orientation.setIdentity();
+            }
+            
             Matrix4f quat = new Matrix4f();
             pData.orientation.toMatrix(quat);
-            quat.setTranslate(pData.translation);
+            quat.m30 = pData.translation.x;
+            quat.m31 = pData.translation.y;
+            quat.m32 = pData.translation.z;
             localTransform = quat;
         }
         else
@@ -698,6 +724,7 @@ public class SDKmesh {
     		localWorld = new Matrix4f();
     	Matrix4f.mul(pParentWorld, localTransform, localWorld);
     	m_pTransformedFrameMatrices[iFrame] = localWorld;
+    	m_pWorldPoseFrameMatrices[iFrame] = localWorld;
 
         // Transform our siblings
         if( m_pFrameArray[iFrame].siblingFrame != INVALID_FRAME )
@@ -746,7 +773,9 @@ public class SDKmesh {
 //            D3DXMatrixRotationQuaternion( &mRot2, &quat2 );
 //            mFrom = mRot2 * mTrans2;
             pData.orientation.toMatrix(mFrom);
-            mFrom.setTranslate(pData.translation);
+            mFrom.m30 = pData.translation.x;
+            mFrom.m31 = pData.translation.y;
+            mFrom.m32 = pData.translation.z;
 
 //            D3DXMATRIX mOutput = mInvTo * mFrom;
             Matrix4f mOutput = Matrix4f.mul(mFrom, mInvTo, mInvTo);
@@ -785,7 +814,7 @@ public class SDKmesh {
 
         for( int i = 0; i < pMesh.numVertexBuffers; i++ )
         {
-            pVB[i] = m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].pVB11;
+            pVB[i] = m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].buffer;
             strides[i] = (int)m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].strideBytes;
             offsets[i] = 0;
         }
@@ -797,13 +826,13 @@ public class SDKmesh {
             pIndexBufferArray = m_pIndexBufferArray;
 
 //        ID3D10Buffer* pIB = pIndexBufferArray[ pMesh->IndexBuffer ].pIB10;
-        int pIB = pIndexBufferArray[pMesh.indexBuffer].pIB11;
+        int pIB = pIndexBufferArray[pMesh.indexBuffer].buffer;
 //        DXGI_FORMAT ibFormat = DXGI_FORMAT_R16_int;
-        int ibFormat = GL_UNSIGNED_SHORT;
+        int ibFormat = GLenum.GL_UNSIGNED_SHORT;
         switch( pIndexBufferArray[ pMesh.indexBuffer ].indexType )
         {
             case IT_16BIT:
-                ibFormat = GL_UNSIGNED_SHORT;
+                ibFormat = GLenum.GL_UNSIGNED_SHORT;
                 break;
             case IT_32BIT:
                 ibFormat = GLenum.GL_UNSIGNED_INT;
@@ -813,6 +842,11 @@ public class SDKmesh {
 //        pd3dDevice->IASetVertexBuffers( 0, pMesh->NumVertexBuffers, pVB, Strides, Offsets );
 //        pd3dDevice->IASetIndexBuffer( pIB, ibFormat, 0 );
         //TODO Bind Vertex Buffer here
+        gl.glBindVertexArray(0);
+        for(int i = 0; i < pMesh.numVertexBuffers; i++){
+            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, pVB[i]);
+//        	GL20.glEnableVertexAttribArray(index);
+        }
 
 //        D3D10_TECHNIQUE_DESC techDesc;
 //        pTechnique->GetDesc( &techDesc );
@@ -823,7 +857,7 @@ public class SDKmesh {
 
 //        for( int p = 0; p < techDesc.Passes; ++p )
         {
-        	gl.glUseProgram(pTechnique);
+            gl.glUseProgram(pTechnique);
             for( int subset = 0; subset < pMesh.numSubsets; subset++ )
             {
                 pSubset = m_pSubsetArray[ pMesh.pSubsets[subset] ];
@@ -865,18 +899,18 @@ public class SDKmesh {
 //                    pvSpecular->SetFloatVector( pMat->Specular );
                 
                 if(ptxDiffuse >=0){
-	                gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxDiffuse);
-                    gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pDiffuseTexture);
+                    gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxDiffuse);
+                    gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pDiffuseTexture11);
                 }
                 
                 if(ptxNormal >= 0){
                     gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxNormal);
-                    gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pNormalTexture);
+                    gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pNormalTexture11);
                 }
                 
                 if(ptxSpecular >= 0){
                     gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxSpecular);
-                    gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pSpecularTexture);
+                    gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pSpecularTexture11);
                 }
                 
                 if(pvDiffuse >= 0)
@@ -899,7 +933,20 @@ public class SDKmesh {
                 gl.glDrawElementsBaseVertex(PrimType, IndexCount, ibFormat, IndexStart, VertexStart);
             }
             
-            // TODO unbind resources.
+            if(ptxSpecular >= 0){
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxSpecular);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+            }
+
+            if(ptxNormal >= 0){
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxNormal);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+            }
+
+            if(ptxDiffuse >=0){
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxDiffuse);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+            }
         }
     }
     
@@ -997,7 +1044,7 @@ public class SDKmesh {
 
 	    for( int i = 0; i < pMesh.numVertexBuffers; i++ )
 	    {
-	        pVB[i] = m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].pVB11;
+	        pVB[i] = m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].buffer;
 	        strides[i] = (int)m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].strideBytes;
 	        offsets[i] = 0;
 	    }
@@ -1011,12 +1058,12 @@ public class SDKmesh {
 //	    ID3D10Buffer* pIB = pIndexBufferArray[ pMesh->IndexBuffer ].pIB10;
 //	    DXGI_FORMAT ibFormat = DXGI_FORMAT_R16_int;
 	    
-	    int pIB = pIndexBufferArray[pMesh.indexBuffer].pIB11;
-	    int ibFormat = GL_UNSIGNED_SHORT;
+	    int pIB = pIndexBufferArray[pMesh.indexBuffer].buffer;
+	    int ibFormat = GLenum.GL_UNSIGNED_SHORT;
 	    switch( pIndexBufferArray[ pMesh.indexBuffer ].indexType )
 	    {
 	    case IT_16BIT:
-	        ibFormat = GL_UNSIGNED_SHORT;
+	        ibFormat = GLenum.GL_UNSIGNED_SHORT;
 	        break;
 	    case IT_32BIT:
 	        ibFormat = GLenum.GL_UNSIGNED_INT;
@@ -1031,6 +1078,7 @@ public class SDKmesh {
 	    int PrimType;
 
 	    // TODO Binding Vertex Buffers.
+	    
 	    gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, pIB);
 	    for( int subset = 0; subset < pMesh.numSubsets; subset++ )
 	    {
@@ -1068,13 +1116,21 @@ public class SDKmesh {
 //	        if( iSpecularSlot != INVALID_SAMPLER_SLOT && !IsErrorResource( pMat->pSpecularRV10 ) )
 //	            pd3dDevice->PSSetShaderResources( iSpecularSlot, 1, &pMat->pSpecularRV10 );
 	        
-	        gl.glActiveTexture(GLenum.GL_TEXTURE0 + iDiffuseSlot);
-            gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pDiffuseTexture);  // TODO Don't forget sampler
-            gl.glActiveTexture(GLenum.GL_TEXTURE0 + iNormalSlot);
-            gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pNormalTexture);  // TODO Don't forget sampler
-            gl.glActiveTexture(GLenum.GL_TEXTURE0 + iSpecularSlot);
-            gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pSpecularTexture);  // TODO Don't forget sampler
-
+	        if(iDiffuseSlot != INVALID_SAMPLER_SLOT){
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + iDiffuseSlot);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pDiffuseTexture11);  // TODO Don't forget sampler
+	        }
+	        
+	        if(iDiffuseSlot != INVALID_SAMPLER_SLOT){
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + iNormalSlot);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pNormalTexture11);  // TODO Don't forget sampler
+	        }
+	        
+	        if(iSpecularSlot != INVALID_SAMPLER_SLOT){
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + iSpecularSlot);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pSpecularTexture11);  // TODO Don't forget sampler
+	        }
+	        
 	        int IndexCount = ( int )pSubset.indexCount;
 	        int IndexStart = ( int )pSubset.indexStart;
 	        int VertexStart = ( int )pSubset.vertexStart;
@@ -1134,9 +1190,13 @@ public class SDKmesh {
 			m_pAnimationData = new byte[(int) fileheader.animationDataSize];
 			reader.readFully(m_pAnimationData);
 			
+			// pointer fixup
 			m_pAnimationHeader = fileheader;
 			m_pAnimationFrameData = new SDKAnimationFrameData[fileheader.numFrames];
-			int offset = 0;
+			int offset = (int) (m_pAnimationHeader.animationDataOffset - SDKAnimationFileHeader.SIZE);
+			if(offset < 0)
+				throw new IllegalArgumentException();
+			
 			for(int i = 0; i < m_pAnimationFrameData.length; i++){
 				m_pAnimationFrameData[i] = new SDKAnimationFrameData();
 				offset = m_pAnimationFrameData[i].load(m_pAnimationData, offset);
@@ -1145,7 +1205,7 @@ public class SDKmesh {
 			for(int i = 0; i < m_pAnimationFrameData.length; i++){
 				SDKAnimationData[] animaData = m_pAnimationFrameData[i].pAnimationData = new SDKAnimationData[m_pAnimationFrameData.length];
 				offset = (int) m_pAnimationFrameData[i].dataOffset;
-				for(int j = 0; j < m_pAnimationFrameData.length; j++){ // TODO I'm not sure
+				for(int j = 0; j < animaData.length; j++){ // TODO I'm not sure
 					animaData[i] = new SDKAnimationData();
 					offset = animaData[i].load(m_pAnimationData, offset);
 				}
@@ -1163,19 +1223,19 @@ public class SDKmesh {
     	            {
     				   SDKmeshMaterial mat = m_pMaterialArray[m];
     				   
-    				   if(mat.pDiffuseTexture != 0){
-                           gl.glDeleteTexture(mat.pDiffuseTexture);
-    					   mat.pDiffuseTexture = 0;
+    				   if(mat.pDiffuseTexture11 != 0){
+                           gl.glDeleteTexture(mat.pDiffuseTexture11);
+    					   mat.pDiffuseTexture11 = 0;
     				   }
     				   
-    				   if(mat.pNormalTexture != 0){
-                           gl.glDeleteTexture(mat.pNormalTexture);
-    					   mat.pNormalTexture = 0;
+    				   if(mat.pNormalTexture11 != 0){
+                           gl.glDeleteTexture(mat.pNormalTexture11);
+    					   mat.pNormalTexture11 = 0;
     				   }
     				   
-    				   if(mat.pSpecularTexture != 0){
-                           gl.glDeleteTexture(mat.pSpecularTexture);
-    					   mat.pSpecularTexture = 0;
+    				   if(mat.pSpecularTexture11 != 0){
+                           gl.glDeleteTexture(mat.pSpecularTexture11);
+    					   mat.pSpecularTexture11 = 0;
     				   }
     	            }
     		 }
@@ -1185,9 +1245,9 @@ public class SDKmesh {
          {
 //             if( !IsErrorResource( m_pVertexBufferArray[i].pVB9 ) )
 //                 SAFE_RELEASE( m_pVertexBufferArray[i].pVB9 );
-    		 if( m_pVertexBufferArray[i].pVB11 != 0){
-                 gl.glDeleteBuffer( m_pVertexBufferArray[i].pVB11);
-    			 m_pVertexBufferArray[i].pVB11 = 0;
+    		 if( m_pVertexBufferArray[i].buffer != 0){
+                 gl.glDeleteBuffer( m_pVertexBufferArray[i].buffer);
+    			 m_pVertexBufferArray[i].buffer = 0;
     		 }
          }
 
@@ -1196,17 +1256,17 @@ public class SDKmesh {
 //             if( !IsErrorResource( m_pIndexBufferArray[i].pIB9 ) )
 //                 SAFE_RELEASE( m_pIndexBufferArray[i].pIB9 );
         	 
-        	 if( m_pIndexBufferArray[i].pIB11 != 0){
-                 gl.glDeleteBuffer( m_pIndexBufferArray[i].pIB11);
-    			 m_pIndexBufferArray[i].pIB11 = 0;
+        	 if( m_pIndexBufferArray[i].buffer != 0){
+                 gl.glDeleteBuffer( m_pIndexBufferArray[i].buffer);
+    			 m_pIndexBufferArray[i].buffer = 0;
     		 }
          }
          
          if(m_pAdjacencyIndexBufferArray != null){
         	 for( int i = 0; i < m_pMeshHeader.numIndexBuffers; i++ ){
-        		 if( m_pAdjacencyIndexBufferArray[i].pIB11 != 0){
-                     gl.glDeleteBuffer( m_pAdjacencyIndexBufferArray[i].pIB11);
-        			 m_pAdjacencyIndexBufferArray[i].pIB11 = 0;
+        		 if( m_pAdjacencyIndexBufferArray[i].buffer != 0){
+                     gl.glDeleteBuffer( m_pAdjacencyIndexBufferArray[i].buffer);
+        			 m_pAdjacencyIndexBufferArray[i].buffer = 0;
         		 }
         	 }
          }
@@ -1216,10 +1276,7 @@ public class SDKmesh {
      //Frame manipulation
      void transformBindPose( Matrix4f pWorld ) {transformBindPoseFrame(0, pWorld);}
      void transformMesh( Matrix4f pWorld, double fTime ){
-    	 if( m_pAnimationHeader  == null)
-    	        return;
-
-	    if( FTT_RELATIVE == m_pAnimationHeader.frameTransformType )
+	    if(m_pAnimationHeader == null || FTT_RELATIVE == m_pAnimationHeader.frameTransformType )
 	    {
 	        transformFrame( 0, pWorld, fTime );
 
@@ -1265,6 +1322,17 @@ public class SDKmesh {
 		int iNormalSlot,
 		int iSpecularSlot ){
 		renderFrame(0, false, iDiffuseSlot, iNormalSlot, iSpecularSlot);
+	}
+	
+	public void renderAdjacent(){
+		renderAdjacent(INVALID_SAMPLER_SLOT, INVALID_SAMPLER_SLOT, INVALID_SAMPLER_SLOT);
+	}
+	
+	public void renderAdjacent(// _In_ ID3D11DeviceContext* pd3dDeviceContext,
+            int iDiffuseSlot/* = INVALID_SAMPLER_SLOT*/,
+    		int iNormalSlot /*= INVALID_SAMPLER_SLOT*/,
+			int iSpecularSlot /*= INVALID_SAMPLER_SLOT*/ ){
+		renderFrame(0, true, iDiffuseSlot, iNormalSlot, iSpecularSlot);
 	}
 
 	void render( 
@@ -1350,16 +1418,17 @@ public class SDKmesh {
 	}
 	
 	public int getVB10( int iMesh, int iVB ){
-		return m_pVertexBufferArray[ m_pMeshArray[ iMesh ].vertexBuffers[iVB] ].pVB11;
+		return m_pVertexBufferArray[ m_pMeshArray[ iMesh ].vertexBuffers[iVB] ].buffer;
 	}
 
 	public int getIB10( int iMesh ){
-		return m_pIndexBufferArray[ m_pMeshArray[ iMesh ].indexBuffer ].pIB11;
+		return m_pIndexBufferArray[ m_pMeshArray[ iMesh ].indexBuffer ].buffer;
 	}
 	
-//	int getAdjIB10( int iMesh ){
-//		
-//	}
+	int getAdjIB10( int iMesh ){
+		return m_pAdjacencyIndexBufferArray[ m_pMeshArray[ iMesh ].indexBuffer ].buffer;
+	}
+	
 	public int getIndexType( int iMesh ){
 		return m_pIndexBufferArray[m_pMeshArray[ iMesh ].indexBuffer].indexType;
 	}
@@ -1378,10 +1447,10 @@ public class SDKmesh {
 	int  getNumIBs() {return m_pMeshHeader != null ? m_pMeshHeader.numIndexBuffers: 0;}
 //IDirect3DVertexBuffer9* GetVB9At( int iVB );
 //IDirect3DIndexBuffer9* GetIB9At( int iIB );
-	int  getVB10At( int iVB ) { return m_pVertexBufferArray[ iVB ].pVB11;}
-	int getIB10At( int iIB ) {return m_pIndexBufferArray[ iIB ].pIB11;}
-//	BYTE* GetRawVerticesAt( int iVB );
-//	BYTE* GetRawIndicesAt( int iIB );
+	int  getVB10At( int iVB ) { return m_pVertexBufferArray[ iVB ].buffer;}
+	int getIB10At( int iIB ) {return m_pIndexBufferArray[ iIB ].buffer;}
+//	byte[] getRawVerticesAt( int iVB ){ return null;}
+//	byte[] getRawIndicesAt( int iIB ) { return null;}
 	SDKmeshMaterial getMaterial( int iMaterial ) {return m_pMaterialArray[ iMaterial ];}
 	SDKMeshMesh getMesh( int iMesh ){
 		return m_pMeshArray[ iMesh ];
@@ -1396,6 +1465,11 @@ public class SDKmesh {
 		return ( int )m_pVertexBufferArray[ m_pMeshArray[ iMesh ].vertexBuffers[iVB] ].strideBytes;
 	}
 	
+	public int getNumFrames(){ return m_pMeshHeader.numFrames;}
+	public SDKMeshFrame getFrame(int iFrame){
+		assert( iFrame < m_pMeshHeader.numFrames );
+	    return m_pFrameArray[ iFrame ];
+	}
 	SDKMeshFrame findFrame( String pszName ){
 		for( int i = 0; i < m_pMeshHeader.numFrames; i++ )
 	    {
@@ -1419,13 +1493,13 @@ public class SDKmesh {
 
 	    for( int i = 0; i < m_pMeshHeader.numVertexBuffers; i++ )
 	    {
-	        if( m_pVertexBufferArray[i].pVB11 == 0 )
+	        if( m_pVertexBufferArray[i].buffer == 0 )
 	            outstandingResources ++;
 	    }
 
 	    for( int i = 0; i < m_pMeshHeader.numIndexBuffers; i++ )
 	    {
-	        if( m_pIndexBufferArray[i].pIB11 == 0 )
+	        if( m_pIndexBufferArray[i].buffer == 0 )
 	            outstandingResources ++;
 	    }
 
@@ -1452,7 +1526,7 @@ public class SDKmesh {
 	        {
 //	            if( IsErrorResource( m_pVertexBufferArray[i].pVB9 ) )
 //	                return TRUE;
-	        	if(m_pVertexBufferArray[i].pVB11 == 0)
+	        	if(m_pVertexBufferArray[i].buffer == 0)
 	        		return true;
 	        }
 
@@ -1460,7 +1534,7 @@ public class SDKmesh {
 	        {
 //	            if( IsErrorResource( m_pIndexBufferArray[i].pIB9 ) )
 //	                return TRUE;
-	        	if(m_pIndexBufferArray[i].pIB11 == 0)
+	        	if(m_pIndexBufferArray[i].buffer == 0)
 	        		return true;
 	        }
 	    }
@@ -1485,4 +1559,45 @@ public class SDKmesh {
 
 	    return iTick;
 	}
+	
+	Matrix4f getWorldMatrix( int iFrameIndex ) { return m_pWorldPoseFrameMatrices[iFrameIndex];}
+	Matrix4f getInfluenceMatrix( int iFrameIndex ) { return m_pTransformedFrameMatrices[iFrameIndex];}
+    boolean  getAnimationProperties( int[] pNumKeys, float[] pFrameTime ){
+    	if( m_pAnimationHeader == null )
+        {
+            pNumKeys[0] = 0;
+            pFrameTime[0] = 0;
+            return false;
+        }
+
+    	pNumKeys[0] = m_pAnimationHeader.numAnimationKeys;
+    	pFrameTime[0] = 1.0f / (float)m_pAnimationHeader.animationFPS;
+
+        return true;
+    }
+    
+    static String getString(byte[] data, int offset, int length){
+    	int newLength = -1;
+    	for(int i = 0; i < length; i++){
+//    		if(!(Character.isDigit(data[i]) || ('A'<= data[i] && data[i] <='Z') || ('a' <= data[i] && data[i] <= 'z') || data[i] == '.')){
+//    			newLength = Math.max(0, i -  offset - 1);
+//    			break;
+//    		}
+    		
+    		if(data[i + offset] == 0){
+    			newLength = i;
+    			break;
+    		}
+    	}
+    	
+    	if(newLength == -1)
+    		newLength = length;
+    	
+    	String str = new String(data, offset, newLength, Charset.forName("ascii")).trim();
+    	int space = str.indexOf(' ');
+    	if(space >= 0){
+    		return str.substring(0, space);
+    	}else
+    		return str;
+    }
 }

@@ -2,11 +2,13 @@ package com.nvidia.developer.opengl.models.sdkmesh;
 
 import org.lwjgl.util.vector.Vector3f;
 
-import java.nio.charset.Charset;
+import java.util.Arrays;
 
 import jet.opengl.postprocessing.util.Numeric;
 
 final class SDKMeshMesh {
+	
+	static final int SIZE = 104 + 16 * 4 + 4 * (3 + 6) + 4 + 2*8;
 
 	String  name;  		// char name[MAX_MESH_NAME];  100
     byte numVertexBuffers;  					   // 104
@@ -31,7 +33,7 @@ final class SDKMeshMesh {
     //};
     
     int load(byte[] data, int offset){
-    	name = new String(data, offset, SDKmesh.MAX_MESH_NAME, Charset.defaultCharset()).trim();
+    	name = SDKmesh.getString(data, offset, SDKmesh.MAX_MESH_NAME);
     	offset+= SDKmesh.MAX_MESH_NAME;
     	numVertexBuffers = data[offset]; offset += 4;
     	for(int i = 0; i < vertexBuffers.length; i++){
@@ -67,10 +69,37 @@ final class SDKMeshMesh {
 
 	@Override
 	public String toString() {
-		return "SDKMeshMesh [name=" + name + ", numVertexBuffers=" + numVertexBuffers + ", indexBuffer=" + indexBuffer
-				+ ", numSubsets=" + numSubsets + ", numFrameInfluences=" + numFrameInfluences + ", subsetOffset="
-				+ subsetOffset + ", frameInfluenceOffset=" + frameInfluenceOffset + "]";
+		final int maxLen = 10;
+		StringBuilder builder = new StringBuilder();
+		builder.append("SDKMeshMesh [name=");
+		builder.append(name);
+		builder.append(", numVertexBuffers=");
+		builder.append(numVertexBuffers);
+		builder.append(", vertexBuffers=");
+		builder.append(vertexBuffers != null
+				? Arrays.toString(Arrays.copyOf(vertexBuffers, Math.min(vertexBuffers.length, maxLen))) : null);
+		builder.append(", indexBuffer=");
+		builder.append(indexBuffer);
+		builder.append(", numSubsets=");
+		builder.append(numSubsets);
+		builder.append(", numFrameInfluences=");
+		builder.append(numFrameInfluences);
+		builder.append(", boundingBoxCenter=");
+		builder.append(boundingBoxCenter);
+		builder.append(", boundingBoxExtents=");
+		builder.append(boundingBoxExtents);
+		builder.append(", subsetOffset=");
+		builder.append(subsetOffset);
+		builder.append(", pSubsets=");
+		builder.append(
+				pSubsets != null ? Arrays.toString(Arrays.copyOf(pSubsets, Math.min(pSubsets.length, maxLen))) : null);
+		builder.append(", frameInfluenceOffset=");
+		builder.append(frameInfluenceOffset);
+		builder.append(", pFrameInfluences=");
+		builder.append(pFrameInfluences != null
+				? Arrays.toString(Arrays.copyOf(pFrameInfluences, Math.min(pFrameInfluences.length, maxLen))) : null);
+		builder.append("]");
+		return builder.toString();
 	}
-    
     
 }

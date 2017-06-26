@@ -1,5 +1,7 @@
 package jet.opengl.postprocessing.util;
 
+import jet.opengl.postprocessing.common.Disposeable;
+
 /**
  * Created by mazhen'gui on 2017/4/17.
  */
@@ -20,5 +22,11 @@ public class CommonUtil {
 
     public static<T> T[] toArray(T...args){
         return args;
+    }
+
+    public static void safeRelease(Disposeable res){
+        if(res != null){
+            res.dispose();
+        }
     }
 }

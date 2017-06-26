@@ -31,7 +31,7 @@ public class PostProcessingTonemappingPass extends PostProcessingRenderPass {
             try {
 
                 g_TonemappingProgram = new PostProcessingTonemappingProgram(enableEyeAdaption);
-                addDisposedResource(g_TonemappingProgram);
+                addDisposedResource(()->{g_TonemappingProgram.dispose(); g_TonemappingProgram = null;});
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -2,7 +2,7 @@ package jet.opengl.desktop.lwjgl;
 
 import com.nvidia.developer.opengl.app.NvAppBase;
 import com.nvidia.developer.opengl.app.NvEGLConfiguration;
-import com.nvidia.developer.opengl.demos.os.LauncherDemo;
+import com.nvidia.developer.opengl.demos.amdfx.dof.DepthOfFieldFX_Sample;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -85,6 +85,6 @@ public class DemoApp {
         });
 
 //        System.out.println(new File("").getAbsolutePath());
-        run(new LauncherDemo());
+        run(new DepthOfFieldFX_Sample());
     }
 }

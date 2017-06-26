@@ -1690,4 +1690,14 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     public void glGetUniformdv(int programId, int location, DoubleBuffer buf) {
         GL40.glGetUniformdv(programId, location, buf);
     }
+
+    @Override
+    public void glDrawElementsBaseVertex(int primType, int count, int type, int start, int baseVertex) {
+        GL32.glDrawElementsBaseVertex(primType, count, type, start, baseVertex);
+    }
+
+    @Override
+    public void glTexBuffer(int target, int internalFormat, int buffer) {
+        GL31.glTexBuffer(target, internalFormat, buffer);
+    }
 }

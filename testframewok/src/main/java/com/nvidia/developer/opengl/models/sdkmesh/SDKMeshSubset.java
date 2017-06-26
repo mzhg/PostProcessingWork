@@ -4,6 +4,8 @@ import jet.opengl.postprocessing.util.Numeric;
 
 public final class SDKMeshSubset {
 
+	static final int SIZE = 144;
+	
 //	char Name[MAX_SUBSET_NAME];
 	public String name;        // 100
 	public int materialID;     // 104
@@ -15,7 +17,7 @@ public final class SDKMeshSubset {
 	public long vertexCount;   // 144
     
     int load(byte[] data, int position){
-    	name = new String(data, position, SDKmesh.MAX_SUBSET_NAME).trim();
+    	name = SDKmesh.getString(data, position, SDKmesh.MAX_SUBSET_NAME);
     	position += SDKmesh.MAX_SUBSET_NAME;
     	
     	materialID = Numeric.getInt(data, position); position += 4;

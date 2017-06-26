@@ -3,6 +3,8 @@ package com.nvidia.developer.opengl.models.sdkmesh;
 import jet.opengl.postprocessing.util.Numeric;
 
 final class SDKmeshHeader {
+	
+	static final int SIZE = 104;
 
 	//Basic Info and sizes
     int version;		                    // 4

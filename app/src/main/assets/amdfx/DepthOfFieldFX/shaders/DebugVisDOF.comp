@@ -1,0 +1,24 @@
+#include "CsCalcDOF_Common.glsl"
+
+layout (local_size_x = 8, local_size_y = 8) in;
+void main()
+{
+//const vec2 TriangleVertices[3] = vec2[3]
+    float4 colorMap[5] = float4[5](
+        float4(0.0, 0.0, 0.2, 1.0), float4(0.0, 0.4, 0.2, 1.0), float4( 0.4, 0.4, 0.0, 1.0), float4( 1.0, 0.2, 0.0, 1.0), float4( 1.0, 0.0, 0.0, 1.0 )
+    );
+    uint3 Tid            = gl_GlobalInvocationID;
+    int2 texCoord        = int2(Tid.xy);
+    float Coc            = texelFetch(tCoc, texCoord, 0).r;
+    float       value    = min((abs(min(Coc, float(maxRadius))) - 1) / (float(maxRadius - 1) / 4.0), 3.99);
+    int         offset   = int(floor(value));
+    float       t        = frac(value);
+    float4      result   = lerp(colorMap[offset], colorMap[offset + 1], t);
+    if (abs(Coc) < 1.0)
+    {
+        result = float4(0.0, 0.0, 0.1, 1.0);
+    }
+
+//    uDebugVisCoc[texCoord] = result;
+    imageStore(uDebugVisCoc, texCoord, result);
+}
