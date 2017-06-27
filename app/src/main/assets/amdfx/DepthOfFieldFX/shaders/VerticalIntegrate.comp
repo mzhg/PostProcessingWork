@@ -16,7 +16,7 @@ void main()
         // Initialization/////////////////////////////////////
         // We want delta and color to be the same
         // their value is just the first element of the domain
-        int4 delta = ReadFromBuffer(intermediate, addr);
+        int4 delta = ReadFromBuffer(/*intermediate,*/ addr);
         int4 color = delta;
         /////////////////////////////////////////////////////
 
@@ -27,7 +27,7 @@ void main()
         {
             addr = int2(Tid.x, i);
             // Read from the current location
-            delta += ReadFromBuffer(intermediate, addr);
+            delta += ReadFromBuffer(/*intermediate,*/ addr);
 
 #ifdef DOUBLE_INTEGRATE
             // Accumulate to the delta
@@ -36,7 +36,7 @@ void main()
             color = delta;
 #endif
             // Write the delta integrated value to the output
-            WriteToBufferTransposed(intermediate_transposed, addr, color);
+            WriteToBufferTransposed(/*intermediate_transposed,*/ addr, color);
         }
     }
 }

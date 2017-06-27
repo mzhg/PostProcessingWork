@@ -63,9 +63,10 @@ cbuffer Params : register(b0)
 layout(binding = 0) uniform sampler2D tColor;
 layout(binding = 1) uniform sampler2D tCoc;
 
-layout(rgba32ui, binding = 0) uniform imageBuffer intermediate;
-layout(rgba32ui, binding = 1) uniform imageBuffer intermediate_transposed;
-layout(OUT_FORMAT, binding = 2) uniform imageBuffer resultColor;
+layout(r32i, binding = 0) uniform iimageBuffer intermediate;
+layout(rgba32i, binding = 0) uniform iimageBuffer intermediate_transpose;
+layout(rgba32i, binding = 1) uniform iimageBuffer intermediate_read;
+layout(OUT_FORMAT, binding = 2) uniform image2D resultColor;
 
 layout (std140, binding = 0) buffer BufferObject
 {
@@ -84,53 +85,59 @@ layout (std140, binding = 0) buffer BufferObject
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Calc offset into buffer from (x,y)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-uint GetOffset(int2 addr2d) { return ((addr2d.y * bufferResolution.x) + addr2d.x); }
+int GetOffset(int2 addr2d) { return ((addr2d.y * bufferResolution.x) + addr2d.x); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Calc offset into transposed buffer from (x,y)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-uint GetOffsetTransposed(int2 addr2d) { return ((addr2d.x * bufferResolution.y) + addr2d.y); }
+int GetOffsetTransposed(int2 addr2d) { return ((addr2d.x * bufferResolution.y) + addr2d.y); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Atomic add color to buffer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void InterlockedAddToBuffer(imageBuffer _buffer, int2 addr2d, int4 color)
+void InterlockedAddToBuffer(/*imageBuffer _buffer,*/ int2 addr2d, int4 color)
 {
-    int offset = GetOffset(addr2d);
-    atomicAdd(buffer[offset].r, color.r);
-    atomicAdd(buffer[offset].g, color.g);
-    atomicAdd(buffer[offset].b, color.b);
-    atomicAdd(buffer[offset].a, color.a);
+    int offset = GetOffset(addr2d) * 4;
+//    atomicAdd(buffer[offset].r, color.r);
+//    atomicAdd(buffer[offset].g, color.g);
+//    atomicAdd(buffer[offset].b, color.b);
+//    atomicAdd(buffer[offset].a, color.a);
+    imageAtomicAdd(intermediate, offset, color.r);
+    imageAtomicAdd(intermediate, offset+1, color.g);
+    imageAtomicAdd(intermediate, offset+2, color.b);
+    imageAtomicAdd(intermediate, offset+3, color.a);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Read result from buffer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int4 ReadFromBuffer(imageBuffer _buffer, int2 addr2d)
+int4 ReadFromBuffer(/*imageBuffer _buffer,*/ int2 addr2d)
 {
     int       offset = GetOffset(addr2d);
-    int4      result = imageLoad(_buffer, offset);
+    int4      result = imageLoad(intermediate_read, offset);
     return result;
 }
 
+#if 0
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // write color to buffer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void WriteToBuffer(imageBuffer _buffer, int2 addr2d, int4 color)
+void WriteToBuffer(/*imageBuffer _buffer,*/ int2 addr2d, int4 color)
 {
     const int offset = GetOffset(addr2d);
 //    buffer[offset]   = color;
     imageStore(_buffer, offset, color);
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // write color to transposed buffer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void WriteToBufferTransposed(imageBuffer _buffer, int2 addr2d, int4 color)
+void WriteToBufferTransposed(/*imageBuffer _buffer,*/ int2 addr2d, int4 color)
 {
     const int offset = GetOffsetTransposed(addr2d);
 //    buffer[offset]   = color;
-    imageStore(_buffer, offset, color);
+    imageStore(intermediate_transpose, offset, color);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,7 +163,7 @@ int4 normalizeBlurColor(in float4 color, in int blur_radius)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // write the bartlett data to the buffer
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void WriteDeltaBartlett(imageBuffer deltaBuffer, float3 vColor, int blur_radius, int2 loc)
+void WriteDeltaBartlett(/*imageBuffer deltaBuffer,*/ float3 vColor, int blur_radius, int2 loc)
 {
     int4 intColor = normalizeBlurColor(float4(vColor, 1.0), blur_radius);
     /*[loop]*/ for (int i = 0; i < 9; ++i)
@@ -166,25 +173,25 @@ void WriteDeltaBartlett(imageBuffer deltaBuffer, float3 vColor, int blur_radius,
 
         // Offset the location by location of the delta and padding
         // Need to offset by (1,1) because the kernel is not centered
-        int2 bufLoc = loc.xy + delta + padding + uint2(1, 1);
+        int2 bufLoc = loc.xy + delta + padding + 1;
 
         // Write the delta
         // Use interlocked add to prevent the threads from stepping on each other
-        InterlockedAddToBuffer(deltaBuffer, bufLoc, intColor * delta_value);
+        InterlockedAddToBuffer(/*deltaBuffer,*/ bufLoc, intColor * delta_value);
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // write the bartlett data to the buffer for box filter
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void WriteBoxDeltaBartlett(imageBuffer deltaBuffer, float3 vColor, int blur_radius, int2 loc)
+void WriteBoxDeltaBartlett(/*imageBuffer deltaBuffer,*/ float3 vColor, int blur_radius, int2 loc)
 {
     float normalization = scale_factor / float(blur_radius * 2 + 1);
     int4  intColor      = int4(round(float4(vColor, 1.0) * normalization));
     for (int i = 0; i < 4; ++i)
     {
         const int2 delta       = boxBartlettData[i].xy * blur_radius;
-        const int2 offset      = boxBartlettData[i].xy > int2(0, 0);
+        const int2 offset      = int2( greaterThan(boxBartlettData[i].xy, int2(0, 0)));
         const int  delta_value = boxBartlettData[i].z;
 
         // Offset the location by location of the delta and padding
@@ -192,6 +199,6 @@ void WriteBoxDeltaBartlett(imageBuffer deltaBuffer, float3 vColor, int blur_radi
 
         // Write the delta
         // Use interlocked add to prevent the threads from stepping on each other's toes
-        InterlockedAddToBuffer(deltaBuffer, bufLoc, intColor * delta_value);
+        InterlockedAddToBuffer(/*deltaBuffer,*/ bufLoc, intColor * delta_value);
     }
 }

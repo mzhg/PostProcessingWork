@@ -12,6 +12,7 @@ final class VertexElement9 {
 	 byte     method;     // Processing method
 	 byte     usage;      // Semantics
 	 byte     usageIndex; // Semantic index
+	 byte     size;       // The element count
 	 
 	 int load(byte[] data, int offset){
 		 stream = Numeric.getShort(data, offset); offset +=2;

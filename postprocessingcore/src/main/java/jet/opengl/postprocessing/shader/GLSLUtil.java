@@ -23,6 +23,7 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.DebugTools;
 
 public final class GLSLUtil {
 
@@ -178,6 +179,7 @@ public final class GLSLUtil {
                 	buf = sb.toString();
                 }
                 if(compiled == 0){
+					DebugTools.saveErrorShaderSource(source);
                 	gl.glDeleteShader(shader);
     	            shader = 0;
                 	throw new GLSLException(String.format("%s Shader log:\n%s\n", shaderName, buf));
@@ -284,7 +286,7 @@ public final class GLSLUtil {
 		property.active_attribute_properties = new AttribProperties[property.active_attributes];
 		property.active_attribute_max_length = gl.glGetProgrami(programId, GLenum.GL_ACTIVE_ATTRIBUTE_MAX_LENGTH);
 		property.active_uniform_max_length = gl.glGetProgrami(programId, GLenum.GL_ACTIVE_UNIFORM_MAX_LENGTH);
-//		GLError.checkError();
+		GLCheck.checkError();
 //    	ByteBuffer[] bufs = GLUtil.getCachedByteBuffer(new int[]{4, 4, 4, property.active_attribute_max_length});
 //    	ByteBuffer _length = BufferUtils.createByteBuffer(4);
 		IntBuffer size = BufferUtils.createIntBuffer(1);

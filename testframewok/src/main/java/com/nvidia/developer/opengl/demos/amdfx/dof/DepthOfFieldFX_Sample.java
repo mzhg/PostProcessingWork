@@ -14,10 +14,13 @@ import org.lwjgl.util.vector.Vector4i;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.shader.ProgramProperties;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
@@ -50,7 +53,7 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
 
     // Global boolean for HUD rendering
     boolean g_bRenderHUD              = true;
-    boolean g_bShowDOFResult          = true;
+    boolean g_bShowDOFResult          = false;
     boolean g_bDebugCircleOfConfusion = false;
     boolean g_bSaveScreenShot         = false;
 
@@ -71,7 +74,8 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
     AMD_Mesh g_Model;
     final S_MODEL_DESC        g_ModelDesc = new S_MODEL_DESC();
 
-    Texture2D g_appColorBuffer;
+    int            g_framebuffer;
+    Texture2D      g_appColorBuffer;
     Texture2D      g_appDepthBuffer;
     Texture2D      g_appDofSurface;
     GLSLProgram    g_d3dFullScreenProgram = null;
@@ -165,6 +169,17 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
             gl.glDepthFunc(GLenum.GL_LEQUAL);
         };
 
+        GLCheck.checkError();
+        try {
+            final String shaderPath = "shader_libs/";
+            g_d3dFullScreenProgram = GLSLProgram.createFromFiles(shaderPath + "PostProcessingDefaultScreenSpaceVS.vert",
+                                                                shaderPath + "PostProcessingDefaultScreenSpacePS.frag");
+            g_d3dFullScreenProgram.enable();
+            g_d3dFullScreenProgram.setTextureUniform("g_InputTex", 0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         setupDepthOfField();
         g_AMD_DofFX_Desc = new DepthOfFieldFXDesc();
 //        g_AMD_DofFX_Desc.m_pDevice        = pd3dDevice;
@@ -176,6 +191,8 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
         {
             throw new IllegalStateException();
         }
+
+        GLCheck.checkError();
     }
 
     @Override
@@ -196,7 +213,7 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
 //        static float fTimeDofRendering  = 0.0f;
 
         Vector4f light_blue = new Vector4f(0.176f, 0.196f, 0.667f, 0.000f);
-        Vector4f white = new Vector4f(1.000f, 1.000f, 1.000f, 1.000f);
+//        Vector4f white = new Vector4f(1.000f, 1.000f, 1.000f, 1.000f);
 
 //        TIMER_Reset();
 
@@ -225,6 +242,12 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
                 g_d3dBackCullingSolidRS, g_d3dOpaqueBS, null, g_d3dDepthLessEqualDSS, 0, /*g_d3dModelIL*/0, /*g_d3dModelVS*/null, pNullHS, pNullDS,
                 pNullGS, g_d3dModelProgram, g_d3dModelCB, pCB, 0, pCB.length, pSS, 0, pSS.length, null, 1, 0, pRTV, pRTV.length, g_appDepthBuffer,
                 g_pCurrentCamera);
+
+            if(g_bRenderHUD){
+                System.out.println("-------------------------ModelProgram-----------------------");
+                ProgramProperties properties = GLSLUtil.getProperties(g_d3dModelProgram.getProgram());
+                System.out.println(properties);
+            }
         }
 
 
@@ -363,6 +386,8 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
 //            fTimeDofRendering   = 0.0f;
 //            nFrameCount         = 0;
 //        }
+
+        g_bRenderHUD = false;
     }
 
     //--------------------------------------------------------------------------------------
@@ -423,6 +448,8 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
 //        pd3dContext->GSSetShader(pGS, NULL, 0);
 //        pd3dContext->PSSetShader(pPS, NULL, 0);
 
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, g_framebuffer);
+
         if (nSSCount > 0)
         {
 //            pd3dContext->VSSetSamplers(nSSStart, nSSCount, ppSS);
@@ -472,11 +499,15 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
         if(pRS != null) pRS.run();
         gl.glViewport(pVP.x, pVP.y, pVP.z, pVP.w);
 
+        GLCheck.checkError();
+
         for (int mesh = 0; mesh < 1; mesh++)
         {
             SetModelConstantBuffer(pModelCB, pMeshDesc, pCamera);
             pMesh.Render();
         }
+
+        GLCheck.checkError();
     }
 
     @Override
@@ -527,7 +558,7 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
         CommonUtil.safeRelease(g_appCoCTexture);
 //        hr = g_appCoCTexture.CreateSurface(pd3dDevice, pSurfaceDesc->Width, pSurfaceDesc->Height, pSurfaceDesc->SampleDesc.Count, 1, 1, DXGI_FORMAT_R16_FLOAT, DXGI_FORMAT_R16_FLOAT, DXGI_FORMAT_UNKNOWN,
 //                DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R16_FLOAT, DXGI_FORMAT_UNKNOWN, D3D11_USAGE_DEFAULT, false, 0, NULL, NULL, 0);
-        g_appDepthBuffer = TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_R16F), null);
+        g_appCoCTexture = TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_R16F), null);
 
         // Depth Of Feild Result surface
         CommonUtil.safeRelease(g_appDofSurface);
@@ -535,6 +566,16 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
 //        hr = g_appDofSurface.CreateSurface(pd3dDevice, pSurfaceDesc->Width, pSurfaceDesc->Height, pSurfaceDesc->SampleDesc.Count, 1, 1, DXGI_FORMAT_R8G8B8A8_TYPELESS, appDebugFormat, appDebugFormat,
 //                DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_UNKNOWN, D3D11_USAGE_DEFAULT, false, 0, NULL, NULL, 0);
         g_appDofSurface = TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_RGBA8), null);
+
+        if(g_framebuffer == 0){
+            g_framebuffer = gl.glGenFramebuffer();
+        }
+
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, g_framebuffer);
+        gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, g_appColorBuffer.getTarget(), g_appColorBuffer.getTexture(), 0);
+        gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, g_appDepthBuffer.getTarget(), g_appDepthBuffer.getTexture(), 0);
+        gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 
         g_AMD_DofFX_Desc.m_pCircleOfConfusionSRV = g_appCoCTexture;
         g_AMD_DofFX_Desc.m_pColorSRV             = g_appColorBuffer;
@@ -640,7 +681,7 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
         pParams.forceCoc      = g_forceCoc;
 
         data = CacheBuffer.getCachedByteBuffer(CalcDOFParams.SIZE);
-        cameraDesc.store(data);
+        pParams.store(data);
         data.flip();
 
         gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, g_d3dCalcDofCb);

@@ -226,11 +226,8 @@ public class SDKmesh {
 //                                                                                    strPath, &pMaterials[m].pDiffuseRV10,
 //                                                                                    true ) ) )
 //                        pMaterials[m].pDiffuseRV10 = ( ID3D10ShaderResourceView* )ERROR_RESOURCE_VALUE;
-                	strPath = m_strPath + pMaterials[m].diffuseTexture;
-                	if(new File(strPath).exists())
-                		pMaterials[0].pDiffuseTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
-                	else
-                		pMaterials[0].pDiffuseTexture11 = 0;
+                	strPath = m_strPath + "/" + pMaterials[m].diffuseTexture;
+                    pMaterials[m].pDiffuseTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
                 	textureCount ++;
                 }
                 if( !StringUtils.isEmpty(pMaterials[m].normalTexture) )
@@ -242,9 +239,9 @@ public class SDKmesh {
 //                        pMaterials[m].pNormalRV10 = ( ID3D10ShaderResourceView* )ERROR_RESOURCE_VALUE;
                 	strPath = m_strPath + pMaterials[m].normalTexture;
                 	if(new File(strPath).exists())
-                		pMaterials[0].pNormalTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
+                		pMaterials[m].pNormalTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
                 	else
-                		pMaterials[0].pNormalTexture11 = 0;
+                		pMaterials[m].pNormalTexture11 = 0;
                 	textureCount ++;
                 }
                 if( !StringUtils.isEmpty(pMaterials[m].specularTexture) )
@@ -256,10 +253,10 @@ public class SDKmesh {
 //                        pMaterials[m].pSpecularRV10 = ( ID3D10ShaderResourceView* )ERROR_RESOURCE_VALUE;
                 	strPath = m_strPath + pMaterials[m].specularTexture;
                 	if(new File(strPath).exists())
-                		pMaterials[0].pSpecularTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
+                		pMaterials[m].pSpecularTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
                 	else
-                		
-                	textureCount ++;
+                        pMaterials[m].pSpecularTexture11 =0;
+                                textureCount ++;
                 }
             }
             
@@ -400,6 +397,8 @@ public class SDKmesh {
         	vertexBufferArrayOffset = m_pVertexBufferArray[i].load(m_pStaticMeshData, vertexBufferArrayOffset);
         	if(debug)
         		System.out.println(m_pVertexBufferArray[i]);
+
+            m_pVertexBufferArray[i].resolveElementSize();
         }
         
         m_pIndexBufferArray = new SDKMeshIndexBufferHeader[m_pMeshHeader.numIndexBuffers];
@@ -495,6 +494,9 @@ public class SDKmesh {
         	
         	m_ppVertices[i] = pVertices;
         }
+
+        // Create VAO
+
         
         if(debug)
         	System.out.println("m_ppVertices = " + Arrays.toString(m_ppVertices));
@@ -783,216 +785,6 @@ public class SDKmesh {
         }
     }
 
-    //Direct3D 10 rendering helpers
-    void  renderMesh( int iMesh,
-         boolean bAdjacent,
-//         ID3D10Device* pd3dDevice,
-//         ID3D10EffectTechnique* pTechnique,
-//         ID3D10EffectShaderResourceVariable* ptxDiffuse,
-//         ID3D10EffectShaderResourceVariable* ptxNormal,
-//         ID3D10EffectShaderResourceVariable* ptxSpecular,
-//         ID3D10EffectVectorVariable* pvDiffuse,
-//         ID3D10EffectVectorVariable* pvSpecular 
-         int pTechnique,  // OpenGL Program
-         int ptxDiffuse,  // diffuse texture unit, based 0
-         int ptxNormal,   // normal texture unit, based 0
-         int ptxSpecular, // specular texture unit, based 0 
-         int pvDiffuse,   // diffuse uniform index
-         int pvSpecular   // specular uniform index
-         ){
-    	if( 0 < getOutstandingBufferResources() )
-            return;
-
-        SDKMeshMesh pMesh = m_pMeshArray[iMesh];
-
-        int[] strides = new int[MAX_D3D10_VERTEX_STREAMS];
-        int[] offsets = new int[MAX_D3D10_VERTEX_STREAMS];
-        int[] pVB     = new int[MAX_D3D10_VERTEX_STREAMS];
-
-        if( pMesh.numVertexBuffers > MAX_D3D10_VERTEX_STREAMS )
-            return;
-
-        for( int i = 0; i < pMesh.numVertexBuffers; i++ )
-        {
-            pVB[i] = m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].buffer;
-            strides[i] = (int)m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].strideBytes;
-            offsets[i] = 0;
-        }
-
-        SDKMeshIndexBufferHeader[] pIndexBufferArray;
-        if( bAdjacent )
-            pIndexBufferArray = m_pAdjacencyIndexBufferArray;
-        else
-            pIndexBufferArray = m_pIndexBufferArray;
-
-//        ID3D10Buffer* pIB = pIndexBufferArray[ pMesh->IndexBuffer ].pIB10;
-        int pIB = pIndexBufferArray[pMesh.indexBuffer].buffer;
-//        DXGI_FORMAT ibFormat = DXGI_FORMAT_R16_int;
-        int ibFormat = GLenum.GL_UNSIGNED_SHORT;
-        switch( pIndexBufferArray[ pMesh.indexBuffer ].indexType )
-        {
-            case IT_16BIT:
-                ibFormat = GLenum.GL_UNSIGNED_SHORT;
-                break;
-            case IT_32BIT:
-                ibFormat = GLenum.GL_UNSIGNED_INT;
-                break;
-        };
-
-//        pd3dDevice->IASetVertexBuffers( 0, pMesh->NumVertexBuffers, pVB, Strides, Offsets );
-//        pd3dDevice->IASetIndexBuffer( pIB, ibFormat, 0 );
-        //TODO Bind Vertex Buffer here
-        gl.glBindVertexArray(0);
-        for(int i = 0; i < pMesh.numVertexBuffers; i++){
-            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, pVB[i]);
-//        	GL20.glEnableVertexAttribArray(index);
-        }
-
-//        D3D10_TECHNIQUE_DESC techDesc;
-//        pTechnique->GetDesc( &techDesc );
-        SDKMeshSubset pSubset = null;
-        SDKmeshMaterial pMat = null;
-        int PrimType;
-
-
-//        for( int p = 0; p < techDesc.Passes; ++p )
-        {
-            gl.glUseProgram(pTechnique);
-            for( int subset = 0; subset < pMesh.numSubsets; subset++ )
-            {
-                pSubset = m_pSubsetArray[ pMesh.pSubsets[subset] ];
-
-                PrimType = getPrimitiveType10( /*( SDKMESH_PRIMITIVE_TYPE )*/pSubset.primitiveType );
-                if( bAdjacent )
-                {
-                    switch( PrimType )
-                    {
-                        case D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-                            PrimType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-                            break;
-                        case D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
-                            PrimType = D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
-                            break;
-                        case D3D10_PRIMITIVE_TOPOLOGY_LINELIST:
-                            PrimType = D3D10_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
-                            break;
-                        case D3D10_PRIMITIVE_TOPOLOGY_LINESTRIP:
-                            PrimType = D3D10_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
-                            break;
-                    }
-                }
-                
-                PrimType = convertDXDrawCMDToGL(PrimType);
-
-//                pd3dDevice->IASetPrimitiveTopology( PrimType );
-
-                pMat = m_pMaterialArray[ pSubset.materialID ];
-//                if( ptxDiffuse && !IsErrorResource( pMat->pDiffuseRV10 ) )
-//                    ptxDiffuse->SetResource( pMat->pDiffuseRV10 );
-//                if( ptxNormal && !IsErrorResource( pMat->pNormalRV10 ) )
-//                    ptxNormal->SetResource( pMat->pNormalRV10 );
-//                if( ptxSpecular && !IsErrorResource( pMat->pSpecularRV10 ) )
-//                    ptxSpecular->SetResource( pMat->pSpecularRV10 );
-//                if( pvDiffuse )
-//                    pvDiffuse->SetFloatVector( pMat->Diffuse );
-//                if( pvSpecular )
-//                    pvSpecular->SetFloatVector( pMat->Specular );
-                
-                if(ptxDiffuse >=0){
-                    gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxDiffuse);
-                    gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pDiffuseTexture11);
-                }
-                
-                if(ptxNormal >= 0){
-                    gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxNormal);
-                    gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pNormalTexture11);
-                }
-                
-                if(ptxSpecular >= 0){
-                    gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxSpecular);
-                    gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pSpecularTexture11);
-                }
-                
-                if(pvDiffuse >= 0)
-                    gl.glUniform4f(pvDiffuse, pMat.diffuse.x,pMat.diffuse.y,pMat.diffuse.z,pMat.diffuse.w);
-                
-                if(pvSpecular >= 0)
-                    gl.glUniform4f(pvDiffuse, pMat.specular.x,pMat.specular.y,pMat.specular.z,pMat.specular.w);
-
-//                pTechnique->GetPassByIndex( p )->Apply( 0 );
-
-                int IndexCount = ( int )pSubset.indexCount;
-                int IndexStart = ( int )pSubset.indexStart;
-                int VertexStart = ( int )pSubset.vertexStart;
-                if( bAdjacent )
-                {
-                    IndexCount *= 2;
-                    IndexStart *= 2;
-                }
-//                pd3dDevice->DrawIndexed( IndexCount, IndexStart, VertexStart );
-                gl.glDrawElementsBaseVertex(PrimType, IndexCount, ibFormat, IndexStart, VertexStart);
-            }
-            
-            if(ptxSpecular >= 0){
-                gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxSpecular);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
-            }
-
-            if(ptxNormal >= 0){
-                gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxNormal);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
-            }
-
-            if(ptxDiffuse >=0){
-                gl.glActiveTexture(GLenum.GL_TEXTURE0 + ptxDiffuse);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
-            }
-        }
-    }
-    
-    void  renderFrame(int iFrame,
-          boolean bAdjacent,
-//          ID3D10Device* pd3dDevice,
-//          ID3D10EffectTechnique* pTechnique,
-//          ID3D10EffectShaderResourceVariable* ptxDiffuse,
-//          ID3D10EffectShaderResourceVariable* ptxNormal,
-//          ID3D10EffectShaderResourceVariable* ptxSpecular,
-//          ID3D10EffectVectorVariable* pvDiffuse,
-//          ID3D10EffectVectorVariable* pvSpecular
-          int pTechnique,
-          int ptxDiffuse,
-          int ptxNormal,
-          int ptxSpecular,
-          int pvDiffuse,
-          int pvSpecular
-    	){
-    	if( m_pStaticMeshData == null || m_pFrameArray == null )
-            return;
-
-        if( m_pFrameArray[iFrame].mesh != INVALID_MESH )
-        {
-            renderMesh( m_pFrameArray[iFrame].mesh,
-                        bAdjacent,
-                        /*pd3dDevice,*/
-                        pTechnique,
-                        ptxDiffuse,
-                        ptxNormal,
-                        ptxSpecular,
-                        pvDiffuse,
-                        pvSpecular );
-        }
-
-        // Render our children
-        if( m_pFrameArray[iFrame].childFrame != INVALID_FRAME )
-            renderFrame( m_pFrameArray[iFrame].childFrame, bAdjacent, /*pd3dDevice,*/ pTechnique, ptxDiffuse, ptxNormal,
-                         ptxSpecular, pvDiffuse, pvSpecular );
-
-        // Render our siblings
-        if( m_pFrameArray[iFrame].siblingFrame != INVALID_FRAME )
-            renderFrame( m_pFrameArray[iFrame].siblingFrame, bAdjacent, /*pd3dDevice,*/ pTechnique, ptxDiffuse, ptxNormal,
-                         ptxSpecular, pvDiffuse, pvSpecular );
-    }
-
 	void renderFrame( int iFrame,
 				         boolean bAdjacent,
 				//         ID3D10Device* pd3dDevice,
@@ -1034,6 +826,7 @@ public class SDKmesh {
 
 	    SDKMeshMesh pMesh = m_pMeshArray[iMesh];
 
+        GLCheck.checkError();
 	    int[] strides = new int[MAX_D3D10_VERTEX_STREAMS];
 	    int[] offsets = new int[MAX_D3D10_VERTEX_STREAMS];
 //	    ID3D10Buffer* pVB[MAX_D3D10_VERTEX_STREAMS];
@@ -1042,12 +835,32 @@ public class SDKmesh {
 	    if( pMesh.numVertexBuffers > MAX_D3D10_VERTEX_STREAMS )
 	        return;
 
-	    for( int i = 0; i < pMesh.numVertexBuffers; i++ )
-	    {
-	        pVB[i] = m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].buffer;
-	        strides[i] = (int)m_pVertexBufferArray[ pMesh.vertexBuffers[i] ].strideBytes;
-	        offsets[i] = 0;
-	    }
+        if(pMesh.vao == 0){
+            pMesh.vao = gl.glGenVertexArray();
+            gl.glBindVertexArray(pMesh.vao);
+
+            for( int i = 0; i < pMesh.numVertexBuffers; i++ )
+            {
+                SDKMeshVertexBufferHeader vertexBuffer = m_pVertexBufferArray[ pMesh.vertexBuffers[i] ];
+                pVB[i] = vertexBuffer.buffer;
+                strides[i] = (int)vertexBuffer.strideBytes;
+                offsets[i] = 0;
+
+                gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, pVB[i]);
+                for(int j = 0; j < vertexBuffer.decl.length; j++){
+                    VertexElement9 element = vertexBuffer.decl[j];
+                    if(element.stream >= 0 && element.stream < MAX_D3D10_VERTEX_STREAMS){
+                        gl.glEnableVertexAttribArray(element.stream);
+                        gl.glVertexAttribPointer(element.stream, element.size, GLenum.GL_FLOAT, false, (int)vertexBuffer.strideBytes, element.offset);
+                    }
+                }
+            }
+
+            // unbind buffers
+            gl.glBindVertexArray(0);
+            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+            GLCheck.checkError();
+        }
 
 	    SDKMeshIndexBufferHeader[] pIndexBufferArray;
 	    if( bAdjacent )
@@ -1057,7 +870,6 @@ public class SDKmesh {
 
 //	    ID3D10Buffer* pIB = pIndexBufferArray[ pMesh->IndexBuffer ].pIB10;
 //	    DXGI_FORMAT ibFormat = DXGI_FORMAT_R16_int;
-	    
 	    int pIB = pIndexBufferArray[pMesh.indexBuffer].buffer;
 	    int ibFormat = GLenum.GL_UNSIGNED_SHORT;
 	    switch( pIndexBufferArray[ pMesh.indexBuffer ].indexType )
@@ -1077,9 +889,10 @@ public class SDKmesh {
 	    SDKmeshMaterial pMat = null;
 	    int PrimType;
 
-	    // TODO Binding Vertex Buffers.
-	    
+        gl.glBindVertexArray(pMesh.vao);
 	    gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, pIB);
+        GLCheck.checkError();
+
 	    for( int subset = 0; subset < pMesh.numSubsets; subset++ )
 	    {
 	        pSubset = m_pSubsetArray[ pMesh.pSubsets[subset] ];
@@ -1107,30 +920,26 @@ public class SDKmesh {
 	        int glcmd = convertDXDrawCMDToGL(PrimType);
 
 //	        pd3dDevice->IASetPrimitiveTopology( PrimType );
-
+            GLCheck.checkError();
 	        pMat = m_pMaterialArray[ pSubset.materialID ];
-//	        if( iDiffuseSlot != INVALID_SAMPLER_SLOT && !IsErrorResource( pMat->pDiffuseRV10 ) )
-//	            pd3dDevice->PSSetShaderResources( iDiffuseSlot, 1, &pMat->pDiffuseRV10 );
-//	        if( iNormalSlot != INVALID_SAMPLER_SLOT && !IsErrorResource( pMat->pNormalRV10 ) )
-//	            pd3dDevice->PSSetShaderResources( iNormalSlot, 1, &pMat->pNormalRV10 );
-//	        if( iSpecularSlot != INVALID_SAMPLER_SLOT && !IsErrorResource( pMat->pSpecularRV10 ) )
-//	            pd3dDevice->PSSetShaderResources( iSpecularSlot, 1, &pMat->pSpecularRV10 );
-	        
-	        if(iDiffuseSlot != INVALID_SAMPLER_SLOT){
+            if(iDiffuseSlot != INVALID_SAMPLER_SLOT){
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + iDiffuseSlot);
                 gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pDiffuseTexture11);  // TODO Don't forget sampler
-	        }
-	        
-	        if(iDiffuseSlot != INVALID_SAMPLER_SLOT){
+                GLCheck.checkError();
+            }
+
+            if(iNormalSlot != INVALID_SAMPLER_SLOT){
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + iNormalSlot);
                 gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pNormalTexture11);  // TODO Don't forget sampler
-	        }
-	        
-	        if(iSpecularSlot != INVALID_SAMPLER_SLOT){
+                GLCheck.checkError();
+            }
+
+            if(iSpecularSlot != INVALID_SAMPLER_SLOT){
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + iSpecularSlot);
                 gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pSpecularTexture11);  // TODO Don't forget sampler
-	        }
-	        
+                GLCheck.checkError();
+            }
+
 	        int IndexCount = ( int )pSubset.indexCount;
 	        int IndexStart = ( int )pSubset.indexStart;
 	        int VertexStart = ( int )pSubset.vertexStart;
@@ -1139,31 +948,30 @@ public class SDKmesh {
 	            IndexCount *= 2;
 	            IndexStart *= 2;
 	        }
-	        
+            GLCheck.checkError();
 //	        pd3dDevice->DrawIndexed( IndexCount, IndexStart, VertexStart );
             gl.glDrawElementsBaseVertex(glcmd, IndexCount, ibFormat, IndexStart, VertexStart);
+            GLCheck.checkError();
 	    }
+
+        if(iDiffuseSlot != INVALID_SAMPLER_SLOT){
+            gl.glActiveTexture(GLenum.GL_TEXTURE0 + iDiffuseSlot);
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+        }
+
+        if(iNormalSlot != INVALID_SAMPLER_SLOT){
+            gl.glActiveTexture(GLenum.GL_TEXTURE0 + iNormalSlot);
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+        }
+
+        if(iSpecularSlot != INVALID_SAMPLER_SLOT){
+            gl.glActiveTexture(GLenum.GL_TEXTURE0 + iSpecularSlot);
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+        }
+
+        gl.glBindVertexArray(0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
-	
-	
-//--------------------------------------------------------------------------------------
-
-
-//Direct3D 9 rendering helpers
-//	void  renderMesh( int iMesh,
-//         LPDIRECT3DDEVICE9 pd3dDevice,
-//         LPD3DXEFFECT pEffect,
-//         D3DXHANDLE hTechnique,
-//         D3DXHANDLE htxDiffuse,
-//         D3DXHANDLE htxNormal,
-//         D3DXHANDLE htxSpecular );
-//void                            RenderFrame( int iFrame,
-//          LPDIRECT3DDEVICE9 pd3dDevice,
-//          LPD3DXEFFECT pEffect,
-//          D3DXHANDLE hTechnique,
-//          D3DXHANDLE htxDiffuse,
-//          D3DXHANDLE htxNormal,
-//          D3DXHANDLE htxSpecular );
 
 	public void create(String fileName) throws IOException{
 		create(fileName, false, null);
@@ -1334,39 +1142,6 @@ public class SDKmesh {
 			int iSpecularSlot /*= INVALID_SAMPLER_SLOT*/ ){
 		renderFrame(0, true, iDiffuseSlot, iNormalSlot, iSpecularSlot);
 	}
-
-	void render( 
-			/*ID3D10Device* pd3dDevice,*/
-//ID3D10EffectTechnique* pTechnique,
-//ID3D10EffectShaderResourceVariable* ptxDiffuse = NULL,
-//ID3D10EffectShaderResourceVariable* ptxNormal = NULL,
-//ID3D10EffectShaderResourceVariable* ptxSpecular = NULL,
-//ID3D10EffectVectorVariable* pvDiffuse = NULL,
-//ID3D10EffectVectorVariable* pvSpecular = NULL
-			int pTechnique,
-	          int ptxDiffuse,
-	          int ptxNormal,
-	          int ptxSpecular,
-	          int pvDiffuse,
-	          int pvSpecular
-    ){
-		renderFrame(0, false, pTechnique, ptxDiffuse, ptxNormal, ptxSpecular, pvDiffuse, pvSpecular);
-	}
-//virtual void                    RenderAdjacent( ID3D10Device* pd3dDevice,
-//        ID3D10EffectTechnique* pTechnique,
-//        ID3D10EffectShaderResourceVariable* ptxDiffuse = NULL,
-//        ID3D10EffectShaderResourceVariable* ptxNormal = NULL,
-//        ID3D10EffectShaderResourceVariable* ptxSpecular = NULL,
-//        ID3D10EffectVectorVariable* pvDiffuse = NULL,
-//        ID3D10EffectVectorVariable* pvSpecular = NULL );
-////Direct3D 9 Rendering
-//virtual void                    Render( LPDIRECT3DDEVICE9 pd3dDevice,
-//LPD3DXEFFECT pEffect,
-//D3DXHANDLE hTechnique,
-//D3DXHANDLE htxDiffuse = 0,
-//D3DXHANDLE htxNormal = 0,
-//D3DXHANDLE htxSpecular = 0 );
-
 
 //Helpers (D3D10 specific)
 	public static int getPrimitiveType10( int PrimType ){

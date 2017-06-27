@@ -15,11 +15,9 @@ import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
-import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 
-import static com.nvidia.developer.opengl.demos.amdfx.dof.DEPTHOFFIELDFX_RETURN_CODE.DEPTHOFFIELDFX_RETURN_CODE_INVALID_SURFACE;
 import static com.nvidia.developer.opengl.demos.amdfx.dof.DEPTHOFFIELDFX_RETURN_CODE.DEPTHOFFIELDFX_RETURN_CODE_SUCCESS;
 
 /**
@@ -165,7 +163,7 @@ final class DepthOfFieldFXOpaqueDesc {
 
             m_pIntermediateUAV = gl.glGenTexture();
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_pIntermediateUAV);
-            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_RGBA32UI, m_pIntermediateBuffer);
+            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_R32UI, m_pIntermediateBuffer);
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
         }
 
@@ -195,13 +193,13 @@ final class DepthOfFieldFXOpaqueDesc {
 
         if (((desc.m_screenSize.x + desc.m_maxBlurRadius * 2) * (desc.m_screenSize.y + desc.m_maxBlurRadius * 2)) > (m_bufferWidth * m_bufferHeight))
         {
-            return DEPTHOFFIELDFX_RETURN_CODE_INVALID_SURFACE;
+            return DEPTHOFFIELDFX_RETURN_CODE.DEPTHOFFIELDFX_RETURN_CODE_INVALID_SURFACE;
         }
 
 //        ID3D11DeviceContext* pCtx = desc.m_pDeviceContext;
 
-        int pUAVs[] = { m_pIntermediateUAV, 0, desc.m_pResultUAV.getTexture() };
-        Texture2D  pSRVs[] = { desc.m_pColorSRV, desc.m_pCircleOfConfusionSRV };
+//        int pUAVs[] = { m_pIntermediateUAV, 0, desc.m_pResultUAV.getTexture() };
+//        Texture2D  pSRVs[] = { desc.m_pColorSRV, desc.m_pCircleOfConfusionSRV };
         int              pCBs  = m_pDofParamsCB;
 
 //        pCtx->CSSetSamplers(0, 1, &m_pPointSampler);

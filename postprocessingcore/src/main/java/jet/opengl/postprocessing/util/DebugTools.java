@@ -91,6 +91,23 @@ public final class DebugTools {
         writer.close();
     }
 
+    public static void saveErrorShaderSource(CharSequence source){
+        final String filename = "error_shader.txt";
+        File file = new File(filename);
+//        File parent = file.getParentFile();
+//        if(parent != null)
+//            parent.mkdirs();
+
+        try {
+            FileWriter writer = new FileWriter(file);
+            writer.append(source);
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void saveTextureAsText(int target, int textureID, int level, String filename, int cmpSize, int dataType) throws IOException{
         final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         ByteBuffer result = getTextureData(target, textureID, level, true);

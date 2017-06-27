@@ -37,6 +37,31 @@ final class SDKMeshVertexBufferHeader {
 		return offset;
 	}
 
+	void resolveElementSize(){
+		for(int i = 0; i < decl.length; i++){
+			VertexElement9 curr = decl[i];
+			if(curr.stream < 0 || curr.stream >= decl.length)
+				return;
+
+			if(i == decl.length - 1){
+				int diff_offset = (int)(strideBytes - curr.offset);
+				curr.size = (byte) (diff_offset /4);  // Float
+			}else{
+				VertexElement9 next = decl[i+1];
+				int diff_offset = 0;
+				if(next.stream >=0 && next.stream < decl.length){
+					diff_offset = next.offset - curr.offset;
+				}else{
+					diff_offset = (int)(strideBytes - curr.offset);
+				}
+
+				curr.size = (byte) (diff_offset /4);  // Float
+			}
+
+			curr.stream = (short)i;
+		}
+	}
+
 	@Override
 	public String toString() {
 		return "SDKMeshVertexBufferHeader [numVertices=" + numVertices + ",\n sizeBytes=" + sizeBytes + ",\n strideBytes="

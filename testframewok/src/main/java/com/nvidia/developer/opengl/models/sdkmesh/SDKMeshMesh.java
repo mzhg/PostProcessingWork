@@ -31,6 +31,8 @@ final class SDKMeshMesh {
 //    int[] pFrameInfluences;  // Pointer to list of frame influences
     int[] pFrameInfluences;
     //};
+
+	int vao;
     
     int load(byte[] data, int offset){
     	name = SDKmesh.getString(data, offset, SDKmesh.MAX_MESH_NAME);
