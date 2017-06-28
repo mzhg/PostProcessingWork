@@ -16,7 +16,18 @@ final class SDKMeshFrame {
     int siblingFrame;  // 116
     final Matrix4f matrix = new Matrix4f();  // 180
     int animationDataIndex;		// 184 Used to index which set of keyframes transforms this frame
-    
+
+	public void toString(StringBuilder out, int index){
+		out.append("SDKMeshFrame").append(index).append(":------------------------------\n");
+		out.append("name = ").append(name).append('\n');
+		out.append("parentFrame = ").append(parentFrame).append('\n');
+		out.append("childFrame = ").append(childFrame).append('\n');
+		out.append("siblingFrame = ").append(siblingFrame).append('\n');
+		out.append("matrix = ").append(matrix).append('\n');
+		out.append("animationDataIndex = ").append(animationDataIndex).append('\n');
+		out.append("----------------------------------\n");
+	}
+
     int load(byte[] data, int position){
     	name = SDKmesh.getString(data, position, SDKmesh.MAX_FRAME_NAME);
     	position+=SDKmesh.MAX_FRAME_NAME;

@@ -164,6 +164,43 @@ public class SDKmesh {
 	protected Matrix4f[] m_pBindPoseFrameMatrices;
 	protected Matrix4f[] m_pTransformedFrameMatrices;
 	protected Matrix4f[] m_pWorldPoseFrameMatrices;
+
+    public void printMeshInformation(String filename){
+        StringBuilder out = new StringBuilder(1024);
+        m_pMeshHeader.toString(out);
+
+        int index = 0;
+        for(SDKMeshVertexBufferHeader vertexBufferHeader : m_pVertexBufferArray){
+            vertexBufferHeader.toString(out, index++);
+        }
+
+        index = 0;
+        for(SDKMeshIndexBufferHeader vertexBufferHeader : m_pIndexBufferArray){
+            vertexBufferHeader.toString(out, index++);
+        }
+
+        index = 0;
+        for(SDKMeshMesh mesh : m_pMeshArray){
+            mesh.toString(out, index++);
+        }
+
+        index = 0;
+        for(SDKMeshSubset subset : m_pSubsetArray){
+            subset.toString(out, index++);
+        }
+
+        index = 0;
+        for(SDKMeshFrame subset : m_pFrameArray){
+            subset.toString(out, index++);
+        }
+
+        index = 0;
+        for(SDKmeshMaterial subset : m_pMaterialArray){
+            subset.toString(out, index++);
+        }
+
+        System.out.println(out);
+    }
     
     void loadMaterials(SDKmeshMaterial[] pMaterials) throws IOException{ loadMaterials(pMaterials, null);}
     void loadMaterials(SDKmeshMaterial[] pMaterials, SDKmeshCallbacks pLoaderCallbacks) throws IOException{
@@ -227,7 +264,8 @@ public class SDKmesh {
 //                                                                                    true ) ) )
 //                        pMaterials[m].pDiffuseRV10 = ( ID3D10ShaderResourceView* )ERROR_RESOURCE_VALUE;
                 	strPath = m_strPath + "/" + pMaterials[m].diffuseTexture;
-                    pMaterials[m].pDiffuseTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
+                    if(FileUtils.g_IntenalFileLoader.exists(strPath))
+                        pMaterials[m].pDiffuseTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
                 	textureCount ++;
                 }
                 if( !StringUtils.isEmpty(pMaterials[m].normalTexture) )
@@ -273,7 +311,7 @@ public class SDKmesh {
     void createVertexBuffer( /*ID3D10Device* pd3dDevice,*/
             SDKMeshVertexBufferHeader pHeader, ByteBuffer pVertices,
             SDKmeshCallbacks pLoaderCallbacks ){
-    	pHeader.dataOffset = 0;
+//    	pHeader.dataOffset = 0;
         //Vertex Buffer
 //        D3D10_BUFFER_DESC bufferDesc;
 //        bufferDesc.ByteWidth = ( int )( pHeader->SizeBytes );
@@ -345,7 +383,7 @@ public class SDKmesh {
     }
     
     
-    boolean debug = true;
+    boolean debug = false;
     void  createFromMemory( /*ID3D10Device* pDev10,
                IDirect3DDevice9* pDev9,*/
                byte[] pData,
@@ -488,8 +526,9 @@ public class SDKmesh {
         	int pVertices = NULL;
         	pVertices = (int) (pBufferData + ( m_pVertexBufferArray[i].dataOffset - bufferDataStart ));
         	
-        	ByteBuffer bytes = CacheBuffer.getCachedByteBuffer((int) m_pVertexBufferArray[i].sizeBytes);
-        	bytes.put(m_pStaticMeshData, pVertices, (int) m_pVertexBufferArray[i].sizeBytes).flip();
+//        	ByteBuffer bytes = CacheBuffer.getCachedByteBuffer((int) m_pVertexBufferArray[i].sizeBytes);
+//        	bytes.put(m_pStaticMeshData, pVertices, (int) m_pVertexBufferArray[i].sizeBytes).flip();
+            ByteBuffer bytes = CacheBuffer.wrap(m_pStaticMeshData, pVertices, (int) m_pVertexBufferArray[i].sizeBytes);
         	createVertexBuffer(m_pVertexBufferArray[i], bytes, pLoaderCallbacks);
         	
         	m_ppVertices[i] = pVertices;
@@ -506,8 +545,10 @@ public class SDKmesh {
         for( int i = 0; i < m_pMeshHeader.numIndexBuffers; i++ ){
         	int pIndices =  (int) (pBufferData + ( m_pIndexBufferArray[i].dataOffset - bufferDataStart ));
         	
-        	ByteBuffer bytes = CacheBuffer.getCachedByteBuffer((int) m_pIndexBufferArray[i].sizeBytes);
-        	bytes.put(m_pStaticMeshData, pIndices, (int) m_pIndexBufferArray[i].sizeBytes).flip();
+//        	ByteBuffer bytes = CacheBuffer.getCachedByteBuffer((int) m_pIndexBufferArray[i].sizeBytes);
+//        	bytes.put(m_pStaticMeshData, pIndices, (int) m_pIndexBufferArray[i].sizeBytes).flip();
+
+            ByteBuffer bytes = CacheBuffer.wrap(m_pStaticMeshData, pIndices, (int) m_pIndexBufferArray[i].sizeBytes);
         	createIndexBuffer(m_pIndexBufferArray[i], bytes, pLoaderCallbacks);
         	
 //        	if(debug){
@@ -827,10 +868,10 @@ public class SDKmesh {
 	    SDKMeshMesh pMesh = m_pMeshArray[iMesh];
 
         GLCheck.checkError();
-	    int[] strides = new int[MAX_D3D10_VERTEX_STREAMS];
-	    int[] offsets = new int[MAX_D3D10_VERTEX_STREAMS];
+//	    int[] strides = new int[MAX_D3D10_VERTEX_STREAMS];
+//	    int[] offsets = new int[MAX_D3D10_VERTEX_STREAMS];
 //	    ID3D10Buffer* pVB[MAX_D3D10_VERTEX_STREAMS];
-	    int[] pVB     = new int[MAX_D3D10_VERTEX_STREAMS];
+//	    int[] pVB     = new int[MAX_D3D10_VERTEX_STREAMS];
 
 	    if( pMesh.numVertexBuffers > MAX_D3D10_VERTEX_STREAMS )
 	        return;
@@ -842,11 +883,11 @@ public class SDKmesh {
             for( int i = 0; i < pMesh.numVertexBuffers; i++ )
             {
                 SDKMeshVertexBufferHeader vertexBuffer = m_pVertexBufferArray[ pMesh.vertexBuffers[i] ];
-                pVB[i] = vertexBuffer.buffer;
-                strides[i] = (int)vertexBuffer.strideBytes;
-                offsets[i] = 0;
+                int pVB = vertexBuffer.buffer;
+//                strides[i] = (int)vertexBuffer.strideBytes;
+//                offsets[i] = 0;
 
-                gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, pVB[i]);
+                gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, pVB);
                 for(int j = 0; j < vertexBuffer.decl.length; j++){
                     VertexElement9 element = vertexBuffer.decl[j];
                     if(element.stream >= 0 && element.stream < MAX_D3D10_VERTEX_STREAMS){
@@ -854,6 +895,8 @@ public class SDKmesh {
                         gl.glVertexAttribPointer(element.stream, element.size, GLenum.GL_FLOAT, false, (int)vertexBuffer.strideBytes, element.offset);
                     }
                 }
+
+                break;
             }
 
             // unbind buffers
@@ -924,19 +967,19 @@ public class SDKmesh {
 	        pMat = m_pMaterialArray[ pSubset.materialID ];
             if(iDiffuseSlot != INVALID_SAMPLER_SLOT){
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + iDiffuseSlot);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pDiffuseTexture11);  // TODO Don't forget sampler
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pDiffuseTexture11);
                 GLCheck.checkError();
             }
 
             if(iNormalSlot != INVALID_SAMPLER_SLOT){
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + iNormalSlot);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pNormalTexture11);  // TODO Don't forget sampler
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pNormalTexture11);
                 GLCheck.checkError();
             }
 
             if(iSpecularSlot != INVALID_SAMPLER_SLOT){
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + iSpecularSlot);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pSpecularTexture11);  // TODO Don't forget sampler
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, pMat.pSpecularTexture11);
                 GLCheck.checkError();
             }
 

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -44,7 +45,7 @@ public class NvImage {
     protected boolean _cubeMap;
 
     protected static boolean upperLeftOrigin = true;
-    protected static boolean m_expandDXT = true;
+    protected static boolean m_expandDXT = false;
     protected static NvGfxAPIVersion m_gfxAPIVersion = NvGfxAPIVersion.GLES2;
     protected static FormatInfo[] formatTable = new FormatInfo[]{new FormatInfo("dds", new ReadDDS(), null)};
 
@@ -99,6 +100,7 @@ public class NvImage {
                         gl.glCompressedTexImage2D( f, l, internalFormat, w, h, 0, CacheBuffer.wrap(getLevel(l, f)));
                     } else {
                         gl.glTexImage2D( f, l, internalFormat, w, h, 0, getFormat(), getType(), CacheBuffer.wrap(getLevel(l, f)));
+                        GLCheck.checkError();
                     }
 
                     w >>= 1;
@@ -107,6 +109,12 @@ public class NvImage {
                     h = (h != 0) ? h : 1;
                 }
             }
+
+            gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_MIN_FILTER, getMipLevels() == 1? GLenum.GL_LINEAR : GLenum.GL_LINEAR_MIPMAP_LINEAR);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
         } else {
             gl.glBindTexture(GLenum.GL_TEXTURE_2D, texID);
 
@@ -124,8 +132,14 @@ public class NvImage {
                 w = (w != 0) ? w : 1;
                 h = (h != 0) ? h : 1;
             }
+
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, getMipLevels() == 1? GLenum.GL_LINEAR : GLenum.GL_LINEAR_MIPMAP_LINEAR);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
         }
 
+        GLCheck.checkError();
         return texID;
     }
 
@@ -1431,18 +1445,18 @@ public class NvImage {
                         i._type = GL_UNSIGNED_SHORT;
                     }
                     else if ( ddsh.ddspf.dwRBitMask == 0xff && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff0000 && ddsh.ddspf.dwABitMask == 0x00 ) {
-                        i._format = GL_RGB;
+                        i._format = GL_RGBA;  // TODO GL_RGB ??
                         i._internalFormat = GL_RGBA8;
                         i._type = GL_UNSIGNED_INT_8_8_8_8;
                     }
                     else if ( ddsh.ddspf.dwRBitMask == 0xff0000 && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff && ddsh.ddspf.dwABitMask == 0x00 ) {
-                        i._format = GL_BGR;
+                        i._format = GL_BGRA;  // TODO GL_GBR ??
                         i._internalFormat = GL_RGBA8;
                         i._type = GL_UNSIGNED_INT_8_8_8_8;
                     }
                     else {
                         // probably a poorly labeled file with BGRX semantics
-                        i._format = GL_BGR;
+                        i._format = GL_BGRA;   // TODO GL_BGR
                         i._internalFormat = GL_RGBA8;
                         i._type = GL_UNSIGNED_INT_8_8_8_8;
                     }

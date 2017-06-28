@@ -12,5 +12,5 @@ void main()
     float4 texColor = float4(1, 1, 1, 1);  //
     texColor        = texture(g_t2dDiffuse, m_TexCoord);
 
-    Out_f4Color = max(vec4(0), texColor);
+    Out_f4Color = texColor;
 }

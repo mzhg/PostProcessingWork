@@ -53,6 +53,28 @@ final class SDKmeshHeader {
     	return offset;
     }
 
+	public void toString(StringBuilder out){
+		out.append("SDKmeshHeader:----------------\n");
+		out.append("version = ").append(version).append('\n');
+		out.append("isBigEndian = ").append(isBigEndian).append('\n');
+		out.append("headerSize = ").append(headerSize).append('\n');
+		out.append("nonBufferDataSize = ").append(nonBufferDataSize).append('\n');
+		out.append("bufferDataSize = ").append(bufferDataSize).append('\n');
+		out.append("numVertexBuffers = ").append(numVertexBuffers).append('\n');
+		out.append("numIndexBuffers = ").append(numIndexBuffers).append('\n');
+		out.append("numMeshes = ").append(numMeshes).append('\n');
+		out.append("numTotalSubsets = ").append(numTotalSubsets).append('\n');
+		out.append("numFrames = ").append(numFrames).append('\n');
+		out.append("numMaterials = ").append(numMaterials).append('\n');
+		out.append("vertexStreamHeadersOffset = ").append(vertexStreamHeadersOffset).append('\n');
+		out.append("indexStreamHeadersOffset = ").append(indexStreamHeadersOffset).append('\n');
+		out.append("meshDataOffset = ").append(meshDataOffset).append('\n');
+		out.append("subsetDataOffset = ").append(subsetDataOffset).append('\n');
+		out.append("frameDataOffset = ").append(frameDataOffset).append('\n');
+		out.append("materialDataOffset = ").append(materialDataOffset).append('\n');
+		out.append("-----------------------------------\n");
+	}
+
 	@Override
 	public String toString() {
 		return "SDKmeshHeader [version=" + version + ", isBigEndian=" + isBigEndian + ", headerSize=" + headerSize

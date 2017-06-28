@@ -203,9 +203,9 @@ public class NvSampleApp extends NvAppBase {
 	            // for now, app will own the tweakbar tab button
 	            float high = mTweakBar.getDefaultLineHeight();
 	            NvUIElement[] els = new NvUIElement[3];
-	            els[0] = new NvUIGraphic("arrow_blue.dds", 0, 0);
+	            els[0] = new NvUIGraphic("arrow_blue.dds", 0, 0);GLCheck.checkError();
 	            els[0].setDimensions(high/2, high/2);
-	            els[1] = new NvUIGraphic("arrow_blue_left.dds", 0 ,0 );
+	            els[1] = new NvUIGraphic("arrow_blue_left.dds", 0 ,0 );GLCheck.checkError();
 	            els[1].setDimensions(high/2, high/2);
 	            els[2] = null;
 

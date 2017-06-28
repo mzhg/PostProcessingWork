@@ -14,7 +14,7 @@ uniform mat4 m_World;
 void main()
 {
     // Transform the position from object space to homogeneous projection space
-    gl_Position = mul(float4(In_Position, 1.0f), m_WorldViewProjection);
+    gl_Position = m_WorldViewProjection * float4(In_Position, 1.0f);
     m_worldPos = mul(float4(In_Position, 1.0f), m_World).xyz;
 
     // Transform the normal from object space to world space

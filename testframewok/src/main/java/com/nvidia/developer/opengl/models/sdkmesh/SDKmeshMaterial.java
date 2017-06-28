@@ -35,6 +35,21 @@ final class SDKmeshMaterial {
     int pDiffuseRV11;
     int pNormalRV11;
     int pSpecularRV11;
+
+	public void toString(StringBuilder out, int index){
+		out.append("SDKmeshMaterial").append(index).append(":------------------------------\n");
+		out.append("name = ").append(name).append('\n');
+		out.append("materialInstancePath = ").append(materialInstancePath).append('\n');
+		out.append("diffuseTexture = ").append(diffuseTexture).append('\n');
+		out.append("normalTexture = ").append(normalTexture).append('\n');
+		out.append("specularTexture = ").append(specularTexture).append('\n');
+		out.append("diffuse = ").append(diffuse).append('\n');
+		out.append("ambient = ").append(ambient).append('\n');
+		out.append("specular = ").append(specular).append('\n');
+		out.append("emissive = ").append(emissive).append('\n');
+		out.append("power = ").append(power).append('\n');
+		out.append("------------------------------------\n");
+	}
     
     int load(byte[] data, int position){
     	name = SDKmesh.getString(data, position, SDKmesh.MAX_MATERIAL_NAME); position+= SDKmesh.MAX_MATERIAL_NAME;

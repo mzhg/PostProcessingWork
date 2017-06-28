@@ -25,6 +25,13 @@ final class VertexElement9 {
 		 return offset;
 	 }
 
+	public void toString(StringBuilder out){
+		if(stream < 0 || stream >= SDKmesh.MAX_VERTEX_STREAMS)
+			return;
+
+		out.append(toString());
+	}
+
 	@Override
 	public String toString() {
 		return "VertexElement9 [stream=" + stream + ", offset=" + offset + ",\n type=" + type + ", method=" + method

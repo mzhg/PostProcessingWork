@@ -22,6 +22,15 @@ final class SDKMeshIndexBufferHeader {
 		return offset;
 	}
 
+	public void toString(StringBuilder out, int index){
+		out.append("SDKMeshIndexBufferHeader").append(index).append(":----------------------------\n");
+		out.append("numVertices = ").append(numVertices).append('\n');
+		out.append("sizeBytes = ").append(sizeBytes).append('\n');
+		out.append("indexType = ").append(indexType).append('\n');
+		out.append("dataOffset = ").append(dataOffset).append('\n');
+		out.append("------------------------------------\n");
+	}
+
 	@Override
 	public String toString() {
 		return "SDKMeshIndexBufferHeader [numVertices=" + numVertices + ", sizeBytes=" + sizeBytes + ", indexType="

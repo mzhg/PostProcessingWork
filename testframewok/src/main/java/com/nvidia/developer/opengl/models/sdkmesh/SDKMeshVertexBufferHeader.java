@@ -62,6 +62,22 @@ final class SDKMeshVertexBufferHeader {
 		}
 	}
 
+	public void toString(StringBuilder out, int index){
+		out.append("SDKMeshVertexBufferHeader").append(index).append(":----------------------------\n");
+		out.append("numVertices = ").append(numVertices).append('\n');
+		out.append("sizeBytes = ").append(sizeBytes).append('\n');
+		out.append("strideBytes = ").append(strideBytes).append('\n');
+		out.append("dataOffset = ").append(dataOffset).append('\n');
+
+		for(VertexElement9 vertex : decl){
+			if(vertex.stream < 0 || vertex.stream >= SDKmesh.MAX_VERTEX_STREAMS)
+				break;
+
+			out.append(vertex).append('\n');
+		}
+		out.append("------------------------------------\n");
+	}
+
 	@Override
 	public String toString() {
 		return "SDKMeshVertexBufferHeader [numVertices=" + numVertices + ",\n sizeBytes=" + sizeBytes + ",\n strideBytes="

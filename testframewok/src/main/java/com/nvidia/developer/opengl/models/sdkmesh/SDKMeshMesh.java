@@ -33,6 +33,21 @@ final class SDKMeshMesh {
     //};
 
 	int vao;
+
+	public void toString(StringBuilder out, int index){
+		out.append("SDKMeshMesh").append(index).append(":--------------------------------\n");
+		out.append("name = ").append(name).append('\n');
+		out.append("numVertexBuffers = ").append(numVertexBuffers).append('\n');
+		out.append("vertexBuffers = ").append(Arrays.toString(Arrays.copyOfRange(vertexBuffers, 0, numVertexBuffers))).append('\n');
+		out.append("indexBuffer = ").append(indexBuffer).append('\n');
+		out.append("numSubsets = ").append(numSubsets).append('\n');
+		out.append("numFrameInfluences = ").append(numFrameInfluences).append('\n');
+		out.append("boundingBoxCenter = ").append(boundingBoxCenter).append('\n');
+		out.append("boundingBoxExtents = ").append(boundingBoxExtents).append('\n');
+		out.append("pSubsets = ").append(Arrays.toString(pSubsets)).append('\n');
+		out.append("pFrameInfluences = ").append(Arrays.toString(pFrameInfluences)).append('\n');
+		out.append("------------------------------------\n");
+	}
     
     int load(byte[] data, int offset){
     	name = SDKmesh.getString(data, offset, SDKmesh.MAX_MESH_NAME);

@@ -36,6 +36,7 @@ public final class AMD_Mesh {
             try {
                 m_sdkMesh = new SDKmesh();
 				m_sdkMesh.create(fname, false, null);
+                m_sdkMesh.printMeshInformation("");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -63,6 +64,7 @@ public final class AMD_Mesh {
 
     public void Release(){
     	if(m_isSdkMesh){
+
     	}
     }
 

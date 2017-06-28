@@ -31,6 +31,19 @@ public final class SDKMeshSubset {
     	return position;
     }
 
+	public void toString(StringBuilder out, int index){
+		out.append("SDKMeshSubset").append(index).append(":------------------------------\n");
+		out.append("name = ").append(name).append('\n');
+		out.append("materialID = ").append(materialID).append('\n');
+		out.append("primitiveType = ").append(primitiveType).append('\n');
+
+		out.append("indexStart = ").append(indexStart).append('\n');
+		out.append("indexCount = ").append(indexCount).append('\n');
+		out.append("vertexStart = ").append(vertexStart).append('\n');
+		out.append("vertexCount = ").append(vertexCount).append('\n');
+		out.append("--------------------------------\n");
+	}
+
 	@Override
 	public String toString() {
 		return "SDKMeshSubset [name=" + name + ",\n materialID=" + materialID + ", primitiveType=" + primitiveType
