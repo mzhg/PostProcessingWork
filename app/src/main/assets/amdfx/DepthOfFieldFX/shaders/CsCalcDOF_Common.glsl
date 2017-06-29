@@ -45,7 +45,7 @@ layout(binding =0) uniform sampler2D tCoc;
 layout(r16f, binding = 0) uniform image2D uCoC;
 layout(rgba8, binding = 0) uniform image2D uDebugVisCoc;
 
-layout (binding = 0) buffer CalcDOFParams{
+layout (binding = 0) uniform CalcDOFParams{
     uint4 ScreenParams;
     float zNear;
     float zFar;
@@ -57,7 +57,7 @@ layout (binding = 0) buffer CalcDOFParams{
 };
 #endif
 
-float CocFromDepth(float sceneDepth, float focusDistance, float fStop, float focalLength)
+float CocFromDepth(float sceneDepth/*, float focusDistance, float fStop, float focalLength*/)
 {
     float cocScale             = (focalLength * focalLength) / fStop;  // move to constant buffer
     float distanceToLense      = sceneDepth - focalLength;
@@ -71,7 +71,7 @@ float CocFromDepth(float sceneDepth, float focusDistance, float fStop, float foc
 
 ///////////////////////////////////////
 // compute camera-space depth for current pixel
-float CameraDepth(float depth, float zNear, float zFar)
+float CameraDepth(float depth/*, float zNear, float zFar*/)
 {
     return zFar*zNear/(zFar-depth*(zFar-zNear));
 }

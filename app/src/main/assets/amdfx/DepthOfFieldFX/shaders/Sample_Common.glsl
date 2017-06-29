@@ -82,11 +82,11 @@ Texture2D g_t2dDiffuse : register(t0);
 
 SamplerState g_ssLinear : register(s0);
 #else
-layout (binding = 0) buffer BufferObject{
+layout (binding = 0) uniform BufferObject{
     S_MODEL_DESC g_Model;
 };
 
-layout (binding = 1) buffer BufferCamera{
+layout (binding = 1) uniform BufferCamera{
     S_CAMERA_DESC g_Viewer;
 };
 

@@ -2,6 +2,8 @@ package jet.opengl.postprocessing.util;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -47,6 +49,27 @@ public final class DebugTools {
         out.close();
     }
 
+    public static ByteBuffer loadBinary(String filename){
+        try(FileInputStream inputStream = new FileInputStream(filename)){
+            byte[] bytes = new byte[inputStream.available()];
+            inputStream.read(bytes);
+
+            ByteBuffer byteBuffer = BufferUtils.createByteBuffer(bytes.length);
+            byteBuffer.put(bytes).flip();
+            return byteBuffer;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static void convertBinaryToText(String source, int internalFormat, int width, String destion) throws IOException {
+        saveTexelsAsText(loadBinary(source), internalFormat, width, destion);
+    }
+
     public static void saveTextureAsBinary(int target, int textureID, int level, String filename) throws IOException{
         write(getTextureData(target, textureID, level, true), filename, false);
     }
@@ -55,6 +78,22 @@ public final class DebugTools {
         final int flags = RED_MASK | GREEN_MASK | BLUE_MASK | ALPHA_MASK;
         saveTextureAsText(target, textureID, level, filename, flags);
     }
+
+    public static void saveBufferAsText(int target, int buffer, int internalFormat, int width, String filename) throws IOException{
+        final int flags = RED_MASK | GREEN_MASK | BLUE_MASK | ALPHA_MASK;
+        saveBufferAsText(target, buffer, internalFormat, width, filename, flags);
+    }
+
+    public static void saveBufferAsText(int target, int buffer, int internalFormat, int width, String filename, int flags) throws IOException{
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glBindBuffer(target, buffer);
+        int size = gl.glGetBufferParameteri(target, GLenum.GL_BUFFER_SIZE);
+        ByteBuffer data = BufferUtils.createByteBuffer(size);
+        gl.glGetBufferSubData(target, 0, size, data);
+
+        saveTexelsAsText(data, internalFormat, width, filename, flags);
+    }
+
     public static void saveTextureAsText(int target, int textureID, int level, String filename, int flags) throws IOException{
         final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         ByteBuffer result = getTextureData(target, textureID, level, true);
@@ -64,11 +103,11 @@ public final class DebugTools {
         saveTexelsAsText(result, internalFormat, width, filename, flags);
     }
 
-    public static void saveTexelsAsText(ByteBuffer pixels, int format, int width, String filename) throws IOException{
-        saveTexelsAsText(pixels, format, width, filename, RED_MASK | GREEN_MASK | BLUE_MASK | ALPHA_MASK);
+    public static void saveTexelsAsText(ByteBuffer pixels, int internalFormat, int width, String filename) throws IOException{
+        saveTexelsAsText(pixels, internalFormat, width, filename, RED_MASK | GREEN_MASK | BLUE_MASK | ALPHA_MASK);
     }
 
-    public static void saveTexelsAsText(ByteBuffer pixels, int format, int width, String filename, int flags) throws IOException{
+    public static void saveTexelsAsText(ByteBuffer pixels, int internalFormat, int width, String filename, int flags) throws IOException{
         File file = new File(filename);
         File parent = file.getParentFile();
         parent.mkdirs();
@@ -76,7 +115,7 @@ public final class DebugTools {
         BufferedWriter writer = new BufferedWriter(new FileWriter(file));
         int count = 0;
         while(pixels.hasRemaining()){
-            String str = getTexelToString(pixels, format, flags);
+            String str = getTexelToString(pixels, internalFormat, flags);
             writer.append(str);
             writer.append(' ');
             count++;

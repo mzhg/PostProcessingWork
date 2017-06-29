@@ -6,7 +6,6 @@ import com.nvidia.developer.opengl.demos.amdfx.common.AMD_Mesh;
 import com.nvidia.developer.opengl.demos.amdfx.common.CFirstPersonCamera;
 
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Vector4i;
@@ -34,7 +33,6 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 
 import static com.nvidia.developer.opengl.demos.amdfx.dof.DepthOfFieldFX.DepthOfFieldFX_Release;
-import static com.nvidia.developer.opengl.demos.amdfx.dof.DepthOfFieldFX_Sample.DepthOfFieldMode.DOF_FastFilterSpread;
 
 /**
  * Created by mazhen'gui on 2017/6/26.
@@ -58,7 +56,7 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
     boolean g_bSaveScreenShot         = false;
 
 
-    enum DepthOfFieldMode
+    private enum DepthOfFieldMode
     {
         DOF_Disabled                   /*= 0*/,
         DOF_BoxFastFilterSpread        /*= 1*/,
@@ -66,7 +64,7 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
         DOF_QuarterResFastFilterSpread /*= 3*/,
     };
 
-    DepthOfFieldMode g_depthOfFieldMode = DOF_FastFilterSpread;
+    DepthOfFieldMode g_depthOfFieldMode = DepthOfFieldMode.DOF_FastFilterSpread;
 
 //--------------------------------------------------------------------------------------
 // Mesh
@@ -193,6 +191,7 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
         }
 
         GLCheck.checkError();
+        m_transformer.setTranslation(0,0,-10);
     }
 
     @Override
@@ -751,10 +750,12 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
 
     void setCameraProjectionParameters()
     {
-        float fov = (float) (2 * Math.atan(0.5f * g_sensorWidth / g_FocalLength));
+        float fov = (float)  Math.toDegrees(2 * Math.atan(0.5f * g_sensorWidth / g_FocalLength));
         // Setup the camera's projection parameters
         float fAspectRatio = (float)getGLContext().width() / (float)getGLContext().height();
         g_Viewer.SetProjParams(fov, fAspectRatio, 0.1f, 200.0f);
+        m_transformer.getModelViewMat(g_Viewer.GetViewMatrix());
+        Matrix4f.decompseRigidMatrix(g_Viewer.GetViewMatrix(), g_Viewer.GetEyePt(), g_Viewer.GetLookAtPt(), g_Viewer.GetWorldUp());
     }
 
     void compileShaders(){
@@ -859,8 +860,7 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
         gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, 0);
     }
 
-    void setCameraParameters()
-    {
+    void setCameraParameters() {
         final CameraParameters params = g_defaultCameraParameters[g_defaultCameraParameterIndex];
         // Setup the camera's view parameters
 //        float4 vecEye(params.vecEye);
@@ -871,10 +871,10 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
 
         g_Viewer.SetViewParams(params.vecEye, params.vecAt, Vector3f.Y_AXIS);
 
-        g_FocalLength   = params.focalLength;
+        g_FocalLength = params.focalLength;
         g_FocalDistance = params.focalDistance;
-        g_sensorWidth   = params.sensorWidth;
-        g_fStop         = params.fStop;
+        g_sensorWidth = params.sensorWidth;
+        g_fStop = params.fStop;
 
 
 //        g_HUD.m_GUI.GetSlider(IDC_SLIDER_FOCAL_LENGTH)->SetValue((int)g_FocalLength);
@@ -882,67 +882,4 @@ public class DepthOfFieldFX_Sample extends NvSampleApp {
 //        g_HUD.m_GUI.GetSlider(IDC_SLIDER_SENSOR_WIDTH)->SetValue((int)(g_sensorWidth * 10.0f));
 //        g_HUD.m_GUI.GetSlider(IDC_SLIDER_FSTOP)->SetValue(int(g_fStop * 10.0f));
     }
-
-    //--------------------------------------------------------------------------------------
-// D3D11 DOF Rendering Interfaces
-//--------------------------------------------------------------------------------------
-    private static final class CalcDOFParams implements Readable
-    {
-        static final int SIZE = 12 * 4;
-
-        int          ScreenParamsX;
-        int          ScreenParamsY;
-         //  int padding0
-         //  int
-        float        zNear;
-        float        zFar;
-        float        focusDistance;
-        float        fStop;
-        float        focalLength;
-        float        maxRadius;
-        float        forceCoc;
-
-        @Override
-        public ByteBuffer store(ByteBuffer buf) {
-            buf.putInt(ScreenParamsX);
-            buf.putInt(ScreenParamsY);
-            buf.putInt(0);
-            buf.putInt(0);
-
-            buf.putFloat(zNear);
-            buf.putFloat(zFar);
-            buf.putFloat(focusDistance);
-            buf.putFloat(fStop);
-
-            buf.putFloat(focalLength);
-            buf.putFloat(maxRadius);
-            buf.putFloat(forceCoc);
-            buf.putFloat(0);
-
-            return buf;
-        }
-//        float        pad[3];
-    };
-
-    private static final class CameraParameters
-    {
-        final Vector4f vecEye = new Vector4f();
-        final Vector4f vecAt = new Vector4f();
-        float  focalLength;
-        float  focalDistance;
-        float  sensorWidth;
-        float  fStop;
-        CameraParameters() {}
-
-        CameraParameters(float eyeX, float eyeY, float eyeZ, float atX, float atY, float atZ, float focalLength, float focalDistance, float sensorWidth, float fStop){
-            vecEye.set(eyeX,eyeY,eyeZ);
-            vecAt.set(atX,atY,atZ);
-
-            this.focalLength = focalLength;
-            this.focalDistance = focalDistance;
-            this.sensorWidth = sensorWidth;
-            this.fStop = fStop;
-        }
-
-    };
 }

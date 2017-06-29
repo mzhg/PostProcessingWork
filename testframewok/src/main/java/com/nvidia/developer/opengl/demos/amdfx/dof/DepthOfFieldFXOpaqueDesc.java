@@ -4,19 +4,25 @@ import org.lwjgl.util.vector.Vector4i;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.shader.ProgramProperties;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
+import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.DebugTools;
 
 import static com.nvidia.developer.opengl.demos.amdfx.dof.DEPTHOFFIELDFX_RETURN_CODE.DEPTHOFFIELDFX_RETURN_CODE_SUCCESS;
 
@@ -40,6 +46,7 @@ final class DepthOfFieldFXOpaqueDesc {
 
     int              m_pIntermediateBuffer;       // texture buffer
     int              m_pIntermediateBufferTransposed;  // texture buffer
+    int              m_pIntermediateSetupUAV;          //
     int              m_pIntermediateUAV;          //
     int              m_pIntermediateTransposedUAV;
     int              m_pDofParamsCB;       // uniform buffer
@@ -54,7 +61,28 @@ final class DepthOfFieldFXOpaqueDesc {
 
     private final DofParams m_DofParams = new DofParams();
 
+    private boolean m_printProgramOnce;
     private GLFuncProvider gl;
+
+    DepthOfFieldFXOpaqueDesc(){
+        int index = 0;
+        for(int[] data : s_bartlettData){
+            Vector4i v = m_DofParams.bartlettData[index++];
+            v.x = data[0];
+            v.y = data[1];
+            v.z = data[2];
+            v.w = data[3];
+        }
+
+        index = 0;
+        for(int[] data : s_boxBartlettData){
+            Vector4i v = m_DofParams.boxBartlettData[index++];
+            v.x = data[0];
+            v.y = data[1];
+            v.z = data[2];
+            v.w = data[3];
+        }
+    }
 
     DEPTHOFFIELDFX_RETURN_CODE initalize(){
         gl = GLFuncProviderFactory.getGLFuncProvider();
@@ -163,7 +191,12 @@ final class DepthOfFieldFXOpaqueDesc {
 
             m_pIntermediateUAV = gl.glGenTexture();
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_pIntermediateUAV);
-            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_R32UI, m_pIntermediateBuffer);
+            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_RGBA32I, m_pIntermediateBuffer);
+            gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
+
+            m_pIntermediateSetupUAV = gl.glGenTexture();
+            gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_pIntermediateSetupUAV);
+            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_R32I, m_pIntermediateBuffer);
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
         }
 
@@ -175,7 +208,7 @@ final class DepthOfFieldFXOpaqueDesc {
 
             m_pIntermediateTransposedUAV = gl.glGenTexture();
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_pIntermediateTransposedUAV);
-            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_RGBA32UI, m_pIntermediateBufferTransposed);
+            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_RGBA32I, m_pIntermediateBufferTransposed);
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
         }
 
@@ -196,60 +229,89 @@ final class DepthOfFieldFXOpaqueDesc {
             return DEPTHOFFIELDFX_RETURN_CODE.DEPTHOFFIELDFX_RETURN_CODE_INVALID_SURFACE;
         }
 
-//        ID3D11DeviceContext* pCtx = desc.m_pDeviceContext;
 
-//        int pUAVs[] = { m_pIntermediateUAV, 0, desc.m_pResultUAV.getTexture() };
-//        Texture2D  pSRVs[] = { desc.m_pColorSRV, desc.m_pCircleOfConfusionSRV };
-        int              pCBs  = m_pDofParamsCB;
+        // setup pass
+        {
+            gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, m_pIntermediateBuffer);
+            gl.glClearBufferData(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_RGBA32UI, GLenum.GL_RGBA, GLenum.GL_UNSIGNED_INT, null);
+            GLCheck.checkError();
 
-//        pCtx->CSSetSamplers(0, 1, &m_pPointSampler);
+            update_constant_buffer(desc, m_bufferWidth, m_bufferHeight);
+            gl.glActiveTexture(GLenum.GL_TEXTURE0);
+            gl.glBindTexture(desc.m_pColorSRV.getTarget(), desc.m_pColorSRV.getTexture());
+            gl.glActiveTexture(GLenum.GL_TEXTURE1);
+            gl.glBindTexture(desc.m_pCircleOfConfusionSRV.getTarget(), desc.m_pCircleOfConfusionSRV.getTexture());
 
-        update_constant_buffer(desc, m_bufferWidth, m_bufferHeight);
-//        pCtx->CSSetConstantBuffers(0, ELEMENTS_OF(pCBs), pCBs);
-//        pCtx->CSSetShaderResources(0, ELEMENTS_OF(pSRVs), pSRVs);
-        gl.glActiveTexture(GLenum.GL_TEXTURE0);
-        gl.glBindTexture(desc.m_pColorSRV.getTarget(), desc.m_pColorSRV.getTexture());
-        gl.glActiveTexture(GLenum.GL_TEXTURE1);
-        gl.glBindTexture(desc.m_pCircleOfConfusionSRV.getTarget(), desc.m_pCircleOfConfusionSRV.getTexture());
-        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, pCBs);
+            m_pFastFilterSetupCS.enable();
 
+            int tgX = (desc.m_screenSize.x + 7) / 8;
+            int tgY = (desc.m_screenSize.y + 7) / 8;
 
-        // clear intermediate buffer
-//        UINT clearValues[4] = { 0 }; TODO
-//        pCtx->ClearUnorderedAccessViewUint(m_pIntermediateUAV, clearValues);
+//            Bind_UAVs(desc, m_pIntermediateUAV, 0, 0);
+            gl.glBindImageTexture(0, m_pIntermediateSetupUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_R32I);
+            gl.glDispatchCompute(tgX, tgY, 1);
+            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+            // unbind the textures.
+            gl.glBindTexture(desc.m_pCircleOfConfusionSRV.getTarget(), 0);
+            gl.glActiveTexture(GLenum.GL_TEXTURE0);
+            gl.glBindTexture(desc.m_pColorSRV.getTarget(), 0);
 
-        // Fast Filter Setup
-//        pCtx->CSSetShader(m_pFastFilterSetupCS, nullptr, 0);
-        m_pFastFilterSetupCS.enable();
+            if(!m_printProgramOnce){
+                System.out.println("-------------------------FastFilterSetup-----------------------");
+                ProgramProperties properties = GLSLUtil.getProperties(m_pFastFilterSetupCS.getProgram());
+                System.out.println(properties);
 
-        int tgX = (desc.m_screenSize.x + 7) / 8;
-        int tgY = (desc.m_screenSize.y + 7) / 8;
-
-        update_constant_buffer(desc, m_bufferWidth, m_bufferHeight);
-        Bind_UAVs(desc, m_pIntermediateUAV, 0, 0);
-//        pCtx->Dispatch(tgX, tgY, 1);
-        gl.glDispatchCompute(tgX, tgY, 1);
-        gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+                try {
+                    DebugTools.saveBufferAsText(GLenum.GL_TEXTURE_BUFFER, m_pIntermediateBuffer, GLenum.GL_RGBA32I, 128, "E:/textures/DepthOfField/IntermediateSetupGL.txt");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
         // do Vertical integration
         {
-            update_constant_buffer(desc, m_bufferWidth, m_bufferHeight);
-//            pCtx->CSSetShader(m_pDoubleVerticalIntegrateCS, nullptr, 0);
             m_pDoubleVerticalIntegrateCS.enable();
-            Bind_UAVs(desc, m_pIntermediateUAV, m_pIntermediateTransposedUAV, 0);
-//            pCtx->Dispatch((m_bufferWidth + 63) / 64, 1, 1);
+//            Bind_UAVs(desc, m_pIntermediateUAV, m_pIntermediateTransposedUAV, 0);
+
+            gl.glBindImageTexture(0, m_pIntermediateTransposedUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // transpose
+            gl.glBindImageTexture(1, m_pIntermediateUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // read
+            GLCheck.checkError();
             gl.glDispatchCompute((m_bufferWidth + 63) / 64, 1, 1);
             gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+            if(!m_printProgramOnce){
+                System.out.println("-------------------------DoubleVerticalIntegrate-----------------------");
+                ProgramProperties properties = GLSLUtil.getProperties(m_pDoubleVerticalIntegrateCS.getProgram());
+                System.out.println(properties);
+
+                try {
+                    DebugTools.saveBufferAsText(GLenum.GL_TEXTURE_BUFFER, m_pIntermediateBufferTransposed, GLenum.GL_RGBA32I, 128, "E:/textures/DepthOfField/IntermediateVerticalGL.txt");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         // do vertical integration by transposing the image and doing horizontal integration again
         {
             update_constant_buffer(desc, m_bufferHeight, m_bufferWidth);
-            Bind_UAVs(desc, m_pIntermediateTransposedUAV, m_pIntermediateUAV, 0);
+
+//            Bind_UAVs(desc, m_pIntermediateTransposedUAV, m_pIntermediateUAV, 0);
+            gl.glBindImageTexture(0, m_pIntermediateUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // transpose
+            gl.glBindImageTexture(1, m_pIntermediateTransposedUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // read
 //            pCtx->Dispatch((m_bufferHeight + 63) / 64, 1, 1);
             gl.glDispatchCompute((m_bufferHeight + 63) / 64, 1, 1);
             gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+            if(!m_printProgramOnce){
+                try {
+                    DebugTools.saveBufferAsText(GLenum.GL_TEXTURE_BUFFER, m_pIntermediateBuffer, GLenum.GL_RGBA32I, 128, "E:/textures/DepthOfField/IntermediateHorizontalGL.txt");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         // debug: Copy from intermediate results
@@ -257,10 +319,19 @@ final class DepthOfFieldFXOpaqueDesc {
 
 //        pCtx->CSSetShader(m_pReadFinalResultCS, nullptr, 0);
         m_pReadFinalResultCS.enable();
-        Bind_UAVs(desc, m_pIntermediateUAV, 0, desc.m_pResultUAV.getTexture());
+//        Bind_UAVs(desc, m_pIntermediateUAV, 0, desc.m_pResultUAV.getTexture());
 //        pCtx->Dispatch((desc.m_screenSize.x + 7) / 8, (desc.m_screenSize.y + 7) / 8, 1);
-        gl.glDispatchCompute((m_bufferHeight + 63) / 64, 1, 1);
+        gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // transpose
+        gl.glBindImageTexture(1, m_pIntermediateUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // read
+        gl.glBindImageTexture(2, desc.m_pResultUAV.getTexture(), 0, false, 0, GLenum.GL_READ_WRITE, desc.m_pResultUAV.getFormat());  // write
+        gl.glDispatchCompute((desc.m_screenSize.x + 7) / 8, (desc.m_screenSize.y + 7) / 8, 1);
         gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        if(!m_printProgramOnce){
+            System.out.println("-------------------------ReadFinalResult-----------------------");
+            ProgramProperties properties = GLSLUtil.getProperties(m_pReadFinalResultCS.getProgram());
+            System.out.println(properties);
+        }
 
 //        memset(pUAVs, 0, sizeof(pUAVs));
 //        memset(pSRVs, 0, sizeof(pSRVs));
@@ -268,8 +339,14 @@ final class DepthOfFieldFXOpaqueDesc {
 //        pCtx->CSSetUnorderedAccessViews(0, ELEMENTS_OF(pUAVs), pUAVs, nullptr);
 //        pCtx->CSSetShaderResources(0, ELEMENTS_OF(pSRVs), pSRVs);
 //        pCtx->CSSetConstantBuffers(0, ELEMENTS_OF(pCBs), pCBs);
-        Bind_UAVs(desc,0,0,0);  // unbind resources.
-        return DEPTHOFFIELDFX_RETURN_CODE_SUCCESS;
+//        Bind_UAVs(desc,0,0,0);  // unbind resources.
+        gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA32I);
+        gl.glBindImageTexture(1, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA32I);
+        gl.glBindImageTexture(2, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA32I);
+
+        GLCheck.checkError();
+        m_printProgramOnce =true;
+        return DEPTHOFFIELDFX_RETURN_CODE.DEPTHOFFIELDFX_RETURN_CODE_SUCCESS;
     }
 
     DEPTHOFFIELDFX_RETURN_CODE render_quarter_res(DepthOfFieldFXDesc desc){
@@ -505,6 +582,17 @@ final class DepthOfFieldFXOpaqueDesc {
         m_pVerticalIntegrateCS = create("VerticalIntegrate.comp", false);
         m_pDoubleVerticalIntegrateCS = create("VerticalIntegrate.comp", true);
 
+        // check the ubo size
+        if(GLCheck.CHECK) {
+            int uboIndex = gl.glGetUniformBlockIndex(m_pFastFilterSetupCS.getProgram(), "BufferObject");
+            IntBuffer uboSize = BufferUtils.createIntBuffer(1);
+            gl.glGetActiveUniformBlockiv(m_pFastFilterSetupCS.getProgram(), uboIndex, GLenum.GL_UNIFORM_BLOCK_DATA_SIZE, uboSize);
+
+            int _uboSize = uboSize.get();
+            if (_uboSize != DofParams.SIZE)
+                throw new IllegalArgumentException();
+        }
+
         return DEPTHOFFIELDFX_RETURN_CODE_SUCCESS;
     }
 
@@ -522,7 +610,7 @@ final class DepthOfFieldFXOpaqueDesc {
         pParams.sourceResolution.y    = desc.m_screenSize.y;
         pParams.invSourceResolution.x = 1.0f / (desc.m_screenSize.x);
         pParams.invSourceResolution.y = 1.0f / (desc.m_screenSize.y);
-//        pParams.padding               = desc.m_pOpaque.m_padding;
+        pParams.padding               = m_padding;
         pParams.scale_factor          = (float)(1 << desc.m_scaleFactor);
 //        memcpy(pParams->bartlettData, s_bartlettData, sizeof(s_bartlettData));
 //        memcpy(pParams->boxBartlettData, s_boxBartlettData, sizeof(s_boxBartlettData));
@@ -534,6 +622,8 @@ final class DepthOfFieldFXOpaqueDesc {
         gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, m_pDofParamsCB);
         gl.glBufferSubData(GLenum.GL_UNIFORM_BUFFER, 0, data);
         gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, 0);
+
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_pDofParamsCB);
 
         return true;
     }

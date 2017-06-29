@@ -68,13 +68,13 @@ layout(rgba32i, binding = 0) uniform iimageBuffer intermediate_transpose;
 layout(rgba32i, binding = 1) uniform iimageBuffer intermediate_read;
 layout(OUT_FORMAT, binding = 2) uniform image2D resultColor;
 
-layout (std140, binding = 0) buffer BufferObject
+layout (std140, binding = 0) uniform BufferObject
 {
 	int2   sourceResolution;
 	int2   bufferResolution;
     float2 invSourceResolution;
     float  scale_factor;
-    int    padding;
+    float  padding;
     int4   bartlettData[9];
     int4   boxBartlettData[4];
 };
@@ -106,6 +106,9 @@ void InterlockedAddToBuffer(/*imageBuffer _buffer,*/ int2 addr2d, int4 color)
     imageAtomicAdd(intermediate, offset+1, color.g);
     imageAtomicAdd(intermediate, offset+2, color.b);
     imageAtomicAdd(intermediate, offset+3, color.a);
+
+//    int4 orgin = imageLoad(intermediate, offset);
+//    imageStore(intermediate, offset, orgin + color);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -173,7 +176,7 @@ void WriteDeltaBartlett(/*imageBuffer deltaBuffer,*/ float3 vColor, int blur_rad
 
         // Offset the location by location of the delta and padding
         // Need to offset by (1,1) because the kernel is not centered
-        int2 bufLoc = loc.xy + delta + padding + 1;
+        int2 bufLoc = loc.xy + delta + int(padding) + 1;
 
         // Write the delta
         // Use interlocked add to prevent the threads from stepping on each other
@@ -195,7 +198,7 @@ void WriteBoxDeltaBartlett(/*imageBuffer deltaBuffer,*/ float3 vColor, int blur_
         const int  delta_value = boxBartlettData[i].z;
 
         // Offset the location by location of the delta and padding
-        int2 bufLoc = loc.xy + delta + padding + offset;
+        int2 bufLoc = loc.xy + delta + int(padding) + offset;
 
         // Write the delta
         // Use interlocked add to prevent the threads from stepping on each other's toes

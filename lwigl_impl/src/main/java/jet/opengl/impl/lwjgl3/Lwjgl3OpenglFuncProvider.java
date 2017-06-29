@@ -1700,4 +1700,14 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     public void glTexBuffer(int target, int internalFormat, int buffer) {
         GL31.glTexBuffer(target, internalFormat, buffer);
     }
+
+    @Override
+    public void glClearBufferData(int target, int internalformat, int format, int type, ByteBuffer data) {
+        GL43.glClearBufferData(target, internalformat, format, type, data);
+    }
+
+    @Override
+    public void glGetBufferSubData(int target, int offset, int size, ByteBuffer data) {
+        GL15.glGetBufferSubData(target, offset, data);
+    }
 }

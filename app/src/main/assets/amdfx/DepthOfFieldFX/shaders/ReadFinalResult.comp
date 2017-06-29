@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 float4 ReadResult(/*imageBuffer _buffer,*/ int2 loc)
 {
-    float4 tex_read = ReadFromBuffer(/*_buffer,*/ loc + padding);
+    float4 tex_read = ReadFromBuffer(/*_buffer,*/ loc + int2(padding, padding));
 
     // normalize the result
     tex_read.rgba /= tex_read.a;

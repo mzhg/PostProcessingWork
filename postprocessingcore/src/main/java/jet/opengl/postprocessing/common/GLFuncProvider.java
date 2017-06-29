@@ -1534,6 +1534,12 @@ public interface GLFuncProvider {
     void glGetUniformdv(int programId, int location, DoubleBuffer buf);
 
     void glDrawElementsBaseVertex(int primType, int count, int type, int start, int baseVertex);
-
     void glTexBuffer(int target, int internalFormat, int buffer);
+    void glClearBufferData(int target,
+                           int internalformat,
+                           int format,
+                           int type,
+                           ByteBuffer data);
+
+    void glGetBufferSubData(int target, int offset, int size, ByteBuffer data);
 }

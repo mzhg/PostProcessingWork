@@ -9,7 +9,7 @@ void main()
     {
         // Read the coc from the coc\depth buffer
         const float fcoc        = texelFetch(tCoc, ThreadID.xy, 0).r;
-        const int   blur_radius = CocToBlurRadius(fcoc, padding);
+        const int   blur_radius = CocToBlurRadius(fcoc, int(padding));
         float3      vColor      = texelFetch(tColor, ThreadID.xy, 0).rgb;
 
         WriteDeltaBartlett(/*intermediate,*/ vColor, blur_radius, ThreadID.xy);

@@ -13,7 +13,7 @@ void main()
     {
         float2 texCoord = (float(loc.x) + 1.0) * invSourceResolution;
 
-        const int    maxRadius = padding;
+        const int    maxRadius = int(padding);
         float4 fCoc4     = textureGather(tCoc, texCoord);   // pointSampler
 //        const float4 focusMask = 2.0 < abs(fCoc4);
         float4 focusMask = float4(lessThan(float4(2), abs(fCoc4)));
@@ -27,7 +27,7 @@ void main()
         {
             float4  absCoc4     = abs(fCoc4);
             float   fcoc        = max(max(absCoc4.x, absCoc4.y), max(absCoc4.z, absCoc4.w));
-            int     blur_radius = CocToBlurRadius(fcoc, padding);
+            int     blur_radius = CocToBlurRadius(fcoc, int(padding));
             float3      vColor;
             vColor.r = dot(red4, focusMask) / weight;
             vColor.g = dot(green4, focusMask) / weight;
@@ -36,10 +36,10 @@ void main()
         }
         else
         {
-            WriteDeltaBartlett(/*intermediate,*/ float3(red4.x, green4.x, blue4.x), CocToBlurRadius(fCoc4.x, padding), loc + int2(0, 1));
-            WriteDeltaBartlett(/*intermediate,*/ float3(red4.y, green4.y, blue4.y), CocToBlurRadius(fCoc4.y, padding), loc + int2(1, 1));
-            WriteDeltaBartlett(/*intermediate,*/ float3(red4.z, green4.z, blue4.z), CocToBlurRadius(fCoc4.z, padding), loc + int2(1, 0));
-            WriteDeltaBartlett(/*intermediate,*/ float3(red4.w, green4.w, blue4.w), CocToBlurRadius(fCoc4.w, padding), loc + int2(0, 0));
+            WriteDeltaBartlett(/*intermediate,*/ float3(red4.x, green4.x, blue4.x), CocToBlurRadius(fCoc4.x, int(padding)), loc + int2(0, 1));
+            WriteDeltaBartlett(/*intermediate,*/ float3(red4.y, green4.y, blue4.y), CocToBlurRadius(fCoc4.y, int(padding)), loc + int2(1, 1));
+            WriteDeltaBartlett(/*intermediate,*/ float3(red4.z, green4.z, blue4.z), CocToBlurRadius(fCoc4.z, int(padding)), loc + int2(1, 0));
+            WriteDeltaBartlett(/*intermediate,*/ float3(red4.w, green4.w, blue4.w), CocToBlurRadius(fCoc4.w, int(padding)), loc + int2(0, 0));
         }
     }
 }
