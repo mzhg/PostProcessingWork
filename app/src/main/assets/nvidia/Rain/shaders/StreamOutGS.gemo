@@ -1,0 +1,29 @@
+out Particle
+{
+  vec3 pos              ; // POSITION;         //position of the particle
+  vec3 seed             ;// SEED;
+  vec3 speed            ;// SPEED;
+  float random            ;// RAND;
+  uint   Type             ;// TYPE;
+}vs;
+
+layout (points) in;
+layout (points, max_vertices = 1) out;
+
+layout (stream = 0) out vec3 Out_Pos;
+layout (stream = 0) out vec3 Out_Seed;
+layout (stream = 0) out vec3 Out_Speed;
+layout (stream = 0) out float Out_Random;
+layout (stream = 0) out uint Out_Type;
+
+void main()
+{
+    Out_Pos = pos;
+    Out_Seed = seed;
+    Out_Speed = speed;
+    Out_Random = random;
+    Out_Type = Type;
+
+    EmitStreamVertex(0);
+    EndStreamPrimitive(0);
+}

@@ -1,0 +1,50 @@
+#include "Rain_Common.glsl"
+
+layout (points) in;
+layout (points, max_vertices = 4) out;
+
+in Particle
+{
+  vec3 pos              ; // POSITION;         //position of the particle
+  vec3 seed             ;// SEED;
+  vec3 speed            ;// SPEED;
+  float random            ;// RAND;
+  uint   Type             ;// TYPE;
+}_input[];
+
+out PSRainIn
+{
+//    float4 pos;// : SV_Position;
+    float2 tex;// : TEXTURE0;
+}_output;
+
+
+// GS for rendering rain as point sprites.  Takes a point and turns it into 2 tris.
+void main()
+{
+    float3 pos[4];
+    GenRainSpriteVertices(_input[0].pos, _input[0].speed.xyz/g_FrameRate + g_TotalVel, g_eyePos, pos);
+
+    gl_Position = mul( float4(pos[0],1.0), g_mWorldViewProj );
+    _output.tex = g_texcoords[0];
+//    SpriteStream.Append(output);
+    EmitVertex();
+
+    gl_Position = mul( float4(pos[1],1.0), g_mWorldViewProj );
+    _output.tex = g_texcoords[1];
+//    SpriteStream.Append(output);
+    EmitVertex();
+
+    gl_Position = mul( float4(pos[2],1.0), g_mWorldViewProj );
+    _output.tex = g_texcoords[2];
+//    SpriteStream.Append(output);
+    EmitVertex();
+
+    gl_Position = mul( float4(pos[3],1.0), g_mWorldViewProj );
+    _output.tex = g_texcoords[3];
+//    SpriteStream.Append(output);
+    EmitVertex();
+
+//    SpriteStream.RestartStrip();
+    EndPrimitive();
+}

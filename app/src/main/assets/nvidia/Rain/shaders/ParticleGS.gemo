@@ -1,0 +1,106 @@
+#include "Rain_Common.glsl"
+
+layout (points) in;
+layout (points, max_vertices = 4) out;
+
+bool cullSprite( float3 position, float SpriteSize)
+{
+    float4 vpos = mul(float4(position,1), g_mWorldView);
+
+    float camera_z = -vpos.z;
+    if( (camera_z < (g_Near - SpriteSize )) || ( camera_z > (g_Far + SpriteSize)) )
+    {
+        return true;
+    }
+    else
+    {
+        float4 ppos = mul( vpos, g_mProjection);
+        float wext = ppos.w + SpriteSize;
+        if( (ppos.x < -wext) || (ppos.x > wext) ||
+            (ppos.y < -wext) || (ppos.y > wext) ) {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    return false;
+}
+
+in Particle
+{
+  vec3 pos              ; // POSITION;         //position of the particle
+  vec3 seed             ;// SEED;
+  vec3 speed            ;// SPEED;
+  float random            ;// RAND;
+  uint   Type             ;// TYPE;
+}_input[];
+
+out PSSceneIn
+{
+//    float4 pos;// : SV_Position;
+    float3 lightDir;//   : LIGHT;
+    float3 pointLightDir;// : LIGHT2;
+    float3 eyeVec;//     : EYE;
+    float2 tex;// : TEXTURE0;
+    uint type;//  : TYPE;
+    float random;// : RAND;
+}_output;
+
+// GS for rendering rain as point sprites.  Takes a point and turns it into 2 tris.
+void main()
+{
+    float totalIntensity = g_PointLightIntensity*g_ResponsePointLight + dirLightIntensity*g_ResponseDirLight;
+    if(!cullSprite(_input[0].pos,2.0*g_SpriteSize) && totalIntensity > 0.0)
+    {
+//        PSSceneIn output = (PSSceneIn)0;
+        _output.type = _input[0].Type;
+        _output.random = _input[0].random;
+
+        float3 pos[4];
+        GenRainSpriteVertices(_input[0].pos.xyz, _input[0].speed.xyz/g_FrameRate + g_TotalVel, g_eyePos, pos);
+
+        float3 closestPointLight = g_PointLightPos;
+        float closestDistance = length(g_PointLightPos - pos[0]);
+        if( length(g_PointLightPos2 - pos[0]) < closestDistance )
+           closestPointLight = g_PointLightPos2;
+
+//        output.pos = mul( float4(pos[0],1.0), g_mWorldViewProj );
+        gl_Position = mul( float4(pos[0],1.0), g_mWorldViewProj );
+        _output.lightDir = g_lightPos - pos[0];
+        _output.pointLightDir = closestPointLight - pos[0];
+        _output.eyeVec = g_eyePos - pos[0];
+        _output.tex = g_texcoords[0];
+//        SpriteStream.Append(output);
+        EmitVertex();
+
+        gl_Position = mul( float4(pos[1],1.0), g_mWorldViewProj );
+        _output.lightDir = g_lightPos - pos[1];
+        _output.pointLightDir = closestPointLight - pos[1];
+        _output.eyeVec = g_eyePos - pos[1];
+        _output.tex = g_texcoords[1];
+//        SpriteStream.Append(output);
+        EmitVertex();
+
+        gl_Position = mul( float4(pos[2],1.0), g_mWorldViewProj );
+        _output.lightDir = g_lightPos - pos[2];
+        _output.pointLightDir = closestPointLight - pos[2];
+        _output.eyeVec = g_eyePos - pos[2];
+        _output.tex = g_texcoords[2];
+//        SpriteStream.Append(output);
+        EmitVertex();
+
+        gl_Position = mul( float4(pos[3],1.0), g_mWorldViewProj );
+        _output.lightDir = g_lightPos - pos[3];
+        _output.pointLightDir = closestPointLight - pos[3];
+        _output.eyeVec = g_eyePos - pos[3];
+        _output.tex = g_texcoords[3];
+//        SpriteStream.Append(output);
+        EmitVertex();
+//        SpriteStream.RestartStrip();
+        EndPrimitive();
+    }
+}
+

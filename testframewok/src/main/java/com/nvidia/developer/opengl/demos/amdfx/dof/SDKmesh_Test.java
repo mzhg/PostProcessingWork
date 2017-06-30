@@ -8,6 +8,7 @@ import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.models.QuadricBuilder;
 import com.nvidia.developer.opengl.models.QuadricMesh;
 import com.nvidia.developer.opengl.models.QuadricSphere;
+import com.nvidia.developer.opengl.ui.NvTweakBar;
 
 import org.lwjgl.util.vector.Matrix4f;
 
@@ -28,6 +29,7 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.LogUtil;
 
 /**
  * Created by mazhen'gui on 2017/6/27.
@@ -99,7 +101,17 @@ public class SDKmesh_Test extends NvSampleApp {
     DepthOfFieldMode g_depthOfFieldMode = DepthOfFieldMode.DOF_FastFilterSpread;
 
     @Override
+    public void initUI() {
+        NvTweakBar tweakBar = mTweakBar;
+        tweakBar.addValue("Focal Depth", createControl("g_FocalLength"), 18.0f, 400.0f);
+        tweakBar.addValue("Focal Range", createControl("g_FocalDistance"), 0.1f, 100.0f);
+        tweakBar.addValue("FStop", createControl("g_fStop"), 1.4f, 22);
+        tweakBar.addValue("Sensor Width", createControl("g_sensorWidth"), 4.5f, 100.0f);
+    }
+
+    @Override
     protected void initRendering() {
+        getGLContext().setSwapInterval(0);
         gl = GLFuncProviderFactory.getGLFuncProvider();
         gl.glBindVertexArray(0);
         m_mesh = new AMD_Mesh();
@@ -165,6 +177,9 @@ public class SDKmesh_Test extends NvSampleApp {
 
     @Override
     public void display() {
+        long startTime;
+
+        startTime = System.currentTimeMillis();
         if(!g_debug_Scene) {
             updateBuffers();
 
@@ -176,10 +191,15 @@ public class SDKmesh_Test extends NvSampleApp {
             gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
             gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, 0);
         }
+        long diff = System.currentTimeMillis() - startTime;
+        LogUtil.i(LogUtil.LogType.DEFAULT, "RenderScene: " + diff + "ms");
 
         depthOfFiledPass();
 
+        startTime = System.currentTimeMillis();
         blitResult(g_appDofSurface);
+        diff = System.currentTimeMillis() - startTime;
+        LogUtil.i(LogUtil.LogType.DEFAULT, "blitResult: " + diff + "ms");
     }
 
     private void updateBuffers(){
@@ -282,6 +302,8 @@ public class SDKmesh_Test extends NvSampleApp {
                         g_appColorBuffer.getWidth(), g_appColorBuffer.getHeight(), 1);
                 break;
         }
+
+        gl.glFlush();
     }
 
     private void blitResult(Texture2D texture){

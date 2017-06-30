@@ -1,5 +1,7 @@
 package com.nvidia.developer.opengl.demos.amdfx.dof;
 
+import com.nvidia.developer.opengl.utils.NvCPUTimer;
+
 import org.lwjgl.util.vector.Vector4i;
 
 import java.io.IOException;
@@ -23,6 +25,7 @@ import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.LogUtil;
 
 import static com.nvidia.developer.opengl.demos.amdfx.dof.DEPTHOFFIELDFX_RETURN_CODE.DEPTHOFFIELDFX_RETURN_CODE_SUCCESS;
 
@@ -60,6 +63,7 @@ final class DepthOfFieldFXOpaqueDesc {
     GLSLProgram      m_pDoubleVerticalIntegrateCS;
 
     private final DofParams m_DofParams = new DofParams();
+    private NvCPUTimer m_CPUTimer;
 
     private boolean m_printProgramOnce;
     private GLFuncProvider gl;
@@ -82,6 +86,9 @@ final class DepthOfFieldFXOpaqueDesc {
             v.z = data[2];
             v.w = data[3];
         }
+
+        m_CPUTimer = new NvCPUTimer();
+        m_CPUTimer.init();
     }
 
     DEPTHOFFIELDFX_RETURN_CODE initalize(){
@@ -232,8 +239,9 @@ final class DepthOfFieldFXOpaqueDesc {
 
         // setup pass
         {
+            m_CPUTimer.start();
             gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, m_pIntermediateBuffer);
-            gl.glClearBufferData(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_RGBA32UI, GLenum.GL_RGBA, GLenum.GL_UNSIGNED_INT, null);
+            gl.glClearBufferData(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_RGBA32I, GLenum.GL_RGBA, GLenum.GL_INT, null);
             GLCheck.checkError();
 
             update_constant_buffer(desc, m_bufferWidth, m_bufferHeight);
@@ -257,6 +265,10 @@ final class DepthOfFieldFXOpaqueDesc {
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
             gl.glBindTexture(desc.m_pColorSRV.getTarget(), 0);
 
+//            m_CPUTimer.stop();
+//            LogUtil.i(LogUtil.LogType.DEFAULT, "FastFilterSetup: " + m_CPUTimer.getScaledCycles() + "ms");
+//            m_CPUTimer.reset();
+
             if(!m_printProgramOnce){
                 System.out.println("-------------------------FastFilterSetup-----------------------");
                 ProgramProperties properties = GLSLUtil.getProperties(m_pFastFilterSetupCS.getProgram());
@@ -272,14 +284,19 @@ final class DepthOfFieldFXOpaqueDesc {
 
         // do Vertical integration
         {
+//            m_CPUTimer.start();
             m_pDoubleVerticalIntegrateCS.enable();
 //            Bind_UAVs(desc, m_pIntermediateUAV, m_pIntermediateTransposedUAV, 0);
 
-            gl.glBindImageTexture(0, m_pIntermediateTransposedUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // transpose
-            gl.glBindImageTexture(1, m_pIntermediateUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // read
+            gl.glBindImageTexture(0, m_pIntermediateTransposedUAV, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA32I);  // transpose
+            gl.glBindImageTexture(1, m_pIntermediateUAV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA32I);  // read
             GLCheck.checkError();
             gl.glDispatchCompute((m_bufferWidth + 63) / 64, 1, 1);
             gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+//            m_CPUTimer.stop();
+//            LogUtil.i(LogUtil.LogType.DEFAULT, "DoubleVerticalIntegrate: " + m_CPUTimer.getScaledCycles() + "ms");
+//            m_CPUTimer.reset();
 
             if(!m_printProgramOnce){
                 System.out.println("-------------------------DoubleVerticalIntegrate-----------------------");
@@ -296,14 +313,19 @@ final class DepthOfFieldFXOpaqueDesc {
 
         // do vertical integration by transposing the image and doing horizontal integration again
         {
+//            m_CPUTimer.start();
             update_constant_buffer(desc, m_bufferHeight, m_bufferWidth);
 
 //            Bind_UAVs(desc, m_pIntermediateTransposedUAV, m_pIntermediateUAV, 0);
-            gl.glBindImageTexture(0, m_pIntermediateUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // transpose
-            gl.glBindImageTexture(1, m_pIntermediateTransposedUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // read
+            gl.glBindImageTexture(0, m_pIntermediateUAV, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA32I);  // transpose
+            gl.glBindImageTexture(1, m_pIntermediateTransposedUAV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA32I);  // read
 //            pCtx->Dispatch((m_bufferHeight + 63) / 64, 1, 1);
             gl.glDispatchCompute((m_bufferHeight + 63) / 64, 1, 1);
             gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+//            m_CPUTimer.stop();
+//            LogUtil.i(LogUtil.LogType.DEFAULT, "DoubleHorizontalIntegrate: " + m_CPUTimer.getScaledCycles() + "ms");
+//            m_CPUTimer.reset();
 
             if(!m_printProgramOnce){
                 try {
@@ -314,6 +336,7 @@ final class DepthOfFieldFXOpaqueDesc {
             }
         }
 
+//        m_CPUTimer.start();
         // debug: Copy from intermediate results
         update_constant_buffer(desc, m_bufferWidth, m_bufferHeight);
 
@@ -322,10 +345,14 @@ final class DepthOfFieldFXOpaqueDesc {
 //        Bind_UAVs(desc, m_pIntermediateUAV, 0, desc.m_pResultUAV.getTexture());
 //        pCtx->Dispatch((desc.m_screenSize.x + 7) / 8, (desc.m_screenSize.y + 7) / 8, 1);
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // transpose
-        gl.glBindImageTexture(1, m_pIntermediateUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_RGBA32I);  // read
-        gl.glBindImageTexture(2, desc.m_pResultUAV.getTexture(), 0, false, 0, GLenum.GL_READ_WRITE, desc.m_pResultUAV.getFormat());  // write
+        gl.glBindImageTexture(1, m_pIntermediateUAV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA32I);  // read
+        gl.glBindImageTexture(2, desc.m_pResultUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, desc.m_pResultUAV.getFormat());  // write
         gl.glDispatchCompute((desc.m_screenSize.x + 7) / 8, (desc.m_screenSize.y + 7) / 8, 1);
         gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        m_CPUTimer.stop();
+        LogUtil.i(LogUtil.LogType.DEFAULT, "ReadFinalResult: " + m_CPUTimer.getScaledCycles() + "seconds");
+        m_CPUTimer.reset();
 
         if(!m_printProgramOnce){
             System.out.println("-------------------------ReadFinalResult-----------------------");
