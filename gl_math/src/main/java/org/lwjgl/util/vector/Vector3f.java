@@ -152,12 +152,29 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 	 * @return the sum of left and right in dest
 	 */
 	@SuppressWarnings("unchecked")
-	public static<T extends WritableVector3f> T add(ReadableVector3f left, ReadableVector3f right, WritableVector3f dest) {
+	public static<T extends WritableVector3f> T add(ReadableVector3f left, ReadableVector3f right, T dest) {
 		if (dest == null)
 			return (T) new Vector3f(left.getX() + right.getX(), left.getY() + right.getY(), left.getZ() + right.getZ());
 		else {
 			dest.set(left.getX() + right.getX(), left.getY() + right.getY(), left.getZ() + right.getZ());
-			return (T) dest;
+			return dest;
+		}
+	}
+
+	/**
+	 * Add a vector to another vector and place the result in a destination
+	 * vector.
+	 * @param left The LHS vector
+	 * @param right The RHS vector
+	 * @param dest The destination vector, or null if a new vector is to be created
+	 * @return the sum of left and right in dest
+	 */
+	public static Vector3f add(ReadableVector3f left, ReadableVector3f right, Vector3f dest) {
+		if (dest == null)
+			return new Vector3f(left.getX() + right.getX(), left.getY() + right.getY(), left.getZ() + right.getZ());
+		else {
+			dest.set(left.getX() + right.getX(), left.getY() + right.getY(), left.getZ() + right.getZ());
+			return dest;
 		}
 	}
 
@@ -170,12 +187,12 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 	 * @return left minus right in dest
 	 */
 	@SuppressWarnings("unchecked")
-	public static<T extends WritableVector3f> T sub(ReadableVector3f left, ReadableVector3f right, WritableVector3f dest) {
+	public static<T extends WritableVector3f> T sub(ReadableVector3f left, ReadableVector3f right, T dest) {
 		if (dest == null)
 			return (T)new Vector3f(left.getX() - right.getX(), left.getY() - right.getY(), left.getZ() - right.getZ());
 		else {
 			dest.set(left.getX() - right.getX(), left.getY() - right.getY(), left.getZ() - right.getZ());
-			return (T)dest;
+			return dest;
 		}
 	}
 	
@@ -238,10 +255,28 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 			return dest;
 		}
 	}
+
+	public static<T extends WritableVector3f> T scale(ReadableVector3f left, ReadableVector3f right, T dest) {
+		if (dest == null)
+			return (T) new Vector3f(left.getX() * right.getX(), left.getY() * right.getY(), left.getZ() * right.getZ());
+		else {
+			dest.set(left.getX() * right.getX(), left.getY() * right.getY(), left.getZ() * right.getZ());
+			return dest;
+		}
+	}
 	
 	public static Vector3f scale(ReadableVector3f left, float right, Vector3f dest) {
 		if (dest == null)
 			return new Vector3f(left.getX() * right, left.getY() * right, left.getZ() * right);
+		else {
+			dest.set(left.getX() * right, left.getY() * right, left.getZ() * right);
+			return dest;
+		}
+	}
+
+	public static<T extends WritableVector3f> T scale(ReadableVector3f left, float right, T dest) {
+		if (dest == null)
+			return (T) new Vector3f(left.getX() * right, left.getY() * right, left.getZ() * right);
 		else {
 			dest.set(left.getX() * right, left.getY() * right, left.getZ() * right);
 			return dest;

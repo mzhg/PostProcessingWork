@@ -19,7 +19,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import jet.opengl.demos.nvidia.rain.RainDemo;
+import jet.opengl.demos.os.LauncherDemo;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
@@ -98,7 +98,7 @@ public class DemoApp {
             }
         });
 
-        run(new RainDemo());
+        run(new LauncherDemo());
 
         if(true) return;
 

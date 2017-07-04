@@ -116,7 +116,6 @@ final class OSRenderer implements Constant{
             transform.rotation.setFromAxisAngle(Vector3f.Y_AXIS, middleAngle);
             appList.appHeight = transform.scale.y * 2;
 
-
             for(int j = 0; j < MAX_NUM_ICONS_PER_GROUP;j++)
             {
                 final Transform unfocusedTransform = new Transform();
@@ -183,8 +182,9 @@ final class OSRenderer implements Constant{
 
                     // calculate the rotation
                     view.setIdentity();
-                    view.rotate(-middleAngle, Vector3f.Z_AXIS);
                     view.rotate((float)Math.toRadians(90), Vector3f.X_AXIS);
+                    view.rotate(-middleAngle, Vector3f.Y_AXIS);
+//                    view.rotate((float)Math.toRadians(90), Vector3f.X_AXIS);
 
                     readyLocation.rotation.setFromMatrix(view);
                 }
