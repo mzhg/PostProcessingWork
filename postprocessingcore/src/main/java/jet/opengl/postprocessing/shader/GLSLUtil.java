@@ -661,9 +661,9 @@ public final class GLSLUtil {
 				buf.get(out);
 				return out;
 			}
-			default:
-				return null;
 		}
+
+		return null;
 	}
 
 	private static void initlizeTypeInfos(){

@@ -115,7 +115,33 @@ public class NvImage {
             gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
             gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
             gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
-        } else {
+        } else if(isVolume()) {
+            gl.glBindTexture(GLenum.GL_TEXTURE_3D, texID);
+
+            int w = getWidth();
+            int h = getHeight();
+            int d = getDepth();
+            for (int l = 0; l < getMipLevels(); l++) {
+                if (isCompressed()) {
+                    gl.glCompressedTexImage3D(GLenum.GL_TEXTURE_3D, l, internalFormat, w, h, d, 0, CacheBuffer.wrap(getLevel(l)));
+                } else {
+                    gl.glTexImage3D(GLenum.GL_TEXTURE_3D, l, internalFormat, w, h, d, 0, getFormat(), getType(), CacheBuffer.wrap(getLevel(l)));
+                }
+
+                w >>= 1;
+                h >>= 1;
+                d >>= 1;
+                w = (w != 0) ? w : 1;
+                h = (h != 0) ? h : 1;
+                d = (d != 0) ? d : 1;
+            }
+
+            gl.glTexParameteri(GLenum.GL_TEXTURE_3D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_3D, GLenum.GL_TEXTURE_MIN_FILTER, getMipLevels() == 1? GLenum.GL_LINEAR : GLenum.GL_LINEAR_MIPMAP_LINEAR);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_3D, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_3D, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_3D, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+        } else{
             gl.glBindTexture(GLenum.GL_TEXTURE_2D, texID);
 
             int w = getWidth();

@@ -16,7 +16,7 @@ out Particle
   vec3 seed             ;// SEED;
   vec3 speed            ;// SPEED;
   float random            ;// RAND;
-  uint   Type             ;// TYPE;
+  flat uint   Type             ;// TYPE;
 }vs;
 
 void main()

@@ -85,6 +85,8 @@ public final class Numeric {
 		
 		return makeRGBA(a, b, c, d);
 	}
+
+	public static final float random() { return (float)Math.random();}
 	
 	public static final float random(float low, float high){
 		return (float) (Math.random() * (high - low) + low);
@@ -153,6 +155,13 @@ public final class Numeric {
 	public static final int getBytes(short s, byte[] out, int position) {
 		out[position++] = (byte) s;
 		out[position++] = (byte) (s >> 8);
+		return position;
+	}
+
+	public static final int getBytes(short[] s, byte[] out, int position) {
+		for(int i = 0; i < s.length; i++){
+			position = getBytes(s[i], out, position);
+		}
 		return position;
 	}
 	

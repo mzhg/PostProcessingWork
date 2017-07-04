@@ -7,11 +7,11 @@ in PSSceneIn
     float3 pointLightDir;// : LIGHT2;
     float3 eyeVec;//     : EYE;
     float2 tex;// : TEXTURE0;
-    uint type;//  : TYPE;
+    flat uint type;//  : TYPE;
     float random;// : RAND;
 }_input;
 
-void rainResponse(/*PSSceneIn input,*/ float3 lightVector, float lightIntensity, float3 lightColor, float3 eyeVector, bool fallOffFactor, inout float4 rainResponseVal)
+void rainResponse(/*PSSceneIn input,*/ float3 lightVector, float lightIntensity, float3 lightColor, float3 eyeVector, bool fallOffFactor, out float4 rainResponseVal)
 {
 
     float opacity = 0.0;
@@ -61,7 +61,7 @@ void rainResponse(/*PSSceneIn input,*/ float3 lightVector, float lightIntensity,
         // Outputs:
         // verticalLightIndex[1|2] - two indices in the vertical direction
         // t - fraction at which the vangle is between these two indices (for lerp)
-        int verticalLightIndex1 = floor(vangle); // 0 to 5
+        int verticalLightIndex1 = int(floor(vangle)); // 0 to 5
         int verticalLightIndex2 = min(MAX_VIDX, (verticalLightIndex1 + 1) );
         verticalLightIndex1 = max(0, verticalLightIndex1);
         float t = frac(vangle);
@@ -77,7 +77,7 @@ void rainResponse(/*PSSceneIn input,*/ float3 lightVector, float lightIntensity,
         float s = 0;
 
         s = frac(hangle);
-        horizontalLightIndex1 = floor(hangle); // 0 to 8
+        horizontalLightIndex1 = int(floor(hangle)); // 0 to 8
         horizontalLightIndex2 = horizontalLightIndex1+1;
         if( horizontalLightIndex1 < 0 )
         {
@@ -134,10 +134,10 @@ void rainResponse(/*PSSceneIn input,*/ float3 lightVector, float lightIntensity,
         float3 tex4 = float3(textureCoordsH2, _input.tex.y, texIndicesV2.y);
 
         // Sample opacity from the textures
-        float col1 = rainTextureArray.Sample( samAniso, tex1) * g_rainfactors[texIndicesV1.x];
-        float col2 = rainTextureArray.Sample( samAniso, tex2) * g_rainfactors[texIndicesV1.y];
-        float col3 = rainTextureArray.Sample( samAniso, tex3) * g_rainfactors[texIndicesV2.x];
-        float col4 = rainTextureArray.Sample( samAniso, tex4) * g_rainfactors[texIndicesV2.y];
+        float col1 = texture( rainTextureArray, tex1).r * g_rainfactors[texIndicesV1.x];  // samAniso
+        float col2 = texture( rainTextureArray, tex2).r * g_rainfactors[texIndicesV1.y];
+        float col3 = texture( rainTextureArray, tex3).r * g_rainfactors[texIndicesV2.x];
+        float col4 = texture( rainTextureArray, tex4).r * g_rainfactors[texIndicesV2.y];
 
         // Compute interpolated opacity using the s and t factors
         float hOpacity1 = lerp(col1,col2,s);

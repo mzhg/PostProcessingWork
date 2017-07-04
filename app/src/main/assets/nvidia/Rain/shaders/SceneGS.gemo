@@ -1,0 +1,48 @@
+#include "Rain_Common.glsl"
+
+in VS_OUTPUT_SCENE
+{
+//    float4 Position            : SV_POSITION;
+    float3 Normal;//              : NORMAL;
+    float3 Tan;//                 : TANGENT;
+    float4 worldPos;//            : WPOSITION;
+    float2 Texture;//             : TEXTURE0;
+}_inputs[];
+
+out GS_OUTPUT_SCENE
+{
+//    float4 Position            : SV_POSITION;
+    float3 Normal;//              : NORMAL;
+    float3 Tan;//                 : TANGENT;
+    float4 worldPos;//            : WPOSITION;
+    float2 Texture;//             : TEXTURE0;
+}_output;
+
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
+//  The gemetry shader used here for fixing the normal of the vertexs.
+void main()
+{
+    float4 GL_Positions[3];
+    for(int i = 0; i <3; i++){
+        GL_Positions[i] = float4(_inputs[i].worldPos.xy, -_inputs[i].worldPos.z, 1);
+    }
+
+    float3 v0 = GL_Positions[1].xyz - GL_Positions[0].xyz;
+    float3 v1 = GL_Positions[2].xyz - GL_Positions[0].xyz;
+    // re-compute the normal
+    float3 GL_Normal = normalize(cross(v0, v1));
+
+    for(int i = 0; i < 3; i++){
+        gl_Position      = mul( GL_Positions[i], g_mWorldViewProj );
+        _output.Normal   = mul( GL_Normal, float3x3(g_mWorld) );
+        _output.Tan      = normalize( mul( _inputs[i].Tan, float3x3(g_mWorld) ) );
+        _output.worldPos = mul( GL_Positions[i], g_mWorld );
+        _output.Texture  = _inputs[i].Texture;
+
+        EmitVertex();
+    }
+
+    EndPrimitive();
+}

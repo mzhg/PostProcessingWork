@@ -1,6 +1,6 @@
 #include "Rain_Common.glsl"
 
-in VS_OUTPUT_SCENE
+in GS_OUTPUT_SCENE
 {
 //    float4 Position            : SV_POSITION;
     float3 Normal;//              : NORMAL;
@@ -8,29 +8,6 @@ in VS_OUTPUT_SCENE
     float4 worldPos;//            : WPOSITION;
     float2 Texture;//             : TEXTURE0;
 }In;
-
-//---------------------------------------------------------------------------------------
-//auxiliary functions for calculating the Fog
-//---------------------------------------------------------------------------------------
-
-float3 calculateAirLightPointLight(float Dvp,float Dsv,float3 S,float3 V)
-{
-    float gamma = acos(dot(S, V));
-    gamma = clamp(gamma,0.01,PI-0.01);
-    float sinGamma = sin(gamma);
-    float cosGamma = cos(gamma);
-    float u = g_beta.x * Dsv * sinGamma;
-    float v1 = 0.25*PI+0.5*atan((Dvp-Dsv*cosGamma)/(Dsv*sinGamma));
-    float v2 = 0.5*gamma;
-
-    float lightIntensity = g_PointLightIntensity * 100;
-
-    float f1= Ftable.SampleLevel(samLinearClamp, float2((v1-g_fXOffset)*g_fXScale, (u-g_fYOffset)*g_fYScale), 0);
-    float f2= Ftable.SampleLevel(samLinearClamp, float2((v2-g_fXOffset)*g_fXScale, (u-g_fYOffset)*g_fYScale), 0);
-    float airlight = (g_beta.x*lightIntensity*exp(-g_beta.x*Dsv*cosGamma))/(2*PI*Dsv*sinGamma)*(f1-f2);
-
-    return airlight.xxx;
-}
 
 float3 calculateDiffusePointLight(float Kd,float Dvp,float Dsv,float3 pointLightDir,float3 N,float3 V)
 {
@@ -53,8 +30,8 @@ float3 calculateDiffusePointLight(float Kd,float Dvp,float Dsv,float3 pointLight
     float t1 = exp(-g_beta.x*Dsp)*max(cos(thetas),0.0)/Dsp;
     float4 t2 = g_beta.x*textureLod(Gtable, float2((g_beta.x*Dsp-g_diffXOffset)*g_diffXScale, (thetas-g_diffYOffset)*g_diffYScale),0.0)/(2*PI);  // samLinearClamp
     float rCol = (t1+t2.x)*exp(-g_beta.x*Dvp)*Kd*lightIntensity/Dsp;
-    float diffusePointLight = float3(rCol,rCol,rCol);
-    return diffusePointLight.xxx;
+//    float diffusePointLight = float3(rCol,rCol,rCol);
+    return rCol.xxx;
 }
 
 float3 Specular(float lightIntensity, float Ks, float Dsp, float Dvp, float specPow, float3 L, float3 VReflect)
@@ -63,18 +40,10 @@ float3 Specular(float lightIntensity, float Ks, float Dsp, float Dvp, float spec
     float LDotVReflect = dot(L,VReflect);
     float thetas = acos(LDotVReflect);
 
-    float t1 = exp(-g_beta*Dsp)*pow(max(LDotVReflect,0.0),specPow)/Dsp;
+    float t1 = exp(-g_beta.x*Dsp)*pow(max(LDotVReflect,0.0),specPow)/Dsp;
     float4 t2 = g_beta.x*textureLod(G_20table, float2((g_beta.x*Dsp-g_20XOffset)*g_20XScale, (thetas-g_20YOffset)*g_20YScale),0.0)/(2*PI);  // samLinearClamp
     float specular = (t1+t2.x)*exp(-g_beta.x*Dvp)*Ks*lightIntensity/Dsp;
     return specular.xxx;
-}
-
-
-float3 phaseFunctionSchlick(float cosTheta)
-{
-   float k = -0.2;
-   float p = (1.0-k*k)/(pow(1+k*cosTheta,2.0) );
-   return float3(p,p,p);
 }
 
 //pixel shader for the scene
@@ -85,7 +54,7 @@ void main()
     float4 outputColor;
 
     float4 sceneColor = texture( SceneTextureDiffuse, In.Texture );   // samLinear
-    float3 viewVec = In.worldPos - g_eyePos;
+    float3 viewVec = In.worldPos.xyz - g_eyePos;
     float Dvp = length(viewVec);
     float3 V =  viewVec/Dvp;
     float3 exDir = float3( exp(-g_beta.x*Dvp),  exp(-g_beta.y*Dvp),  exp(-g_beta.z*Dvp)  );
@@ -101,7 +70,7 @@ void main()
     float3 norm = float3(normalMap.ga*2.0-1.0, 0);
     norm.z = sqrt( 1 - norm.x*norm.x + norm.y*norm.y );
     float3 binorm = normalize( cross( InNormal, Tan ) );
-    if( dot( normalize(In.worldPos) ,binorm) < 0 )
+    if( dot( normalize(In.worldPos.xyz) ,binorm) < 0 )
         binorm = -binorm;
     float3x3 BTNMatrix = float3x3( binorm, Tan, InNormal );
     float3 N = normalize(mul( norm, BTNMatrix ));
@@ -109,17 +78,17 @@ void main()
 
     //add the normal map from the rain bumps
     //based on the direction of the surface and the amount of rainyness
-    float4 BumpMapVal = textureLod(SplashBumpTexture,  // samAnisoMirror TODO Lod ???
-                       float2(In.worldPos.x/2.0 + g_splashXDisplace, In.worldPos.z/2.0 + g_splashYDisplace), g_timeCycle) - 0.5;
+    float4 BumpMapVal = texture(SplashBumpTexture,  // samAnisoMirror TODO Lod ???
+                       float3(In.worldPos.x/2.0 + g_splashXDisplace, In.worldPos.z/2.0 + g_splashYDisplace, g_timeCycle)) - 0.5;
     N += wetSurf * 2.0 * (BumpMapVal.x * Tan + BumpMapVal.y * binorm);
     N = normalize(N);
-    float3 splashDiffuse = wetSurf * textureLod(SplashDiffuseTexture, In.worldPos.xz, g_timeCycle);  // samAnisoMirror
+    float3 splashDiffuse = wetSurf * texture(SplashDiffuseTexture, float3(In.worldPos.xz, g_timeCycle)).xyz;  // samAnisoMirror
 
     //reflection of the scene-----------------------------------------------------------
     float3 reflVect = reflect(V, N);
 
     //directional light-----------------------------------------------------------------
-    float3 lightDir = g_lightPos - In.worldPos;
+    float3 lightDir = g_lightPos - In.worldPos.xyz;
     float3 lightDirNorm = normalize(lightDir);
     float3 SDir = normalize( g_lightPos - g_eyePos);
     float cosGammaDir = dot(SDir, V);
@@ -133,7 +102,7 @@ void main()
 
     //point light 1---------------------------------------------------------------------
     //diffuse surface radiance and airlight due to point light
-    float3 pointLightDir = g_PointLightPos - In.worldPos;
+    float3 pointLightDir = g_PointLightPos - In.worldPos.xyz;
     //diffuse
     float3 diffusePointLight1 = calculateDiffusePointLight(0.1,Dvp,g_DSVPointLight,pointLightDir,N,V);
     //airlight
@@ -144,7 +113,7 @@ void main()
     //point light 2---------------------------------------------------------------------
     //diffuse surface radiance
     float3 diffusePointLight2 = float3(0,0,0);
-    float3 pointLightDir2 = g_PointLightPos2 - In.worldPos;
+    float3 pointLightDir2 = g_PointLightPos2 - In.worldPos.xyz;
     //diffuse
     diffusePointLight2 = calculateDiffusePointLight(0.1,Dvp,g_DSVPointLight2,pointLightDir2,N,V);
     //airlight

@@ -18,7 +18,9 @@
 //
 //----------------------------------------------------------------------------------
 #include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
+#ifndef PI
 #define PI 3.14159265
+#endif
 
 layout(binding = 0) uniform sampler2DArray rainTextureArray;
 layout(binding = 1) uniform sampler2D singleTexture;
@@ -29,8 +31,8 @@ layout(binding = 5) uniform sampler2D SceneTextureNormal;
 layout(binding = 6) uniform sampler2D Ftable;
 layout(binding = 7) uniform sampler2D Gtable;
 layout(binding = 8) uniform sampler2D G_20table;
-layout(binding = 9) uniform sampler2D SplashBumpTexture;
-layout(binding = 10) uniform sampler2D SplashDiffuseTexture;
+layout(binding = 9) uniform sampler3D SplashBumpTexture;
+layout(binding = 10) uniform sampler3D SplashDiffuseTexture;
 
 //ChangesEveryFrame
 
@@ -187,4 +189,33 @@ uniform float g_Far;
         outPos[1] = outPos[0] + (sideVec * width);
         outPos[2] = outPos[0] + (velVec * height);
         outPos[3] = outPos[2] + (sideVec * width );
+    }
+
+    float3 phaseFunctionSchlick(float cosTheta)
+    {
+       float k = -0.2;
+       float p = (1.0-k*k)/(pow(1.0+k*cosTheta,2.0) );
+       return float3(p,p,p);
+    }
+
+    //---------------------------------------------------------------------------------------
+    //auxiliary functions for calculating the Fog
+    //---------------------------------------------------------------------------------------
+    float3 calculateAirLightPointLight(float Dvp,float Dsv,float3 S,float3 V)
+    {
+        float gamma = acos(dot(S, V));
+        gamma = clamp(gamma,0.01,PI-0.01);
+        float sinGamma = sin(gamma);
+        float cosGamma = cos(gamma);
+        float u = g_beta.x * Dsv * sinGamma;
+        float v1 = 0.25*PI+0.5*atan((Dvp-Dsv*cosGamma)/(Dsv*sinGamma));
+        float v2 = 0.5*gamma;
+
+        float lightIntensity = g_PointLightIntensity * 100;
+
+        float f1= textureLod(Ftable, float2((v1-g_fXOffset)*g_fXScale, (u-g_fYOffset)*g_fYScale), 0.0).r;   // samLinearClamp
+        float f2= textureLod(Ftable, float2((v2-g_fXOffset)*g_fXScale, (u-g_fYOffset)*g_fYScale), 0.0).r;   // samLinearClamp
+        float airlight = (g_beta.x*lightIntensity*exp(-g_beta.x*Dsv*cosGamma))/(2*PI*Dsv*sinGamma)*(f1-f2);
+
+        return airlight.xxx;
     }

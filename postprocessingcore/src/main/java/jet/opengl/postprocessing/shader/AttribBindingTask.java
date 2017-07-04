@@ -1,11 +1,9 @@
 package jet.opengl.postprocessing.shader;
 
-import java.util.function.IntConsumer;
-
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 
-public class AttribBindingTask implements IntConsumer{
+public class AttribBindingTask implements ProgramLinkTask{
 
 	AttribBinder[] attribBinders;
 	
@@ -14,7 +12,7 @@ public class AttribBindingTask implements IntConsumer{
 	}
 	
 	@Override
-	public void accept(int program) {
+	public void invoke(int program) {
 		if(attribBinders != null){
 			GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 			for(AttribBinder ab : attribBinders){

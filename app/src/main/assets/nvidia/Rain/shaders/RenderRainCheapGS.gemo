@@ -1,7 +1,7 @@
 #include "Rain_Common.glsl"
 
 layout (points) in;
-layout (points, max_vertices = 4) out;
+layout (triangle_strip, max_vertices = 4) out;
 
 in Particle
 {

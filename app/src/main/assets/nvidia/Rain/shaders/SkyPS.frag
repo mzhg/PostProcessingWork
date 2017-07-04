@@ -1,6 +1,6 @@
 #include "Rain_Common.glsl"
 
-out float2 m_worldPos;
+in float3 m_worldPos;
 
 layout(location = 0) out vec4 Out_f4Color;
 
@@ -21,7 +21,7 @@ void main()
                          dirLightIntensity*float3(1-exDir.x,1-exDir.y,1-exDir.z);
 
     // air light
-    float3 viewRay = normalize(float3(In.HPos.x - g_ScreenWidth/2.0, g_ScreenHeight/2.0 - In.HPos.y ,g_de));
+    float3 viewRay = normalize(float3(gl_FragCoord.x - g_ScreenWidth/2.0, gl_FragCoord.y - g_ScreenHeight/2.0,-g_de));
     float3 airlight = calculateAirLightPointLight(Dvp,g_DSVPointLight,g_ViewSpaceLightVec,viewRay);
     float3 airlight2 = calculateAirLightPointLight(Dvp,g_DSVPointLight2,g_ViewSpaceLightVec2,viewRay);
 

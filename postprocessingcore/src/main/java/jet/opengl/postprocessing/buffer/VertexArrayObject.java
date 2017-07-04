@@ -49,6 +49,7 @@ public class VertexArrayObject implements Disposeable {
 
         gl.glBindVertexArray(m_vao);
         _bind();
+//        gl.glBindVertexArray(0);  TODO
     }
 
     private void _bind(){

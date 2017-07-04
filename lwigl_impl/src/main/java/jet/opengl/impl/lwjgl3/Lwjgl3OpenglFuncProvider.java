@@ -415,6 +415,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glDeleteBuffers(IntBuffer buffers) {
+        GL15.glDeleteBuffers(buffers);
+    }
+
+    @Override
     public void glDeleteFramebuffer(int framebuffer) {
         GL30.glDeleteFramebuffers(framebuffer);
     }
@@ -935,8 +940,16 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glBeginQueryIndexed(int target, int index, int id) {GL40.glBeginQueryIndexed(target, index, id);}
+
+    @Override
     public void glEndQuery(int target) {
         GL15.glEndQuery(target);
+    }
+
+    @Override
+    public void glEndQueryIndexed(int target, int index) {
+        GL40.glEndQueryIndexed(target, index);
     }
 
     @Override
@@ -1709,5 +1722,10 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glGetBufferSubData(int target, int offset, int size, ByteBuffer data) {
         GL15.glGetBufferSubData(target, offset, data);
+    }
+
+    @Override
+    public void glDrawTransformFeedbackStream(int mode, int transformFeedback, int index) {
+        GL40.glDrawTransformFeedbackStream(mode, transformFeedback, index);
     }
 }

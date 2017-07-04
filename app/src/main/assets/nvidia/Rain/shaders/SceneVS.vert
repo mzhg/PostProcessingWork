@@ -16,10 +16,20 @@ out VS_OUTPUT_SCENE
 
 void main()
 {
-    gl_Position      = mul( float4(In_Position,1), g_mWorldViewProj );
-    _output.Normal   = mul( In_Normal, g_mWorld );
-    _output.Tan      = normalize( mul( In_Tan, float3x3(g_mWorld) ) );
-    _output.worldPos = mul( float4(In_Position,1), g_mWorld );
+#if 0
+    float3 GL_Position = float3(In_Position.xy, -In_Position.z);
+    float3 GL_Normal   = float3(In_Normal.x, In_Normal.y, -In_Normal.z);
+
+    gl_Position      = mul( float4(GL_Position,1), g_mWorldViewProj );
+    _output.Normal   = mul( GL_Normal, float3x3(g_mWorld) );
+    _output.Tan      = normalize( mul( float3(1,0,0), float3x3(g_mWorld) ) );
+    _output.worldPos = mul( float4(GL_Position,1), g_mWorld );
 //    float3 worldPos = mul( In_Position, g_mWorld );
     _output.Texture  = In_Texture;
+#else
+    _output.Normal = In_Normal;
+    _output.Tan = In_Tan;
+    _output.worldPos = float4(In_Position, 1);
+    _output.Texture = In_Texture;
+#endif
 }

@@ -3,7 +3,9 @@ package jet.opengl.postprocessing.shader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLCheck;
@@ -25,7 +27,9 @@ public class GLSLProgram implements OpenGLProgram{
 
 	protected int m_program;
 	protected final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-	private AttribBinder[] m_Attribs;
+//	private AttribBinder[] m_Attribs;
+	private List<ProgramLinkTask> m_TaskInvokedBeforeLinked;
+	private String m_name = getClass().getSimpleName();
 
 	/**
 	 * Creates and returns a shader object from a array of #{@link ShaderSourceItem}.<br>
@@ -260,7 +264,7 @@ public class GLSLProgram implements OpenGLProgram{
 
 	private CharSequence constructSource(ShaderSourceItem item){
 		if(item.attribs != null && item.type == ShaderType.VERTEX){
-			m_Attribs = item.attribs;
+			addLinkTask(new AttribBindingTask(item.attribs));
 		}
 
 		return constructSourceImpl(item);
@@ -294,7 +298,6 @@ public class GLSLProgram implements OpenGLProgram{
 		gl.glUseProgram(0);
 	}
 
-	private String m_name = getClass().getSimpleName();
 	@Override
 	public void setName(String name) {
 		m_name = name;
@@ -345,16 +348,30 @@ public class GLSLProgram implements OpenGLProgram{
 	}
 
 	public void setAttribBinding(AttribBinder...bindings){
-		m_Attribs = bindings;
+		if(bindings != null){
+			addLinkTask(new AttribBindingTask(bindings));
+		}
+	}
+
+	public void addLinkTask(ProgramLinkTask task){
+		if(task == null)
+			return;
+
+		if(m_TaskInvokedBeforeLinked == null)
+			m_TaskInvokedBeforeLinked = new ArrayList<>();
+
+		m_TaskInvokedBeforeLinked.add(task);
 	}
 	
 	private int linkProgram(int program){
-		if(m_Attribs != null){
-			for(AttribBinder attrib:m_Attribs){
-				gl.glBindAttribLocation(program, attrib.index, attrib.attributeName);
+		if(m_TaskInvokedBeforeLinked != null){
+			for(ProgramLinkTask task : m_TaskInvokedBeforeLinked){
+				task.invoke(program);
 			}
+
+			m_TaskInvokedBeforeLinked = null;
 		}
-		
+
 		// Set the binary retrievable hint and link the program
 		if(gl.isSupportExt("ARB_get_program_binary")){
 	    	gl.glProgramParameteri(program, GLenum.GL_PROGRAM_BINARY_RETRIEVABLE_HINT, 1);

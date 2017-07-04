@@ -154,6 +154,7 @@ public interface GLFuncProvider {
     public int glCreateShader (int type);
 
     public void glDeleteBuffer (int buffer);
+    public void glDeleteBuffers (IntBuffer buffers);
 
     public void glDeleteFramebuffer (int framebuffer);
 
@@ -488,10 +489,12 @@ public interface GLFuncProvider {
     // C function void glBeginQuery ( GLenum target, GLuint id )
 
     public void glBeginQuery (int target, int id);
+    public void glBeginQueryIndexed(int target, int index, int id);
 
     // C function void glEndQuery ( GLenum target )
 
     public void glEndQuery (int target);
+    public void glEndQueryIndexed(int target, int index);
 
     // // C function void glGetQueryiv ( GLenum target, GLenum pname, GLint *params )
     //
@@ -1542,4 +1545,5 @@ public interface GLFuncProvider {
                            ByteBuffer data);
 
     void glGetBufferSubData(int target, int offset, int size, ByteBuffer data);
+    void glDrawTransformFeedbackStream(int m_currentMode, int transformFeedback, int index);
 }

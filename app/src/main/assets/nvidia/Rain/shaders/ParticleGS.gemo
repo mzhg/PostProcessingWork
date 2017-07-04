@@ -1,7 +1,7 @@
 #include "Rain_Common.glsl"
 
 layout (points) in;
-layout (points, max_vertices = 4) out;
+layout (triangle_strip, max_vertices = 4) out;
 
 bool cullSprite( float3 position, float SpriteSize)
 {
@@ -15,6 +15,7 @@ bool cullSprite( float3 position, float SpriteSize)
     else
     {
         float4 ppos = mul( vpos, g_mProjection);
+        /*
         float wext = ppos.w + SpriteSize;
         if( (ppos.x < -wext) || (ppos.x > wext) ||
             (ppos.y < -wext) || (ppos.y > wext) ) {
@@ -22,6 +23,16 @@ bool cullSprite( float3 position, float SpriteSize)
         }
         else
         {
+            return false;
+        }
+        */
+        ppos.xy /= ppos.w;
+        const float margin = 0.2;
+        if(ppos.x < -1.0 - margin || ppos.x >1.0 + margin||
+           ppos.y < -1.0 - margin || ppos.y > 1.0 + margin){
+            return true;
+        }
+        else{
             return false;
         }
     }
@@ -35,7 +46,7 @@ in Particle
   vec3 seed             ;// SEED;
   vec3 speed            ;// SPEED;
   float random            ;// RAND;
-  uint   Type             ;// TYPE;
+  flat uint   Type             ;// TYPE;
 }_input[];
 
 out PSSceneIn
@@ -45,7 +56,7 @@ out PSSceneIn
     float3 pointLightDir;// : LIGHT2;
     float3 eyeVec;//     : EYE;
     float2 tex;// : TEXTURE0;
-    uint type;//  : TYPE;
+    flat uint type;//  : TYPE;
     float random;// : RAND;
 }_output;
 
