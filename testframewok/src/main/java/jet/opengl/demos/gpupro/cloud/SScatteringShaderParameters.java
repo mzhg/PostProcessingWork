@@ -2,6 +2,10 @@ package jet.opengl.demos.gpupro.cloud;
 
 import org.lwjgl.util.vector.Vector4f;
 
+import java.nio.FloatBuffer;
+
+import jet.opengl.postprocessing.util.CacheBuffer;
+
 /**
  * Created by mazhen'gui on 2017/7/4.
  */
@@ -30,4 +34,16 @@ final class SScatteringShaderParameters {
     final Vector4f vESun     = new Vector4f();  // rgb : Esun/(Br+Bm)             w : R
     final Vector4f vSum      = new Vector4f();  // rgb : (Br+Bm)                  w : h(2R+h)
     final Vector4f vAmbient  = new Vector4f();  // rgb : ambient
+
+    FloatBuffer toFloats(){
+        FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(4 * 5);
+        vRayleigh.store(buffer);
+        vMie.store(buffer);
+        vESun.store(buffer);
+        vSum.store(buffer);
+        vAmbient.store(buffer);
+
+        buffer.flip();
+        return buffer;
+    }
 }

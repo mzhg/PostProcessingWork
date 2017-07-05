@@ -1,5 +1,6 @@
 package jet.opengl.demos.gpupro.cloud;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
@@ -30,6 +31,9 @@ final class SSceneParamter {
     float       m_fCloudHeight;  // height of cloud
 
     float       m_far;
+    final Matrix4f m_viewMat = new Matrix4f();
+    final Matrix4f m_projMat = new Matrix4f();
+    final Vector3f m_Eye     = new Vector3f();
 
 
     void getShaderParam(SScatteringShaderParameters param){
