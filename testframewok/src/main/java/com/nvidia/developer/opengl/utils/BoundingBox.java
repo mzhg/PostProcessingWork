@@ -1,5 +1,6 @@
 package com.nvidia.developer.opengl.utils;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 /** General purpose axis-aligned bounding box class for enclosing objects/vertices.
@@ -77,6 +78,16 @@ public class BoundingBox {
     public float yMax() { return _max.y; }
 
     public float zMax() { return _max.z; }
+
+    public static BoundingBox transform(Matrix4f left, BoundingBox right, BoundingBox dest){
+        if(dest == null){
+            dest = new BoundingBox();
+        }
+
+        Matrix4f.transformVector(left, right._min, dest._min);
+        Matrix4f.transformVector(left, right._max, dest._max);
+        return dest;
+    }
 
     /** Calculates and returns the bounding box center. */
     public Vector3f center(Vector3f center)

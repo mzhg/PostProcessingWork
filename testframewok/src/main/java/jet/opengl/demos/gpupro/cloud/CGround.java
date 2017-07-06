@@ -422,6 +422,18 @@ final class CGround implements Disposeable{
 
     }
 
+    private static final class S_VERTEX {
+        static final int SIZE = 10 * 4;
+
+        final float[] fPos = new float[3];
+        final float[] fNormal = new float[3];
+        final float[] fTex = new float[4];
+
+        void store(FloatBuffer buffer){
+            buffer.put(fPos).put(fNormal).put(fTex);
+        }
+    }
+
     private static final class SFileHeader
     {
         static final int SIZE = 12;

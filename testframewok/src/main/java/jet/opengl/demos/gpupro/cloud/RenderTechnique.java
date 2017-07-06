@@ -13,7 +13,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
  * Created by mazhen'gui on 2017/7/5.
  */
 
-final class RenderTechnique extends GLSLProgram{
+class RenderTechnique extends GLSLProgram{
     private int mHeightLoc = -1;
     private int m_invMaxLoc = -1;
     private int mGround3Loc = -1;
@@ -97,7 +97,7 @@ final class RenderTechnique extends GLSLProgram{
     }
 
     public void setHeight(Vector2f v) { if(mHeightLoc >=0)gl.glUniform2f(mHeightLoc, v.x, v.y);}
-    public void setInvMax(Vector2f v) { if(m_invMaxLoc >=0)gl.glUniform2f(m_invMaxLoc, v.x, v.y);}
+    public void setInvMax(float x, float y) { if(m_invMaxLoc >=0)gl.glUniform2f(m_invMaxLoc, x, y);}
     
     public void setParam(Vector3f v) { if(mParamLoc >=0)gl.glUniform3f(mParamLoc, v.x, v.y, v.z);}
     public void setSpc(Vector4f v) { if(mSpcLoc >=0)gl.glUniform4f(mSpcLoc, v.x, v.y, v.z, v.w);}
@@ -123,9 +123,9 @@ final class RenderTechnique extends GLSLProgram{
     public void setEye(Vector3f v) { if(mEyeLoc >=0)gl.glUniform3f(mEyeLoc, v.x, v.y, v.z);}
     public void setXZParam(Vector4f v) { if(mXZParamLoc >=0)gl.glUniform4f(mXZParamLoc, v.x, v.y, v.z, v.w);}
     public void setOff(Vector4f v) { if(mOffLoc >=0)gl.glUniform4f(mOffLoc, v.x, v.y, v.z, v.w);}
-    public void setFallOff(Vector4f v) { if(mFallOffLoc >=0)gl.glUniform4f(mFallOffLoc, v.x, v.y, v.z, v.w);}
+    public void setFallOff(float x, float y, float z, float w) { if(mFallOffLoc >=0)gl.glUniform4f(mFallOffLoc, x, y, z, w);}
     
     public void setAmb(Vector3f v) { if(mAmbLoc >=0)gl.glUniform3f(mAmbLoc, v.x, v.y, v.z);}
     public void setLitDir(Vector3f v) { if(m_litDirLoc >=0)gl.glUniform3f(m_litDirLoc, v.x, v.y, v.z);}
-    public void setPix(Vector2f v) { if(mPixLoc >=0)gl.glUniform2f(mPixLoc, v.x, v.y);}
+    public void setPix(float x, float y) { if(mPixLoc >=0)gl.glUniform2f(mPixLoc, x, y);}
 }
