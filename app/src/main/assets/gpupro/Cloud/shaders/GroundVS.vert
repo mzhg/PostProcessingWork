@@ -1,7 +1,8 @@
 #include "Cloud_Common.glsl"
 layout(location = 0) in float4 In_Pos;
-layout(location = 1) in float4 In_Tex;
-layout(location = 2) in float3 In_Normal;
+layout(location = 1) in float3 In_Normal;
+layout(location = 2) in float4 In_Tex;
+
 
 out SVSOutput
 {

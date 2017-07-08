@@ -4,6 +4,7 @@ import com.nvidia.developer.opengl.utils.BoundingBox;
 
 import org.lwjgl.util.vector.Matrix4f;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -31,6 +32,7 @@ final class CCloud {
     CRenderShadowShader    m_shadowShader;       // shader to render shadow
     CCloudBlur             m_blur;               // blur shader
     CCloudPlane            m_finalCloud;         // object to render a screen cloud in the final pass
+    private boolean        m_printProgramOnce;
     private RenderTargets  m_fbo;
 
     private GLFuncProvider gl;
@@ -69,11 +71,16 @@ final class CCloud {
 //        }
         m_pShadowMap = TextureUtils.createTexture2D(new Texture2DDesc(nWidth, nHeight, GLenum.GL_DEPTH_COMPONENT16), null);
 
+        m_grid = new CCloudGrid();
         m_grid.Create();
         m_densityShader = new CRenderDensityShader(pSceneParam);
         m_shadowShader = new CRenderShadowShader(pSceneParam);
+        m_blur = new CCloudBlur();
         m_blur.Create(pSceneParam);
+        m_finalCloud = new CCloudPlane();
         m_finalCloud.Create(pSceneParam, m_pDensityMap, m_pBlurredMap);
+
+        GLCheck.checkError();
     }
 
     void Delete(){
@@ -126,6 +133,11 @@ final class CCloud {
 //                m_shadowShader.End();
                 // restore
 //                pDev->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW );
+                if(!m_printProgramOnce){
+                    m_shadowShader.setName("Generate shadow");
+                    m_shadowShader.printPrograminfo();
+                    m_shadowShader.printPrograminfo();
+                }
             }
 
             gl.glDisable(GLenum.GL_DEPTH_TEST);
@@ -142,6 +154,11 @@ final class CCloud {
                 if ( SetRenderTarget(  m_pBlurredMap ) ) {
                     m_blur.Blur(  m_pDensityMap );
                 }
+
+                if(!m_printProgramOnce){
+                    m_densityShader.setName("Generate density");
+                    m_densityShader.printPrograminfo();
+                }
             }
         }
 
@@ -152,6 +169,7 @@ final class CCloud {
 //
 //        pCurrentSurface->Release();
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        m_printProgramOnce = true;
     }
 
     void DrawFinalQuad(){

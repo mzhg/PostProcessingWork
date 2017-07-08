@@ -33,7 +33,7 @@ final class CCloudGrid {
     float m_fDefaultHeight;      // cloud height above the view position
     float m_fFallOffHeight;      // delta height.
 
-    float m_fCloudCover;         // cloud cover
+    float m_fCloudCover = 0.5f;         // cloud cover
     final Vector2f m_vVelocity = new Vector2f();     // wind velocity
     final Vector2f m_vOffset = new Vector2f();       // current uv offset
     final BoundingBox m_bound = new BoundingBox();   // bounding box of the grid

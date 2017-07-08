@@ -21,7 +21,7 @@ float3 ApplyScattering( float3 _clInput, float3 _vRay )
 	fG = fG*fG*fG;
 	float3 _vMie = scat[1].rgb * fG;
 	float3 _vRayleigh = scat[0].rgb*(1.0f + _fVL*_fVL);
-	float3 _vInscattering = scat[2] * (_vMie + _vRayleigh) + scat[4].rgb;
+	float3 _vInscattering = scat[2].rgb * (_vMie + _vRayleigh) + scat[4].rgb;
 
 	// compute distance to the cloud
 	float _fSin = _vRay.y;

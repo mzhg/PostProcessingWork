@@ -6,6 +6,7 @@ import com.nvidia.developer.opengl.utils.NvImage;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
 import java.nio.FloatBuffer;
@@ -16,6 +17,8 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.SamplerDesc;
+import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -61,6 +64,7 @@ final class CGround implements Disposeable{
 
     final SScatteringShaderParameters m_params = new SScatteringShaderParameters();
     private GLFuncProvider gl;
+    private int m_repeatSampler;
 
     void create(
             SSceneParamter pSceneParam,
@@ -69,6 +73,13 @@ final class CGround implements Disposeable{
             Matrix4f pShadowMatrix){
         gl = GLFuncProviderFactory.getGLFuncProvider();
         Delete();
+
+        SamplerDesc desc = new SamplerDesc();
+        desc.minFilter = GLenum.GL_LINEAR_MIPMAP_LINEAR;
+        desc.wrapR = GLenum.GL_MIRRORED_REPEAT;
+        desc.wrapS = GLenum.GL_MIRRORED_REPEAT;
+        desc.wrapT = GLenum.GL_MIRRORED_REPEAT;
+        m_repeatSampler = SamplerUtils.createSampler(desc);
 
         // Loading heightmap (BITMAP);
         LoadHeightmap( /*pDev,*/ ptcHeightmap );
@@ -129,6 +140,7 @@ final class CGround implements Disposeable{
 
     }
 
+    private boolean m_printOnceprogram;
     void Draw(/*LPDIRECT3DDEVICE9 pDev*/){
         gl.glEnable(GLenum.GL_DEPTH_TEST);
         gl.glBindVertexArray(m_pVAO);
@@ -136,9 +148,27 @@ final class CGround implements Disposeable{
         SetShaderConstants();
 
         // TODO binding textures.
+        for(int i = 0; i < 6; i++){
+            gl.glActiveTexture(GLenum.GL_TEXTURE0 + i);
+            gl.glBindTexture(m_pTex[i].getTarget(), m_pTex[i].getTexture());
+            gl.glBindSampler(0, m_repeatSampler);
+        }
 
         gl.glDrawElements(GLenum.GL_TRIANGLE_STRIP, m_nTriangles + 2, GLenum.GL_UNSIGNED_SHORT, 0);
         gl.glBindVertexArray(0);
+
+        if(!m_printOnceprogram){
+            m_shader.setName("Render Ground");
+            m_shader.printPrograminfo();
+        }
+
+        for(int i = 5; i >= 0; i--){
+            gl.glActiveTexture(GLenum.GL_TEXTURE0 + i);
+            gl.glBindTexture(m_pTex[i].getTarget(), 0);
+            gl.glBindSampler(0, 0);
+        }
+
+        m_printOnceprogram = true;
     }
 
     float GetHeight(float x, float z) {
@@ -174,7 +204,7 @@ final class CGround implements Disposeable{
 
     }
     BoundingBox GetBoundingBox() {
-        return null;
+        return m_bound;
     }
 
     void SetShaderConstants(/*LPDIRECT3DDEVICE9 pDev*/){
@@ -188,7 +218,7 @@ final class CGround implements Disposeable{
 
         if(m_pSceneParam != null){
             // transform local coordinate to projection.
-            m_shader.setL2C(m_pSceneParam.m_viewMat);
+            m_shader.setL2C(m_pSceneParam.m_viewProj);
 
             // view position
             m_shader.setEye(m_pSceneParam.m_Eye);
@@ -209,6 +239,8 @@ final class CGround implements Disposeable{
 //        m_shader.SetPSValue( pDev, PS_CONST_MATERIAL_DIFFUSE, &vDiffuse, sizeof(FLOAT)*4 );
 //        m_shader.SetPSValue( pDev, PS_CONST_MATERIAL_SPECULAR, &vSpecular, sizeof(FLOAT)*4 );
         // TODO
+        m_shader.setSpc(new Vector4f(1,1,1,32));
+        m_shader.setDif(new Vector4f(1,1,1,1));
     }
 
     void CreateShaders(/*LPDIRECT3DDEVICE9 pDev*/){
@@ -287,8 +319,8 @@ final class CGround implements Disposeable{
                 pV.fPos[1] = m_pfHeight[i*nWidth+j];
                 pV.fPos[2] = vStart.y + m_vCellSizeXZ.y* i;
                 // texture coordinate
-                pV.fTex[0] = j;                    // texcoord u for ground textures
-                pV.fTex[1] = i;                    // texcoord v for ground textures
+                pV.fTex[0] = (float)j/(float)(nWidth-1);                    // texcoord u for ground textures
+                pV.fTex[1] = (float)i/(float)(nHeight-1);                    // texcoord v for ground textures
                 pV.fTex[2] = (float)j/(float)(nWidth-1);  // texcoord u for a blend texture
                 pV.fTex[3] = (float)i/(float)(nHeight-1); // texcoord v for a blend texture
 
@@ -348,9 +380,9 @@ final class CGround implements Disposeable{
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_pVB);
         gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, S_VERTEX.SIZE, 0);
         gl.glEnableVertexAttribArray(0);
-        gl.glVertexAttribPointer(1, 4, GLenum.GL_FLOAT, false, S_VERTEX.SIZE, 24);
+        gl.glVertexAttribPointer(1, 3, GLenum.GL_FLOAT, false, S_VERTEX.SIZE, 12);
         gl.glEnableVertexAttribArray(1);
-        gl.glVertexAttribPointer(2, 3, GLenum.GL_FLOAT, false, S_VERTEX.SIZE, 12);
+        gl.glVertexAttribPointer(2, 4, GLenum.GL_FLOAT, false, S_VERTEX.SIZE, 24);
         gl.glEnableVertexAttribArray(2);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, m_pIB);
 

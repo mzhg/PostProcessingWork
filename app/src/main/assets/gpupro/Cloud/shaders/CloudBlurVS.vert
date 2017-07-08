@@ -13,7 +13,7 @@ void main()
     gl_Position = float4(In_Pos.xy, 0, 1);
 
     // transform projection space to world space
-    _output.vWorldPos = mul( _Input.vPosC, mC2W );
+    _output.vWorldPos = mul( In_Pos, mC2W );
     // uv
     _output.vTex.xy = In_Tex + vPix;
 

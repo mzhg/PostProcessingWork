@@ -32,7 +32,7 @@ void main()
 
     // scale parameter of exponential weight
     float4 _distance;
-    _distance = dot( _vUVOffset.xy, _vUVOffset.xy );
+    _distance = dot( _vUVOffset.xy, _vUVOffset.xy ).xxxx;
     _distance *= vFallOff;
 
     // blur

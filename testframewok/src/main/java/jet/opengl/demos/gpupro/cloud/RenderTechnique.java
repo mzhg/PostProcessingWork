@@ -5,8 +5,12 @@ import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.IOException;
+
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.shader.ProgramProperties;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
@@ -55,7 +59,11 @@ class RenderTechnique extends GLSLProgram{
     RenderTechnique(String vertfile, String fragfile, String macro){
         final String path = "gpupro/Cloud/shaders/";
 
-        setSourceFromStrings(path + vertfile, path + fragfile, macro != null ? new Macro(macro, 1) : null);
+        try {
+            setSourceFromFiles(path + vertfile, path + fragfile, macro != null ? new Macro(macro, 1) : null);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         initUniforms();
     }
 
@@ -94,6 +102,12 @@ class RenderTechnique extends GLSLProgram{
         mAmbLoc = gl.glGetUniformLocation(m_program, "cAmb");
         m_litDirLoc = gl.glGetUniformLocation(m_program, "litDir");
         mPixLoc = gl.glGetUniformLocation(m_program, "vPix");
+    }
+
+    public void printPrograminfo(){
+        System.out.println("----------------------------"+getName() +"-----------------------------------------" );
+        ProgramProperties props = GLSLUtil.getProperties(getProgram());
+        System.out.println(props);
     }
 
     public void setHeight(Vector2f v) { if(mHeightLoc >=0)gl.glUniform2f(mHeightLoc, v.x, v.y);}

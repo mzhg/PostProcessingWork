@@ -123,7 +123,7 @@ final class CRenderShadowShader extends  RenderTechnique{
         if (m_pSceneParam != null /*&& m_pSceneParam->m_pCamera != NULL*/) {
             // world to projection transform
 //            SetVSMatrix( pDev, VS_CONST_W2C, m_pSceneParam->m_pCamera->GetWorld2ProjMatrix() );
-            setW2C(m_pSceneParam.m_viewMat);
+            setW2C(m_pSceneParam.m_viewProj);
             // view position
 //            SetVSValue( pDev, VS_CONST_EYE, m_pSceneParam->m_pCamera->GetEyePt(), sizeof(FLOAT)*3 );
             setEye(m_pSceneParam.m_Eye);

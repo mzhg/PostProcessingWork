@@ -34,11 +34,23 @@ float4 GetGroundTexture(float4 vTex)
 	return _clGround;
 }
 
+float4 lit(float n_dot_l, float n_dot_h, float m)
+{
+    return float4
+    (
+        1,  // ambient
+        n_dot_l < 0.0 ? 0 : n_dot_l,
+        (n_dot_l < 0.0 || n_dot_h < 0.0) ? 0.0 : (n_dot_h * m),
+        1
+    );
+}
+
 void main()
 {
     // Sample shadow map
     // Cloud shadow is not depth but transparency of shadow.
     float4 _clShadow = texture( sShadow, _Input.vShadowPos.xy/_Input.vShadowPos.w );
+    _clShadow = max(float4(1), _clShadow);
 
     float3 _vNormal = normalize( _Input.vWorldNormal );
 
@@ -48,11 +60,11 @@ void main()
 
     // apply light
     float3 _clDiffuse = litAmb;
-    float3 _clSpecular = 0;
-    float3 _fDot = dot( -litDir, _vNormal );
+    float3 _clSpecular = float3(0);
+    float  _fDot = dot( -litDir, _vNormal );
     float3 _vHalf = -normalize( litDir.xyz + _vRay );
     float4 _lit = lit( _fDot, dot(_vHalf, _vNormal ), mSpc.w );
-    float3 _litCol = _clShadow * litCol;
+    float3 _litCol = _clShadow.xxx * litCol.rgb;
     _clDiffuse += _litCol * _lit.y;
     _clSpecular += _litCol * _lit.z;
 
@@ -75,7 +87,7 @@ void main()
     fG = fG*fG*fG;
     float3 _vMie = scat[1].rgb * fG;
     float3 _vRayleigh = scat[0].rgb*(1.0f + _fVL*_fVL);
-    float3 _vInscattering = scat[2] * (_vMie + _vRayleigh) + scat[4].rgb;
+    float3 _vInscattering = scat[2].rgb * (_vMie + _vRayleigh) + scat[4].rgb;
 
     // ratio of scattering
     float fDistance = sqrt( _fSqDistance );

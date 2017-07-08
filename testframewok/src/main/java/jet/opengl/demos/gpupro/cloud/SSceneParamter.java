@@ -34,6 +34,7 @@ final class SSceneParamter {
     final Matrix4f m_viewMat = new Matrix4f();
     final Matrix4f m_projMat = new Matrix4f();
     final Matrix4f m_viewProj = new Matrix4f();
+    final Matrix4f m_viewProjInv = new Matrix4f();
     final Vector3f m_Eye     = new Vector3f();
 
 

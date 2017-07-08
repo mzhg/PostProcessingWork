@@ -1,9 +1,12 @@
 package jet.opengl.demos.gpupro.cloud;
 
+import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -17,7 +20,7 @@ public class CloudDemo extends NvSampleApp {
     CGround                     g_Ground;               // ground object
     CSkyPlane                   g_skyPlane;             // sky object
     CCloud                      g_cloud;                // cloud
-    SSceneParamter               g_sceneParam;           // light and scattering parameters
+    SSceneParamter              g_sceneParam;           // light and scattering parameters
     float                       g_fTime;                // time of a day
 
     private GLFuncProvider gl;
@@ -50,10 +53,12 @@ public class CloudDemo extends NvSampleApp {
 
         // Create Sky
 
+        g_skyPlane = new CSkyPlane();
         g_skyPlane.Create(g_sceneParam );
 
         // Create ground object
-        g_Ground.create(g_sceneParam, "res\\GroundHeight.bmp",
+        g_Ground = new CGround();
+        g_Ground.create(g_sceneParam, "gpupro/Cloud/textures/GroundHeight.bmp",
                 g_cloud.GetShadowMap(), g_cloud.GetWorld2ShadowMatrix() );
 
         // Setup the camera's view parameters
@@ -61,6 +66,7 @@ public class CloudDemo extends NvSampleApp {
 //        D3DXVECTOR3 vecAt( 14000.0f, 0.0f, 12730.8f );
 //        vecEye = vecAt + D3DXVECTOR3( -10.0f, 5.0f, -10.0f );
         m_transformer.setTranslation(-(14000.0f - 10.0f), -5.0f, -(12730.8f-10.0f));
+        m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 //        g_Camera.SetViewParams( &vecEye, &vecAt );
 //        g_Camera.SetGround( &g_Ground );
     }
@@ -92,6 +98,10 @@ public class CloudDemo extends NvSampleApp {
 
         // when cloudy, ambient term of scattering is risen
         g_sceneParam.m_fAmbientScale = 0.5f * (1.0f - fCloudCover) + 1.0f * fCloudCover;
+        m_transformer.getModelViewMat(g_sceneParam.m_viewMat);
+        Matrix4f.mul(g_sceneParam.m_projMat, g_sceneParam.m_viewMat, g_sceneParam.m_viewProj);
+        Matrix4f.decompseRigidMatrix(g_sceneParam.m_viewMat, g_sceneParam.m_Eye, null, null);
+        Matrix4f.invert(g_sceneParam.m_viewProj, g_sceneParam.m_viewProjInv);
 
         // ------------------ Render Scene -----------------------------------
         // Render the scene
@@ -105,19 +115,22 @@ public class CloudDemo extends NvSampleApp {
 
         // Render shadowmap, density and blur
         g_cloud.PrepareCloudTextures( /*pd3dDevice*/ );
+        GLCheck.checkError();
 
         // Pass 3 : Draw scene
 
         // Clear the render target and the zbuffer
 //        V( pd3dDevice->Clear( 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_ARGB( 0, 45, 50, 170 ), 1.0f, 0 ) );
         gl.glClearColor(45f/255, 50f/255, 70f/255, 0);
-        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
+        gl.glClearDepthf(1.0f);
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
+        gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
 
         // Draw Ground
         g_Ground.Draw( /*pd3dDevice*/ );
 
         // Draw sky plane
-        g_skyPlane.Draw( /*pd3dDevice*/ );
+//        g_skyPlane.Draw( /*pd3dDevice*/ );
 
         // Draw clouds
 //        pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
@@ -125,7 +138,7 @@ public class CloudDemo extends NvSampleApp {
 //        pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
 //        pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 
-        g_cloud.DrawFinalQuad( /*pd3dDevice*/ );
+//        g_cloud.DrawFinalQuad( /*pd3dDevice*/ );
 
 //        pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 
@@ -137,5 +150,14 @@ public class CloudDemo extends NvSampleApp {
 //        DXUT_EndPerfEvent();
 //
 //        V( pd3dDevice->EndScene() );
+    }
+
+    @Override
+    protected void reshape(int width, int height) {
+        if(width <= 0 || height <=0)
+            return;
+
+        g_sceneParam.m_far = 10000.0f;
+        Matrix4f.perspectiveLH(60, (float)width/height, 0.1f, g_sceneParam.m_far, g_sceneParam.m_projMat);
     }
 }

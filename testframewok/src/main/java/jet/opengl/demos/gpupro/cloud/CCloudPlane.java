@@ -79,6 +79,7 @@ final class CCloudPlane {
     }
     void Delete(){}
 
+    private boolean m_printOnceprogram;
     void Draw(){
         gl.glBindVertexArray(m_pDecl);
         SetShaderConstant();
@@ -91,6 +92,13 @@ final class CCloudPlane {
 
         gl.glDrawElements(GLenum.GL_TRIANGLE_STRIP, NUM_INDICES, GLenum.GL_UNSIGNED_SHORT, 0);
         gl.glBindVertexArray(0);
+
+        if(!m_printOnceprogram){
+            m_shader.setName("Render Cloud");
+            m_shader.printPrograminfo();
+        }
+
+        m_printOnceprogram = true;
     }
 
     private void CreateBuffers(){

@@ -18,7 +18,7 @@ void main()
     fG = fG*fG*fG;
     float3 _vMie = scat[1].rgb * fG;
     float3 _vRayleigh = scat[0].rgb*(1.0f + _fVL*_fVL);
-    float3 _vInscattering = scat[2] * (_vMie + _vRayleigh) + scat[4].rgb;
+    float3 _vInscattering = scat[2].rgb * (_vMie + _vRayleigh) + scat[4].rgb;
 
     // compute distance the light passes through the atmosphere
     float _fSin = _vRay.y;

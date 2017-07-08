@@ -66,6 +66,7 @@ final class CSkyPlane implements Disposeable{
 
     }
 
+    private boolean m_printOnceprogram;
     void Draw(){
         gl.glBindVertexArray(m_pDecl);
 
@@ -80,7 +81,7 @@ final class CSkyPlane implements Disposeable{
 //            D3DXMATRIX mC2W;
 //            D3DXMatrixInverse( &mC2W, NULL, m_pSceneParam->m_pCamera->GetWorld2ProjMatrix() );
 //            SetVSMatrix( pDev, VS_CONST_C2W, &mC2W );
-            m_shader.setC2W(m_pSceneParam.m_viewProj);
+            m_shader.setC2W(m_pSceneParam.m_viewProjInv);
 
             // view position
 //            SetVSValue( pDev, VS_CONST_EYE, m_pSceneParam->m_pCamera->GetEyePt(), sizeof(FLOAT)*3 );
@@ -101,6 +102,13 @@ final class CSkyPlane implements Disposeable{
 
         gl.glDrawElements(GLenum.GL_TRIANGLE_STRIP, NUM_INDICES, GLenum.GL_UNSIGNED_SHORT, 0);
         gl.glBindVertexArray(0);
+
+        if(!m_printOnceprogram){
+            m_shader.setName("Render Sky");
+            m_shader.printPrograminfo();
+        }
+
+        m_printOnceprogram = true;
     }
 
     private void CreateBuffers(){
@@ -175,7 +183,7 @@ final class CSkyPlane implements Disposeable{
     }
 
     private void CreateShaders(){
-        m_shader = new RenderTechnique("SkyPlaneVS.vert", "SkyPlanePS.frag");
+        m_shader = new RenderTechnique("SkyVS.vert", "SkyPS.frag");
     }
 
 
