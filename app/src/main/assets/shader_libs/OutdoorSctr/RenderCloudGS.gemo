@@ -1,0 +1,143 @@
+#include "CloudsCommon.glsl"
+// This geometry shader generates either bounding volume (TILING_MODE == 0) or bounding
+// sprite (TILING_MODE == 1) for each particle
+layout (points) in;
+#if TILING_MODE
+layout (triangle_strip, max_vertices = 4) out;
+#else
+layout (triangle_strip, max_vertices = 10+4+4) out;
+#endif
+in flat uint m_uiParticleID[];
+
+struct PS_Input
+{
+    float4 f4Pos; // : SV_Position;
+    uint uiParticleID;// : PARTICLE_ID;
+};
+
+out flat uint ps_uiParticleID;
+
+void main()
+{
+    uint uiParticleId = m_uiParticleID[0];
+    SParticleAttribs ParticleAttrs = g_Particles[uiParticleId];
+
+    // Only visible particles are sent for rendering
+
+    uint uiCellID = uiParticleId / g_GlobalCloudAttribs.uiMaxLayers;
+    SCloudCellAttribs CellAttrs = g_CloudCells[uiCellID];
+
+    float fCloudThickness = g_GlobalCloudAttribs.fCloudThickness;
+    float3 f3Size = GetParticleScales(ParticleAttrs.fSize, CellAttrs.uiNumActiveLayers);
+
+    float3 f3Tangent   = CellAttrs.f3Tangent.xyz;
+    float3 f3Normal    = CellAttrs.f3Normal.xyz;
+    float3 f3Bitangent = CellAttrs.f3Bitangent.xyz;
+    // Construct particle view-projection matrix
+    float4x4 ParticleObjToWorldSpaceMatr = float4x4(0);
+    // Start with rotation:
+    ParticleObjToWorldSpaceMatr[0].xyz = f3Tangent.xyz;
+    ParticleObjToWorldSpaceMatr[1].xyz = f3Normal.xyz;
+    ParticleObjToWorldSpaceMatr[2].xyz = f3Bitangent.xyz;
+    // Add translation to particle world position
+    ParticleObjToWorldSpaceMatr[3].xyzw = float4(ParticleAttrs.f3Pos,1);
+
+#if TILING_MODE
+    float2 f2MinXY = float2(+1);
+    float2 f2MaxXY = float2(-1);
+    float4x4 mViewProj = g_GlobalCloudAttribs.mParticleTiling;
+#else
+    PS_Input Outs[8];
+    float4x4 mViewProj = g_CameraAttribs.WorldViewProj;
+#endif
+    // Multiply with camera view-proj matrix
+    matrix ParticleObjToProjSpaceMatr = mul(ParticleObjToWorldSpaceMatr, mViewProj);
+
+    for(int iCorner = 0; iCorner < 8; ++iCorner)
+    {
+        float4 f4CurrCornerWorldPos;
+        f4CurrCornerWorldPos.xyz = f3Size * float3( (iCorner & 0x01) ? +1 : -1, (iCorner & 0x04) ? +1 : -1, (iCorner & 0x02) ? +1 : -1);
+        f4CurrCornerWorldPos.w = 1;
+
+        float4 f4CurrCornerPosPS = mul( f4CurrCornerWorldPos, ParticleObjToProjSpaceMatr );
+
+#if TILING_MODE
+        if( f4CurrCornerPosPS.w > 0 )
+        {
+            float2 f2XY = f4CurrCornerPosPS.xy / f4CurrCornerPosPS.w;
+            f2MinXY = min(f2MinXY, f2XY);
+            f2MaxXY = max(f2MaxXY, f2XY);
+        }
+#else
+        Outs[iCorner].uiParticleID = uiParticleId;
+        Outs[iCorner].f4Pos = f4CurrCornerPosPS;
+#endif
+    }
+
+#if TILING_MODE
+    if( all(lessThan(f2MinXY, f2MaxXY)) )
+    {
+        // Extend aprite by 0.5 dst pixel size to assure conservative rasterization
+        float2 f2TileTexSize = float2(g_GlobalCloudAttribs.fTileTexWidth, g_GlobalCloudAttribs.fTileTexHeight);
+        f2MinXY -= 1.0f / f2TileTexSize;
+        f2MaxXY += 1.0f / f2TileTexSize;
+        float2 f2XY[4] =
+        {
+            float2(f2MinXY.x, f2MaxXY.y),
+            float2(f2MinXY.x, f2MinXY.y),
+            float2(f2MaxXY.x, f2MaxXY.y),
+            float2(f2MaxXY.x, f2MinXY.y)
+        };
+        for(int i = 0; i < 4; ++i)
+        {
+//            PS_Input CurrOut;
+//            CurrOut.uiParticleID = uiParticleId;
+//            CurrOut.f4Pos = float4(f2XY[i],1,1);
+//            Out.Append( CurrOut );
+            ps_uiParticleID = uiParticleId;
+            gl_Position = float4(f2XY[i],1,1);
+            EmitVertex();
+        }
+
+        EndPrimitive();
+    }
+#else
+    // Generate bounding box faces
+    {
+        uint Side[] = {0,4,1,5,3,7,2,6,0,4};
+        for(int i = 0; i < 10; ++i)
+        {
+//            Out.Append( Outs[ Side[ i ] ] );
+             ps_uiParticleID = Outs[ Side[ i ] ].uiParticleID;
+             gl_Position = Outs[ Side[ i ] ].f4Pos;
+             EmitVertex();
+        }
+    }
+
+    {
+        Out.RestartStrip();
+        uint uiBottomCap[] = {2,0,3,1};
+        for(int i=0; i<4; ++i)
+        {
+//            Out.Append( Outs[ uiBottomCap[ i ] ] );
+            ps_uiParticleID = Outs[ uiBottomCap[ i ] ].uiParticleID;
+            gl_Position = Outs[ uiBottomCap[ i ] ].f4Pos;
+            EmitVertex();
+        }
+    }
+
+    {
+        Out.RestartStrip();
+        uint uiTopCap[] = {4,6,5,7};
+        for(int i=0; i<4; ++i)
+        {
+//            Out.Append( Outs[ uiTopCap[ i ] ] );
+            ps_uiParticleID = Outs[ uiTopCap[ i ] ].uiParticleID;
+            gl_Position = Outs[ uiTopCap[ i ] ].f4Pos;
+            EmitVertex();
+        }
+    }
+
+    EndPrimitive();
+#endif
+}

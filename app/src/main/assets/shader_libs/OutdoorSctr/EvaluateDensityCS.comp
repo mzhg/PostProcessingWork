@@ -1,0 +1,21 @@
+#include "CloudsCommon.glsl"
+
+layout (local_size_x = THREAD_GROUP_SIZE) in;
+void main()
+{
+    uint3 DstCellInd;
+	uint uiLayer, uiRing;
+	SCloudCellAttribs CellAttrs;
+	float fLayerAltitude;
+	float3 f3VoxelCenter;
+	if( !VolumeProcessingCSHelperFunc(Gid, GTid, CellAttrs, uiLayer, uiRing, fLayerAltitude, f3VoxelCenter, DstCellInd) )
+		return;
+
+	float fNoisePeriod0 = 9413.0;
+	float fNoisePeriod1 = 7417.0;
+	const float fRingWorldStep = GetCloudRingWorldStep(uiRing, g_GlobalCloudAttribs);
+	float fTime = g_fTimeScale*g_GlobalCloudAttribs.fTime;
+	float fNoise0 = textureGrad(g_tex3DNoise, f3VoxelCenter/fNoisePeriod0 + float3(-0.2, 0.7, -0.4) * fTime*0.01, float3(fRingWorldStep/fNoisePeriod0,0,0), float3(0,fRingWorldStep/fNoisePeriod0,0));  // samLinearWrap
+	float fNoise1 = textureGrad(g_tex3DNoise, f3VoxelCenter/fNoisePeriod1 + float3(+0.3, -0.3, +0.8) * fTime*0.01, float3(fRingWorldStep/fNoisePeriod1,0,0), float3(0,fRingWorldStep/fNoisePeriod1,0));
+	g_rwtex3DCellDensity[ DstCellInd ] = saturate(CellAttrs.fDensity * saturate( -(fLayerAltitude+0.5)*1.1 + (fNoise0 * fNoise1 * 2 -  0.0) )*2);
+}

@@ -8,6 +8,8 @@ import org.lwjgl.util.vector.Vector3f;
  */
 
 final class SParticleLayer {
+    static final int SIZE = 6 * 4;
+
     final Vector2f f2MinMaxDist = new Vector2f();
     float fOpticalMass;
     final Vector3f f3Color = new Vector3f();

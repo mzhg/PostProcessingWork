@@ -1,0 +1,69 @@
+#include "CloudsCommon.glsl"
+
+layout (local_size_x = THREAD_GROUP_SIZE) in;
+
+// This shader processes all valid cells and for each cell outputs
+// appropriate number of particles in this cell
+void main()
+{
+    uint3 Gid = gl_WorkGroupID;
+    uint3 GTid = gl_LocalInvocationID;
+
+    uint uiValidCellNum = Gid.x * THREAD_GROUP_SIZE + GTid.x;
+    uint uiNumValidCells = g_ValidCellsCounter.Load(0);
+    if( uiValidCellNum >= uiNumValidCells )
+        return;
+
+    float fTime = g_fTimeScale*g_GlobalCloudAttribs.fTime;
+
+    uint uiMaxLayers = g_GlobalCloudAttribs.uiMaxLayers;
+    // Load valid cell id from the list
+    uint uiCellId = g_ValidCellsUnorderedList[uiValidCellNum];
+    // Get the cell attributes
+    SCloudCellAttribs CellAttrs = g_CloudCells[uiCellId];
+    uint uiCellI, uiCellJ, uiRing, uiLayerUnused;
+    UnPackParticleIJRing(CellAttrs.uiPackedLocation, uiCellI, uiCellJ, uiRing, uiLayerUnused);
+    uint uiDstParticleId = uiCellId * uiMaxLayers;
+    float3 f3Size = GetParticleScales(CellAttrs.fSize, CellAttrs.uiNumActiveLayers);
+    uint uiNumActiveLayers = CellAttrs.uiNumActiveLayers;
+    for(uint uiLayer = 0; uiLayer < uiNumActiveLayers; ++uiLayer)
+    {
+        // Process each layer in the cell
+        float3 f3CloudPos = CellAttrs.f3Center;
+        float fLayerAltitude = (float(uiLayer) + 0.5) / float(uiNumActiveLayers) - 0.5;
+        f3CloudPos += CellAttrs.f3Normal.xyz * fLayerAltitude * g_GlobalCloudAttribs.fCloudThickness;
+        float fDensity = SampleCellAttribs3DTexture(g_tex3DCellDensity, f3CloudPos, uiRing, false);
+        if( fDensity < 1e-5 )
+            continue;
+
+        // Apply random displacement to particle pos
+        float3 f3Noise = textureLod(g_tex2DWhiteNoise, (f3CloudPos.yx + f3CloudPos.xz)/1500+0*fTime*5e-4, 0.0).xyz;   // samLinearWrap
+        float3 f3RandomDisplacement = (f3Noise*2.0-1.0) * f3Size / 2.f * float3(0.3,0.5,0.3);
+        f3CloudPos += f3RandomDisplacement.x * CellAttrs.f3Tangent.xyz +
+                      f3RandomDisplacement.y * CellAttrs.f3Normal.xyz +
+                      f3RandomDisplacement.z * CellAttrs.f3Bitangent.xyz;
+
+        float fNoise = dot(f3Noise, 1.f/3.f);
+        float fParticleSize = CellAttrs.fSize * 2.2 * lerp(0.5, 1, fNoise) * saturate(pow(fDensity/0.02,1));
+
+        if( fParticleSize > 1e-5 )
+        {
+            float3 f3Size = GetParticleScales(fParticleSize, uiNumActiveLayers);
+            bool bIsVisible = IsParticleVisibile(f3CloudPos, f3Size, g_CameraAttribs.f4ViewFrustumPlanes);
+            if( bIsVisible )
+            {
+                g_CloudParticlesRW[uiDstParticleId].f3Pos = f3CloudPos;
+                g_CloudParticlesRW[uiDstParticleId].fSize = fParticleSize;
+                g_CloudParticlesRW[uiDstParticleId].fRndAzimuthBias = f3Noise.y+(f3Noise.x-0.5)*fTime*5e-2;
+                g_CloudParticlesRW[uiDstParticleId].fDensity = fDensity;
+
+                SParticleIdAndDist ParticleIdAndDist;
+                ParticleIdAndDist.uiID = uiDstParticleId;
+                ParticleIdAndDist.fDistToCamera = -length(f3CloudPos - g_CameraAttribs.f4CameraPos.xyz); // We need back to front ordering
+                g_VisibleParticlesAppendBuf.Append(ParticleIdAndDist);
+            }
+        }
+
+        ++uiDstParticleId;
+    }
+}

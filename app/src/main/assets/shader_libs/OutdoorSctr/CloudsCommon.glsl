@@ -93,6 +93,14 @@ StructuredBuffer<uint>  g_ValidParticlesUnorderedList        : register( t1 );
 Texture3D<float>        g_tex3DParticleDensityLUT			 : register( t10 );
 Texture3D<float>        g_tex3DSingleScatteringInParticleLUT   : register( t11 );
 Texture3D<float>        g_tex3DMultipleScatteringInParticleLUT : register( t12 );
+RWStructuredBuffer<SParticleLayer> g_rwbufParticleLayers : register( u3 );
+StructuredBuffer<SParticleLayer> g_bufParticleLayers : register( t0 );
+
+StructuredBuffer<float4> g_SunLightAttenuation : register( t4 );
+
+SamplerState samLinearWrap : register( s1 );
+SamplerState samPointWrap : register( s2 );
+
 #else
 #define START_TEXTURE_UNIT 23
 #define TEX2D_LIGHT_SPACE_DEPTH         START_TEXTURE_UNIT+0
@@ -105,8 +113,8 @@ Texture3D<float>        g_tex3DMultipleScatteringInParticleLUT : register( t12 )
 #define TEX3D_LIGHT_ATTEN_MASS          START_TEXTURE_UNIT+7
 #define TEX3D_CELL_DENSITY              START_TEXTURE_UNIT+8
 #define TEX2D_AMB_SKY_LIGHT             START_TEXTURE_UNIT+9
-#define TEX2D_LIGHT_CLOUD_TRANSPARENCY  START_TEXTURE_UNIT+10
-#define TEX2D_LIGHT_CLOUD_MIN_MAX_DEPTH START_TEXTURE_UNIT+11
+#define TEX3D_LIGHT_CLOUD_TRANSPARENCY  START_TEXTURE_UNIT+10
+#define TEX3D_LIGHT_CLOUD_MIN_MAX_DEPTH START_TEXTURE_UNIT+11
 #define TEX3D_PARTICLE_DENSITY_LUT      START_TEXTURE_UNIT+12
 #define TEX3D_SINGLE_SCATT_IN_PART_LUT  START_TEXTURE_UNIT+13
 #define TEX3D_MULTIL_SCATT_IN_PART_LUT  START_TEXTURE_UNIT+14
@@ -135,26 +143,33 @@ layout(binding = TEX3D_CELL_DENSITY) uniform sampler3D g_tex3DCellDensity;
 layout(binding = TEXBUFFER_VISIP_UNORDEREDLIST) uniform imageBuffer g_VisibleParticlesUnorderedList;
 layout(binding = TEXBUFFER_PARTICLE_LIGHTING) uniform imageBuffer g_bufParticleLighting;
 layout(binding = TEX2D_AMB_SKY_LIGHT) uniform sampler2D g_tex2DAmbientSkylight;
+layout(binding = TEX3D_LIGHT_CLOUD_TRANSPARENCY) uniform sampler2DArray g_tex2DLightSpCloudTransparency;
+layout(binding = TEX3D_LIGHT_CLOUD_MIN_MAX_DEPTH) uniform sampler2DArray g_tex2DLightSpCloudMinMaxDepth;
+layout(binding = TEXBUFFER_CELL_COUNTER) uniform uimageBuffer g_ValidCellsCounter;
+layout(binding = TEXBUFFER_CELL_UNORDEREDLIST) uniform uimageBuffer g_ValidCellsUnorderedList;
+layout(binding = TEXBUFFER_VALIDP_UNORDEREDLIST) uniform uimageBuffer g_ValidParticlesUnorderedList;
+layout(binding = TEX3D_PARTICLE_DENSITY_LUT) uniform sampler3D g_tex3DParticleDensityLUT;
+layout(binding = TEX3D_SINGLE_SCATT_IN_PART_LUT) uniform sampler3D g_tex3DSingleScatteringInParticleLUT;
+layout(binding = TEX3D_MULTIL_SCATT_IN_PART_LUT) uniform sampler3D g_tex3DMultipleScatteringInParticleLUT;
 #endif
 
-RWStructuredBuffer<SParticleLayer> g_rwbufParticleLayers : register( u3 );
-StructuredBuffer<SParticleLayer> g_bufParticleLayers : register( t0 );
 
-StructuredBuffer<float4> g_SunLightAttenuation : register( t4 );
-
-SamplerState samLinearWrap : register( s1 );
-SamplerState samPointWrap : register( s2 );
-
+#if 0
 cbuffer cbPostProcessingAttribs : register( b0 )
 {
     SGlobalCloudAttribs g_GlobalCloudAttribs;
 };
+#else
+uniform SGlobalCloudAttribs g_GlobalCloudAttribs;
+#endif
 
+#if 0
 struct SScreenSizeQuadVSOutput
 {
     float4 m_f4Pos : SV_Position;
     float2 m_f2PosPS : PosPS; // Position in projection space [-1,1]x[-1,1]
 };
+
 
 // Vertex shader for generating screen-size quad
 SScreenSizeQuadVSOutput ScreenSizeQuadVS(in uint VertexId : SV_VertexID)
@@ -171,54 +186,7 @@ SScreenSizeQuadVSOutput ScreenSizeQuadVS(in uint VertexId : SV_VertexID)
 
     return Verts[VertexId];
 }
-
-// This shader computes level 0 of the maximum density mip map
-float RenderMaxMipLevel0PS(SScreenSizeQuadVSOutput In) : SV_Target
-{
-    // Compute maximum density in the 3x3 neighborhood
-    // Since dimensions of the source and destination textures are the same,
-    // rasterization locations are aligned with source texels
-    float2 f2UV = ProjToUV(In.m_f2PosPS.xy);
-    float fMaxDensity = 0;
-    [unroll]
-    for(int i=-1; i <= +1; ++i)
-        [unroll]
-        for(int j=-1; j <= +1; ++j)
-        {
-            float fCurrDensity = g_tex2DCloudDensity.SampleLevel(samPointWrap, f2UV, 0, int2(i,j));
-            fMaxDensity = max(fMaxDensity, fCurrDensity);
-        }
-    return fMaxDensity;
-}
-
-// This shader renders next coarse level of the maximum density mip map
-float RenderCoarseMaxMipLevelPS(SScreenSizeQuadVSOutput In) : SV_Target
-{
-    // Compute maximum density of 4 finer-level texels
-    float2 f2MipSize;
-    float fMipLevels;
-    float fSrcMip = g_GlobalCloudAttribs.f4Parameter.x-1;
-    g_tex2MaxDensityMip.GetDimensions(fSrcMip, f2MipSize.x, f2MipSize.y, fMipLevels);
-    // Note that since dst level is 2 times smaller than the src level, we have to
-    // align texture coordinates
-    //   _____ _____
-    //  |     |     |  1
-    //  |_____._____|
-    //  |  .  |     |  0
-    //  |_____|_____|
-    //     0      1
-    float2 f2UV = ProjToUV(In.m_f2PosPS.xy) - 0.5f / f2MipSize;
-    float fMaxDensity = 0;
-    [unroll]
-    for(int i=0; i <= +1; ++i)
-        [unroll]
-        for(int j=0; j <= +1; ++j)
-        {
-            float fCurrDensity = g_tex2MaxDensityMip.SampleLevel(samPointWrap, f2UV, fSrcMip, int2(i,j));
-            fMaxDensity = max(fMaxDensity, fCurrDensity);
-        }
-    return fMaxDensity;
-}
+#endif
 
 float2 ComputeDensityTexLODsFromUV(in float4 fDeltaUV01)
 {
@@ -231,7 +199,7 @@ float2 ComputeDensityTexLODsFromUV(in float4 fDeltaUV01)
 float2 ComputeDensityTexLODsFromStep(in float fSamplingStep)
 {
     float2 f2dU = fSamplingStep * g_f2CloudDensitySamplingScale * CLOUD_DENSITY_TEX_DIM.xx;
-    float2 f2LODs = log2(max(f2dU, 1));
+    float2 f2LODs = log2(max(f2dU, float2(1)));
     return f2LODs;
 }
 
@@ -245,10 +213,12 @@ float4 GetCloudDensityUV(in float3 CloudPosition, in float fTime)
 float GetCloudDensity(in float4 f4UV01, in float2 f2LODs = float2(0,0))
 {
     float fDensity =
-        g_tex2DCloudDensity.SampleLevel(samLinearWrap, f4UV01.xy, f2LODs.x) *
-        g_tex2DCloudDensity.SampleLevel(samLinearWrap, f4UV01.zw, f2LODs.y);
+//        g_tex2DCloudDensity.SampleLevel(samLinearWrap, f4UV01.xy, f2LODs.x) *
+//        g_tex2DCloudDensity.SampleLevel(samLinearWrap, f4UV01.zw, f2LODs.y);
+        textureLod(g_tex2DCloudDensity, f4UV01.xy, f2LODs.x) *
+        textureLod(g_tex2DCloudDensity, f4UV01.zw, f2LODs.y);
 
-    fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1-g_GlobalCloudAttribs.fCloudDensityThreshold));
+    fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1.0-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
     return fDensity;
 }
@@ -256,10 +226,12 @@ float GetCloudDensity(in float4 f4UV01, in float2 f2LODs = float2(0,0))
 float GetCloudDensityAutoLOD(in float4 f4UV01)
 {
     float fDensity =
-        g_tex2DCloudDensity.Sample(samLinearWrap, f4UV01.xy) *
-        g_tex2DCloudDensity.Sample(samLinearWrap, f4UV01.zw);
+//        g_tex2DCloudDensity.Sample(samLinearWrap, f4UV01.xy) *
+//        g_tex2DCloudDensity.Sample(samLinearWrap, f4UV01.zw);
+        texture(g_tex2DCloudDensity, f4UV01.xy) *
+        texture(g_tex2DCloudDensity, f4UV01.zw);
 
-    fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1-g_GlobalCloudAttribs.fCloudDensityThreshold));
+    fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1.0-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
     return fDensity;
 }
@@ -273,8 +245,10 @@ float GetCloudDensity(in float3 CloudPosition, in const float fTime, in float2 f
 float GetMaxDensity(in float4 f4UV01, in float2 f2LODs = float2(0,0))
 {
     float fDensity =
-        g_tex2MaxDensityMip.SampleLevel(samPointWrap, f4UV01.xy, f2LODs.x) *
-        g_tex2MaxDensityMip.SampleLevel(samPointWrap, f4UV01.zw, f2LODs.y);
+//        g_tex2MaxDensityMip.SampleLevel(samPointWrap, f4UV01.xy, f2LODs.x) *
+//        g_tex2MaxDensityMip.SampleLevel(samPointWrap, f4UV01.zw, f2LODs.y);
+        textureLod(g_tex2MaxDensityMip, f4UV01.xy, f2LODs.x) *
+        textureLod(g_tex2MaxDensityMip, f4UV01.zw, f2LODs.y);
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
@@ -419,7 +393,7 @@ float GetCloudRingWorldStep(uint uiRing, SGlobalCloudAttribs g_GlobalCloudAttrib
     const float fLargestRingSize = g_GlobalCloudAttribs.fParticleCutOffDist * 2;
     uint uiRingDimension = g_GlobalCloudAttribs.uiRingDimension;
     uint uiNumRings = g_GlobalCloudAttribs.uiNumRings;
-    float fRingWorldStep = fLargestRingSize / (float)((uiRingDimension) << ((uiNumRings-1) - uiRing));
+    float fRingWorldStep = fLargestRingSize / float((uiRingDimension) << ((uiNumRings-1) - uiRing));
     return fRingWorldStep;
 }
 
@@ -460,7 +434,7 @@ float4 WorldParamsToParticleScatteringLUT(in float3 f3StartPosUSSpace,
                                           in float3 f3LightDirInUSSpace,
                                           in /*uniform*/ bool bSurfaceOnly)
 {
-    float4 f4LUTCoords = 0;
+    float4 f4LUTCoords = float4(0);
 
     float fDistFromCenter = 0;
     if( !bSurfaceOnly )
@@ -508,13 +482,128 @@ float4 WorldParamsToParticleScatteringLUT(in float3 f3StartPosUSSpace,
     f3UVW.z = (fQ0Slice + f4LUTCoords.z) / LUT_DIM.w;           \
                                                                 \
     Result = lerp(                                              \
-        tex3DLUT.SampleLevel(samLinearWrap, f3UVW, fLOD),       \
+        textureLod(tex3DLUT, f3UVW, fLOD),                      \     // samLinearWrap
         /* frac() assures wraparound filtering of w coordinate*/                            \
-        tex3DLUT.SampleLevel(samLinearWrap, frac(f3UVW + float3(0,0,1/LUT_DIM.w)), fLOD),   \
+        textureLod(tex3DLUT, frac(f3UVW + float3(0,0,1/LUT_DIM.w)), fLOD),   \
         fQWeight);                                                                          \
 }
 
 float HGPhaseFunc(float fCosTheta, const float g = 0.9)
 {
     return (1/(4*PI) * (1 - g*g)) / pow( max((1 + g*g) - (2*g)*fCosTheta,0), 3.f/2.f);
+}
+
+// This function computes visibility for the particle
+bool IsParticleVisibile(in float3 f3Center, in float3 f3Scales, float4 f4ViewFrustumPlanes[6])
+{
+    float fParticleBoundSphereRadius = length(f3Scales);
+    bool bIsVisible = true;
+    for(int iPlane = 0; iPlane < 6; ++iPlane)
+    {
+//#if LIGHT_SPACE_PASS
+//        // Do not clip against far clipping plane for light pass
+//        if( iPlane == 5 )
+//            continue;
+//#endif
+        float4 f4CurrPlane = f4ViewFrustumPlanes[iPlane];
+#if 1
+        // Note that the plane normal is not normalized to 1
+        float DMax = dot(f3Center.xyz, f4CurrPlane.xyz) + f4CurrPlane.w + fParticleBoundSphereRadius*length(f4CurrPlane.xyz);
+#else
+        // This is a bit more accurate but significantly more computationally expensive test
+        float DMax = -FLT_MAX;
+        for(uint uiCorner=0; uiCorner < 8; ++uiCorner)
+        {
+            float4 f4CurrCornerWS = ParticleAttrs.f4BoundBoxCornersWS[uiCorner];
+            float D = dot( f4CurrCornerWS.xyz, f4CurrPlane.xyz) + f4CurrPlane.w;
+            DMax = max(DMax, D);
+        }
+#endif
+        if( DMax < 0 )
+        {
+            bIsVisible = false;
+        }
+    }
+    return bIsVisible;
+}
+
+bool VolumeProcessingCSHelperFunc(uint3 Gid, uint3 GTid,
+								  out SCloudCellAttribs CellAttrs,
+							      out uint uiLayer,
+								  out uint uiRing,
+								  out float fLayerAltitude,
+								  out float3 f3VoxelCenter,
+								  out uint3 DstCellInd)
+{
+	uint uiThreadID = Gid.x * THREAD_GROUP_SIZE + GTid.x;
+	uint s = g_GlobalCloudAttribs.uiDensityBufferScale;
+	uint uiCellNum = uiThreadID / (s*s*s * g_GlobalCloudAttribs.uiMaxLayers);
+    uint uiNumValidCells = g_ValidCellsCounter.Load(0);
+    if( uiCellNum >= uiNumValidCells )
+        return false;
+
+	// Load valid cell id from the list
+    uint uiCellId = g_ValidCellsUnorderedList[uiCellNum];
+    // Get the cell attributes
+    CellAttrs = g_CloudCells[uiCellId];
+	uint uiTmp = uiThreadID;
+	uint uiSubCellX = uiTmp % s; uiTmp /= s;
+	uint uiSubCellY = uiTmp % s; uiTmp /= s;
+	uint uiSubCellZ = uiTmp % s; uiTmp /= s;
+	uiLayer = uiTmp % g_GlobalCloudAttribs.uiMaxLayers;
+
+    uint uiCellI, uiCellJ, uiLayerUnused;
+	// For cells, layer index is always 0
+    UnPackParticleIJRing(CellAttrs.uiPackedLocation, uiCellI, uiCellJ, uiRing, uiLayerUnused);
+
+	DstCellInd.x = uiCellI*s + uiSubCellX;
+	DstCellInd.y = uiCellJ*s + uiSubCellY;
+	DstCellInd.z = g_GlobalCloudAttribs.uiMaxLayers*s*uiRing + uiLayer*s + uiSubCellZ;
+
+	fLayerAltitude = (float(uiLayer) + 0.5) / float(g_GlobalCloudAttribs.uiMaxLayers) - 0.5;
+	f3VoxelCenter = CellAttrs.f3Center + CellAttrs.f3Normal.xyz * fLayerAltitude * g_GlobalCloudAttribs.fCloudThickness;
+
+	return true;
+}
+
+float SampleCellAttribs3DTexture(sampler3D tex3DData, in float3 f3WorldPos, in uint uiRing, /*uniform*/ bool bAutoLOD )
+{
+    float3 f3EarthCentre = float3(0, -g_MediaParams.fEarthRadius, 0);
+    float3 f3DirFromEarthCenter = f3WorldPos - f3EarthCentre;
+    float fDistFromCenter = length(f3DirFromEarthCenter);
+	//Reproject to y=0 plane
+    float3 f3CellPosFlat = f3EarthCentre + f3DirFromEarthCenter / f3DirFromEarthCenter.y * g_MediaParams.fEarthRadius;
+    float3 f3CellPosSphere = f3EarthCentre + f3DirFromEarthCenter * ((g_MediaParams.fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude)/fDistFromCenter);
+	float3 f3Normal = f3DirFromEarthCenter / fDistFromCenter;
+	float fCloudAltitude = dot(f3WorldPos - f3CellPosSphere, f3Normal);
+
+    // Compute cell center world space coordinates
+    const float fRingWorldStep = GetCloudRingWorldStep(uiRing, g_GlobalCloudAttribs);
+
+    //
+    //
+    //                                 Camera
+    //                               |<----->|
+    //   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |       CameraI == 4
+    //   0  0.5     1.5     2.5     3.5  4  4.5     5.5     6.5     7.5  8       uiRingDimension == 8
+    //                                   |
+    //                                CameraI
+    float fCameraI = floor(g_CameraAttribs.f4CameraPos.x/fRingWorldStep + 0.5);
+    float fCameraJ = floor(g_CameraAttribs.f4CameraPos.z/fRingWorldStep + 0.5);
+
+	uint uiRingDimension = g_GlobalCloudAttribs.uiRingDimension;
+    float fCellI = f3CellPosFlat.x / fRingWorldStep - fCameraI + (uiRingDimension/2);
+    float fCellJ = f3CellPosFlat.z / fRingWorldStep - fCameraJ + (uiRingDimension/2);
+	float fU = fCellI / float(uiRingDimension);
+	float fV = fCellJ / float(uiRingDimension);
+	float fW0 = float(uiRing)	  / float(g_GlobalCloudAttribs.uiNumRings);
+	float fW1 = float(uiRing+1) / float(g_GlobalCloudAttribs.uiNumRings);
+	float fW = fW0 + ( (fCloudAltitude + g_GlobalCloudAttribs.fCloudThickness*0.5) / g_GlobalCloudAttribs.fCloudThickness) / float(g_GlobalCloudAttribs.uiNumRings);
+
+	float Width,Height,Depth;
+	tex3DData.GetDimensions(Width,Height,Depth);
+	fW = clamp(fW, fW0 + 0.5/Depth, fW1 - 0.5/Depth);
+	return bAutoLOD ?
+			tex3DData.Sample(samLinearClamp, float3(fU, fV, fW)) :
+			tex3DData.SampleLevel(samLinearClamp, float3(fU, fV, fW), 0);
 }

@@ -1,0 +1,25 @@
+#include "CloudsCommon.glsl"
+
+layout(r32f, binding = 0) uniform image3D g_rwtex3D0;
+layout(r32f, binding = 1) uniform image3D g_rwtex3D1;
+layout (local_size_x = THREAD_GROUP_SIZE) in;
+
+void main()
+{
+    uint3 Gid = gl_WorkGroupID;
+    uint3 GTid = gl_LocalInvocationID;
+
+    uint uiThreadID = Gid.x * THREAD_GROUP_SIZE + GTid.x;
+    uint s =  g_GlobalCloudAttribs.uiRingDimension *  g_GlobalCloudAttribs.uiDensityBufferScale;
+    uint3 DstCellInd;
+    DstCellInd.x = uiThreadID % s; uiThreadID /= s;
+    DstCellInd.y = uiThreadID % s; uiThreadID /= s;
+    DstCellInd.z = uiThreadID;
+    if( DstCellInd.z >= g_GlobalCloudAttribs.uiMaxLayers * g_GlobalCloudAttribs.uiDensityBufferScale * g_GlobalCloudAttribs.uiNumRings )
+        return;
+//    g_rwtex3D0[ DstCellInd ] = 0.f;
+//    g_rwtex3D1[ DstCellInd ] = 0.f;
+
+    imageStore(g_rwtex3D0, int3(DstCellInd), float4(0));
+    imageStore(g_rwtex3D1, int3(DstCellInd), float4(0));
+}

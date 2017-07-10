@@ -1,0 +1,45 @@
+#include "CloudsCommon.glsl"
+
+layout (local_size_x = THREAD_GROUP_SIZE) in;
+
+void main()
+{
+    uvec3 Gid = gl_WorkGroupID;
+    uvec3 GTid = gl_LocalInvocationID;
+
+    uint3 DstCellInd;
+    uint uiLayer, uiRing;
+    SCloudCellAttribs CellAttrs;
+    float fLayerAltitude;
+    float3 f3VoxelCenter;
+    if( !VolumeProcessingCSHelperFunc(Gid, GTid, CellAttrs, uiLayer, uiRing, fLayerAltitude, f3VoxelCenter, DstCellInd) )
+        return;
+
+    float fTotalMass = 0;
+
+    // Intersect the ray with the top of the cloud layer
+    float3 f3EarthCentre = float3(0, -g_MediaParams.fEarthRadius, 0);
+    float2 f2RayIsecs;
+    float fCloudTopRadius = g_MediaParams.fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude + g_GlobalCloudAttribs.fCloudThickness/2.f;
+    float3 f3StartPos = f3VoxelCenter;
+    float3 f3TraceDir = g_LightAttribs.f4DirOnLight.xyz;
+    GetRaySphereIntersection(f3StartPos, f3TraceDir, f3EarthCentre, fCloudTopRadius, f2RayIsecs);
+
+    if( f2RayIsecs.y > 0.0 )
+    {
+        float fTraceLen = f2RayIsecs.y;
+        fTraceLen = min( fTraceLen, g_GlobalCloudAttribs.fCloudThickness*4.f );
+        const float NumSteps = 16.f;
+        float fStepLen = fTraceLen/NumSteps;
+        for(float fStep = 0.5f; fStep < NumSteps; ++fStep)
+        {
+            float3 f3CurrPos = f3StartPos + f3TraceDir * (fStepLen * fStep);
+            float fCurrDensity = SampleCellAttribs3DTexture(g_tex3DCellDensity, f3CurrPos, uiRing, false);
+            fTotalMass += fCurrDensity;
+        }
+        fTotalMass /= NumSteps;
+        fTotalMass *= fTraceLen;
+    }
+
+    g_rwtex3DLightAttenuation[ DstCellInd ] = fTotalMass / GetAttenuatingMassNormFactor();
+}

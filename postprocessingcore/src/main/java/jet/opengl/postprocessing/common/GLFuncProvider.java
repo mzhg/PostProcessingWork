@@ -25,8 +25,6 @@ public interface GLFuncProvider {
 
     public void glBindTexture (int target, int texture);
 
-    public void glBlendFunc (int sfactor, int dfactor);
-
     public void glClear (int mask);
 
     public void glClearColor (float red, float green, float blue, float alpha);
@@ -76,6 +74,7 @@ public interface GLFuncProvider {
     public void glDrawElements (int mode, int count, int type, Buffer indices);
 
     public void glEnable (int cap);
+    public void glEnablei (int cap, int index);
 
     public void glFinish ();
 
@@ -141,7 +140,17 @@ public interface GLFuncProvider {
 
     public void glBlendEquationSeparate (int modeRGB, int modeAlpha);
 
+    public void glBlendFunc (int sfactor, int dfactor);
+
     public void glBlendFuncSeparate (int srcRGB, int dstRGB, int srcAlpha, int dstAlpha);
+
+    public void glBlendEquationi (int buf, int mode);
+
+    public void glBlendEquationSeparatei (int buf,int modeRGB, int modeAlpha);
+
+    public void glBlendFunci (int buf,int sfactor, int dfactor);
+
+    public void glBlendFuncSeparatei (int buf,int srcRGB, int dstRGB, int srcAlpha, int dstAlpha);
 
     public void glBufferSubData (int target, int offset, Buffer data);
 
@@ -1546,4 +1555,6 @@ public interface GLFuncProvider {
 
     void glGetBufferSubData(int target, int offset, int size, ByteBuffer data);
     void glDrawTransformFeedbackStream(int m_currentMode, int transformFeedback, int index);
+    void glClearTexImage(int texture, int level, int format, int type, ByteBuffer data);
+    void glClearTexImage(int texture, int level, int format, int type, FloatBuffer data);
 }

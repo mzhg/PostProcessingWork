@@ -7,6 +7,8 @@ import org.lwjgl.util.vector.Vector3f;
  */
 
 final class SCloudCellAttribs {
+    static final int SIZE = 17 * 4;
+
     final Vector3f f3Center = new Vector3f();
     float fSize;
 
