@@ -68,3 +68,28 @@ uniform vec4 g_f4ExtraterrestrialSunColor = vec4(5);
 uniform vec4  g_f4DirOnLight;
 uniform vec4  g_f4RayleighExtinctionCoeff;
 uniform vec4  g_f4MieExtinctionCoeff;
+
+void GetRaySphereIntersection(in float3 f3RayOrigin,
+                              in float3 f3RayDirection,
+                              in float3 f3SphereCenter,
+                              in float fSphereRadius,
+                              out float2 f2Intersections)
+{
+    // http://wiki.cgsociety.org/index.php/Ray_Sphere_Intersection
+    f3RayOrigin -= f3SphereCenter;
+    float A = dot(f3RayDirection, f3RayDirection);
+    float B = 2.0 * dot(f3RayOrigin, f3RayDirection);
+    float C = dot(f3RayOrigin,f3RayOrigin) - fSphereRadius*fSphereRadius;
+    float D = B*B - 4.0*A*C;
+    // If discriminant is negative, there are no real roots hence the ray misses the
+    // sphere
+    if( D<0 )
+    {
+        f2Intersections = float2(-1.0);
+    }
+    else
+    {
+        D = sqrt(D);
+        f2Intersections = float2(-B - D, -B + D) / (2.0*A); // A must be positive here!!
+    }
+}

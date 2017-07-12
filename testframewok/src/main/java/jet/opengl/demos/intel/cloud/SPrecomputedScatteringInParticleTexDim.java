@@ -8,5 +8,5 @@ final class SPrecomputedScatteringInParticleTexDim {
     final int iNumStartPosZenithAngles = 32;
     final int iNumViewDirAzimuthAngles = 64;
     final int iNumViewDirZenithAngles = 32;
-    final int iNumDistancesFromCenter = 64;
+    final int iNumDistancesFromCenter = 32;
 }

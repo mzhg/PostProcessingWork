@@ -1,5 +1,20 @@
 #include "CloudsCommon.glsl"
 
+#define MIN_ATTENUATION_THRESHOLD 0.01
+float GetAttenuatingMassNormFactor()
+{
+	//exp( -fMaxMass * g_GlobalCloudAttribs.fAttenuationCoeff ) == MIN_ATTENUATION_THRESHOLD :
+	return -log(MIN_ATTENUATION_THRESHOLD) / (g_GlobalCloudAttribs.fAttenuationCoeff * 0.1);
+}
+
+//RWStructuredBuffer<SCloudParticleLighting> g_ParticleLightingRW : register(u0);
+
+layout(binding = 0) buffer RWStructuredBuffer_SCloudParticleLighting
+{
+SCloudParticleLighting g_ParticleLightingRW[];
+};
+
+layout(binding = 0) uniform sampler2D g_tex2DOccludedNetDensityToAtmTop;
 layout (local_size_x = THREAD_GROUP_SIZE) in;
 
 void main()
@@ -8,7 +23,7 @@ void main()
     uint3 GTid = gl_LocalInvocationID;
 
     uint uiParticleNum = Gid.x * THREAD_GROUP_SIZE + GTid.x;
-    uint uiNumVisibleParticles = imageLoad(g_ValidCellsCounter, 0);
+    uint uiNumVisibleParticles = imageLoad(g_ValidCellsCounter, 0).x;
     if( uiParticleNum >= uiNumVisibleParticles )
         return;
 
@@ -24,20 +39,20 @@ void main()
     // the attenuation from the surface.
     // When the camera is looking in the opposite directio, we would like to use
     // attenuation from the center:
-    float3 f3ViewRay = normalize(ParticleAttrs.f3Pos - g_CameraAttribs.f4CameraPos.xyz);
-    float fRatio = dot(f3ViewRay, g_LightAttribs.f4DirOnLight.xyz);
+    float3 f3ViewRay = normalize(ParticleAttrs.f3Pos - g_f4CameraPos.xyz);
+    float fRatio = dot(f3ViewRay, g_f4DirOnLight.xyz);
     fRatio = saturate((fRatio+1)/2.f);
     // For single scattering, compute light occlusion from the center of the particle
     float fLightAttenuatingMassSS = SampleCellAttribs3DTexture(g_tex3DLightAttenuatingMass, ParticleAttrs.f3Pos, uiRing, false);
     // For multiple scattering, light occlusiong from the boundary when looking towards the light and from center when light is behind
-    float fLightAttenuatingMassMS = SampleCellAttribs3DTexture(g_tex3DLightAttenuatingMass, ParticleAttrs.f3Pos  + fRatio * g_LightAttribs.f4DirOnLight.xyz * ParticleAttrs.fSize, uiRing, false);
+    float fLightAttenuatingMassMS = SampleCellAttribs3DTexture(g_tex3DLightAttenuatingMass, ParticleAttrs.f3Pos  + fRatio * g_f4DirOnLight.xyz * ParticleAttrs.fSize, uiRing, false);
     const float fMassNormFactor = GetAttenuatingMassNormFactor();
     float2 f2OpticalDepth = float2(fLightAttenuatingMassSS, fLightAttenuatingMassMS) * fMassNormFactor * g_GlobalCloudAttribs.fAttenuationCoeff;
     float2 f2LightAttenuation = exp( - f2OpticalDepth * float2(1.f, 0.25f) );
 
     float3 f3AtmosphereExtinction, f3AmbientSkyLight;
     GetSunLightExtinctionAndSkyLight(ParticleAttrs.f3Pos, f3AtmosphereExtinction, f3AmbientSkyLight, g_tex2DOccludedNetDensityToAtmTop, g_tex2DAmbientSkylight);
-    g_ParticleLightingRW[ParticleID].f4SunLight = float4(f3AtmosphereExtinction * g_LightAttribs.f4ExtraterrestrialSunColor.rgb, 0);
+    g_ParticleLightingRW[ParticleID].f4SunLight = float4(f3AtmosphereExtinction * g_f4ExtraterrestrialSunColor.rgb, 0);
     g_ParticleLightingRW[ParticleID].f4AmbientLight = float4(f3AmbientSkyLight, 1);
     g_ParticleLightingRW[ParticleID].f2SunLightAttenuation = f2LightAttenuation;
 }

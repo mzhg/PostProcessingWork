@@ -1,5 +1,14 @@
 #include "CloudsCommon.glsl"
 
+#define MIN_ATTENUATION_THRESHOLD 0.01
+float GetAttenuatingMassNormFactor()
+{
+	//exp( -fMaxMass * g_GlobalCloudAttribs.fAttenuationCoeff ) == MIN_ATTENUATION_THRESHOLD :
+	return -log(MIN_ATTENUATION_THRESHOLD) / (g_GlobalCloudAttribs.fAttenuationCoeff * 0.1);
+}
+
+layout(r8, binding = 0) uniform image3D g_rwtex3DLightAttenuation;
+
 layout (local_size_x = THREAD_GROUP_SIZE) in;
 
 void main()
@@ -18,11 +27,11 @@ void main()
     float fTotalMass = 0;
 
     // Intersect the ray with the top of the cloud layer
-    float3 f3EarthCentre = float3(0, -g_MediaParams.fEarthRadius, 0);
+    float3 f3EarthCentre = float3(0, -g_fEarthRadius, 0);
     float2 f2RayIsecs;
-    float fCloudTopRadius = g_MediaParams.fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude + g_GlobalCloudAttribs.fCloudThickness/2.f;
+    float fCloudTopRadius = g_fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude + g_GlobalCloudAttribs.fCloudThickness/2.f;
     float3 f3StartPos = f3VoxelCenter;
-    float3 f3TraceDir = g_LightAttribs.f4DirOnLight.xyz;
+    float3 f3TraceDir = g_f4DirOnLight.xyz;
     GetRaySphereIntersection(f3StartPos, f3TraceDir, f3EarthCentre, fCloudTopRadius, f2RayIsecs);
 
     if( f2RayIsecs.y > 0.0 )
@@ -41,5 +50,6 @@ void main()
         fTotalMass *= fTraceLen;
     }
 
-    g_rwtex3DLightAttenuation[ DstCellInd ] = fTotalMass / GetAttenuatingMassNormFactor();
+//    g_rwtex3DLightAttenuation[ DstCellInd ] = fTotalMass / GetAttenuatingMassNormFactor();
+    imageStore(g_rwtex3DLightAttenuation, int3(DstCellInd), float4(fTotalMass / GetAttenuatingMassNormFactor(), 0,0,0));
 }

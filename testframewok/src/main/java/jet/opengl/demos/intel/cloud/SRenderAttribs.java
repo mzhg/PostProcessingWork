@@ -2,6 +2,7 @@ package jet.opengl.demos.intel.cloud;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import jet.opengl.postprocessing.texture.Texture2D;
 
@@ -10,7 +11,8 @@ import jet.opengl.postprocessing.texture.Texture2D;
  */
 
 final class SRenderAttribs {
-    final Matrix4f ViewProjMatr = new Matrix4f();
+    Matrix4f ViewProjMatr;
+    final Matrix4f viewProjInv = new Matrix4f();
     int pcbCameraAttribs;
     int pcbLightAttribs;
     int pcMediaScatteringParams;
@@ -22,6 +24,7 @@ final class SRenderAttribs {
     Texture2D pLiSpCloudMinMaxDepthSRV;
     final Vector3f f3CameraPos = new Vector3f();
     final Vector3f f3ViewDir = new Vector3f();
+    Vector4f  f4DirOnLight;
     int iCascadeIndex;
     float fCurrTime;
     int uiLiSpCloudDensityDim;

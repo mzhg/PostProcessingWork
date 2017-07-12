@@ -68,9 +68,9 @@ void FilterDownscaledCloudBuffers(in float2 f2UV,
     //               |
     //               V
     //
-    f4BilateralWeights.xyzw *= float4( f4SrcDistToCloud.xyzw < fDistToCamera || f4SrcDistToCloud.xyzw ==+FLT_MAX );
+    f4BilateralWeights.xyzw *= float4( lessThan(f4SrcDistToCloud.xyzw, float4(fDistToCamera)) || equal(f4SrcDistToCloud.xyzw, float4(+FLT_MAX)) );
 
-    float fSumWeight = dot(f4BilateralWeights.xyzw, 1);
+    float fSumWeight = dot(f4BilateralWeights.xyzw, float4(1));
 
     if( fSumWeight > 1e-2 )
     {
@@ -112,16 +112,16 @@ void main()
     fDepth = textureLod(g_tex2DLightSpaceDepthMap_t0, float3(f2UV,g_GlobalCloudAttribs.f4Parameter.x), 0 ).x;   // samLinearClamp
     // For directional light source, we should use position on the near clip plane instead of
     // camera location as a ray start point (use 1.01 to avoid issues when depth == 1)
-    float4 f4PosOnNearClipPlaneWS = mul( float4(m_f4UVAndScreenPos.zw,1.01,1), g_CameraAttribs.mViewProjInv );
+    float4 f4PosOnNearClipPlaneWS = mul( float4(m_f4UVAndScreenPos.zw,-0.999,1), g_ViewProjInv );
     f3RayStart = f4PosOnNearClipPlaneWS.xyz/f4PosOnNearClipPlaneWS.w;
 #else
-    f3RayStart = g_CameraAttribs.f4CameraPos.xyz;
+    f3RayStart = g_f4CameraPos.xyz;
     fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0);
     fDepth = 2.0 * fDepth - 1.0;
 #endif
 
     // Reconstruct world space position
-    float4 f4ReconstructedPosWS = mul( float4(m_f4UVAndScreenPos.zw,fDepth,1), g_CameraAttribs.mViewProjInv );
+    float4 f4ReconstructedPosWS = mul( float4(m_f4UVAndScreenPos.zw,fDepth,1), g_ViewProjInv );
     float3 f3WorldPos = f4ReconstructedPosWS.xyz / f4ReconstructedPosWS.w;
 
     // Compute view ray
@@ -137,17 +137,17 @@ void main()
     // further than the far clipping plane because there is nothing
     // visible there
 #if !LIGHT_SPACE_PASS
-    if( fDepth < 1e-10 )
+    if( /*fDepth < 1e-10*/ fDepth > 1.0 - (1e-10) )
         fRayLength = + FLT_MAX;
 #endif
 
     // Compute intersection of the view ray with the Earth and the spherical cloud layer
-    float3 f3EarthCentre = float3(0, -g_MediaParams.fEarthRadius, 0);
+    float3 f3EarthCentre = float3(0, -g_fEarthRadius, 0);
     float4 f4CloudLayerAndEarthIsecs;
     GetRaySphereIntersection2(f3RayStart.xyz,
                               f3ViewDir,
                               f3EarthCentre,
-                              float2(g_MediaParams.fEarthRadius, g_MediaParams.fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude),
+                              float2(g_fEarthRadius, g_fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude),
                               f4CloudLayerAndEarthIsecs);
     float2 f2EarthIsecs = f4CloudLayerAndEarthIsecs.xy;
     float2 f2CloudLayerIsecs = f4CloudLayerAndEarthIsecs.zw;
@@ -221,8 +221,9 @@ void main()
 
 #if LIGHT_SPACE_PASS
     // Transform intersection point into light view space
-    float4 f4LightSpacePosPS = mul( float4(f3CloudLayerIsecPos,1), g_CameraAttribs.WorldViewProj );
-    Out_f2MinMaxZRange.xy = f4LightSpacePosPS.z / f4LightSpacePosPS.w;
+    float4 f4LightSpacePosPS = mul( float4(f3CloudLayerIsecPos,1), g_WorldViewProj );
+    Out_f2MinMaxZRange = float2(f4LightSpacePosPS.z / f4LightSpacePosPS.w);
+    Out_f2MinMaxZRange = 2.0 * Out_f2MinMaxZRange - 1.0; // remap[-1,1] to [0,1]
 #else
     Out_f4Color = float4(0);
     if( bIsValid )

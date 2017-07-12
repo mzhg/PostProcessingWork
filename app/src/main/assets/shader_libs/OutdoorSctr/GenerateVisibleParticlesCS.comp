@@ -4,13 +4,26 @@ layout (local_size_x = THREAD_GROUP_SIZE) in;
 
 // This shader processes all valid cells and for each cell outputs
 // appropriate number of particles in this cell
+
+layout(binding = 0) buffer RWStructuredBuffer_SParticleAttribs
+{
+  SParticleAttribs  g_CloudParticlesRW[];
+};
+
+layout(binding = 1) buffer AppendStructuredBuffer
+{
+  SParticleIdAndDist  g_VisibleParticlesAppendBuf[];
+};
+
+layout (binding = 2, offset = 0) uniform atomic_uint g_Atomic_Counter;
+
 void main()
 {
     uint3 Gid = gl_WorkGroupID;
     uint3 GTid = gl_LocalInvocationID;
 
     uint uiValidCellNum = Gid.x * THREAD_GROUP_SIZE + GTid.x;
-    uint uiNumValidCells = g_ValidCellsCounter.Load(0);
+    uint uiNumValidCells = imageLoad(g_ValidCellsCounter, 0).x;
     if( uiValidCellNum >= uiNumValidCells )
         return;
 
@@ -43,13 +56,13 @@ void main()
                       f3RandomDisplacement.y * CellAttrs.f3Normal.xyz +
                       f3RandomDisplacement.z * CellAttrs.f3Bitangent.xyz;
 
-        float fNoise = dot(f3Noise, 1.f/3.f);
-        float fParticleSize = CellAttrs.fSize * 2.2 * lerp(0.5, 1, fNoise) * saturate(pow(fDensity/0.02,1));
+        float fNoise = dot(f3Noise, float3(1.f/3.f));
+        float fParticleSize = CellAttrs.fSize * 2.2 * lerp(0.5, 1.0, fNoise) * saturate(pow(fDensity/0.02,1));
 
         if( fParticleSize > 1e-5 )
         {
             float3 f3Size = GetParticleScales(fParticleSize, uiNumActiveLayers);
-            bool bIsVisible = IsParticleVisibile(f3CloudPos, f3Size, g_CameraAttribs.f4ViewFrustumPlanes);
+            bool bIsVisible = IsParticleVisibile(f3CloudPos, f3Size, g_f4ViewFrustumPlanes);
             if( bIsVisible )
             {
                 g_CloudParticlesRW[uiDstParticleId].f3Pos = f3CloudPos;
@@ -59,8 +72,10 @@ void main()
 
                 SParticleIdAndDist ParticleIdAndDist;
                 ParticleIdAndDist.uiID = uiDstParticleId;
-                ParticleIdAndDist.fDistToCamera = -length(f3CloudPos - g_CameraAttribs.f4CameraPos.xyz); // We need back to front ordering
-                g_VisibleParticlesAppendBuf.Append(ParticleIdAndDist);
+                ParticleIdAndDist.fDistToCamera = -length(f3CloudPos - g_f4CameraPos.xyz); // We need back to front ordering
+
+                uint location = atomicCounterIncrement(g_Atomic_Counter);
+                g_VisibleParticlesAppendBuf[location] = ParticleIdAndDist;
             }
         }
 

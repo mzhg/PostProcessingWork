@@ -82,6 +82,7 @@ public class OutDoorScene {
     final Vector3f vLightPos = new Vector3f();
     final Vector3f tmpVec3      = new Vector3f();
     final Matrix4f cascadeFrustumProjMatrix = new Matrix4f();
+    final Matrix4f[] m_WorldToLightProjMats = new Matrix4f[4];
 
     final SLightAttribs m_LightAttribs = new SLightAttribs();
     final SAirScatteringAttribs m_ScatteringAttribs = new SAirScatteringAttribs();
@@ -117,6 +118,10 @@ public class OutDoorScene {
     public OutDoorScene(NvSampleApp app){
         nvApp =app.getGLContext();
         m_transformer = app.getInputTransformer();
+
+        for(int i = 0; i < m_WorldToLightProjMats.length; i++){
+            m_WorldToLightProjMats[i] = new Matrix4f();
+        }
     }
 
     public void onCreate() {
@@ -159,6 +164,8 @@ public class OutDoorScene {
 
 //        initTestData();
     }
+
+    public void setMaxElevation( float maxElevation){m_fMaxElevation = Math.max(m_fMaxElevation, maxElevation); }
 
     public String getShaderResourcePath(){return "Scenes/Outdoor/shaders/";}
 
@@ -270,6 +277,7 @@ public class OutDoorScene {
     public Matrix4f  getViewMat()       { return m_ViewMatrix;}
     public Matrix4f  getProjMat()       { return m_ProjMatrix;}
     public float     getFovInRadian()   { return (float)Math.toRadians(45);}
+    public Matrix4f[] getWorldToLightProjMats() { return m_WorldToLightProjMats;}
     public Vector3f  getLightDirection(){
         Vector3f dir = new Vector3f(m_LightAttribs.f4DirOnLight);
 //        dir.scale(-1);
@@ -512,6 +520,7 @@ public class OutDoorScene {
 //          m_EarthHemisphere.Render(mpContext, m_CameraPos, WorldToLightProjSpaceMatr, nullptr, nullptr, nullptr, nullptr, nullptr, true);
 //          m_EarthHemisphere.render(m_CameraPos, WorldToLightProjSpaceMatr, 0, 0, null, null, null, true);
             m_EarthHemisphere.drawMesh(WorldToLightProjSpaceMatr);
+            m_WorldToLightProjMats[iCascade].load(WorldToLightProjSpaceMatr);
         }
 
         gl.glUseProgram(0);

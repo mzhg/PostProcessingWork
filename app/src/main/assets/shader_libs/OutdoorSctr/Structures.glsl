@@ -62,7 +62,7 @@ struct SShadowMapAttribs
 #ifdef __cplusplus
     D3DXMATRIX mWorldToLightViewT; // Matrices in HLSL are COLUMN-major while D3DXMATRIX is ROW major
 #else
-    matrix mWorldToLightView;  // Transform from view space to light projection space
+    float4x4 mWorldToLightView;  // Transform from view space to light projection space
 #endif
     // 16
     SCascadeAttribs Cascades[MAX_CASCADES];
@@ -72,7 +72,7 @@ struct SShadowMapAttribs
     D3DXMATRIX mWorldToShadowMapUVDepthT[MAX_CASCADES];
 #else
 	float4 f4CascadeCamSpaceZEnd[MAX_CASCADES/4];
-    matrix mWorldToShadowMapUVDepth[MAX_CASCADES];
+    float4x4 mWorldToShadowMapUVDepth[MAX_CASCADES];
 #endif
 
     // Do not use bool, because sizeof(bool)==1 !
@@ -118,10 +118,10 @@ struct SCameraAttribs
     D3DXMATRIX mProjT;
     D3DXMATRIX mViewProjInvT;
 #else
-    matrix WorldViewProj;
-    matrix mView;
-    matrix mProj;
-    matrix mViewProjInv;
+    float4x4 WorldViewProj;
+    float4x4 mView;
+    float4x4 mProj;
+    float4x4 mViewProjInv;
 #endif
 };
 CHECK_STRUCT_ALIGNMENT(SCameraAttribs);
@@ -401,7 +401,7 @@ struct SGlobalCloudAttribs
 #ifdef __cplusplus
     D3DXMATRIX mParticleTilingT; // Matrices in HLSL are COLUMN-major while D3DXMATRIX is ROW major
 #else
-    matrix mParticleTiling;  // Transform from view space to light projection space
+    float4x4 mParticleTiling;  // Transform from view space to light projection space
 #endif
 
 #ifdef __cplusplus
@@ -503,7 +503,7 @@ void UnPackParticleIJRing(uint ID, out uint i, out uint j, out uint ring, out ui
     layer = (ID)>>28;
 }
 
-uint GetNumActiveLayers(int iMaxLayers, int iRing)
+uint GetNumActiveLayers(uint iMaxLayers, uint iRing)
 {
     return iMaxLayers;//(iMaxLayers + (1<<iRing)-1) >> iRing;
 }

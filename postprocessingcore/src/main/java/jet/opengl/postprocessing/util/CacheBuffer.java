@@ -293,6 +293,15 @@ public class CacheBuffer {
 		buffer.flip();
 		return buffer;
 	}
+
+	public static FloatBuffer wrap(Matrix4f[] mats){
+		FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(16 * mats.length);
+		for(int i= 0; i < mats.length; i++){
+			mats[i].store(buffer);
+		}
+		buffer.flip();
+		return buffer;
+	}
 	
 	public static FloatBuffer wrap(Matrix3f mat){
 		FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(9);

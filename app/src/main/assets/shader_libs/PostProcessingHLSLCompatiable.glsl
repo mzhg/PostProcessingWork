@@ -4,7 +4,13 @@
 // fully optimize the maths and batch the texture fetches
 // optimally
 #ifndef GL_ES
-#pragma optionNV(unroll all)
+//#pragma optionNV(unroll all)
+/*
+#pragma optionNV(fastmath on)
+#pragma optionNV(fastprecision on)
+#pragma optionNV(inline all)
+#pragma optionNV(ifcvt none)
+#pragma optionNV(strict on)*/
 #endif
 
 #define float2 vec2
@@ -39,6 +45,7 @@
 #define InterlockedOr(x, y) atomicOr(x, y)
 #define firstbithigh(x) findMSB(x)
 #define firstbitlow(x)  findLSB(x)
+#define atan2(y,x)  atan(y,x)
 // #define mul(M, V) M * V
 
 #define isfinite(x) !(isnan(x) || isinf(x))

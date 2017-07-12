@@ -7,14 +7,22 @@ struct PS_Input
     nointerpolation uint uiParticleID : PARTICLE_ID;
 };*/
 
-float3 GetParticleScales(in float fSize, in float fNumActiveLayers)
+layout(binding = 0) buffer RWStructuredBuffer{
+  SCloudCellAttribs  g_CloudCellsRW[];
+};
+
+layout(binding=1) buffer AppendBuffer0
 {
-    float3 f3Scales = fSize.xxx;
-    //if( fNumActiveLayers > 1 )
-    //    f3Scales.y = max(f3Scales.y, g_GlobalCloudAttribs.fCloudThickness/fNumActiveLayers);
-    f3Scales.y = min(f3Scales.y, g_GlobalCloudAttribs.fCloudThickness/2.f);
-    return f3Scales;
-}
+    uint g_ValidCellsAppendBuf[];
+};
+
+layout(binding=2) buffer AppendBuffer1
+{
+    uint g_VisibleCellsAppendBuf[];
+};
+
+layout (binding = 3, offset = 0) uniform atomic_uint g_Atomic_Counter0;
+layout (binding = 3, offset = 4) uniform atomic_uint g_Atomic_Counter1;
 
 // This shader processes each cell of the cloud grid and outputs all valid cells to the
 // append buffer
@@ -29,7 +37,8 @@ void main()
         return;
 
     // Get cell location in the grid
-    uint uiPackedLocation = g_PackedCellLocations[uiCellId];
+    uint uiPackedLocation = //g_PackedCellLocations[uiCellId];
+                            imageLoad(g_PackedCellLocations, int(uiCellId)).x;
     uint uiCellI, uiCellJ, uiRing, uiLayer;
     UnPackParticleIJRing(uiPackedLocation, uiCellI, uiCellJ, uiRing, uiLayer);
 
@@ -45,18 +54,18 @@ void main()
     //   0  0.5     1.5     2.5     3.5  4  4.5     5.5     6.5     7.5  8       uiRingDimension == 8
     //                                   |
     //                                CameraI
-    float fCameraI = floor(g_CameraAttribs.f4CameraPos.x/fRingWorldStep + 0.5);
-    float fCameraJ = floor(g_CameraAttribs.f4CameraPos.z/fRingWorldStep + 0.5);
+    float fCameraI = floor(g_f4CameraPos.x/fRingWorldStep + 0.5);
+    float fCameraJ = floor(g_f4CameraPos.z/fRingWorldStep + 0.5);
 
     float3 f3CellCenter;
     f3CellCenter.x = (fCameraI + float(uiCellI) - (uiRingDimension/2) + 0.5) * fRingWorldStep;
     f3CellCenter.z = (fCameraJ + float(uiCellJ) - (uiRingDimension/2) + 0.5) * fRingWorldStep;
     f3CellCenter.y = 0;
 
-    float3 f3EarthCentre = float3(0, -g_MediaParams.fEarthRadius, 0);
+    float3 f3EarthCentre = float3(0, -g_fEarthRadius, 0);
     float3 f3DirFromEarthCenter = f3CellCenter - f3EarthCentre;
     float fDistFromCenter = length(f3DirFromEarthCenter);
-    f3CellCenter = f3EarthCentre + f3DirFromEarthCenter * ((g_MediaParams.fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude)/fDistFromCenter);
+    f3CellCenter = f3EarthCentre + f3DirFromEarthCenter * ((g_fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude)/fDistFromCenter);
 
     uint uiNumActiveLayers = GetNumActiveLayers(g_GlobalCloudAttribs.uiMaxLayers, uiRing);
 
@@ -87,7 +96,7 @@ void main()
 
         // Compute morph weights for outer and inner boundaries
         {
-            float4 f4OuterBoundary = g_CameraAttribs.f4CameraPos.xzxz + float4(-1,-1,+1,+1) * float(uiRingDimension/2) * fRingWorldStep;
+            float4 f4OuterBoundary = g_f4CameraPos.xzxz + float4(-1,-1,+1,+1) * float(uiRingDimension/2) * fRingWorldStep;
 
             //f4OuterBoundary.x                                                  f4OuterBoundary.z
             //      |                                                               |
@@ -107,7 +116,7 @@ void main()
 
         if(uiRing > 0)
         {
-            float4 f4InnerBoundary = g_CameraAttribs.f4CameraPos.xzxz + float4(-1,-1,+1,+1) * (float)(g_GlobalCloudAttribs.uiInnerRingDim/4 + g_GlobalCloudAttribs.uiRingExtension/2) * fRingWorldStep;
+            float4 f4InnerBoundary = g_f4CameraPos.xzxz + float4(-1,-1,+1,+1) * float(g_GlobalCloudAttribs.uiInnerRingDim/4 + g_GlobalCloudAttribs.uiRingExtension/2) * fRingWorldStep;
 
             //               f4InnerBoundary.x                f4InnerBoundary.z
             //                        |                             |
@@ -130,7 +139,7 @@ void main()
 
         // TODO: perform this check for each particle, not cell:
         float fParticleBoundSphereRadius = length(f3Size);
-        if( length(f3CellCenter - g_CameraAttribs.f4CameraPos.xyz) > g_GlobalCloudAttribs.fParticleCutOffDist + fParticleBoundSphereRadius )
+        if( length(f3CellCenter - g_f4CameraPos.xyz) > g_GlobalCloudAttribs.fParticleCutOffDist + fParticleBoundSphereRadius )
             bIsValid = false;
     }
 
@@ -152,11 +161,15 @@ void main()
         g_CloudCellsRW[uiCellId].uiPackedLocation = uiPackedLocation;
 
         // Append the cell ID to the list
-        g_ValidCellsAppendBuf.Append(uiCellId);
+        uint uiLocation = atomicCounterIncrement(g_Atomic_Counter0);
+        g_ValidCellsAppendBuf[uiLocation] = (uiCellId);
 
         // Perform view frustum culling
-        bool bIsVisible = IsParticleVisibile(f3CellCenter, float3(f3Size.x, g_GlobalCloudAttribs.fCloudThickness/2.f, f3Size.z), g_CameraAttribs.f4ViewFrustumPlanes);
+        bool bIsVisible = IsParticleVisibile(f3CellCenter, float3(f3Size.x, g_GlobalCloudAttribs.fCloudThickness/2.f, f3Size.z), g_f4ViewFrustumPlanes);
         if( bIsVisible )
-            g_VisibleCellsAppendBuf.Append(uiCellId);
+        {
+            uiLocation = atomicCounterIncrement(g_Atomic_Counter1);
+            g_VisibleCellsAppendBuf[uiLocation] = (uiCellId);
+        }
     }
 }

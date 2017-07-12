@@ -1,0 +1,123 @@
+#include "SortCommon.glsl"
+layout (local_size_x = THREAD_GROUP_SIZE) in;
+
+uint GetElementRank(int iSubseqStart, int iSubseqLen, bool IsRightHalf, SParticleIdAndDist SearchElem)
+{
+	if( iSubseqLen <= 0 )
+		return 0;
+
+    float fSearchDist = SearchElem.fDistToCamera;
+	int Left = iSubseqStart;
+	int Right = iSubseqStart + iSubseqLen-1;
+
+#if 0
+    // For debug purposes only: compute element rank using linear search
+	int rank=0;
+	for(int i=Left; i <= Right; ++i)
+		if(  IsRightHalf && fSearchDist >= g_PartiallySortedList[i].fDistToCamera ||
+            !IsRightHalf && fSearchDist >  g_PartiallySortedList[i].fDistToCamera )
+			++rank;
+	return rank;
+#endif
+
+    // Start binary search
+	while(Right > Left+1)
+	{
+		int Middle = (Left+Right)>>1;
+		float fMiddleDist = g_PartiallySortedList[Middle].fDistToCamera;
+        // IMPORTANT NOTE: if we are searching for an element from the RIGHT subsequence in
+        // the LEFT subsequence, we must compare using "<=", and we should use "<" otherwise
+        // Consider the following two subsequences:
+        //
+        //      0 1 1 2    1 2 2 3
+        //
+        // If always compare using "<", we will get the following ranks:
+        //
+        //
+        //own rank     0 1 2 3    0 1 2 3
+        //second rank  0 0 0 1    1 3 3 4
+        //final pos    0 1 2 4    1 4 5 7
+        //             ------------------
+        //             0 1 1 2    1 2 2 3
+        //
+        // The resulting positions are not unique and the merged sequence will be incomplete
+        // and incorrect
+
+        // If we use "<=" for the right subsequence, we will get the correct ranks:
+        //
+        //
+        //own rank     0 1 2 3    0 1 2 3
+        //second rank  0 0 0 1    3 4 4 4
+        //final pos    0 1 2 4    3 5 6 7
+        //             ------------------
+        //             0 1 1 2    1 2 2 3
+        //
+        // This method guarantees stable merge as all equal elements from the left subsequence always precede
+        // elements from the right subsequence
+		if(  IsRightHalf && fMiddleDist <= fSearchDist ||
+			!IsRightHalf && fMiddleDist <  fSearchDist )
+			Left = Middle;
+		else
+			Right = Middle;
+		// Suppose we are looking for x in the following sequence:
+		//      0    1   2   3   4    5
+		//     x-1   x   x   x   x   x+1
+		// For the right subsequence, the algorithm will work like this:
+		//      l        m            r
+		//               l   m        r
+		//                   l   m    r
+		//                       l    r
+		// For the left subsequence, the algorithm will work like this:
+		//      l        m            r
+		//      l    m   r
+		//      l    r
+	}
+    // After we exit from the loop, we need to precisely determine which interval we fall into:
+	float fLeftDist  = g_PartiallySortedList[Left ].fDistToCamera;
+	float fRightDist = g_PartiallySortedList[Right].fDistToCamera;
+	if(  IsRightHalf && fRightDist <= fSearchDist ||
+		!IsRightHalf && fRightDist <  fSearchDist )
+		return Right+1 - iSubseqStart;
+	else if( IsRightHalf && fSearchDist <  fLeftDist ||
+		    !IsRightHalf && fSearchDist <= fLeftDist )
+		return Left - iSubseqStart;
+	else
+		return Left+1 - iSubseqStart;
+}
+
+void main()
+{
+    uint3 Gid = gl_WorkGroupID;
+    uint3 GTid = gl_LocalInvocationID;
+    int iParticleSerialNum = (Gid.x * THREAD_GROUP_SIZE + GTid.x);
+    int iNumVisibleParticles = g_ValidCellsCounter.Load(0);
+    if( iParticleSerialNum >= iNumVisibleParticles )
+        return;
+
+    int SubseqLen = int(g_GlobalCloudAttribs.uiParameter);
+    if(SubseqLen >= iNumVisibleParticles*2 &&
+       SubseqLen > THREAD_GROUP_SIZE // Take care of the situation when there are too few particles
+                                     // We still need to copy them to the other buffer
+       )
+    {
+        // The entire sequence is sorted and is stored in both buffers. No more work to do
+        return;
+    }
+
+    if(SubseqLen>=iNumVisibleParticles)
+    {
+        // The entire sequence is sorted, but we need to copy it to the other buffer
+        g_rwMergedList[iParticleSerialNum] = g_PartiallySortedList[iParticleSerialNum];
+        return;
+    }
+
+    SParticleIdAndDist CurrParticle = g_PartiallySortedList[iParticleSerialNum];
+
+    int IsRightHalf = (int(iParticleSerialNum) / int(SubseqLen)) & 0x01;
+    uint iElemRankInThisSubseq = iParticleSerialNum & (SubseqLen-1);
+    uint iMergedSubseqStart = iParticleSerialNum & (-SubseqLen*2);
+    int iSecondSubseqStart = int(iMergedSubseqStart + (1-IsRightHalf) * SubseqLen);
+    int iSecondSubseqLen = min( SubseqLen, iNumVisibleParticles-iSecondSubseqStart );
+    uint iElemRankInSecondSubseq = GetElementRank(iSecondSubseqStart, iSecondSubseqLen, bool(IsRightHalf), CurrParticle);
+    g_rwMergedList[iMergedSubseqStart + iElemRankInThisSubseq + iElemRankInSecondSubseq] = CurrParticle;
+}

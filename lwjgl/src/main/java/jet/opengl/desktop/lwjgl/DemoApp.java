@@ -19,7 +19,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import jet.opengl.demos.gpupro.cloud.CloudDemo;
+import jet.opengl.demos.intel.cloud.CloudSkyDemo;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
@@ -98,7 +98,7 @@ public class DemoApp {
             }
         });
 
-        run(new CloudDemo());
+        run(new CloudSkyDemo());
 
         if(true) return;
 

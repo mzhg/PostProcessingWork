@@ -22,13 +22,13 @@ void main()
     //  |  .  |     |  0
     //  |_____|_____|
     //     0      1
-    float2 f2UV = ProjToUV(In.m_f2PosPS.xy) - 0.5f / f2MipSize;
+    float2 f2UV = /*ProjToUV(In.m_f2PosPS.xy)*/m_f4UVAndScreenPos.xy - 0.5f / f2MipSize;
     float fMaxDensity = 0;
     for(int i=0; i <= +1; ++i)
         for(int j=0; j <= +1; ++j)
         {
 //            float fCurrDensity = g_tex2MaxDensityMip.SampleLevel(samPointWrap, f2UV, fSrcMip, int2(i,j));
-            float fCurrDensity = textureLod(g_tex2MaxDensityMip, f2UV, fSrcMip, int2(i,j));
+            float fCurrDensity = textureLodOffset(g_tex2MaxDensityMip, f2UV, fSrcMip, int2(i,j)).x;
             fMaxDensity = max(fMaxDensity, fCurrDensity);
         }
     Out_Color = fMaxDensity;

@@ -1,0 +1,21 @@
+#include "SortCommon.glsl"
+layout (local_size_x = THREAD_GROUP_SIZE) in;
+
+//RWBuffer<uint>  g_SortedParticleIndices : register( u0 );
+layout(binding = 0) buffer RWBufferXYZ
+{
+    uint g_SortedParticleIndices[];
+};
+
+void main()
+{
+    uint3 Gid = gl_WorkGroupID;
+    uint3 GTid = gl_LocalInvocationID;
+
+    uint uiParticleSerialNum = (Gid.x * THREAD_GROUP_SIZE + GTid.x);
+    uint uiNumVisibleParticles = imageLoad(g_ValidCellsCounter, 0).x;
+    if( uiParticleSerialNum < uiNumVisibleParticles )
+    {
+        g_SortedParticleIndices[uiParticleSerialNum] = g_PartiallySortedList[uiParticleSerialNum].uiID;
+    }
+}

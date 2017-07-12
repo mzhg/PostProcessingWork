@@ -1,0 +1,54 @@
+#include "SortCommon.glsl"
+
+
+layout (local_size_x = THREAD_GROUP_SIZE) in;
+
+void main()
+{
+    uint3 Gid = gl_WorkGroupID;
+    uint3 GTid = gl_LocalInvocationID;
+
+    // See http://en.wikipedia.org/wiki/Bitonic_sorter
+    uint uiParticleSerialNum = (Gid.x * THREAD_GROUP_SIZE + GTid.x);
+    uint uiNumVisibleParticles = imageLoad(g_ValidCellsCounter, 0).x;
+    if( uiParticleSerialNum < uiNumVisibleParticles )
+    {
+        g_LocalParticleIdAndDist[GTid.x] = g_VisibleParticlesUnorderedList[uiParticleSerialNum];
+    }
+    else
+    {
+        g_LocalParticleIdAndDist[GTid.x].uiID = 0;
+        g_LocalParticleIdAndDist[GTid.x].fDistToCamera = +FLT_MAX;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    const int NumPasses = log2(THREAD_GROUP_SIZE);
+    for(int iPass = 0; iPass < NumPasses; ++iPass)
+    {
+        bool bIsIncreasing = ((GTid.x >> (iPass+1)) & 0x01) == 0;
+        for(int iSubPass = 0; iSubPass <= iPass; ++iSubPass)
+        {
+            int Step = 1 << (iPass-iSubPass);
+            if( ( (int(GTid.x)) & (2*Step-1)) < Step )
+            {
+                int LocalInd0 = GTid.x;
+                int LocalInd1 = LocalInd0 + Step;
+                SParticleIdAndDist P0 = g_LocalParticleIdAndDist[LocalInd0];
+                SParticleIdAndDist P1 = g_LocalParticleIdAndDist[LocalInd1];
+                if(  bIsIncreasing && P0.fDistToCamera > P1.fDistToCamera ||
+                    !bIsIncreasing && P0.fDistToCamera < P1.fDistToCamera )
+                {
+                    g_LocalParticleIdAndDist[LocalInd0] = P1;
+                    g_LocalParticleIdAndDist[LocalInd1] = P0;
+                }
+            }
+            GroupMemoryBarrierWithGroupSync();
+        }
+    }
+
+    if( uiParticleSerialNum < uiNumVisibleParticles )
+    {
+        g_rwPartiallySortedBuf[uiParticleSerialNum] = g_LocalParticleIdAndDist[GTid.x];
+    }
+}

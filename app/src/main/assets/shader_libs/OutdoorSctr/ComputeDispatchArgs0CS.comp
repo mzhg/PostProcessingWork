@@ -1,5 +1,9 @@
 #include "CloudsCommon.glsl"
 
+layout(binding = 0) buffer RWBuffer
+{
+    uint g_DispatchArgsRW[3];
+};
 // This shader compute dispatch arguments for the DispatchIndirect() method
 //[numthreads(1, 1, 1)]
 layout (local_size_x = 1) in;
@@ -7,5 +11,7 @@ layout (local_size_x = 1) in;
 //                             uint3 GTid : SV_GroupThreadID )
 void main()
 {
-    g_DispatchArgsRW[0] = (g_ValidCellsCounter.Load(0) + THREAD_GROUP_SIZE-1) / THREAD_GROUP_SIZE;
+    g_DispatchArgsRW[0] = (imageLoad(g_ValidCellsCounter, 0).x + THREAD_GROUP_SIZE-1) / THREAD_GROUP_SIZE;
+    g_DispatchArgsRW[1] = 1;
+    g_DispatchArgsRW[2] = 1;
 }

@@ -21,6 +21,7 @@ import org.lwjgl.opengl.GL40;
 import org.lwjgl.opengl.GL41;
 import org.lwjgl.opengl.GL42;
 import org.lwjgl.opengl.GL43;
+import org.lwjgl.opengl.GL44;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
@@ -214,6 +215,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glEnablei(int cap, int index) {
+        GL30.glEnablei(cap, index);
+    }
+
+    @Override
     public void glFinish() {
         GL11.glFinish();
     }
@@ -371,6 +377,26 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glBlendFuncSeparate(int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) {
         GL14.glBlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha);
+    }
+
+    @Override
+    public void glBlendEquationi(int buf, int mode) {
+        GL40.glBlendEquationi(buf, mode);
+    }
+
+    @Override
+    public void glBlendEquationSeparatei(int buf, int modeRGB, int modeAlpha) {
+        GL40.glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
+    }
+
+    @Override
+    public void glBlendFunci(int buf, int sfactor, int dfactor) {
+        GL40.glBlendFunci(buf,sfactor,dfactor);
+    }
+
+    @Override
+    public void glBlendFuncSeparatei(int buf, int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) {
+        GL40.glBlendFuncSeparatei(buf, srcRGB, dstRGB, srcAlpha, dstAlpha);
     }
 
     @Override
@@ -1727,5 +1753,30 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glDrawTransformFeedbackStream(int mode, int transformFeedback, int index) {
         GL40.glDrawTransformFeedbackStream(mode, transformFeedback, index);
+    }
+
+    @Override
+    public void glClearTexImage(int texture, int level, int format, int type, ByteBuffer data) {
+        GL44.glClearTexImage(texture, level, format, type, data);
+    }
+
+    @Override
+    public void glClearTexImage(int texture, int level, int format, int type, FloatBuffer data) {
+        GL44.glClearTexImage(texture, level, format, type, data);
+    }
+
+    @Override
+    public void glUniform1ui(int location, int i) {
+        GL30.glUniform1ui(location, i);
+    }
+
+    @Override
+    public void glDispatchComputeIndirect(int indirect) {
+        GL43.glDispatchComputeIndirect(indirect);
+    }
+
+    @Override
+    public void glDrawArraysIndirect(int mode, int indirect) {
+        GL40.glDrawArraysIndirect(mode, indirect);
     }
 }
