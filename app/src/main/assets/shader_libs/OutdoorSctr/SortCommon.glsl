@@ -14,6 +14,7 @@
 // limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////
 #include "CloudsBase.glsl"
+#define FLT_MAX 3.402823466e+38
 
 #if 0
 Buffer<uint>                            g_ValidCellsCounter             : register( t0 );
@@ -24,7 +25,7 @@ RWStructuredBuffer<SParticleIdAndDist>  g_rwPartiallySortedBuf          : regist
 
 groupshared SParticleIdAndDist g_LocalParticleIdAndDist[ THREAD_GROUP_SIZE ];
 #else
-layout(r32ui, binding=0) uimageBuffer  g_ValidCellsCounter;
+layout(r32ui, binding=0) uniform uimageBuffer  g_ValidCellsCounter;
 layout(binding =1) buffer StructuredBuffer0
 {
     SParticleIdAndDist g_VisibleParticlesUnorderedList[];

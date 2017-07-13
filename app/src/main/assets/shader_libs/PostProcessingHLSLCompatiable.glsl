@@ -50,6 +50,10 @@
 
 #define isfinite(x) !(isnan(x) || isinf(x))
 
+#ifndef GroupMemoryBarrierWithGroupSync
+#define GroupMemoryBarrierWithGroupSync barrier
+#endif
+
 vec4 mul(in vec4 v, in mat4 m )
 {
 	return m * v;

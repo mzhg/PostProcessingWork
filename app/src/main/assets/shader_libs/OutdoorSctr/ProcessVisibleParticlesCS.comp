@@ -9,7 +9,7 @@ float GetAttenuatingMassNormFactor()
 
 //RWStructuredBuffer<SCloudParticleLighting> g_ParticleLightingRW : register(u0);
 
-layout(binding = 0) buffer RWStructuredBuffer_SCloudParticleLighting
+layout(std140, binding = 0) buffer RWStructuredBuffer_SCloudParticleLighting
 {
 SCloudParticleLighting g_ParticleLightingRW[];
 };

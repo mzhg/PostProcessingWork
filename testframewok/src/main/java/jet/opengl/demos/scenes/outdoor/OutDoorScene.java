@@ -278,6 +278,7 @@ public class OutDoorScene {
     public Matrix4f  getProjMat()       { return m_ProjMatrix;}
     public float     getFovInRadian()   { return (float)Math.toRadians(45);}
     public Matrix4f[] getWorldToLightProjMats() { return m_WorldToLightProjMats;}
+    public Vector4f[] getViewFrustumPlanes(){ return m_EarthHemisphere.m_viewFrustum.array;}
     public Vector3f  getLightDirection(){
         Vector3f dir = new Vector3f(m_LightAttribs.f4DirOnLight);
 //        dir.scale(-1);

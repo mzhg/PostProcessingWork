@@ -114,6 +114,9 @@ public class CloudSkyDemo extends NvSampleApp {
 
         m_InitAttribs.m_uiBackBufferWidth = width;
         m_InitAttribs.m_uiBackBufferHeight = height;
+        m_CloudAttribs.uiDownscaledBackBufferWidth = width;
+        m_CloudAttribs.uiDownscaledBackBufferHeight = height;
+        m_pCloudsController.OnResize(width, height);
     }
 
     @Override
@@ -159,6 +162,8 @@ public class CloudSkyDemo extends NvSampleApp {
             m_RenderAttribs.pLiSpCloudTransparencySRV = m_pLiSpCloudTransparencyRTVs;
             m_RenderAttribs.pLiSpCloudMinMaxDepthSRV = m_pLiSpCloudMinMaxDepthRTVs;
             m_RenderAttribs.fCurrTime = m_fCloudTime;
+            m_RenderAttribs.f4DirOnLight = m_Scene.getLightDirection();
+            m_RenderAttribs.f4ViewFrustumPlanes = m_Scene.getViewFrustumPlanes();  // Need to check the viewfrustum validation.
 //            m_RenderAttribs.f3CameraPos = m_CameraPos;
 //            m_RenderAttribs.f3ViewDir = (D3DXVECTOR3&)mpCamera->GetLook();
 //            m_RenderAttribs.m_pCameraAttribs = &CameraAttribs;

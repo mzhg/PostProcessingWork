@@ -12,12 +12,12 @@ uint GetElementRank(int iSubseqStart, int iSubseqLen, bool IsRightHalf, SParticl
 
 #if 0
     // For debug purposes only: compute element rank using linear search
-	int rank=0;
-	for(int i=Left; i <= Right; ++i)
-		if(  IsRightHalf && fSearchDist >= g_PartiallySortedList[i].fDistToCamera ||
-            !IsRightHalf && fSearchDist >  g_PartiallySortedList[i].fDistToCamera )
-			++rank;
-	return rank;
+//	int rank=0;
+//	for(int i=Left; i <= Right; ++i)
+//		if(  IsRightHalf && fSearchDist >= g_PartiallySortedList[i].fDistToCamera ||
+//            !IsRightHalf && fSearchDist >  g_PartiallySortedList[i].fDistToCamera )
+//			++rank;
+//	return rank;
 #endif
 
     // Start binary search
@@ -89,8 +89,8 @@ void main()
 {
     uint3 Gid = gl_WorkGroupID;
     uint3 GTid = gl_LocalInvocationID;
-    int iParticleSerialNum = (Gid.x * THREAD_GROUP_SIZE + GTid.x);
-    int iNumVisibleParticles = g_ValidCellsCounter.Load(0);
+    int iParticleSerialNum = int(Gid.x * THREAD_GROUP_SIZE + GTid.x);
+    int iNumVisibleParticles = int(imageLoad(g_ValidCellsCounter, 0).x);
     if( iParticleSerialNum >= iNumVisibleParticles )
         return;
 

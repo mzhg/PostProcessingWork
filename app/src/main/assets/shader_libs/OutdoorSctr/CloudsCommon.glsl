@@ -300,7 +300,7 @@ float GetMaxDensity(in float3 CloudPosition, in const float fTime, in float2 f2L
 bool IsParticleVisibile(in float3 f3Center, in float3 f3Scales, float4 f4ViewFrustumPlanes[6])
 {
     float fParticleBoundSphereRadius = length(f3Scales);
-    bool bIsVisible = true;
+//    bool bIsVisible = true;
     for(int iPlane = 0; iPlane < 6; ++iPlane)
     {
 //#if LIGHT_SPACE_PASS
@@ -324,10 +324,11 @@ bool IsParticleVisibile(in float3 f3Center, in float3 f3Scales, float4 f4ViewFru
 #endif
         if( DMax < 0 )
         {
-            bIsVisible = false;
+//            bIsVisible = false;
+            return false;
         }
     }
-    return bIsVisible;
+    return true;
 }
 
 #if 1

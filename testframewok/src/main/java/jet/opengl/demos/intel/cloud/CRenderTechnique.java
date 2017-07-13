@@ -76,6 +76,8 @@ final class CRenderTechnique extends GLSLProgram{
     private int m_ViewProjInvLoc = -1;
     private int m_WorldViewProjLoc = -1;
     private int m_CameraPosLoc = -1;
+    private int m_DirOnLightLoc = -1;
+    private int m_ViewFrustumPlanesLoc;
 
     private boolean m_printOnce;
 
@@ -189,6 +191,9 @@ final class CRenderTechnique extends GLSLProgram{
         m_ViewProjInvLoc = gl.glGetUniformLocation(m_program, "g_ViewProjInv");
         m_WorldViewProjLoc = gl.glGetUniformLocation(m_program, "g_WorldViewProj");
         m_CameraPosLoc = gl.glGetUniformLocation(m_program, "g_f4CameraPos");
+        m_DirOnLightLoc = gl.glGetUniformLocation(m_program, "g_f4DirOnLight");
+        m_ViewFrustumPlanesLoc = gl.glGetUniformLocation(m_program, "g_f4ViewFrustumPlanes");
+
         gl.glUseProgram(0);
     }
     
@@ -229,7 +234,8 @@ final class CRenderTechnique extends GLSLProgram{
     public void setWorldViewProj(Matrix4f mat) { if(m_WorldViewProjLoc >=0) gl.glUniformMatrix4fv(m_WorldViewProjLoc, false, CacheBuffer.wrap(mat));}
     public void setViewProjInv(Matrix4f mat) { if(m_ViewProjInvLoc >=0) gl.glUniformMatrix4fv(m_ViewProjInvLoc, false, CacheBuffer.wrap(mat));}
     public void setCameraPos(Vector3f pos)  { if(m_CameraPosLoc >=0) gl.glUniform4f(m_CameraPosLoc, pos.x, pos.y, pos.z, 1.0f);}
-
+    public void setDirOnLight(Vector3f dir)  { if(m_DirOnLightLoc >=0) gl.glUniform4f(m_DirOnLightLoc, dir.x, dir.y, dir.z, 0);}
+    public void setViewFrustumPlanes(Vector4f[] dir)  { if(m_ViewFrustumPlanesLoc >=0) gl.glUniform4fv(m_ViewFrustumPlanesLoc, CacheBuffer.wrap(dir));}
 
     public void setUniforms(SGlobalCloudAttribs attribs){
         setDownscaledBackBufferWidth(attribs.uiDownscaledBackBufferWidth);

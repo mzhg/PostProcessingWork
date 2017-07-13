@@ -1,5 +1,7 @@
 #include "CloudsCommon.glsl"
 
+layout(binding = 0) uniform sampler2D g_tex2DDepthBuffer;
+
 // This helper function computes intersection of the view ray with the particle ellipsoid
 void IntersectRayWithParticle(const in SParticleAttribs ParticleAttrs,
                               const in SCloudCellAttribs CellAttrs,
@@ -25,7 +27,7 @@ void IntersectRayWithParticle(const in SParticleAttribs ParticleAttrs,
     float3 f3CamPosObjSpace = f3CameraPos - ParticleAttrs.f3Pos;
     f3CamPosObjSpace = mul(f3CamPosObjSpace, f3x3WorldToObjSpaceRotation);
     float3 f3ViewRayObjSpace = mul(f3ViewRay, f3x3WorldToObjSpaceRotation );
-    float3 f3LightDirObjSpce = mul(-g_LightAttribs.f4DirOnLight.xyz, f3x3WorldToObjSpaceRotation );
+    float3 f3LightDirObjSpce = mul(-g_f4DirOnLight.xyz, f3x3WorldToObjSpaceRotation );
 
     // Compute scales to transform ellipsoid into the unit sphere:
     float3 f3Scale = 1.f / GetParticleScales(ParticleAttrs.fSize, CellAttrs.uiNumActiveLayers);
@@ -35,7 +37,7 @@ void IntersectRayWithParticle(const in SParticleAttribs ParticleAttrs,
     f3ViewRayUSSpace = normalize(f3ViewRayObjSpace*f3Scale);
     f3LightDirUSSpace = normalize(f3LightDirObjSpce*f3Scale);
     // Scale camera pos and view dir in obj space and compute intersection with the unit sphere:
-    GetRaySphereIntersection(f3ScaledCamPosObjSpace, f3ViewRayUSSpace, 0, 1.f, f2RayIsecs);
+    GetRaySphereIntersection(f3ScaledCamPosObjSpace, f3ViewRayUSSpace, float3(0), 1.f, f2RayIsecs);
 
     f3EntryPointUSSpace = f3ScaledCamPosObjSpace + f3ViewRayUSSpace*f2RayIsecs.x;
 
@@ -192,48 +194,6 @@ void MergeParticleLayers(in SParticleLayer Layer0,
     }
 }
 
-float SampleCellAttribs3DTexture(sampler3D tex3DData, in float3 f3WorldPos, in uint uiRing, /*uniform*/ bool bAutoLOD )
-{
-    float3 f3EarthCentre = float3(0, -g_MediaParams.fEarthRadius, 0);
-    float3 f3DirFromEarthCenter = f3WorldPos - f3EarthCentre;
-    float fDistFromCenter = length(f3DirFromEarthCenter);
-	//Reproject to y=0 plane
-    float3 f3CellPosFlat = f3EarthCentre + f3DirFromEarthCenter / f3DirFromEarthCenter.y * g_MediaParams.fEarthRadius;
-    float3 f3CellPosSphere = f3EarthCentre + f3DirFromEarthCenter * ((g_MediaParams.fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude)/fDistFromCenter);
-	float3 f3Normal = f3DirFromEarthCenter / fDistFromCenter;
-	float fCloudAltitude = dot(f3WorldPos - f3CellPosSphere, f3Normal);
-
-    // Compute cell center world space coordinates
-    const float fRingWorldStep = GetCloudRingWorldStep(uiRing, g_GlobalCloudAttribs);
-
-    //
-    //
-    //                                 Camera
-    //                               |<----->|
-    //   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |       CameraI == 4
-    //   0  0.5     1.5     2.5     3.5  4  4.5     5.5     6.5     7.5  8       uiRingDimension == 8
-    //                                   |
-    //                                CameraI
-    float fCameraI = floor(g_CameraAttribs.f4CameraPos.x/fRingWorldStep + 0.5);
-    float fCameraJ = floor(g_CameraAttribs.f4CameraPos.z/fRingWorldStep + 0.5);
-
-	uint uiRingDimension = g_GlobalCloudAttribs.uiRingDimension;
-    float fCellI = f3CellPosFlat.x / fRingWorldStep - fCameraI + (uiRingDimension/2);
-    float fCellJ = f3CellPosFlat.z / fRingWorldStep - fCameraJ + (uiRingDimension/2);
-	float fU = fCellI / float(uiRingDimension);
-	float fV = fCellJ / float(uiRingDimension);
-	float fW0 = float(uiRing)	/ float(g_GlobalCloudAttribs.uiNumRings);
-	float fW1 = float(uiRing+1) / float(g_GlobalCloudAttribs.uiNumRings);
-	float fW = fW0 + ( (fCloudAltitude + g_GlobalCloudAttribs.fCloudThickness*0.5) / g_GlobalCloudAttribs.fCloudThickness) / float(g_GlobalCloudAttribs.uiNumRings);
-
-	float Width,Height,Depth;
-	tex3DData.GetDimensions(Width,Height,Depth);
-	fW = clamp(fW, fW0 + 0.5/Depth, fW1 - 0.5/Depth);
-	return bAutoLOD ?
-			texture(tex3DData, float3(fU, fV, fW)) :     // samLinearClamp
-			textureLod(tex3DData, float3(fU, fV, fW), 0.0);
-}
-
 // This function computes different attributes of a particle which will be used
 // for rendering
 void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
@@ -336,7 +296,7 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
 }
 
 
-// This function gets conservative minimal depth (which corresponds to the furthest surface)
+// This function gets conservative maximal depth (which corresponds to the furthest surface)
 // When rendering clouds in lower resolution, it is essentially important to assure that the
 // furthest depth is taken, which is required for proper bilateral upscaling
 float GetConservativeScreenDepth(in float2 f2UV)
@@ -360,14 +320,16 @@ float GetConservativeScreenDepth(in float2 f2UV)
         for(int j=0; j < BACK_BUFFER_DOWNSCALE_FACTOR/2; ++j)
         {
             float4 f4Depths = textureGatherOffset(g_tex2DDepthBuffer, f2GatherUV0, 2*int2(i,j) );    // samLinearClamp
-            fDepth = min(fDepth,f4Depths.x);
-            fDepth = min(fDepth,f4Depths.y);
-            fDepth = min(fDepth,f4Depths.z);
-            fDepth = min(fDepth,f4Depths.w);
+            fDepth = max(fDepth,f4Depths.x);
+            fDepth = max(fDepth,f4Depths.y);
+            fDepth = max(fDepth,f4Depths.z);
+            fDepth = max(fDepth,f4Depths.w);
         }
 #endif
-    return fDepth;
+    return 2.0 * fDepth - 1.0;
 }
+
+float2 UVToProj(float2 uv) { return 2.0 * uv - 1.0;}
 
 in flat uint ps_uiParticleID;
 layout(location = 0) out float fTransparency;
@@ -384,11 +346,11 @@ void main()
         IntelExt_Init();
     #endif
 
-        SParticleAttribs ParticleAttrs = g_Particles[In.uiParticleID];
-        SCloudCellAttribs CellAttribs = g_CloudCells[In.uiParticleID / g_GlobalCloudAttribs.uiMaxLayers];
+        SParticleAttribs ParticleAttrs = g_Particles[ps_uiParticleID];
+        SCloudCellAttribs CellAttribs = g_CloudCells[ps_uiParticleID / g_GlobalCloudAttribs.uiMaxLayers];
 
     #if !LIGHT_SPACE_PASS
-        SCloudParticleLighting ParticleLighting = g_bufParticleLighting[In.uiParticleID];
+        SCloudParticleLighting ParticleLighting = g_bufParticleLighting[ps_uiParticleID];
     #endif
         float fTime = g_fTimeScale*g_GlobalCloudAttribs.fTime;
 
@@ -396,22 +358,22 @@ void main()
     #if LIGHT_SPACE_PASS
         // For directional light source, we should use position on the near clip plane instead of
         // camera location as a ray start point
-        float2 f2PosPS = UVToProj( (In.f4Pos.xy / g_GlobalCloudAttribs.f2LiSpCloudDensityDim.xy) );
-        float4 f4PosOnNearClipPlaneWS = mul( float4(f2PosPS.xy,1,1), g_CameraAttribs.mViewProjInv );
+        float2 f2PosPS = UVToProj( (gl_FragCoord.xy / g_GlobalCloudAttribs.f2LiSpCloudDensityDim.xy) );
+        float4 f4PosOnNearClipPlaneWS = mul( float4(f2PosPS.xy,-1,1), g_ViewProjInv );
         f3CameraPos = f4PosOnNearClipPlaneWS.xyz/f4PosOnNearClipPlaneWS.w;
 
         //f4PosOnNearClipPlaneWS = mul( float4(f2PosPS.xy,1e-4,1), g_CameraAttribs.mViewProjInv );
         //f3CameraPos = f4PosOnNearClipPlaneWS.xyz/f4PosOnNearClipPlaneWS.w;
-        float4 f4PosOnFarClipPlaneWS = mul( float4(f2PosPS.xy,0,1), g_CameraAttribs.mViewProjInv );
+        float4 f4PosOnFarClipPlaneWS = mul( float4(f2PosPS.xy,+1,1), g_ViewProjInv );
         f4PosOnFarClipPlaneWS.xyz = f4PosOnFarClipPlaneWS.xyz/f4PosOnFarClipPlaneWS.w;
         f3ViewRay = normalize(f4PosOnFarClipPlaneWS.xyz - f4PosOnNearClipPlaneWS.xyz);
     #else
-        f3CameraPos = g_CameraAttribs.f4CameraPos.xyz;
+        f3CameraPos = g_f4CameraPos.xyz;
         //f3ViewRay = normalize(In.f3ViewRay);
         float2 f2ScreenDim = float2(g_GlobalCloudAttribs.fDownscaledBackBufferWidth, g_GlobalCloudAttribs.fDownscaledBackBufferHeight);
-        float2 f2PosPS = UVToProj( In.f4Pos.xy / f2ScreenDim );
+        float2 f2PosPS = UVToProj( gl_FragCoord.xy / f2ScreenDim );
         float fDepth = GetConservativeScreenDepth( ProjToUV(f2PosPS.xy) );
-        float4 f4ReconstructedPosWS = mul( float4(f2PosPS.xy,fDepth,1.0), g_CameraAttribs.mViewProjInv );
+        float4 f4ReconstructedPosWS = mul( float4(f2PosPS.xy,fDepth,1.0), g_ViewProjInv );
         float3 f3WorldPos = f4ReconstructedPosWS.xyz / f4ReconstructedPosWS.w;
 
         // Compute view ray
@@ -432,7 +394,7 @@ void main()
 
 
     #if LIGHT_SPACE_PASS
-        if( /*all*/(f2RayIsecs.x == NO_INTERSECTIONS && f2RayIsecs.y == NO_INTERSECTIONS) )
+        if( /*all*/(f2RayIsecs.x == NO_INTERSECTIONS.x && f2RayIsecs.y == NO_INTERSECTIONS.y) )
             discard;
     #else
         if( f2RayIsecs.y < 0 || fRayLength < fDistanceToEntryPoint )
@@ -463,7 +425,7 @@ void main()
 
     #if !LIGHT_SPACE_PASS
         #if VOLUMETRIC_BLENDING
-            uint2 ui2PixelIJ = In.f4Pos.xy;
+            uint2 ui2PixelIJ = gl_FragCoord.xy;
             uint uiLayerDataInd = (ui2PixelIJ.x + ui2PixelIJ.y * g_GlobalCloudAttribs.uiDownscaledBackBufferWidth) * NUM_PARTICLE_LAYERS;
             SParticleLayer Layers[NUM_PARTICLE_LAYERS+1];
 

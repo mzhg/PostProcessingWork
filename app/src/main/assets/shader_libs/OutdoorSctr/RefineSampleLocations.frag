@@ -45,10 +45,6 @@ shared uint g_uiPackedCamSpaceDiffFlags[ g_uiNumPackedFlags ];
 shared float3 g_f3Inscattering[THREAD_GROUP_SIZE+1];
 #endif
 
-#ifndef GroupMemoryBarrierWithGroupSync
-#define GroupMemoryBarrierWithGroupSync barrier
-#endif
-
 //[numthreads(THREAD_GROUP_SIZE, 1, 1)]
 layout (local_size_x = THREAD_GROUP_SIZE) in;
 /*

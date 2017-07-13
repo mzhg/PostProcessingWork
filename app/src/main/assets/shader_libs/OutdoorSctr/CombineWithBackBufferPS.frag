@@ -1,5 +1,7 @@
 #include "CloudsCommon.glsl"
 
+layout(binding = 0) uniform sampler2D g_tex2DColorBuffer;
+
 layout(location = 0) out float4 Out_f4Color;
 // This shader combines cloud buffers with the back buffer
 void main()

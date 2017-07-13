@@ -59,7 +59,7 @@ final class CEarthHemsiphere {
     
     private RenderTargets rtManager;
     private String m_ShaderPath;
-    private final SViewFrustum m_viewFrustum = new SViewFrustum();
+    final SViewFrustum m_viewFrustum = new SViewFrustum();
     private boolean m_PrintOnce= false;
 	private GLFuncProvider gl;
     

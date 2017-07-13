@@ -48,15 +48,15 @@ void main()
     float4x4 mViewProj = g_GlobalCloudAttribs.mParticleTiling;
 #else
     PS_Input Outs[8];
-    float4x4 mViewProj = g_CameraAttribs.WorldViewProj;
+    float4x4 mViewProj = g_WorldViewProj;
 #endif
     // Multiply with camera view-proj matrix
-    matrix ParticleObjToProjSpaceMatr = mul(ParticleObjToWorldSpaceMatr, mViewProj);
+    float4x4 ParticleObjToProjSpaceMatr = mViewProj * ParticleObjToWorldSpaceMatr;
 
     for(int iCorner = 0; iCorner < 8; ++iCorner)
     {
         float4 f4CurrCornerWorldPos;
-        f4CurrCornerWorldPos.xyz = f3Size * float3( (iCorner & 0x01) ? +1 : -1, (iCorner & 0x04) ? +1 : -1, (iCorner & 0x02) ? +1 : -1);
+        f4CurrCornerWorldPos.xyz = f3Size * float3( bool(iCorner & 0x01) ? +1 : -1, bool(iCorner & 0x04) ? +1 : -1, bool(iCorner & 0x02) ? +1 : -1);
         f4CurrCornerWorldPos.w = 1;
 
         float4 f4CurrCornerPosPS = mul( f4CurrCornerWorldPos, ParticleObjToProjSpaceMatr );
@@ -115,7 +115,7 @@ void main()
     }
 
     {
-        Out.RestartStrip();
+//        Out.RestartStrip();
         uint uiBottomCap[] = {2,0,3,1};
         for(int i=0; i<4; ++i)
         {
@@ -127,7 +127,7 @@ void main()
     }
 
     {
-        Out.RestartStrip();
+//        Out.RestartStrip();
         uint uiTopCap[] = {4,6,5,7};
         for(int i=0; i<4; ++i)
         {

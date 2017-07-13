@@ -8,6 +8,8 @@ import org.lwjgl.util.vector.Vector4f;
  */
 
 final class SCloudParticleLighting {
+    static final int SIZE = 10 * 4;
+
     final Vector4f f4SunLight = new Vector4f();
     final Vector2f f2SunLightAttenuation = new Vector2f(); // x == Direct Sun Light Attenuation
     // y == Indirect Sun Light Attenuation

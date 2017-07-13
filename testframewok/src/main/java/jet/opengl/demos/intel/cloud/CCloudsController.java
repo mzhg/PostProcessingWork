@@ -97,7 +97,7 @@ final class CCloudsController {
     // Maximum mip map pyramid
     private Texture2D m_ptex2DMaxDensityMipMapSRV;
     // 3D noise texture
-    private Texture2D m_ptex3DNoiseSRV;
+    private Texture3D m_ptex3DNoiseSRV;
 
     // SRV and UAV for cloud grid
     private int m_pbufCloudGridSRV;
@@ -109,8 +109,8 @@ final class CCloudsController {
 
     private int m_pbufAtomicCounter;
 
-    private Texture2D m_pbufParticlesLightingSRV;
-    private Texture2D m_pbufParticlesLightingUAV;
+    private int m_pbufParticlesLightingSRV;
+    private int m_pbufParticlesLightingUAV;
 
     // Buffer containing unordered list of all valid cells
     private int m_pbufValidCellsUnorderedList;
@@ -594,8 +594,8 @@ final class CCloudsController {
             m_pbufCloudParticlesUAV =m_pbufCloudParticlesSRV= 0;
         }
 
-        CommonUtil.safeRelease(m_pbufParticlesLightingSRV);
-        CommonUtil.safeRelease(m_pbufParticlesLightingUAV);
+//        CommonUtil.safeRelease(m_pbufParticlesLightingSRV);
+//        CommonUtil.safeRelease(m_pbufParticlesLightingUAV);
         if(m_pbufValidCellsUnorderedList != 0){
             gl.glDeleteBuffer(m_pbufValidCellsUnorderedList);
             m_pbufValidCellsUnorderedList = 0;
@@ -765,7 +765,8 @@ final class CCloudsController {
             PrecomputeScatteringInParticle();
         }
         GenerateParticles(RenderAttribs);
-//
+
+        GLCheck.checkError();
         m_CloudAttribs.fTime = RenderAttribs.fCurrTime;
         m_CloudAttribs.f4Parameter.x = (float)RenderAttribs.iCascadeIndex;
 //        UpdateConstantBuffer(pDeviceContext, m_pcbGlobalCloudAttribs, &m_CloudAttribs, sizeof(m_CloudAttribs));
@@ -818,7 +819,7 @@ final class CCloudsController {
 //            NewViewPort.Height = m_CloudAttribs.fDownscaledBackBufferHeight;
 //            pDeviceContext->RSSetViewports(1, &NewViewPort);
             gl.glViewport(0,0, m_CloudAttribs.uiDownscaledBackBufferWidth, m_CloudAttribs.uiDownscaledBackBufferWidth);
-
+            GLCheck.checkError();
 
 //            pDeviceContext->ClearRenderTargetView(m_ptex2DDownscaledScrCloudColorRTV, Zero);
 //            pDeviceContext->ClearRenderTargetView(m_ptex2DDownscaledScrCloudTransparencyRTV, One);
@@ -1544,10 +1545,13 @@ final class CCloudsController {
 //                    m_ptex3DSingleSctrInParticleLUT_SRV,   // t11
 //                    m_ptex3DMultipleSctrInParticleLUT_SRV  // t12
 //        };
+
 //
 //        pDeviceContext->VSSetShaderResources(0, _countof(pSRVs), pSRVs);
 //        pDeviceContext->GSSetShaderResources(0, _countof(pSRVs), pSRVs);
 //        pDeviceContext->PSSetShaderResources(0, _countof(pSRVs), pSRVs);
+
+        bindTexture(12, m_ptex3DPrecomputedParticleDensitySRV, m_psamLinearWrap);
 //
 //        pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 //        RenderCloudsTech.Apply();
@@ -1560,6 +1564,9 @@ final class CCloudsController {
         gl.glBindVertexArray(m_pRenderCloudsInputLayout);
         RenderCloudsTech.enable();
         RenderCloudsTech.setUniforms(m_CloudAttribs);
+        RenderCloudsTech.setViewProjInv(RenderAttribs.viewProjInv);
+        RenderCloudsTech.setWorldViewProj(RenderAttribs.ViewProjMatr);
+
         gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, m_pbufDrawIndirectArgs);
         gl.glDrawArraysIndirect(GLenum.GL_POINTS, 0);
         gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, 0);
@@ -1645,6 +1652,7 @@ final class CCloudsController {
 //        ID3D11UnorderedAccessView *pUAVs[] = {m_pbufCloudGridUAV, m_pbufValidCellsUnorderedListUAV, m_pbufVisibleCellsUnorderedListUAV};
 //        UINT uiZeroCounters[_countof(pUAVs)] =  {0};
 //        pDeviceContext->CSSetUnorderedAccessViews(0, _countof(pUAVs), pUAVs, uiZeroCounters);
+        GLCheck.checkError();
         gl.glBindImageTexture(0, m_pbufPackedCellLocationsSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
         bindTexture(3, m_ptex2DCloudDensitySRV, m_psamLinearWrap);
         bindTexture(6, m_ptex2DMaxDensityMipMapSRV, m_psamPointWrap);
@@ -1659,7 +1667,7 @@ final class CCloudsController {
             gl.glBindBuffer(GLenum.GL_ATOMIC_COUNTER_BUFFER, 0);
             gl.glBindBufferBase(GLenum.GL_ATOMIC_COUNTER_BUFFER, 3, m_pbufAtomicCounter);
         }
-
+        GLCheck.checkError();
         m_ProcessCloudGridTech.enable();
         m_ProcessCloudGridTech.setUniforms(m_CloudAttribs);
         m_ProcessCloudGridTech.setCameraPos(RenderAttribs.f3CameraPos);
@@ -1670,12 +1678,13 @@ final class CCloudsController {
         if(!m_printOnce){
             m_ProcessCloudGridTech.printPrograminfo();
         }
-//
+        GLCheck.checkError();
 //        memset(pUAVs, 0, sizeof(pUAVs));
 //        pDeviceContext->CSSetUnorderedAccessViews(0, _countof(pUAVs), pUAVs, nullptr);
 //        pDeviceContext->CopyStructureCount(m_pbufValidCellsCounter, 0, m_pbufValidCellsUnorderedListUAV);
         CopyStructureCount(m_pbufValidCellsCounter, m_pbufValidCellsUnorderedList, 16);
 
+        GLCheck.checkError();
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
         bindTexture(3, null, 0);
         bindTexture(6, null, 0);
@@ -1774,7 +1783,7 @@ final class CCloudsController {
         m_ComputeLightAttenuatingMass.enable();
         m_ComputeLightAttenuatingMass.setUniforms(m_CloudAttribs);
         m_ComputeLightAttenuatingMass.setCameraPos(RenderAttribs.f3CameraPos);
-        // TODO missing g_f4DirOnLight
+        m_ComputeLightAttenuatingMass.setDirOnLight(RenderAttribs.f4DirOnLight);
 
         gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
         gl.glDispatchComputeIndirect( 0);
@@ -1788,6 +1797,7 @@ final class CCloudsController {
         bindTexture(8, null, 0);
         gl.glBindImageTexture(5, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, m_ptex3DLightAttenuatingMassUAV.getFormat());
+        GLCheck.checkError();
 
 //
 //        // Process all valid cells and generate visible particles
@@ -1831,7 +1841,7 @@ final class CCloudsController {
         m_GenerateVisibleParticlesTech.enable();
         m_GenerateVisibleParticlesTech.setUniforms(m_CloudAttribs);
         m_GenerateVisibleParticlesTech.setCameraPos(RenderAttribs.f3CameraPos);
-        // TODO missing g_f4ViewFrustumPlanes
+        m_GenerateVisibleParticlesTech.setViewFrustumPlanes(RenderAttribs.f4ViewFrustumPlanes);
 
         gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
         gl.glDispatchComputeIndirect( 0);
@@ -1850,11 +1860,12 @@ final class CCloudsController {
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
         gl.glBindBufferBase(GLenum.GL_ATOMIC_COUNTER_BUFFER, 2, 0);
+        GLCheck.checkError();
 //
 //        pDeviceContext->CopyStructureCount(m_pbufVisibleParticlesCounter, 0, m_pbufVisibleParticlesUnorderedListUAV);
         CopyStructureCount(m_pbufVisibleParticlesCounter, m_pbufVisibleParticlesUnorderedListUAV, 16);
 //
-//        {
+        {
 //            // Process all valid cells and generate visible particles
             if(m_ProcessVisibleParticlesTech == null)
             {
@@ -1887,8 +1898,25 @@ final class CCloudsController {
 //                        RenderAttribs.pAmbientSkylightSRV		// Texture2D<float3>       g_tex2DAmbientSkylight       : register( t7 );
 //            };
 //            pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
+
+            // UnorderedAccessView
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufParticlesLightingUAV);
+
+            // ShaderResourceViews
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesUnorderedListSRV);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, m_pbufCloudParticlesSRV);
+
+            gl.glBindImageTexture(0, m_pbufVisibleParticlesCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+            bindTexture(0, null, 0); //TODO g_tex2DOccludedNetDensityToAtmTop
+            bindTexture(7, m_ptex3DLightAttenuatingMassSRV, m_psamLinearClamp); //g_tex2DOccludedNetDensityToAtmTop
+            bindTexture(9, null, 0); //TODO g_tex2DAmbientSkylight
+
             m_ProcessVisibleParticlesTech.enable();
             m_ProcessVisibleParticlesTech.setUniforms(m_CloudAttribs);
+            m_ProcessVisibleParticlesTech.setCameraPos(RenderAttribs.f3CameraPos);
+            m_ProcessVisibleParticlesTech.setDirOnLight(RenderAttribs.f4DirOnLight);
+
 //            pDeviceContext->DispatchIndirect(m_pbufDispatchArgs, 0);
             gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
             gl.glDispatchComputeIndirect( 0);
@@ -1897,12 +1925,22 @@ final class CCloudsController {
             if(!m_printOnce){
                 m_ProcessVisibleParticlesTech.printPrograminfo();
             }
-            GLCheck.checkError();
 //            memset(pUAVs, 0, sizeof(pUAVs));
 //            pDeviceContext->CSSetUnorderedAccessViews(0, _countof(pUAVs), pUAVs, nullptr);
 //            memset(pSRVs, 0, sizeof(pSRVs));
 //            pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
-//        }
+
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
+            gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+            bindTexture(0, null, 0); //g_tex2DOccludedNetDensityToAtmTop
+            bindTexture(7, null, 0); //g_tex2DOccludedNetDensityToAtmTop
+            bindTexture(9, null, 0); //g_tex2DAmbientSkylight
+
+            GLCheck.checkError();
+        }
     }
 
     private void PrepareDispatchArgsBuffer(SRenderAttribs RenderAttribs, int pCounterSRV, int iTechInd){
@@ -1994,6 +2032,10 @@ final class CCloudsController {
 //            pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
 //            ID3D11UnorderedAccessView *pUAVs[] = {m_pbufVisibleParticlesSortedListUAV};
 //            pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
+            gl.glBindImageTexture(0, m_pbufVisibleParticlesCounterSRV, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesUnorderedListSRV);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufVisibleParticlesSortedListUAV);
+
             m_SortSubsequenceBitonicTech.enable();
             m_SortSubsequenceBitonicTech.setUniforms(m_CloudAttribs);
 //            pDeviceContext->DispatchIndirect(m_pbufDispatchArgs, 0);
@@ -2004,6 +2046,10 @@ final class CCloudsController {
                 m_SortSubsequenceBitonicTech.printPrograminfo();
             }
             gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
+
+            gl.glBindImageTexture(0, 0, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
 
 //            pUAVs[0] = nullptr;
 //            pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
@@ -2087,10 +2133,12 @@ final class CCloudsController {
 
     private void CopyStructureCount(int dstBuffer, int srcBuffer, int length){
         gl.glBindBuffer(GLenum.GL_COPY_READ_BUFFER, srcBuffer);
-        gl.glBindBuffer(GLenum.GL_COPY_WRITE_BUFFER, srcBuffer);
+        gl.glBindBuffer(GLenum.GL_COPY_WRITE_BUFFER, dstBuffer);
         gl.glCopyBufferSubData(GLenum.GL_COPY_READ_BUFFER, GLenum.GL_COPY_WRITE_BUFFER, 0,0, length);
         gl.glBindBuffer(GLenum.GL_COPY_READ_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_COPY_WRITE_BUFFER, 0);
+
+        GLCheck.checkError();
     }
 
     // Auxiliary method which creates a buffer and views
@@ -2203,7 +2251,7 @@ final class CCloudsController {
 
             m_pbufCloudParticlesUAV = gl.glGenBuffer();
             gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufCloudParticlesUAV);
-            gl.glBufferData(GLenum.GL_SHADER_STORAGE_BUFFER, SCloudCellAttribs.SIZE * m_CloudAttribs.uiNumCells, GLenum.GL_DYNAMIC_COPY);
+            gl.glBufferData(GLenum.GL_SHADER_STORAGE_BUFFER, SParticleAttribs.SIZE * m_CloudAttribs.uiMaxParticles, GLenum.GL_DYNAMIC_COPY);
             gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, 0);
             m_pbufCloudParticlesSRV = m_pbufCloudParticlesUAV;
         }
@@ -2222,7 +2270,12 @@ final class CCloudsController {
 //            m_pbufParticlesLightingSRV.Release();
 //            m_pbufParticlesLightingUAV.Release();
 //            V( CreateBufferAndViews( pDevice, LightingBuffDesc, nullptr, nullptr, &m_pbufParticlesLightingSRV, &m_pbufParticlesLightingUAV) );
-            // TODO
+            m_pbufParticlesLightingSRV = gl.glGenBuffer();
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufParticlesLightingSRV);
+            gl.glBufferData(GLenum.GL_SHADER_STORAGE_BUFFER, SCloudParticleLighting.SIZE * m_CloudAttribs.uiMaxParticles, GLenum.GL_DYNAMIC_COPY);
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, 0);
+            m_pbufParticlesLightingUAV = m_pbufParticlesLightingSRV;
+
         }
 
         // Create buffer for storing cell locations
@@ -3028,6 +3081,8 @@ final class CCloudsController {
         gl.glTexParameteri(GLenum.GL_TEXTURE_3D, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GLenum.GL_TEXTURE_3D, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GLenum.GL_TEXTURE_3D, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+
+        m_ptex3DNoiseSRV = TextureUtils.createTexture3D(GLenum.GL_TEXTURE_3D, ptex3DNoiseSRV);
         gl.glBindTexture(GLenum.GL_TEXTURE_3D, 0);
     }
 

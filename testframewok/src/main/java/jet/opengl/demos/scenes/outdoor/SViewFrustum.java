@@ -14,7 +14,7 @@ final class SViewFrustum {
 	final Vector4f nearPlane = new Vector4f();
 	final Vector4f farPlane = new Vector4f();
 	
-	private final Vector4f[] array = {
+	final Vector4f[] array = {
 			leftPlane, rightPlane, bottomPlane, topPlane, nearPlane, farPlane
 	};
 	

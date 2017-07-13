@@ -57,7 +57,7 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
         m_PostProcessing = new PostProcessing();
         m_frameAttribs = new PostProcessingFrameAttribs();
         m_frameAttribs.cascadeShadowMapAttribs = new CascadeShadowMapAttribs();
-        m_frameAttribs.outputCurrentFrameLog = false;
+        m_frameAttribs.outputCurrentFrameLog = true;
 
         m_InitAttribs = new OutdoorLightScatteringInitAttribs();
         m_InitAttribs.m_bEnableEpipolarSampling = true;

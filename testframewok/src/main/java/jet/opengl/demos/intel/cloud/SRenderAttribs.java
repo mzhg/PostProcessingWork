@@ -24,7 +24,8 @@ final class SRenderAttribs {
     Texture2D pLiSpCloudMinMaxDepthSRV;
     final Vector3f f3CameraPos = new Vector3f();
     final Vector3f f3ViewDir = new Vector3f();
-    Vector4f  f4DirOnLight;
+    Vector4f[] f4ViewFrustumPlanes;
+    Vector3f  f4DirOnLight;
     int iCascadeIndex;
     float fCurrTime;
     int uiLiSpCloudDensityDim;

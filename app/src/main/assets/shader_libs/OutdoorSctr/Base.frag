@@ -66,8 +66,10 @@ uniform float g_fAtmTopRadius = 6360000.0 + 80000.0;
 uniform vec4 g_f4ExtraterrestrialSunColor = vec4(5);
 
 uniform vec4  g_f4DirOnLight;
-uniform vec4  g_f4RayleighExtinctionCoeff;
-uniform vec4  g_f4MieExtinctionCoeff;
+uniform vec4  g_f4RayleighExtinctionCoeff = vec4(5.804543E-6, 1.3562912E-5, 3.3112578E-5, 0.0);
+uniform vec4  g_f4MieExtinctionCoeff = vec4(2.2E-5, 2.2E-5, 2.2E-5, 0.0);
+
+#define NO_INTERSECTIONS float2(-1)
 
 void GetRaySphereIntersection(in float3 f3RayOrigin,
                               in float3 f3RayDirection,
@@ -85,7 +87,7 @@ void GetRaySphereIntersection(in float3 f3RayOrigin,
     // sphere
     if( D<0 )
     {
-        f2Intersections = float2(-1.0);
+        f2Intersections = NO_INTERSECTIONS;
     }
     else
     {
