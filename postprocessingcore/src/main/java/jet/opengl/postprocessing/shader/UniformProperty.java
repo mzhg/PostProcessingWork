@@ -8,10 +8,16 @@ import java.util.List;
 public class UniformProperty {
 
 	public String name;
-	public int size;
+	public int size;  // The array size
 	public int type;
-	public int location;
+	public int location;  // only valid for the single unfiorms
 	public Object value;
+	public boolean isBelongBlock;
+
+	public int offset; // only for GL_BUFFER_VARIABLE
+	public int arrayStride;
+	public int matrixStride;
+	public boolean isRowMajor;
 	
 	@Override
 	public String toString() {

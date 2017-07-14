@@ -1779,4 +1779,41 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     public void glDrawArraysIndirect(int mode, int indirect) {
         GL40.glDrawArraysIndirect(mode, indirect);
     }
+
+    @Override
+    public int glGetProgramInterfacei(int program, int programInterface, int pname) {
+        return GL43.glGetProgramInterfacei(program, programInterface, pname);
+    }
+
+    @Override
+    public void glGetProgramInterfaceiv(int program, int programInterface, int pname, IntBuffer params) {
+        GL43.glGetProgramInterfaceiv(program, programInterface, pname, params);
+    }
+
+    @Override
+    public void glGetProgramResourceiv(int program, int programInterface, int index, IntBuffer props, IntBuffer length, IntBuffer params) {
+        GL43.glGetProgramResourceiv(program, programInterface, index, props, length, params);
+    }
+
+    @Override
+    public int glGetProgramResourceIndex(int program, int programInterface, CharSequence name) {
+        return GL43.glGetProgramResourceIndex(program, programInterface, name);
+    }
+
+    @Override
+    public int glGetProgramResourceLocation(int program, int programInterface, CharSequence name) {
+        return GL43.glGetProgramResourceLocation(program, programInterface, name);
+    }
+
+    @Override
+    public String glGetProgramResourceName(int program, int programInterface, int index, int bufSize) {
+        return GL43.glGetProgramResourceName(program, programInterface, index, bufSize);
+    }
+
+    @Override
+    public int glGetProgramResourceLocationIndex(int program, int programInterface, CharSequence name) {
+        return GL43.glGetProgramResourceLocationIndex(program, programInterface, name);
+    }
+
+
 }

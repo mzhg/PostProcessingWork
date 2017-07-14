@@ -1561,4 +1561,25 @@ public interface GLFuncProvider {
 
     void glDispatchComputeIndirect(int indirect);
     void glDrawArraysIndirect(int mode, int indirect);
+
+    int glGetProgramInterfacei(int program,
+                               int programInterface,
+                               int pname);
+
+    void glGetProgramInterfaceiv(int program,
+                                int programInterface,
+                                int pname, IntBuffer params);
+
+
+    void glGetProgramResourceiv(	int program,
+                                    int programInterface,
+                                    int index,
+                                    IntBuffer props,
+                                    IntBuffer length,
+                                    IntBuffer params);
+
+    int glGetProgramResourceIndex(	int program,int programInterface,CharSequence name);
+    int glGetProgramResourceLocation( int program, int programInterface, CharSequence name);
+    String glGetProgramResourceName(int program, int programInterface, int index, int bufSize);
+    int glGetProgramResourceLocationIndex(int program,int programInterface,CharSequence name);
 }

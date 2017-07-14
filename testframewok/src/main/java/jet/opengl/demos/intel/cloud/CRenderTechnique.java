@@ -10,7 +10,7 @@ import java.io.IOException;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.Macro;
-import jet.opengl.postprocessing.shader.ProgramProperties;
+import jet.opengl.postprocessing.shader.ProgramResources;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
@@ -149,8 +149,9 @@ final class CRenderTechnique extends GLSLProgram{
 
         m_printOnce = true;
         System.out.println("----------------------------"+getName() +"-----------------------------------------" );
-        ProgramProperties props = GLSLUtil.getProperties(getProgram());
-        System.out.println(props);
+//        ProgramProperties props = GLSLUtil.getProperties(getProgram());
+        ProgramResources resources = GLSLUtil.getProgramResources(getProgram());
+        System.out.println(resources);
     }
 
     private final void initUniforms(){

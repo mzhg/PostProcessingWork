@@ -15,6 +15,7 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.texture.AttachType;
 import jet.opengl.postprocessing.texture.RenderTargets;
@@ -1363,6 +1364,7 @@ final class CCloudsController {
 
         if(!m_printOnce){
             state.printPrograminfo();
+            GLSLUtil.getProgramResources(state.getProgram());
         }
     }
 

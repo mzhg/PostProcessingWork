@@ -224,7 +224,7 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
 		float3 f3VoxelCenter = f3EntryPointWS;
 		float fNoisePeriod = 9413;
 		//f3VoxelCenter.y = 0;
-		float fNoise = g_tex3DNoise.SampleLevel(samLinearWrap, f3VoxelCenter/fNoisePeriod,0);
+		float fNoise = textureLod(g_tex3DNoise, f3VoxelCenter/fNoisePeriod,0.0);   // samLinearWrap
 		f4Color = fNoise;
 		uint uiCellI, uiCellJ, uiRing, uiLayerUnused;
 		UnPackParticleIJRing(CellAttrs.uiPackedLocation, uiCellI, uiCellJ, uiRing, uiLayerUnused);
@@ -271,7 +271,7 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
 
 	float4 f4MultipleScatteringLUTCoords = WorldParamsToParticleScatteringLUT(f3EntryPointUSSpace, f3ViewRayUSSpace, f3LightDirUSSpace, true);
     float fMultipleScattering =
-		g_tex3DMultipleScatteringInParticleLUT.SampleLevel(samLinearWrap, f4MultipleScatteringLUTCoords.xyz, 0);
+		textureLod(g_tex3DMultipleScatteringInParticleLUT, f4MultipleScatteringLUTCoords.xyz, 0);  // samLinearWrap
 	float3 f3MultipleScattering = (1-fTransparency) * fMultipleScattering * f2SunLightAttenuation.y * ParticleLighting.f4SunLight.rgb;
 
 	// Compute ambient light

@@ -22,6 +22,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.BufferUtils;
+import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.DebugTools;
 
@@ -661,6 +662,76 @@ public final class GLSLUtil {
 				buf.get(out);
 				return out;
 			}
+			case GLenum.GL_SAMPLER_1D:
+			case GLenum.GL_SAMPLER_2D:
+			case GLenum.GL_SAMPLER_3D:
+			case GLenum.GL_SAMPLER_CUBE:
+			case GLenum.GL_SAMPLER_1D_SHADOW:
+			case GLenum.GL_SAMPLER_2D_SHADOW:
+			case GLenum.GL_SAMPLER_1D_ARRAY:
+			case GLenum.GL_SAMPLER_2D_ARRAY:
+			case GLenum.GL_SAMPLER_1D_ARRAY_SHADOW:
+			case GLenum.GL_SAMPLER_2D_ARRAY_SHADOW:
+			case GLenum.GL_SAMPLER_2D_MULTISAMPLE:
+			case GLenum.GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+			case GLenum.GL_SAMPLER_CUBE_SHADOW:
+			case GLenum.GL_SAMPLER_BUFFER:
+			case GLenum.GL_SAMPLER_2D_RECT:
+			case GLenum.GL_INT_SAMPLER_1D:
+			case GLenum.GL_INT_SAMPLER_2D:
+			case GLenum.GL_INT_SAMPLER_3D:
+			case GLenum.GL_INT_SAMPLER_CUBE:
+			case GLenum.GL_INT_SAMPLER_1D_ARRAY:
+			case GLenum.GL_INT_SAMPLER_2D_ARRAY:
+			case GLenum.GL_INT_SAMPLER_2D_MULTISAMPLE:
+			case GLenum.GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+			case GLenum.GL_INT_SAMPLER_BUFFER:
+			case GLenum.GL_INT_SAMPLER_2D_RECT:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_1D:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_2D:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_3D:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_CUBE:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_BUFFER:
+			case GLenum.GL_UNSIGNED_INT_SAMPLER_2D_RECT:
+			case GLenum.GL_IMAGE_1D:
+			case GLenum.GL_IMAGE_2D:
+			case GLenum.GL_IMAGE_3D:
+			case GLenum.GL_IMAGE_2D_RECT:
+			case GLenum.GL_IMAGE_CUBE:
+			case GLenum.GL_IMAGE_BUFFER:
+			case GLenum.GL_IMAGE_1D_ARRAY:
+			case GLenum.GL_IMAGE_2D_ARRAY:
+			case GLenum.GL_IMAGE_2D_MULTISAMPLE:
+			case GLenum.GL_IMAGE_2D_MULTISAMPLE_ARRAY:
+			case GLenum.GL_INT_IMAGE_1D:
+			case GLenum.GL_INT_IMAGE_2D:
+			case GLenum.GL_INT_IMAGE_3D:
+			case GLenum.GL_INT_IMAGE_2D_RECT:
+			case GLenum.GL_INT_IMAGE_CUBE:
+			case GLenum.GL_INT_IMAGE_BUFFER:
+			case GLenum.GL_INT_IMAGE_1D_ARRAY:
+			case GLenum.GL_INT_IMAGE_2D_ARRAY:
+			case GLenum.GL_INT_IMAGE_2D_MULTISAMPLE:
+			case GLenum.GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_1D:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_2D:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_3D:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_2D_RECT:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_CUBE:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_BUFFER:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_1D_ARRAY:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
+			case GLenum.GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+			case GLenum.GL_UNSIGNED_INT_ATOMIC_COUNTER:
+
+			{
+				return gl.glGetUniformi(programId, location);
+			}
 		}
 
 		return null;
@@ -810,4 +881,163 @@ public final class GLSLUtil {
 		return new GLSLTypeInfo(name, clazz, dataType, size);
 	}
 
+	@CachaRes
+	public static ProgramResources getProgramResources(int programId){
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+		if(!gl.glIsProgram(programId) && !gl.glIsProgramPipeline(programId))
+			return null;
+
+		ProgramResources resources = new ProgramResources();
+		getUniformResources(gl, programId, resources);
+		getUniformBlockResources(gl, programId, resources, GLenum.GL_UNIFORM_BLOCK);
+		getUniformBlockResources(gl, programId, resources, GLenum.GL_SHADER_STORAGE_BLOCK);
+
+		return resources;
+	}
+
+	private static void getUniformBlockResources(GLFuncProvider gl, int programId, ProgramResources resources, int programinterface){
+		int num_active_uniforms = gl.glGetProgramInterfacei(programId, programinterface, GLenum.GL_ACTIVE_RESOURCES);
+		UniformBlockType type;
+		if(programinterface == GLenum.GL_UNIFORM_BLOCK){
+			type = UniformBlockType.UNFIORM_BLOCK;
+		}else if(programinterface == GLenum.GL_SHADER_STORAGE_BLOCK){
+			type = UniformBlockType.UNIFORM_BUFFER;
+		}else{
+			type = null;
+		}
+
+		if(num_active_uniforms > 0){
+			IntBuffer props = _BufferCache.buf0;
+			IntBuffer length = _BufferCache.buf1;
+			IntBuffer params = _BufferCache.buf2;
+
+			for (int i = 0; i < num_active_uniforms; i++){
+				// get the length of the uniform name.
+				props.put(0, GLenum.GL_NAME_LENGTH);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);
+				String buffer_name = gl.glGetProgramResourceName(programId, programinterface, i, params.get(0));
+				GLCheck.checkError();
+
+				props.put(0, GLenum.GL_BUFFER_BINDING);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);
+				int buffer_binding = params.get(0);
+				GLCheck.checkError();
+
+				props.put(0, GLenum.GL_NUM_ACTIVE_VARIABLES);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);
+				int num_active_variables = params.get(0);
+				GLCheck.checkError();
+
+				props.put(0, GLenum.GL_BUFFER_DATA_SIZE);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);
+				int buffer_data_size = params.get(0);
+				GLCheck.checkError();
+
+				UniformBlockProperties blockProperties = new UniformBlockProperties();
+				blockProperties.name = buffer_name;
+				blockProperties.size = buffer_data_size;
+				blockProperties.type = type;
+				blockProperties.binding = buffer_binding;
+
+				resources.uniformBlockProperties.add(blockProperties);
+			}
+		}
+	}
+
+	// Retrive all of the uniforms about the specifiied program, only support programinterface is GL_UNIFORM.
+	private static void getUniformResources(GLFuncProvider gl, int programId, ProgramResources resources){
+		GLCheck.checkError();
+		final int programinterface = GLenum.GL_UNIFORM;
+		int num_active_uniforms = gl.glGetProgramInterfacei(programId, programinterface, GLenum.GL_ACTIVE_RESOURCES);GLCheck.checkError();
+		if(num_active_uniforms > 0) {
+			IntBuffer props = _BufferCache.buf0;
+			IntBuffer length = _BufferCache.buf1;
+			IntBuffer params = _BufferCache.buf2;
+
+			List<UniformProperty> uniformProperties = new ArrayList<>();
+			for (int i = 0; i < num_active_uniforms; i++){
+				// get the length of the uniform name.
+				props.put(0, GLenum.GL_NAME_LENGTH);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);
+				String uniformy_name = gl.glGetProgramResourceName(programId, programinterface, i, params.get(0));
+				GLCheck.checkError();
+				// get the type of the uniform.
+				props.put(0, GLenum.GL_TYPE);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);GLCheck.checkError();
+				int uniform_type = params.get(0);
+//				String uniform_type_name = getGLSLTypeName(uniform_type);
+
+				// get the array size of the uniform.
+				props.put(0, GLenum.GL_ARRAY_SIZE);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);GLCheck.checkError();
+				int uniform_array_size = params.get(0);
+
+				// get the offset in the block of the uniform.
+				props.put(0, GLenum.GL_OFFSET);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);GLCheck.checkError();
+				int uniform_offset = params.get(0);
+
+				// get the offset in the block of the uniform.
+				props.put(0, GLenum.GL_BLOCK_INDEX);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);GLCheck.checkError();
+				int uniform_block_index = params.get(0);
+
+				// get the location of the uniform.
+				props.put(0, GLenum.GL_LOCATION);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);GLCheck.checkError();
+				int uniform_location = params.get(0);
+
+				// get the array stride  of the uniform.
+				props.put(0, GLenum.GL_ARRAY_STRIDE);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);GLCheck.checkError();
+				int uniform_array_stride = params.get(0);
+
+				// get the matrix stride  of the uniform.
+				props.put(0, GLenum.GL_MATRIX_STRIDE);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);GLCheck.checkError();
+				int uniform_matrix_stride = params.get(0);
+
+				// get the matrix mojor  of the uniform.
+				props.put(0, GLenum.GL_IS_ROW_MAJOR);
+				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);GLCheck.checkError();
+				boolean unfiorm_is_row_major = params.get(0) != 0;
+
+				// get the atomic buffer index of the uniform.
+//				props.put(0, GLenum.GL_IS_ROW_MAJOR);
+//				gl.glGetProgramResourceiv(programId, programinterface, i, props, length, params);
+//				int unfiorm_atomic_buffer_index = params.get(0);
+
+				if(uniform_block_index <0){
+					Object uniform_value = getUniformValue(programId, uniform_location, uniform_type, Math.max(1, uniform_array_size));GLCheck.checkError();
+					UniformProperty uniformProperty = new UniformProperty();
+					uniformProperty.isBelongBlock = false;
+					uniformProperty.name = uniformy_name;
+					uniformProperty.type = uniform_type;
+					uniformProperty.arrayStride = uniform_array_stride;
+					uniformProperty.isRowMajor = unfiorm_is_row_major;
+					uniformProperty.location = uniform_location;
+					uniformProperty.size = Math.max(1, uniform_array_size);
+					uniformProperty.matrixStride = uniform_matrix_stride;
+					uniformProperty.value = uniform_value;
+					uniformProperty.offset = uniform_offset;
+
+					uniformProperties.add(uniformProperty);
+				}else{
+					// other uniform block
+//					resources.uniformBlockProperties.add(new UniformBlockProperties(uniform_block_index));
+				}
+			}
+
+			resources.active_uniform_properties = uniformProperties.toArray(new UniformProperty[uniformProperties.size()]);
+		}
+
+		GLCheck.checkError();
+	}
+
+	// Lazy initliztion...
+	private static final class _BufferCache{
+		static final IntBuffer buf0 = BufferUtils.createIntBuffer(1);
+		static final IntBuffer buf1 = BufferUtils.createIntBuffer(1);
+		static final IntBuffer buf2 = BufferUtils.createIntBuffer(1);
+	}
 }
