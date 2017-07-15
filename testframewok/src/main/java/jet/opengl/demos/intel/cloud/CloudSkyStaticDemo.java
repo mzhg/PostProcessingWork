@@ -3,12 +3,13 @@ package jet.opengl.demos.intel.cloud;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.utils.FieldControl;
 
+import org.lwjgl.util.vector.Matrix;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
-import jet.opengl.demos.scenes.outdoor.OutDoorScene;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -25,14 +26,15 @@ import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
+import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.DebugTools;
 
 /**
  * Created by mazhen'gui on 2017/7/11.
  */
 
-public class CloudSkyDemo extends NvSampleApp {
-    private OutDoorScene m_Scene;
+public class CloudSkyStaticDemo extends NvSampleApp {
     private GLFuncProvider gl;
     private FullscreenProgram fullscreenProgram;
     private VisualDepthTextureProgram m_visTexShader;
@@ -48,7 +50,7 @@ public class CloudSkyDemo extends NvSampleApp {
 
     private CCloudsController m_pCloudsController;
 
-    private boolean m_bEnableLightScattering = true;
+    private boolean m_bEnableLightScattering = false;
     private boolean m_bEnableClouds = true;
     private boolean m_bVisualShadownMap;
     private int m_slice = 0;
@@ -57,14 +59,17 @@ public class CloudSkyDemo extends NvSampleApp {
     private final TextureAttachDesc[] m_AttachDescs = new TextureAttachDesc[2];
     private Texture2D[] m_RenderTexs = new Texture2D[2];
     private Texture2D[] m_pShadowMapDSVs = new Texture2D[4];
+    private Texture2D   m_SceneColor;
+    private Texture2D   m_SceneDepth;
+    private Texture2D   m_ShdowMap;
 
     private int m_uiCloudDensityMapResolution = 512;
     private SRenderAttribs m_RenderAttribs = new SRenderAttribs();
     private SGlobalCloudAttribs m_CloudAttribs = new SGlobalCloudAttribs();
     private final Matrix4f m_ViewProj = new Matrix4f();
+    private final Matrix4f[] m_WorldToLightProjSpaceMatrs = new Matrix4f[4];
+    private final Vector3f m_f4DirOnLight = new Vector3f(0.379932f, 0.838250f, -0.391139f);
     private float m_fCloudTime;
-
-    private final Vector3f m_CameraPos = new Vector3f();
 
     @Override
     public void initUI() {
@@ -76,8 +81,6 @@ public class CloudSkyDemo extends NvSampleApp {
     @Override
     protected void initRendering() {
         getGLContext().setSwapInterval(0);
-        m_Scene = new OutDoorScene(this);
-        m_Scene.onCreate();
         fullscreenProgram = new FullscreenProgram();
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();
@@ -106,12 +109,41 @@ public class CloudSkyDemo extends NvSampleApp {
             m_AttachDescs[i].index = i;
             m_AttachDescs[i].level = 0;
         }
+
+        m_ViewProj.set(1.336244f, 0.000000f, -0.242082f, -532.905945f,
+                       -0.117009f, 2.323271f, -0.645868f, -1617.401978f,
+                        -0.000030f, -0.000047f, -0.000165f, 49.919682f,
+                        0.171549f, 0.271882f, 0.946917f, 510.436615f);
+
+        for(int i = 0; i< m_WorldToLightProjSpaceMatrs.length;i++){
+            // TODO
+        }
+
+        m_SceneColor = loadTextureFromBinaryFile("E:\\textures\\OutdoorCloudResources\\SceneData\\colorBuffer.data", 1280, 720, GLenum.GL_RGBA16F, 1);
+        m_SceneDepth = loadTextureFromBinaryFile("E:\\textures\\OutdoorCloudResources\\SceneData\\depthBuffer.data", 1280, 720, GLenum.GL_DEPTH_COMPONENT32F, 1);
+        m_ShdowMap = loadTextureFromBinaryFile("E:\\textures\\OutdoorCloudResources\\SceneData\\shadowMap.data", 512, 512, GLenum.GL_DEPTH_COMPONENT32F, 4);
+    }
+
+    static Texture2D loadTextureFromBinaryFile(String filename, int width, int height, int format, int arraySize){
+        boolean flip = false;
+        Texture2DDesc desc  = new Texture2DDesc(width, height, format);
+        desc.arraySize = arraySize;
+        ByteBuffer bytes = DebugTools.loadBinary(filename);
+
+        if(flip){
+            TextureUtils.flipY(bytes, height);
+        }
+        int type = TextureUtils.measureDataType(format);
+        format = TextureUtils.measureFormat(format);
+        TextureDataDesc data = new TextureDataDesc(format, type, bytes);
+
+        Texture2D texture = TextureUtils.createTexture2D(desc, data);
+        return texture;
+
     }
 
     @Override
     protected void reshape(int width, int height) {
-        m_Scene.onResize(width, height);
-
         m_InitAttribs.m_uiBackBufferWidth = width;
         m_InitAttribs.m_uiBackBufferHeight = height;
         m_CloudAttribs.uiDownscaledBackBufferWidth = width;
@@ -123,22 +155,15 @@ public class CloudSkyDemo extends NvSampleApp {
     public void display() {
         m_fCloudTime = getFrameDeltaTime();
 
-        if(m_bEnableClouds){
-            SGlobalCloudAttribs CloudAttribs = m_pCloudsController.GetCloudAttribs();
-            m_Scene.setMaxElevation(CloudAttribs.fCloudAltitude + CloudAttribs.fCloudThickness/2.f);
-        }
-
         if( m_bEnableClouds )
         {
             int m_pcbCameraAttribs = 0;
             int m_pcbLightAttribs = 0;
             int pcMediaScatteringParams = 0;
-            Matrix4f.decompseRigidMatrix(m_Scene.getViewMat(), m_RenderAttribs.f3CameraPos, null, null, m_RenderAttribs.f3ViewDir);
-            m_RenderAttribs.f3ViewDir.scale(-1);
+            m_RenderAttribs.f3CameraPos.set(266.100372f, 505.934692f, -732.525452f);
             m_CloudAttribs.uiNumCascades = 4; //m_TerrainRenderParams.m_iNumShadowCascades;
             m_pCloudsController.Update(m_CloudAttribs, m_RenderAttribs.f3CameraPos, Vector3f.Y_AXIS_NEG, /*mpD3dDevice, mpContext,*/ m_pcbCameraAttribs, m_pcbLightAttribs, pcMediaScatteringParams);
         }
-        m_Scene.draw(getFrameDeltaTime());
         renderCloudDensity();
 
         if(m_bVisualShadownMap){
@@ -151,19 +176,18 @@ public class CloudSkyDemo extends NvSampleApp {
         {
 //            m_RenderAttribs.pDevice = mpD3dDevice;
 //            m_RenderAttribs.pDeviceContext = mpContext;
-            Matrix4f.mul(m_Scene.getProjMat(), m_Scene.getViewMat(), m_ViewProj);
             m_RenderAttribs.ViewProjMatr = m_ViewProj;
             m_RenderAttribs.pcbCameraAttribs = 0; //m_pcbCameraAttribs;
             m_RenderAttribs.pcbLightAttribs = 0;//m_pcbLightAttribs;
             m_RenderAttribs.pcMediaScatteringParams = 0;//pcMediaScatteringParams;
             m_RenderAttribs.pPrecomputedNetDensitySRV = null; //pPrecomputedNetDensitySRV;
             m_RenderAttribs.pAmbientSkylightSRV = null;// pAmbientSkyLightSRV;
-            m_RenderAttribs.pDepthBufferSRV = m_Scene.getSceneDepth(); // m_pOffscreenDepth->GetDepthResourceView();
+            m_RenderAttribs.pDepthBufferSRV = m_SceneDepth; // m_pOffscreenDepth->GetDepthResourceView();
             m_RenderAttribs.pLiSpCloudTransparencySRV = m_pLiSpCloudTransparencyRTVs;
             m_RenderAttribs.pLiSpCloudMinMaxDepthSRV = m_pLiSpCloudMinMaxDepthRTVs;
             m_RenderAttribs.fCurrTime = m_fCloudTime;
-            m_RenderAttribs.f4DirOnLight = m_Scene.getLightDirection();
-            m_RenderAttribs.f4ViewFrustumPlanes = m_Scene.getViewFrustumPlanes();  // Need to check the viewfrustum validation.
+            m_RenderAttribs.f4DirOnLight = m_f4DirOnLight;  // , 0.000000
+            m_RenderAttribs.f4ViewFrustumPlanes = null;  // TODO Need to check the viewfrustum validation.
 //            m_RenderAttribs.f3CameraPos = m_CameraPos;
 //            m_RenderAttribs.f3ViewDir = (D3DXVECTOR3&)mpCamera->GetLook();
 //            m_RenderAttribs.m_pCameraAttribs = &CameraAttribs;
@@ -175,19 +199,19 @@ public class CloudSkyDemo extends NvSampleApp {
             gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
             gl.glDisable(GLenum.GL_DEPTH_TEST);
             // Apply the DOF Bokeh and render result to scene_rt2
-            m_frameAttribs.sceneColorTexture = m_Scene.getSceneColor();
-            m_frameAttribs.sceneDepthTexture = m_Scene.getSceneDepth();
-            m_frameAttribs.shadowMapTexture  = m_Scene.getShadowMap();
-            m_frameAttribs.elapsedTime       = getFrameDeltaTime();
-            m_frameAttribs.cameraNear = m_Scene.getSceneNearPlane();
-            m_frameAttribs.cameraFar =  m_Scene.getSceneFarPlane();
-            m_frameAttribs.lightDirection    = m_Scene.getLightDirection();
-            m_Scene.getCascadeShadowMapInformations(m_frameAttribs.cascadeShadowMapAttribs);
-            m_frameAttribs.outputTexture = null;
-            m_frameAttribs.viewport.set(0,0, getGLContext().width(), getGLContext().height());
-            m_frameAttribs.viewMat = m_Scene.getViewMat();
-            m_frameAttribs.projMat = m_Scene.getProjMat();
-            m_frameAttribs.fov =     m_Scene.getFovInRadian();
+            m_frameAttribs.sceneColorTexture = m_SceneColor; // m_Scene.getSceneColor();
+            m_frameAttribs.sceneDepthTexture = m_SceneDepth; // m_Scene.getSceneDepth();
+            m_frameAttribs.shadowMapTexture  = null; // m_Scene.getShadowMap();
+//            m_frameAttribs.elapsedTime       = getFrameDeltaTime();
+//            m_frameAttribs.cameraNear = m_Scene.getSceneNearPlane();
+//            m_frameAttribs.cameraFar =  m_Scene.getSceneFarPlane();
+//            m_frameAttribs.lightDirection    = m_Scene.getLightDirection();
+//            m_Scene.getCascadeShadowMapInformations(m_frameAttribs.cascadeShadowMapAttribs);
+//            m_frameAttribs.outputTexture = null;
+//            m_frameAttribs.viewport.set(0,0, getGLContext().width(), getGLContext().height());
+//            m_frameAttribs.viewMat = m_Scene.getViewMat();
+//            m_frameAttribs.projMat = m_Scene.getProjMat();
+//            m_frameAttribs.fov =     m_Scene.getFovInRadian();
 
             if( m_bEnableClouds )
             {
@@ -202,7 +226,7 @@ public class CloudSkyDemo extends NvSampleApp {
                     for(int iCscd=m_InitAttribs.m_iFirstCascade; iCscd < 4 /*m_PPAttribs.m_iNumCascades*/; ++iCscd)
                     {
                         if(m_pShadowMapDSVs[iCscd] == null){
-                            m_pShadowMapDSVs[iCscd] = TextureUtils.createTextureView(m_Scene.getShadowMap(), GLenum.GL_TEXTURE_2D, 0, 1, iCscd, 1);
+                            m_pShadowMapDSVs[iCscd] = TextureUtils.createTextureView(null /*m_Scene.getShadowMap()*/, GLenum.GL_TEXTURE_2D, 0, 1, iCscd, 1);
                         }
                         m_RenderAttribs.pShadowMapDSV = m_pShadowMapDSVs[iCscd];
                         m_RenderAttribs.iCascadeIndex = iCscd;
@@ -228,7 +252,7 @@ public class CloudSkyDemo extends NvSampleApp {
             fullscreenProgram.enable();
             gl.glBindVertexArray(m_DummyVAO);
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
-            gl.glBindTexture(m_Scene.getSceneColor().getTarget(), m_Scene.getSceneColor().getTexture());
+            gl.glBindTexture(m_SceneColor.getTarget(), m_SceneColor.getTexture());
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
             gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
             gl.glUseProgram(0);
@@ -241,7 +265,7 @@ public class CloudSkyDemo extends NvSampleApp {
             gl.glViewport(0,0,getGLContext().width(), getGLContext().height());
             gl.glDisable(GLenum.GL_DEPTH_TEST);
             gl.glDisable(GLenum.GL_BLEND);
-            m_pCloudsController.CombineWithBackBuffer( /*mpD3dDevice, mpContext,*/ m_Scene.getSceneDepth(), m_Scene.getSceneColor());
+            m_pCloudsController.CombineWithBackBuffer( /*mpD3dDevice, mpContext,*/ m_SceneDepth, m_SceneColor);
 
 //            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 //            gl.glViewport(0, 0, getGLContext().width(), getGLContext().height());
@@ -269,7 +293,7 @@ public class CloudSkyDemo extends NvSampleApp {
             if(m_RenderTarget == null)
                 m_RenderTarget = new RenderTargets();
 
-            Matrix4f.mul(m_Scene.getProjMat(), m_Scene.getViewMat(), m_RenderAttribs.viewProjInv);
+            m_RenderAttribs.viewProjInv.load(m_ViewProj);
             m_RenderAttribs.viewProjInv.invert();
 
             m_RenderTarget.bind();
@@ -293,7 +317,7 @@ public class CloudSkyDemo extends NvSampleApp {
                 m_RenderAttribs.ViewProjMatr = WorldToLightProjSpaceMatrs[iCascade];
 //                m_RenderAttribs.pcbCameraAttribs = m_pcbCameraAttribs;
 //                m_RenderAttribs.pcMediaScatteringParams = pcMediaScatteringParams;
-                m_RenderAttribs.pShadowMapDSV = m_Scene.getShadowMap();
+                m_RenderAttribs.pShadowMapDSV =  m_ShdowMap;
                 m_RenderAttribs.iCascadeIndex = iCascade;
                 m_RenderAttribs.fCurrTime = m_fCloudTime;
                 m_RenderAttribs.uiLiSpCloudDensityDim = m_uiCloudDensityMapResolution;
@@ -395,12 +419,12 @@ public class CloudSkyDemo extends NvSampleApp {
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
 
         m_visTexShader.enable();
-        m_visTexShader.setUniforms(m_Scene.getSceneNearPlane(), m_Scene.getSceneFarPlane(), m_slice, 1.0f);
+        m_visTexShader.setUniforms(50.0f, 286688.281250f, m_slice, 1.0f);
 //        m_visTexShader.setSlice(m_slice);
 //        m_visTexShader.setLightZFar(m_shadowMapInput.farPlane);
 //        m_visTexShader.setLightZNear(m_shadowMapInput.nearPlane);
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
-        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_Scene.getShadowMap().getTexture());
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_ShdowMap.getTexture());
         gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_COMPARE_MODE, GLenum.GL_NONE);
         GLCheck.checkError();
 
@@ -418,7 +442,6 @@ public class CloudSkyDemo extends NvSampleApp {
     @Override
     public void onDestroy() {
         m_PostProcessing.dispose();
-        m_Scene.onDestroy();
         fullscreenProgram.dispose();
         gl.glDeleteVertexArray(m_DummyVAO);
     }
