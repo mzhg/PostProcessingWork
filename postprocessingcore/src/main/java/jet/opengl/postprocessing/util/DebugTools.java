@@ -1,5 +1,12 @@
 package jet.opengl.postprocessing.util;
 
+import org.lwjgl.util.vector.Matrix2f;
+import org.lwjgl.util.vector.Matrix3f;
+import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -7,8 +14,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.List;
 
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -94,6 +105,16 @@ public final class DebugTools {
         saveTexelsAsText(data, internalFormat, width, filename, flags);
     }
 
+    public static void saveBufferAsText(int target, int buffer, Class<?> internalFormat, int width, String filename) throws IOException{
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glBindBuffer(target, buffer);
+        int size = gl.glGetBufferParameteri(target, GLenum.GL_BUFFER_SIZE);
+        ByteBuffer data = BufferUtils.createByteBuffer(size);
+        gl.glGetBufferSubData(target, 0, size, data);
+
+        saveTexelsAsText(data, internalFormat, width, filename);
+    }
+
     public static void saveTextureAsText(int target, int textureID, int level, String filename, int flags) throws IOException{
         final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         ByteBuffer result = getTextureData(target, textureID, level, true);
@@ -128,6 +149,155 @@ public final class DebugTools {
 
         writer.flush();
         writer.close();
+    }
+
+    public static void saveTexelsAsText(ByteBuffer pixels, Class<?> internalFormat, int width, String filename) throws IOException{
+        File file = new File(filename);
+        File parent = file.getParentFile();
+        parent.mkdirs();
+
+        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+
+        _saveTexelsAsText(pixels, internalFormat, width, writer);
+        writer.flush();
+        writer.close();
+    }
+
+    private static void _saveTexelsAsText(ByteBuffer pixels, Class<?> internalFormat, int width,BufferedWriter out) throws IOException{
+        int count = 0;
+        List<ClassType> types = new ArrayList<>();
+
+        try {
+            flatType(null, internalFormat, types);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        while(pixels.hasRemaining()){
+
+//            out.append(str);  TODO
+            out.append(' ');
+            count++;
+
+            if(count == width){
+                count = 0;
+                out.newLine();
+            }
+        }
+    }
+
+    private static String formatBinary(ByteBuffer pixel, List<ClassType> types){
+        StringBuilder out = new StringBuilder();
+        out.append('[');
+        for(ClassType type : types){
+            int count = type.arraySize;
+            for(int i = 0; i < count; i++) {
+                if (type.clazz == boolean.class || type.clazz == int.class) {
+                    out.append(pixel.getInt()).append(',');
+                } else if (type.clazz == float.class) {
+                    out.append(pixel.getFloat()).append(',');
+                } else if (type.clazz == Vector2f.class) {
+                    out.append(pixel.getFloat()).append(',');
+                    out.append(pixel.getFloat()).append(',');
+                } else if (type.clazz == Vector3f.class) {
+                    out.append(pixel.getFloat()).append(',');
+                    out.append(pixel.getFloat()).append(',');
+                    out.append(pixel.getFloat()).append(',');
+                } else if (type.clazz == Vector4f.class) {
+                    out.append(pixel.getFloat()).append(',');
+                    out.append(pixel.getFloat()).append(',');
+                    out.append(pixel.getFloat()).append(',');
+                    out.append(pixel.getFloat()).append(',');
+                } else if (type.clazz == Matrix2f.class){
+                    out.append(pixel.getFloat()).append(',');
+                    out.append(pixel.getFloat()).append(',');
+                    out.append(pixel.getFloat()).append(',');
+                    out.append(pixel.getFloat()).append(',');
+                }else if (type.clazz == Matrix3f.class){
+                    for(int j = 0; j < 9; j++){
+                        out.append(pixel.getFloat()).append(',');
+                    }
+                }else if (type.clazz == Matrix4f.class){
+                    for(int j = 0; j < 16; j++){
+                        out.append(pixel.getFloat()).append(',');
+                    }
+                }
+            }
+        }
+
+        out.setLength(out.length() - 1);
+        out.append(']');
+        return out.toString();
+    }
+
+    private static final class ClassType{
+        private static final Class<?>[] ACCETS = {
+                boolean.class,
+          int.class, float.class, Vector2f.class, Vector3f.class, Vector4f.class,
+                Matrix2f.class, Matrix3f.class, Matrix4f.class
+        };
+
+        static boolean accept(Class<?> clazz){
+            for(Class<?> src : ACCETS){
+                if(src == clazz)
+                    return true;
+            }
+
+            return false;
+        }
+
+        Class<?> clazz;
+        int arraySize = 1;
+
+        ClassType(Class<?> clazz,
+                int arraySize){
+            this.clazz = clazz;
+            this.arraySize = arraySize;
+        }
+
+        ClassType(Class<?> clazz){
+            this.clazz = clazz;
+        }
+    }
+
+    private static void flatType(Object obj, Class<?> clazz, List<ClassType> types) throws IllegalAccessException {
+        Field[] fields = clazz.getDeclaredFields();
+        for(Field field : fields){
+            final Class<?> type = field.getType();
+            if(type.isArray() && obj != null){
+                final int arrayLength = Array.getLength(field.get(obj));
+                if(ClassType.accept(type.getComponentType())){
+                    types.add(new ClassType(type, arrayLength));
+                }else{
+                    final int pos = types.size();
+                    flatType(Array.get(field.get(obj), 0), type.getComponentType(), types);
+                    final int added=types.size() - pos;
+                    if(added  ==0)
+                        throw new IllegalStateException();
+
+                    ClassType[] newTypes = new ClassType[added];
+                    for(int i = pos; i < types.size(); i++){
+                        newTypes[i-pos] = types.get(i);
+                    }
+
+                    // add the newTypes to the tail repeatly
+                    for(int i = 1; i < arrayLength; i++){
+                        for(ClassType _type : newTypes){
+                            types.add(_type);
+                        }
+                    }
+                }
+            }else if(!type.isArray()){ // Not the array
+                if(ClassType.accept(type)){  // primitve type
+                    types.add(new ClassType(type));
+                }else{  // self-def type
+                    flatType(obj != null ? field.get(obj) : null, type , types);
+                }
+            }else{
+                // TODO
+                throw new IllegalArgumentException("We can't get the length of the array: " + field.getName() + ", if the obj not provided!!!");
+            }
+        }
     }
 
     public static void saveErrorShaderSource(CharSequence source){
@@ -206,6 +376,11 @@ public final class DebugTools {
 
         writer.flush();
         writer.close();
+    }
+
+    private static String getTexelToString(ByteBuffer pixels, Class<?> clazz){
+
+        return null;
     }
 
     private static String getTexelToString(ByteBuffer pixels, int internalFormat, int flags){

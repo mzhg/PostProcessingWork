@@ -33,7 +33,7 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     private final HashSet<String> m_extensions = new HashSet<>();
     private GLAPIVersion m_GLVersion;
     private final int[] intValues = new int[1];
-    private final boolean[] boolValues = new boolean[1];
+    private boolean[] boolValues = new boolean[1];
     private final byte[] byteValues = new byte[1];
     private final float[] floatValues = new float[1];
 
@@ -167,6 +167,12 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glEnable(int cap) {
         GLES11.glEnable(cap);
+    }
+
+    @TargetApi(24)
+    @Override
+    public void glEnablei(int cap, int index) {
+        GLES32.glEnablei(cap, index);
     }
 
     @Override
@@ -341,6 +347,30 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
         GLES20.glBlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha);
     }
 
+    @TargetApi(24)
+    @Override
+    public void glBlendEquationi(int buf, int mode) {
+        GLES32.glBlendEquationi(buf, mode);
+    }
+
+    @TargetApi(24)
+    @Override
+    public void glBlendEquationSeparatei(int buf, int modeRGB, int modeAlpha) {
+        GLES32.glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
+    }
+
+    @TargetApi(24)
+    @Override
+    public void glBlendFunci(int buf, int sfactor, int dfactor) {
+        GLES32.glBlendFunci(buf, sfactor, dfactor);
+    }
+
+    @TargetApi(24)
+    @Override
+    public void glBlendFuncSeparatei(int buf, int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) {
+        GLES32.glBlendFuncSeparatei(buf, srcRGB, dstRGB, srcAlpha, dstAlpha);
+    }
+
     @Override
     public void glBufferSubData(int target, int offset, Buffer data) {
         GLES20.glBufferSubData(target, offset, BufferUtils.measureSize(data), data);
@@ -369,6 +399,11 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glDeleteBuffer(int buffer) {
         GLES11.glDeleteBuffers(1, wrap(buffer), 0);
+    }
+
+    @Override
+    public void glDeleteBuffers(IntBuffer buffers) {
+        GLES11.glDeleteBuffers(buffers.remaining(), buffers);
     }
 
     @Override
@@ -477,8 +512,16 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
 
     @Override
     public void glGetBooleanv(int pname, ByteBuffer params) {
-//        GLES11.glGetBooleanv();
-        throw new UnsupportedOperationException("Not implemented!");
+        int length = params.remaining();
+        if(length > boolValues.length){
+            boolValues = new boolean[length];
+        }
+        GLES20.glGetBooleanv(pname, boolValues, 0);
+        for(int i = 0; i < boolValues.length; i++){
+            params.put((byte) (boolValues[0] ? 1:0));
+        }
+
+        params.flip();
     }
 
     @Override
@@ -906,8 +949,18 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glBeginQueryIndexed(int target, int index, int id) {
+        GLCheck.printUnsupportFuncError("Unsupport glBeginQueryIndexed(int target, int index, int id) on Android Platform!");
+    }
+
+    @Override
     public void glEndQuery(int target) {
         GLES30.glEndQuery(target);
+    }
+
+    @Override
+    public void glEndQueryIndexed(int target, int index) {
+        GLCheck.printUnsupportFuncError("Unsupport glEndQueryIndexed(int target, int index) on Android Platform!");
     }
 
     @Override
@@ -1055,7 +1108,7 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
 
     @Override
     public void glTransformFeedbackVaryings(int program, CharSequence[] varyings, int bufferMode) {
-        String[] strings = null;
+        String[] strings;
         if(varyings instanceof String[]){
             strings = (String[])(varyings);
         }else{
@@ -1696,5 +1749,101 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glGetUniformdv(int programId, int location, DoubleBuffer buf) {
         GLCheck.printUnsupportFuncError("Unsupport 'glGetUniformdv(int programId, int location, DoubleBuffer buf)' on Android Platform!");
+    }
+
+    @Override
+    public void glDrawElementsBaseVertex(int primType, int count, int type, int start, int baseVertex) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glDrawElementsBaseVertex(int primType, int count, int type, int start, int baseVertex)' on Android Platform!");
+    }
+
+    @TargetApi(24)
+    @Override
+    public void glTexBuffer(int target, int internalFormat, int buffer) {
+        GLES32.glTexBuffer(target, internalFormat, buffer);
+    }
+
+    @Override
+    public void glClearBufferData(int target, int internalformat, int format, int type, ByteBuffer data) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glClearBufferData(int target, int internalformat, int format, int type, ByteBuffer data)' on Android Platform!");
+    }
+
+    @Override
+    public void glGetBufferSubData(int target, int offset, int size, ByteBuffer data) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glGetBufferSubData(int target, int offset, int size, ByteBuffer data)' on Android Platform!");
+    }
+
+    @Override
+    public void glDrawTransformFeedbackStream(int m_currentMode, int transformFeedback, int index) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glDrawTransformFeedbackStream(int m_currentMode, int transformFeedback, int index)' on Android Platform!");
+    }
+
+    @Override
+    public void glClearTexImage(int texture, int level, int format, int type, ByteBuffer data) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glClearTexImage(int texture, int level, int format, int type, ByteBuffer data)' on Android Platform!");
+    }
+
+    @Override
+    public void glClearTexImage(int texture, int level, int format, int type, FloatBuffer data) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glClearTexImage(int texture, int level, int format, int type, FloatBuffer data)' on Android Platform!");
+    }
+
+    @Override
+    public void glUniform1ui(int location, int i) {
+        GLES30.glUniform1ui(location, i);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glDispatchComputeIndirect(int indirect) {
+        GLES31.glDispatchComputeIndirect(indirect);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glDrawArraysIndirect(int mode, int indirect) {
+        GLES31.glDrawArraysIndirect(mode, indirect);
+    }
+
+    @TargetApi(21)
+    @Override
+    public int glGetProgramInterfacei(int program, int programInterface, int pname) {
+        GLES31.glGetProgramInterfaceiv(program, programInterface, pname, intValues, 0);
+        return intValues[0];
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glGetProgramInterfaceiv(int program, int programInterface, int pname, IntBuffer params) {
+        GLES31.glGetProgramInterfaceiv(program, programInterface, pname, params);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glGetProgramResourceiv(int program, int programInterface, int index, IntBuffer props, IntBuffer length, IntBuffer params) {
+        GLES31.glGetProgramResourceiv(program, programInterface, index, props.remaining(), props, params.remaining(), length, params);
+    }
+
+    @TargetApi(21)
+    @Override
+    public int glGetProgramResourceIndex(int program, int programInterface, CharSequence name) {
+        return GLES31.glGetProgramResourceIndex(program, programInterface, name.toString());
+    }
+
+    @TargetApi(21)
+    @Override
+    public int glGetProgramResourceLocation(int program, int programInterface, CharSequence name) {
+        return GLES31.glGetProgramResourceLocation(program, programInterface, name.toString());
+    }
+
+    @TargetApi(21)
+    @Override
+    public String glGetProgramResourceName(int program, int programInterface, int index, int bufSize) {
+        return GLES31.glGetProgramResourceName(program, programInterface, index);
+    }
+
+    @Override
+    public int glGetProgramResourceLocationIndex(int program, int programInterface, CharSequence name) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glGetProgramResourceLocationIndex(int program, int programInterface, CharSequence name)' on Android Platform!");
+        return -1;
     }
 }

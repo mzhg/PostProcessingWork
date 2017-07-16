@@ -160,6 +160,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glEnablei(int cap, int index) {
+        gl.glEnablei(cap, index);
+    }
+
+    @Override
     public void glFinish() {
         gl.glFinish();
     }
@@ -322,6 +327,26 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glBlendEquationi(int buf, int mode) {
+        gl.glBlendEquationi(buf, mode);
+    }
+
+    @Override
+    public void glBlendEquationSeparatei(int buf, int modeRGB, int modeAlpha) {
+        gl.glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
+    }
+
+    @Override
+    public void glBlendFunci(int buf, int sfactor, int dfactor) {
+        gl.glBlendFunci(buf, sfactor, dfactor);
+    }
+
+    @Override
+    public void glBlendFuncSeparatei(int buf, int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) {
+        gl.glBlendFuncSeparatei(buf, srcRGB, dstRGB, srcAlpha, dstAlpha);
+    }
+
+    @Override
     public void glBufferSubData(int target, int offset, Buffer data) {
         gl.glBufferSubData(target, offset, BufferUtils.measureSize(data), data);
     }
@@ -351,6 +376,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glDeleteBuffer(int buffer) {
         gl.glDeleteBuffers(1, wrap(buffer), 0);
+    }
+
+    @Override
+    public void glDeleteBuffers(IntBuffer buffers) {
+        gl.glDeleteBuffers(buffers.remaining(), buffers);
     }
 
     @Override
@@ -896,8 +926,18 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glBeginQueryIndexed(int target, int index, int id) {
+        gl.glBeginQueryIndexed(target, index, id);
+    }
+
+    @Override
     public void glEndQuery(int target) {
         gl.glEndQuery(target);
+    }
+
+    @Override
+    public void glEndQueryIndexed(int target, int index) {
+        gl.glEndQueryIndexed(target, index);
     }
 
     @Override
@@ -1657,5 +1697,105 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glGetUniformdv(int programId, int location, DoubleBuffer buf) {
         gl.glGetUniformdv(programId, location, buf);
+    }
+
+    @Override
+    public void glDrawElementsBaseVertex(int primType, int count, int type, int start, int baseVertex) {
+        gl.glDrawElementsBaseVertex(primType, count, type, start, baseVertex);
+    }
+
+    @Override
+    public void glTexBuffer(int target, int internalFormat, int buffer) {
+        gl.glTexBuffer(target, internalFormat, buffer);
+    }
+
+    @Override
+    public void glClearBufferData(int target, int internalformat, int format, int type, ByteBuffer data) {
+        gl.glClearBufferData(target, internalformat, format, type, data);
+    }
+
+    @Override
+    public void glGetBufferSubData(int target, int offset, int size, ByteBuffer data) {
+        gl.glGetBufferSubData(target, offset, size, data);
+    }
+
+    @Override
+    public void glDrawTransformFeedbackStream(int m_currentMode, int transformFeedback, int index) {
+        gl.glDrawTransformFeedbackStream(m_currentMode, transformFeedback, index);
+    }
+
+    @Override
+    public void glClearTexImage(int texture, int level, int format, int type, ByteBuffer data) {
+        gl.glClearTexImage(texture, level, format, type, data);
+    }
+
+    @Override
+    public void glClearTexImage(int texture, int level, int format, int type, FloatBuffer data) {
+        gl.glClearTexImage(texture, level, format, type, data);
+    }
+
+    @Override
+    public void glUniform1ui(int location, int i) {
+        gl.glUniform1ui(location, i);
+    }
+
+    @Override
+    public void glDispatchComputeIndirect(int indirect) {
+        gl.glDispatchComputeIndirect(indirect);
+    }
+
+    @Override
+    public void glDrawArraysIndirect(int mode, int indirect) {
+        gl.glDrawArraysIndirect(mode, indirect);
+    }
+
+    @Override
+    public int glGetProgramInterfacei(int program, int programInterface, int pname) {
+        gl.glGetProgramInterfaceiv(program, programInterface, pname, intValues, 0);
+        return intValues[0];
+    }
+
+    @Override
+    public void glGetProgramInterfaceiv(int program, int programInterface, int pname, IntBuffer params) {
+        gl.glGetProgramInterfaceiv(program, programInterface, pname, params);
+    }
+
+    @Override
+    public void glGetProgramResourceiv(int program, int programInterface, int index, IntBuffer props, IntBuffer length, IntBuffer params) {
+        gl.glGetProgramResourceiv(program, programInterface, index, props.remaining(), props, params.remaining(), length, params);
+    }
+
+    @Override
+    public int glGetProgramResourceIndex(int program, int programInterface, CharSequence name) {
+        byte[] bytes = new byte[name.length()];
+        for(int i = 0; i < bytes.length; i++){
+            bytes[i] = (byte) name.charAt(i);
+        }
+        return gl.glGetProgramResourceIndex(program, programInterface, bytes, 0);
+    }
+
+    @Override
+    public int glGetProgramResourceLocation(int program, int programInterface, CharSequence name) {
+        byte[] bytes = new byte[name.length()];
+        for(int i = 0; i < bytes.length; i++){
+            bytes[i] = (byte) name.charAt(i);
+        }
+        return gl.glGetProgramResourceLocation(program, programInterface, bytes, 0);
+    }
+
+    @Override
+    public String glGetProgramResourceName(int program, int programInterface, int index, int bufSize) {
+        byte[] bytes = new byte[bufSize];
+        gl.glGetProgramResourceName(program, programInterface, index, bufSize, intValues, 0, bytes, 0);
+        return new String(bytes, 0, intValues[0]);
+    }
+
+    @Override
+    public int glGetProgramResourceLocationIndex(int program, int programInterface, CharSequence name) {
+        byte[] bytes = new byte[name.length()];
+        for(int i = 0; i < bytes.length; i++){
+            bytes[i] = (byte) name.charAt(i);
+        }
+        return gl.glGetProgramResourceLocationIndex(program, programInterface, bytes, 0);
     }
 }

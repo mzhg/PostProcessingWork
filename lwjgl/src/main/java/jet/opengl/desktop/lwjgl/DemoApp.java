@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 import jet.opengl.demos.intel.cloud.CloudSkyDemo;
+import jet.opengl.demos.intel.cloud.CloudSkyStaticDemo;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
@@ -98,7 +99,7 @@ public class DemoApp {
             }
         });
 
-        run(new CloudSkyDemo());
+        run(new CloudSkyStaticDemo());
 
         if(true) return;
 

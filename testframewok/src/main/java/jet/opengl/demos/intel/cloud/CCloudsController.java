@@ -853,7 +853,11 @@ final class CCloudsController {
 
             }
             RenderParticles(RenderAttribs);
-
+            if(!m_printOnce){
+                saveTextData("DownscaledScrCloudTransparencyGL.txt", m_ptex2DDownscaledScrCloudTransparencyRTV);
+                saveTextData("DownscaledScrDistToCloudGL.txt", m_ptex2DDownscaledScrDistToCloudRTV);
+                saveTextData("DownscaledScrCloudColorGL.txt", m_ptex2DDownscaledScrCloudColorRTV);
+            }
 //            pDeviceContext->RSSetViewports(1, &OrigViewPort);
         }
 //
@@ -874,6 +878,11 @@ final class CCloudsController {
         gl.glViewport(0,0,pRTVs[0].getWidth(), pRTVs[0].getHeight());
 //
         RenderFlatClouds(RenderAttribs);
+        if(!m_printOnce){
+            saveTextData("ScrSpaceCloudTransparencyGL.txt", m_ptex2DScrSpaceCloudTransparencyRTV);
+            saveTextData("ScrSpaceDistToCloudGL.txt", m_ptex2DScrSpaceDistToCloudRTV);
+            saveTextData("ScreenCloudColorGL.txt", m_ptex2DScreenCloudColorRTV);
+        }
         if(m_CloudAttribs.uiDownscaleFactor == 1 )
         {
             if( m_bPSOrderingAvailable && m_CloudAttribs.bVolumetricBlending )
@@ -889,6 +898,11 @@ final class CCloudsController {
                 // TODO unorderedAcccessView
             }
             RenderParticles(RenderAttribs);
+
+            if(!m_printOnce){
+                saveTextData("ScrSpaceCloudTransparencyGL.txt", m_ptex2DScrSpaceCloudTransparencyRTV);
+                saveTextData("ScreenCloudColorGL.txt", m_ptex2DScreenCloudColorRTV);
+            }
         }
 //
 //        pDeviceContext->OMSetRenderTargets(1, &pOrigRTV.p, pOrigDSV);
@@ -994,6 +1008,9 @@ final class CCloudsController {
 //        pDeviceContext->PSSetConstantBuffers(0, _countof(pCBs), pCBs);
 //
         RenderQuad(/*pDeviceContext,*/ m_RenderCloudDetphToShadowMap);
+        if(!m_printOnce){
+            saveTextData("MergeLiSpDensityWithShadowMapGL.txt", RenderAttribs.pShadowMapDSV);
+        }
 //
 //        pDeviceContext->OMSetRenderTargets(1, &pOrigRTV.p, pOrigDSV);
 //        pDeviceContext->RSSetViewports(iNumOldViewports, &OrigViewPort);
@@ -1388,6 +1405,24 @@ final class CCloudsController {
         }
     }
 
+    final void saveTextData(String filename, int target, int buffer, int internalformat){
+        final String filepath = "E:/textures/OutdoorCloudResources/";
+        try {
+            DebugTools.saveBufferAsText(target, buffer, internalformat, 128, filepath + filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    final void saveTextData(String filename, int target, int buffer, Class<?> internalformat){
+        final String filepath = "E:/textures/OutdoorCloudResources/";
+        try {
+            DebugTools.saveBufferAsText(target, buffer, internalformat, 128, filepath + filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public boolean isPrintOnce() { return !m_printOnce;}
 
     private void RenderQuad(CRenderTechnique state, int iWidth /*= 0*/, int iHeight /*= 0*/){
@@ -1595,7 +1630,6 @@ final class CCloudsController {
             RenderCloudsTech.printPrograminfo();
         }
 
-//
         if( RenderAttribs.bLightSpacePass ==0 && m_bPSOrderingAvailable && m_CloudAttribs.bVolumetricBlending )
         {
             if( m_ApplyParticleLayersTech == null )
@@ -1697,6 +1731,10 @@ final class CCloudsController {
         gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         if(!m_printOnce){
             m_ProcessCloudGridTech.printPrograminfo();
+            saveTextData("CloudGridGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufCloudGridUAV, SCloudCellAttribs.class);
+            saveTextData("ValidCellsUnorderedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufValidCellsUnorderedList, GLenum.GL_R32UI);
+            saveTextData("VisibleCellsUnorderedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleCellsUnorderedList, GLenum.GL_R32UI);
+            saveTextData("AtomicCounterGL.txt", GLenum.GL_ATOMIC_COUNTER_BUFFER, m_pbufAtomicCounter, GLenum.GL_R32UI);
         }
         GLCheck.checkError();
 //        memset(pUAVs, 0, sizeof(pUAVs));
@@ -1761,6 +1799,7 @@ final class CCloudsController {
         gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         if(!m_printOnce){
             m_EvaluateDensityTech.printPrograminfo();
+            saveTextData("CellDensityGL.txt", m_ptex3DCellDensityUAV);
         }
         gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, m_ptex3DCellDensityUAV.getFormat());
@@ -1811,6 +1850,7 @@ final class CCloudsController {
         gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
         if(!m_printOnce){
             m_ComputeLightAttenuatingMass.printPrograminfo();
+            saveTextData("LightAttenuatingMassGL.txt", m_ptex3DLightAttenuatingMassUAV);
         }
 //        pUAVs[0] = nullptr;
 //        pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
@@ -1869,6 +1909,8 @@ final class CCloudsController {
         gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
         if(!m_printOnce){
             m_GenerateVisibleParticlesTech.printPrograminfo();
+            saveTextData("CloudParticlesGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufCloudParticlesUAV, SParticleAttribs.class);
+            saveTextData("VisibleParticlesUnorderedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesUnorderedListUAV, SParticleIdAndDist.class);
         }
 
 //        memset(pUAVs, 0, sizeof(pUAVs));
@@ -1944,6 +1986,7 @@ final class CCloudsController {
             gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
             if(!m_printOnce){
                 m_ProcessVisibleParticlesTech.printPrograminfo();
+                saveTextData("ParticlesLightingGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER,m_pbufParticlesLightingUAV, SCloudParticleLighting.class);
             }
 //            memset(pUAVs, 0, sizeof(pUAVs));
 //            pDeviceContext->CSSetUnorderedAccessViews(0, _countof(pUAVs), pUAVs, nullptr);
@@ -1963,6 +2006,7 @@ final class CCloudsController {
         }
     }
 
+    private int g_DipatchSaveCount = 0;
     private void PrepareDispatchArgsBuffer(SRenderAttribs RenderAttribs, int pCounterSRV, int iTechInd){
 //        ID3D11DeviceContext *pDeviceContext = RenderAttribs.pDeviceContext;
 //        ID3D11Device *pDevice = RenderAttribs.pDevice;
@@ -1997,12 +2041,15 @@ final class CCloudsController {
         gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         if(!m_printOnce){
             ComputeDispatchArgsTech.printPrograminfo();
+            saveTextData("DispatchArgs" + g_DipatchSaveCount + "_GL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufDispatchArgs, GLenum.GL_R32UI);
         }
 
         gl.glBindImageTexture(5, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
 //        pUAVs[0] = nullptr;
 //        pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
+
+        g_DipatchSaveCount ++;
     }
 
     // Method sorts all visible particles and writes them into the buffer suitable for
@@ -2066,6 +2113,7 @@ final class CCloudsController {
             gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
             if(!m_printOnce){
                 m_SortSubsequenceBitonicTech.printPrograminfo();
+                saveTextData("VisibleParticlesSortedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesSortedListUAV, SParticleIdAndDist.class);
             }
             gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
 
@@ -2130,6 +2178,10 @@ final class CCloudsController {
                 m_pbufVisibleParticlesMergedListSRV = m_pbufVisibleParticlesSortedListSRV;
                 m_pbufVisibleParticlesSortedListSRV = temp;
             }
+
+            if(!m_printOnce){
+                saveTextData("VisibleParticlesMergedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesMergedListUAV, SParticleIdAndDist.class);
+            }
         }
 
         {
@@ -2150,6 +2202,7 @@ final class CCloudsController {
             gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
             if(!m_printOnce){
                 m_WriteSortedPariclesToVBTech.printPrograminfo();
+                saveTextData("SerializedVisibleParticlesGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufSerializedVisibleParticlesUAV, GLenum.GL_R32UI);
             }
             gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
             gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
@@ -2573,6 +2626,8 @@ final class CCloudsController {
 
             RenderQuad(/*pDeviceContext,*/ m_ComputeOpticalDepthTech, PrecomputedOpticalDepthTexDesc.width, PrecomputedOpticalDepthTexDesc.height);
         }
+
+        saveTextData("PrecomputeOpticalDepthGL", m_ptex3DPrecomputedParticleDensitySRV);
         // TODO: need to use proper filtering for coarser mip levels
 //        pDeviceContext->GenerateMips( m_ptex3DPrecomputedParticleDensitySRV);
         gl.glBindTexture(m_ptex3DPrecomputedParticleDensitySRV.getTarget(), m_ptex3DPrecomputedParticleDensitySRV.getTexture());
@@ -2800,6 +2855,7 @@ final class CCloudsController {
             RenderQuad(/*pDeviceContext,*/ m_ComputeSingleSctrInParticleTech, TmpScatteringTexDesc.width, TmpScatteringTexDesc.height);
         }
 //        bindTexture(CRenderTechnique.TEX3D_NOISE, null, 0);
+        saveTextData("ComputeSingleSctrInParticleGL", ptex3DSingleSctr);
 
         // Number of scattering orders is chosen so as to obtain reasonable exitance through the particle surface
         final int iMaxScatteringOrder = 18;
@@ -2924,6 +2980,8 @@ final class CCloudsController {
             RenderQuad(/*pDeviceContext,*/ m_RenderScatteringLUTSliceTech, PrecomputedScatteringTexDesc.width, PrecomputedScatteringTexDesc.height);
         }
 
+        saveTextData("SingleSctrInParticleLUT_GL.txt", m_ptex3DSingleSctrInParticleLUT_SRV);
+        saveTextData("MultipleSctrInParticleLUT_GL.txt", m_ptex3DMultipleSctrInParticleLUT_SRV);
         bindTexture(0, null, 0);
         bindTexture(1, null, 0);
 

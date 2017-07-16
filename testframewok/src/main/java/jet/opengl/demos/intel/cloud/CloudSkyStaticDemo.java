@@ -297,7 +297,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
             m_RenderAttribs.viewProjInv.invert();
 
             m_RenderTarget.bind();
-            Matrix4f[] WorldToLightProjSpaceMatrs = m_Scene.getWorldToLightProjMats();
+            Matrix4f[] WorldToLightProjSpaceMatrs = m_WorldToLightProjSpaceMatrs;
             for (int iCascade = 0; iCascade < 4; ++iCascade) {
 
 //                    NewViewPort.Width = static_cast <float>(m_uiCloudDensityMapResolution);
