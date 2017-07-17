@@ -1,14 +1,13 @@
 package jet.opengl.demos.amdfx.common;
 
 import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
-import com.nvidia.developer.opengl.utils.StackInt;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.util.StackInt;
 
 public final class AMD_Mesh {
 

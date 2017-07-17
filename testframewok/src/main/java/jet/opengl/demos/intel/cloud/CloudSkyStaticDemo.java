@@ -3,7 +3,6 @@ package jet.opengl.demos.intel.cloud;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.utils.FieldControl;
 
-import org.lwjgl.util.vector.Matrix;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -68,6 +67,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
     private SGlobalCloudAttribs m_CloudAttribs = new SGlobalCloudAttribs();
     private final Matrix4f m_ViewProj = new Matrix4f();
     private final Matrix4f[] m_WorldToLightProjSpaceMatrs = new Matrix4f[4];
+    private final Matrix4f[] m_ViewProjInverseMats = new Matrix4f[4];
     private final Vector3f m_f4DirOnLight = new Vector3f(0.379932f, 0.838250f, -0.391139f);
     private float m_fCloudTime;
 
@@ -99,7 +99,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
         m_RuntimeAttribs = new OutdoorLightScatteringFrameAttribs();
         m_RuntimeAttribs.f4ExtraterrestrialSunColor.set(5,5,5,5);
 
-        m_pCloudsController = new CCloudsController();
+        m_pCloudsController = new CCloudsController(true);
         m_pCloudsController.OnCreateDevice();
 
         createCloudDensityMap();
@@ -115,8 +115,18 @@ public class CloudSkyStaticDemo extends NvSampleApp {
                         -0.000030f, -0.000047f, -0.000165f, 49.919682f,
                         0.171549f, 0.271882f, 0.946917f, 510.436615f);
 
+        ByteBuffer binary = DebugTools.loadBinary("E:\\textures\\OutdoorCloudResources\\WorldToLightProjSpaceMats.data");
         for(int i = 0; i< m_WorldToLightProjSpaceMatrs.length;i++){
-            // TODO
+            Matrix4f mat = new Matrix4f();
+            mat.load(binary);
+            m_WorldToLightProjSpaceMatrs[i] = mat;
+        }
+
+        binary = DebugTools.loadBinary("E:\\textures\\OutdoorCloudResources\\ViewProjInverseMats.data");
+        for(int i = 0; i< m_ViewProjInverseMats.length;i++){
+            Matrix4f mat = new Matrix4f();
+            mat.load(binary);
+            m_ViewProjInverseMats[i] = mat;
         }
 
         m_SceneColor = loadTextureFromBinaryFile("E:\\textures\\OutdoorCloudResources\\SceneData\\colorBuffer.data", 1280, 720, GLenum.GL_RGBA16F, 1);
@@ -293,9 +303,15 @@ public class CloudSkyStaticDemo extends NvSampleApp {
             if(m_RenderTarget == null)
                 m_RenderTarget = new RenderTargets();
 
-            m_RenderAttribs.viewProjInv.load(m_ViewProj);
-            m_RenderAttribs.viewProjInv.invert();
+            m_RenderAttribs.viewProjInv.set(
+                    9472.14648f,-0.00011348f,10581.6162f,-4359.82861f,
+                    -3525.58105f, -3030.95947f, 23346.3652f, -10722.1865f,
+                    1645.08411f, -6495.65186f, -10893.7314f, 7104.19531f,
+                    0.000000f, 0.000000f, 0.000000f, 1.000000f
+            );
+            m_RenderAttribs.viewProjInv.transpose();
 
+            gl.glViewport(0,0, m_RenderTexs[0].getWidth(), m_RenderTexs[0].getHeight());
             m_RenderTarget.bind();
             Matrix4f[] WorldToLightProjSpaceMatrs = m_WorldToLightProjSpaceMatrs;
             for (int iCascade = 0; iCascade < 4; ++iCascade) {
@@ -308,6 +324,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
 //                    m_pLiSpCloudTransparencyRTVs[iCascade], m_pLiSpCloudMinMaxDepthRTVs[iCascade]};
 //                    pContext -> OMSetRenderTargets(_countof(pRTVs), pRTVs, nullptr);
 
+                m_RenderAttribs.viewProjInv.load(m_ViewProjInverseMats[iCascade]);
                 m_AttachDescs[0].layer = iCascade;
                 m_AttachDescs[1].layer = iCascade;
                 m_RenderTarget.setRenderTextures(m_RenderTexs, m_AttachDescs);
@@ -317,6 +334,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
                 m_RenderAttribs.ViewProjMatr = WorldToLightProjSpaceMatrs[iCascade];
 //                m_RenderAttribs.pcbCameraAttribs = m_pcbCameraAttribs;
 //                m_RenderAttribs.pcMediaScatteringParams = pcMediaScatteringParams;
+                m_RenderAttribs.pDepthBufferSRV = m_SceneDepth;
                 m_RenderAttribs.pShadowMapDSV =  m_ShdowMap;
                 m_RenderAttribs.iCascadeIndex = iCascade;
                 m_RenderAttribs.fCurrTime = m_fCloudTime;
@@ -379,7 +397,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
         {
             Texture2DDesc LiSpCloudMinMaxDepthDesc = LiSpCloudTransparencyMapDesc;
             LiSpCloudMinMaxDepthDesc.mipLevels = 1;
-            LiSpCloudMinMaxDepthDesc.format = GLenum.GL_RG16;
+            LiSpCloudMinMaxDepthDesc.format = GLenum.GL_RGBA32F;
 //            CComPtr<ID3D11Texture2D> ptex2DCloudMinMaxDepth;
 //            V_RETURN(pd3dDevice->CreateTexture2D(&LiSpCloudMinMaxDepthDesc, NULL, &ptex2DCloudMinMaxDepth));
 //            V_RETURN(pd3dDevice->CreateShaderResourceView(ptex2DCloudMinMaxDepth, nullptr, &m_pLiSpCloudMinMaxDepthSRV));

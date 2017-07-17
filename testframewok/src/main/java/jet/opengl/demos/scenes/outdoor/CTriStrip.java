@@ -1,6 +1,6 @@
 package jet.opengl.demos.scenes.outdoor;
 
-import com.nvidia.developer.opengl.utils.StackInt;
+import jet.opengl.postprocessing.util.StackInt;
 
 final class CTriStrip {
 

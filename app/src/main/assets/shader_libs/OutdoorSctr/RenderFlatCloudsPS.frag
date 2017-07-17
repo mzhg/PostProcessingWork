@@ -2,7 +2,7 @@
 
 in float4 m_f4UVAndScreenPos;
 layout(location = 0) out float  Out_fTransparency;
-layout(location = 1) out float2 Out_f2MinMaxZRange;
+layout(location = 1) out float4 Out_f2MinMaxZRange;
 #if !LIGHT_SPACE_PASS
 layout(location = 2) out float4 Out_f4Color;
 #endif
@@ -108,20 +108,37 @@ void main()
     float fDepth;
     float3 f3RayStart;
     float2 f2UV = m_f4UVAndScreenPos.xy; // ProjToUV(In.m_f2PosPS.xy);
+
+#if DEBUG_STATIC_SCENE
+    float2 f2ProjUV =  float2(m_f4UVAndScreenPos.z, -m_f4UVAndScreenPos.w);
+#else
+    float2 f2ProjUV =  m_f4UVAndScreenPos.zw;
+#endif
+
 #if LIGHT_SPACE_PASS
     fDepth = textureLod(g_tex2DLightSpaceDepthMap_t0, float3(f2UV,g_GlobalCloudAttribs.f4Parameter.x), 0 ).x;   // samLinearClamp
+    fDepth = 0.0;
     // For directional light source, we should use position on the near clip plane instead of
     // camera location as a ray start point (use 1.01 to avoid issues when depth == 1)
-    float4 f4PosOnNearClipPlaneWS = mul( float4(m_f4UVAndScreenPos.zw,-0.999,1), g_ViewProjInv );
+
+    #if DEBUG_STATIC_SCENE
+    float4 f4PosOnNearClipPlaneWS = mul( float4(f2ProjUV,1.01,1),   g_ViewProjInv );
+    #else
+    float4 f4PosOnNearClipPlaneWS = mul( float4(f2ProjUV,-0.999,1), g_ViewProjInv );
+    #endif
     f3RayStart = f4PosOnNearClipPlaneWS.xyz/f4PosOnNearClipPlaneWS.w;
 #else
     f3RayStart = g_f4CameraPos.xyz;
+    #if DEBUG_STATIC_SCENE
+    fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0);
+    #else
     fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0);
     fDepth = 2.0 * fDepth - 1.0;
+    #endif
 #endif
 
     // Reconstruct world space position
-    float4 f4ReconstructedPosWS = mul( float4(m_f4UVAndScreenPos.zw,fDepth,1), g_ViewProjInv );
+    float4 f4ReconstructedPosWS = mul( float4(f2ProjUV,fDepth,1), g_ViewProjInv );
     float3 f3WorldPos = f4ReconstructedPosWS.xyz / f4ReconstructedPosWS.w;
 
     // Compute view ray
@@ -137,7 +154,11 @@ void main()
     // further than the far clipping plane because there is nothing
     // visible there
 #if !LIGHT_SPACE_PASS
-    if( /*fDepth < 1e-10*/ fDepth > 1.0 - (1e-10) )
+    #if DEBUG_STATIC_SCENE
+    if( fDepth < 1e-10 )
+    #else
+    if( fDepth > 1.0 - (1e-10))
+    #endif
         fRayLength = + FLT_MAX;
 #endif
 
@@ -198,7 +219,7 @@ void main()
         f3CloudLayerIsecPos = f3RayStart.xyz + f3ViewDir * fDistToCloudLayer;
 
         // Get cloud density at intersection point
-        float4 f4UV01 = GetCloudDensityUV(f3CloudLayerIsecPos, fTime);
+        float4 f4UV01 = GetCloudDensityUV(f3CloudLayerIsecPos, fTime);  // TODO need to check f4UV01
         fDensity = GetCloudDensityAutoLOD(f4UV01)* fFadeOutFactor;
         // Fade out clouds when view angle is orthogonal to zenith
         float3 f3ZenithDir = normalize(f3CloudLayerIsecPos - f3EarthCentre);
@@ -222,8 +243,16 @@ void main()
 #if LIGHT_SPACE_PASS
     // Transform intersection point into light view space
     float4 f4LightSpacePosPS = mul( float4(f3CloudLayerIsecPos,1), g_WorldViewProj );
+
+    #if DEBUG_STATIC_SCENE
+    Out_f2MinMaxZRange = float4(f4LightSpacePosPS.z / f4LightSpacePosPS.w, 0,0, 0);
+//    Out_f2MinMaxZRange = float4(f3CloudLayerIsecPos, fTime);
+//    Out_f2MinMaxZRange = float2(g_fCloudExtinctionCoeff, fTotalMass);
+//    Out_f2MinMaxZRange = float4(float(bIsValid), fTotalMass, 0,0);
+    #else
     Out_f2MinMaxZRange = float2(f4LightSpacePosPS.z / f4LightSpacePosPS.w);
     Out_f2MinMaxZRange = 2.0 * Out_f2MinMaxZRange - 1.0; // remap[-1,1] to [0,1]
+    #endif
 #else
     Out_f4Color = float4(0);
     if( bIsValid )

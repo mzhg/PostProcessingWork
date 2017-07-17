@@ -1,7 +1,5 @@
 package jet.opengl.demos.intel.cloud;
 
-import com.nvidia.developer.opengl.utils.StackInt;
-
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -32,6 +30,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.StackInt;
 
 /**
  * Created by mazhen'gui on 2017/7/7.
@@ -176,6 +175,13 @@ final class CCloudsController {
     private int m_LastViewportX, m_LastViewportY;
     private int m_LastViewportWidth = -1, m_LastViewportHeight = -1;
     private boolean m_printOnce;
+    private boolean m_debugStaticScene;
+
+    CCloudsController(boolean debugStaticScene){
+        this();
+
+        m_debugStaticScene = debugStaticScene;
+    }
 
     CCloudsController(){
         m_PackedCellLocations = new StackInt();
@@ -1100,7 +1106,7 @@ final class CCloudsController {
             m_uiBackBufferHeight,               //UINT Height;
             1,                                  //UINT MipLevels;
             1,                                  //UINT ArraySize;
-            GLenum.GL_R11F_G11F_B10F,           //DXGI_FORMAT Format;
+            GLenum.GL_RGBA16F,           //DXGI_FORMAT Format;  TODO  GL_R11F_G11F_B10F
             1                                   //DXGI_SAMPLE_DESC SampleDesc;
 //                    D3D11_USAGE_DEFAULT,                //D3D11_USAGE Usage;
 //                    D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,           //UINT BindFlags;
@@ -1272,6 +1278,7 @@ final class CCloudsController {
 
             macros.add(new Macro("BACK_BUFFER_DOWNSCALE_FACTOR", m_CloudAttribs.uiDownscaleFactor));
             macros.add(new Macro("THREAD_GROUP_SIZE", sm_iCSThreadGroupSize));
+            macros.add(new Macro("DEBUG_STATIC_SCENE", m_debugStaticScene));
 
             m_Processers = macros.toArray(new Macro[macros.size()]);
         }
@@ -1508,10 +1515,9 @@ final class CCloudsController {
 //            };
 //            pDeviceContext->PSSetShaderResources(11, _countof(pSRVs2), pSRVs2);
 //        }
-        gl.glBindTextureUnit(3, m_ptex2DCloudDensitySRV.getTexture());
-        gl.glBindSampler(3, m_psamLinearWrap);
-        gl.glBindTextureUnit(0, RenderAttribs.pShadowMapDSV.getTexture());
-        gl.glBindSampler(0, m_psamLinearClamp);
+
+        bindTexture(0, RenderAttribs.pDepthBufferSRV, m_psamLinearClamp);
+        bindTexture(3, m_ptex2DCloudDensitySRV, m_psamLinearWrap);
         gl.glDisable(GLenum.GL_CULL_FACE);
         gl.glDisable(GLenum.GL_DEPTH_TEST);
 
@@ -1525,10 +1531,8 @@ final class CCloudsController {
 //        UnbindVSResources(pDeviceContext);
 //        UnbindGSResources(pDeviceContext);
 
-        gl.glBindTextureUnit(3, 0);
-        gl.glBindTextureUnit(0, 0);
-        gl.glBindSampler(0, 0);
-        gl.glBindSampler(3, 0);
+        bindTexture(0, null, 0);
+        bindTexture(3, null, 0);
     }
 
     // Renders all visible particles
@@ -2590,9 +2594,7 @@ final class CCloudsController {
 //            m_ptex3DNoiseSRV,
 //        };
 
-        gl.glBindTextureUnit(0, m_ptex3DNoiseSRV.getTexture());
-        gl.glBindSampler(0, m_psamLinearWrap);
-
+        bindTexture(0, m_ptex3DNoiseSRV, m_psamLinearWrap);
         TextureAttachDesc attachDesc = m_AttachDescs[0];
         m_RenderTarget.bind();
         for(int Slice = 0; Slice < PrecomputedOpticalDepthTexDesc.depth; ++Slice)
@@ -2627,15 +2629,14 @@ final class CCloudsController {
             RenderQuad(/*pDeviceContext,*/ m_ComputeOpticalDepthTech, PrecomputedOpticalDepthTexDesc.width, PrecomputedOpticalDepthTexDesc.height);
         }
 
-        saveTextData("PrecomputeOpticalDepthGL", m_ptex3DPrecomputedParticleDensitySRV);
+        saveTextData("PrecomputeOpticalDepthGL.txt", m_ptex3DPrecomputedParticleDensitySRV);
         // TODO: need to use proper filtering for coarser mip levels
 //        pDeviceContext->GenerateMips( m_ptex3DPrecomputedParticleDensitySRV);
         gl.glBindTexture(m_ptex3DPrecomputedParticleDensitySRV.getTarget(), m_ptex3DPrecomputedParticleDensitySRV.getTexture());
         gl.glGenerateMipmap(m_ptex3DPrecomputedParticleDensitySRV.getTarget());
         gl.glBindTexture(m_ptex3DPrecomputedParticleDensitySRV.getTarget(), 0);
 
-        gl.glBindTextureUnit(0, 0);
-        gl.glBindSampler(0, 0);
+        bindTexture(0, null, 0);
 
 //        pDeviceContext->OMSetRenderTargets(1, &pOrigRTV.p, pOrigDSV);
 //        pDeviceContext->RSSetViewports(iNumOldViewports, &OrigViewPort);

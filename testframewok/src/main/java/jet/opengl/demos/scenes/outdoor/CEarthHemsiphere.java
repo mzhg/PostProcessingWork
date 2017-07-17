@@ -1,8 +1,6 @@
 package jet.opengl.demos.scenes.outdoor;
 
 import com.nvidia.developer.opengl.utils.NvImage;
-import com.nvidia.developer.opengl.utils.StackFloat;
-import com.nvidia.developer.opengl.utils.StackInt;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
@@ -29,6 +27,8 @@ import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.StackFloat;
+import jet.opengl.postprocessing.util.StackInt;
 
 final class CEarthHemsiphere {
 

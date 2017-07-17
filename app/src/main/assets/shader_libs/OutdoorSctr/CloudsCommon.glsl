@@ -268,7 +268,7 @@ float GetCloudDensityAutoLOD(in float4 f4UV01)
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1.0-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
-    return fDensity;
+    return 0.03;// dot(f4UV01, float4(1));
 }
 
 float GetCloudDensity(in float3 CloudPosition, in const float fTime, in float2 f2LODs = float2(0,0))

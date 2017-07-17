@@ -6,7 +6,7 @@ import jet.opengl.postprocessing.common.Disposeable;
  * Created by mazhen'gui on 2017/4/17.
  */
 
-public class CommonUtil {
+public final class CommonUtil {
 
     private CommonUtil(){}
 
@@ -28,5 +28,14 @@ public class CommonUtil {
         if(res != null){
             res.dispose();
         }
+    }
+
+    public static final boolean contain(Object[] a, Object o){
+        for(int i = 0; i < a.length; i++){
+            if(equals(a[i], o))
+                return true;
+        }
+
+        return false;
     }
 }

@@ -1,8 +1,6 @@
 package jet.opengl.demos.scenes.outdoor;
 
 import com.nvidia.developer.opengl.utils.BoundingBox;
-import com.nvidia.developer.opengl.utils.StackFloat;
-import com.nvidia.developer.opengl.utils.StackInt;
 
 import java.nio.IntBuffer;
 import java.util.List;
@@ -11,6 +9,8 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.StackFloat;
+import jet.opengl.postprocessing.util.StackInt;
 
 final class CRingMeshBuilder {
 

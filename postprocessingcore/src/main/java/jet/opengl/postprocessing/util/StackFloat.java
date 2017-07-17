@@ -1,8 +1,6 @@
-package com.nvidia.developer.opengl.utils;
+package jet.opengl.postprocessing.util;
 
 import java.util.Arrays;
-
-import jet.opengl.postprocessing.util.Numeric;
 
 public class StackFloat {
 

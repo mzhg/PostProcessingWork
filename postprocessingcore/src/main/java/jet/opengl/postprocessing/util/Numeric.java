@@ -73,6 +73,25 @@ public final class Numeric {
 		}
 	}
 
+	public static boolean isClose(float a, float b, float percent){
+		if(a == b){
+			return true;
+		}
+
+		if(a != a && b != b){
+			return true;
+		}
+
+		if(Math.abs(a) < EPSILON && Math.abs(b) < EPSILON){
+			return true;
+		}
+
+		float diffAB = a - b;
+		float diffBA = b - a;
+		percent = Math.max(percent, EPSILON);
+		return Math.abs(diffAB/ b) < percent && Math.abs(diffBA/a) < percent;
+	}
+
 	public static final int makeRGBA(int r, int g, int b, int a) {
 		return (r << 0) | (g << 8) | (b << 16) | (a << 24);
 	}
