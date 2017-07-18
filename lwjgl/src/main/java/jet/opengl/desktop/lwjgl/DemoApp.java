@@ -19,14 +19,11 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import jet.opengl.demos.intel.cloud.CloudSkyDemo;
 import jet.opengl.demos.intel.cloud.CloudSkyStaticDemo;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
-
-import static org.lwjgl.assimp.Assimp.aiGetErrorString;
 
 /**
  * Created by mazhen'gui on 2017/4/12.
@@ -108,7 +105,7 @@ public class DemoApp {
             throw new IllegalArgumentException();
         AIScene scene = Assimp.aiImportFile(file.getAbsolutePath(), 0);
         if (scene == null) {
-            throw new IllegalStateException(aiGetErrorString());
+            throw new IllegalStateException(Assimp.aiGetErrorString());
         }
         int numMesh = scene.mNumMeshes();
         PointerBuffer meshesBuffer  =  scene.mMeshes();

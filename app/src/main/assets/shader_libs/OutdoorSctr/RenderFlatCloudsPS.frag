@@ -2,7 +2,7 @@
 
 in float4 m_f4UVAndScreenPos;
 layout(location = 0) out float  Out_fTransparency;
-layout(location = 1) out float4 Out_f2MinMaxZRange;
+layout(location = 1) out float2 Out_f2MinMaxZRange;
 #if !LIGHT_SPACE_PASS
 layout(location = 2) out float4 Out_f4Color;
 #endif
@@ -245,7 +245,8 @@ void main()
     float4 f4LightSpacePosPS = mul( float4(f3CloudLayerIsecPos,1), g_WorldViewProj );
 
     #if DEBUG_STATIC_SCENE
-    Out_f2MinMaxZRange = float4(f4LightSpacePosPS.z / f4LightSpacePosPS.w, 0,0, 0);
+    Out_f2MinMaxZRange = float2(f4LightSpacePosPS.z / f4LightSpacePosPS.w);
+//    Out_f2MinMaxZRange = float4(f4LightSpacePosPS.z / f4LightSpacePosPS.w, exp(-g_fCloudExtinctionCoeff*fTotalMass),fTotalMass, fDensity);
 //    Out_f2MinMaxZRange = float4(f3CloudLayerIsecPos, fTime);
 //    Out_f2MinMaxZRange = float2(g_fCloudExtinctionCoeff, fTotalMass);
 //    Out_f2MinMaxZRange = float4(float(bIsValid), fTotalMass, 0,0);

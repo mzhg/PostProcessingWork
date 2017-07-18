@@ -69,7 +69,7 @@ uniform vec4  g_f4DirOnLight;
 uniform vec4  g_f4RayleighExtinctionCoeff = vec4(5.804543E-6, 1.3562912E-5, 3.3112578E-5, 0.0);
 uniform vec4  g_f4MieExtinctionCoeff = vec4(2.2E-5, 2.2E-5, 2.2E-5, 0.0);
 
-#define NO_INTERSECTIONS float2(-1)
+#define NO_INTERSECTIONS float2(-1, -2)
 
 void GetRaySphereIntersection(in float3 f3RayOrigin,
                               in float3 f3RayDirection,
@@ -85,7 +85,7 @@ void GetRaySphereIntersection(in float3 f3RayOrigin,
     float D = B*B - 4.0*A*C;
     // If discriminant is negative, there are no real roots hence the ray misses the
     // sphere
-    if( D<0 )
+    if( D<0.0 )
     {
         f2Intersections = NO_INTERSECTIONS;
     }

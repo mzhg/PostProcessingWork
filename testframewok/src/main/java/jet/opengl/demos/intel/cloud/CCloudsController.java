@@ -1,5 +1,7 @@
 package jet.opengl.demos.intel.cloud;
 
+import com.nvidia.developer.opengl.utils.NvImage;
+
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -29,6 +31,7 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackInt;
 
@@ -147,6 +150,7 @@ final class CCloudsController {
 
     // SRV for the buffer containing packed cell locations
     private int m_pbufPackedCellLocationsSRV;
+    private int m_pbufPackedCellLocations;
 
     // Cloud color, transparancy and distance buffer for camera space
     private Texture2D m_ptex2DScreenCloudColorSRV;
@@ -502,8 +506,10 @@ final class CCloudsController {
 //        LoadInfo.Format         = DXGI_FORMAT_BC4_UNORM;
 //        D3DX11CreateShaderResourceViewFromFile(pDevice, L"media\\Noise.png", &LoadInfo, nullptr, &m_ptex2DCloudDensitySRV, nullptr);
         try {
-            m_ptex2DCloudDensitySRV = TextureUtils.createTexture2DFromFile(m_strEffectPath + "textures/Noise.png", true);
-            m_ptex2DWhiteNoiseSRV = TextureUtils.createTexture2DFromFile(m_strEffectPath + "textures/WhiteNoise.png", true);
+            m_ptex2DCloudDensitySRV = TextureUtils.createTexture2DFromFile(m_strEffectPath + "textures/Noise.png", false);
+            bindTexture(0, m_ptex2DCloudDensitySRV, 0);
+            gl.glGenerateMipmap(m_ptex2DCloudDensitySRV.getTarget());
+            m_ptex2DWhiteNoiseSRV = TextureUtils.createTexture2DFromFile(m_strEffectPath + "textures/WhiteNoise.png", false);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -742,16 +748,8 @@ final class CCloudsController {
             m_ComputeOpticalDepthTech = null;
         }
 
-        // Process cloud grid
         if( m_ProcessCloudGridTech == null )
         {
-//            CD3DShaderMacroHelper Macros;
-//            DefineMacros(Macros);
-//            Macros.AddShaderMacro("THREAD_GROUP_SIZE", sm_iCSThreadGroupSize);
-//            Macros.Finalize();
-//            m_ProcessCloudGridTech.SetDeviceAndContext(pDevice, pDeviceContext);
-//            m_ProcessCloudGridTech.CreateComputeShaderFromFile(m_strEffectPath, "ProcessCloudGridCS", Macros);
-
             m_ProcessCloudGridTech = new CRenderTechnique(null, "ProcessCloudGridCS.comp", DefineMacros());
         }
 
@@ -1365,15 +1363,12 @@ final class CCloudsController {
 //            pDeviceContext->CopySubresourceRegion(ptex2DMaxDensityMipMap, uiMip, 0,0,0, ptex2DTmpMaxDensityMipMap, uiMip, nullptr);
             gl.glCopyImageSubData(ptex2DTmpMaxDensityMipMap.getTexture(), ptex2DTmpMaxDensityMipMap.getTarget(), uiMip, 0,0,0,
                     ptex2DMaxDensityMipMap.getTexture(), ptex2DMaxDensityMipMap.getTarget(), uiMip, 0,0,0,
-                    ptex2DTmpMaxDensityMipMap.getWidth(),ptex2DTmpMaxDensityMipMap.getHeight(), 1);
+                    uiCurrMipWidth,uiCurrMipHeight, 1);
 
             uiCurrMipWidth /= 2;
             uiCurrMipHeight /= 2;
         }
         assert( uiCurrMipWidth == 0 && uiCurrMipHeight == 0 );
-
-//        pDeviceContext->OMSetRenderTargets(1, &pOrigRTV.p, pOrigDSV);
-//        pDeviceContext->RSSetViewports(iNumOldViewports, &OrigViewPort);
     }
 
     private void RenderQuad(CRenderTechnique state){
@@ -1729,12 +1724,14 @@ final class CCloudsController {
         m_ProcessCloudGridTech.enable();
         m_ProcessCloudGridTech.setUniforms(m_CloudAttribs);
         m_ProcessCloudGridTech.setCameraPos(RenderAttribs.f3CameraPos);
+        m_ProcessCloudGridTech.setViewFrustumPlanes(RenderAttribs.f4ViewFrustumPlanes);
 
 //        pDeviceContext->Dispatch( (m_CloudAttribs.uiNumCells + (sm_iCSThreadGroupSize-1)) / sm_iCSThreadGroupSize, 1, 1);
         gl.glDispatchCompute((m_CloudAttribs.uiNumCells + (sm_iCSThreadGroupSize-1)) / sm_iCSThreadGroupSize, 1, 1);
         gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         if(!m_printOnce){
             m_ProcessCloudGridTech.printPrograminfo();
+            saveTextData("PackedCellLocationsGL.txt", GLenum.GL_TEXTURE_BUFFER, m_pbufPackedCellLocations, GLenum.GL_R32UI);
             saveTextData("CloudGridGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufCloudGridUAV, SCloudCellAttribs.class);
             saveTextData("ValidCellsUnorderedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufValidCellsUnorderedList, GLenum.GL_R32UI);
             saveTextData("VisibleCellsUnorderedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleCellsUnorderedList, GLenum.GL_R32UI);
@@ -2389,6 +2386,7 @@ final class CCloudsController {
             gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, pbufPackedCellLocations);
             gl.glBufferData(GLenum.GL_TEXTURE_BUFFER, CacheBuffer.wrap(m_PackedCellLocations.getData(), 0, m_PackedCellLocations.size()), GLenum.GL_STATIC_READ);
             gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, 0);
+            m_pbufPackedCellLocations = pbufPackedCellLocations;
 
             m_pbufPackedCellLocationsSRV = gl.glGenTexture();
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_pbufPackedCellLocationsSRV);
@@ -2643,8 +2641,26 @@ final class CCloudsController {
     }
 
     private void PrecomputeScatteringInParticle(/*ID3D11Device *pDevice, ID3D11DeviceContext *pDeviceContext*/){
-        final String SingleSctrTexPath   = "media\\SingleSctr.dds";
-        final String MultipleSctrTexPath = "media\\MultipleSctr.dds";
+        final String SingleSctrTexPath   = "intel\\Cloud\\textures\\SingleSctr.dds";
+        final String MultipleSctrTexPath = "intel\\Cloud\\textures\\MultipleSctr.dds";
+
+        if(FileUtils.g_IntenalFileLoader.exists(SingleSctrTexPath) && FileUtils.g_IntenalFileLoader.exists(MultipleSctrTexPath)){
+            try {
+                NvImage SingleSctrTeximage = NvImage.createFromDDSFile(SingleSctrTexPath);
+                int ptex3DSingleSctrInParticleLUT = SingleSctrTeximage.updaloadTexture();
+                m_ptex3DSingleSctrInParticleLUT_SRV = TextureUtils.createTexture3D(GLenum.GL_TEXTURE_3D, ptex3DSingleSctrInParticleLUT);
+
+                NvImage MultipleSctrImage = NvImage.createFromDDSFile(MultipleSctrTexPath);
+                int ptex3DMultipleSctrInParticleLUT = MultipleSctrImage.updaloadTexture();
+                m_ptex3DMultipleSctrInParticleLUT_SRV = TextureUtils.createTexture3D(GLenum.GL_TEXTURE_3D, ptex3DMultipleSctrInParticleLUT);
+
+                GLCheck.checkError();
+                return;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
 //        HRESULT hr1 = D3DX11CreateShaderResourceViewFromFile(pDevice, SingleSctrTexPath, nullptr, nullptr, &m_ptex3DSingleSctrInParticleLUT_SRV, nullptr);
 //        HRESULT hr2 = D3DX11CreateShaderResourceViewFromFile(pDevice, MultipleSctrTexPath, nullptr, nullptr, &m_ptex3DMultipleSctrInParticleLUT_SRV, nullptr);
 //        if( SUCCEEDED(hr1) && SUCCEEDED(hr2) )

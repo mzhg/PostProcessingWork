@@ -163,15 +163,6 @@ void OpticalDepthLUTCoordsToWorldParams(in float4 f4LUTCoords, out float3 f3Norm
     f3RayDir = GetDirectionInLocalFrameXYZ(f3LocalX, f3LocalY, f3LocalZ, fDirZentihAngle, fDirLocalAzimuthAngle);
 }
 
-float GetCloudRingWorldStep(uint uiRing, SGlobalCloudAttribs g_GlobalCloudAttribs)
-{
-    const float fLargestRingSize = g_GlobalCloudAttribs.fParticleCutOffDist * 2;
-    uint uiRingDimension = g_GlobalCloudAttribs.uiRingDimension;
-    uint uiNumRings = g_GlobalCloudAttribs.uiNumRings;
-    float fRingWorldStep = fLargestRingSize / float((uiRingDimension) << ((uiNumRings-1) - uiRing));
-    return fRingWorldStep;
-}
-
 float GetParticleSize(in float fRingWorldStep)
 {
     return fRingWorldStep;

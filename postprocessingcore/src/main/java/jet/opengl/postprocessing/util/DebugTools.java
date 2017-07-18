@@ -316,6 +316,11 @@ public final class DebugTools {
     }
 
     private static void flatType(Object obj, Class<?> clazz, List<ClassType> types) throws IllegalAccessException, InstantiationException {
+        if(ClassType.accept(clazz)){
+            types.add(new ClassType(clazz));
+            return;
+        }
+
         Field[] fields = clazz.getDeclaredFields();
         for(Field field : fields){
             if(Modifier.isStatic(field.getModifiers()))
@@ -1000,6 +1005,8 @@ public final class DebugTools {
     private static String _To(float f){
         if(f - Math.ceil(f) == 0.0){
             return Integer.toString((int)f);
+        }else if(Math.abs(f) < 1e-7){
+            return "0";
         }else{
             return Float.toString(f);
         }
@@ -1161,7 +1168,7 @@ public final class DebugTools {
                 for(int j = 0; j < fsrcValues.length; j ++){
                     float ogl_value = fsrcValues[j];
                     float dx_value = fdstValues[j];
-                    if(!Numeric.isClose(ogl_value, dx_value, 0.001f)){
+                    if(!Numeric.isClose(ogl_value, dx_value, 0.01f)){
                         result.add(mkToken(fsrcValues), mkToken(fdstValues), i);
                         break;
                     }

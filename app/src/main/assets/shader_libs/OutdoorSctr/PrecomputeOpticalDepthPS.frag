@@ -2,7 +2,7 @@
 
 in float4 m_f4UVAndScreenPos;
 
-layout(location = 0) out float Out_fColor;
+layout(location = 0) out float4 Out_fColor;
 
 // This shader computes level 0 of the maximum density mip map
 void main()
@@ -18,7 +18,8 @@ void main()
 
     if( f2RayIsecs.x > f2RayIsecs.y )
     {
-        Out_fColor = 0.0;
+//        Out_fColor = float4(m_f4UVAndScreenPos.xy, f2RayIsecs.xy);
+        Out_fColor = float4(0);
         return;
     }
 
@@ -33,5 +34,5 @@ void main()
         float fDensity = ComputeDensity(f3CurrPos);
         fTotalDensity += fDensity;
     }
-    Out_fColor = fTotalDensity / fNumSteps;
+    Out_fColor = float4(fTotalDensity / fNumSteps, 0,0,0);
 }

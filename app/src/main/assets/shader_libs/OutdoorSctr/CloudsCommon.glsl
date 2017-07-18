@@ -245,7 +245,7 @@ float4 GetCloudDensityUV(in float3 CloudPosition, in float fTime)
     return f2UV01;
 }
 
-float GetCloudDensity(in float4 f4UV01, in float2 f2LODs = float2(0,0))
+float GetCloudDensity(in float4 f4UV01, in float2 f2LODs /*= float2(0,0)*/)
 {
     float fDensity =
 //        g_tex2DCloudDensity.SampleLevel(samLinearWrap, f4UV01.xy, f2LODs.x) *
@@ -255,7 +255,7 @@ float GetCloudDensity(in float4 f4UV01, in float2 f2LODs = float2(0,0))
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1.0-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
-    return fDensity;
+    return 0.01f; //fDensity;
 }
 
 float GetCloudDensityAutoLOD(in float4 f4UV01)
@@ -268,7 +268,7 @@ float GetCloudDensityAutoLOD(in float4 f4UV01)
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1.0-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
-    return 0.03;// dot(f4UV01, float4(1));
+    return 0.01f; // fDensity;
 }
 
 float GetCloudDensity(in float3 CloudPosition, in const float fTime, in float2 f2LODs = float2(0,0))
@@ -277,7 +277,7 @@ float GetCloudDensity(in float3 CloudPosition, in const float fTime, in float2 f
     return GetCloudDensity(f4UV01, f2LODs);
 }
 
-float GetMaxDensity(in float4 f4UV01, in float2 f2LODs = float2(0,0))
+float GetMaxDensity(in float4 f4UV01, in float2 f2LODs /*= float2(0,0)*/)
 {
     float fDensity =
 //        g_tex2MaxDensityMip.SampleLevel(samPointWrap, f4UV01.xy, f2LODs.x) *
@@ -287,10 +287,10 @@ float GetMaxDensity(in float4 f4UV01, in float2 f2LODs = float2(0,0))
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
-    return fDensity;
+    return 0.03;// fDensity;
 }
 
-float GetMaxDensity(in float3 CloudPosition, in const float fTime, in float2 f2LODs = float2(0,0))
+float GetMaxDensity(in float3 CloudPosition, in const float fTime, in float2 f2LODs /*= float2(0,0)*/)
 {
     float4 f4UV01 = GetCloudDensityUV(CloudPosition, fTime);
     return GetMaxDensity(f4UV01, f2LODs);
@@ -300,7 +300,7 @@ float GetMaxDensity(in float3 CloudPosition, in const float fTime, in float2 f2L
 bool IsParticleVisibile(in float3 f3Center, in float3 f3Scales, float4 f4ViewFrustumPlanes[6])
 {
     float fParticleBoundSphereRadius = length(f3Scales);
-//    bool bIsVisible = true;
+    bool bIsVisible = true;
     for(int iPlane = 0; iPlane < 6; ++iPlane)
     {
 //#if LIGHT_SPACE_PASS
@@ -324,11 +324,11 @@ bool IsParticleVisibile(in float3 f3Center, in float3 f3Scales, float4 f4ViewFru
 #endif
         if( DMax < 0 )
         {
-//            bIsVisible = false;
-            return false;
+            bIsVisible = false;
+//            return false;
         }
     }
-    return true;
+    return bIsVisible;
 }
 
 #if 1
@@ -371,6 +371,24 @@ bool VolumeProcessingCSHelperFunc(uint3 Gid, uint3 GTid,
 	return true;
 }
 
+float GetCloudRingWorldStep(uint uiRing/*, SGlobalCloudAttribs g_GlobalCloudAttribs*/)
+{
+    const float fLargestRingSize = g_GlobalCloudAttribs.fParticleCutOffDist * 2;
+    uint uiRingDimension = g_GlobalCloudAttribs.uiRingDimension;
+    uint uiNumRings = g_GlobalCloudAttribs.uiNumRings;
+    float fRingWorldStep = fLargestRingSize / float((uiRingDimension) << ((uiNumRings-1) - uiRing));
+    return fRingWorldStep;
+}
+
+float GetCloudRingWorldStep(uint uiRing, SGlobalCloudAttribs g_GlobalCloudAttribs)
+{
+    const float fLargestRingSize = g_GlobalCloudAttribs.fParticleCutOffDist * 2;
+    uint uiRingDimension = g_GlobalCloudAttribs.uiRingDimension;
+    uint uiNumRings = g_GlobalCloudAttribs.uiNumRings;
+    float fRingWorldStep = fLargestRingSize / float((uiRingDimension) << ((uiNumRings-1) - uiRing));
+    return fRingWorldStep;
+}
+
 
 float SampleCellAttribs3DTexture(sampler3D tex3DData, in float3 f3WorldPos, in uint uiRing, /*uniform*/ bool bAutoLOD )
 {
@@ -384,7 +402,7 @@ float SampleCellAttribs3DTexture(sampler3D tex3DData, in float3 f3WorldPos, in u
 	float fCloudAltitude = dot(f3WorldPos - f3CellPosSphere, f3Normal);
 
     // Compute cell center world space coordinates
-    const float fRingWorldStep = GetCloudRingWorldStep(uiRing, g_GlobalCloudAttribs);
+    const float fRingWorldStep = GetCloudRingWorldStep(uiRing/*, g_GlobalCloudAttribs*/);
 
     //
     //

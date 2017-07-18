@@ -5,6 +5,7 @@ import com.nvidia.developer.opengl.utils.FieldControl;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -69,6 +70,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
     private final Matrix4f[] m_WorldToLightProjSpaceMatrs = new Matrix4f[4];
     private final Matrix4f[] m_ViewProjInverseMats = new Matrix4f[4];
     private final Vector3f m_f4DirOnLight = new Vector3f(0.379932f, 0.838250f, -0.391139f);
+    private final Vector4f[] m_f4ViewFrustumPlanes = new Vector4f[6];
     private float m_fCloudTime;
 
     @Override
@@ -109,6 +111,13 @@ public class CloudSkyStaticDemo extends NvSampleApp {
             m_AttachDescs[i].index = i;
             m_AttachDescs[i].level = 0;
         }
+
+        m_f4ViewFrustumPlanes[0] = new Vector4f(1.507793f, 0.271882f, 0.704835f, -22.469330f);
+        m_f4ViewFrustumPlanes[1] = new Vector4f(-1.164695f, 0.271882f, 1.188998f, 1043.342529f);
+        m_f4ViewFrustumPlanes[2] = new Vector4f(0.054540f, 2.595153f, 0.301049f, -1106.965332f);
+        m_f4ViewFrustumPlanes[3] = new Vector4f(0.288558f, -2.051389f, 1.592785f, 2127.838623f);
+        m_f4ViewFrustumPlanes[4] = new Vector4f(-0.000030f, -0.000047f, -0.000165f, 49.919682f);
+        m_f4ViewFrustumPlanes[5] = new Vector4f(0.171579f, 0.271930f, 0.947082f, 460.516937f);
 
         m_ViewProj.set(1.336244f, 0.000000f, -0.242082f, -532.905945f,
                        -0.117009f, 2.323271f, -0.645868f, -1617.401978f,
@@ -197,7 +206,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
             m_RenderAttribs.pLiSpCloudMinMaxDepthSRV = m_pLiSpCloudMinMaxDepthRTVs;
             m_RenderAttribs.fCurrTime = m_fCloudTime;
             m_RenderAttribs.f4DirOnLight = m_f4DirOnLight;  // , 0.000000
-            m_RenderAttribs.f4ViewFrustumPlanes = null;  // TODO Need to check the viewfrustum validation.
+            m_RenderAttribs.f4ViewFrustumPlanes = m_f4ViewFrustumPlanes;
 //            m_RenderAttribs.f3CameraPos = m_CameraPos;
 //            m_RenderAttribs.f3ViewDir = (D3DXVECTOR3&)mpCamera->GetLook();
 //            m_RenderAttribs.m_pCameraAttribs = &CameraAttribs;
@@ -397,7 +406,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
         {
             Texture2DDesc LiSpCloudMinMaxDepthDesc = LiSpCloudTransparencyMapDesc;
             LiSpCloudMinMaxDepthDesc.mipLevels = 1;
-            LiSpCloudMinMaxDepthDesc.format = GLenum.GL_RGBA32F;
+            LiSpCloudMinMaxDepthDesc.format = GLenum.GL_RG16F;
 //            CComPtr<ID3D11Texture2D> ptex2DCloudMinMaxDepth;
 //            V_RETURN(pd3dDevice->CreateTexture2D(&LiSpCloudMinMaxDepthDesc, NULL, &ptex2DCloudMinMaxDepth));
 //            V_RETURN(pd3dDevice->CreateShaderResourceView(ptex2DCloudMinMaxDepth, nullptr, &m_pLiSpCloudMinMaxDepthSRV));
