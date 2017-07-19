@@ -10,12 +10,12 @@ layout(binding = 0) buffer RWStructuredBuffer_SParticleAttribs
   SParticleAttribs  g_CloudParticlesRW[];
 };
 
-layout(binding = 1) buffer AppendStructuredBuffer
+layout(binding = 3) buffer AppendStructuredBuffer
 {
   SParticleIdAndDist  g_VisibleParticlesAppendBuf[];
 };
 
-layout (binding = 2, offset = 0) uniform atomic_uint g_Atomic_Counter;
+layout (binding = 4, offset = 0) uniform atomic_uint g_Atomic_Counter;
 
 void main()
 {
@@ -50,7 +50,7 @@ void main()
             continue;
 
         // Apply random displacement to particle pos
-        float3 f3Noise = textureLod(g_tex2DWhiteNoise, (f3CloudPos.yx + f3CloudPos.xz)/1500+0*fTime*5e-4, 0.0).xyz;   // samLinearWrap
+        float3 f3Noise = textureLod(g_tex2DWhiteNoise, (f3CloudPos.yx + f3CloudPos.xz)/1500.0+0*fTime*5e-4, 0.0).xyz;   // samLinearWrap
         float3 f3RandomDisplacement = (f3Noise*2.0-1.0) * f3Size / 2.f * float3(0.3,0.5,0.3);
         f3CloudPos += f3RandomDisplacement.x * CellAttrs.f3Tangent.xyz +
                       f3RandomDisplacement.y * CellAttrs.f3Normal.xyz +

@@ -145,15 +145,27 @@ public final class TextureUtils {
 	}
 
 	public static Texture2D createTexture2DFromFile(String filename, boolean flip,Texture2D out) throws IOException{
+		return createTexture2DFromFile(filename, flip, false, out);
+	}
+
+	public static Texture2D createTexture2DFromFile(String filename, boolean flip) throws IOException {
+		return createTexture2DFromFile(filename, flip, false, null);
+	}
+
+	public static Texture2D createTexture2DFromFile(String filename, boolean flip, boolean genmipmap, Texture2D out) throws IOException{
 		ImageLoader loader = GLFuncProviderFactory.getGLFuncProvider().getImageLoader();
 		ImageData data = loader.load(filename, flip);
 
 		Texture2DDesc desc = new Texture2DDesc(data.width, data.height, data.internalFormat);
+		if(genmipmap){
+			desc.mipLevels = (int) (Math.log(Math.max(data.width, data.height))/Math.log(2));
+		}
+
 		return createTexture2D(desc, new TextureDataDesc(measureFormat(data.internalFormat), GLenum.GL_UNSIGNED_BYTE, data.pixels), out);
 	}
 
-	public static Texture2D createTexture2DFromFile(String filename, boolean flip) throws IOException {
-		return createTexture2DFromFile(filename, flip, null);
+	public static Texture2D createTexture2DFromFile(String filename, boolean flip, boolean genmipmap) throws IOException {
+		return createTexture2DFromFile(filename, flip, genmipmap, null);
 	}
 
 	public static void flipY(ByteBuffer bytes, int height){
@@ -586,7 +598,7 @@ public final class TextureUtils {
 			}
 
 			// 3. Fill the texture Data
-			if(dataDesc != null && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE_ARRAY && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE){
+			if(dataDesc != null && dataDesc.data != null && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE_ARRAY && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE){
 				enablePixelStore(dataDesc);
 				
 				int width = textureDesc.width;
@@ -595,7 +607,15 @@ public final class TextureUtils {
 				
 				if(mipLevels > 1){
 					gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
-					List<Object> mipData = (List<Object>)dataDesc.data;
+					List<Object> mipData = null;
+					if(dataDesc.data instanceof  List<?>){
+						mipData = (List<Object>)dataDesc.data;
+					}else if(dataDesc.data.getClass().isArray()){
+						mipData = Arrays.asList((Object[])dataDesc.data);
+					}else{
+						mipData = Arrays.asList(dataDesc.data);
+					}
+
 					int loop = Math.min(mipData.size(), mipLevels);
 					for(int i = 0; i < loop; i++){
 						if(target == GLenum.GL_TEXTURE_2D_ARRAY){
@@ -607,6 +627,10 @@ public final class TextureUtils {
 						width = Math.max(1, width >> 1);
 						height = Math.max(1, height >> 1);
 						depth = Math.max(1, depth >> 1);
+					}
+
+					if(mipData.size() < mipLevels){
+						gl.glGenerateTextureMipmap(textureID);
 					}
 				}else{
 					if(!multiSample) {
@@ -708,14 +732,19 @@ public final class TextureUtils {
 					type = dataDesc.type;
 					pixelData = dataDesc.data;
 				}
-				
+
 				if(mipLevels > 1){
-					int loop = mipLevels;
+					int loop;
 					List<Object> mipData = null;
-					if(dataDesc != null){
+					if(dataDesc.data instanceof  List<?>){
 						mipData = (List<Object>)dataDesc.data;
-						loop = Math.min(mipData.size(), mipLevels);
+					}else if(dataDesc.data.getClass().isArray()){
+						mipData = Arrays.asList((Object[])dataDesc.data);
+					}else{
+						mipData = Arrays.asList(dataDesc.data);
 					}
+
+					loop = Math.min(mipData.size(), mipLevels);
 					
 					for(int i = 0; i < loop; i++){
 						Object mipmapData = null;
@@ -748,8 +777,9 @@ public final class TextureUtils {
 						depth = Math.max(1, depth >> 1);
 					}
 
-					if(!multiSample) {
-						gl.glTexParameteri(target, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+					gl.glTexParameteri(target, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+					if(mipData.size() < mipLevels) {
+						gl.glGenerateMipmap(target);
 					}
 				}else{
 					if(isCompressed){

@@ -145,7 +145,7 @@ layout(binding = 1) buffer StructuredBuffer0
  uint g_ValidCellsUnorderedList[];
 };
 
-layout(binding = 2) buffer StructuredBuffer1
+layout(std430, binding = 2) buffer StructuredBuffer1
 {
  SCloudCellAttribs g_CloudCells[];
 };
@@ -240,7 +240,7 @@ float2 ComputeDensityTexLODsFromStep(in float fSamplingStep)
 
 float4 GetCloudDensityUV(in float3 CloudPosition, in float fTime)
 {
-    const float4 f2Offset01 = float4( 0.1*float2(-0.04, +0.01) * fTime, 0.2*float2( 0.01,  0.04) * fTime );
+    float4 f2Offset01 = float4( 0.1*float2(-0.04, +0.01) * fTime, 0.2*float2( 0.01,  0.04) * fTime );
     float4 f2UV01 = CloudPosition.xzxz * g_f2CloudDensitySamplingScale.xxyy + f2Offset01;
     return f2UV01;
 }
@@ -255,7 +255,7 @@ float GetCloudDensity(in float4 f4UV01, in float2 f2LODs /*= float2(0,0)*/)
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1.0-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
-    return 0.01f; //fDensity;
+    return fDensity;
 }
 
 float GetCloudDensityAutoLOD(in float4 f4UV01)
@@ -268,10 +268,10 @@ float GetCloudDensityAutoLOD(in float4 f4UV01)
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1.0-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
-    return 0.01f; // fDensity;
+    return fDensity;
 }
 
-float GetCloudDensity(in float3 CloudPosition, in const float fTime, in float2 f2LODs = float2(0,0))
+float GetCloudDensity(in float3 CloudPosition, in float fTime, in float2 f2LODs = float2(0,0))
 {
     float4 f4UV01 = GetCloudDensityUV(CloudPosition, fTime);
     return GetCloudDensity(f4UV01, f2LODs);
@@ -287,10 +287,10 @@ float GetMaxDensity(in float4 f4UV01, in float2 f2LODs /*= float2(0,0)*/)
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
-    return 0.03;// fDensity;
+    return fDensity;
 }
 
-float GetMaxDensity(in float3 CloudPosition, in const float fTime, in float2 f2LODs /*= float2(0,0)*/)
+float GetMaxDensity(in float3 CloudPosition, in float fTime, in float2 f2LODs /*= float2(0,0)*/)
 {
     float4 f4UV01 = GetCloudDensityUV(CloudPosition, fTime);
     return GetMaxDensity(f4UV01, f2LODs);

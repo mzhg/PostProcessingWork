@@ -506,10 +506,10 @@ final class CCloudsController {
 //        LoadInfo.Format         = DXGI_FORMAT_BC4_UNORM;
 //        D3DX11CreateShaderResourceViewFromFile(pDevice, L"media\\Noise.png", &LoadInfo, nullptr, &m_ptex2DCloudDensitySRV, nullptr);
         try {
-            m_ptex2DCloudDensitySRV = TextureUtils.createTexture2DFromFile(m_strEffectPath + "textures/Noise.png", false);
-            bindTexture(0, m_ptex2DCloudDensitySRV, 0);
-            gl.glGenerateMipmap(m_ptex2DCloudDensitySRV.getTarget());
+            m_ptex2DCloudDensitySRV = TextureUtils.createTexture2DFromFile(m_strEffectPath + "textures/Noise.png", false, true);
+            TextureUtils.createTexture2D(m_ptex2DCloudDensitySRV.getTarget(), m_ptex2DCloudDensitySRV.getTexture(), m_ptex2DCloudDensitySRV);
             m_ptex2DWhiteNoiseSRV = TextureUtils.createTexture2DFromFile(m_strEffectPath + "textures/WhiteNoise.png", false);
+            GLCheck.checkError();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -539,6 +539,7 @@ final class CCloudsController {
 //            MaxCloudDensityMipDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
 //            V(pDevice->CreateTexture2D(&MaxCloudDensityMipDesc, nullptr, &ptex2DTmpMaxDensityMipMap));
             Texture2DDesc MaxCloudDensityMipDesc = new Texture2DDesc(m_uiCloudDensityTexWidth, m_uiCloudDensityTexHeight, GLenum.GL_R8);
+            MaxCloudDensityMipDesc.mipLevels = (int) (Math.log(m_uiCloudDensityTexWidth)/Math.log(2));
             m_ptex2DMaxDensityMipMapSRV = TextureUtils.createTexture2D(MaxCloudDensityMipDesc, null);
             Texture2D ptex2DTmpMaxDensityMipMap = TextureUtils.createTexture2D(MaxCloudDensityMipDesc, null);
 
@@ -1339,7 +1340,7 @@ final class CCloudsController {
 //            ID3D11SamplerState *pSamplers[] = {m_psamPointWrap};
 //            pDeviceContext->PSSetSamplers(2, _countof(pSamplers), pSamplers);  TODO samplers
 
-            m_CloudAttribs.f4Parameter.x = (float)uiMip;
+            m_CloudAttribs.f4Parameter.x = uiMip;
 //            UpdateConstantBuffer(pDeviceContext, m_pcbGlobalCloudAttribs, &m_CloudAttribs, sizeof(m_CloudAttribs));
 
 //            ID3D11Buffer *pCBs[] = {m_pcbGlobalCloudAttribs};
@@ -1349,7 +1350,7 @@ final class CCloudsController {
             {
 //                ID3D11ShaderResourceView *pSRVs[] = {m_ptex2DCloudDensitySRV};
 //                pDeviceContext->PSSetShaderResources(1, _countof(pSRVs), pSRVs);
-                bindTexture(CRenderTechnique.TEX2D_CLOUD_DENSITY, m_ptex2DCloudDensitySRV, m_psamPointWrap);
+                bindTexture(3, m_ptex2DCloudDensitySRV, m_psamPointWrap);
             }
             else
             {
@@ -1369,6 +1370,11 @@ final class CCloudsController {
             uiCurrMipHeight /= 2;
         }
         assert( uiCurrMipWidth == 0 && uiCurrMipHeight == 0 );
+
+        RenderCoarseMaxMipLevelTech.printPrograminfo();
+
+        RenderMaxDensityLevel0Tech.dispose();
+        RenderCoarseMaxMipLevelTech.dispose();
     }
 
     private void RenderQuad(CRenderTechnique state){
@@ -1681,8 +1687,8 @@ final class CCloudsController {
 //        UnbindGSResources(pDeviceContext);
     }
 
-    private void GenerateParticles(SRenderAttribs RenderAttribs){
-//        ID3D11DeviceContext *pDeviceContext = RenderAttribs.pDeviceContext;
+    private void ProcessCloudGridPass(SRenderAttribs RenderAttribs){
+        //        ID3D11DeviceContext *pDeviceContext = RenderAttribs.pDeviceContext;
 //        ID3D11Device *pDevice = RenderAttribs.pDevice;
 
 //        ID3D11Buffer *pCBs[] = {m_pcbGlobalCloudAttribs, RenderAttribs.pcMediaScatteringParams, RenderAttribs.pcbCameraAttribs, RenderAttribs.pcbLightAttribs};
@@ -1741,7 +1747,7 @@ final class CCloudsController {
 //        memset(pUAVs, 0, sizeof(pUAVs));
 //        pDeviceContext->CSSetUnorderedAccessViews(0, _countof(pUAVs), pUAVs, nullptr);
 //        pDeviceContext->CopyStructureCount(m_pbufValidCellsCounter, 0, m_pbufValidCellsUnorderedListUAV);
-        CopyStructureCount(m_pbufValidCellsCounter, m_pbufValidCellsUnorderedList, 16);
+        CopyStructureCount(m_pbufValidCellsCounter, m_pbufAtomicCounter, 0);
 
         GLCheck.checkError();
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
@@ -1755,7 +1761,10 @@ final class CCloudsController {
             gl.glBindBufferBase(GLenum.GL_ATOMIC_COUNTER_BUFFER, 3, 0);
         }
         GLCheck.checkError();
-//        // It is more efficient to clear both UAVs simultaneously using CS
+    }
+
+    private void EvaluateDensityPass(SRenderAttribs RenderAttribs){
+        //        // It is more efficient to clear both UAVs simultaneously using CS
 //        //ClearCellDensityAndAttenuationTextures(RenderAttribs);
 //        float Zero[4]={0,0,0,0};
 //        pDeviceContext->ClearUnorderedAccessViewFloat(m_ptex3DCellDensityUAV,Zero);
@@ -1767,13 +1776,6 @@ final class CCloudsController {
 //
         if( m_EvaluateDensityTech == null )
         {
-//            CD3DShaderMacroHelper Macros;
-//            DefineMacros(Macros);
-//            Macros.AddShaderMacro("THREAD_GROUP_SIZE", sm_iCSThreadGroupSize);
-//            Macros.Finalize();
-//
-//            m_EvaluateDensityTech.SetDeviceAndContext(pDevice, pDeviceContext);
-//            m_EvaluateDensityTech.CreateComputeShaderFromFile(m_strEffectPath, "EvaluateDensityCS", Macros);
             m_EvaluateDensityTech = new CRenderTechnique(null, "EvaluateDensityCS.comp", DefineMacros());
         }
 //
@@ -1789,8 +1791,13 @@ final class CCloudsController {
 //        pUAVs[0] = m_ptex3DCellDensityUAV;
 //        pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
 
+        // shader resource views
         bindTexture(5, m_ptex3DNoiseSRV, m_psamLinearWrap);
         gl.glBindImageTexture(5, m_pbufValidCellsCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufValidCellsUnorderedList);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
+
+        // shader unordered resource views
         gl.glBindImageTexture(0, m_ptex3DCellDensityUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, m_ptex3DCellDensityUAV.getFormat());
         m_EvaluateDensityTech.enable();
         m_EvaluateDensityTech.setUniforms(m_CloudAttribs);
@@ -1806,15 +1813,20 @@ final class CCloudsController {
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, m_ptex3DCellDensityUAV.getFormat());
         bindTexture(5, null, 0);
         gl.glBindImageTexture(5, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
 //        pUAVs[0] = nullptr;
 //        pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
 //
 //
 //        pDeviceContext->CopyStructureCount(m_pbufValidCellsCounter, 0, m_pbufVisibleCellsUnorderedListUAV);
-        CopyStructureCount(m_pbufValidCellsCounter, m_pbufVisibleCellsUnorderedList, 16);
+        CopyStructureCount(m_pbufValidCellsCounter, m_pbufAtomicCounter, 4);
         GLCheck.checkError();
+    }
+
+    private void ComputeLightAttenuatingMass(SRenderAttribs RenderAttribs){
         PrepareDispatchArgsBuffer(RenderAttribs, m_pbufValidCellsCounterSRV, 1);
-//
+
         if( m_ComputeLightAttenuatingMass == null )
         {
 //            CD3DShaderMacroHelper Macros;
@@ -1838,6 +1850,9 @@ final class CCloudsController {
 
         bindTexture(8, m_ptex3DCellDensitySRV, m_psamLinearClamp);
         gl.glBindImageTexture(5, m_pbufValidCellsCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufValidCellsUnorderedList);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
+
         gl.glBindImageTexture(0, m_ptex3DLightAttenuatingMassUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, m_ptex3DLightAttenuatingMassUAV.getFormat());
 
         m_ComputeLightAttenuatingMass.enable();
@@ -1858,19 +1873,15 @@ final class CCloudsController {
         bindTexture(8, null, 0);
         gl.glBindImageTexture(5, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, m_ptex3DLightAttenuatingMassUAV.getFormat());
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
         GLCheck.checkError();
+    }
 
-//
-//        // Process all valid cells and generate visible particles
+    private void GenerateVisibleParticlesPass(SRenderAttribs RenderAttribs){
+        // Process all valid cells and generate visible particles
         if(m_GenerateVisibleParticlesTech == null)
         {
-//            CD3DShaderMacroHelper Macros;
-//            DefineMacros(Macros);
-//            Macros.AddShaderMacro("THREAD_GROUP_SIZE", sm_iCSThreadGroupSize);
-//            Macros.Finalize();
-//
-//            m_GenerateVisibleParticlesTech.SetDeviceAndContext(pDevice, pDeviceContext);
-//            m_GenerateVisibleParticlesTech.CreateComputeShaderFromFile(m_strEffectPath, "GenerateVisibleParticlesCS", Macros);
             m_GenerateVisibleParticlesTech = new CRenderTechnique(null, "GenerateVisibleParticlesCS.comp", DefineMacros());
         }
 //
@@ -1887,17 +1898,21 @@ final class CCloudsController {
 //        pSRVs[4] = m_ptex3DCellDensitySRV;			 // t4
 //        pDeviceContext->CSSetShaderResources(0, 5, pSRVs);
 
+        // shader resource views
         bindTexture(4, m_ptex2DWhiteNoiseSRV, m_psamLinearWrap);
         bindTexture(8, m_ptex3DCellDensitySRV, m_psamLinearClamp);
-
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleCellsUnorderedList);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
         gl.glBindImageTexture(5, m_pbufValidCellsCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+
+        // shader unordered views
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufCloudParticlesUAV);
-        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesUnorderedListUAV);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, m_pbufVisibleParticlesUnorderedListUAV);
 
         gl.glBindBuffer(GLenum.GL_ATOMIC_COUNTER_BUFFER, m_pbufAtomicCounter);
         gl.glClearBufferData(GLenum.GL_ATOMIC_COUNTER_BUFFER, GLenum.GL_R32UI, GLenum.GL_RED_INTEGER, GLenum.GL_UNSIGNED_INT, null);  // clear to zero
         gl.glBindBuffer(GLenum.GL_ATOMIC_COUNTER_BUFFER, 0);
-        gl.glBindBufferBase(GLenum.GL_ATOMIC_COUNTER_BUFFER, 2, m_pbufAtomicCounter);
+        gl.glBindBufferBase(GLenum.GL_ATOMIC_COUNTER_BUFFER, 4, m_pbufAtomicCounter);
 
         m_GenerateVisibleParticlesTech.enable();
         m_GenerateVisibleParticlesTech.setUniforms(m_CloudAttribs);
@@ -1918,16 +1933,27 @@ final class CCloudsController {
 //        pDeviceContext->CSSetUnorderedAccessViews(0, 2, pUAVs, nullptr);
         bindTexture(4, null, 0);
         bindTexture(8, null, 0);
-
         gl.glBindImageTexture(5, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
-        gl.glBindBufferBase(GLenum.GL_ATOMIC_COUNTER_BUFFER, 2, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
+        gl.glBindBufferBase(GLenum.GL_ATOMIC_COUNTER_BUFFER, 4, 0);
         GLCheck.checkError();
 //
 //        pDeviceContext->CopyStructureCount(m_pbufVisibleParticlesCounter, 0, m_pbufVisibleParticlesUnorderedListUAV);
-        CopyStructureCount(m_pbufVisibleParticlesCounter, m_pbufVisibleParticlesUnorderedListUAV, 16);
+        CopyStructureCount(m_pbufVisibleParticlesCounter, m_pbufAtomicCounter, 0);
+    }
+
+    private void GenerateParticles(SRenderAttribs RenderAttribs){
+        ProcessCloudGridPass(RenderAttribs);
+
+        EvaluateDensityPass(RenderAttribs);
 //
+        ComputeLightAttenuatingMass(RenderAttribs);
+
+        GenerateVisibleParticlesPass(RenderAttribs);
+
         {
 //            // Process all valid cells and generate visible particles
             if(m_ProcessVisibleParticlesTech == null)
@@ -2220,10 +2246,10 @@ final class CCloudsController {
 
     }
 
-    private void CopyStructureCount(int dstBuffer, int srcBuffer, int length){
+    private void CopyStructureCount(int dstBuffer, int srcBuffer, int offset){
         gl.glBindBuffer(GLenum.GL_COPY_READ_BUFFER, srcBuffer);
         gl.glBindBuffer(GLenum.GL_COPY_WRITE_BUFFER, dstBuffer);
-        gl.glCopyBufferSubData(GLenum.GL_COPY_READ_BUFFER, GLenum.GL_COPY_WRITE_BUFFER, 0,0, length);
+        gl.glCopyBufferSubData(GLenum.GL_COPY_READ_BUFFER, GLenum.GL_COPY_WRITE_BUFFER, offset,0, 4);
         gl.glBindBuffer(GLenum.GL_COPY_READ_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_COPY_WRITE_BUFFER, 0);
 
@@ -3047,111 +3073,114 @@ final class CCloudsController {
 //                        0//UINT MiscFlags;
         );
 
-        int DataSize = 0;
-        for(int Mip=0; Mip < uiMips; ++Mip)
-            DataSize += (NoiseTexDesc.width>>Mip) * (NoiseTexDesc.height>>Mip) * (NoiseTexDesc.depth>>Mip);
+        boolean use_static_data = true;
+        byte[] NoiseDataR8;
+        if(use_static_data){
+            NoiseDataR8 = DebugTools.loadBytes("E:\\textures\\OutdoorCloudResources\\NoiseDataR8.dat");
+        }else {
+            int DataSize = 0;
+            for (int Mip = 0; Mip < uiMips; ++Mip)
+                DataSize += (NoiseTexDesc.width >> Mip) * (NoiseTexDesc.height >> Mip) * (NoiseTexDesc.depth >> Mip);
 //        std::vector<float> NoiseData(DataSize);
-        final float[] NoiseData = new float[DataSize];
+            final float[] NoiseData = new float[DataSize];
 
-        class Noise{
-            void set(int i,  int j, int k, float value) {
-                NoiseData[i + j * NoiseTexDesc.width + k * (NoiseTexDesc.width * NoiseTexDesc.height)] = value;
+            class Noise {
+                void set(int i, int j, int k, float value) {
+                    NoiseData[i + j * NoiseTexDesc.width + k * (NoiseTexDesc.width * NoiseTexDesc.height)] = value;
+                }
+
+                float get(int i, int j, int k) {
+                    return NoiseData[i + j * NoiseTexDesc.width + k * (NoiseTexDesc.width * NoiseTexDesc.height)];
+                }
             }
-            float get(int i,  int j, int k) { return NoiseData[i + j * NoiseTexDesc.width + k * (NoiseTexDesc.width * NoiseTexDesc.height)];}
-        }
 
 //        #define NOISE(i,j,k) NoiseData[i + j * NoiseTexDesc.Width + k * (NoiseTexDesc.Width * NoiseTexDesc.Height)]
-        Noise noise = new Noise();
+            Noise noise = new Noise();
 
-        // Populate texture with random noise
-        int InitialStep = 8;
-        for(int i=0; i < NoiseTexDesc.width; i+=InitialStep)
-            for(int j=0; j < NoiseTexDesc.height; j+=InitialStep)
-                for(int k=0; k < NoiseTexDesc.depth; k+=InitialStep)
+            // Populate texture with random noise
+            int InitialStep = 8;
+            for (int i = 0; i < NoiseTexDesc.width; i += InitialStep)
+                for (int j = 0; j < NoiseTexDesc.height; j += InitialStep)
+                    for (int k = 0; k < NoiseTexDesc.depth; k += InitialStep)
 //                    NOISE(i,j,k) = (float)rand() / (float)RAND_MAX;
-                    noise.set(i,j,k, Numeric.random());
+                        noise.set(i, j, k, Numeric.random());
 
-        // Smooth rows
-        for(int i=0; i < NoiseTexDesc.width; ++i)
-            for(int j=0; j < NoiseTexDesc.height; j+=InitialStep)
-                for(int k=0; k < NoiseTexDesc.depth; k+=InitialStep)
-                {
-                    int i0 = (i/InitialStep)*InitialStep;
-                    int im1 = i0-InitialStep;
-                    if( im1 < 0 )im1 += NoiseTexDesc.width;
-                    int i1 = (i0+InitialStep) % NoiseTexDesc.width;
-                    int i2 = (i0+2*InitialStep) % NoiseTexDesc.width;
+            // Smooth rows
+            for (int i = 0; i < NoiseTexDesc.width; ++i)
+                for (int j = 0; j < NoiseTexDesc.height; j += InitialStep)
+                    for (int k = 0; k < NoiseTexDesc.depth; k += InitialStep) {
+                        int i0 = (i / InitialStep) * InitialStep;
+                        int im1 = i0 - InitialStep;
+                        if (im1 < 0) im1 += NoiseTexDesc.width;
+                        int i1 = (i0 + InitialStep) % NoiseTexDesc.width;
+                        int i2 = (i0 + 2 * InitialStep) % NoiseTexDesc.width;
 //                    NOISE(i,j,k) = CubicInterpolate( NOISE(im1,j,k), NOISE(i0,j,k), NOISE(i1,j,k), NOISE(i2,j,k), (float)(i-i0) / (float)InitialStep );
-                    noise.set(i,j,k, CubicInterpolate( noise.get(im1,j,k), noise.get(i0,j,k), noise.get(i1,j,k), noise.get(i2,j,k), (float)(i-i0) / (float)InitialStep ));
-                }
-
-        // Smooth columns
-        for(int i=0; i < NoiseTexDesc.width; ++i)
-            for(int j=0; j < NoiseTexDesc.height; ++j)
-                for(int k=0; k < NoiseTexDesc.depth; k+=InitialStep)
-                {
-                    int j0 = (j/InitialStep)*InitialStep;
-                    int jm1 = j0 - InitialStep;
-                    if( jm1 < 0 )jm1+=NoiseTexDesc.height;
-                    int j1 = (j0+InitialStep) % NoiseTexDesc.height;
-                    int j2 = (j0+2*InitialStep) % NoiseTexDesc.height;
-//                    NOISE(i,j,k) = CubicInterpolate(NOISE(i,jm1,k), NOISE(i,j0,k), NOISE(i,j1,k), NOISE(i,j2,k), (float)(j-j0) / (float)InitialStep);
-                    noise.set(i,j,k, CubicInterpolate(noise.get(i,jm1,k), noise.get(i,j0,k), noise.get(i,j1,k), noise.get(i,j2,k), (float)(j-j0) / (float)InitialStep));
-                }
-
-        // Smooth in depth direction
-        for(int i=0; i < NoiseTexDesc.width; ++i)
-            for(int j=0; j < NoiseTexDesc.height; ++j)
-                for(int k=0; k < NoiseTexDesc.depth; ++k)
-                {
-                    int k0 = (k/InitialStep)*InitialStep;
-                    int km1 = k0-InitialStep;
-                    if( km1 < 0 )km1+=NoiseTexDesc.depth;
-                    int k1 = (k0+InitialStep) % NoiseTexDesc.depth;
-                    int k2 = (k0+2*InitialStep) % NoiseTexDesc.depth;
-//                    NOISE(i,j,k) = CubicInterpolate(NOISE(i,j,km1), NOISE(i,j,k0), NOISE(i,j,k1), NOISE(i,j,k2), (float)(k-k0) / (float)InitialStep);
-                    noise.set(i,j,k, CubicInterpolate(noise.get(i,j,km1), noise.get(i,j,k0), noise.get(i,j,k1), noise.get(i,j,k2), (float)(k-k0) / (float)InitialStep));
-                }
-
-        // Generate mips
-//        auto FinerMipIt = NoiseData.begin();
-        int FinerMipIt = 0;
-        for(int Mip = 1; Mip < uiMips; ++Mip)
-        {
-            int uiFinerMipWidth  = NoiseTexDesc.width  >> (Mip-1);
-            int uiFinerMipHeight = NoiseTexDesc.height >> (Mip-1);
-            int uiFinerMipDepth  = NoiseTexDesc.depth  >> (Mip-1);
-
-            int CurrMipIt = FinerMipIt + uiFinerMipWidth * uiFinerMipHeight * uiFinerMipDepth;
-            int uiMipWidth  = NoiseTexDesc.width  >> Mip;
-            int uiMipHeight = NoiseTexDesc.height >> Mip;
-            int uiMipDepth  = NoiseTexDesc.depth  >> Mip;
-            for(int i=0; i < uiMipWidth; ++i)
-                for(int j=0; j < uiMipHeight; ++j)
-                    for(int k=0; k < uiMipDepth; ++k)
-                    {
-                        float fVal=0;
-                        for(int x=0; x<2;++x)
-                            for(int y=0; y<2;++y)
-                                for(int z=0; z<2;++z)
-                                {
-//                                    fVal += FinerMipIt[(i*2+x) + (j*2 + y) * uiFinerMipWidth + (k*2+z) * (uiFinerMipWidth * uiFinerMipHeight)];
-                                    fVal += NoiseData[FinerMipIt + (i*2+x) + (j*2 + y) * uiFinerMipWidth + (k*2+z) * (uiFinerMipWidth * uiFinerMipHeight)];
-                                }
-//                        CurrMipIt[i + j * uiMipWidth + k * (uiMipWidth * uiMipHeight)] = fVal / 8.f;
-                        NoiseData[CurrMipIt + i + j * uiMipWidth + k * (uiMipWidth * uiMipHeight)] = fVal / 8.f;
+                        noise.set(i, j, k, CubicInterpolate(noise.get(im1, j, k), noise.get(i0, j, k), noise.get(i1, j, k), noise.get(i2, j, k), (float) (i - i0) / (float) InitialStep));
                     }
-            FinerMipIt = CurrMipIt;
-        }
-        assert(FinerMipIt+1 == NoiseData.length);
 
-        // Convert to 8-bit
+            // Smooth columns
+            for (int i = 0; i < NoiseTexDesc.width; ++i)
+                for (int j = 0; j < NoiseTexDesc.height; ++j)
+                    for (int k = 0; k < NoiseTexDesc.depth; k += InitialStep) {
+                        int j0 = (j / InitialStep) * InitialStep;
+                        int jm1 = j0 - InitialStep;
+                        if (jm1 < 0) jm1 += NoiseTexDesc.height;
+                        int j1 = (j0 + InitialStep) % NoiseTexDesc.height;
+                        int j2 = (j0 + 2 * InitialStep) % NoiseTexDesc.height;
+//                    NOISE(i,j,k) = CubicInterpolate(NOISE(i,jm1,k), NOISE(i,j0,k), NOISE(i,j1,k), NOISE(i,j2,k), (float)(j-j0) / (float)InitialStep);
+                        noise.set(i, j, k, CubicInterpolate(noise.get(i, jm1, k), noise.get(i, j0, k), noise.get(i, j1, k), noise.get(i, j2, k), (float) (j - j0) / (float) InitialStep));
+                    }
+
+            // Smooth in depth direction
+            for (int i = 0; i < NoiseTexDesc.width; ++i)
+                for (int j = 0; j < NoiseTexDesc.height; ++j)
+                    for (int k = 0; k < NoiseTexDesc.depth; ++k) {
+                        int k0 = (k / InitialStep) * InitialStep;
+                        int km1 = k0 - InitialStep;
+                        if (km1 < 0) km1 += NoiseTexDesc.depth;
+                        int k1 = (k0 + InitialStep) % NoiseTexDesc.depth;
+                        int k2 = (k0 + 2 * InitialStep) % NoiseTexDesc.depth;
+//                    NOISE(i,j,k) = CubicInterpolate(NOISE(i,j,km1), NOISE(i,j,k0), NOISE(i,j,k1), NOISE(i,j,k2), (float)(k-k0) / (float)InitialStep);
+                        noise.set(i, j, k, CubicInterpolate(noise.get(i, j, km1), noise.get(i, j, k0), noise.get(i, j, k1), noise.get(i, j, k2), (float) (k - k0) / (float) InitialStep));
+                    }
+
+            // Generate mips
+//        auto FinerMipIt = NoiseData.begin();
+            int FinerMipIt = 0;
+            for (int Mip = 1; Mip < uiMips; ++Mip) {
+                int uiFinerMipWidth = NoiseTexDesc.width >> (Mip - 1);
+                int uiFinerMipHeight = NoiseTexDesc.height >> (Mip - 1);
+                int uiFinerMipDepth = NoiseTexDesc.depth >> (Mip - 1);
+
+                int CurrMipIt = FinerMipIt + uiFinerMipWidth * uiFinerMipHeight * uiFinerMipDepth;
+                int uiMipWidth = NoiseTexDesc.width >> Mip;
+                int uiMipHeight = NoiseTexDesc.height >> Mip;
+                int uiMipDepth = NoiseTexDesc.depth >> Mip;
+                for (int i = 0; i < uiMipWidth; ++i)
+                    for (int j = 0; j < uiMipHeight; ++j)
+                        for (int k = 0; k < uiMipDepth; ++k) {
+                            float fVal = 0;
+                            for (int x = 0; x < 2; ++x)
+                                for (int y = 0; y < 2; ++y)
+                                    for (int z = 0; z < 2; ++z) {
+//                                    fVal += FinerMipIt[(i*2+x) + (j*2 + y) * uiFinerMipWidth + (k*2+z) * (uiFinerMipWidth * uiFinerMipHeight)];
+                                        fVal += NoiseData[FinerMipIt + (i * 2 + x) + (j * 2 + y) * uiFinerMipWidth + (k * 2 + z) * (uiFinerMipWidth * uiFinerMipHeight)];
+                                    }
+//                        CurrMipIt[i + j * uiMipWidth + k * (uiMipWidth * uiMipHeight)] = fVal / 8.f;
+                            NoiseData[CurrMipIt + i + j * uiMipWidth + k * (uiMipWidth * uiMipHeight)] = fVal / 8.f;
+                        }
+                FinerMipIt = CurrMipIt;
+            }
+            assert (FinerMipIt + 1 == NoiseData.length);
+
+            // Convert to 8-bit
 //        std::vector<BYTE> NoiseDataR8(NoiseData.size());
 //        for(auto it=NoiseData.begin(); it != NoiseData.end(); ++it)
 //            NoiseDataR8[it-NoiseData.begin()] = (BYTE)min(max((int)( *it*255.f), 0),255);
-        byte[] NoiseDataR8 = new byte[NoiseData.length];
-        for(int i = 0; i < NoiseData.length; i++)
-            NoiseDataR8[i] = (byte)Math.min(Math.max((int)(NoiseData[i] *255.f), 0),255);
+            NoiseDataR8 = new byte[NoiseData.length];
+            for (int i = 0; i < NoiseData.length; i++)
+                NoiseDataR8[i] = (byte) Math.min(Math.max((int) (NoiseData[i] * 255.f), 0), 255);
+        }
 
         // Prepare init data
 //        std::vector<D3D11_SUBRESOURCE_DATA>InitData(uiMips);
@@ -3186,7 +3215,8 @@ final class CCloudsController {
 //            InitData[Mip].SysMemPitch = uiMipWidth*sizeof(NoiseDataR8[0]);
 //            InitData[Mip].SysMemSlicePitch = uiMipWidth*uiMipHeight*sizeof(NoiseDataR8[0]);
             int size = uiMipWidth * uiMipHeight * uiMipDepth;
-            gl.glTexImage3D(GLenum.GL_TEXTURE_3D, Mip, NoiseTexDesc.format, uiMipWidth, uiMipHeight, uiMipDepth, 0, GLenum.GL_RED, GLenum.GL_UNSIGNED_BYTE, CacheBuffer.wrap(NoiseDataR8, CurrMipIt, size));
+            gl.glTexImage3D(GLenum.GL_TEXTURE_3D, Mip, NoiseTexDesc.format, uiMipWidth, uiMipHeight, uiMipDepth, 0, GLenum.GL_RED, GLenum.GL_UNSIGNED_BYTE,
+                    CacheBuffer.wrap(NoiseDataR8, CurrMipIt, size));
             CurrMipIt += size;
         }
         GLCheck.checkError();

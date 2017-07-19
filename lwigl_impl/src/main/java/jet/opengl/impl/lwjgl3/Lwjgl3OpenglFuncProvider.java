@@ -1815,5 +1815,9 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
         return GL43.glGetProgramResourceLocationIndex(program, programInterface, name);
     }
 
+    @Override
+    public void glGenerateTextureMipmap(int texture) {
+        ARBDirectStateAccess.glGenerateTextureMipmap(texture);
+    }
 
 }

@@ -27,6 +27,8 @@ import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
@@ -103,6 +105,20 @@ public final class DebugTools {
             ByteBuffer byteBuffer = BufferUtils.createByteBuffer(bytes.length);
             byteBuffer.put(bytes).flip();
             return byteBuffer;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static byte[] loadBytes(String filename){
+        try(FileInputStream inputStream = new FileInputStream(filename)){
+            byte[] bytes = new byte[inputStream.available()];
+            inputStream.read(bytes);
+            return bytes;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -234,8 +250,9 @@ public final class DebugTools {
 //            e.printStackTrace(); Don't the throw exception if couldn't acess the default construct of the class.
         }
 
+        int struct_size = measureStructSize(types);
         while(pixels.hasRemaining()){
-            String str = formatBinary(pixels, types);
+            String str = formatBinary(pixels, types, struct_size);
             out.append(str);
             out.append(' ');
             count++;
@@ -247,9 +264,94 @@ public final class DebugTools {
         }
     }
 
-    private static String formatBinary(ByteBuffer pixel, List<ClassType> types){
+    private static int measureStructSize(List<ClassType> types){
+        int totalBytes = 0;
+
+        for(ClassType type : types){
+            final int type_bytes = ClassType.sizeof(type.clazz);
+            if(type_bytes < 0)
+                throw  new IllegalStateException("Inner error!!!");
+            totalBytes += type_bytes * type.arraySize;
+        }
+
+        return totalBytes;
+    }
+
+    private static int measureStructSize(List<ClassType> types, final int stride){
+        int totalBytes = 0;
+
+        int remain_bytes = stride;
+        ClassType lastType = null;
+        for(ClassType type : types){
+            final int type_bytes = ClassType.sizeof(type.clazz);
+            if(type_bytes < 0)
+                throw  new IllegalStateException("Inner error!!!");
+
+            if(type.arraySize > 1){
+                int array_bytes = type.arraySize * type_bytes;
+                if(array_bytes > remain_bytes && remain_bytes < stride && (remain_bytes % type_bytes) != 0){ // remain_bytes must be > 0
+                    if (lastType != null){
+                        if(lastType.arraySize > 1){
+                            lastType.arrayPadding = remain_bytes;
+                        }else{
+                            lastType.padding = remain_bytes;
+                        }
+                    }else{
+                        throw new IllegalStateException("Inner Error!!!");
+                    }
+
+                    totalBytes += remain_bytes;
+                    remain_bytes = stride;
+                }
+
+                type.padding = stride % type_bytes;
+                int array_token_bytes = (type_bytes + type.padding) * type.arraySize;
+
+                // TODO may be have problem here.
+                totalBytes += array_token_bytes;
+                if(remain_bytes != stride){
+                    remain_bytes = (array_token_bytes - remain_bytes) % stride;
+                }
+
+            }else{  // Not an array
+                if (type_bytes <= remain_bytes) {
+                    totalBytes += type_bytes;
+                    remain_bytes -= type_bytes;
+
+                    if (remain_bytes == 0)
+                        remain_bytes = stride;
+                } else {  // type_bytes > remain_bytes
+                    if (lastType != null){
+                        if(lastType.arraySize > 1){
+                            lastType.arrayPadding = remain_bytes;
+                        }else{
+                            lastType.padding = remain_bytes;
+                        }
+                    }else{
+                        throw new IllegalStateException("Inner Error!!!");
+                    }
+
+                    totalBytes += remain_bytes;
+                    remain_bytes = stride;
+
+                    totalBytes += type_bytes;
+                    remain_bytes -= type_bytes;
+
+                    if (remain_bytes == 0)
+                        remain_bytes = stride;
+                }
+            }
+
+            lastType = type;
+        }
+
+        return Numeric.divideAndRoundUp(totalBytes, stride) * stride;
+    }
+
+    private static String formatBinary(ByteBuffer pixel, List<ClassType> types, int align_bytes){
         StringBuilder out = new StringBuilder();
         out.append('[');
+        int start_pos = pixel.position();
         for(ClassType type : types){
             int count = type.arraySize;
             for(int i = 0; i < count; i++) {
@@ -278,7 +380,21 @@ public final class DebugTools {
                         out.append(pixel.getFloat()).append(',');
                     }
                 }
+
+                if(type.padding != 0){
+                    pixel.position(pixel.position() + type.padding);
+                }
             }
+            if(type.arrayPadding != 0){
+                pixel.position(pixel.position() + type.arrayPadding);
+            }
+        }
+
+        int end_pos = pixel.position();
+        if(end_pos - start_pos > align_bytes){
+            throw  new IllegalStateException(String.format("Inner Error: start_pos = %d, end_pos = %d, align_bytes = %d.\n", start_pos, end_pos, align_bytes));
+        }else if(end_pos - start_pos < align_bytes){
+            pixel.position(start_pos + align_bytes);
         }
 
         out.setLength(out.length() - 1);
@@ -293,17 +409,47 @@ public final class DebugTools {
                 Matrix2f.class, Matrix3f.class, Matrix4f.class
         };
 
-        static boolean accept(Class<?> clazz){
-            for(Class<?> src : ACCETS){
-                if(src == clazz)
-                    return true;
-            }
+        private static final int[] SIZES = new int[ACCETS.length];
 
-            return false;
+        private static final Comparator<Class<?>> CLASS_COMPARATOR  = (a, b )-> a.getName().compareTo(b.getName());
+        static {
+            Arrays.sort(ACCETS, CLASS_COMPARATOR);
+            for(int i = 0; i < ACCETS.length; i++){
+                Class<?> type = ACCETS[i];
+                int size = 0;
+                if(type == int.class || type == boolean.class || type == float.class){
+                    size = 4;
+                }else if(type == Vector2f.class){
+                    size = Vector2f.SIZE;
+                }else if (type == Vector3f.class){
+                    size = Vector3f.SIZE;
+                }else if (type == Vector4f.class){
+                    size = Vector4f.SIZE;
+                }else if (type == Matrix2f.class){
+                    size = Matrix2f.SIZE;
+                }else if (type == Matrix3f.class){
+                    size = Matrix3f.SIZE;
+                }else if(type == Matrix4f.class){
+                    size = Matrix4f.SIZE;
+                }
+
+                SIZES[i] = size;
+            }
+        }
+
+        static int sizeof(Class<?> type){
+            int idx = Arrays.binarySearch(ACCETS, type, CLASS_COMPARATOR);
+            return idx >= 0 ? SIZES[idx] : -1;
+        }
+
+        static boolean accept(Class<?> clazz){
+            return Arrays.binarySearch(ACCETS, clazz, CLASS_COMPARATOR) >=0;
         }
 
         Class<?> clazz;
         int arraySize = 1;
+        int padding;
+        int arrayPadding;
 
         ClassType(Class<?> clazz, int arraySize){
             this.clazz = clazz;
@@ -1165,7 +1311,8 @@ public final class DebugTools {
                 float[] fsrcValues = srcValues.get(i);
                 float[] fdstValues = dstValues.get(i);
 
-                for(int j = 0; j < fsrcValues.length; j ++){
+                int length = Math.min(fsrcValues.length, fdstValues.length);
+                for(int j = 0; j < length; j ++){
                     float ogl_value = fsrcValues[j];
                     float dx_value = fdstValues[j];
                     if(!Numeric.isClose(ogl_value, dx_value, 0.01f)){

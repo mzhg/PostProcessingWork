@@ -462,6 +462,9 @@ struct SCloudCellAttribs
     float fMorphFadeout;
 
     uint uiPackedLocation;
+    uint pad0;
+    uint pad1;
+    uint pad2;
 };
 
 struct SParticleAttribs
@@ -470,6 +473,8 @@ struct SParticleAttribs
     float fSize;
     float fRndAzimuthBias;
     float fDensity;
+    float pad0;
+    float pad1;
 };
 
 struct SCloudParticleLighting

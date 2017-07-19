@@ -1582,4 +1582,6 @@ public interface GLFuncProvider {
     int glGetProgramResourceLocation( int program, int programInterface, CharSequence name);
     String glGetProgramResourceName(int program, int programInterface, int index, int bufSize);
     int glGetProgramResourceLocationIndex(int program,int programInterface,CharSequence name);
+
+    void glGenerateTextureMipmap(int texture);
 }

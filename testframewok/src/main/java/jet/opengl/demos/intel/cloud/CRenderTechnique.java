@@ -22,7 +22,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 
 final class CRenderTechnique extends GLSLProgram{
 
-    public static final int START_TEXTURE_UNIT = 23;
+    public static final int START_TEXTURE_UNIT = 0;
     public static final int TEX2D_LIGHT_SPACE_DEPTH = START_TEXTURE_UNIT+0;
     public static final int TEX2D_CLOUD_TRANSPARENCY = START_TEXTURE_UNIT+1;
     public static final int TEX2D_CLOUD_MIN_MAX_DEPTH = START_TEXTURE_UNIT+2;

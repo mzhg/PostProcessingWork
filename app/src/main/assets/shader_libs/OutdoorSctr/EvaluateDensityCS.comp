@@ -18,7 +18,7 @@ void main()
 
 	float fNoisePeriod0 = 9413.0;
 	float fNoisePeriod1 = 7417.0;
-	const float fRingWorldStep = GetCloudRingWorldStep(uiRing, g_GlobalCloudAttribs);
+	const float fRingWorldStep = GetCloudRingWorldStep(uiRing/*, g_GlobalCloudAttribs*/);
 	float fTime = g_fTimeScale*g_GlobalCloudAttribs.fTime;
 	float fNoise0 = textureGrad(g_tex3DNoise, f3VoxelCenter/fNoisePeriod0 + float3(-0.2, 0.7, -0.4) * fTime*0.01, float3(fRingWorldStep/fNoisePeriod0,0,0), float3(0,fRingWorldStep/fNoisePeriod0,0)).x;  // samLinearWrap
 	float fNoise1 = textureGrad(g_tex3DNoise, f3VoxelCenter/fNoisePeriod1 + float3(+0.3, -0.3, +0.8) * fTime*0.01, float3(fRingWorldStep/fNoisePeriod1,0,0), float3(0,fRingWorldStep/fNoisePeriod1,0)).x;

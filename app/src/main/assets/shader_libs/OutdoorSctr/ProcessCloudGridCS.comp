@@ -7,7 +7,7 @@ struct PS_Input
     nointerpolation uint uiParticleID : PARTICLE_ID;
 };*/
 
-layout(binding = 0) buffer RWStructuredBuffer{
+layout(std140, binding = 0) buffer RWStructuredBuffer{
   SCloudCellAttribs  g_CloudCellsRW[];
 };
 
@@ -44,7 +44,7 @@ void main()
 
     // Compute cell center world space coordinates
     uint uiRingDimension = g_GlobalCloudAttribs.uiRingDimension;
-    const float fRingWorldStep = GetCloudRingWorldStep(uiRing/*, g_GlobalCloudAttribs*/);
+    float fRingWorldStep = GetCloudRingWorldStep(uiRing/*, g_GlobalCloudAttribs*/);
 
     //
     //
@@ -159,6 +159,8 @@ void main()
         g_CloudCellsRW[uiCellId].fMorphFadeout = fMorphFadeout;
 
         g_CloudCellsRW[uiCellId].uiPackedLocation = uiPackedLocation;
+
+//        g_CloudCellsRW[uiCellId] = SCloudCellAttribs(f3CellCenter, f3Size.x, f3Normal, uiNumActiveLayers, f3Tangent, fDensity, f3Bitangent, fMorphFadeout, uiCellId);
 
         // Append the cell ID to the list
         uint uiLocation = atomicCounterIncrement(g_Atomic_Counter0);

@@ -7,7 +7,7 @@ import org.lwjgl.util.vector.Vector3f;
  */
 
 final class SCloudCellAttribs {
-    static final int SIZE = 17 * 4;
+    static final int SIZE = 20 * 4;
 
     final Vector3f f3Center = new Vector3f();
     float fSize;
@@ -22,4 +22,7 @@ final class SCloudCellAttribs {
     float fMorphFadeout;
 
     int uiPackedLocation;
+    int pad0;
+    int pad1;
+    int pad2;
 }

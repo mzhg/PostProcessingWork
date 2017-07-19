@@ -1,6 +1,14 @@
 package jet.opengl.demos.intel.cloud;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.StringTokenizer;
+
 import jet.opengl.postprocessing.util.DebugTools;
+
+import static jet.opengl.demos.intel.cloud.ProcessCloudGridTest.THREAD_GROUP_SIZE;
 
 /**
  * Created by mazhen'gui on 2017/7/17.
@@ -50,6 +58,41 @@ final class MemCompare {
         System.out.println();
     }
 
+    static int countof(String filename){
+        try(BufferedReader srcIn = new BufferedReader(new FileReader(FILE_PATH + filename))){
+            String line;
+            int count = 0;
+            while ((line = srcIn.readLine()) != null){
+                StringTokenizer tokenizer = new StringTokenizer(line, ",[] \n");
+                while (tokenizer.hasMoreElements()){
+                    int intValue = Integer.parseInt(tokenizer.nextToken());
+                    if(intValue > 0){
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+    }
+
+    static void testDispatchArgs(int index){
+        int gl_count = countof("ValidCellsUnorderedListGL.txt");
+        int dx_count = countof("ValidCellsUnorderedListDX.txt");
+
+        final int s = 2;
+        int gl_dispatch = (gl_count * s*s*s * 4 + THREAD_GROUP_SIZE-1) / THREAD_GROUP_SIZE;
+        int dx_dispatch = (dx_count * s*s*s * 4 + THREAD_GROUP_SIZE-1) / THREAD_GROUP_SIZE;
+
+        System.out.printf("DispatchArgs%d: GL = %d, DX = %d, gl_count = %d, dx_count = %d .\n\n", index, gl_dispatch, dx_dispatch, gl_count, dx_count);
+    }
+
     static void testProcessCloudGrid(){
 
         String[] tokens = {"PackedCellLocations", "CloudGrid", "ValidCellsUnorderedList", "VisibleCellsUnorderedList" };
@@ -64,14 +107,31 @@ final class MemCompare {
         }
     }
 
+    static void testEvaluateDensity(){
+
+        String[] tokens = {"CellDensity","LightAttenuatingMass", "CloudParticles", "VisibleParticlesUnorderedList"};
+        for(int i = 0; i < tokens.length; i ++){
+            System.out.println(String.format("test%s: ", tokens[i]));
+            String gl_file = String.format(FILE_PATH + "%sGL.txt", tokens[i]);
+            String dx_file = String.format(FILE_PATH + "%sDX.txt", tokens[i]);
+            String result_file = String.format(FILE_PATH + "%sResult.txt", tokens[i]);
+
+            DebugTools.fileCompare(gl_file, dx_file, result_file);
+            System.out.println();
+        }
+    }
+
     public static void main(String[] args) {
-//        testLiSpCloudTransparency();
-//        testLiSpCloudMinMaxDepth();
+        testLiSpCloudTransparency();
+        testLiSpCloudMinMaxDepth();
 
 //        testPrecomputeOpticalDepth();
 //        testMultipleSctrInParticleLUT();
 //        testSingleSctrInParticleLUT();
 
         testProcessCloudGrid();
+
+        testDispatchArgs(0);
+        testEvaluateDensity();
     }
 }

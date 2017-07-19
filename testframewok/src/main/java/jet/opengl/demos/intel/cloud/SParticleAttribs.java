@@ -7,10 +7,12 @@ import org.lwjgl.util.vector.Vector3f;
  */
 
 final class SParticleAttribs {
-    static final int SIZE = 24;
+    static final int SIZE = 32;
 
     final Vector3f f3Pos = new Vector3f();
     float fSize;
     float fRndAzimuthBias;
     float fDensity;
+    float pad0;
+    float pad1;
 }
