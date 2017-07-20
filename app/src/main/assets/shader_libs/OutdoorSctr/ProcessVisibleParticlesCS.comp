@@ -55,4 +55,5 @@ void main()
     g_ParticleLightingRW[ParticleID].f4SunLight = float4(f3AtmosphereExtinction * g_f4ExtraterrestrialSunColor.rgb, 0);
     g_ParticleLightingRW[ParticleID].f4AmbientLight = float4(f3AmbientSkyLight, 1);
     g_ParticleLightingRW[ParticleID].f2SunLightAttenuation = f2LightAttenuation;
+    g_ParticleLightingRW[ParticleID].f2Pad = float2(0);
 }

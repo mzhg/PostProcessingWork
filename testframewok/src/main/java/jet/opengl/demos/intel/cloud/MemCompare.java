@@ -109,7 +109,21 @@ final class MemCompare {
 
     static void testEvaluateDensity(){
 
-        String[] tokens = {"CellDensity","LightAttenuatingMass", "CloudParticles", "VisibleParticlesUnorderedList"};
+        String[] tokens = {"CellDensity","LightAttenuatingMass", "CloudParticles", "VisibleParticlesUnorderedList", "ParticlesLighting"};
+        for(int i = 0; i < tokens.length; i ++){
+            System.out.println(String.format("test%s: ", tokens[i]));
+            String gl_file = String.format(FILE_PATH + "%sGL.txt", tokens[i]);
+            String dx_file = String.format(FILE_PATH + "%sDX.txt", tokens[i]);
+            String result_file = String.format(FILE_PATH + "%sResult.txt", tokens[i]);
+
+            DebugTools.fileCompare(gl_file, dx_file, result_file);
+            System.out.println();
+        }
+    }
+
+    static void testSortParticles(){
+
+        String[] tokens = {"VisibleParticlesSortedList","VisibleParticlesMergedList", "SerializedVisibleParticles"};
         for(int i = 0; i < tokens.length; i ++){
             System.out.println(String.format("test%s: ", tokens[i]));
             String gl_file = String.format(FILE_PATH + "%sGL.txt", tokens[i]);
@@ -133,5 +147,6 @@ final class MemCompare {
 
         testDispatchArgs(0);
         testEvaluateDensity();
+        testSortParticles();
     }
 }

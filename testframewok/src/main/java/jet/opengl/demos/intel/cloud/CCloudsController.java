@@ -164,6 +164,9 @@ final class CCloudsController {
     private Texture2D m_ptex2DDownscaledScrCloudTransparencySRV, m_ptex2DDownscaledScrDistToCloudSRV;
     private Texture2D   m_ptex2DDownscaledScrCloudTransparencyRTV, m_ptex2DDownscaledScrDistToCloudRTV;
 
+    private Texture2D m_pPrecomputedNetDensitySRV;
+    private Texture2D m_pAmbientSkylightSRV;
+
     private int m_pbufParticleLayersSRV;
     private int m_pbufParticleLayersUAV;
     private int m_pbufClearParticleLayers;
@@ -322,7 +325,7 @@ final class CCloudsController {
 
             m_pbufDrawIndirectArgs = gl.glGenBuffer();
             gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, m_pbufDrawIndirectArgs);
-            gl.glBufferData(GLenum.GL_DRAW_INDIRECT_BUFFER, 16, GLenum.GL_DYNAMIC_COPY);
+            gl.glBufferData(GLenum.GL_DRAW_INDIRECT_BUFFER, CacheBuffer.wrap(0,1,0,0), GLenum.GL_DYNAMIC_COPY);
             gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, 0);
         }
 
@@ -818,7 +821,7 @@ final class CCloudsController {
 //        const float InitialMinMaxZ[4] = {+FLT_MAX, -FLT_MAX, 0, 0};
 //        pDeviceContext->ClearRenderTargetView(m_ptex2DScrSpaceDistToCloudRTV, InitialMinMaxZ);
 //
-//        RenderAttribs.bLightSpacePass = false;
+        RenderAttribs.bLightSpacePass = 0;
         if(m_CloudAttribs.uiDownscaleFactor > 1 )
         {
 //            D3D11_VIEWPORT NewViewPort = OrigViewPort;
@@ -1562,10 +1565,11 @@ final class CCloudsController {
 //            RenderCloudsTech.SetRS( m_prsSolidFillCullFront );
 //            RenderCloudsTech.SetBS( m_pbsRT0MulRT1MinRT2Over );
             RenderCloudsTech = m_RenderCloudsTech[bLightSpacePass ? 1 : 0] = new CRenderTechnique("RenderCloudsVS.vert", "RenderCloudsGS.gemo", "RenderCloudsPS.frag", macros);
-//
-            if(m_pRenderCloudsInputLayout == 0 )
-            {
-                // Create vertex input layout
+        }
+
+        if(m_pRenderCloudsInputLayout == 0 )
+        {
+            // Create vertex input layout
 //                const D3D11_INPUT_ELEMENT_DESC layout[] =
 //                    {
 //                            { "PARTICLE_ID",  0, DXGI_FORMAT_R32_UINT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
@@ -1577,14 +1581,13 @@ final class CCloudsController {
 //                        pVSByteCode->GetBufferPointer(),
 //                        pVSByteCode->GetBufferSize(),
 //                        &m_pRenderCloudsInputLayout ) );
-                m_pRenderCloudsInputLayout = gl.glGenVertexArray();
-                gl.glBindVertexArray(m_pRenderCloudsInputLayout);
-                gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_pbufSerializedVisibleParticles);
-                gl.glEnableVertexAttribArray(0);
-                gl.glVertexAttribIPointer(0, 1, GLenum.GL_UNSIGNED_INT, 0,0);
-                gl.glBindVertexArray(0);
-                gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
-            }
+            m_pRenderCloudsInputLayout = gl.glGenVertexArray();
+            gl.glBindVertexArray(m_pRenderCloudsInputLayout);
+            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_pbufSerializedVisibleParticles);
+            gl.glEnableVertexAttribArray(0);
+            gl.glVertexAttribIPointer(0, 1, GLenum.GL_UNSIGNED_INT, 0,0);
+            gl.glBindVertexArray(0);
+            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         }
 //
         SortVisibileParticles(RenderAttribs);
@@ -1945,30 +1948,14 @@ final class CCloudsController {
         CopyStructureCount(m_pbufVisibleParticlesCounter, m_pbufAtomicCounter, 0);
     }
 
-    private void GenerateParticles(SRenderAttribs RenderAttribs){
-        ProcessCloudGridPass(RenderAttribs);
-
-        EvaluateDensityPass(RenderAttribs);
-//
-        ComputeLightAttenuatingMass(RenderAttribs);
-
-        GenerateVisibleParticlesPass(RenderAttribs);
-
+    private void ProcessVisibleParticlesPass(SRenderAttribs RenderAttribs){
+        // Process all valid cells and generate visible particles
+        if(m_ProcessVisibleParticlesTech == null)
         {
-//            // Process all valid cells and generate visible particles
-            if(m_ProcessVisibleParticlesTech == null)
-            {
-//                CD3DShaderMacroHelper Macros;
-//                DefineMacros(Macros);
-//                Macros.AddShaderMacro("THREAD_GROUP_SIZE", sm_iCSThreadGroupSize);
-//                Macros.Finalize();
+            m_ProcessVisibleParticlesTech = new CRenderTechnique(null, "ProcessVisibleParticlesCS.comp", DefineMacros());
+        }
 //
-//                m_ProcessVisibleParticlesTech.SetDeviceAndContext(pDevice, pDeviceContext);
-//                m_ProcessVisibleParticlesTech.CreateComputeShaderFromFile(m_strEffectPath, "ProcessVisibleParticlesCS", Macros);
-                m_ProcessVisibleParticlesTech = new CRenderTechnique(null, "ProcessVisibleParticlesCS.comp", DefineMacros());
-            }
-//
-            PrepareDispatchArgsBuffer(RenderAttribs, m_pbufVisibleParticlesCounterSRV, 0);
+        PrepareDispatchArgsBuffer(RenderAttribs, m_pbufVisibleParticlesCounterSRV, 0);
 //            ID3D11UnorderedAccessView *pUAVs[] =
 //            {
 //                m_pbufParticlesLightingUAV
@@ -1988,49 +1975,60 @@ final class CCloudsController {
 //            };
 //            pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
 
-            // UnorderedAccessView
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufParticlesLightingUAV);
+        // UnorderedAccessView
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufParticlesLightingUAV);
 
-            // ShaderResourceViews
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesUnorderedListSRV);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, m_pbufCloudParticlesSRV);
+        // ShaderResourceViews
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesUnorderedListSRV);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, m_pbufCloudParticlesSRV);
 
-            gl.glBindImageTexture(0, m_pbufVisibleParticlesCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-            bindTexture(0, null, 0); //TODO g_tex2DOccludedNetDensityToAtmTop
-            bindTexture(7, m_ptex3DLightAttenuatingMassSRV, m_psamLinearClamp); //g_tex2DOccludedNetDensityToAtmTop
-            bindTexture(9, null, 0); //TODO g_tex2DAmbientSkylight
+        gl.glBindImageTexture(5, m_pbufVisibleParticlesCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+        bindTexture(0, null, 0); //TODO g_tex2DOccludedNetDensityToAtmTop
+        bindTexture(7, m_ptex3DLightAttenuatingMassSRV, m_psamLinearClamp);
+        bindTexture(9, null, 0); //TODO g_tex2DAmbientSkylight
 
-            m_ProcessVisibleParticlesTech.enable();
-            m_ProcessVisibleParticlesTech.setUniforms(m_CloudAttribs);
-            m_ProcessVisibleParticlesTech.setCameraPos(RenderAttribs.f3CameraPos);
-            m_ProcessVisibleParticlesTech.setDirOnLight(RenderAttribs.f4DirOnLight);
+        m_ProcessVisibleParticlesTech.enable();
+        m_ProcessVisibleParticlesTech.setUniforms(m_CloudAttribs);
+        m_ProcessVisibleParticlesTech.setCameraPos(RenderAttribs.f3CameraPos);
+        m_ProcessVisibleParticlesTech.setDirOnLight(RenderAttribs.f4DirOnLight);
 
 //            pDeviceContext->DispatchIndirect(m_pbufDispatchArgs, 0);
-            gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
-            gl.glDispatchComputeIndirect( 0);
-            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-            gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
-            if(!m_printOnce){
-                m_ProcessVisibleParticlesTech.printPrograminfo();
-                saveTextData("ParticlesLightingGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER,m_pbufParticlesLightingUAV, SCloudParticleLighting.class);
-            }
+        gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
+        gl.glDispatchComputeIndirect( 0);
+        gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
+        if(!m_printOnce){
+            m_ProcessVisibleParticlesTech.printPrograminfo();
+            saveTextData("ParticlesLightingGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER,m_pbufParticlesLightingUAV, SCloudParticleLighting.class);
+        }
 //            memset(pUAVs, 0, sizeof(pUAVs));
 //            pDeviceContext->CSSetUnorderedAccessViews(0, _countof(pUAVs), pUAVs, nullptr);
 //            memset(pSRVs, 0, sizeof(pSRVs));
 //            pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
 
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
-            gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-            bindTexture(0, null, 0); //g_tex2DOccludedNetDensityToAtmTop
-            bindTexture(7, null, 0); //g_tex2DOccludedNetDensityToAtmTop
-            bindTexture(9, null, 0); //g_tex2DAmbientSkylight
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
+        gl.glBindImageTexture(5, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+        bindTexture(0, null, 0); //g_tex2DOccludedNetDensityToAtmTop
+        bindTexture(7, null, 0); //g_tex2DOccludedNetDensityToAtmTop
+        bindTexture(9, null, 0); //g_tex2DAmbientSkylight
 
-            GLCheck.checkError();
-        }
+        GLCheck.checkError();
+    }
+
+    private void GenerateParticles(SRenderAttribs RenderAttribs){
+        ProcessCloudGridPass(RenderAttribs);
+
+        EvaluateDensityPass(RenderAttribs);
+//
+        ComputeLightAttenuatingMass(RenderAttribs);
+
+        GenerateVisibleParticlesPass(RenderAttribs);
+
+        ProcessVisibleParticlesPass(RenderAttribs);
     }
 
     private int g_DipatchSaveCount = 0;
@@ -2079,91 +2077,58 @@ final class CCloudsController {
         g_DipatchSaveCount ++;
     }
 
-    // Method sorts all visible particles and writes them into the buffer suitable for
-    // binding as vertex buffer
-    private void SortVisibileParticles(SRenderAttribs RenderAttribs){
-//        ID3D11DeviceContext *pDeviceContext = RenderAttribs.pDeviceContext;
-//        ID3D11Device *pDevice = RenderAttribs.pDevice;
-
+    private void BitonicSortingPass(SRenderAttribs RenderAttribs){
         if( m_SortSubsequenceBitonicTech == null )
         {
-//            CD3DShaderMacroHelper Macros;
-//            DefineMacros(Macros);
-//            Macros.AddShaderMacro("THREAD_GROUP_SIZE", sm_iCSThreadGroupSize);
-//            Macros.Finalize();
-//            m_SortSubsequenceBitonicTech.SetDeviceAndContext(pDevice, pDeviceContext);
-//            m_SortSubsequenceBitonicTech.CreateComputeShaderFromFile(L"fx\\Sort.fx", "SortSubsequenceBitonicCS", Macros);
             m_SortSubsequenceBitonicTech = new CRenderTechnique(null, "SortSubsequenceBitonicCS.comp", DefineMacros());
         }
 
-        if( m_WriteSortedPariclesToVBTech == null )
-        {
-//            CD3DShaderMacroHelper Macros;
-//            DefineMacros(Macros);
-//            Macros.AddShaderMacro("THREAD_GROUP_SIZE", sm_iCSThreadGroupSize);
-//            Macros.Finalize();
-//            m_WriteSortedPariclesToVBTech.SetDeviceAndContext(pDevice, pDeviceContext);
-//            m_WriteSortedPariclesToVBTech.CreateComputeShaderFromFile(L"fx\\Sort.fx", "WriteSortedPariclesToVBCS", Macros);
-            m_WriteSortedPariclesToVBTech = new CRenderTechnique(null, "WriteSortedPariclesToVBCS.comp", DefineMacros());
-        }
-
-        if( m_MergeSubsequencesTech == null )
-        {
-//            CD3DShaderMacroHelper Macros;
-//            DefineMacros(Macros);
-//            Macros.AddShaderMacro("THREAD_GROUP_SIZE", sm_iCSThreadGroupSize);
-//            Macros.Finalize();
-//            m_MergeSubsequencesTech.SetDeviceAndContext(pDevice, pDeviceContext);
-//            m_MergeSubsequencesTech.CreateComputeShaderFromFile(L"fx\\Sort.fx", "MergeSubsequencesCS", Macros);
-            m_MergeSubsequencesTech = new CRenderTechnique(null, "MergeSubsequencesCS.comp", DefineMacros());
-        }
-
-        PrepareDispatchArgsBuffer(RenderAttribs, m_pbufVisibleParticlesCounterSRV, 0);
-
         // Perform bitonic sorting of subsequences
-        {
-//            ID3D11ShaderResourceView *pSRVs[] = {m_pbufVisibleParticlesCounterSRV, m_pbufVisibleParticlesUnorderedListSRV};
+//        ID3D11ShaderResourceView *pSRVs[] = {m_pbufVisibleParticlesCounterSRV, m_pbufVisibleParticlesUnorderedListSRV};
 //            pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
 //            ID3D11UnorderedAccessView *pUAVs[] = {m_pbufVisibleParticlesSortedListUAV};
 //            pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
 
-            gl.glBindImageTexture(0, m_pbufVisibleParticlesCounterSRV, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesUnorderedListSRV);
+        gl.glBindImageTexture(0, m_pbufVisibleParticlesCounterSRV, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesUnorderedListSRV);
 
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufVisibleParticlesSortedListUAV);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufVisibleParticlesSortedListUAV);
 
-            m_SortSubsequenceBitonicTech.enable();
-            m_SortSubsequenceBitonicTech.setUniforms(m_CloudAttribs);
+        m_SortSubsequenceBitonicTech.enable();
+        m_SortSubsequenceBitonicTech.setUniforms(m_CloudAttribs);
 //            pDeviceContext->DispatchIndirect(m_pbufDispatchArgs, 0);
-            gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
-            gl.glDispatchComputeIndirect(0);
-            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-            if(!m_printOnce){
-                m_SortSubsequenceBitonicTech.printPrograminfo();
-                saveTextData("VisibleParticlesSortedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesSortedListUAV, SParticleIdAndDist.class);
-            }
-            gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
+        gl.glDispatchComputeIndirect(0);
+        gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        if(!m_printOnce){
+            m_SortSubsequenceBitonicTech.printPrograminfo();
+            saveTextData("VisibleParticlesSortedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesSortedListUAV, SParticleIdAndDist.class);
+        }
+        gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
 
-            gl.glBindImageTexture(0, 0, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
+        gl.glBindImageTexture(0, 0, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
 
 //            pUAVs[0] = nullptr;
 //            pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
 //            pSRVs[0] = nullptr;
 //            pSRVs[1] = nullptr;
 //            pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
+    }
 
+    private void MergeSubsequencesPass(SRenderAttribs RenderAttribs){
+        if( m_MergeSubsequencesTech == null )
+        {
+            m_MergeSubsequencesTech = new CRenderTechnique(null, "MergeSubsequencesCS.comp", DefineMacros());
         }
 
-        // Merge sorted subsequences
+        // We do not know how many passes we need to perform, because only the GPU knows the particle counter
+        // We thus perform enough passes to sort maximum possible particles. The last passes do nothing and
+        // have very little performance impact
+        for(int iSubseqLen = sm_iCSThreadGroupSize; iSubseqLen < m_CloudAttribs.uiMaxParticles; iSubseqLen*=2)
         {
-            // We do not know how many passes we need to perform, because only the GPU knows the particle counter
-            // We thus perform enough passes to sort maximum possible particles. The last passes do nothing and
-            // have very little performance impact
-            for(int iSubseqLen = sm_iCSThreadGroupSize; iSubseqLen < m_CloudAttribs.uiMaxParticles; iSubseqLen*=2)
-            {
-                m_CloudAttribs.uiParameter = iSubseqLen;
+            m_CloudAttribs.uiParameter = iSubseqLen;
 //                UpdateConstantBuffer(pDeviceContext, m_pcbGlobalCloudAttribs, &m_CloudAttribs, sizeof(m_CloudAttribs));
 //
 //                ID3D11Buffer *pCBs[] = {m_pcbGlobalCloudAttribs};
@@ -2173,22 +2138,22 @@ final class CCloudsController {
 //                pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
 //                ID3D11UnorderedAccessView *pUAVs[] = {m_pbufVisibleParticlesMergedListUAV};
 //                pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
-                gl.glBindImageTexture(0, m_pbufVisibleParticlesCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesSortedListSRV);
-                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufVisibleParticlesMergedListUAV);
-                m_MergeSubsequencesTech.enable();
-                m_MergeSubsequencesTech.setUniforms(m_CloudAttribs);
+            gl.glBindImageTexture(0, m_pbufVisibleParticlesCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesSortedListSRV);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufVisibleParticlesMergedListUAV);
+            m_MergeSubsequencesTech.enable();
+            m_MergeSubsequencesTech.setUniforms(m_CloudAttribs);
 //                pDeviceContext->DispatchIndirect(m_pbufDispatchArgs, 0);
-                gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
-                gl.glDispatchComputeIndirect(0);
-                gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-                if(!m_printOnce){
-                    m_MergeSubsequencesTech.printPrograminfo();
-                }
-                gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
-                gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
-                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
+            gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
+            gl.glDispatchComputeIndirect(0);
+            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+            if(!m_printOnce){
+                m_MergeSubsequencesTech.printPrograminfo();
+            }
+            gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
+            gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
 //                pUAVs[0] = nullptr;
 //                pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
 //                pSRVs[0] = nullptr;
@@ -2197,52 +2162,71 @@ final class CCloudsController {
 //                std::swap(m_pbufVisibleParticlesMergedListUAV, m_pbufVisibleParticlesSortedListUAV);
 //                std::swap(m_pbufVisibleParticlesMergedListSRV, m_pbufVisibleParticlesSortedListSRV);
 
-                int temp = m_pbufVisibleParticlesMergedListUAV;
-                m_pbufVisibleParticlesMergedListUAV = m_pbufVisibleParticlesSortedListUAV;
-                m_pbufVisibleParticlesSortedListUAV = temp;
+            int temp = m_pbufVisibleParticlesMergedListUAV;
+            m_pbufVisibleParticlesMergedListUAV = m_pbufVisibleParticlesSortedListUAV;
+            m_pbufVisibleParticlesSortedListUAV = temp;
 
-                temp = m_pbufVisibleParticlesMergedListSRV;
-                m_pbufVisibleParticlesMergedListSRV = m_pbufVisibleParticlesSortedListSRV;
-                m_pbufVisibleParticlesSortedListSRV = temp;
-            }
-
-            if(!m_printOnce){
-                saveTextData("VisibleParticlesMergedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesMergedListUAV, SParticleIdAndDist.class);
-            }
+            temp = m_pbufVisibleParticlesMergedListSRV;
+            m_pbufVisibleParticlesMergedListSRV = m_pbufVisibleParticlesSortedListSRV;
+            m_pbufVisibleParticlesSortedListSRV = temp;
         }
 
-        {
-            // Write sorted particle indices into the buffer suitable for binding as vertex buffer
-//            ID3D11ShaderResourceView *pSRVs[] = {m_pbufVisibleParticlesCounterSRV, m_pbufVisibleParticlesSortedListSRV};
-//            pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
-//            ID3D11UnorderedAccessView *pUAVs[] = {m_pbufSerializedVisibleParticlesUAV};
-//            pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
-            gl.glBindImageTexture(0, m_pbufVisibleParticlesCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesSortedListSRV);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufSerializedVisibleParticlesUAV);
+        if(!m_printOnce){
+            saveTextData("VisibleParticlesMergedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesMergedListUAV, SParticleIdAndDist.class);
+        }
+    }
 
-            m_WriteSortedPariclesToVBTech.enable();
-            m_WriteSortedPariclesToVBTech.setUniforms(m_CloudAttribs);
+    private void WriteSortedParticles(SRenderAttribs RenderAttribs){
+        if( m_WriteSortedPariclesToVBTech == null )
+        {
+            m_WriteSortedPariclesToVBTech = new CRenderTechnique(null, "WriteSortedPariclesToVBCS.comp", DefineMacros());
+        }
+
+        // Write sorted particle indices into the buffer suitable for binding as vertex buffer
+        //            ID3D11ShaderResourceView *pSRVs[] = {m_pbufVisibleParticlesCounterSRV, m_pbufVisibleParticlesSortedListSRV};
+        //            pDeviceContext->CSSetShaderResources(0, _countof(pSRVs), pSRVs);
+        //            ID3D11UnorderedAccessView *pUAVs[] = {m_pbufSerializedVisibleParticlesUAV};
+        //            pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
+        gl.glBindImageTexture(0, m_pbufVisibleParticlesCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleParticlesSortedListSRV);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufSerializedVisibleParticlesUAV);
+
+        m_WriteSortedPariclesToVBTech.enable();
+        m_WriteSortedPariclesToVBTech.setUniforms(m_CloudAttribs);
 //            pDeviceContext->DispatchIndirect(m_pbufDispatchArgs, 0);
-            gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
-            gl.glDispatchComputeIndirect(0);
-            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-            if(!m_printOnce){
-                m_WriteSortedPariclesToVBTech.printPrograminfo();
-                saveTextData("SerializedVisibleParticlesGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufSerializedVisibleParticlesUAV, GLenum.GL_R32UI);
-            }
-            gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
-            gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
-            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
+        gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, m_pbufDispatchArgs);
+        gl.glDispatchComputeIndirect(0);
+        gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        if(!m_printOnce){
+            m_WriteSortedPariclesToVBTech.printPrograminfo();
+            saveTextData("SerializedVisibleParticlesGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufSerializedVisibleParticlesUAV, GLenum.GL_R32UI);
+        }
+        gl.glBindBuffer(GLenum.GL_DISPATCH_INDIRECT_BUFFER, 0);
+        gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
 //            pUAVs[0] = nullptr;
 //            pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
 //            pSRVs[0] = nullptr;
 //            pDeviceContext->CSSetShaderResources(0, 1, pSRVs);
-        }
+    }
+
+    // Method sorts all visible particles and writes them into the buffer suitable for
+    // binding as vertex buffer
+    private void SortVisibileParticles(SRenderAttribs RenderAttribs){
+//        ID3D11DeviceContext *pDeviceContext = RenderAttribs.pDeviceContext;
+//        ID3D11Device *pDevice = RenderAttribs.pDevice;
+
+        PrepareDispatchArgsBuffer(RenderAttribs, m_pbufVisibleParticlesCounterSRV, 0);
+
+        BitonicSortingPass(RenderAttribs);
+
+        MergeSubsequencesPass(RenderAttribs);
+
+        WriteSortedParticles(RenderAttribs);
 
 //        pDeviceContext->CopyStructureCount(m_pbufDrawIndirectArgs, 0, m_pbufVisibleParticlesUnorderedListUAV);
-        CopyStructureCount(m_pbufDrawIndirectArgs, m_pbufVisibleParticlesUnorderedListUAV, 4);
+        CopyStructureCount(m_pbufDrawIndirectArgs, m_pbufAtomicCounter, 0);
 
     }
 
@@ -2473,7 +2457,7 @@ final class CCloudsController {
 //            V(CreateBufferAndViews(pDevice, VisibleParticlesBuffDesc, nullptr, nullptr, &m_pbufVisibleParticlesSortedListSRV, &m_pbufVisibleParticlesSortedListUAV));
 //
             m_pbufVisibleParticlesSortedListUAV = m_pbufVisibleParticlesSortedListSRV = gl.glGenBuffer();
-            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesUnorderedListSRV);
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesSortedListSRV);
             gl.glBufferData(GLenum.GL_SHADER_STORAGE_BUFFER, m_CloudAttribs.uiMaxParticles * 8, GLenum.GL_DYNAMIC_COPY);
             gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -2481,7 +2465,7 @@ final class CCloudsController {
 //            m_pbufVisibleParticlesMergedListUAV.Release();
 //            V(CreateBufferAndViews(pDevice, VisibleParticlesBuffDesc, nullptr, nullptr, &m_pbufVisibleParticlesMergedListSRV, &m_pbufVisibleParticlesMergedListUAV));
             m_pbufVisibleParticlesMergedListUAV = m_pbufVisibleParticlesMergedListSRV = gl.glGenBuffer();
-            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesUnorderedListSRV);
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesMergedListSRV);
             gl.glBufferData(GLenum.GL_SHADER_STORAGE_BUFFER, m_CloudAttribs.uiMaxParticles * 8, GLenum.GL_DYNAMIC_COPY);
             gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, 0);
         }

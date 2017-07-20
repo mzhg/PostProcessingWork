@@ -1,5 +1,8 @@
 #include "CloudsCommon.glsl"
 
+layout(binding = 0) uniform sampler2D g_tex2DDepthBuffer;
+layout(binding = 1) uniform sampler2D g_tex2DOccludedNetDensityToAtmTop;
+
 in float4 m_f4UVAndScreenPos;
 layout(location = 0) out float  Out_fTransparency;
 layout(location = 1) out float2 Out_f2MinMaxZRange;
@@ -130,9 +133,9 @@ void main()
 #else
     f3RayStart = g_f4CameraPos.xyz;
     #if DEBUG_STATIC_SCENE
-    fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0);
+    fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0).x;
     #else
-    fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0);
+    fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0).x;
     fDepth = 2.0 * fDepth - 1.0;
     #endif
 #endif
@@ -285,6 +288,6 @@ void main()
 #   endif
 
     Out_f4Color.a = Out_fTransparency;
-    Out_f2MinMaxZRange.xy = fDistToCloudLayer;
+    Out_f2MinMaxZRange.xy = float2(fDistToCloudLayer);
 #endif
 }

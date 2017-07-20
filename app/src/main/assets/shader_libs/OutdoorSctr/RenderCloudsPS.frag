@@ -2,6 +2,12 @@
 
 layout(binding = 0) uniform sampler2D g_tex2DDepthBuffer;
 
+//StructuredBuffer<SCloudParticleLighting> g_bufParticleLighting : register( t7 );
+layout(binding = 0) buffer StructuredBuffer_SCloudParticleLighting
+{
+SCloudParticleLighting g_bufParticleLighting[];
+};
+
 // This helper function computes intersection of the view ray with the particle ellipsoid
 void IntersectRayWithParticle(const in SParticleAttribs ParticleAttrs,
                               const in SCloudCellAttribs CellAttrs,
@@ -271,19 +277,19 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
 
 	float4 f4MultipleScatteringLUTCoords = WorldParamsToParticleScatteringLUT(f3EntryPointUSSpace, f3ViewRayUSSpace, f3LightDirUSSpace, true);
     float fMultipleScattering =
-		textureLod(g_tex3DMultipleScatteringInParticleLUT, f4MultipleScatteringLUTCoords.xyz, 0);  // samLinearWrap
+		textureLod(g_tex3DMultipleScatteringInParticleLUT, f4MultipleScatteringLUTCoords.xyz, 0).x;  // samLinearWrap
 	float3 f3MultipleScattering = (1-fTransparency) * fMultipleScattering * f2SunLightAttenuation.y * ParticleLighting.f4SunLight.rgb;
 
 	// Compute ambient light
-	float3 f3EarthCentre = float3(0, -g_MediaParams.fEarthRadius, 0);
+	float3 f3EarthCentre = float3(0, -g_fEarthRadius, 0);
 	float fEnttryPointAltitude = length(f3EntryPointWS - f3EarthCentre);
-	float fCloudBottomBoundary = g_MediaParams.fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude - g_GlobalCloudAttribs.fCloudThickness/2.f;
+	float fCloudBottomBoundary = g_fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude - g_GlobalCloudAttribs.fCloudThickness/2.f;
 	float fAmbientStrength =  (fEnttryPointAltitude - fCloudBottomBoundary) /  g_GlobalCloudAttribs.fCloudThickness;//(1-fNoise)*0.5;//0.3;
 	fAmbientStrength = clamp(fAmbientStrength, 0.3, 1.0);
 	float3 f3Ambient = (1-fTransparency) * fAmbientStrength * ParticleLighting.f4AmbientLight.rgb;
 
 
-	f4Color.rgb = 0;
+	f4Color.rgb = float3(0);
 	const float fSingleScatteringScale = 0.2;
 	f4Color.rgb += f3SingleScattering * fSingleScatteringScale;
 	f4Color.rgb += f3MultipleScattering * PI;
@@ -326,10 +332,16 @@ float GetConservativeScreenDepth(in float2 f2UV)
             fDepth = max(fDepth,f4Depths.w);
         }
 #endif
+
+#if DEBUG_STATIC_SCENE
+    return fDepth;
+#else
     return 2.0 * fDepth - 1.0;
+#endif
 }
 
 float2 UVToProj(float2 uv) { return 2.0 * uv - 1.0;}
+float2 ProjToUV(float2 proj) { return 0.5 * proj + 0.5;}
 
 in flat uint ps_uiParticleID;
 layout(location = 0) out float fTransparency;

@@ -482,6 +482,7 @@ struct SCloudParticleLighting
     float4 f4SunLight;
 	float2 f2SunLightAttenuation; // x == Direct Sun Light Attenuation
 								  // y == Indirect Sun Light Attenuation
+	float2 f2Pad;
     float4 f4AmbientLight;
 };
 
