@@ -1584,4 +1584,7 @@ public interface GLFuncProvider {
     int glGetProgramResourceLocationIndex(int program,int programInterface,CharSequence name);
 
     void glGenerateTextureMipmap(int texture);
+    void glQueryCounter(int id, int target);
+
+    long glGetQueryObjectui64ui(int id, int pname);
 }

@@ -1,6 +1,9 @@
 package jet.opengl.demos.nvidia.waves;
 
-import static com.sun.org.apache.xpath.internal.objects.XBoolean.S_FALSE;
+import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector4f;
+
+import jet.opengl.postprocessing.texture.Texture2D;
 
 /**
  * Created by mazhen'gui on 2017/7/21.
@@ -8,30 +11,27 @@ import static com.sun.org.apache.xpath.internal.objects.XBoolean.S_FALSE;
 
 public interface NVWaveWorks_FFT_Simulation {
 
+    static final int GFSDK_WaveWorks_InvalidKickID = -1;
+
     boolean initD3D11(/*ID3D11Device* pD3DDevice*/);
     default boolean initGnm() { return false; };
     default boolean initGL2(/*void* pGLContext*/) {return false; };
     boolean initNoGraphics();
 
-    boolean reinit(const GFSDK_WaveWorks_Detailed_Simulation_Params::Cascade& params);
+    HRESULT reinit(GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params);
 
-    virtual HRESULT addDisplacements(	const gfsdk_float2* inSamplePoints,
-                                         gfsdk_float4* outDisplacements,
-                                         UINT numSamples
-    ) = 0;
+    HRESULT addDisplacements(Vector2f[] inSamplePoints,
+                             Vector4f[] outDisplacements, int numSamples
+    );
 
-    virtual HRESULT addArchivedDisplacements(	float coord,
-                                                 const gfsdk_float2* inSamplePoints,
-                                                 gfsdk_float4* outDisplacements,
-                                                 UINT numSamples
-    ) = 0;
+    HRESULT addArchivedDisplacements(	float coord,Vector2f[] inSamplePoints,
+                                      Vector4f[] outDisplacements, int numSamples);
 
-    virtual HRESULT getTimings(NVWaveWorks_FFT_Simulation_Timings&) const = 0;
+    HRESULT getTimings(NVWaveWorks_FFT_Simulation_Timings time);
 
-    virtual gfsdk_U64 getDisplacementMapVersion() const = 0;	// Returns the kickID of the last time the displacement map was updated
+    long getDisplacementMapVersion();	// Returns the kickID of the last time the displacement map was updated
 
-    // NB: None of these AddRef's the underlying D3D resource
-    virtual ID3D11ShaderResourceView** GetDisplacementMapD3D11() = 0;
-    virtual sce::Gnm::Texture* GetDisplacementMapGnm() { return NULL; }
-    virtual GLuint					   GetDisplacementMapGL2() = 0;
+    Texture2D GetDisplacementMapD3D11();
+//    virtual sce::Gnm::Texture* GetDisplacementMapGnm() { return NULL; }
+    int					   GetDisplacementMapGL2();
 }

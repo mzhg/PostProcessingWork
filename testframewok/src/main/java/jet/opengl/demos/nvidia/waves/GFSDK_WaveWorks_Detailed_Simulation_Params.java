@@ -50,6 +50,29 @@ final class GFSDK_WaveWorks_Detailed_Simulation_Params {
 
         // whether to allow CUDA timers
         boolean enable_CUDA_timers;
+
+        void set(Cascade o){
+            fft_resolution = o.fft_resolution;
+            fft_period = o.fft_period;
+            time_scale = o.time_scale;
+            wave_amplitude = o.wave_amplitude;
+            wind_dir.set(wind_dir);
+            wind_speed = o.wind_speed;
+            wind_dependency = o.wind_dependency;
+            choppy_scale = o.choppy_scale;
+            small_wave_fraction = o.small_wave_fraction;
+            readback_displacements = o.readback_displacements;
+
+            num_readback_FIFO_entries = o.num_readback_FIFO_entries;
+            window_in = o.window_in;
+            window_out = o.window_out;
+
+            foam_generation_threshold = o.foam_generation_threshold;
+            foam_generation_amount = o.foam_generation_amount;
+            foam_dissipation_speed = o.foam_dissipation_speed;
+            foam_falloff_speed = o.foam_falloff_speed;
+            enable_CUDA_timers = o.enable_CUDA_timers;
+        }
     }
 
     // A maximum of 4 cascades is supported - the first cascade (cascades[0]) is taken
@@ -66,9 +89,9 @@ final class GFSDK_WaveWorks_Detailed_Simulation_Params {
     // # of GPUS (needed for foam simulation)
     int num_GPUs;
 
-//    nv_water_simulation_api simulation_api;
+    int simulation_api;
 
-//    GFSDK_WaveWorks_Simulation_CPU_Threading_Model CPU_simulation_threading_model;
+    GFSDK_WaveWorks_Simulation_CPU_Threading_Model CPU_simulation_threading_model;
 
     boolean use_texture_arrays;
 
