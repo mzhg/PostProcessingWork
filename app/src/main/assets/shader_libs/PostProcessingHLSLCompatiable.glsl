@@ -53,6 +53,7 @@
 #ifndef GroupMemoryBarrierWithGroupSync
 #define GroupMemoryBarrierWithGroupSync barrier
 #endif
+#define groupshared shared
 
 vec4 mul(in vec4 v, in mat4 m )
 {

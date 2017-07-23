@@ -1,10 +1,9 @@
 package jet.opengl.demos.nvidia.waves;
 
-import com.sun.corba.se.impl.interceptors.SlotTable;
-
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
@@ -12,13 +11,16 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.shader.ShaderLoader;
+import jet.opengl.postprocessing.shader.ShaderSourceItem;
+import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 
-import static java.lang.Math.sqrt;
 import static jet.opengl.demos.nvidia.waves.HRESULT.E_FAIL;
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_FALSE;
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_OK;
@@ -26,7 +28,6 @@ import static jet.opengl.demos.nvidia.waves.Simulation_Util.gauss_map_resolution
 import static jet.opengl.demos.nvidia.waves.Simulation_Util.gauss_map_size;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_d3d11;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_undefined;
-import static sun.audio.AudioDevice.device;
 
 /**
  * Created by mazhen'gui on 2017/7/22.
@@ -115,7 +116,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             case nv_water_d3d_api_d3d11:
             {
                 // The slot after the active slot is always the first in-flight slot
-                for (int slot = m_active_timer_slot; m_end_inflight_timer_slots != (++slot %= NumTimerSlots);)
+                for (int slot = m_active_timer_slot; m_end_inflight_timer_slots != (slot %= NumTimerSlots);slot++)
                 {
 //                    while(_11.m_context->GetData(m_d3d._11.m_frequency_queries[slot], nullptr, 0, 0))  TODO
                     ;
@@ -312,7 +313,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         switch(m_d3dAPI)
         {
             case nv_water_d3d_api_d3d11:
-                add_displacements_float16_d3d11(m_d3d._11.m_active_readback_buffer, inSamplePoints, outDisplacements, numSamples, 1.f);
+                add_displacements_float16_d3d11(_11.m_active_readback_buffer, inSamplePoints, outDisplacements, numSamples, 1.f);
                 break;
         }
 
@@ -553,6 +554,9 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                V_RETURN(device->CreateComputeShader(g_ComputeH0, sizeof(g_ComputeH0), NULL, &m_d3d._11.m_update_h0_shader));  TODO
 //                V_RETURN(device->CreateComputeShader(g_ComputeRows, sizeof(g_ComputeRows), NULL, &m_d3d._11.m_row_shader));TODO
 //                V_RETURN(device->CreateComputeShader(g_ComputeColumns, sizeof(g_ComputeColumns), NULL, &m_d3d._11.m_column_shader));TODO
+                _11.m_update_h0_shader=create("ComputeH0.comp");
+                _11.m_row_shader=create("ComputerRows.comp");
+                _11.m_column_shader=create("ComputeColumns.comp");
 
             }
             break;
@@ -565,6 +569,19 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         m_DisplacementMapVersion = GFSDK_WaveWorks_InvalidKickID;
 
         return S_OK;
+    }
+
+    // Create compute shader from the file
+    private static final GLSLProgram create(String filename){
+        try {
+            CharSequence computeSrc = ShaderLoader.loadShaderFile("shader_libs/" + filename, false);
+            ShaderSourceItem cs_item = new ShaderSourceItem(computeSrc, ShaderType.COMPUTE);
+            return GLSLProgram.createFromShaderItems(cs_item);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     void releaseAllResources(){
@@ -627,7 +644,22 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         m_ReadbackInitialised = false;
     }
 
-    void releaseAll();
+    void releaseAll(){
+        releaseAllResources();
+
+        switch(m_d3dAPI)
+        {
+            case nv_water_d3d_api_d3d11:
+            {
+//                SAFE_RELEASE(m_d3d._11.m_device);
+//                SAFE_RELEASE(m_d3d._11.m_context);
+            }
+            break;
+        }
+
+        m_d3dAPI = nv_water_d3d_api_undefined;
+    }
+
     HRESULT initGaussAndOmega(){
 
         int omega_width = m_resolution + 4;
