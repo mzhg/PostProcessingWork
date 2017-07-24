@@ -98,4 +98,9 @@ final class GFSDK_WaveWorks_Detailed_Simulation_Params {
     boolean enable_gfx_timers;
 
     boolean enable_CPU_timers;
+
+    GFSDK_WaveWorks_Detailed_Simulation_Params(){
+        for(int i = 0; i < cascades.length;i++)
+            cascades[i] = new Cascade();
+    }
 }

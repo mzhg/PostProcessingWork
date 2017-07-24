@@ -89,4 +89,47 @@ final class Simulation_Util {
 
         for_each_wavevector(params, f);
     }
+
+    // Upper-bound estimate of integral of Phillips Spectrum power over disc-shaped 2D wave vector space of radius k centred on K = {0,0}
+// There is no wind velocity parameter, since the integral is rotationally invariant
+//
+    private static float UpperBoundPhillipsIntegral(float k, float v, float a, float dir_depend, float small_wave_fraction)
+    {
+        if(k <= 0.f) return 0.f;
+
+        // largest possible wave from constant wind of velocity v
+        float l = v * v / GRAV_ACCEL;
+
+        // integral has analytic form, yay!
+        double phillips_integ = 0.5f * Math.PI * a * l * l * Math.exp(-1.f/(k*k*l*l));
+
+        // dir_depend affects half the domain
+        phillips_integ *= (1.0f-0.5f*dir_depend);
+
+        // we may safely ignore 'small_wave_fraction' for an upper-bound estimate
+        return (float) phillips_integ;
+    }
+
+    static float get_spectrum_rms_sqr(GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params)
+    {
+        float a = params.wave_amplitude * params.wave_amplitude;
+        float v = params.wind_speed;
+        float dir_depend = params.wind_dependency;
+        float fft_period = params.fft_period;
+
+        float phil_norm = (float) (Math.exp(1)/fft_period);	// This normalization ensures that the simulation is invariant w.r.t. units and/or fft_period
+        phil_norm *= phil_norm;					// Use the square as we are accumulating RMS
+
+        // We can compute the integral of Phillips over a disc in wave vector space analytically, and by subtracting one
+        // disc from the other we can compute the integral for the ring defined by {params.window_in,params.window_out}
+        final float lower_k = params.window_in * 2.f * Numeric.PI / fft_period;
+        final float upper_k = params.window_out * 2.f * Numeric.PI / fft_period;
+        float rms_est = UpperBoundPhillipsIntegral(upper_k, v, a, dir_depend, params.small_wave_fraction) - UpperBoundPhillipsIntegral(lower_k, v, a, dir_depend, params.small_wave_fraction);
+
+        // Normalize to wave number space
+        rms_est *= 0.25f*(fft_period*fft_period)/(Numeric.PI * Numeric.PI);
+        rms_est *= phil_norm;
+
+        return rms_est;
+    }
 }

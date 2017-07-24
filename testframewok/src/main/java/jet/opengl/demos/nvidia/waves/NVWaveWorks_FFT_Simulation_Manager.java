@@ -1,10 +1,12 @@
 package jet.opengl.demos.nvidia.waves;
 
+import jet.opengl.postprocessing.common.Disposeable;
+
 /**
  * Created by mazhen'gui on 2017/7/22.
  */
 
-public interface NVWaveWorks_FFT_Simulation_Manager {
+public interface NVWaveWorks_FFT_Simulation_Manager extends Disposeable{
 
     HRESULT initD3D11();
     HRESULT initGL2();

@@ -225,7 +225,7 @@ final class NVWaveWorks_GFX_Timer_Impl {
     }
 
     // Pair-wise get/wait
-    long getTimerQueries(/*Graphics_Context* pGC,*/ int ix1, int ix2/*, UINT64& tdiff*/){
+    HRESULT getTimerQueries(/*Graphics_Context* pGC,*/ int ix1, int ix2, long[] tdiff){
 //        UINT64 stamp1;
 //        HRESULT hr1 = getTimerQuery(pGC, ix1, stamp1);
 //        if(S_FALSE == hr1)
@@ -249,7 +249,7 @@ final class NVWaveWorks_GFX_Timer_Impl {
 //            return hr1;
 //        }
 
-        return 0;
+        return HRESULT.E_FAIL;
     }
 
     long waitTimerQueries(/*Graphics_Context* pGC,*/ int ix1, int ix2/*, UINT64& tdiff*/){
@@ -283,9 +283,9 @@ final class NVWaveWorks_GFX_Timer_Impl {
         return 9;
     }
     void releaseDisjointQuery(int ix){}
-    HRESULT waitDisjointQuery(/*Graphics_Context* pGC,*/ int ix/*, UINT64& f*/) { return null;}
-    HRESULT getDisjointQuery(/*Graphics_Context* pGC,*/ int ix/*, UINT64& f*/){
-        return null;
+    long waitDisjointQuery(/*Graphics_Context* pGC,*/ int ix/*, UINT64& f*/) { return 0;}
+    HRESULT getDisjointQuery(/*Graphics_Context* pGC,*/ int ix, long[] f){
+        return HRESULT.E_FAIL;
     }
 
     private void allocateAllResources(){
@@ -330,7 +330,7 @@ final class NVWaveWorks_GFX_Timer_Impl {
         m_pTimersPool = null;
     }
 
-    private void releaseAll(){
+    void releaseAll(){
         releaseAllResources();
         m_d3dAPI = nv_water_d3d_api_undefined;
     }

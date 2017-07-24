@@ -20,6 +20,10 @@ public class VertexArrayObject implements Disposeable {
     private BufferGL m_indices;
 
     private int m_vao;
+    private final boolean m_bUseVAO;
+
+    public VertexArrayObject()               {this(true);}
+    public VertexArrayObject(boolean useVAO) { m_bUseVAO = useVAO;}
 
     public static boolean isSupportVAO(){
         if(g_VAOState == UNKOWN){
@@ -43,7 +47,7 @@ public class VertexArrayObject implements Disposeable {
         m_bindings = bindings;
         m_indices = indices;
 
-        if((bindings == null && indices == null) || !isSupportVAO()){
+        if(!m_bUseVAO || (bindings == null && indices == null) || !isSupportVAO()){
             return;
         }
 
@@ -77,14 +81,14 @@ public class VertexArrayObject implements Disposeable {
     }
 
     public void bind() {
-        if(g_VAOState == ENABLE){
+        if(g_VAOState == ENABLE && m_bUseVAO){
             GLFuncProviderFactory.getGLFuncProvider().glBindVertexArray(m_vao);
         }else{
             _bind();
         }
     }
     public void unbind() {
-        if(g_VAOState ==ENABLE){
+        if(g_VAOState ==ENABLE && m_bUseVAO){
             GLFuncProviderFactory.getGLFuncProvider().glBindVertexArray(0);
         }else{
             _unbind();
@@ -93,7 +97,7 @@ public class VertexArrayObject implements Disposeable {
 
     @Override
     public void dispose() {
-        if(g_VAOState ==ENABLE) {
+        if(g_VAOState ==ENABLE && m_bUseVAO) {
             GLFuncProviderFactory.getGLFuncProvider().glDeleteVertexArray(m_vao);
             m_vao = 0;
         }

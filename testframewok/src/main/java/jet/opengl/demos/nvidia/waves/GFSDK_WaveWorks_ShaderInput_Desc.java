@@ -36,4 +36,19 @@ public class GFSDK_WaveWorks_ShaderInput_Desc {
     public int Type;
     public String Name;
     public int RegisterOffset;	// This will be the offset specified to the shader macro i.e. 'Regoff'
+
+    public GFSDK_WaveWorks_ShaderInput_Desc(){}
+
+    public GFSDK_WaveWorks_ShaderInput_Desc(int type, String name, int registerOffset) {
+        Type = type;
+        Name = name;
+        RegisterOffset = registerOffset;
+    }
+
+    public void set(GFSDK_WaveWorks_ShaderInput_Desc other){
+        Type = other.Type;
+        Name = other.Name;
+        RegisterOffset = other.RegisterOffset;
+        Type = other.Type;
+    }
 }
