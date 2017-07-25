@@ -155,7 +155,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         return HRESULT.E_FAIL;
     }
 
-    public HRESULT initGL2(GFSDK_WaveWorks_Detailed_Simulation_Params params, Object pGLContext){
+    public HRESULT initGL2(GFSDK_WaveWorks_Detailed_Simulation_Params params/*, Object pGLContext*/){
         HRESULT hr;
         if(nv_water_d3d_api_gl2 != m_d3dAPI)
         {

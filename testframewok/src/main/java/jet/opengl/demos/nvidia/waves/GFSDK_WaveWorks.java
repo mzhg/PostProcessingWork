@@ -1,5 +1,9 @@
 package jet.opengl.demos.nvidia.waves;
 
+import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector4f;
+
 import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -665,9 +669,9 @@ public final class GFSDK_WaveWorks {
 
         GFSDK_WaveWorks_Simulation pImpl = new GFSDK_WaveWorks_Simulation();
         GFSDK_WaveWorks_Detailed_Simulation_Params detailed_params=new GFSDK_WaveWorks_Detailed_Simulation_Params();
-        Init_Detailed_Water_Simulation_Params(settings, params, &detailed_params);
+        Init_Detailed_Water_Simulation_Params(settings, params, detailed_params);
         HRESULT hr = pImpl.initGL2(detailed_params/*, pGLContext*/);
-        if(hr != GFSDK_WaveWorks_Result.S_OK)
+        if(hr != HRESULT.S_OK)
         {
 //            delete pImpl;
 //            return ToAPIResult(hr);
@@ -678,40 +682,140 @@ public final class GFSDK_WaveWorks {
         return pImpl;
     }
     public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_Destroy(GFSDK_WaveWorks_Simulation hSim){
-        //TODO
+        hSim.dispose();
         return GFSDK_WaveWorks_Result.OK;
     }
 
-    // A simulation can be 'updated' with new settings and properties - this is universally preferable to recreating
-// a simulation from scratch, since WaveWorks will only do as much reinitialization work as is necessary to implement
-// the changes in the setup. For instance, simple changes of wind speed require no reallocations and no interruptions
-// to the simulation and rendering pipeline
-    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_UpdateProperties(GFSDK_WaveWorks_Simulation hSim,const GFSDK_WaveWorks_Simulation_Settings& settings, const GFSDK_WaveWorks_Simulation_Params& params);
+    private static GFSDK_WaveWorks_Result ToAPIResult(HRESULT hr) {
+        if(hr == HRESULT.S_OK) {
+            return GFSDK_WaveWorks_Result.OK;
+        }
+        else {
+            return GFSDK_WaveWorks_Result.FAIL;
+        }
+    }
+
+    /**
+     * A simulation can be 'updated' with new settings and properties - this is universally preferable to recreating
+     * a simulation from scratch, since WaveWorks will only do as much reinitialization work as is necessary to implement
+     * the changes in the setup. For instance, simple changes of wind speed require no reallocations and no interruptions
+     * to the simulation and rendering pipeline
+     * @param hSim
+     * @param settings
+     * @param params
+     * @return
+     */
+    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_UpdateProperties(GFSDK_WaveWorks_Simulation hSim, GFSDK_WaveWorks_Simulation_Settings settings, GFSDK_WaveWorks_Simulation_Params params){
+        // Don't assume the user checked GFSDK_WaveWorks_Simulation_DetailLevelIsSupported_XXXX()...
+        if(GFSDK_WaveWorks_Result.OK != CheckDetailLevelSupport(settings.detail_level,"GFSDK_WaveWorks_Simulation_UpdateProperties"))
+        {
+            return GFSDK_WaveWorks_Result.FAIL;
+        }
+
+        GFSDK_WaveWorks_Detailed_Simulation_Params detailed_params = new GFSDK_WaveWorks_Detailed_Simulation_Params();
+        GFSDK_WaveWorks_Simulation pImpl = hSim;
+        Init_Detailed_Water_Simulation_Params(settings, params, detailed_params);
+        return ToAPIResult(pImpl.reinit(detailed_params));
+    }
 
     // Sets the absolute simulation time for the next kick. WaveWorks guarantees that the same displacements will be
 // generated for the same settings and input times, even across different platforms (e.g. to enable network-
 // synchronized implementations)
-    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_SetTime(GFSDK_WaveWorks_Simulation hSim, gfsdk_F64 dAppTime);
+    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_SetTime(GFSDK_WaveWorks_Simulation hSim, double dAppTime){
+        hSim.setSimulationTime(dAppTime);
+        return GFSDK_WaveWorks_Result.OK;
+    }
 
-    // Retrieve information about the WaveWorks shader inputs for a given platform. This information can be used to
-// query compiled shaders via a reflection interface to obtain register or constant buffer indices for subsequent
-// calls to SetRenderState
-    GFSDK_WAVEWORKS_DECL(gfsdk_U32                 ) GFSDK_WaveWorks_Simulation_GetShaderInputCountD3D11();
-    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_GetShaderInputDescD3D11(gfsdk_U32 inputIndex, GFSDK_WaveWorks_ShaderInput_Desc* pDesc);
-    GFSDK_WAVEWORKS_DECL(gfsdk_U32                 ) GFSDK_WaveWorks_Simulation_GetShaderInputCountGL2();
-    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_GetShaderInputDescGL2(gfsdk_U32 inputIndex, GFSDK_WaveWorks_ShaderInput_Desc* pDesc);
+    /**
+     * Retrieve information about the WaveWorks shader inputs for a given platform. This information can be used to
+     * query compiled shaders via a reflection interface to obtain register or constant buffer indices for subsequent
+     * calls to SetRenderState
+     * @return
+     */
+    public static int GFSDK_WaveWorks_Simulation_GetShaderInputCountD3D11(){
+        if(g_InitialisedAPI != nv_water_d3d_api.nv_water_d3d_api_d3d11) {
+            LogUtil.e(LogUtil.LogType.DEFAULT, "ERROR: 'GFSDK_WaveWorks_Simulation_GetShaderInputCountD3D11' was called but the library was not initialised for d3d11!");
+            return 0;
+        }
+
+        return GFSDK_WaveWorks_Simulation.getShaderInputCountD3D11();
+    }
+
+    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_GetShaderInputDescD3D11(int inputIndex, GFSDK_WaveWorks_ShaderInput_Desc pDesc){
+        if(g_InitialisedAPI != nv_water_d3d_api.nv_water_d3d_api_d3d11) {
+            LogUtil.e(LogUtil.LogType.DEFAULT, "ERROR: 'GFSDK_WaveWorks_Simulation_GetShaderInputDescD3D11' was called but the library was not initialised for d3d11!");
+            return GFSDK_WaveWorks_Result.FAIL;
+        }
+
+        return ToAPIResult(GFSDK_WaveWorks_Simulation.getShaderInputDescD3D11(inputIndex, pDesc));
+    }
+
+    public static int GFSDK_WaveWorks_Simulation_GetShaderInputCountGL2(){
+        if(g_InitialisedAPI != nv_water_d3d_api.nv_water_d3d_api_gl2) {
+            LogUtil.e(LogUtil.LogType.DEFAULT, "ERROR: 'GFSDK_WaveWorks_Simulation_SetRenderStateD3D11' was called but the library was not initialised for gl2!");
+            return 0;
+        }
+
+        return GFSDK_WaveWorks_Simulation.getShaderInputCountGL2();
+    }
+
+    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_GetShaderInputDescGL2(int inputIndex, GFSDK_WaveWorks_ShaderInput_Desc pDesc){
+        if(g_InitialisedAPI != nv_water_d3d_api.nv_water_d3d_api_gl2) {
+            LogUtil.e(LogUtil.LogType.DEFAULT, "ERROR: 'GFSDK_WaveWorks_Simulation_SetRenderStateD3D11' was called but the library was not initialised for gl2!");
+            return GFSDK_WaveWorks_Result.FAIL;
+        }
+
+        return ToAPIResult(GFSDK_WaveWorks_Simulation.getShaderInputDescGL2(inputIndex, pDesc));
+    }
 
     // For GL only, get the number of texture units that need to be reserved for WaveWorks in GFSDK_WaveWorks_Simulation_GL_Pool
-    GFSDK_WAVEWORKS_DECL(gfsdk_U32                 ) GFSDK_WaveWorks_Simulation_GetTextureUnitCountGL2(gfsdk_bool useTextureArrays);
+    public static int GFSDK_WaveWorks_Simulation_GetTextureUnitCountGL2(boolean useTextureArrays){
+        if(g_InitialisedAPI != nv_water_d3d_api.nv_water_d3d_api_gl2) {
+            LogUtil.e(LogUtil.LogType.DEFAULT, "ERROR: 'GFSDK_WaveWorks_Simulation_GetTextureUnitCountGL2' was called but the library was not initialised for gl2!");
+            return 0;
+        }
+
+        return GFSDK_WaveWorks_Simulation.getTextureUnitCountGL2(useTextureArrays);
+    }
+
+    private static GFSDK_WaveWorks_Result Simulation_SetRenderState_Generic(GFSDK_WaveWorks_Simulation hSim, Matrix4f matView, int[] pShaderInputRegisterMappings,
+                                                                            GFSDK_WaveWorks_Savestate hSavestate, GFSDK_WaveWorks_Simulation_GL_Pool pGlPool)
+    {
+        GFSDK_WaveWorks_Savestate pImpl = hSavestate;
+//        if(hSavestate)
+//        {
+//            pImpl = FromHandle(hSavestate);
+//        }
+
+        return ToAPIResult(hSim.setRenderState(matView, pShaderInputRegisterMappings, pImpl, pGlPool));
+    }
 
     // Set WaveWorks shader inputs ready for rendering - use GetStagingCursor() to identify the kick which produced the simulation
 // results that are about to be set
-    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_SetRenderStateD3D11(GFSDK_WaveWorks_Simulation hSim, ID3D11DeviceContext* pDC, const gfsdk_float4x4& matView, const gfsdk_U32 * pShaderInputRegisterMappings, GFSDK_WaveWorks_SavestateHandle hSavestate);
-    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_SetRenderStateGL2(GFSDK_WaveWorks_Simulation hSim, const gfsdk_float4x4& matView, const gfsdk_U32 * pShaderInputRegisterMappings, const GFSDK_WaveWorks_Simulation_GL_Pool& glPool);
+    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_SetRenderStateD3D11(GFSDK_WaveWorks_Simulation hSim, /*ID3D11DeviceContext* pDC, */Matrix4f matView, int[] pShaderInputRegisterMappings, GFSDK_WaveWorks_Savestate hSavestate){
+        if(g_InitialisedAPI != nv_water_d3d_api.nv_water_d3d_api_d3d11) {
+            LogUtil.e(LogUtil.LogType.DEFAULT, "ERROR: 'GFSDK_WaveWorks_Simulation_SetRenderStateD3D11' was called but the library was not initialised for d3d11!");
+            return GFSDK_WaveWorks_Result.FAIL;
+        }
+
+        return Simulation_SetRenderState_Generic(hSim,matView,pShaderInputRegisterMappings,hSavestate,null);
+    }
+
+    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_SetRenderStateGL2(GFSDK_WaveWorks_Simulation hSim, Matrix4f matView, int[] pShaderInputRegisterMappings, GFSDK_WaveWorks_Simulation_GL_Pool glPool){
+        if(g_InitialisedAPI != nv_water_d3d_api.nv_water_d3d_api_gl2) {
+            LogUtil.e(LogUtil.LogType.DEFAULT, "ERROR: 'GFSDK_WaveWorks_Simulation_GetTextureUnitCountGL2' was called but the library was not initialised for gl2!");
+            return GFSDK_WaveWorks_Result.FAIL;
+        }
+
+        return Simulation_SetRenderState_Generic(hSim,matView,pShaderInputRegisterMappings,null,glPool);
+    }
 
     // Retrieve an array of simulated displacements for some given array of x-y locations - use GetReadbackCursor() to identify the
 // kick which produced the simulation results that are about to be retrieved
-    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_GetDisplacements(GFSDK_WaveWorks_Simulation hSim, const gfsdk_float2* inSamplePoints, gfsdk_float4* outDisplacements, gfsdk_U32 numSamples);
+    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_GetDisplacements(GFSDK_WaveWorks_Simulation hSim, Vector2f[] inSamplePoints, Vector4f[] outDisplacements, int numSamples){
+        hSim.getDisplacements(inSamplePoints, outDisplacements, numSamples);
+        return GFSDK_WaveWorks_Result.OK;
+    }
 
     // Get the most recent simulation statistics
     public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_GetStats(GFSDK_WaveWorks_Simulation hSim, GFSDK_WaveWorks_Simulation_Stats& stats);
@@ -769,7 +873,10 @@ public final class GFSDK_WaveWorks {
 //    - intervening entries may be accessed the same way, using a zero-based index
 //    - if 'coord' is fractional, the nearest pair of entries will be lerp'd accordingly (fractional lookups are therefore more CPU-intensive)
 //
-    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_GetArchivedDisplacements(GFSDK_WaveWorks_Simulation hSim, float coord, const gfsdk_float2* inSamplePoints, gfsdk_float4* outDisplacements, gfsdk_U32 numSamples);
+    public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Simulation_GetArchivedDisplacements(GFSDK_WaveWorks_Simulation hSim, float coord, Vector2f[] inSamplePoints, Vector4f[] outDisplacements, int numSamples){
+        hSim.getArchivedDisplacements(coord, inSamplePoints, outDisplacements, numSamples);
+        return GFSDK_WaveWorks_Result.OK;
+    }
 
     // Quadtree lifetime management
     public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Quadtree_CreateD3D11(GFSDK_WaveWorks_Quadtree_Params params, /*ID3D11Device* pD3DDevice,*/ GFSDK_WaveWorks_QuadtreeHandle* pResult);

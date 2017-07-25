@@ -31,4 +31,17 @@ public class GFSDK_WaveWorks_Quadtree_Params {
     public float geomorphing_degree;
     /** Controls the use of CPU timers to gather profiling data*/
     public boolean enable_CPU_timers;
+
+    void set(GFSDK_WaveWorks_Quadtree_Params params){
+        mesh_dim = params.mesh_dim;
+        min_patch_length = params.min_patch_length;
+        patch_origin.set(params.patch_origin);
+        auto_root_lod = params.auto_root_lod;
+        upper_grid_coverage = params.upper_grid_coverage;
+        sea_level = params.sea_level;
+        use_tessellation = params.use_tessellation;
+        tessellation_lod = params.tessellation_lod;
+        geomorphing_degree = params.geomorphing_degree;
+        enable_CPU_timers = params.enable_CPU_timers;
+    }
 }
