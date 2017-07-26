@@ -65,6 +65,11 @@ final class Simulation_Util {
         }
     }
 
+    public static void tieThreadToCore(int core) {
+        // Enable this to WAR on systems that have core-sensitive QueryPerformanceFrequency
+        // SetThreadAffinityMask( GetCurrentThread(), 1<<core );
+    }
+
     private static final class init_omega_functor {
         int dmap_dim;
         float[] pOutOmega;

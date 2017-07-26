@@ -573,7 +573,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         return S_OK;
     }
 
-    public HRESULT waitStagingCursor(){
+    HRESULT waitStagingCursor(){
         WaitCursorResult wait_result = m_pSimulationManager.waitStagingCursor();
         switch(wait_result)
         {

@@ -157,7 +157,7 @@ public class CacheBuffer {
 		buffer.put(x).put(y).put(z).put(w).flip();
 		return buffer;
 	}
-	
+
 	public static FloatBuffer wrap(float[] data, int offset, int length){
 		FloatBuffer buffer = getCachedFloatBuffer(length);
 		buffer.put(data, offset, length).flip();
@@ -452,5 +452,13 @@ public class CacheBuffer {
 		}else{
 			throw new IllegalArgumentException("can't recogine the componemt of the data");
 		}
+	}
+
+	public static ByteBuffer put(ByteBuffer dest, float[] src){
+		for(int i = 0; i < src.length; i++){
+			dest.putFloat(src[i]);
+		}
+
+		return dest;
 	}
 }
