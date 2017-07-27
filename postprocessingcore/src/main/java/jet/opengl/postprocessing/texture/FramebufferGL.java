@@ -69,8 +69,12 @@ public class FramebufferGL implements Disposeable {
         for (int i = 0; i < textures.length; i++)
         {
             TextureGL pTex = textures[i];
+            Texture2D tex2D = (Texture2D)pTex;  // Not safe
+            m_Width = tex2D.getWidth();
+            m_Height = tex2D.getHeight();
+
             TextureAttachDesc desc = descs[i];
-            m_AttachedTextures[i] = pTex;
+            m_AttachedTextures[m_AttachCount] = pTex;
             switch (desc.type)
             {
                 case TEXTURE:
@@ -106,7 +110,7 @@ public class FramebufferGL implements Disposeable {
                         {
                             for (int j = 0; j < CUBE_FACES.length; j++)
                             {
-                                gl.glFramebufferTexture2D(GL_FRAMEBUFFER, measureTextureAttachment(pTex, desc.index), CUBE_FACES[j], pTex.getTexture(), desc.level);
+                                gl.glFramebufferTexture2D(GL_FRAMEBUFFER, measureTextureAttachment(pTex, desc.index), CUBE_FACES[j], pTex.getTexture(), desc.level); // TODO
                             }
                         }
                         else
@@ -151,6 +155,11 @@ public class FramebufferGL implements Disposeable {
             }
         }
     }
+
+    public TextureGL getAttachedTex(int index){
+        return m_AttachedTextures[index];
+    }
+
     public Texture2D addTexture2D(Texture2DDesc texDesc, TextureAttachDesc attachDesc){
         Texture2D texture2D = TextureUtils.createTexture2D(texDesc, null);
         m_Owed[m_AttachCount] = true;
@@ -167,6 +176,16 @@ public class FramebufferGL implements Disposeable {
         }
 
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_Framebuffer);
+    }
+
+    public void setViewPort(){
+        for(int i = 0; i < m_AttachCount; i++){
+            if(m_AttachedTextures[i] != null){
+                Texture2D tex = (Texture2D) m_AttachedTextures[i];
+                GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+                gl.glViewport(0,0, tex.getWidth(), tex.getHeight());
+            }
+        }
     }
 
     public int getFramebuffer() { return m_Framebuffer;}
@@ -198,4 +217,10 @@ public class FramebufferGL implements Disposeable {
             }
         }
     }
+
+    public int getWidth() {
+        return m_Width;
+    }
+
+    public int getHeight() { return m_Height;}
 }

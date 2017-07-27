@@ -62,7 +62,7 @@ public class RenderTargets implements Disposeable{
 
     public void unbind(){
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_Framebuffer);
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
     }
 
     static void deAttachTexture(int attachment, AttachType type)

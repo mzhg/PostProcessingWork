@@ -19,9 +19,6 @@ import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
-import static jet.opengl.postprocessing.common.GLenum.GL_STENCIL;
-import static jet.opengl.postprocessing.util.CacheBuffer.getCachedByteBuffer;
-
 public final class TextureUtils {
 	private static final int RED = GLenum.GL_RED;
 	private static final int RG  = GLenum.GL_RG;
@@ -66,7 +63,7 @@ public final class TextureUtils {
 	
 	private TextureUtils(){}
 	
-	/** Get the texture image Data. Call this method may change the texture binding.*/
+	/** Get the texture image Data. Call this method would change the texture binding.*/
 	public static ByteBuffer getTextureData(int target, int textureID, int level, boolean fromCache){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 
@@ -76,7 +73,7 @@ public final class TextureUtils {
 		int height = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_HEIGHT);
 		int depth = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_DEPTH);
 		if(width == 0 && height == 0 && depth == 0)
-			return fromCache ? getCachedByteBuffer(0) : BufferUtils.createByteBuffer(0);
+			return fromCache ? CacheBuffer.getCachedByteBuffer(0) : BufferUtils.createByteBuffer(0);
 		
 		int red_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_RED_SIZE);
 		int green_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_GREEN_SIZE);
@@ -97,7 +94,7 @@ public final class TextureUtils {
 				(red_bits + green_bits + blue_bits + alpha_bits + depth_bits + stencil_bits) /8;
 //		totalBytes = Math.min(2048 * 2048 * 2, totalBytes);
 		
-		ByteBuffer result = fromCache ? getCachedByteBuffer(totalBytes) : BufferUtils.createByteBuffer(totalBytes);
+		ByteBuffer result = fromCache ?  CacheBuffer.getCachedByteBuffer(totalBytes) : BufferUtils.createByteBuffer(totalBytes);
 		int type = measureDataType(internalFormat);
 		int format = measureFormat(internalFormat);
 //		System.out.println("internalFormat = " + internalFormat);
@@ -133,7 +130,7 @@ public final class TextureUtils {
 		int type   = measureDataType(internalFormat);
 		
 		int totalBytes = (int) (w * h * measureSizePerPixel(internalFormat));  // RGB color
-		ByteBuffer result = fromCache ? getCachedByteBuffer(totalBytes) : BufferUtils.createByteBuffer(totalBytes);
+		ByteBuffer result = fromCache ? CacheBuffer.getCachedByteBuffer(totalBytes) : BufferUtils.createByteBuffer(totalBytes);
 		gl.glReadPixels(0, 0, w, h, format, type, result);
 		
 		ImageData data = new ImageData();
@@ -1431,7 +1428,7 @@ public final class TextureUtils {
 		case GLenum.GL_DEPTH32F_STENCIL8:
 											return GLenum.GL_DEPTH_STENCIL;
 		case GLenum.GL_STENCIL_INDEX8:
-											return GL_STENCIL;
+											return GLenum.GL_STENCIL;
 		case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
 		case GLenum.GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
 		case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:

@@ -5,10 +5,10 @@ package jet.opengl.demos.nvidia.waves;
  */
 
 public class GFSDK_WaveWorks_API_GUID {
-    public int component1;
-    public int component2;
-    public int component3;
-    public int component4;
+    public final int component1;
+    public final int component2;
+    public final int component3;
+    public final int component4;
 
     public GFSDK_WaveWorks_API_GUID(int component1, int component2, int component3, int component4) {
         this.component1 = component1;

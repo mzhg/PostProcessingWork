@@ -11,8 +11,6 @@ import jet.opengl.postprocessing.texture.Texture2D;
 
 public interface NVWaveWorks_FFT_Simulation {
 
-    static final int GFSDK_WaveWorks_InvalidKickID = -1;
-
     boolean initD3D11(/*ID3D11Device* pD3DDevice*/);
     default boolean initGnm() { return false; };
     default boolean initGL2(/*void* pGLContext*/) {return false; };
