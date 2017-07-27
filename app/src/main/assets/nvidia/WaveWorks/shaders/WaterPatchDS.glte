@@ -1,0 +1,61 @@
+#version 400
+layout(quads, equal_spacing, cw) in;
+
+in PatchData
+{
+    //float Edges[4]  : SV_TessFactor;
+    //float Inside[2]	: SV_InsideTessFactor;
+
+	vec2 origin;   //: ORIGIN;
+    vec2 size;     //: SIZE;
+}_inputs[];
+
+out PSIn_Diffuse
+{
+	vec4 position;
+	vec2 texcoord;
+	vec3 normal;
+	vec3 positionWS;
+//	vec4 layerdef;
+	vec4 depthmap_scaler;
+}_output;
+
+#include "RenderHeightfieldCommon.glsl"
+
+uniform sampler2D g_DepthMapTexture;
+
+void main()
+{
+ //   PatchData input = _inputs[0][0];
+	vec2 uv = gl_TessCoord.xy;
+	
+	vec3 vertexPosition;
+	vec2 texcoord0to1 = (_inputs[0].origin + uv * _inputs[0].size)/g_HeightFieldSize;
+	vec4 water_normal;
+	vec4 depthmap_scaler;
+	
+	// getting rough estimate of water depth from depth map texture 
+//	depthmap_scaler=g_DepthMapTexture.SampleLevel(SamplerLinearWrap, float2(texcoord0to1.x,1-texcoord0to1.y),0);
+	depthmap_scaler=textureLod(g_DepthMapTexture, vec2(texcoord0to1.x,1-texcoord0to1.y), 0.0);
+	
+	// calculating water surface geometry position and normal
+	vertexPosition.xz = _inputs[0].origin + uv * _inputs[0].size;
+	vertexPosition.y  = -g_WaterHeightBumpScale * 0.5;
+	water_normal=CombineWaterNormal(vertexPosition.xyz);
+
+	// fading out displacement and normal disturbance near shores by 60%
+	water_normal.xyz=mix(vec3(0,1,0),normalize(water_normal.xyz),0.4+0.6*depthmap_scaler.g);
+	vertexPosition.y+=water_normal.w*g_WaterHeightBumpScale*(0.4+0.6*depthmap_scaler.g);
+	vertexPosition.xz-=(water_normal.xz)*0.5*(0.4+0.6*depthmap_scaler.g);
+
+	// writing _output params
+ //   _output.position = mul(float4(vertexPosition, 1.0), g_ModelViewProjectionMatrix);
+ 	gl_Position = g_ModelViewProjectionMatrix * vec4(vertexPosition, 1.0);
+// 	_output.position = 2.0 * gl_Position.xyzw/gl_Position.w - 1.0;
+	
+    _output.texcoord = texcoord0to1*g_WaterMicroBumpTexcoordScale+g_WaterBumpTexcoordShift*0.07;
+	_output.normal=normalize(water_normal.xyz);
+	_output.positionWS = vertexPosition;
+//	_output.layerdef=layerdef;
+	_output.depthmap_scaler=depthmap_scaler;
+}

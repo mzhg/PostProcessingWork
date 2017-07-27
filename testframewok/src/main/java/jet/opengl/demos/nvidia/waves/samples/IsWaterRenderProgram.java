@@ -1,7 +1,6 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL40;
+import jet.opengl.postprocessing.common.GLenum;
 
 class IsWaterRenderProgram extends IsCoreBaseProgram{
 	int waterPatchPS;
@@ -11,10 +10,10 @@ class IsWaterRenderProgram extends IsCoreBaseProgram{
 		super("WaterRenderProgram", prefix+"RenderHeightfieldVS.vert", prefix+"RenderHeightfieldHS.gltc", 
 				prefix+"WaterPatchDS.glte", prefix+"WaterPatchPS.frag");
 		
-		waterPatchPS = GL40.glGetSubroutineIndex(programId, GL20.GL_FRAGMENT_SHADER, "WaterPatchPS");
-		colorPS = GL40.glGetSubroutineIndex(programId, GL20.GL_FRAGMENT_SHADER, "ColorPS");
+		waterPatchPS = gl.glGetSubroutineIndex(getProgram(), GLenum.GL_FRAGMENT_SHADER, "WaterPatchPS");
+		colorPS = gl.glGetSubroutineIndex(getProgram(), GLenum.GL_FRAGMENT_SHADER, "ColorPS");
 	}
 	
-	public void setupWaterPatchPass(){ GL40.glUniformSubroutinesui(GL20.GL_FRAGMENT_SHADER, waterPatchPS);}
-	public void setupColorPass(){ GL40.glUniformSubroutinesui(GL20.GL_FRAGMENT_SHADER, colorPS);}
+	public void setupWaterPatchPass(){ gl.glUniformSubroutinesui(GLenum.GL_FRAGMENT_SHADER, waterPatchPS);}
+	public void setupColorPass(){ gl.glUniformSubroutinesui(GLenum.GL_FRAGMENT_SHADER, colorPS);}
 }

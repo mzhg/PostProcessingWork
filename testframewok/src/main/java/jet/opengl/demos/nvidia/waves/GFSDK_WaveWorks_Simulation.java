@@ -30,7 +30,6 @@ import jet.opengl.postprocessing.util.LogUtil;
 import static jet.opengl.demos.nvidia.waves.HRESULT.E_FAIL;
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_FALSE;
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_OK;
-import static jet.opengl.demos.nvidia.waves.NVWaveWorks_FFT_Simulation.GFSDK_WaveWorks_InvalidKickID;
 import static jet.opengl.demos.nvidia.waves.NVWaveWorks_Mesh.PrimitiveType.PT_TriangleStrip;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_d3d11;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_gl2;
@@ -93,7 +92,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             cascade_states[i] = new CascadeState();
             cascade_states[i].m_pQuadMesh	= null;
             cascade_states[i].m_pFFTSimulation	= null;
-            cascade_states[i].m_gradient_map_version = GFSDK_WaveWorks_InvalidKickID;
+            cascade_states[i].m_gradient_map_version = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
 //            memset(&cascade_states[i].m_d3d, 0, sizeof(cascade_states[i].m_d3d));
         }
 
@@ -2640,7 +2639,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         }
 
 //        #endif // WAVEWORKS_ENABLE_GRAPHICS
-        cascade_states[cascade].m_gradient_map_version = GFSDK_WaveWorks_InvalidKickID;
+        cascade_states[cascade].m_gradient_map_version = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
 
         return HRESULT.S_OK;
     }

@@ -3,7 +3,7 @@ package jet.opengl.demos.nvidia.waves.samples;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector4f;
 
-public class Frustum {
+final class Frustum {
 
 	/**
 	 * 0. left

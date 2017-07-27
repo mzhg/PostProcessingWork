@@ -1,11 +1,9 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL33;
-
-import jet.util.check.GLError;
+import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 
 /*public*/ class IsUniformTextures {
 	
@@ -33,6 +31,7 @@ import jet.util.check.GLError;
 	
 	final int[] textureUniforms = new int[17];
 	int textureUnits;
+	private GLFuncProvider gl;
 	public IsUniformTextures(String debug_name, int program) {
 		String[] textureNames = {
 			"g_HeightfieldTexture", "g_LayerdefTexture", "g_SandBumpTexture",
@@ -42,6 +41,8 @@ import jet.util.check.GLError;
 			"g_RefractionDepthTextureResolved", "g_ReflectionTexture", "g_RefractionTexture",
 			"g_DepthMapTexture"
 		};
+
+		gl= GLFuncProviderFactory.getGLFuncProvider();
 		
 		if(out_print){
 			System.out.println(debug_name + "'s texture uniforms initalizing...");
@@ -49,9 +50,9 @@ import jet.util.check.GLError;
 		
 		int index = 0;
 		for(int i = 0; i < textureNames.length; i++){
-			textureUniforms[i] = GL20.glGetUniformLocation(program, textureNames[i]);
+			textureUniforms[i] = gl.glGetUniformLocation(program, textureNames[i]);
 			if(textureUniforms[i] >= 0){
-				GL20.glUniform1i(textureUniforms[i], index);  // setup the default value.
+				gl.glUniform1i(textureUniforms[i], index);  // setup the default value.
 				if(out_print){
 					System.out.println(debug_name + " have sampler2D " + textureNames[i] +", and binding unit to " + index);
 				}
@@ -68,11 +69,11 @@ import jet.util.check.GLError;
 		for(int i = 0; i < textureUniforms.length; i++){
 			int index = textureUniforms[i];
 			if(index >= 0){
-				int unit = GL13.GL_TEXTURE0 + textureUnits;
-				GLError.checkError("texture unit" + textureUnits + " and index = " + i);
-				GL13.glActiveTexture(unit);
-				GL11.glBindTexture(GL11.GL_TEXTURE_2D, textures[textureUnits].textureID);
-				GL33.glBindSampler(textureUnits, textures[textureUnits].sampler);
+				int unit = GLenum.GL_TEXTURE0 + textureUnits;
+				GLCheck.checkError("texture unit" + textureUnits + " and index = " + i);
+				gl.glActiveTexture(unit);
+				gl.glBindTexture(GLenum.GL_TEXTURE_2D, textures[textureUnits].textureID);
+				gl.glBindSampler(textureUnits, textures[textureUnits].sampler);
 				textureUnits++;
 			}
 		}
@@ -80,9 +81,9 @@ import jet.util.check.GLError;
 	
 	public void unbindTextures(){
 		while(textureUnits-- > 0){
-			GL13.glActiveTexture(GL13.GL_TEXTURE0 + textureUnits);
-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-			GL33.glBindSampler(textureUnits, 0);
+			gl.glActiveTexture(GLenum.GL_TEXTURE0 + textureUnits);
+			gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+			gl.glBindSampler(textureUnits, 0);
 		}
 	}
 }

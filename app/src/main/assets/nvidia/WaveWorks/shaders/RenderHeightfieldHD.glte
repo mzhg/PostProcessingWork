@@ -1,0 +1,127 @@
+#version 400
+layout(quads, equal_spacing, cw) in;
+
+in PatchData
+{
+    //float Edges[4]  : SV_TessFactor;
+    //float Inside[2]	: SV_InsideTessFactor;
+
+	vec2 origin;   //: ORIGIN;
+    vec2 size;     //: SIZE;
+}_inputs[];
+
+out PSIn_Diffuse
+{
+//	vec4 position;
+	vec2 texcoord;
+	vec3 normal;
+	vec3 positionWS;
+	vec4 layerdef;
+	vec4 depthmap_scaler;
+}_output;
+
+#include "RenderHeightfieldCommon.glsl"
+
+uniform bool g_RenderShadowmap;
+
+void main()
+{
+//    PatchData _input = _inputs[0];
+	vec2 uv = gl_TessCoord.xy;
+	
+	vec3 vertexPosition;
+	vec4 base_texvalue;
+	vec2 texcoord0to1 = (_inputs[0].origin + uv * _inputs[0].size)/g_HeightFieldSize;
+	vec3 base_normal;
+	vec3 detail_normal;
+	vec3 detail_normal_rotated;
+	vec4 detail_texvalue;
+	float detail_height;
+	mat3 normal_rotation_matrix;
+	vec4 layerdef;
+	float distance_to_camera;
+	float detailmap_miplevel;
+	mat4 mvp;
+	texcoord0to1.y=1-texcoord0to1.y;
+	
+	// fetching base heightmap,normal and moving vertices along y axis
+	base_texvalue=textureLod(g_HeightfieldTexture, texcoord0to1,0.0);
+    base_normal=base_texvalue.xyz;
+//	base_normal.z=-base_normal.z;
+	vertexPosition.xz = _inputs[0].origin + uv * _inputs[0].size;
+    vertexPosition.y = base_texvalue.w;
+	
+	/*
+	if(g_RenderShadowmap)
+	{
+		gl_Position = g_LightModelViewProjectionMatrix * vec4(vertexPosition, 1.0);
+		_output.texcoord = vec2(0);
+		_output.normal=vec3(0);
+		_output.positionWS = vec3(0);
+		_output.layerdef=vec4(0.0);
+		_output.depthmap_scaler=vec4(1.0);
+	
+		return;
+	}
+     */
+	 
+	// calculating MIP level for detail texture fetches
+	distance_to_camera=length(g_CameraPosition-vertexPosition);
+	detailmap_miplevel= CalculateMIPLevelForDisplacementTextures(distance_to_camera);//log2(1+distance_to_camera*3000/(g_HeightFieldSize*g_TessFactor));
+	
+	// fetching layer definition texture
+//	layerdef=g_LayerdefTexture.SampleLevel(SamplerLinearWrap, texcoord0to1,0);
+	layerdef=textureLod(g_LayerdefTexture, texcoord0to1,0.0);
+	
+	// default detail texture
+//	detail_texvalue=g_SandBumpTexture.SampleLevel(SamplerLinearWrap, texcoord0to1*g_SandBumpTexcoordScale,detailmap_miplevel).rbga;
+	detail_texvalue = textureLod(g_SandBumpTexture, texcoord0to1*g_SandBumpTexcoordScale,detailmap_miplevel).rbga * vec4(1,1,-1,1);
+	detail_normal=normalize(2.0*detail_texvalue.xyz-vec3(1,0,1));
+	detail_height=(detail_texvalue.w-0.5)*g_SandBumpHeightScale;
+
+	// rock detail texture
+//	detail_texvalue=g_RockBumpTexture.SampleLevel(SamplerLinearWrap, texcoord0to1*g_RockBumpTexcoordScale,detailmap_miplevel).rbga;
+	detail_texvalue=textureLod(g_RockBumpTexture, texcoord0to1*g_RockBumpTexcoordScale, detailmap_miplevel).rbga * vec4(1,1,-1,1);
+	detail_normal=mix(detail_normal,normalize(2.0*detail_texvalue.xyz-vec3(1,1.4,1)),layerdef.w);
+	detail_height=mix(detail_height,(detail_texvalue.w-0.5)*g_RockBumpHeightScale,layerdef.w);
+
+	// moving vertices by detail height along base normal
+	vertexPosition+=base_normal*detail_height;
+
+	//calculating base normal rotation matrix
+	normal_rotation_matrix[1]=base_normal;          // y_axis
+	normal_rotation_matrix[2]=normalize(cross(vec3(-1.0,0.0,0.0),normal_rotation_matrix[1]));    // -z_axis   
+	normal_rotation_matrix[0]=normalize(cross(normal_rotation_matrix[2],normal_rotation_matrix[1]));  // x-axis
+	// TODO normal_rotation_matrix need transpose?
+
+	//applying base rotation matrix to detail normal
+//	normal_rotation_matrix = transpose(normal_rotation_matrix);
+	detail_normal_rotated=normal_rotation_matrix * detail_normal;
+//	detail_normal_rotated = NormalSampleToWorldSpace(detail_normal, base_normal, vec3(1,0,0));
+
+	//adding refraction caustics
+	float cc=0;
+	
+	if((g_SkipCausticsCalculation==0) && (g_RenderCaustics>0)) // doing it only for main
+	{
+		cc=CalculateWaterCausticIntensity(vertexPosition.xyz);
+		// fading caustics out at distance
+		cc*=(200.0/(200.0+distance_to_camera));
+
+		// fading caustics out as we're getting closer to water surface
+		cc*=min(1.0,max(0.0,-g_WaterHeightBumpScale-vertexPosition.y));
+	}
+	
+	// writing _output params
+ //   _output.position = mul(float4(vertexPosition, 1.0), g_ModelViewProjectionMatrix);
+	if(g_RenderShadowmap)
+		mvp = g_LightModelViewProjectionMatrix;
+	else
+		mvp = g_ModelViewProjectionMatrix;
+ 	gl_Position = mvp * vec4(vertexPosition, 1.0);
+    _output.texcoord = texcoord0to1*g_DiffuseTexcoordScale;
+	_output.normal=detail_normal_rotated;
+	_output.positionWS = vertexPosition;
+	_output.layerdef=layerdef;
+	_output.depthmap_scaler=vec4(1.0,1.0,detail_height,cc);
+}

@@ -4,6 +4,7 @@ import org.lwjgl.util.vector.Matrix2f;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector4f;
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -323,6 +324,20 @@ public class CacheBuffer {
 			v.store(buffer);
 		buffer.flip();
 		
+		return buffer;
+	}
+
+	public static FloatBuffer wrap(Vector2f[] vec){
+		int size = vec == null ? 0 : vec.length;
+		FloatBuffer buffer = getCachedFloatBuffer(size * 2);
+		for(int i = 0; i < size; i++){
+			if(vec[i] != null)
+				vec[i].store(buffer);
+			else
+				buffer.put(0).put(0);
+		}
+
+		buffer.flip();
 		return buffer;
 	}
 	

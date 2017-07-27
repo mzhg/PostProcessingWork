@@ -1,0 +1,86 @@
+#version 400
+
+layout (vertices = 1) out;
+
+in HSIn_Heightfield
+{
+   vec2 origin;
+   vec2 size;
+}inputPatch[];
+
+out PatchData
+{
+    //float Edges[4]  : SV_TessFactor;
+    //float Inside[2]	: SV_InsideTessFactor;
+
+	vec2 origin;   //: ORIGIN;
+    vec2 size;     //: SIZE;
+}_output[];
+
+#include "RenderHeightfieldCommon.glsl"
+
+void main()
+{
+	_output[gl_InvocationID].origin = inputPatch[gl_InvocationID].origin;
+	_output[gl_InvocationID].size = inputPatch[gl_InvocationID].size;
+	
+	float distance_to_camera;
+	float tesselation_factor;
+	float inside_tessellation_factor=0;
+	bool in_frustum=false;
+
+	vec2 texcoord0to1 = (inputPatch[0].origin + inputPatch[0].size/2.0)/g_HeightFieldSize;
+	texcoord0to1.y=1.0-texcoord0to1.y;
+	
+	// conservative frustum culling
+	float texel = textureLod(g_HeightfieldTexture, texcoord0to1, 0.0).w;
+	vec3 patch_center=vec3(inputPatch[0].origin.x+inputPatch[0].size.x*0.5,g_TerrainBeingRendered* texel/*g_HeightfieldTexture.SampleLevel(SamplerLinearWrap, texcoord0to1,0).w*/,inputPatch[0].origin.y+inputPatch[0].size.y*0.5);
+	vec3 camera_to_patch_vector =  patch_center-g_CameraPosition;
+	vec3 patch_to_camera_direction_vector = g_CameraDirection*dot(camera_to_patch_vector,g_CameraDirection)-camera_to_patch_vector;
+	vec3 patch_center_realigned=patch_center+normalize(patch_to_camera_direction_vector)*min(2.0*inputPatch[0].size.x,length(patch_to_camera_direction_vector));
+//	float4 patch_screenspace_center = mul(float4(patch_center_realigned, 1.0), g_ModelViewProjectionMatrix);
+	vec4 patch_screenspace_center = g_ModelViewProjectionMatrix * vec4(patch_center_realigned, 1.0);
+	patch_screenspace_center.xyz /= patch_screenspace_center.w;
+	
+	if(((patch_screenspace_center.x>-1.0) && (patch_screenspace_center.x<1.0) 
+		&& (patch_screenspace_center.y>-1.0) && (patch_screenspace_center.y<1.0)
+		&& (patch_screenspace_center.z>-1.0) && (patch_screenspace_center.z<1.0)
+		&& (patch_screenspace_center.w>0)) || (length(patch_center-g_CameraPosition)<2.0*inputPatch[0].size.x))
+	{
+		in_frustum=true;
+	}
+
+	if((in_frustum) || (g_FrustumCullInHS ==0))
+	{
+		distance_to_camera=length(g_CameraPosition.xz-inputPatch[0].origin-vec2(0,inputPatch[0].size.y*0.5));
+		tesselation_factor=CalculateTessellationFactor(distance_to_camera);
+		gl_TessLevelOuter[0] =  tesselation_factor;
+		inside_tessellation_factor+=tesselation_factor;
+
+		distance_to_camera=length(g_CameraPosition.xz-inputPatch[0].origin-vec2(inputPatch[0].size.x*0.5,0));
+		tesselation_factor=CalculateTessellationFactor(distance_to_camera);
+		gl_TessLevelOuter[1] =  tesselation_factor;
+		inside_tessellation_factor+=tesselation_factor;
+
+		distance_to_camera=length(g_CameraPosition.xz-inputPatch[0].origin-vec2(inputPatch[0].size.x,inputPatch[0].size.y*0.5));
+		tesselation_factor=CalculateTessellationFactor(distance_to_camera);
+		gl_TessLevelOuter[2] = tesselation_factor;
+		inside_tessellation_factor+=tesselation_factor;
+
+		distance_to_camera=length(g_CameraPosition.xz-inputPatch[0].origin-vec2(inputPatch[0].size.x*0.5,inputPatch[0].size.y));
+		tesselation_factor=CalculateTessellationFactor(distance_to_camera);
+		gl_TessLevelOuter[3] = tesselation_factor;
+		inside_tessellation_factor+=tesselation_factor;
+		gl_TessLevelInner[0] = gl_TessLevelInner[1] = inside_tessellation_factor*0.25;
+	}
+	else
+	{
+		gl_TessLevelInner[0] = -1.0;
+		gl_TessLevelInner[1] = -1.0;
+		
+		gl_TessLevelOuter[0] = -1.0;
+		gl_TessLevelOuter[1] = -1.0;
+		gl_TessLevelOuter[2] = -1.0;
+		gl_TessLevelOuter[3] = -1.0;
+	}
+}

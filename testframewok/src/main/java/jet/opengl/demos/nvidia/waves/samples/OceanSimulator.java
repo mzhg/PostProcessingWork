@@ -1,23 +1,19 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.Random;
 
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL15;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL31;
-import org.lwjgl.opengl.GL33;
-import org.lwjgl.opengl.GL42;
-import org.lwjgl.opengl.GL43;
 import org.lwjgl.util.vector.Vector2f;
 
-import jet.opengl.examples.advance.water.FFT.CSFFT512x512_Plan;
-import jet.util.Numeric;
-import jet.util.buffer.GLUtil;
-import jet.util.check.GLError;
-import jet.util.opengl.shader.libs.postprocessing.FrameBufferObject;
+import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.FramebufferGL;
+import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.Numeric;
 
 public class OceanSimulator {
 	
@@ -67,11 +63,13 @@ public class OceanSimulator {
 	OceanSimulatorProgram m_pSimulatorFX;
 	
 	// FFT wrap-up
-	final CSFFT512x512_Plan m_fft_plan = new CSFFT512x512_Plan();
+	final FFT.CSFFT512x512_Plan m_fft_plan = new FFT.CSFFT512x512_Plan();
 	final Random random = new Random(1015410);
+	private GLFuncProvider gl;
 	
 	public OceanSimulator(String prefix, OceanParameter params) {
 		this.m_param = params;
+		gl= GLFuncProviderFactory.getGLFuncProvider();
 		
 		// Height map H(0)
 		int height_map_size = (params.dmap_dim + 4) * (params.dmap_dim + 1);
@@ -93,34 +91,34 @@ public class OceanSimulator {
 		// H0
 		int[] buf = new int[2];
 		int float2_stride = 2 * /*sizeof(float)*/ 4;
-		createBufferAndUAV(/*h0_data*/ buf, GLUtil.wrapToBytes(h0_data), input_full_size * float2_stride, GL30.GL_RG32F/*, &m_pBuffer_Float2_H0, &m_pUAV_H0, &m_pSRV_H0*/);
+		createBufferAndUAV(/*h0_data*/ buf, CacheBuffer.wrap(h0_data), input_full_size * float2_stride, GLenum.GL_RG32F/*, &m_pBuffer_Float2_H0, &m_pUAV_H0, &m_pSRV_H0*/);
 		m_pBuffer_Float2_H0 = buf[0];
 		m_pUAV_H0 = m_pSRV_H0 = buf[1];
 		// Notice: The following 3 buffers should be half sized buffer because of conjugate symmetric input. But
 		// we use full sized buffers due to the CS4.0 restriction.
 
 		// Put H(t), Dx(t) and Dy(t) into one buffer because CS4.0 allows only 1 UAV at a time
-		createBufferAndUAV(buf, GLUtil.wrap(zero_data), 3 * input_half_size * float2_stride, GL30.GL_RG32F/*, &m_pBuffer_Float2_Ht, &m_pUAV_Ht, &m_pSRV_Ht*/);
+		createBufferAndUAV(buf, CacheBuffer.wrap(zero_data), 3 * input_half_size * float2_stride, GLenum.GL_RG32F/*, &m_pBuffer_Float2_Ht, &m_pUAV_Ht, &m_pSRV_Ht*/);
 		m_pBuffer_Float2_Ht = buf[0];
 		m_pSRV_Ht = m_pUAV_Ht = buf[1];
 		
 		// omega
-		createBufferAndUAV(buf, GLUtil.wrapToBytes(omega_data), input_full_size * /*sizeof(float)*/4, GL30.GL_R32F/*, &m_pBuffer_Float_Omega, &m_pUAV_Omega, &m_pSRV_Omega*/);
+		createBufferAndUAV(buf, CacheBuffer.wrapToBytes(omega_data), input_full_size * /*sizeof(float)*/4, GLenum.GL_R32F/*, &m_pBuffer_Float_Omega, &m_pUAV_Omega, &m_pSRV_Omega*/);
 		m_pBuffer_Float_Omega = buf[0];
 		m_pUAV_Omega = m_pSRV_Omega = buf[1];
 
 		// Notice: The following 3 should be real number data. But here we use the complex numbers and C2C FFT
 		// due to the CS4.0 restriction.
 		// Put Dz, Dx and Dy into one buffer because CS4.0 allows only 1 UAV at a time
-		createBufferAndUAV(buf, GLUtil.wrap(zero_data), 3 * output_size * float2_stride, GL30.GL_RG32F/*, &m_pBuffer_Float_Dxyz, &m_pUAV_Dxyz, &m_pSRV_Dxyz*/);
+		createBufferAndUAV(buf, CacheBuffer.wrap(zero_data), 3 * output_size * float2_stride, GLenum.GL_RG32F/*, &m_pBuffer_Float_Dxyz, &m_pUAV_Dxyz, &m_pSRV_Dxyz*/);
 		m_pBuffer_Float_Dxyz = buf[0];
 		m_pUAV_Dxyz = m_pSRV_Dxyz = buf[1];
 		
 		// D3D11 Textures
-		createTextureAndViews(buf, hmap_dim, hmap_dim, GL30.GL_RGBA32F/*, &m_pDisplacementMap, &m_pDisplacementSRV, &m_pDisplacementRTV*/);
+		createTextureAndViews(buf, hmap_dim, hmap_dim, GLenum.GL_RGBA32F/*, &m_pDisplacementMap, &m_pDisplacementSRV, &m_pDisplacementRTV*/);
 		m_pDisplacementFBO = buf[0];
 		m_pDisplacementMap = buf[1];
-		createTextureAndViews(buf, hmap_dim, hmap_dim, GL30.GL_RGBA16F/*, &m_pGradientMap, &m_pGradientSRV, &m_pGradientRTV*/);
+		createTextureAndViews(buf, hmap_dim, hmap_dim, GLenum.GL_RGBA16F/*, &m_pGradientMap, &m_pGradientSRV, &m_pGradientRTV*/);
 		m_pGradientFBO = buf[0];
 		m_pGradientMap = buf[1];
 		
@@ -155,7 +153,7 @@ public class OceanSimulator {
 		m_pUpdateSpectrumCS.setDtxAddressOffset(dtx_offset);
 		m_pUpdateSpectrumCS.setDtyAddressOffset(dty_offset);
 		
-		GL20.glUseProgram(0);
+		gl.glUseProgram(0);
 		
 		FFT.fft512x512_create_plan(m_fft_plan, 3);
 	}
@@ -211,9 +209,9 @@ public class OceanSimulator {
 		m_pUpdateSpectrumCS.enable();
 		
 		// Buffers
-		GL42.glBindImageTexture(0, m_pSRV_H0, 0, false, 0, GL15.GL_READ_ONLY, GL30.GL_RG32F);
-		GL42.glBindImageTexture(1, m_pSRV_Omega, 0, false, 0, GL15.GL_READ_ONLY, GL30.GL_R32F);
-		GL42.glBindImageTexture(2, m_pUAV_Ht, 0, false, 0, GL15.GL_WRITE_ONLY, GL30.GL_RG32F);
+		gl.glBindImageTexture(0, m_pSRV_H0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RG32F);
+		gl.glBindImageTexture(1, m_pSRV_Omega, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32F);
+		gl.glBindImageTexture(2, m_pUAV_Ht, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RG32F);
 		
 		// Uniforms
 		m_pUpdateSpectrumCS.setTime(time * m_param.time_scale);
@@ -222,17 +220,17 @@ public class OceanSimulator {
 		// Run the CS
 		int group_count_x = (m_param.dmap_dim + BLOCK_SIZE_X - 1) / BLOCK_SIZE_X;
 		int group_count_y = (m_param.dmap_dim + BLOCK_SIZE_Y - 1) / BLOCK_SIZE_Y;
-		GL43.glDispatchCompute(group_count_x, group_count_y, 1);
-		
-		GL42.glMemoryBarrier(GL42.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-		
-		GL42.glBindImageTexture(0, 0, 0, false, 0, GL15.GL_READ_ONLY, GL30.GL_RG32F);
-		GL42.glBindImageTexture(1, 0, 0, false, 0, GL15.GL_READ_ONLY, GL30.GL_R32F);
-		GL42.glBindImageTexture(2, 0, 0, false, 0, GL15.GL_WRITE_ONLY, GL30.GL_RG32F);
+		gl.glDispatchCompute(group_count_x, group_count_y, 1);
+
+		gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RG32F);
+		gl.glBindImageTexture(1, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32F);
+		gl.glBindImageTexture(2, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RG32F);
 		
 		// ------------------------------------ Perform FFT -------------------------------------------
 		FFT.fft_512x512_c2c(m_fft_plan, m_pUAV_Dxyz, m_pSRV_Dxyz, m_pSRV_Ht);
-		GLError.checkError();
+		GLCheck.checkError();
 		// --------------------------------- Wrap Dx, Dy and Dz ---------------------------------------
 		// Push RT
 //				int old_viewport_width, old_viewport_height;
@@ -240,15 +238,18 @@ public class OceanSimulator {
 //				GL11.glGetInteger(GL11.GL_VIEWPORT, buf);
 //				old_viewport_width = buf.get();
 //				old_viewport_height = buf.get();
-		
-		GL11.glPushAttrib(GL11.GL_VIEWPORT_BIT);
-		
+
+		int vw,vh;
+		IntBuffer vp=CacheBuffer.getCachedIntBuffer(4);
+		gl.glGetInteger(GLenum.GL_VIEWPORT, vp);
+		vw=vp.get(2);
+		vh=vp.get(3);
+
 		// Set RT
-		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, m_pDisplacementFBO);
-		GL11.glViewport(0, 0, m_param.dmap_dim, m_param.dmap_dim);
-		GL11.glDrawBuffer(GL30.GL_COLOR_ATTACHMENT0);
-		GL11.glDisable(GL11.GL_DEPTH_TEST);
-		GLError.checkError();
+		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_pDisplacementFBO);
+		gl.glViewport(0, 0, m_param.dmap_dim, m_param.dmap_dim);
+		gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
+		gl.glDisable(GLenum.GL_DEPTH_TEST);
 		// VS & PS
 		m_pSimulatorFX.enable();  // TODO
 //		int bind_program = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
@@ -259,36 +260,35 @@ public class OceanSimulator {
 		m_pSimulatorFX.setTime(time * m_param.time_scale);
 		m_pSimulatorFX.setChoppyScale(m_param.choppy_scale);
 		m_pSimulatorFX.setGridLen(m_param.dmap_dim / m_param.patch_length);
-		GLError.checkError();
 		// Buffer resources
 //				m_pSimulatorFX.setSamplerDisplacementMap(m_pSRV_Dxyz);
-		GL42.glBindImageTexture(0, m_pSRV_Dxyz, 0, false, 0, GL15.GL_READ_ONLY, GL30.GL_RG32F);
+		gl.glBindImageTexture(0, m_pSRV_Dxyz, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RG32F);
 		
 //		NvShapes.drawQuad(0);
-		GL11.glDrawArrays(GL11.GL_TRIANGLE_STRIP, 0, 4);
+		gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
 		
 		// ----------------------------------- Generate Normal ----------------------------------------
 		// Set RT
-		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, m_pGradientFBO);
-		GL11.glDrawBuffer(GL30.GL_COLOR_ATTACHMENT0);
+		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_pGradientFBO);
+		gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
 		m_pSimulatorFX.enableGenGradientFoldingPS();
-		GLError.checkError();
+		GLCheck.checkError();
 		// Texture resource and sampler
 		m_pSimulatorFX.setSamplerDisplacementMap(m_pDisplacementMap);
-		GL33.glBindSampler(0, OceanSamplers.m_pPointSamplerState);
+		gl.glBindSampler(0, OceanSamplers.m_pPointSamplerState);
 //		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
 //		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
 		
 //		NvShapes.drawQuad(0);
-		GL11.glDrawArrays(GL11.GL_TRIANGLE_STRIP, 0, 4);
+		gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
+
+		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 		
-		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
-		
-		GL11.glPopAttrib();
 //		GL11.glBindTexture(GL11.GL_TEXTURE_2D, m_pGradientMap);
 //		GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-		GL33.glBindSampler(0, 0);
+		gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+		gl.glBindSampler(0, 0);
+		gl.glViewport(0,0,vw,vh);
 	}
 	
 	// Phillips Spectrum
@@ -312,26 +312,26 @@ public class OceanSimulator {
 		return (float) (phillips * Math.exp(-Ksqr * w * w));
 	}
 	
-	void createBufferAndUAV(int[] buf, ByteBuffer data, int byte_width, int tex_format){
+	void createBufferAndUAV(int[] buf, Buffer data, int byte_width, int tex_format){
 		// Generate a name for the buffer object, bind it to the 
 		// GL_TEXTURE_BINDING, and allocate memory for the buffer.
 		
-		int buffer = GL15.glGenBuffers();
-		GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, buffer);
+		int buffer = gl.glGenBuffer();
+		gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, buffer);
 		if(data != null)
-			GL15.glBufferData(GL31.GL_TEXTURE_BUFFER, data, GL15.GL_DYNAMIC_COPY);
+			gl.glBufferData(GLenum.GL_TEXTURE_BUFFER, data, GLenum.GL_DYNAMIC_COPY);
 		else
-			GL15.glBufferData(GL31.GL_TEXTURE_BUFFER, byte_width, GL15.GL_DYNAMIC_COPY);
+			gl.glBufferData(GLenum.GL_TEXTURE_BUFFER, byte_width, GLenum.GL_DYNAMIC_COPY);
 		
 		// Generate a new name for texture.
-		int texture = GL11.glGenTextures();
+		int texture = gl.glGenTexture();
 		// Bind it toe the buffer texture target to create it
-		GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, texture);
+		gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, texture);
 		// Attach the buffer object to the texture and specify format
-		GL31.glTexBuffer(GL31.GL_TEXTURE_BUFFER, tex_format, buffer);
-		
-		GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, 0);
-		GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
+		gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, tex_format, buffer);
+
+		gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
+		gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, 0);
 		
 		buf[0] = buffer;
 		buf[1] = texture;
@@ -339,22 +339,22 @@ public class OceanSimulator {
 	
 	void createTextureAndViews(int[] buf, int width, int height, int format){
 		// Create 2D texture
-		int texture = GL11.glGenTextures();
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
-		GL42.glTexStorage2D(GL11.GL_TEXTURE_2D, 1, format, width, height);
+		int texture = gl.glGenTexture();
+		gl.glBindTexture(GLenum.GL_TEXTURE_2D, texture);
+		gl.glTexStorage2D(GLenum.GL_TEXTURE_2D, 1, format, width, height);
 //		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
 //		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
 //		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
 //		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
-		GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
-		int fbo = GL30.glGenFramebuffers();
-		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, fbo);
-		GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D, texture, 0);
+		gl.glGenerateMipmap(GLenum.GL_TEXTURE_2D);
+		int fbo = gl.glGenFramebuffer();
+		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, fbo);
+		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, texture, 0);
 		
-		FrameBufferObject.checkFramebufferStatus(fbo);
-		
-		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+		GLCheck.checkFramebufferStatus(/*fbo*/);
+
+		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+		gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
 		
 		buf[0] = fbo;
 		buf[1] = texture;
@@ -367,58 +367,58 @@ public class OceanSimulator {
 		}
 		
 		if(m_pBuffer_Float2_H0 != 0){
-			GL15.glDeleteBuffers(m_pBuffer_Float2_H0);
+			gl.glDeleteBuffer(m_pBuffer_Float2_H0);
 			m_pBuffer_Float2_H0 = 0;
 		}
 		
 		if(m_pBuffer_Float_Omega != 0){
-			GL15.glDeleteBuffers(m_pBuffer_Float_Omega);
+			gl.glDeleteBuffer(m_pBuffer_Float_Omega);
 			m_pBuffer_Float_Omega = 0;
 		}
 		
 		if(m_pBuffer_Float2_Ht != 0){
-			GL15.glDeleteBuffers(m_pBuffer_Float2_Ht);
+			gl.glDeleteBuffer(m_pBuffer_Float2_Ht);
 			m_pBuffer_Float2_Ht = 0;
 		}
 		
 		if(m_pBuffer_Float_Dxyz != 0){
-			GL15.glDeleteBuffers(m_pBuffer_Float_Dxyz);
+			gl.glDeleteBuffer(m_pBuffer_Float_Dxyz);
 			m_pBuffer_Float_Dxyz = 0;
 		}
 		
 		if(m_pUAV_H0 != 0){
-			GL11.glDeleteTextures(m_pUAV_H0);
+			gl.glDeleteTextures(m_pUAV_H0);
 			m_pUAV_H0 = 0;
 			m_pSRV_H0 = 0;
 		}
 		
 		if(m_pUAV_Omega != 0){
-			GL11.glDeleteTextures(m_pUAV_Omega);
+			gl.glDeleteTextures(m_pUAV_Omega);
 			m_pUAV_Omega = 0;
 			m_pSRV_Omega = 0;
 		}
 		
 		if(m_pUAV_Ht != 0){
-			GL11.glDeleteTextures(m_pUAV_Ht);
+			gl.glDeleteTextures(m_pUAV_Ht);
 			m_pUAV_Ht = 0;
 			m_pSRV_Ht = 0;
 		}
 		
 		if(m_pUAV_Dxyz != 0){
-			GL11.glDeleteTextures(m_pUAV_Dxyz);
+			gl.glDeleteTextures(m_pUAV_Dxyz);
 			m_pUAV_Dxyz = 0;
 			m_pSRV_Dxyz = 0;
 		}
 		
 		if(m_pDisplacementMap != 0){
-			GL11.glDeleteTextures(m_pDisplacementMap);
-			GL30.glDeleteFramebuffers(m_pDisplacementFBO);
+			gl.glDeleteTextures(m_pDisplacementMap);
+			gl.glDeleteFramebuffer(m_pDisplacementFBO);
 			m_pDisplacementMap = 0;
 		}
 		
 		if(m_pGradientMap != 0){
-			GL11.glDeleteTextures(m_pGradientMap);
-			GL30.glDeleteFramebuffers(m_pGradientFBO);
+			gl.glDeleteTextures(m_pGradientMap);
+			gl.glDeleteFramebuffer(m_pGradientFBO);
 			m_pGradientFBO = 0;
 		}
 		

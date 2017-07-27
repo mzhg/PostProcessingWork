@@ -1,9 +1,6 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL40;
-
-import jet.util.opengl.shader.GLSLProgram;
+import jet.opengl.postprocessing.common.GLenum;
 
 class IsRenderHeightfieldProgram extends IsCoreBaseProgram{
 
@@ -15,12 +12,12 @@ class IsRenderHeightfieldProgram extends IsCoreBaseProgram{
 		super("RenderHeightfieldProgram", prefix+"RenderHeightfieldVS.vert", prefix+"RenderHeightfieldHS.gltc", 
 				prefix+"RenderHeightfieldHD.glte", prefix+"RenderHeightfieldPS.frag");
 		
-		renderHeightFieldPS = GL40.glGetSubroutineIndex(programId, GL20.GL_FRAGMENT_SHADER, "RenderHeightFieldPS");
-		colorPS = GL40.glGetSubroutineIndex(programId, GL20.GL_FRAGMENT_SHADER, "ColorPS");
-		render_shadowmap_index = GLSLProgram.getUniformLocation(programId, "g_RenderShadowmap");
+		renderHeightFieldPS = gl.glGetSubroutineIndex(getProgram(), GLenum.GL_FRAGMENT_SHADER, "RenderHeightFieldPS");
+		colorPS = gl.glGetSubroutineIndex(getProgram(), GLenum.GL_FRAGMENT_SHADER, "ColorPS");
+		render_shadowmap_index = getUniformLocation("g_RenderShadowmap");
 	}
 
-	public void setupRenderHeightFieldPass(){ GL40.glUniformSubroutinesui(GL20.GL_FRAGMENT_SHADER, renderHeightFieldPS);}
-	public void setupColorPass(){ GL40.glUniformSubroutinesui(GL20.GL_FRAGMENT_SHADER, colorPS);}
-	public void setRenderShadowmap(boolean flag) { GL20.glUniform1i(render_shadowmap_index, flag ? 1 : 0);}
+	public void setupRenderHeightFieldPass(){ gl.glUniformSubroutinesui(GLenum.GL_FRAGMENT_SHADER, renderHeightFieldPS);}
+	public void setupColorPass(){ gl.glUniformSubroutinesui(GLenum.GL_FRAGMENT_SHADER, colorPS);}
+	public void setRenderShadowmap(boolean flag) { gl.glUniform1i(render_shadowmap_index, flag ? 1 : 0);}
 }

@@ -2,15 +2,12 @@ package jet.opengl.demos.nvidia.waves.samples;
 
 import java.io.IOException;
 
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL40;
+import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.ShaderLoader;
+import jet.opengl.postprocessing.shader.ShaderSourceItem;
+import jet.opengl.postprocessing.shader.ShaderType;
 
-import jet.util.check.GLError;
-import jet.util.opengl.shader.GLSLProgram;
-import jet.util.opengl.shader.libs.SimpleProgram;
-import jet.util.opengl.shader.loader.ShaderLoader;
-
-abstract class IsCoreBaseProgram extends SimpleProgram{
+abstract class IsCoreBaseProgram extends GLSLProgram{
 
 	IsUniformData uniformData;
 	IsUniformTextures textureUniforms;
@@ -32,31 +29,22 @@ abstract class IsCoreBaseProgram extends SimpleProgram{
 			e.printStackTrace();
 		}
 		
-		GLSLProgram program = new GLSLProgram();
-		GLSLProgram.ShaderSourceItem items[] = new GLSLProgram.ShaderSourceItem[4];
-		items[0] = new GLSLProgram.ShaderSourceItem(vert, GL20.GL_VERTEX_SHADER);
-		items[1] = new GLSLProgram.ShaderSourceItem(ctrl, GL40.GL_TESS_CONTROL_SHADER);
-		items[2] = new GLSLProgram.ShaderSourceItem(tess, GL40.GL_TESS_EVALUATION_SHADER);
-		items[3] = new GLSLProgram.ShaderSourceItem(frag, GL20.GL_FRAGMENT_SHADER);
+		ShaderSourceItem items[] = new ShaderSourceItem[4];
+		items[0] = new ShaderSourceItem(vert, ShaderType.VERTEX);
+		items[1] = new ShaderSourceItem(ctrl, ShaderType.TESS_CONTROL);
+		items[2] = new ShaderSourceItem(tess, ShaderType.TESS_EVAL);
+		items[3] = new ShaderSourceItem(frag, ShaderType.FRAGMENT);
 		
-		program.setSourceFromStrings(items);
-		programId = program.getProgram();
-		
-		GLError.checkError();
-		GL20.glUseProgram(programId);
-		textureUniforms = new IsUniformTextures(debug_name, programId);
-		uniformData = new IsUniformData(debug_name, programId);
-		GL20.glUseProgram(0);
+		setSourceFromStrings(items);
+		textureUniforms = new IsUniformTextures(debug_name, getProgram());
+		uniformData = new IsUniformData(debug_name, getProgram());
 	}
 	
 	public void enable(IsParameters params, TextureSampler[] samplers) {
 		super.enable();
 		
-		GLError.checkError();
 		textureUniforms.bindTextures(samplers);
-		GLError.checkError();
 		uniformData.setParameters(params);
-		GLError.checkError();
 	}
 	
 	@Override

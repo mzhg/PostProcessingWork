@@ -1,8 +1,8 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
-import org.lwjgl.opengl.GL20;
-
-import jet.util.buffer.GLUtil;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 /*public*/ class IsUniformData {
 	static boolean out_print = true;
@@ -33,7 +33,10 @@ import jet.util.buffer.GLUtil;
 	int programId;
 	String debug_name;
 	
+	private GLFuncProvider gl;
+	
 	public IsUniformData(String debug_name, int programId) {
+		gl= GLFuncProviderFactory.getGLFuncProvider();
 		this.debug_name = debug_name;
 		this.programId = programId;
 		
@@ -61,50 +64,50 @@ import jet.util.buffer.GLUtil;
 	
 	void setParameters(IsParameters params){
 		if(mvpOffset != -1)
-			GL20.glUniformMatrix4fv(mvpOffset, false, GLUtil.wrap(params.g_ModelViewProjectionMatrix));
+			gl.glUniformMatrix4fv(mvpOffset, false, CacheBuffer.wrap(params.g_ModelViewProjectionMatrix));
 		
 		if(lmvpOffset != -1)
-			GL20.glUniformMatrix4fv(lmvpOffset, false, GLUtil.wrap(params.g_LightModelViewProjectionMatrix));
+			gl.glUniformMatrix4fv(lmvpOffset, false, CacheBuffer.wrap(params.g_LightModelViewProjectionMatrix));
 		if(mvOffset != -1)
-			GL20.glUniformMatrix4fv(mvOffset, false, GLUtil.wrap(params.g_ModelViewMatrix));
+			gl.glUniformMatrix4fv(mvOffset, false, CacheBuffer.wrap(params.g_ModelViewMatrix));
 		if(dmvpOffset != -1)
-			GL20.glUniformMatrix4fv(dmvpOffset, false, GLUtil.wrap(params.g_DepthModelViewProjectionMatrix));
+			gl.glUniformMatrix4fv(dmvpOffset, false, CacheBuffer.wrap(params.g_DepthModelViewProjectionMatrix));
 		if(cpOffset != -1)
-			GL20.glUniform3f(cpOffset, params.g_CameraPosition.x, params.g_CameraPosition.y, params.g_CameraPosition.z);
+			gl.glUniform3f(cpOffset, params.g_CameraPosition.x, params.g_CameraPosition.y, params.g_CameraPosition.z);
 		if(fcOffset != -1)
-			GL20.glUniform1i(fcOffset, params.g_FrustumCullInHS ? 1 : 0);
+			gl.glUniform1i(fcOffset, params.g_FrustumCullInHS ? 1 : 0);
 		if(cdOffset != -1)
-			GL20.glUniform3f(cdOffset, params.g_CameraDirection.x, params.g_CameraDirection.y, params.g_CameraDirection.z);
+			gl.glUniform3f(cdOffset, params.g_CameraDirection.x, params.g_CameraDirection.y, params.g_CameraDirection.z);
 		if(tbrOffset != -1)
-			GL20.glUniform1f(tbrOffset, params.g_TerrainBeingRendered);
+			gl.glUniform1f(tbrOffset, params.g_TerrainBeingRendered);
 		if(wbtsOffset != -1)
-			GL20.glUniform2f(wbtsOffset, params.g_WaterBumpTexcoordShift.x, params.g_WaterBumpTexcoordShift.y);
+			gl.glUniform2f(wbtsOffset, params.g_WaterBumpTexcoordShift.x, params.g_WaterBumpTexcoordShift.y);
 		if(stfOffset != -1)
-			GL20.glUniform1f(stfOffset, params.g_StaticTessFactor);
+			gl.glUniform1f(stfOffset, params.g_StaticTessFactor);
 		if(dtfOffset != -1)
-			GL20.glUniform1f(dtfOffset, params.g_DynamicTessFactor);
+			gl.glUniform1f(dtfOffset, params.g_DynamicTessFactor);
 		if(udLODOffset != -1)
-			GL20.glUniform1f(udLODOffset, params.g_UseDynamicLOD ? 1 : 0);
+			gl.glUniform1f(udLODOffset, params.g_UseDynamicLOD ? 1 : 0);
 		if(sccOffset != -1)
-			GL20.glUniform1i(sccOffset, params.g_SkipCausticsCalculation);
+			gl.glUniform1i(sccOffset, params.g_SkipCausticsCalculation);
 		if(rcOffset != -1)
-			GL20.glUniform1f(rcOffset, params.g_RenderCaustics ? 1: 0);
+			gl.glUniform1f(rcOffset, params.g_RenderCaustics ? 1: 0);
 		if(hscsOffset != -1)
-			GL20.glUniform1f(hscsOffset, params.g_HalfSpaceCullSign);
+			gl.glUniform1f(hscsOffset, params.g_HalfSpaceCullSign);
 		if(hscpOffset != -1)
-			GL20.glUniform1f(hscpOffset, params.g_HalfSpaceCullPosition);
+			gl.glUniform1f(hscpOffset, params.g_HalfSpaceCullPosition);
 		if(lpOffset != -1)
-			GL20.glUniform3f(lpOffset, params.g_LightPosition.x, params.g_LightPosition.y, params.g_LightPosition.z);
+			gl.glUniform3f(lpOffset, params.g_LightPosition.x, params.g_LightPosition.y, params.g_LightPosition.z);
 		if(ssiOffset != -1)
-			GL20.glUniform2f(ssiOffset, params.g_ScreenSizeInv.x, params.g_ScreenSizeInv.y);
+			gl.glUniform2f(ssiOffset, params.g_ScreenSizeInv.x, params.g_ScreenSizeInv.y);
 		if(znearOffset != -1)
-			GL20.glUniform1f(znearOffset, params.g_ZNear);
+			gl.glUniform1f(znearOffset, params.g_ZNear);
 		if(zfarOffset != -1)
-			GL20.glUniform1f(zfarOffset, params.g_ZFar);
+			gl.glUniform1f(zfarOffset, params.g_ZFar);
 	}
 	
 	private int getUniformIndex(String name){
-		int idx = GL20.glGetUniformLocation(programId, name);
+		int idx = gl.glGetUniformLocation(programId, name);
 		if(out_print){
 			if(idx >=0){
 				System.out.println(debug_name + " contains the uniform: " + name);
@@ -137,7 +140,7 @@ import jet.util.buffer.GLUtil;
 			};
 		
 		String pattern = "if(%s != -1)\n" +
-				 "\tGL20.glUniform1f(%s, params.%s);";
+				 "\tgl.glUniform1f(%s, params.%s);";
 		
 		for(int i = 0; i < offsets.length; i++){
 			System.out.println(String.format(pattern, offsets[i], offsets[i],names[i]));

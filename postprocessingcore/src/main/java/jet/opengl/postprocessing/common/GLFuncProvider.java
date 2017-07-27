@@ -1587,4 +1587,7 @@ public interface GLFuncProvider {
     void glQueryCounter(int id, int target);
 
     long glGetQueryObjectui64ui(int id, int pname);
+
+    int glGetSubroutineIndex(int program, int type, String name);
+    void glUniformSubroutinesui(int type, int index);
 }

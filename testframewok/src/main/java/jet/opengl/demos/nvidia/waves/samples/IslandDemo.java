@@ -1,19 +1,18 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
-import org.lwjgl.glfw.GLFW;
-import org.lwjgl.opengl.GL11;
+import com.nvidia.developer.opengl.app.NvCameraMotionType;
+import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.ui.NvTweakBar;
+import com.nvidia.developer.opengl.utils.FieldControl;
+
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
-import com.nvidia.developer.opengl.app.NvCameraMotionType;
-import com.nvidia.developer.opengl.ui.NvTweakBar;
-import com.nvidia.developer.scene.Fragment;
+import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 
-import jet.opengl.examples.tools.transform.FirstPersonCamera;
-import jet.util.FieldControl;
-import jet.util.check.GLError;
-
-public class IslandDemo extends Fragment{
+public class IslandDemo extends NvSampleApp{
 	Vector3f g_EyePoints[/*6*/]=  {new Vector3f(365.0f,  3.0f, 166.0f),
 			new Vector3f(478.0f, -15.0f, 248.0f),
 			new Vector3f(430.0f,  3.0f, 249.0f),
@@ -35,39 +34,33 @@ public class IslandDemo extends Fragment{
 	
 	IsParameters g_Parameters = new IsParameters();
 	CTerrain g_Terrain;
-	
-	FirstPersonCamera camera;
-	
+	private GLFuncProvider gl;
+	private float m_TotalTime;
+
 	@Override
-	protected void initUI(NvTweakBar tweakBar) {
+	public void initUI() {
+		NvTweakBar tweakBar=mTweakBar;
 		tweakBar.addValue("Show Reflection", new FieldControl(g_Parameters, "g_showReflection", FieldControl.CALL_FIELD), false, 0);
 		tweakBar.addValue("Render Water", new FieldControl(g_Parameters, "g_RenderWater", FieldControl.CALL_FIELD), false, 0);
 		tweakBar.syncValues();
 	}
-	
+
 	@Override
-	public void onCreate() {
+	protected void initRendering() {
+		gl= GLFuncProviderFactory.getGLFuncProvider();
 		m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 		m_transformer.setTranslation(-g_EyePoints[1].x, g_EyePoints[1].y, -g_EyePoints[1].z);
 		m_transformer.setMaxTranslationVel(20);
-		
+
 		IsSamplers.createSamplers();
-		
-		GLError.checkError();
+
 		g_Terrain = new CTerrain();
-		g_Terrain.onCreate(getShaderResourcePath(), getTextureResourcePath());
-		GLError.checkError();
-		
-		camera = new FirstPersonCamera(nvApp.getWindow());
-		camera.setRotSpeedX(0.05f);
-		camera.setRotSpeedY(0.05f);
-		nvApp.registerGLEventListener(camera);
-		nvApp.registerGLFWListener(camera);
-		camera.setPosition(g_EyePoints[0]);
-		
+		g_Terrain.onCreate("nvidia/WaveWorks/shaders/", "nvidia/WaveWorks/textures/");
+		GLCheck.checkError();
+
 		initConstantData();
 	}
-	
+
 	/** Initialize the constant data. */
 	void initConstantData(){
 		g_Parameters.g_ZNear = CTerrain.scene_z_near;
@@ -123,13 +116,13 @@ public class IslandDemo extends Fragment{
 		Matrix4f.mul(g_DepthModifier, g_Parameters.g_ModelViewProjectionMatrix, g_Parameters.g_ModelViewProjectionMatrix);
 		g_Parameters.g_Projection = g_CameraProjection;
 	}
-	
+
 	@Override
-	protected void display() {
-		float totalTime = (float) GLFW.glfwGetTime();
-		g_Parameters.g_WaterBumpTexcoordShift.set(totalTime*1.5f,totalTime*0.75f);
-		g_Parameters.g_ScreenSizeInv.x = 1.0f/(nvApp.width() * CTerrain.main_buffer_size_multiplier);
-		g_Parameters.g_ScreenSizeInv.y = 1.0f/(nvApp.height() * CTerrain.main_buffer_size_multiplier);
+	public void display() {
+		m_TotalTime += getFrameDeltaTime();
+		g_Parameters.g_WaterBumpTexcoordShift.set(m_TotalTime*1.5f,m_TotalTime*0.75f);
+		g_Parameters.g_ScreenSizeInv.x = 1.0f/(getGLContext().width() * CTerrain.main_buffer_size_multiplier);
+		g_Parameters.g_ScreenSizeInv.y = 1.0f/(getGLContext().height() * CTerrain.main_buffer_size_multiplier);
 		setupCameraViews();
 //		GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 //		g_Parameters.g_Wireframe = true;
@@ -137,14 +130,10 @@ public class IslandDemo extends Fragment{
 	}
 	
 	@Override
-	public void onResize(int width, int height) {
-		GL11.glViewport(0, 0, width, height);
+	public void reshape(int width, int height) {
+		gl.glViewport(0, 0, width, height);
 		g_Terrain.onReshape(width, height);
 		
 		Matrix4f.perspective(CTerrain.camera_fov/5, (float)width/height, CTerrain.scene_z_near, CTerrain.scene_z_far, g_CameraProjection);
-	}
-	
-	public static void main(String[] args) {
-		run(new IslandDemo(), 1280,720);
 	}
 }

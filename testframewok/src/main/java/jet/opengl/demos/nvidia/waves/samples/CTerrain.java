@@ -1,15 +1,10 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
+import com.nvidia.developer.opengl.utils.NvImage;
+
 import java.io.IOException;
 import java.util.Random;
 
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
-import org.lwjgl.opengl.GL15;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL33;
-import org.lwjgl.opengl.GL40;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -21,19 +16,12 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
 import jet.opengl.postprocessing.texture.FramebufferGL;
+import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
+import jet.opengl.postprocessing.texture.TextureDataDesc;
+import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
-import jet.util.buffer.GLUtil;
-import jet.util.check.GLError;
-import jet.util.opengl.pixel.NvImage;
-import jet.util.opengl.pixel.TextureData;
-import jet.util.opengl.pixel.TextureUtils;
-import jet.util.opengl.shader.libs.FullscreenProgram;
-import jet.util.opengl.shader.libs.FullscreenShadowProgram;
-import jet.util.opengl.shader.libs.postprocessing.FrameBufferBuilder;
-import jet.util.opengl.shader.libs.postprocessing.FramebufferGL;
-import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 
 /*public*/ class CTerrain {
 	
@@ -438,44 +426,44 @@ import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 		else
 			waterRenderProgram.setupWaterPatchPass();
 		
-		GL11.glEnable(GL11.GL_CULL_FACE);
-		GL11.glCullFace(GL11.GL_BACK);
-		GLError.checkError();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, heightfield_vertexbuffer);
-		GL20.glVertexAttribPointer(0, 4, GL11.GL_FLOAT, false, 0, 0);
-		GL20.glEnableVertexAttribArray(0);
-		
-		GL40.glPatchParameteri(GL40.GL_PATCH_VERTICES, 1);
-		GL11.glDrawArrays(GL40.GL_PATCHES, 0, terrain_numpatches_1d*terrain_numpatches_1d);
+		gl.glEnable(GLenum.GL_CULL_FACE);
+		gl.glCullFace(GLenum.GL_BACK);
+		GLCheck.checkError();
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, heightfield_vertexbuffer);
+		gl.glVertexAttribPointer(0, 4, GLenum.GL_FLOAT, false, 0, 0);
+		gl.glEnableVertexAttribArray(0);
+
+		gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 1);
+		gl.glDrawArrays(GLenum.GL_PATCHES, 0, terrain_numpatches_1d*terrain_numpatches_1d);
 		
 		// reset the state.
 		waterRenderProgram.disable();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-		GL20.glDisableVertexAttribArray(0);
-		GL11.glDisable(GL11.GL_CULL_FACE);
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+		gl.glDisableVertexAttribArray(0);
+		gl.glDisable(GLenum.GL_CULL_FACE);
 	}
 	
 	void drawFullscreen(int textureId){
-		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
-		GL11.glViewport(0, 0, backbufferWidth, backbufferHeight);
-		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-		GL11.glDisable(GL11.GL_DEPTH_TEST);
-		
-		GL13.glActiveTexture(GL13.GL_TEXTURE0);
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
-		GL33.glBindSampler(0, IsSamplers.g_SamplerLinearClamp);
+		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+		gl.glViewport(0, 0, backbufferWidth, backbufferHeight);
+		gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
+		gl.glDisable(GLenum.GL_DEPTH_TEST);
+
+		gl.glActiveTexture(GLenum.GL_TEXTURE0);
+		gl.glBindTexture(GLenum.GL_TEXTURE_2D, textureId);
+		gl.glBindSampler(0, IsSamplers.g_SamplerLinearClamp);
 		
 		textureDebugProgram.enable();
-		GL11.glDrawArrays(GL11.GL_TRIANGLE_STRIP, 0, 4);
-		GL33.glBindSampler(0, 0);
+		gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
+		gl.glBindSampler(0, 0);
 	}
 	
 	void renderReflection(IsParameters params){
-		reflection_framebuffer.enableRenderToColorAndDepth(0);
+		reflection_framebuffer.bind();
 		reflection_framebuffer.setViewPort();
-		
-		GL30.glClearBufferfv(GL11.GL_COLOR, 0, GLUtil.wrap(refractionClearColor));
-		GL30.glClearBufferfv(GL11.GL_DEPTH, 0, GLUtil.wrap(1.0f));
+
+		gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(refractionClearColor));
+		gl.glClearBufferfv(GLenum.GL_DEPTH, 0, CacheBuffer.wrap(1.0f));
 		
 		setupReflectionView(params);
 		
@@ -533,91 +521,85 @@ import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 	}
 	
 	void renderSky(IsParameters params){
-		GLError.checkError();
+		GLCheck.checkError();
 		skyProgram.enable();
 		skyProgram.setModelViewProjectionMatrix(params.g_ModelViewProjectionMatrix);
-		GLError.checkError();
+		GLCheck.checkError();
 		if(params.g_Wireframe)
 			skyProgram.setupColorPass();
 		else
 			skyProgram.setupSkyPass();
-		GL13.glActiveTexture(GL13.GL_TEXTURE0);
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, sky_texture);
-		GL33.glBindSampler(0, IsSamplers.g_SamplerLinearWrap);
+		gl.glActiveTexture(GLenum.GL_TEXTURE0);
+		gl.glBindTexture(GLenum.GL_TEXTURE_2D, sky_texture);
+		gl.glBindSampler(0, IsSamplers.g_SamplerLinearWrap);
 		int stride = 4 * 6;
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, sky_vertexbuffer);
-		GL20.glEnableVertexAttribArray(0);
-		GL20.glEnableVertexAttribArray(1);
-		GL20.glVertexAttribPointer(0, 4, GL11.GL_FLOAT, false, stride, 0);
-		GL20.glVertexAttribPointer(1, 2, GL11.GL_FLOAT, false, stride, 4 * 4);
-		
-		GL11.glDrawArrays(GL11.GL_TRIANGLE_STRIP, 0, sky_gridpoints*(sky_gridpoints+2)*2);
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, sky_vertexbuffer);
+		gl.glEnableVertexAttribArray(0);
+		gl.glEnableVertexAttribArray(1);
+		gl.glVertexAttribPointer(0, 4, GLenum.GL_FLOAT, false, stride, 0);
+		gl.glVertexAttribPointer(1, 2, GLenum.GL_FLOAT, false, stride, 4 * 4);
+
+		gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, sky_gridpoints*(sky_gridpoints+2)*2);
 		
 		skyProgram.disable();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-		GL20.glDisableVertexAttribArray(0);
-		GL20.glDisableVertexAttribArray(1);
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-		GL33.glBindSampler(0, 0);
-		
-		GLError.checkError();
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+		gl.glDisableVertexAttribArray(0);
+		gl.glDisableVertexAttribArray(1);
+		gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+		gl.glBindSampler(0, 0);
+
+		GLCheck.checkError();
 	}
 	
 	// 这个方法应该在IslandWater中调用
 	void renderCaustics(IsParameters params){
 		if(params.g_RenderCaustics){
 			// selecting water_normalmap_resource rendertarget
-			water_normalmap_framebuffer.enableRenderToColorAndDepth(0);
+			water_normalmap_framebuffer.bind();
 			water_normalmap_framebuffer.setViewPort();
-			GL11.glDisable(GL11.GL_DEPTH_TEST);
+			gl.glDisable(GLenum.GL_DEPTH_TEST);
 //			GL11.glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 //			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-			GL30.glClearBufferfv(GL11.GL_COLOR, 0, GLUtil.wrap(clearColor));
-			GLError.checkError();
-			
-			GL13.glActiveTexture(GL13.GL_TEXTURE0);
-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, water_bump_texture);
-			GL33.glBindSampler(0, IsSamplers.g_SamplerLinearWrap);
+			gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(clearColor));
+
+			gl.glActiveTexture(GLenum.GL_TEXTURE0);
+			gl.glBindTexture(GLenum.GL_TEXTURE_2D, water_bump_texture);
+			gl.glBindSampler(0, IsSamplers.g_SamplerLinearWrap);
 			//rendering water normalmap
 //			setupNormalView(/*cam*/); // need it just to provide shader with camera position
 			
 			waterNormalmapCombineProgram.enable();
-			GLError.checkError();
 			waterNormalmapCombineProgram.applyCameraPosition(params.g_CameraPosition);
 			waterNormalmapCombineProgram.applyWaterBumpTexcoordShift(params.g_WaterBumpTexcoordShift);
-			GL11.glDrawArrays(GL11.GL_TRIANGLE_STRIP, 0, 4);
-			GLError.checkError();
+			gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
 			waterNormalmapCombineProgram.disable();
-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-			GL33.glBindSampler(0, 0);
-			GL11.glEnable(GL11.GL_DEPTH_TEST);
-			GLError.checkError();
+			gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+			gl.glBindSampler(0, 0);
+			gl.glEnable(GLenum.GL_DEPTH_TEST);
+			GLCheck.checkError();
 		}
 	}
 	
 	void renderShadowMap(IsParameters params){
-		shadownmap_framebuffer.enableRenderToColorAndDepth(0);
+		shadownmap_framebuffer.bind();
 		shadownmap_framebuffer.setViewPort();
 		
-		GLError.checkError();
-		GL11.glEnable(GL11.GL_DEPTH_TEST);
-		GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
-		GL11.glColorMask(false, false, false, false);  // disable color output.
+		gl.glEnable(GLenum.GL_DEPTH_TEST);
+		gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
+		gl.glColorMask(false, false, false, false);  // disable color output.
 		
 		params.g_HalfSpaceCullSign = 1.0f;
 		params.g_HalfSpaceCullPosition = terrain_minheight*2;
 		params.g_TerrainBeingRendered = 1;
 		params.g_SkipCausticsCalculation = 1;
-		GLError.checkError();
 		renderTerrain(params, false, true);
-		GL11.glColorMask(true, true, true, true);
-		GLError.checkError();
+		gl.glColorMask(true, true, true, true);
+		GLCheck.checkError();
 	}
 	
 	void renderTerrain(IsParameters params, boolean cullface, boolean shadow_map){
 		
 		renderHeightfieldProgram.enable(params, terrain_textures);
-		GLError.checkError();
 		if(params.g_Wireframe){
 			renderHeightfieldProgram.setupColorPass();
 		}else{
@@ -626,29 +608,30 @@ import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 		
 		renderHeightfieldProgram.setRenderShadowmap(shadow_map);
 		
-		GLError.checkError();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, heightfield_vertexbuffer);
-		GL20.glVertexAttribPointer(0, 4, GL11.GL_FLOAT, false, 0, 0);
-		GL20.glEnableVertexAttribArray(0);
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, heightfield_vertexbuffer);
+		gl.glVertexAttribPointer(0, 4, GLenum.GL_FLOAT, false, 0, 0);
+		gl.glEnableVertexAttribArray(0);
 		if(cullface){
-			GL11.glFrontFace(GL11.GL_CCW);
-			GL11.glCullFace(GL11.GL_BACK);
+			gl.glFrontFace(GLenum.GL_CCW);
+			gl.glCullFace(GLenum.GL_BACK);
 		}else{
-			GL11.glFrontFace(GL11.GL_CW);
-			GL11.glCullFace(GL11.GL_FRONT);
+			gl.glFrontFace(GLenum.GL_CW);
+			gl.glCullFace(GLenum.GL_FRONT);
 		}
-		GL11.glEnable(GL11.GL_CULL_FACE);
-		GL40.glPatchParameteri(GL40.GL_PATCH_VERTICES, 1);
-		GL11.glDrawArrays(GL40.GL_PATCHES, 0, terrain_numpatches_1d*terrain_numpatches_1d);
+		gl.glEnable(GLenum.GL_CULL_FACE);
+		gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 1);
+		gl.glDrawArrays(GLenum.GL_PATCHES, 0, terrain_numpatches_1d*terrain_numpatches_1d);
 		
 		// reset the state.
 		renderHeightfieldProgram.disable();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-		GL20.glDisableVertexAttribArray(0);
-		
-			GL11.glDisable(GL11.GL_CULL_FACE);
-			if(cullface)
-				GL11.glFrontFace(GL11.GL_CCW);
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+		gl.glDisableVertexAttribArray(0);
+
+		gl.glDisable(GLenum.GL_CULL_FACE);
+		if(cullface)
+			gl.glFrontFace(GLenum.GL_CCW);
+
+		GLCheck.checkError();
 	}
 	
 	void releaseFrameBuffer(){
@@ -696,54 +679,46 @@ import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 		NvImage.upperLeftOrigin(false);
 		rock_bump_texture = NvImage.uploadTextureFromDDSFile(prefix + "rock_bump6.dds");
 		printFormat("rock_bump6.dds", rock_bump_texture);
-		GLError.checkError();
-		
+
 		rock_diffuse_texture = NvImage.uploadTextureFromDDSFile(prefix + "terrain_rock4.dds");
 		printFormat("terrain_rock4.dds", rock_diffuse_texture);
-		GLError.checkError();
-		
+
 		sand_diffuse_texture = NvImage.uploadTextureFromDDSFile(prefix + "sand_diffuse.dds");
 		printFormat("sand_diffuse.dds", sand_diffuse_texture);
-		GLError.checkError();
-		
+
 		sand_bump_texture = NvImage.uploadTextureFromDDSFile(prefix + "rock_bump4.dds");
 		printFormat("rock_bump4.dds", sand_bump_texture);
-		GLError.checkError();
-		
+
 		grass_diffuse_texture = NvImage.uploadTextureFromDDSFile(prefix + "terrain_grass.dds");
 		printFormat("terrain_grass.dds", grass_diffuse_texture);
-		GLError.checkError();
-		
+
 		slope_diffuse_texture = NvImage.uploadTextureFromDDSFile(prefix + "terrain_slope.dds");
 		printFormat("terrain_slope.dds", slope_diffuse_texture);
-		GLError.checkError();
-		
+
 		sand_microbump_texture =NvImage.uploadTextureFromDDSFile(prefix + "lichen1_normal.dds");
 		printFormat("lichen1_normal.dds", sand_microbump_texture);
-		GLError.checkError();
-		
+
 		rock_microbump_texture = NvImage.uploadTextureFromDDSFile(prefix + "rock_bump4.dds");
 		printFormat("rock_bump4.dds", rock_microbump_texture);
-		GLError.checkError();   //TODO rock_microbump_texture is equal to the sand_bump_texture
+		//TODO rock_microbump_texture is equal to the sand_bump_texture
 		
 		water_bump_texture = NvImage.uploadTextureFromDDSFile(prefix + "water_bump.dds");
 		printFormat("water_bump.dds", water_bump_texture);
-		GLError.checkError();
-		
+
 		sky_texture = NvImage.uploadTextureFromDDSFile(prefix + "sky.dds");
-		GLError.checkError();
+		GLCheck.checkError();
 		
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+		gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
 	}
 	
 	void printFormat(String name, int textureID){
-		if(textureID == 0){
-			System.err.println(name + "'s textureID is 0.");
-			return;
-		}
-		
-		int internalFormat = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_INTERNAL_FORMAT);
-		System.out.println(name + " format = " + TextureUtils.getFormatName(internalFormat));
+//		if(textureID == 0){
+//			System.err.println(name + "'s textureID is 0.");
+//			return;
+//		}
+//
+//		int internalFormat = gl.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_INTERNAL_FORMAT);
+//		System.out.println(name + " format = " + TextureUtils.getFormatName(internalFormat));
 	}
 	
 	private void createTerrain(){
@@ -1096,14 +1071,16 @@ import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 				layerdef_map_texture_pixels[(j*terrain_layerdef_map_texture_size+i)*4+3]=(byte)(n4/25);
 			}
 		
-		TextureData tex_desc = new TextureData();
+		Texture2DDesc tex_desc = new Texture2DDesc();
 		tex_desc.width = terrain_layerdef_map_texture_size;
 		tex_desc.height = terrain_layerdef_map_texture_size;
-		tex_desc.genMipmap = false;
-		tex_desc.target = GL11.GL_TEXTURE_2D;
-		tex_desc.internalFormat = GL11.GL_RGBA8;
-		tex_desc.pixels = GLUtil.wrap(layerdef_map_texture_pixels);
-		layerdef_texture = TextureUtils.createTexture(tex_desc);
+		tex_desc.format = GLenum.GL_RGBA8;
+		TextureDataDesc initData=new TextureDataDesc();
+		initData.data = layerdef_map_texture_pixels;
+		initData.format=GLenum.GL_RGBA;
+		initData.type=GLenum.GL_UNSIGNED_BYTE;
+
+		layerdef_texture = TextureUtils.createTexture2D(tex_desc, initData).getTexture();
 		
 		temp_layerdef_map_texture_pixels = null;
 		layerdef_map_texture_pixels = null;
@@ -1122,10 +1099,13 @@ import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 		
 		tex_desc.width = terrain_gridpoints;
 		tex_desc.height = terrain_gridpoints;
-		tex_desc.internalFormat = GL30.GL_RGBA32F;
-		tex_desc.pixels = GLUtil.wrapToBytes(height_linear_array);
+		tex_desc.format = GLenum.GL_RGBA32F;
+//		tex_desc.pixels = GLUtil.wrapToBytes(height_linear_array);
+		initData.data=height_linear_array;
+		initData.format=GLenum.GL_RGBA;
+		initData.type=GLenum.GL_FLOAT;
 		
-		heightmap_texture = TextureUtils.createTexture(tex_desc);
+		heightmap_texture = TextureUtils.createTexture2D(tex_desc, initData).getTexture();
 		height_linear_array = null;
 		
 		//building depthmap
@@ -1168,10 +1148,13 @@ import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 		
 		tex_desc.width = terrain_depth_shadow_map_texture_size;
 		tex_desc.height = terrain_depth_shadow_map_texture_size;
-		tex_desc.internalFormat = GL11.GL_RGBA8;
-		tex_desc.pixels = GLUtil.wrap(depth_shadow_map_texture_pixels);
+		tex_desc.format = GLenum.GL_RGBA8;
+//		tex_desc.pixels = GLUtil.wrap(depth_shadow_map_texture_pixels);
+		initData.data = depth_shadow_map_texture_pixels;
+		initData.format=GLenum.GL_RGBA;
+		initData.type=GLenum.GL_UNSIGNED_BYTE;
 		
-		depthmap_texture = TextureUtils.createTexture(tex_desc);
+		depthmap_texture = TextureUtils.createTexture2D(tex_desc, initData).getTexture();
 		depth_shadow_map_texture_pixels = null;
 		
 		// creating terrain vertex buffer
@@ -1184,10 +1167,10 @@ import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 				patches_rawdata[(i+j*terrain_numpatches_1d)*4+3]=terrain_geometry_scale*terrain_gridpoints/terrain_numpatches_1d;
 			}
 		
-		heightfield_vertexbuffer = GL15.glGenBuffers();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, heightfield_vertexbuffer);
-		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, GLUtil.wrap(patches_rawdata), GL15.GL_STATIC_DRAW);
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+		heightfield_vertexbuffer = gl.glGenBuffer();
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, heightfield_vertexbuffer);
+		gl.glBufferData(GLenum.GL_ARRAY_BUFFER,CacheBuffer.wrap(patches_rawdata), GLenum.GL_STATIC_DRAW);
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
 		
 		patches_rawdata = null;
 		
@@ -1235,10 +1218,10 @@ import jet.util.opengl.shader.libs.postprocessing.TextureInfo;
 			floatnum+=6;
 		}
 		
-		sky_vertexbuffer = GL15.glGenBuffers();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, sky_vertexbuffer);
-		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, GLUtil.wrap(sky_vertexdata), GL15.GL_STATIC_DRAW);
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+		sky_vertexbuffer = gl.glGenBuffer();
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, sky_vertexbuffer);
+		gl.glBufferData(GLenum.GL_ARRAY_BUFFER, CacheBuffer.wrap(sky_vertexdata), GLenum.GL_STATIC_DRAW);
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
 	}
 	
 	static float sin(float angle) { return (float)Math.sin(angle);}
