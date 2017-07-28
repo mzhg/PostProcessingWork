@@ -47,7 +47,8 @@ import jet.opengl.postprocessing.common.GLenum;
 		if(out_print){
 			System.out.println(debug_name + "'s texture uniforms initalizing...");
 		}
-		
+
+		gl.glUseProgram(program);
 		int index = 0;
 		for(int i = 0; i < textureNames.length; i++){
 			textureUniforms[i] = gl.glGetUniformLocation(program, textureNames[i]);

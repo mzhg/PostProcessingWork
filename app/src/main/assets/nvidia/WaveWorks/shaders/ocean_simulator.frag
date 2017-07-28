@@ -3,7 +3,7 @@
 layout(location = 0) out vec4 fragColor;
 
 // Textures and sampling states
-uniform sampler2D g_samplerDisplacementMap;
+layout(binding = 0) uniform sampler2D g_samplerDisplacementMap;
 
 // #define USE_CONST
 
@@ -49,7 +49,7 @@ subroutine (Technique) void UpdateDisplacementPS()
 	uint addr = g_OutWidth * index_y + index_x;
 
 	// cos(pi * (m1 + m2))
-	float sign_correction = (((index_x + index_y) & 1)!=0) ? -1.0 : 1.0;
+	float sign_correction = (((index_x + index_y) & 1u)!=0) ? -1.0 : 1.0;
 
 	float dx = imageLoad(g_InputDxyz, int(addr + g_DxAddressOffset)).r * sign_correction * g_ChoppyScale;
 	float dy = imageLoad(g_InputDxyz, int(addr + g_DyAddressOffset)).r * sign_correction * g_ChoppyScale;

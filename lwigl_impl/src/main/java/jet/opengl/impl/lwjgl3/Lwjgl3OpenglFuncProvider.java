@@ -310,6 +310,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glTexImage1D(int target, int level, int internalformat, int width, int border, int format, int type, Buffer pixels) {
+        GL11.glTexImage1D(target, level, internalformat, width, border, format, type, pixels != null ? MemoryUtil.memAddress0(pixels): 0);
+    }
+
+    @Override
     public void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, long pixels_offset) {
         GL11.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels_offset);
     }
@@ -1818,6 +1823,26 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glGenerateTextureMipmap(int texture) {
         ARBDirectStateAccess.glGenerateTextureMipmap(texture);
+    }
+
+    @Override
+    public void glQueryCounter(int id, int target) {
+        GL33.glQueryCounter(id, target);
+    }
+
+    @Override
+    public long glGetQueryObjectui64ui(int id, int pname) {
+        return GL33.glGetQueryObjectui64(id, pname);
+    }
+
+    @Override
+    public int glGetSubroutineIndex(int program, int type, String name) {
+        return GL40.glGetSubroutineIndex(program, type, name);
+    }
+
+    @Override
+    public void glUniformSubroutinesui(int type, int index) {
+        GL40.glUniformSubroutinesui(type, index);
     }
 
 }

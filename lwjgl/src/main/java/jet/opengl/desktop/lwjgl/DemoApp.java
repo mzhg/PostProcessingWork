@@ -2,6 +2,8 @@ package jet.opengl.desktop.lwjgl;
 
 import com.nvidia.developer.opengl.app.NvAppBase;
 import com.nvidia.developer.opengl.app.NvEGLConfiguration;
+import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
+import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.assimp.AIFace;
@@ -19,7 +21,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import jet.opengl.demos.intel.cloud.CloudSkyStaticDemo;
+import jet.opengl.demos.nvidia.waves.samples.OceanCSDemo;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
@@ -96,7 +98,8 @@ public class DemoApp {
             }
         });
 
-        run(new CloudSkyStaticDemo());
+        NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
+        run(new OceanCSDemo());
 
         if(true) return;
 

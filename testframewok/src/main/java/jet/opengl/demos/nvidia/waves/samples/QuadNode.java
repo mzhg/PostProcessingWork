@@ -1,8 +1,8 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
-import java.util.Arrays;
+import com.nvidia.developer.opengl.utils.Pool;
 
-import jet.util.Pool;
+import java.util.Arrays;
 
 public class QuadNode implements Pool.Poolable{
 

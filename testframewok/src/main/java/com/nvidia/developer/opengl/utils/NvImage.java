@@ -46,7 +46,7 @@ public class NvImage {
 
     protected static boolean upperLeftOrigin = true;
     protected static boolean m_expandDXT = false;
-    protected static NvGfxAPIVersion m_gfxAPIVersion = NvGfxAPIVersion.GLES2;
+    protected static NvGfxAPIVersion m_gfxAPIVersion = NvGfxAPIVersion.GL4_4;
     protected static FormatInfo[] formatTable = new FormatInfo[]{new FormatInfo("dds", new ReadDDS(), null)};
 
     protected List<byte[]> _data = new ArrayList<byte[]>();

@@ -2,12 +2,12 @@ package jet.opengl.demos.nvidia.waves.samples;
 
 import com.nvidia.developer.opengl.utils.NvImage;
 
-import java.io.IOException;
-import java.util.Random;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
+
+import java.io.IOException;
+import java.util.Random;
 
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -16,7 +16,6 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
 import jet.opengl.postprocessing.texture.FramebufferGL;
-import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
@@ -195,18 +194,20 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		}
 		
 		createTerrain();
-		
-		renderHeightfieldProgram = new IsRenderHeightfieldProgram(shaderPath);
-		waterNormalmapCombineProgram = new IsWaterNormalmapCombineProgram(shaderPath);
-		waterRenderProgram = new IsWaterRenderProgram(shaderPath);
-		skyProgram = new IsSkyProgram(shaderPath);
-		mainToBackBufferProgram = new IsMainToBackBufferProgram(shaderPath);
+		GLCheck.checkError();
+		renderHeightfieldProgram = new IsRenderHeightfieldProgram(shaderPath);GLCheck.checkError();
+		waterNormalmapCombineProgram = new IsWaterNormalmapCombineProgram(shaderPath);GLCheck.checkError();
+		waterRenderProgram = new IsWaterRenderProgram(shaderPath);GLCheck.checkError();
+		skyProgram = new IsSkyProgram(shaderPath);GLCheck.checkError();
+		mainToBackBufferProgram = new IsMainToBackBufferProgram(shaderPath);GLCheck.checkError();
 
 		try {
 			shadowDebugProgram = new VisualDepthTextureProgram(false);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		GLCheck.checkError();
 		textureDebugProgram = new FullscreenProgram();
 //		g_HeightfieldTexture,  0
 //		g_LayerdefTexture,  1
@@ -297,6 +298,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 //		builder.setHeight(water_normalmap_resource_buffer_size_xy);
 //		depth_desc.setInternalFormat(FramebufferGL.FBO_DepthBufferType_NONE);
 		water_normalmap_framebuffer = new FramebufferGL();
+		water_normalmap_framebuffer.bind();
 		water_normalmap_framebuffer.addTexture2D(new Texture2DDesc(water_normalmap_resource_buffer_size_xy, water_normalmap_resource_buffer_size_xy, GLenum.GL_RGB8), default_desc);
 		
 //		builder.setWidth(shadowmap_resource_buffer_size_xy);
@@ -304,6 +306,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 //		depth_desc.setInternalFormat(FramebufferGL.FBO_DepthBufferType_TEXTURE_DEPTH32F);
 //		builder.getColorTextures().clear();
 		shadownmap_framebuffer = new FramebufferGL(/*builder*/);
+		shadownmap_framebuffer.bind();
 		shadownmap_framebuffer.addTexture2D(new Texture2DDesc(shadowmap_resource_buffer_size_xy,shadowmap_resource_buffer_size_xy, GLenum.GL_DEPTH_COMPONENT32F), default_desc);
 		
 		terrain_textures[4].textureID = water_normalmap_framebuffer.getAttachedTex(0).getTexture();  // color
@@ -551,7 +554,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		GLCheck.checkError();
 	}
 	
-	// 这个方法应该在IslandWater中调用
+	// The method should called in class of IslandWater
 	void renderCaustics(IsParameters params){
 		if(params.g_RenderCaustics){
 			// selecting water_normalmap_resource rendertarget
@@ -663,16 +666,6 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 	
 	void onDestroy(){
 		releaseFrameBuffer();
-	}
-	
-	public static void main(String[] args) {
-		Vector3f u = new Vector3f(2,1,3);
-		Vector3f v = new Vector3f(2, 0,0);
-		
-		System.out.println("u x v = " + Vector3f.cross(u, v, null));
-		System.out.println("v x u = " + Vector3f.cross(v, u, null));
-		
-		System.out.println(0x83f3);
 	}
 	
 	void loadTextures(String prefix)throws IOException{

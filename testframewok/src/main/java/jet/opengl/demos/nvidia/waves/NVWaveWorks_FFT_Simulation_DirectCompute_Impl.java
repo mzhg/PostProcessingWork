@@ -11,7 +11,6 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
-import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
@@ -57,7 +56,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
     private long[] m_readback_kickIDs = new long[NumReadbackSlots];
 
-    private long m_DisplacementMapVersion = GFSDK_WaveWorks_InvalidKickID;
+    private long m_DisplacementMapVersion = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
 
     private float[] m_timer_results = new float[NumTimerSlots];
     private long[] m_timer_kickIDs = new long[NumReadbackSlots];
@@ -205,14 +204,14 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
     NVWaveWorks_FFT_Simulation_DirectCompute_Impl(NVWaveWorks_FFT_Simulation_Manager_DirectCompute_Impl pManager, GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params){
         for(int slot = 0; slot != NumReadbackSlots; ++slot)
         {
-            m_readback_kickIDs[slot] = GFSDK_WaveWorks_InvalidKickID;
+            m_readback_kickIDs[slot] = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
         }
         m_active_readback_slot = 0;
         m_end_inflight_readback_slots = 1;
 
         for(int slot = 0; slot != NumTimerSlots; ++slot)
         {
-            m_timer_kickIDs[slot] = GFSDK_WaveWorks_InvalidKickID;
+            m_timer_kickIDs[slot] = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
             m_timer_results[slot] = 0.f;
         }
         m_active_timer_slot = 0;
@@ -465,7 +464,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                         _11.m_readback_buffers[slot] = TextureUtils.createTexture2D(texture_desc, null); // TODO
                         _11.m_readback_queries[slot] = gl.glGenQuery();
 
-                        m_readback_kickIDs[slot] = GFSDK_WaveWorks_InvalidKickID;
+                        m_readback_kickIDs[slot] = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
                     }
                     m_active_readback_slot = 0;
                     m_end_inflight_readback_slots = 1;
@@ -480,7 +479,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                             ReadbackFIFOSlot slot = _11.m_pReadbackFIFO.raw_at(i);
 //                            V_RETURN(device->CreateTexture2D(&texture_desc, nullptr, &slot.buffer));
                             slot.buffer = TextureUtils.createTexture2D(texture_desc, null);
-                            slot.kickID = GFSDK_WaveWorks_InvalidKickID;
+                            slot.kickID = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
                         }
                     }
 
@@ -500,7 +499,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                     _11.m_start_queries[slot] = gl.glGenQuery();
                     _11.m_end_queries[slot] = gl.glGenQuery();
 
-                    m_timer_kickIDs[slot] = GFSDK_WaveWorks_InvalidKickID;
+                    m_timer_kickIDs[slot] = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
                     m_timer_results[slot] = 0.f;
                 }
                 m_active_timer_slot = 0;
@@ -566,7 +565,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         m_GaussAndOmegaInitialised = false;
         m_H0Dirty = true;
 
-        m_DisplacementMapVersion = GFSDK_WaveWorks_InvalidKickID;
+        m_DisplacementMapVersion = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
 
         return S_OK;
     }
@@ -907,7 +906,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             return false;
         }
 
-        if(GFSDK_WaveWorks_InvalidKickID == m_readback_kickIDs[m_active_readback_slot])
+        if(GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID == m_readback_kickIDs[m_active_readback_slot])
         {
             // No results yet
             return false;
@@ -979,7 +978,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
         m_active_readback_slot = 0;
         m_end_inflight_readback_slots = 1;
-        m_readback_kickIDs[m_active_readback_slot] = GFSDK_WaveWorks_InvalidKickID;
+        m_readback_kickIDs[m_active_readback_slot] = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
 
         switch(m_d3dAPI)
         {
@@ -994,7 +993,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
     }
 
     HRESULT archiveDisplacements(){
-        long[] kickID = {GFSDK_WaveWorks_InvalidKickID};
+        long[] kickID = {GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID};
         if(getReadbackCursor(kickID) && _11.m_pReadbackFIFO != null)
         {
             // We avoid big memcpys by swapping pointers, specifically we will either evict a FIFO entry or else use a free one and

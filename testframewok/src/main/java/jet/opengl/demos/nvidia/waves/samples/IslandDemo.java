@@ -47,13 +47,14 @@ public class IslandDemo extends NvSampleApp{
 
 	@Override
 	protected void initRendering() {
+		getGLContext().setSwapInterval(0);
 		gl= GLFuncProviderFactory.getGLFuncProvider();
 		m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 		m_transformer.setTranslation(-g_EyePoints[1].x, g_EyePoints[1].y, -g_EyePoints[1].z);
 		m_transformer.setMaxTranslationVel(20);
 
 		IsSamplers.createSamplers();
-
+		GLCheck.checkError();
 		g_Terrain = new CTerrain();
 		g_Terrain.onCreate("nvidia/WaveWorks/shaders/", "nvidia/WaveWorks/textures/");
 		GLCheck.checkError();

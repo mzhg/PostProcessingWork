@@ -1,23 +1,22 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
+import com.nvidia.developer.opengl.utils.NvImage;
+import com.nvidia.developer.opengl.utils.Pool;
+
+import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector3f;
+
 import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
-import org.lwjgl.opengl.GL15;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector2f;
-import org.lwjgl.util.vector.Vector3f;
-
-import jet.util.Pool;
-import jet.util.buffer.GLUtil;
-import jet.util.opengl.pixel.NvImage;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 public class QuadRenderer {
 
@@ -96,11 +95,14 @@ public class QuadRenderer {
 	Matrix4f g_ModelView;
 	Vector3f g_EyePosition;
 	float mScreenArea;
+
+	private GLFuncProvider gl;
 	
 	static QuadNode quadNode() { return new QuadNode();}
 	
 	public QuadRenderer(String shader_prefix, String texture_prefix, OceanParameter ocean_param, Pool<Matrix4f> matPool){
 		g_Mat4Pool = matPool;
+		gl = GLFuncProviderFactory.getGLFuncProvider();
 		
 		g_PatchLength = ocean_param.patch_length;
 		g_DisplaceMapDim = ocean_param.dmap_dim;
@@ -140,14 +142,14 @@ public class QuadRenderer {
 		g_pOceanSurfaceFX.setSunDir(g_SunDir);
 		g_pOceanSurfaceFX.setShineness(g_Shineness);
 		
-		GL20.glUseProgram(0);
+		gl.glUseProgram(0);
 	}
 	
 	void createSurfaceMesh(){
 		// --------------------------------- Vertex Buffer -------------------------------
 		int num_verts = (g_MeshDim + 1) * (g_MeshDim + 1);
 //		ocean_vertex* pV = new ocean_vertex[num_verts];
-		FloatBuffer pV = GLUtil.getCachedFloatBuffer(num_verts * 2);
+		FloatBuffer pV = CacheBuffer.getCachedFloatBuffer(num_verts * 2);
 		
 		int i, j;
 		for (i = 0; i <= g_MeshDim; i++)
@@ -162,10 +164,10 @@ public class QuadRenderer {
 		
 		pV.flip();
 		
-		g_pMeshVB = GL15.glGenBuffers();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, g_pMeshVB);
-		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, pV, GL15.GL_STATIC_DRAW);
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+		g_pMeshVB = gl.glGenBuffer();
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, g_pMeshVB);
+		gl.glBufferData(GLenum.GL_ARRAY_BUFFER, pV, GLenum.GL_STATIC_DRAW);
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
 		
 		// --------------------------------- Index Buffer -------------------------------
 		// The index numbers for all mesh LODs (up to 256x256)
@@ -248,28 +250,28 @@ public class QuadRenderer {
 			System.err.println("createSurfaceMesh: Inner Error");
 		}
 		
-		g_pMeshIB = GL15.glGenBuffers();
-		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, g_pMeshIB);
-		GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, GLUtil.wrap(index_array), GL15.GL_STATIC_DRAW);
-		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
+		g_pMeshIB = gl.glGenBuffer();
+		gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, g_pMeshIB);
+		gl.glBufferData(GLenum.GL_ELEMENT_ARRAY_BUFFER, CacheBuffer.wrap(index_array), GLenum.GL_STATIC_DRAW);
+		gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
 		
-		g_pMeshVAO = GL30.glGenVertexArrays();
-		GL30.glBindVertexArray(g_pMeshVAO);
+		g_pMeshVAO = gl.glGenVertexArray();
+		gl.glBindVertexArray(g_pMeshVAO);
 		{
-			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, g_pMeshVB);
-			
-			GL20.glVertexAttribPointer(0, 2, GL11.GL_FLOAT, false, 0, 0);
-			GL20.glEnableVertexAttribArray(0);
-			
-			GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, g_pMeshIB);
+			gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, g_pMeshVB);
+
+			gl.glVertexAttribPointer(0, 2, GLenum.GL_FLOAT, false, 0, 0);
+			gl.glEnableVertexAttribArray(0);
+
+			gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, g_pMeshIB);
 		}
-		GL30.glBindVertexArray(0);
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
+		gl.glBindVertexArray(0);
+		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+		gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 	
 	void createFresnelMap(){
-		IntBuffer buffer = GLUtil.getCachedIntBuffer(FRESNEL_TEX_SIZE);
+		IntBuffer buffer = CacheBuffer.getCachedIntBuffer(FRESNEL_TEX_SIZE);
 		for(int i = 0; i < FRESNEL_TEX_SIZE; i++){
 			float cos_a = (float)i / FRESNEL_TEX_SIZE;
 			// Using water's refraction index 1.33
@@ -281,13 +283,13 @@ public class QuadRenderer {
 		}
 		buffer.flip();
 		
-		g_pSRV_Fresnel = GL11.glGenTextures();
-		GL11.glBindTexture(GL11.GL_TEXTURE_1D, g_pSRV_Fresnel);
-		GL11.glTexImage1D(GL11.GL_TEXTURE_1D, 0, GL11.GL_RGBA8, FRESNEL_TEX_SIZE, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
+		g_pSRV_Fresnel = gl.glGenTexture();
+		gl.glBindTexture(GLenum.GL_TEXTURE_1D, g_pSRV_Fresnel);
+		gl.glTexImage1D(GLenum.GL_TEXTURE_1D, 0, GLenum.GL_RGBA8, FRESNEL_TEX_SIZE, 0, GLenum.GL_RGBA, GLenum.GL_UNSIGNED_BYTE, buffer);
 //		GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
 //		GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
 //		GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
-		GL11.glBindTexture(GL11.GL_TEXTURE_1D, 0);
+		gl.glBindTexture(GLenum.GL_TEXTURE_1D, 0);
 	}
 	
 	void loadTextures(String prefix) throws IOException{
@@ -302,9 +304,9 @@ public class QuadRenderer {
 //		GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
 //		GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
 //		GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL12.GL_TEXTURE_WRAP_R, GL11.GL_REPEAT);
-		
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-		GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, 0);
+
+		gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+		gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, 0);
 	}
 	
 	// Generate boundary mesh for a patch. Return the number of generated indices
@@ -496,76 +498,6 @@ public class QuadRenderer {
 		boolean checkNodeVisibility(QuadNode quad_node, Matrix4f matProj){
 			frustum.reset(matProj);
 			return frustum.contains(quad_node, g_ModelView);
-			
-			// Plane equation setup
-			// Left plane
-//			float fov_x = -(float) Math.atan(1.0f / matProj.m00);
-//			Vector4f plane_left = vec4(cos(fov_x), 0, sin(fov_x), 0);
-//			// Right plane
-//			Vector4f plane_right = vec4(-cos(fov_x), 0, sin(fov_x), 0);
-//
-//			// Bottom plane
-//			float fov_y = -(float) Math.atan(1.0f / matProj.m11);
-//			Vector4f plane_bottom = vec4(0, cos(fov_y), sin(fov_y), 0);
-//			// Top plane
-//			Vector4f plane_top = vec4(0, -cos(fov_y), sin(fov_y), 0);
-//
-//			// Test quad corners against view frustum in view space
-//			Vector4f[] corner_verts = new Vector4f[4];
-//			corner_verts[0] = vec4(quad_node.bottom_left_x, quad_node.bottom_left_y, 0, 1);
-//			corner_verts[1] = Vector4f.add(corner_verts[0], vec4(quad_node.length, 0, 0, 0), null);
-//			corner_verts[2] = Vector4f.add(corner_verts[0], vec4(quad_node.length, quad_node.length, 0, 0), null);
-//			corner_verts[3] = Vector4f.add(corner_verts[0], vec4(0, quad_node.length, 0, 0), null);
-//
-////			D3DXMATRIX matView = D3DXMATRIX(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1) * *camera.GetViewMatrix();
-////			D3DXVec4Transform(&corner_verts[0], &corner_verts[0], &matView);
-////			D3DXVec4Transform(&corner_verts[1], &corner_verts[1], &matView);
-////			D3DXVec4Transform(&corner_verts[2], &corner_verts[2], &matView);
-////			D3DXVec4Transform(&corner_verts[3], &corner_verts[3], &matView);
-//			
-//			Matrix4f matView = Matrix4f.mul(mCam.view(), m_const_mat, m_wvp);
-//			Matrix4f.transform(matView, corner_verts[0], corner_verts[0]);
-//			Matrix4f.transform(matView, corner_verts[1], corner_verts[1]);
-//			Matrix4f.transform(matView, corner_verts[2], corner_verts[2]);
-//			Matrix4f.transform(matView, corner_verts[3], corner_verts[3]);
-//
-//			// Test against eye plane
-//			if (corner_verts[0].z > 0 && corner_verts[1].z > 0 && corner_verts[2].z > 0 && corner_verts[3].z > 0)
-//				return false;
-//
-//			// Test against left plane
-//			float dist_0 = Vector4f.dot(corner_verts[0], plane_left);
-//			float dist_1 = Vector4f.dot(corner_verts[1], plane_left);
-//			float dist_2 = Vector4f.dot(corner_verts[2], plane_left);
-//			float dist_3 = Vector4f.dot(corner_verts[3], plane_left);
-//			if (dist_0 < 0 && dist_1 < 0 && dist_2 < 0 && dist_3 < 0)
-//				return false;
-//
-//			// Test against right plane
-//			dist_0 = Vector4f.dot(corner_verts[0], plane_right);
-//			dist_1 = Vector4f.dot(corner_verts[1], plane_right);
-//			dist_2 = Vector4f.dot(corner_verts[2], plane_right);
-//			dist_3 = Vector4f.dot(corner_verts[3], plane_right);
-//			if (dist_0 < 0 && dist_1 < 0 && dist_2 < 0 && dist_3 < 0)
-//				return false;
-//
-//			// Test against bottom plane
-//			dist_0 = Vector4f.dot(corner_verts[0], plane_bottom);
-//			dist_1 = Vector4f.dot(corner_verts[1], plane_bottom);
-//			dist_2 = Vector4f.dot(corner_verts[2], plane_bottom);
-//			dist_3 = Vector4f.dot(corner_verts[3], plane_bottom);
-//			if (dist_0 < 0 && dist_1 < 0 && dist_2 < 0 && dist_3 < 0)
-//				return false;
-//
-//			// Test against top plane
-//			dist_0 = Vector4f.dot(corner_verts[0], plane_top);
-//			dist_1 = Vector4f.dot(corner_verts[1], plane_top);
-//			dist_2 = Vector4f.dot(corner_verts[2], plane_top);
-//			dist_3 = Vector4f.dot(corner_verts[3], plane_top);
-//			if (dist_0 < 0 && dist_1 < 0 && dist_2 < 0 && dist_3 < 0)
-//				return false;
-//
-//			return true;
 		}
 		
 		void setMatrices(Matrix4f proj, Matrix4f modelView, Vector3f eyePos, float screenArea){
@@ -602,11 +534,11 @@ public class QuadRenderer {
 			g_pOceanSurfaceFX.setTexFresnel(g_pSRV_Fresnel, OceanSamplers.g_pFresnelSampler);
 			g_pOceanSurfaceFX.setSamplerCube(g_pSRV_ReflectCube, OceanSamplers.g_pCubeSampler);
 			
-			GL30.glBindVertexArray(g_pMeshVAO);
+			gl.glBindVertexArray(g_pMeshVAO);
 			
 			// TODO State blocks
 			// Uniforms we had set up already
-			GL11.glEnable(GL11.GL_DEPTH_TEST);
+			gl.glEnable(GLenum.GL_DEPTH_TEST);
 			
 			Matrix4f matScale = g_Mat4Pool.obtain();
 			Matrix4f matWorld = g_Mat4Pool.obtain();
@@ -666,19 +598,19 @@ public class QuadRenderer {
 				// Perform draw call
 				if (render_param.num_inner_faces > 0){
 					// Inner mesh of the patch
-					GL11.glDrawElements(GL11.GL_TRIANGLE_STRIP, render_param.num_inner_faces + 2, GL11.GL_UNSIGNED_INT, render_param.inner_start_index << 2);
+					gl.glDrawElements(GLenum.GL_TRIANGLE_STRIP, render_param.num_inner_faces + 2, GLenum.GL_UNSIGNED_INT, render_param.inner_start_index << 2);
 				}
 				
 				if(render_param.num_boundary_faces > 0){
 					// Boundary mesh of the patch
-					GL11.glDrawElements(GL11.GL_TRIANGLES, render_param.num_boundary_faces * 3, GL11.GL_UNSIGNED_INT, render_param.boundary_start_index << 2);
+					gl.glDrawElements(GLenum.GL_TRIANGLES, render_param.num_boundary_faces * 3, GLenum.GL_UNSIGNED_INT, render_param.boundary_start_index << 2);
 				}
 			}
 			
 			g_pOceanSurfaceFX.disable();
-			GL30.glBindVertexArray(0);
-			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-			GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
+			gl.glBindVertexArray(0);
+			gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+			gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
 			g_Mat4Pool.free(matScale);
 			g_Mat4Pool.free(matWorld);
 			g_Mat4Pool.free(matMVP);
@@ -702,11 +634,11 @@ public class QuadRenderer {
 			// Textures
 			g_pOceanSurfaceFX.setTexDisplacement(displacemnet_map, OceanSamplers.g_pHeightSampler);
 			g_pOceanSurfaceFX.setTexPerlin(g_pSRV_Perlin, OceanSamplers.g_pPerlinSampler);
-			
-			GL30.glBindVertexArray(g_pMeshVAO);
-			GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
-			
-			GL11.glEnable(GL11.GL_DEPTH_TEST);
+
+			gl.glBindVertexArray(g_pMeshVAO);
+			gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
+
+			gl.glEnable(GLenum.GL_DEPTH_TEST);
 			
 			Matrix4f matScale = g_Mat4Pool.obtain();
 			Matrix4f matWorld = g_Mat4Pool.obtain();
@@ -764,20 +696,20 @@ public class QuadRenderer {
 				// Perform draw call
 				if (render_param.num_inner_faces > 0){
 					// Inner mesh of the patch
-					GL11.glDrawElements(GL11.GL_TRIANGLE_STRIP, render_param.num_inner_faces + 2, GL11.GL_UNSIGNED_INT, render_param.inner_start_index * 4);
+					gl.glDrawElements(GLenum.GL_TRIANGLE_STRIP, render_param.num_inner_faces + 2, GLenum.GL_UNSIGNED_INT, render_param.inner_start_index * 4);
 				}
 				
 				if(render_param.num_boundary_faces > 0){
 					// Boundary mesh of the patch
-					GL11.glDrawElements(GL11.GL_TRIANGLES, render_param.num_boundary_faces * 3, GL11.GL_UNSIGNED_INT, render_param.boundary_start_index * 4);
+					gl.glDrawElements(GLenum.GL_TRIANGLES, render_param.num_boundary_faces * 3, GLenum.GL_UNSIGNED_INT, render_param.boundary_start_index * 4);
 				}
 			}
 			
 			g_pOceanSurfaceFX.disable();
-			GL30.glBindVertexArray(0);
-			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-			GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
-			GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
+			gl.glBindVertexArray(0);
+			gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+			gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+			gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
 			
 			g_Mat4Pool.free(matScale);
 			g_Mat4Pool.free(matWorld);
@@ -785,15 +717,15 @@ public class QuadRenderer {
 		}
 		
 		public void dispose(){
-			GL15.glDeleteBuffers(g_pMeshIB);
-			GL15.glDeleteBuffers(g_pMeshVB);
-			GL30.glDeleteVertexArrays(g_pMeshVAO);
+			gl.glDeleteBuffer(g_pMeshIB);
+			gl.glDeleteBuffer(g_pMeshVB);
+			gl.glDeleteVertexArray(g_pMeshVAO);
 			
 			g_pOceanSurfaceFX.dispose();
-			
-			GL11.glDeleteTextures(g_pSRV_Fresnel);
-			GL11.glDeleteTextures(g_pSRV_Perlin);
-			GL11.glDeleteTextures(g_pSRV_ReflectCube);
+
+			gl.glDeleteTexture(g_pSRV_Fresnel);
+			gl.glDeleteTexture(g_pSRV_Perlin);
+			gl.glDeleteTexture(g_pSRV_ReflectCube);
 		}
 		
 		// Test 16 points on the quad and find out the biggest one.

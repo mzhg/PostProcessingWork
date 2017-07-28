@@ -3,6 +3,8 @@ package jet.opengl.demos.nvidia.waves.samples;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector2f;
 
+import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree;
+import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Params;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Stats;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Savestate;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation;
@@ -13,9 +15,16 @@ import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation;
 
 final class OceanSurface {
 
+    GFSDK_WaveWorks_Quadtree m_hOceanQuadTree;
+
     private DistanceField pDistanceFieldModule; // Not owned!
     void AttachDistanceFieldModule( DistanceField pDistanceField ) { pDistanceFieldModule = pDistanceField; }
 
+    public void init() {
+    }
+
+    public void initQuadTree(GFSDK_WaveWorks_Quadtree_Params params) {
+    }
     // --------------------------------- Rendering routines -----------------------------------
     // Rendering
     void renderShaded(//		ID3D11DeviceContext* pDC,
@@ -36,4 +45,7 @@ final class OceanSurface {
     void getQuadTreeStats(GFSDK_WaveWorks_Quadtree_Stats stats){
 
     }
+
+
+
 }

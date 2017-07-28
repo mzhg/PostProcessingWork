@@ -8,17 +8,18 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 /*public*/ abstract class IsBaseProgram extends GLSLProgram{
 	
 	public IsBaseProgram(String fragfile, String textureName) {
-		this(null, fragfile, textureName);
+		this("nvidia/WaveWorks/shaders/fullscreen.vert", fragfile, textureName);
 	}
 	
 	public IsBaseProgram(String vertfile, String fragfile, String textureName) {
-		String path="nvidia/WaveWorks/shaders/";
+//		String path="nvidia/WaveWorks/shaders/";
 		try {
-			setSourceFromFiles(path +vertfile, path+fragfile);
+			setSourceFromFiles(vertfile, fragfile);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
+		enable();
 		setTextureUniform(textureName, 0);
 	}
 }

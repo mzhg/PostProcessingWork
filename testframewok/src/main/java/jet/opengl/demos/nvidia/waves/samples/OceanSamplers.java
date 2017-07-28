@@ -25,7 +25,8 @@ final class OceanSamplers {
 		gl.glSamplerParameteri(g_SamplerLinearMipmapClamp, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
 		gl.glSamplerParameteri(g_SamplerLinearMipmapClamp, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
 		gl.glSamplerParameteri(g_SamplerLinearMipmapClamp, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
-		
+		gl.glSamplerParameteri(g_SamplerLinearMipmapClamp, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
+
 		g_SamplerLinearWrap = gl.glGenSampler();
 		gl.glSamplerParameteri(g_SamplerLinearWrap, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
 		gl.glSamplerParameteri(g_SamplerLinearWrap, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);

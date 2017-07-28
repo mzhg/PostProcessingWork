@@ -258,7 +258,7 @@ final class FFT {
 		return buf;
 	}
 	
-	public static final class CSFFT512x512_Plan{
+	static final class CSFFT512x512_Plan{
 		public int radix008A_CS;
 		public int radix008A_CS2;
 		public int program;

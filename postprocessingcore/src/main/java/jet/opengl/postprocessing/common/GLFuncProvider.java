@@ -121,6 +121,7 @@ public interface GLFuncProvider {
 
     public void glTexSubImage2D (int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, Buffer pixels);
     public void glTexSubImage2D (int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, long pixels_offset);
+    void glTexImage1D(int target, int level, int internalformat, int width, int border, int format, int type, Buffer pixels);
 
     public void glViewport (int x, int y, int width, int height);
 
