@@ -1,0 +1,23 @@
+#include "../../../shader_libs/WaveWork/GFSDK_WaveWorks_Quadtree.glsl"
+
+layout (vertices = 3) out;
+
+in VS_OUTPUT
+{
+    float4 worldspace_position;
+}_inputs[];
+
+out HS_OUTPUT
+{
+    float4 worldspace_position;
+}_output[];
+
+void main()
+{
+    _output[gl_InvocationID].worldspace_position = _inputs[gl_InvocationID].worldspace_position;
+
+    gl_TessLevelOuter[0] = GFSDK_WaveWorks_GetEdgeTessellationFactor(_inputs[1].worldspace_position,_inputs[2].worldspace_position);
+    gl_TessLevelOuter[1] = GFSDK_WaveWorks_GetEdgeTessellationFactor(_inputs[2].worldspace_position,_inputs[0].worldspace_position);
+    gl_TessLevelOuter[2] = GFSDK_WaveWorks_GetEdgeTessellationFactor(_inputs[0].worldspace_position,_inputs[1].worldspace_position);
+    gl_TessLevelInner[0] = (O.fTessFactor[0] + O.fTessFactor[1] + O.fTessFactor[2])/3.0f;
+}

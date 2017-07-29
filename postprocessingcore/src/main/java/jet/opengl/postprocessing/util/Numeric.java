@@ -848,4 +848,16 @@ public final class Numeric {
 			}
 		}
 	}
+
+	public static float fresnelTerm(float cos_theta, float refractionIndex) {
+		float r = refractionIndex;
+		float c = cos_theta;
+		double g = Math.sqrt(r * r + c * c - 1);
+
+		double g_c = g - c;
+		double gc = g+c;
+		double t1 = c * gc - 1;
+		double t2 = c * g_c + 1;
+		return (float) (0.5 * (g_c * g_c)/ (gc * gc) * (1 + (t1 * t1)/ (t2 * t2)));
+	}
 }

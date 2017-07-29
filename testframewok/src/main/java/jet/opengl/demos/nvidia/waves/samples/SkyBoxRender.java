@@ -49,6 +49,9 @@ final class SkyBoxRender implements Disposeable{
 	/** Setting the rotation matrix. */
 	public void setRotateMatrix(Matrix4f mat) {
 		m_Rotation.load(mat);
+		m_Rotation.m30 =0;  // make sure this is no translation part
+		m_Rotation.m31 =0;
+		m_Rotation.m32 =0;
 		m_NeedUpdateMatrix = true;
 	}
 	
@@ -157,7 +160,7 @@ final class SkyBoxRender implements Disposeable{
 	
 	private void releaseTexture(){
 		if(m_SelfLoadTexture && m_CubeTexture != 0){
-			gl.glDeleteTextures(m_CubeTexture);
+			gl.glDeleteTexture(m_CubeTexture);
 			m_CubeTexture = 0;
 			m_CubeSampler = 0;
 		}

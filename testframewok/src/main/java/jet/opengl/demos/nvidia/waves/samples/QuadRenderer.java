@@ -17,8 +17,9 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.Numeric;
 
-public class QuadRenderer {
+final class QuadRenderer {
 
 	static final int FRESNEL_TEX_SIZE = 256;
 	static final int PERLIN_TEX_SIZE = 64;
@@ -275,7 +276,7 @@ public class QuadRenderer {
 		for(int i = 0; i < FRESNEL_TEX_SIZE; i++){
 			float cos_a = (float)i / FRESNEL_TEX_SIZE;
 			// Using water's refraction index 1.33
-			int fresnel = (int)(fresnelTerm(cos_a, 1.33f) * 255);  // TODO 
+			int fresnel = (int)(Numeric.fresnelTerm(cos_a, 1.33f) * 255);  // TODO
 
 			int sky_blend = (int)(Math.pow(1.0 / (1 + cos_a), g_SkyBlending) * 255);
 
@@ -951,22 +952,9 @@ public class QuadRenderer {
 			return node;
 		}
 		
-	private static float fresnelTerm(float cos_theta, float refractionIndex) {
-		float r = refractionIndex;
-		float c = cos_theta;
-		double g = Math.sqrt(r * r + c * c - 1);
-		
-		double g_c = g - c;
-		double gc = g+c;
-		double t1 = c * gc - 1;
-		double t2 = c * g_c + 1;
-		return (float) (0.5 * (g_c * g_c)/ (gc * gc) * (1 + (t1 * t1)/ (t2 * t2)));
-	}
-	
 	private static final class Rect{
 		int left, top, right, bottom;
-		public Rect() {
-		}
+		public Rect() {}
 		public Rect(int left, int top, int right, int bottom) {
 			this.left = left;
 			this.top = top;

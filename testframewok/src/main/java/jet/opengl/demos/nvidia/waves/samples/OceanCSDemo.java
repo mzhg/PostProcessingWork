@@ -17,11 +17,6 @@ import jet.opengl.postprocessing.util.Numeric;
 
 public class OceanCSDemo extends NvSampleApp{
 	
-	private static final int DEBUG_SKYBOX = 0;
-	private static final int DEBUG_SIMULATION = 1;
-	
-	private static int debugMode = DEBUG_SIMULATION;
-	
 	// Ocean simulation variables
 	OceanSimulator g_pOceanSimulator = null;
 	QuadRenderer g_pOceanRender = null;

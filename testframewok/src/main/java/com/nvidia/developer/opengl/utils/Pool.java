@@ -55,7 +55,7 @@ public class Pool<T> {
 		if (object instanceof Poolable) ((Poolable)object).reset();
 	}
 
-	/** Puts the specified objects in the pool. Null objects within the array are silently ignored.
+	/** Puts the specified objects in the pool.
 	 * @see #free(Object) */
 	public void freeAll (List<T> objects) {
 		if (objects == null) throw new IllegalArgumentException("object cannot be null.");

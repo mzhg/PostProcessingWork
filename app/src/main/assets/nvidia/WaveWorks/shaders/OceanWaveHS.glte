@@ -1,0 +1,13 @@
+#include "../../../shader_libs/WaveWork/GFSDK_WaveWorks_Quadtree.glsl"
+
+in HS_OUTPUT
+{
+    float4 worldspace_position;
+}_inputs[];
+
+layout(triangles, fractional_odd_spacing, cw) in;
+
+void main()
+{
+
+}
