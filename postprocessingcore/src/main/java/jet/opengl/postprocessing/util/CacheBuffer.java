@@ -3,6 +3,7 @@ package jet.opengl.postprocessing.util;
 import org.lwjgl.util.vector.Matrix2f;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.ReadableVector4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
@@ -472,6 +473,14 @@ public class CacheBuffer {
 	public static ByteBuffer put(ByteBuffer dest, float[] src){
 		for(int i = 0; i < src.length; i++){
 			dest.putFloat(src[i]);
+		}
+
+		return dest;
+	}
+
+	public static ByteBuffer put(ByteBuffer dest, Readable[] src){
+		for(int i = 0; i < src.length; i++){
+			src[i].store(dest);
 		}
 
 		return dest;

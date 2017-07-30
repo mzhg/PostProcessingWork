@@ -11,6 +11,7 @@ import org.lwjgl.assimp.AIMesh;
 import org.lwjgl.assimp.AIScene;
 import org.lwjgl.assimp.AIVector3D;
 import org.lwjgl.assimp.Assimp;
+import org.lwjgl.opengl.NVCommandList;
 import org.lwjgl.system.MemoryUtil;
 
 import java.io.File;

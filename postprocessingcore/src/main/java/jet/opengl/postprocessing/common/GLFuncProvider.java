@@ -1591,4 +1591,32 @@ public interface GLFuncProvider {
 
     int glGetSubroutineIndex(int program, int type, String name);
     void glUniformSubroutinesui(int type, int index);
+
+    void glVertexAttribFormat(int index, int size, int type, boolean normalized, long offset);
+    void glVertexAttribBinding(int attribindex, int bindingindex);
+
+    void glBindVertexBuffer(int bindingindex,
+                            int buffer,
+                            long offset,
+                            int stride);
+
+    void glTextureBuffer(int texture,
+                         int internalformat,
+                         int buffer);
+
+    void glDrawElementsIndirect(int mode,
+                                int type,
+ 	                            long indirect);
+
+    void glTexBufferRange(	int target,
+                              int internalFormat,
+                              int buffer,
+                              long offset,
+                              int size);
+
+    void glTextureBufferRange(	int texture,
+                                  int internalformat,
+                                  int buffer,
+                                  long offset,
+                                  int size);
 }

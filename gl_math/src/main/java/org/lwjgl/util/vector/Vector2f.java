@@ -642,6 +642,14 @@ public class Vector2f extends Vector implements Serializable, ReadableVector2f, 
 	public static float length(float x, float y){
 		return (float) Math.sqrt(x * x + y * y);
 	}
+
+	public static<T extends WritableVector2f> T abs(ReadableVector2f src, T dest){
+		if(dest==null)
+			dest= (T) new Vector2f();
+
+		dest.set(Math.abs(src.getX()), Math.abs(src.getY()));
+		return dest;
+	}
 	
 //	public static float 
 }

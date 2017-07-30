@@ -434,6 +434,23 @@ public class GLSLProgram implements OpenGLProgram{
 		}
 	}
 
+	public static GLSLProgram createProgram(String computeFile, Macro[] macros){
+		ShaderSourceItem cs_item = new ShaderSourceItem();
+		if(computeFile != null){
+			try {
+				cs_item.source = ShaderLoader.loadShaderFile(computeFile, false);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			cs_item.macros = macros;
+			cs_item.type = ShaderType.COMPUTE;
+		}
+
+		GLSLProgram program = new GLSLProgram();
+		program.setSourceFromStrings(cs_item);
+		return program;
+	}
+
 	public static GLSLProgram createProgram(String vertFile, String fragFile, Macro[] macros){
 		return createProgram(vertFile, null, null, null, fragFile, macros);
 	}
