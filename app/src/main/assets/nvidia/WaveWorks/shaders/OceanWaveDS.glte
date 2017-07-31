@@ -1,0 +1,51 @@
+#include "../../../shader_libs/WaveWork/GFSDK_WaveWorks_Quadtree.glsl"
+
+in HS_OUTPUT
+{
+    float4 worldspace_position;
+}_inputs[];
+
+layout(triangles, fractional_odd_spacing, cw) in;
+
+out DS_OUTPUT
+{
+	float4								positionClip	 /*: SV_Position*/;
+	GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT NV_ocean_interp;
+	float3								displacementWS/*: TEXCOORD5*/;
+	float3								positionWS/*: TEXCOORD6*/;
+	float3								world_pos_undisplaced /*: TEXCOORD7*/;
+	float3								gerstner_displacement /*: TEXCOORD8*/;
+	float2								gerstner_sdfUV /*: TEXCOORD9*/;
+	float								gerstner_multiplier /*: TEXCOORD10*/;
+}_output;
+
+//--------------------------------------------------------------------------------------
+// This domain shader applies contol point weighting to the barycentric coords produced by the FF tessellator
+//--------------------------------------------------------------------------------------
+void main()
+{
+    float3 f3BarycentricCoords = gl_TessCoord.xyz;
+    GFSDK_WAVEWORKS_VERTEX_OUTPUT NV_ocean = GFSDK_WaveWorks_GetDisplacedVertexAfterTessellation(_inputs[0].worldspace_position, _inputs[1].worldspace_position, _inputs[2].worldspace_position, f3BarycentricCoords);
+
+    float3 gerstnerDisplacement = float3(0,0,0);
+    float2 sdfUV = float2(0,0);
+    float  gerstnerMultiplier = 0;
+
+    if(g_enableShoreEffects > 0)
+    {
+        GetGerstnerVertexAttributes(NV_ocean.pos_world_undisplaced.xzy, sdfUV, gerstnerDisplacement, gerstnerMultiplier);
+    }
+
+    NV_ocean.world_displacement *= 1.0 - 0.7*gerstnerMultiplier;
+    NV_ocean.world_displacement += gerstnerDisplacement.xzy*gerstnerMultiplier;
+
+    NV_ocean.pos_world = NV_ocean.pos_world_undisplaced + NV_ocean.world_displacement;
+    _output.positionWS = NV_ocean.pos_world;
+    _output.displacementWS = NV_ocean.world_displacement;
+    _output.positionClip = mul(float4(NV_ocean.pos_world,1.0), g_ModelViewProjectionMatrix);
+    _output.world_pos_undisplaced = NV_ocean.pos_world_undisplaced;
+    _output.gerstner_displacement = gerstnerDisplacement.xzy;
+    _output.gerstner_sdfUV = sdfUV;
+    _output.gerstner_multiplier = gerstnerMultiplier;
+    _output.NV_ocean_interp = NV_ocean.interp;
+}

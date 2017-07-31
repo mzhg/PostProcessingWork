@@ -75,9 +75,9 @@ void main()
 	
 	// default detail texture
 //	detail_texvalue=g_SandBumpTexture.SampleLevel(SamplerLinearWrap, texcoord0to1*g_SandBumpTexcoordScale,detailmap_miplevel).rbga;
-	detail_texvalue = textureLod(g_SandBumpTexture, texcoord0to1*g_SandBumpTexcoordScale,detailmap_miplevel).rbga * vec4(1,1,-1,1);
-	detail_normal=normalize(2.0*detail_texvalue.xyz-vec3(1,0,1));
-	detail_height=(detail_texvalue.w-0.5)*g_SandBumpHeightScale;
+//	detail_texvalue = textureLod(g_SandBumpTexture, texcoord0to1*g_SandBumpTexcoordScale,detailmap_miplevel).rbga * vec4(1,1,-1,1);
+//	detail_normal=normalize(2.0*detail_texvalue.xyz-vec3(1,0,1));
+//	detail_height=(detail_texvalue.w-0.5)*g_SandBumpHeightScale;
 
 	// rock detail texture
 //	detail_texvalue=g_RockBumpTexture.SampleLevel(SamplerLinearWrap, texcoord0to1*g_RockBumpTexcoordScale,detailmap_miplevel).rbga;

@@ -1,0 +1,82 @@
+#include "ocean_surface.glsl"
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 3) out;
+
+in DS_OUTPUT
+{
+	float4								positionClip	 /*: SV_Position*/;
+	GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT NV_ocean_interp;
+	float3								displacementWS/*: TEXCOORD5*/;
+	float3								positionWS/*: TEXCOORD6*/;
+	float3								world_pos_undisplaced /*: TEXCOORD7*/;
+	float3								gerstner_displacement /*: TEXCOORD8*/;
+	float2								gerstner_sdfUV /*: TEXCOORD9*/;
+	float								gerstner_multiplier /*: TEXCOORD10*/;
+}_inputs[];
+
+out PS_INPUT
+{
+//	float4								positionClip	 : SV_Position;
+	GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT NV_ocean_interp;
+	float3								displacementWS/*: TEXCOORD5*/;
+	float3								positionWS/*: TEXCOORD6*/;
+	float3								world_pos_undisplaced /*: TEXCOORD7*/;
+	float3								gerstner_displacement /*: TEXCOORD8*/;
+	float2								gerstner_sdfUV /*: TEXCOORD9*/;
+	float								gerstner_multiplier /*: TEXCOORD10*/;
+	noperspective float3				v_dist /*: TEXCOORD11*/;
+}_output;
+
+out gl_PerVertex
+{
+    float4 gl_Position;
+};
+
+void main()
+{
+    float2 p0 = g_WinSize * _inputs[0].positionClip.xy/_inputs[0].positionClip.w;
+    float2 p1 = g_WinSize * _inputs[1].positionClip.xy/_inputs[1].positionClip.w;
+    float2 p2 = g_WinSize * _inputs[2].positionClip.xy/_inputs[2].positionClip.w;
+    float2 v0 = p2 - p1;
+    float2 v1 = p2 - p0;
+    float2 v2 = p1 - p0;
+    float area = abs(v1.x*v2.y - v1.y * v2.x);
+
+
+
+    // Generate vertices
+     gl_Position                        = _inputs[0].positionClip;
+    _output.NV_ocean_interp             = _inputs[0].NV_ocean_interp;
+    _output.displacementWS              = _inputs[0].displacementWS;
+    _output.positionWS                  = _inputs[0].positionWS;
+    _output.world_pos_undisplaced       = _inputs[0].world_pos_undisplaced;
+    _output.gerstner_displacement       = _inputs[0].gerstner_displacement;
+    _output.gerstner_sdfUV              = _inputs[0].gerstner_sdfUV;
+    _output.gerstner_multiplier         = _inputs[0].gerstner_multiplier;
+    _output.v_dist                      = float3(area/length(v0),0,0);
+    EmitVertex();
+
+    gl_Position                         = _inputs[1].positionClip;
+    _output.NV_ocean_interp             = _inputs[1].NV_ocean_interp;
+    _output.displacementWS              = _inputs[1].displacementWS;
+    _output.positionWS                  = _inputs[1].positionWS;
+    _output.world_pos_undisplaced       = _inputs[1].world_pos_undisplaced;
+    _output.gerstner_displacement       = _inputs[1].gerstner_displacement;
+    _output.gerstner_sdfUV              = _inputs[1].gerstner_sdfUV;
+    _output.gerstner_multiplier         = _inputs[1].gerstner_multiplier;
+    _output.v_dist                      = float3(0,area/length(v1),0);
+    EmitVertex();
+
+    gl_Position                         = _inputs[2].positionClip;
+    _output.NV_ocean_interp             = _inputs[2].NV_ocean_interp;
+    _output.displacementWS              = _inputs[2].displacementWS;
+    _output.positionWS                  = _inputs[2].positionWS;
+    _output.world_pos_undisplaced       = _inputs[2].world_pos_undisplaced;
+    _output.gerstner_displacement       = _inputs[2].gerstner_displacement;
+    _output.gerstner_sdfUV              = _inputs[2].gerstner_sdfUV;
+    _output.gerstner_multiplier         = _inputs[2].gerstner_multiplier;
+    _output.v_dist                      = float3(0,0,area/length(v2));
+    EmitVertex();
+}
+

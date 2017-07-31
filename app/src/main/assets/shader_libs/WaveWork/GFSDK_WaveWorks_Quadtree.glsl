@@ -27,7 +27,7 @@
  * strictly prohibited.
  */
 
-#include "WaveWorkCommon.fxh"
+#include "WaveWorkCommon.glsl"
 
 /*
  *

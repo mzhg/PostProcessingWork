@@ -16,6 +16,6 @@ void main()
 {
 	gl_Position = g_ModelViewProjectionMatrix * position;
 	
-	_output.positionWS = gl_Position.xyz;
+	_output.positionWS = position.xyz;
 	_output.texcoord = texcoord;
 }

@@ -5,6 +5,7 @@ import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Params;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Stats;
+import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Result;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Savestate;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_CPU_Threading_Model;
@@ -27,12 +29,18 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.CommonUtil;
 
 /**
  * Created by mazhen'gui on 2017/7/27.
  */
 
 public class SampleD3D11 extends NvSampleApp implements Constants{
+    private static final int
+            SynchronizationMode_None = 0,
+            SynchronizationMode_RenderOnly = 1,
+            SynchronizationMode_Readback = 2,
+            Num_SynchronizationModes = 3;
 
     private static final int ReadbackArchiveSize = 50;
     private static final int ReadbackArchiveInterval = 5;
@@ -85,6 +93,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     float g_BaseGerstnerSpeed = 2.472f;
     float g_GerstnerParallelity = 0.2f;
     float g_ShoreTime = 0.0f;
+    int g_bSyncMode = SynchronizationMode_None;
 
     CTerrain2 g_Terrain;
 //    ID3DX11Effect*      g_pEffect       = NULL;
@@ -122,6 +131,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     final float kMaxWindSpeedBeaufort = 4.0f;
 
     final Matrix4f m_proj = new Matrix4f();
+    final Matrix4f m_view = new Matrix4f();
     private GLFuncProvider gl;
 
     @Override
@@ -184,6 +194,167 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         g_pPipelineQuery = gl.glGenQuery();
     }
 
+    @Override
+    public void display() {
+        float fElapsedTime = getFrameDeltaTime();
+        g_SimulationTime += fElapsedTime;
+        if(g_SimulateWater)
+        {
+            g_ShoreTime += fElapsedTime*g_ocean_simulation_param.time_scale;
+        }
+
+        if(g_SimulateWater || g_ForceKick || (GFSDK_WaveWorks_Result.NONE==GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,null)))
+        {
+            GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_SetTime(g_hOceanSimulation, g_SimulationTime);
+            GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_KickD3D11(g_hOceanSimulation, g_LastKickID, /*pDC,*/ g_hOceanSavestate);
+
+            if(g_bSyncMode >= SynchronizationMode_RenderOnly)
+            {
+                // Block until the just-submitted kick is ready to render
+                long[] stagingCursorKickID = {g_LastKickID[0] - 1};	// Just ensure that the initial value is different from last kick,
+                // so that we continue waiting if the staging cursor is empty
+                GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation, stagingCursorKickID);
+                while(stagingCursorKickID[0] != g_LastKickID[0])
+                {
+                    final boolean doBlock = true;
+                    GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_AdvanceStagingCursorD3D11(g_hOceanSimulation, doBlock, /*pDC,*/ g_hOceanSavestate);
+                    GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation, stagingCursorKickID);
+                }
+
+                if(g_bSyncMode >= SynchronizationMode_Readback && g_ocean_simulation_settings.readback_displacements)
+                {
+                    long[] readbackCursorKickID = {g_LastKickID[0] - 1};	// Just ensure that the initial value is different from last kick,
+                    // so that we continue waiting if the staging cursor is empty
+                    while(readbackCursorKickID != g_LastKickID)
+                    {
+                        final boolean doBlock = true;
+                        GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_AdvanceReadbackCursor(g_hOceanSimulation, doBlock);
+                        GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetReadbackCursor(g_hOceanSimulation, readbackCursorKickID);
+                    }
+                }
+            }
+            else
+            {
+                // Keep feeding the simulation pipeline until it is full - this loop should skip in all
+                // cases except the first iteration, when the simulation pipeline is first 'primed'
+                while(GFSDK_WaveWorks_Result.NONE==GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,null))
+                {
+                    GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_SetTime(g_hOceanSimulation, g_SimulationTime);
+                    GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_KickD3D11(g_hOceanSimulation, g_LastKickID, /*pDC,*/ g_hOceanSavestate);
+                }
+            }
+
+//            GFSDK_WaveWorks.GFSDK_WaveWorks_Savestate_RestoreD3D11(g_hOceanSavestate, pDC);
+            g_ForceKick = false;
+
+            // Exercise the readback archiving API
+            if(GFSDK_WaveWorks_Result.OK == GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetReadbackCursor(g_hOceanSimulation, g_LastReadbackKickID))
+            {
+                if((g_LastReadbackKickID[0]-g_LastArchivedKickID[0]) > ReadbackArchiveInterval)
+                {
+                    GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_ArchiveDisplacements(g_hOceanSimulation);
+                    g_LastArchivedKickID = g_LastReadbackKickID;
+                }
+            }
+        }
+
+        // deduce the rendering latency of the WaveWorks pipeline
+        {
+            long[] staging_cursor_kickID = {0};
+            GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,staging_cursor_kickID);
+            g_RenderLatency = (int)(g_LastKickID[0] - staging_cursor_kickID[0]);
+        }
+
+        // likewise with the readback latency
+        if(g_ocean_simulation_settings.readback_displacements)
+        {
+            long[] readback_cursor_kickID = {0};
+            if(GFSDK_WaveWorks_Result.OK == GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetReadbackCursor(g_hOceanSimulation,readback_cursor_kickID))
+            {
+                g_ReadbackLatency = (int)(g_LastKickID[0] - readback_cursor_kickID[0]);
+            }
+            else
+            {
+                g_ReadbackLatency = -1;
+            }
+        }
+        else
+        {
+            g_ReadbackLatency = -1;
+        }
+
+        // getting simulation timings
+        GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStats(g_hOceanSimulation,g_ocean_simulation_stats);
+
+        // Performing treadbacks and raycasts
+        UpdateReadbackPositions();
+        UpdateRaycastPositions();
+
+        // exponential filtering for stats
+        g_ocean_simulation_stats_filtered.CPU_main_thread_wait_time			= g_ocean_simulation_stats_filtered.CPU_main_thread_wait_time*0.98f + 0.02f*g_ocean_simulation_stats.CPU_main_thread_wait_time;
+        g_ocean_simulation_stats_filtered.CPU_threads_start_to_finish_time  = g_ocean_simulation_stats_filtered.CPU_threads_start_to_finish_time*0.98f + 0.02f*g_ocean_simulation_stats.CPU_threads_start_to_finish_time;
+        g_ocean_simulation_stats_filtered.CPU_threads_total_time			= g_ocean_simulation_stats_filtered.CPU_threads_total_time*0.98f + 0.02f*g_ocean_simulation_stats.CPU_threads_total_time;
+        g_ocean_simulation_stats_filtered.GPU_simulation_time				= g_ocean_simulation_stats_filtered.GPU_simulation_time*0.98f + 0.02f*g_ocean_simulation_stats.GPU_simulation_time;
+        g_ocean_simulation_stats_filtered.GPU_FFT_simulation_time			= g_ocean_simulation_stats_filtered.GPU_FFT_simulation_time*0.98f + 0.02f*g_ocean_simulation_stats.GPU_FFT_simulation_time;
+        g_ocean_simulation_stats_filtered.GPU_gfx_time						= g_ocean_simulation_stats_filtered.GPU_gfx_time*0.98f + 0.02f*g_ocean_simulation_stats.GPU_gfx_time;
+        g_ocean_simulation_stats_filtered.GPU_update_time					= g_ocean_simulation_stats_filtered.GPU_update_time*0.98f + 0.02f*g_ocean_simulation_stats.GPU_update_time;
+
+        // If the settings dialog is being shown, then
+        // render it instead of rendering the app's scene
+//        if( g_SettingsDlg.IsActive() )
+//        {
+//            g_SettingsDlg.OnRender( fElapsedTime );
+//            return;
+//        }
+
+        g_FrameTime = fElapsedTime;
+
+        Vector2f ScreenSizeInv=new Vector2f(1.0f / (g_Terrain.BackbufferWidth*main_buffer_size_multiplier), 1.0f / (g_Terrain.BackbufferHeight*main_buffer_size_multiplier));
+
+//        ID3DX11Effect* oceanFX = g_pOceanSurf->m_pOceanFX;
+
+//        oceanFX->GetVariableByName("g_ZNear")->AsScalar()->SetFloat(scene_z_near);  TODO
+//        oceanFX->GetVariableByName("g_ZFar")->AsScalar()->SetFloat(scene_z_far);
+//        XMFLOAT4 light_pos = XMFLOAT4(140000.0f,65000.0f,40000.0f,0);
+//        g_pEffect->GetVariableByName("g_LightPosition")->AsVector()->SetFloatVector((FLOAT*)&light_pos);
+//        g_pEffect->GetVariableByName("g_ScreenSizeInv")->AsVector()->SetFloatVector((FLOAT*)&ScreenSizeInv);
+//        oceanFX->GetVariableByName("g_ScreenSizeInv")->AsVector()->SetFloatVector((FLOAT*)&ScreenSizeInv);
+//        g_pEffect->GetVariableByName("g_DynamicTessFactor")->AsScalar()->SetFloat(g_ocean_quadtree_param.tessellation_lod * 0.25f + 0.1f);
+
+//        g_pOceanSurf->m_pOceanFX->GetVariableByName("g_enableShoreEffects")->AsScalar()->SetFloat(g_enableShoreEffects? 1.0f:0.0f);TODO
+//        g_Terrain.pEffect->GetVariableByName("g_enableShoreEffects")->AsScalar()->SetFloat(g_enableShoreEffects? 1.0f:0.0f);TODO
+
+        m_transformer.getModelViewMat(m_view);
+        g_Terrain.Render(m_proj, m_view);
+        g_pDistanceField.GenerateDataTexture( /*pDC*/ );
+
+        //RenderLogo(pDC);
+
+        if(g_bShowUI) {
+
+//            const WCHAR* windSpeedFormatString = g_ocean_simulation_settings.use_Beaufort_scale ? L"Beaufort: %.1f" : L"Wind speed: %.1f";
+//            swprintf_s(number_string, 255, windSpeedFormatString, g_ocean_simulation_param.wind_speed);
+//            static_being_updated = g_HUD.GetStatic(IDC_WIND_SPEED_SLIDER);
+//            static_being_updated->SetText(number_string);
+//
+//            swprintf_s(number_string, 255, L"Wind dependency: %.2f", g_ocean_simulation_param.wind_dependency);
+//            static_being_updated = g_HUD.GetStatic(IDC_WIND_DEPENDENCY_SLIDER);
+//            static_being_updated->SetText(number_string);
+//
+//            swprintf_s(number_string, 255, L"Time scale: %.1f", g_ocean_simulation_param.time_scale);
+//            static_being_updated = g_HUD.GetStatic(IDC_TIME_SCALE_SLIDER);
+//            static_being_updated->SetText(number_string);
+//
+//            swprintf_s(number_string, 255, L"Tessellation LOD: %.0f", g_ocean_quadtree_param.tessellation_lod);
+//            static_being_updated = g_HUD.GetStatic(IDC_TESSELLATION_LOD_SLIDER);
+//            static_being_updated->SetText(number_string);
+//
+//            g_HUD.OnRender( fElapsedTime );
+//            g_SampleUI.OnRender( fElapsedTime );
+//            RenderText( fTime );
+        }
+    }
+
     private void initApp(){
         g_ocean_quadtree_param.min_patch_length		= 40.f;
         g_ocean_quadtree_param.upper_grid_coverage	= 64.0f;
@@ -218,6 +389,9 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         g_ocean_simulation_settings.enable_CUDA_timers				= true;
         g_ocean_simulation_settings.enable_gfx_timers				= true;
         g_ocean_simulation_settings.enable_CPU_timers				= true;
+
+        for(int i = 0; i < displacements.length;i++)
+            displacements[i]=new Vector4f();
     }
 
     @Override
@@ -234,5 +408,197 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         g_Terrain.BackbufferWidth=width;
         g_Terrain.BackbufferHeight=height;
         g_Terrain.ReCreateBuffers();
+    }
+
+    private final Vector4f[] displacements = new Vector4f[NumMarkers];
+
+    void UpdateReadbackPositions()
+    {
+        for(int x = 0; x != NumMarkersXY; ++x)
+        {
+            for(int y = 0; y != NumMarkersXY; ++y)
+            {
+                g_readback_marker_coords[y * NumMarkersXY + x].x = 5.0f*x;
+                g_readback_marker_coords[y * NumMarkersXY + x].y = 5.0f*y;
+            }
+        }
+
+        if(g_ocean_simulation_settings.readback_displacements)
+        {
+//            gfsdk_float4 displacements[NumMarkers];
+            if(g_ReadbackCoord >= 1.f)
+            {
+                final float coord = g_ReadbackCoord - (g_LastReadbackKickID[0]-g_LastArchivedKickID[0]) * 1.f/(ReadbackArchiveInterval + 1);
+                GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetArchivedDisplacements(g_hOceanSimulation, coord, g_readback_marker_coords, displacements, NumMarkers);
+            }
+            else
+            {
+                GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetDisplacements(g_hOceanSimulation, g_readback_marker_coords, displacements, NumMarkers);
+            }
+
+            for(int ix = 0; ix != NumMarkers; ++ix)
+            {
+                g_readback_marker_positions[ix].x = displacements[ix].x + g_readback_marker_coords[ix].x;
+                g_readback_marker_positions[ix].y = displacements[ix].y + g_readback_marker_coords[ix].y;
+                g_readback_marker_positions[ix].z = displacements[ix].z + g_ocean_quadtree_param.sea_level;
+                g_readback_marker_positions[ix].w = 1.f;
+            }
+        }
+    }
+
+    // Returns true and sets Result to intersection point if intersection is found, or returns false and does not update Result
+    // NB: The function does trace the water surface from above or from inside the water volume, but can be easily changed to trace from below water volume
+    // NB: y axiz is up
+    boolean intersectRayWithOcean(Vector3f Result, ReadableVector3f Position, ReadableVector3f Direction, GFSDK_WaveWorks_Simulation hSim, float sea_level)
+    {
+        final Vector2f test_point = new Vector2f();					// x,z coordinates of current test point
+        final Vector2f old_test_point = new Vector2f();				// x,z coordinates of current test point
+        final Vector4f displacements = new Vector4f();				// displacements returned by GFSDK_WaveWorks library
+        float t;													// distance traveled along the ray while tracing
+        int num_steps = 0;											// number of steps we've done while tracing
+        float max_displacement = GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetConservativeMaxDisplacementEstimate(hSim);
+        // the maximal possible displacements of ocean surface along y axis,
+        // defining volume we have to trace
+        final int max_num_successive_steps = 16;					// we limit ourselves on #of successive steps
+        final int max_num_binary_steps = 16;						// we limit ourselves on #of binary search steps
+        final float t_threshold = 0.05f;							// we stop successive tracing when we don't progress more than 5 cm each step
+        final float refinement_threshold_sqr = 0.1f*0.1f;			// we stop refinement step when we don't progress more than 10cm while doing refinement of current water altitude
+        final float t_multiplier = 1.8f/(Math.abs(Direction.getY()) + 1.0f);	// we increase step length at steep angles to speed up the tracing,
+        // but less than 2 to make sure the process converges
+        // and to add some safety to minimize chance of overshooting
+        final Vector3f PositionBSStart =new Vector3f();								// Vectors used at binary search step
+        final Vector3f PositionBSEnd =new Vector3f();
+
+        // normalizing direction
+//        Direction = XMVector3Normalize(Direction);
+        ((Vector3f)Direction).normalise();  // TODO
+
+        // checking if ray is outside of ocean surface volume
+        if((Position.getY() >= max_displacement + sea_level) && (Direction.getY() >=0)) return false;
+
+        // getting to the top edge of volume where we can start
+        if(Position.getY() > max_displacement  + sea_level)
+        {
+            t = -(Position.getY() - max_displacement - sea_level) / Direction.getY();
+//            Position += t*Direction;
+            Vector3f.linear(Position, Direction, t, (Vector3f)Position);  // TODO
+        }
+
+        // tracing the ocean surface:
+        // moving along the ray by distance defined by vertical distance form current test point, increased/decreased by safety multiplier
+        // this process will converge despite our assumption on local flatness of the surface because curvature of the surface is smooth
+        // NB: this process guarantees we don't shoot through wave tips
+        while(true)
+        {
+            displacements.x = 0;
+            displacements.y = 0;
+            old_test_point.x = 0;
+            old_test_point.y = 0;
+            for(int k = 0; k < 4; k++) // few refinement steps to converge at correct intersection point
+            {
+                // moving back sample points by the displacements read initially,
+                // to get a guess on which undisturbed water surface point moved to the actual sample point
+                // due to x,y motion of water surface, assuming the x,y disturbances are locally constant
+                test_point.x = Position.getX() - displacements.x;
+                test_point.y = Position.getZ() - displacements.y;
+                GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetDisplacements( hSim, CommonUtil.toArray(test_point), CommonUtil.toArray(displacements), 1 );
+                if(refinement_threshold_sqr > (old_test_point.x - test_point.x)*(old_test_point.x - test_point.x) + (old_test_point.y - test_point.y)*(old_test_point.y - test_point.y)) break;
+                old_test_point.x = test_point.x;
+                old_test_point.y = test_point.y;
+            }
+            // getting t to travel along the ray
+            t = t_multiplier * (Position.getY() - displacements.z - sea_level);
+
+            // traveling along the ray
+//            Position += t*Direction;
+            Vector3f.linear(Position, Direction, t, (Vector3f)Position);  // TODO
+
+            if(num_steps >= max_num_successive_steps)  break;
+            if(t < t_threshold) break;
+            ++num_steps;
+        }
+
+        // exited the loop, checking if intersection is found
+        if(t < t_threshold)
+        {
+            Result.set(Position);
+            return true;
+        }
+
+        // if we're looking down and we did not hit water surface, doing binary search to make sure we hit water surface,
+        // but there is risk of shooting through wave tips if we are tracing at extremely steep angles
+        if(Direction.getY() < 0)
+        {
+            PositionBSStart.set(Position);
+
+            // getting to the bottom edge of volume where we can start
+            t = -(Position.getY() + max_displacement - sea_level) / Direction.getY();
+//            PositionBSEnd = Position + t*Direction;
+            Vector3f.linear(Position, Direction, t, PositionBSEnd);
+
+            for(int i = 0; i < max_num_binary_steps; i++)
+            {
+//                Position = (PositionBSStart + PositionBSEnd)*0.5f;
+                Vector3f.mix(PositionBSStart, PositionBSEnd, 0.5f, (Vector3f) Position);
+                old_test_point.x = 0;
+                old_test_point.y = 0;
+                for(int k = 0; k < 4; k++)
+                {
+                    test_point.x = Position.getX() - displacements.x;
+                    test_point.y = Position.getZ() - displacements.y;
+                    GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetDisplacements( hSim, CommonUtil.toArray(test_point), CommonUtil.toArray(displacements), 1 );
+                    if(refinement_threshold_sqr > (old_test_point.x - test_point.x)*(old_test_point.x - test_point.x) + (old_test_point.y - test_point.y)*(old_test_point.y - test_point.y)) break;
+                    old_test_point.x = test_point.x;
+                    old_test_point.y = test_point.y;
+                }
+                if(Position.getY() - displacements.z - sea_level > 0)
+                {
+                    PositionBSStart.set(Position);
+                }
+                else
+                {
+                    PositionBSEnd.set(Position);
+                }
+            }
+
+            Result.set(Position);
+
+            return true;
+        }
+        return false;
+    }
+
+    void UpdateRaycastPositions()
+    {
+        for(int x = 0; x != NumMarkersXY; ++x)
+        {
+            for(int y = 0; y != NumMarkersXY; ++y)
+            {
+                int i = x + y*NumMarkersXY;
+                g_raycast_origins[i].set(0, 10, terrain_gridpoints*terrain_geometry_scale);
+                g_raycast_directions[i].set(5.0f*(x - NumMarkersXY / 2.0f), -10.0f, 5.0f*(y - NumMarkersXY / 2.0f));
+                g_raycast_directions[i].normalise();
+            }
+        }
+        g_IntersectRaysTime = 0.f;
+        // Performing water hit test for rays
+//        QueryPerformanceFrequency(&g_IntersectRaysPerfFrequency);
+//        QueryPerformanceCounter(&g_IntersectRaysPerfCounterOld);
+
+        long time_stamp = System.nanoTime();
+
+        Vector3f position = new Vector3f();
+        Vector3f direction = new Vector3f();
+        for(int i = 0; i < NumMarkers; i++)
+        {
+            position.set(g_raycast_origins[i]);
+            direction.set(g_raycast_directions[i]);
+            g_raycast_hittestresults[i] = intersectRayWithOcean(g_raycast_hitpoints[i], position, direction, g_hOceanSimulation, g_ocean_quadtree_param.sea_level);
+        }
+        long time_stamp2 = System.nanoTime();
+        g_IntersectRaysTime = (time_stamp2 - time_stamp) * 1e-9f;
+
+//        QueryPerformanceCounter(&g_IntersectRaysPerfCounter);
+//        g_IntersectRaysTime = (float)(((double)(g_IntersectRaysPerfCounter.QuadPart) - (double)(g_IntersectRaysPerfCounterOld.QuadPart))/(double)g_IntersectRaysPerfFrequency.QuadPart);
     }
 }

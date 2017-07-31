@@ -91,6 +91,9 @@ final class CTerrain2 implements Constants{
 
     SampleD3D11 m_context;
 
+    private final Matrix4f m_ProjView = new Matrix4f();
+    private final Matrix4f m_ProjViewInv = new Matrix4f();
+
     CTerrain2(){
         for(int i = 0; i < normal.length; i++){
             for(int j= 0;j < normal[i].length; j++){
@@ -253,12 +256,428 @@ final class CTerrain2 implements Constants{
             e.printStackTrace();
         }
     }
-    void Render(Matrix4f matProj, Matrix4f matView){
 
+    void Render(Matrix4f matProj, Matrix4f matView){
+//        ID3D11DeviceContext* pContext;
+        float origin[/*2*/]={0,0};
+        int stride=4*4;
+        int offset=0;
+        int cRT = 1;
+
+//        pDevice->GetImmediateContext(&pContext);
+
+//        pEffect->GetVariableByName("g_HeightfieldTexture")->AsShaderResource()->SetResource(heightmap_textureSRV);
+//        pEffect->GetVariableByName("g_LayerdefTexture")->AsShaderResource()->SetResource(layerdef_textureSRV);
+//        pEffect->GetVariableByName("g_RockBumpTexture")->AsShaderResource()->SetResource(rock_bump_textureSRV);
+//        pEffect->GetVariableByName("g_SkyTexture")->AsShaderResource()->SetResource(sky_textureSRV);
+//        pEffect->GetVariableByName("g_HeightFieldOrigin")->AsVector()->SetFloatVector(origin);
+//        pEffect->GetVariableByName("g_HeightFieldSize")->AsScalar()->SetFloat(terrain_gridpoints*terrain_geometry_scale);
+
+        ID3D11RenderTargetView *colorBuffer = DXUTGetD3D11RenderTargetView();
+        ID3D11DepthStencilView  *backBuffer = DXUTGetD3D11DepthStencilView();
+        D3D11_VIEWPORT currentViewport;
+        D3D11_VIEWPORT reflection_Viewport;
+        D3D11_VIEWPORT refraction_Viewport;
+        D3D11_VIEWPORT shadowmap_resource_viewport;
+        D3D11_VIEWPORT water_normalmap_resource_viewport;
+        D3D11_VIEWPORT main_Viewport;
+
+        float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        float RefractionClearColor[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
+
+        reflection_Viewport.Width=(float)BackbufferWidth*reflection_buffer_size_multiplier;
+        reflection_Viewport.Height=(float)BackbufferHeight*reflection_buffer_size_multiplier;
+        reflection_Viewport.MaxDepth=1;
+        reflection_Viewport.MinDepth=0;
+        reflection_Viewport.TopLeftX=0;
+        reflection_Viewport.TopLeftY=0;
+
+        refraction_Viewport.Width=(float)BackbufferWidth*refraction_buffer_size_multiplier;
+        refraction_Viewport.Height=(float)BackbufferHeight*refraction_buffer_size_multiplier;
+        refraction_Viewport.MaxDepth=1;
+        refraction_Viewport.MinDepth=0;
+        refraction_Viewport.TopLeftX=0;
+        refraction_Viewport.TopLeftY=0;
+
+        main_Viewport.Width=(float)BackbufferWidth*main_buffer_size_multiplier;
+        main_Viewport.Height=(float)BackbufferHeight*main_buffer_size_multiplier;
+        main_Viewport.MaxDepth=1;
+        main_Viewport.MinDepth=0;
+        main_Viewport.TopLeftX=0;
+        main_Viewport.TopLeftY=0;
+
+        shadowmap_resource_viewport.Width=shadowmap_resource_buffer_size_xy;
+        shadowmap_resource_viewport.Height=shadowmap_resource_buffer_size_xy;
+        shadowmap_resource_viewport.MaxDepth=1;
+        shadowmap_resource_viewport.MinDepth=0;
+        shadowmap_resource_viewport.TopLeftX=0;
+        shadowmap_resource_viewport.TopLeftY=0;
+
+        water_normalmap_resource_viewport.Width=water_normalmap_resource_buffer_size_xy;
+        water_normalmap_resource_viewport.Height=water_normalmap_resource_buffer_size_xy;
+        water_normalmap_resource_viewport.MaxDepth=1;
+        water_normalmap_resource_viewport.MinDepth=0;
+        water_normalmap_resource_viewport.TopLeftX=0;
+        water_normalmap_resource_viewport.TopLeftY=0;
+
+
+        //saving scene color buffer and back buffer to constants
+        pContext->RSGetViewports( &cRT, &currentViewport);
+        pContext->OMGetRenderTargets( 1, &colorBuffer, &backBuffer );
+
+
+        // selecting shadowmap_resource rendertarget
+        pEffect->GetVariableByName("g_ShadowmapTexture")->AsShaderResource()->SetResource(NULL);
+
+        pContext->RSSetViewports(1,&shadowmap_resource_viewport);
+        pContext->OMSetRenderTargets( 0, NULL, shadowmap_resourceDSV);
+        pContext->ClearDepthStencilView( shadowmap_resourceDSV, D3D11_CLEAR_DEPTH, 1.0, 0 );
+
+        //drawing terrain to shadowmap
+        SetupLightView(cam);
+
+        pEffect->GetVariableByName("g_ShadowmapTexture")->AsShaderResource()->SetResource(NULL);
+
+        pEffect->GetVariableByName("g_ApplyFog")->AsScalar()->SetFloat(0.0f);
+
+        pContext->IASetInputLayout(heightfield_inputlayout);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+        pEffect->GetTechniqueByName("RenderHeightfield")->GetPassByIndex(2)->Apply(0, pContext);
+        stride=sizeof(float)*4;
+        pContext->IASetVertexBuffers(0,1,&heightfield_vertexbuffer,&stride,&offset);
+        pContext->Draw(terrain_numpatches_1d*terrain_numpatches_1d, 0);
+
+        pEffect->GetTechniqueByName("Default")->GetPassByIndex(0)->Apply(0, pContext);
+
+        pEffect->GetVariableByName("g_ShadowmapTexture")->AsShaderResource()->SetResource(shadowmap_resourceSRV);
+
+
+        // setting up reflection rendertarget
+        pContext->RSSetViewports(1,&reflection_Viewport);
+        pContext->OMSetRenderTargets( 1, &reflection_color_resourceRTV, reflection_depth_resourceDSV);
+        pContext->ClearRenderTargetView( reflection_color_resourceRTV, RefractionClearColor );
+        pContext->ClearDepthStencilView( reflection_depth_resourceDSV, D3D11_CLEAR_DEPTH, 1.0, 0 );
+
+        SetupReflectionView(cam);
+        // drawing sky to reflection RT
+        pEffect->GetTechniqueByName("RenderSky")->GetPassByIndex(0)->Apply(0, pContext);
+        pContext->IASetInputLayout(trianglestrip_inputlayout);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        stride=sizeof(float)*6;
+        pContext->IASetVertexBuffers(0,1,&sky_vertexbuffer,&stride,&offset);
+        pContext->Draw(sky_gridpoints*(sky_gridpoints+2)*2, 0);
+
+        // drawing terrain to reflection RT
+        pEffect->GetVariableByName("g_ApplyFog")->AsScalar()->SetFloat(0.0f);
+        pContext->IASetInputLayout(heightfield_inputlayout);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+        pEffect->GetTechniqueByName("RenderHeightfield")->GetPassByIndex(0)->Apply(0, pContext);
+        stride=sizeof(float)*4;
+        pContext->IASetVertexBuffers(0,1,&heightfield_vertexbuffer,&stride,&offset);
+        pContext->Draw(terrain_numpatches_1d*terrain_numpatches_1d, 0);
+
+
+        pEffect->GetTechniqueByName("Default")->GetPassByIndex(0)->Apply(0, pContext);
+
+        // setting up main rendertarget
+        pContext->RSSetViewports(1,&main_Viewport);
+        pContext->OMSetRenderTargets( 1, &main_color_resourceRTV, main_depth_resourceDSV);
+        pContext->ClearRenderTargetView( main_color_resourceRTV, ClearColor );
+        pContext->ClearDepthStencilView( main_depth_resourceDSV, D3D11_CLEAR_DEPTH, 1.0, 0 );
+        SetupNormalView(cam);
+
+        // drawing terrain to main buffer
+
+        pEffect->GetVariableByName("g_ApplyFog")->AsScalar()->SetFloat(1.0f);
+        pEffect->GetVariableByName("g_FoamIntensityTexture")->AsShaderResource()->SetResource(foam_intensity_textureSRV);
+        pEffect->GetVariableByName("g_FoamDiffuseTexture")->AsShaderResource()->SetResource(foam_diffuse_textureSRV);
+
+        XMMATRIX topDownMatrix;
+        g_pOceanSurf->pDistanceFieldModule->GetWorldToTopDownTextureMatrix( topDownMatrix );
+
+        XMFLOAT4X4 tdMat;
+        XMStoreFloat4x4(&tdMat, topDownMatrix);
+
+        pEffect->GetVariableByName("g_WorldToTopDownTextureMatrix")->AsMatrix()->SetMatrix((FLOAT*)&tdMat);
+        pEffect->GetVariableByName("g_Time" )->AsScalar()->SetFloat( g_ShoreTime );
+        pEffect->GetVariableByName("g_DataTexture" )->AsShaderResource()->SetResource( g_pOceanSurf->pDistanceFieldModule->GetDataTextureSRV() );
+        pEffect->GetVariableByName("g_GerstnerSteepness")->AsScalar()->SetFloat( g_GerstnerSteepness );
+        pEffect->GetVariableByName("g_BaseGerstnerAmplitude")->AsScalar()->SetFloat( g_BaseGerstnerAmplitude );
+        pEffect->GetVariableByName("g_BaseGerstnerWavelength")->AsScalar()->SetFloat( g_BaseGerstnerWavelength );
+        pEffect->GetVariableByName("g_BaseGerstnerSpeed")->AsScalar()->SetFloat( g_BaseGerstnerSpeed );
+        pEffect->GetVariableByName("g_BaseGerstnerParallelness")->AsScalar()->SetFloat( g_GerstnerParallelity );
+        pEffect->GetVariableByName("g_WindDirection")->AsVector()->SetFloatVector( &g_WindDir.x );
+
+        pContext->IASetInputLayout(heightfield_inputlayout);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+        pEffect->GetTechniqueByName("RenderHeightfield")->GetPassByIndex(0)->Apply(0, pContext);
+        stride=sizeof(float)*4;
+        pContext->IASetVertexBuffers(0,1,&heightfield_vertexbuffer,&stride,&offset);
+        pContext->Draw(terrain_numpatches_1d*terrain_numpatches_1d, 0);
+
+
+        // resolving main buffer color to refraction color resource
+        pContext->ResolveSubresource(refraction_color_resource,0,main_color_resource,0,DXGI_FORMAT_R8G8B8A8_UNORM);
+        pContext->GenerateMips(refraction_color_resourceSRV);
+
+        // resolving main buffer depth to refraction depth resource manually
+        pContext->RSSetViewports( 1, &main_Viewport );
+        pContext->OMSetRenderTargets( 1, &refraction_depth_resourceRTV, NULL);
+        pContext->ClearRenderTargetView(refraction_depth_resourceRTV, ClearColor);
+
+        pContext->IASetInputLayout(trianglestrip_inputlayout);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+        switch(MultiSampleCount)
+        {
+            case 1:
+                pEffect->GetVariableByName("g_RefractionDepthTextureMS1")->AsShaderResource()->SetResource(main_depth_resourceSRV);
+                pEffect->GetTechniqueByName("RefractionDepthManualResolve")->GetPassByIndex(0)->Apply(0, pContext);
+                break;
+            case 2:
+                pEffect->GetVariableByName("g_RefractionDepthTextureMS2")->AsShaderResource()->SetResource(main_depth_resourceSRV);
+                pEffect->GetTechniqueByName("RefractionDepthManualResolve")->GetPassByIndex(1)->Apply(0, pContext);
+                break;
+            case 4:
+                pEffect->GetVariableByName("g_RefractionDepthTextureMS4")->AsShaderResource()->SetResource(main_depth_resourceSRV);
+                pEffect->GetTechniqueByName("RefractionDepthManualResolve")->GetPassByIndex(2)->Apply(0, pContext);
+                break;
+            default:
+                pEffect->GetVariableByName("g_RefractionDepthTextureMS1")->AsShaderResource()->SetResource(main_depth_resourceSRV);
+                pEffect->GetTechniqueByName("RefractionDepthManualResolve1")->GetPassByIndex(0)->Apply(0, pContext);
+                break;
+        }
+
+
+
+        stride=sizeof(float)*6;
+        pContext->IASetVertexBuffers(0,1,&heightfield_vertexbuffer,&stride,&offset);
+        pContext->Draw(4, 0); // just need to pass 4 vertices to shader
+        pEffect->GetTechniqueByName("Default")->GetPassByIndex(0)->Apply(0, pContext);
+
+        // clearing resource bindings
+        switch(MultiSampleCount)
+        {
+            case 1:
+                pEffect->GetVariableByName("g_RefractionDepthTextureMS1")->AsShaderResource()->SetResource(NULL);
+                pEffect->GetTechniqueByName("RefractionDepthManualResolve")->GetPassByIndex(0)->Apply(0, pContext);
+                break;
+            case 2:
+                pEffect->GetVariableByName("g_RefractionDepthTextureMS2")->AsShaderResource()->SetResource(NULL);
+                pEffect->GetTechniqueByName("RefractionDepthManualResolve")->GetPassByIndex(1)->Apply(0, pContext);
+                break;
+            case 4:
+                pEffect->GetVariableByName("g_RefractionDepthTextureMS4")->AsShaderResource()->SetResource(NULL);
+                pEffect->GetTechniqueByName("RefractionDepthManualResolve")->GetPassByIndex(2)->Apply(0, pContext);
+                break;
+            default:
+                pEffect->GetVariableByName("g_RefractionDepthTextureMS1")->AsShaderResource()->SetResource(NULL);
+                pEffect->GetTechniqueByName("RefractionDepthManualResolve1")->GetPassByIndex(0)->Apply(0, pContext);
+                break;
+        }
+        pEffect->GetTechniqueByName("Default")->GetPassByIndex(0)->Apply(0, pContext);
+
+        // getting back to rendering to main buffer
+        pContext->RSSetViewports(1,&main_Viewport);
+        pContext->OMSetRenderTargets( 1, &main_color_resourceRTV, main_depth_resourceDSV);
+
+        // drawing water surface to main buffer
+        if(g_QueryStats)
+        {
+            pContext->Begin(g_pPipelineQuery);
+        }
+
+        ID3DX11Effect* oceanFX = g_pOceanSurf->m_pOceanFX;
+
+        oceanFX->GetVariableByName("g_ReflectionTexture")->AsShaderResource()->SetResource(reflection_color_resourceSRV);
+        oceanFX->GetVariableByName("g_RefractionTexture")->AsShaderResource()->SetResource(refraction_color_resourceSRV);
+        oceanFX->GetVariableByName("g_RefractionDepthTextureResolved")->AsShaderResource()->SetResource(refraction_depth_resourceSRV);
+        oceanFX->GetVariableByName("g_ShadowmapTexture")->AsShaderResource()->SetResource(shadowmap_resourceSRV);
+        oceanFX->GetVariableByName("g_FoamIntensityTexture")->AsShaderResource()->SetResource(foam_intensity_textureSRV);
+        oceanFX->GetVariableByName("g_FoamDiffuseTexture")->AsShaderResource()->SetResource(foam_diffuse_textureSRV);
+
+        XMMATRIX matView = XMMatrixSet(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1) * cam->GetViewMatrix();
+        XMMATRIX matProj = cam->GetProjMatrix();
+        XMMATRIX matMVP = matView * matProj;
+        XMVECTOR cameraPosition = cam->GetEyePt();
+        XMVECTOR lightPosition = XMVectorSet(14000.0f, 6500.0f, 4000.0f, 0);
+
+// 	const D3DXMATRIX matView = D3DXMATRIX(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1) * *cam->GetViewMatrix();
+// 	const D3DXMATRIX matProj = *cam->GetProjMatrix();
+// 	D3DXVECTOR3 cameraPosition = *cam->GetEyePt();
+// 	D3DXVECTOR3 lightPosition = D3DXVECTOR3(14000.0f,6500.0f,4000.0f);
+//
+        oceanFX->GetVariableByName("g_ModelViewMatrix")->AsMatrix()->SetMatrix((FLOAT*)&matView);
+        oceanFX->GetVariableByName("g_ModelViewProjectionMatrix")->AsMatrix()->SetMatrix((FLOAT*)&matMVP);
+        oceanFX->GetVariableByName("g_CameraPosition")->AsVector()->SetFloatVector((FLOAT*)&cameraPosition);
+        oceanFX->GetVariableByName("g_LightPosition")->AsVector()->SetFloatVector((FLOAT*)&lightPosition);
+        oceanFX->GetVariableByName("g_Wireframe")->AsScalar()->SetFloat(g_Wireframe ? 1.0f : 0.0f);
+
+        XMFLOAT4 winSize = XMFLOAT4(main_Viewport.Width, main_Viewport.Height, 0, 0);
+        oceanFX->GetVariableByName("g_WinSize")->AsVector()->SetFloatVector((FLOAT*)&winSize);
+        g_pOceanSurf->renderShaded(pContext, matView,matProj,g_hOceanSimulation, g_hOceanSavestate, g_WindDir, g_GerstnerSteepness, g_BaseGerstnerAmplitude, g_BaseGerstnerWavelength, g_BaseGerstnerSpeed, g_GerstnerParallelity, g_ShoreTime);
+
+        g_pOceanSurf->getQuadTreeStats(g_ocean_quadtree_stats);
+
+        if(g_QueryStats)
+        {
+            pContext->End(g_pPipelineQuery);
+            while(S_OK != pContext->GetData(g_pPipelineQuery, &g_PipelineQueryData, sizeof(g_PipelineQueryData), 0));
+        }
+
+        // clearing resource bindings
+        oceanFX->GetVariableByName("g_ReflectionTexture")->AsShaderResource()->SetResource(NULL);
+        oceanFX->GetVariableByName("g_RefractionTexture")->AsShaderResource()->SetResource(NULL);
+        oceanFX->GetVariableByName("g_RefractionDepthTextureResolved")->AsShaderResource()->SetResource(NULL);
+        oceanFX->GetVariableByName("g_ShadowmapTexture")->AsShaderResource()->SetResource(NULL);
+        oceanFX->GetTechniqueByName("RenderOceanSurfTech")->GetPassByIndex(0)->Apply(0, pContext);
+
+        // drawing readback markers to main buffer
+        const UINT vbOffset = 0;
+        const UINT vertexStride = sizeof(XMFLOAT4);
+        XMFLOAT4 contactPos;
+
+        pContext->IASetInputLayout(g_pOceanSurf->m_pRayContactLayout);
+        pContext->IASetVertexBuffers(0, 1, &g_pOceanSurf->m_pContactVB, &vertexStride, &vbOffset);
+        pContext->IASetIndexBuffer(g_pOceanSurf->m_pContactIB, DXGI_FORMAT_R16_UINT, 0);
+        pContext->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        for( int i = 0; i < NumMarkers; i++)
+        {
+            contactPos = XMFLOAT4(g_readback_marker_positions[i].x, g_readback_marker_positions[i].y, g_readback_marker_positions[i].z, 0);
+            g_pOceanSurf->m_pOceanFX->GetVariableByName("g_ContactPosition")->AsVector()->SetFloatVector((FLOAT*)&contactPos);
+            g_pOceanSurf->m_pRenderRayContactTechnique->GetPassByIndex(0)->Apply(0, pContext);
+            pContext->DrawIndexed(12, 0, 0);
+        }
+
+
+        // drawing raycast contacts to main buffer
+        pContext->IASetInputLayout(g_pOceanSurf->m_pRayContactLayout);
+        pContext->IASetVertexBuffers(0, 1, &g_pOceanSurf->m_pContactVB, &vertexStride, &vbOffset);
+        pContext->IASetIndexBuffer(g_pOceanSurf->m_pContactIB, DXGI_FORMAT_R16_UINT, 0);
+        pContext->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        for( int i = 0; i < NumMarkers; i++)
+        {
+            XMStoreFloat4(&contactPos, g_raycast_hitpoints[i]);
+
+            g_pOceanSurf->m_pOceanFX->GetVariableByName("g_ContactPosition")->AsVector()->SetFloatVector((FLOAT*)&contactPos);
+            g_pOceanSurf->m_pRenderRayContactTechnique->GetPassByIndex(0)->Apply(0, pContext);
+            pContext->DrawIndexed(12, 0, 0);
+        }
+
+        XMFLOAT4 origPos, rayDirection;
+
+        // drawing rays to main buffer
+        pContext->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINESTRIP);
+        for( int i = 0; i < NumMarkers; i++)
+        {
+            XMStoreFloat4(&origPos, g_raycast_origins[i]);
+            g_pOceanSurf->m_pOceanFX->GetVariableByName("g_OriginPosition")->AsVector()->SetFloatVector((FLOAT*)&origPos);
+
+            XMVECTOR vecRayDir = g_raycast_directions[i] * 100.0f;
+            XMStoreFloat4(&rayDirection, vecRayDir);
+
+            g_pOceanSurf->m_pOceanFX->GetVariableByName("g_RayDirection")->AsVector()->SetFloatVector((FLOAT*) &rayDirection);
+            g_pOceanSurf->m_pRenderRayContactTechnique->GetPassByIndex(1)->Apply(0, pContext);
+            pContext->DrawIndexed(2, 0, 0);
+        }
+
+        //drawing sky to main buffer
+        pEffect->GetTechniqueByName("RenderSky")->GetPassByIndex(0)->Apply(0, pContext);
+
+        pContext->IASetInputLayout(trianglestrip_inputlayout);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+        stride=sizeof(float)*6;
+        pContext->IASetVertexBuffers(0,1,&sky_vertexbuffer,&stride,&offset);
+        pContext->Draw(sky_gridpoints*(sky_gridpoints+2)*2, 0);
+
+        pEffect->GetTechniqueByName("Default")->GetPassByIndex(0)->Apply(0, pContext);
+
+        //restoring scene color buffer and back buffer
+        pContext->OMSetRenderTargets( 1, &colorBuffer, backBuffer);
+        pContext->ClearDepthStencilView(backBuffer, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
+        pContext->ClearRenderTargetView(colorBuffer, ClearColor);
+        pContext->RSSetViewports( 1, &currentViewport );
+
+        //resolving main buffer
+        pContext->ResolveSubresource(main_color_resource_resolved,0,main_color_resource,0,DXGI_FORMAT_R8G8B8A8_UNORM);
+
+        //drawing main buffer to back buffer
+        pEffect->GetVariableByName("g_MainTexture")->AsShaderResource()->SetResource(main_color_resource_resolvedSRV);
+        pEffect->GetVariableByName("g_MainBufferSizeMultiplier")->AsScalar()->SetFloat(main_buffer_size_multiplier);
+
+        pContext->IASetInputLayout(trianglestrip_inputlayout);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        pEffect->GetTechniqueByName("MainToBackBuffer")->GetPassByIndex(0)->Apply(0, pContext);
+        stride=sizeof(float)*6;
+        pContext->IASetVertexBuffers(0,1,&heightfield_vertexbuffer,&stride,&offset);
+        pContext->Draw(4, 0); // just need to pass 4 vertices to shader
+        pEffect->GetTechniqueByName("Default")->GetPassByIndex(0)->Apply(0, pContext);
+
+        pEffect->GetVariableByName("g_MainTexture")->AsShaderResource()->SetResource(NULL);
+
+        SAFE_RELEASE ( colorBuffer );
+        SAFE_RELEASE ( backBuffer );
+
+        pContext->Release();
     }
+
     void RenderTerrainToHeightField(Matrix4f worldToViewMatrix, Matrix4f viewToProjectionMatrix,
                                     ReadableVector3f eyePositionWS, ReadableVector3f viewDirectionWS){
+        float origin[/*2*/]={0,0};
+        int stride=4*4;
+        int offset=0;
 
+//        pEffect->GetVariableByName("g_HeightfieldTexture")->AsShaderResource()->SetResource(heightmap_textureSRV);
+//        pEffect->GetVariableByName("g_LayerdefTexture")->AsShaderResource()->SetResource(layerdef_textureSRV);
+//        pEffect->GetVariableByName("g_RockBumpTexture")->AsShaderResource()->SetResource(rock_bump_textureSRV);
+//        pEffect->GetVariableByName("g_SkyTexture")->AsShaderResource()->SetResource(sky_textureSRV);
+//        pEffect->GetVariableByName("g_HeightFieldOrigin")->AsVector()->SetFloatVector(origin);
+//        pEffect->GetVariableByName("g_HeightFieldSize")->AsScalar()->SetFloat(terrain_gridpoints*terrain_geometry_scale);
+
+//        XMMATRIX worldToProjectionMatrix = worldToViewMatrix * viewToProjectionMatrix;
+//        XMMATRIX projectionToWorldMatrix = XMMatrixInverse(NULL, worldToProjectionMatrix);
+        Matrix4f.mul(viewToProjectionMatrix, worldToViewMatrix, m_ProjView);
+        Matrix4f.invert(m_ProjView,m_ProjViewInv);
+//    D3DXMatrixInverse(&projectionToWorldMatrix, NULL, &worldToProjectionMatrix);
+
+//        XMFLOAT4X4 wvMat, wtpMat, ptwMat;
+//        XMFLOAT3 epWS, vdWS;
+//
+//        XMStoreFloat4x4(&wvMat, worldToViewMatrix);
+//        XMStoreFloat4x4(&wtpMat, worldToProjectionMatrix);
+//        XMStoreFloat4x4(&ptwMat, projectionToWorldMatrix);
+//        XMStoreFloat3(&epWS, eyePositionWS);
+//        XMStoreFloat3(&vdWS, viewDirectionWS);
+//
+//        pEffect->GetVariableByName("g_ModelViewMatrix")->AsMatrix()->SetMatrix( (FLOAT*) &wvMat );
+//        pEffect->GetVariableByName("g_ModelViewProjectionMatrix")->AsMatrix()->SetMatrix((FLOAT*)&wtpMat);
+//        pEffect->GetVariableByName("g_ModelViewProjectionMatrixInv")->AsMatrix()->SetMatrix((FLOAT*)&ptwMat);
+//        pEffect->GetVariableByName("g_CameraPosition")->AsVector()->SetFloatVector((FLOAT*)&epWS);
+//        pEffect->GetVariableByName("g_CameraDirection")->AsVector()->SetFloatVector((FLOAT*)&vdWS);
+//
+//        pEffect->GetVariableByName("g_HalfSpaceCullSign")->AsScalar()->SetFloat(1.0);
+//        pEffect->GetVariableByName("g_HalfSpaceCullPosition")->AsScalar()->SetFloat(terrain_minheight*20);
+//
+//        // drawing terrain to main buffer
+//        pEffect->GetVariableByName("g_ApplyFog")->AsScalar()->SetFloat(0.0f);  TODO
+
+
+//        enum PassPermutation   TODO
+//        {
+//            kPermutationSolid = 0,
+//            kPermutationWireframe,
+//            kPermutationDepthOnly,
+//            kPermutationDataOnly
+//        };
+//
+//        pContext->IASetInputLayout(heightfield_inputlayout);
+//        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+//        pEffect->GetTechniqueByName("RenderHeightfield")->GetPassByIndex( kPermutationDataOnly )->Apply( 0, pContext );
+//        stride = sizeof(float) * 4;
+//        pContext->IASetVertexBuffers( 0, 1, &heightfield_vertexbuffer, &stride,&offset );
+//        pContext->Draw(terrain_numpatches_1d*terrain_numpatches_1d, 0);
     }
 
     private static int gp_wrap( int a)
