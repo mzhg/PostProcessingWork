@@ -20,26 +20,42 @@ const float kNumWaves = 1.0; // Total number of Gerster waves of different ampli
 							        // Note that all the waves will share the same gerstnerMultiplierOut (lerping between ocean waves and Gerstner waves) for simplicity
 const float kBackWaveSpeed = 0.5;  // the speed of wave rolling back from shore, in vertical dimension, in meters/sec
 
-void GetGerstnerShoreAttributes(float3 posWS, out float waveOut, out float3 normalOut, out float foamTrailOut, out float2 foamWSShift, out float waterLayerOut, out float waterLayerSlowOut)
+#define saturate(x) clamp(x, 0.0, 1.0)
+#define lerp(a,b,c) mix(a,b,c)
+#define frac(x)   fract(x)
+
+void sincos(float angle, out float _sin, out float _cos)
+{
+    _sin = sin(angle);
+    _cos = cos(angle);
+}
+
+void clip(float x)
+{
+    if(x < 0.0)
+        discard;
+}
+
+void GetGerstnerShoreAttributes(vec3 posWS, out float waveOut, out vec3 normalOut, out float foamTrailOut, out vec2 foamWSShift, out float waterLayerOut, out float waterLayerSlowOut)
 {
 	// getting UV for fetching SDF texture 
-	float4 topDownPosition = mul( float4( posWS.xyz, 1), g_WorldToTopDownTextureMatrix );
-	float2 uv = topDownPosition.xy/topDownPosition.w * 0.5f + 0.5f;
+	vec4 topDownPosition = g_WorldToTopDownTextureMatrix * vec4( posWS.xyz, 1);
+	vec2 uv = topDownPosition.xy/topDownPosition.w * 0.5f + 0.5f;
 //	uv.y = 1-uv.y;  TODO
 
 	// initializing the outputs
-	normalOut = float3(0.0,1.0,0.0);
+	normalOut = vec3(0.0,1.0,0.0);
 	waveOut = 0;
-	foamWSShift = float2(0.0,0.0);
+	foamWSShift = vec2(0.0,0.0);
 	foamTrailOut = 0;
 	waterLayerOut = 0;
 	waterLayerSlowOut = 0;
 
 	// getting SDF
-	const float4 tdData = g_DataTexture.SampleLevel(SamplerLinearBorder, uv, 0 );
+	const vec4 tdData = textureLod(g_DataTexture, uv, 0 );   // SamplerLinearBorder
 	
 	// getting terrain altitude gradient in y meters per xz meter
-	float terrain_dy = 0.25*(tdData.y - g_DataTexture(g_DataTexture, uv - kTopDownDataPixelsPerMeter*float2(tdData.z,-tdData.w)/256.0, 0 ).y);  // SamplerLinearBorder
+	float terrain_dy = 0.25*(tdData.y - textureLod(g_DataTexture, uv - kTopDownDataPixelsPerMeter*vec2(tdData.z,-tdData.w)/256.0, 0 ).y);  // SamplerLinearBorder
 
 	// initializing variables common to all Gerstner waves
 	float phaseShift = g_Time;
@@ -53,14 +69,14 @@ void GetGerstnerShoreAttributes(float3 posWS, out float waveOut, out float3 norm
 	float gerstnerParallelness = g_BaseGerstnerParallelness; // "parallelness" of shore waves. 0 means the waves are parallel to shore, 1 means the waves are parallel to wind gradient
 	float gerstnerSpeed = g_BaseGerstnerSpeed; // phase speed of gerstner waves
 	float gerstnerAmplitude = g_BaseGerstnerAmplitude; 
-	float2 windDirection = g_WindDirection;
+	vec2 windDirection = g_WindDirection;
 
 	// summing up the waves
 	for(float i = 0.0; i < kNumWaves; i+=1.0)
 	{
 		float windPhase = dot(windDirection, posWS.xz); 
 		float gerstnerPhase = 2.0*3.141592*(lerp( sdfPhase, windPhase, gerstnerParallelness)/gerstnerWavelength); 
-		float2 propagationDirection = normalize( lerp(-tdData.zw + windDirection * 0.000001f, g_WindDirection, gerstnerParallelness*gerstnerParallelness));
+		vec2 propagationDirection = normalize( lerp(-tdData.zw + windDirection * 0.000001f, g_WindDirection, gerstnerParallelness*gerstnerParallelness));
 		float gerstnerGroupSpeedPhase = 2.0*3.141592*(lerp( sdfPhase, windPhase, gerstnerParallelness*3.0)/gerstnerWavelength); // letting the group speed phase to be non-parallel to propagation phase, so altering parallelness modificator fot this
 
 		float groupSpeedMultiplier = 0.5 + 0.5*cos((gerstnerGroupSpeedPhase + gerstnerOmega*gerstnerSpeed*phaseShift/2.0)/2.7); // Group speed for water waves is half of the phase speed, we allow 2.7 wavelengths to be in wave group, not so much as breaking shore waves lose energy quickly
@@ -110,15 +126,15 @@ void GetGerstnerShoreAttributes(float3 posWS, out float waveOut, out float3 norm
 		gerstnerSpeed *= 0.66;
 		gerstnerAmplitude *= 0.66; 
 		gerstnerParallelness *= 0.66;
-		windDirection.xy *= float2(-1.0,1.0)*windDirection.yx; // rotating wind direction
+		windDirection.xy *= vec2(-1.0,1.0)*windDirection.yx; // rotating wind direction
 	}
 }
 
 void main()
 {
-    float3 color;
-    float3 pixel_to_light_vector = normalize(g_LightPosition-_input.positionWS);
-    float3 pixel_to_eye_vector = normalize(g_CameraPosition-_input.positionWS);
+    vec3 color;
+    vec3 pixel_to_light_vector = normalize(g_LightPosition-_input.positionWS);
+    vec3 pixel_to_eye_vector = normalize(g_CameraPosition-_input.positionWS);
 
     // culling halfspace if needed
     clip(g_HalfSpaceCullSign*(_input.positionWS.y-g_HalfSpaceCullPosition));
@@ -127,13 +143,13 @@ void main()
     float shore_darkening_factor = saturate((_input.positionWS.y + 1.0)*darkening_change_rate);
 
     // getting diffuse color
-    color = float3(0.3,0.3,0.3);
+    color = vec3(0.3,0.3,0.3);
 
     // adding per-vertex lighting defined by displacement of vertex
-    color*=0.5+0.5*min(1.0,max(0.0, _input.brightness/3.0f+0.5f));
+    color*=0.5+0.5*min(1.0,max(0.0, _input.depthmap_scaler.z/3.0f+0.5f));
 
     // calculating pixel position in light view space
-    float4 positionLS = mul(float4(_input.positionWS,1),g_LightModelViewProjectionMatrix);
+    vec4 positionLS = g_LightModelViewProjectionMatrix * vec4(_input.positionWS,1);
     positionLS.xyz/=positionLS.w;
     positionLS.x=(positionLS.x+1)*0.5;
     positionLS.y=(positionLS.y+1)*0.5;
@@ -141,28 +157,28 @@ void main()
 
     // fetching shadowmap and shading
     float dsf = 0.66f/4096.0f;
-    float shadow_factor = 0.2*texture(g_ShadowmapTexture,float3(positionLS.xy,positionLS.z* 0.99f)).r;   // SamplerDepthAnisotropic
-    shadow_factor+=0.2*texture(g_ShadowmapTexture,float3(positionLS.xy+float2(dsf,dsf),positionLS.z* 0.99f)).r;
-    shadow_factor+=0.2*texture(g_ShadowmapTexture,float3(positionLS.xy+float2(-dsf,dsf),positionLS.z* 0.99f)).r;
-    shadow_factor+=0.2*texture(g_ShadowmapTexture,float3(positionLS.xy+float2(dsf,-dsf),positionLS.z* 0.99f)).r;
-    shadow_factor+=0.2*texture(g_ShadowmapTexture,float3(positionLS.xy+float2(-dsf,-dsf),positionLS.z* 0.99f)).r;
+    float shadow_factor = 0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy,positionLS.z* 0.99f)).r;   // SamplerDepthAnisotropic
+    shadow_factor+=0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy+vec2(dsf,dsf),positionLS.z* 0.99f)).r;
+    shadow_factor+=0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy+vec2(-dsf,dsf),positionLS.z* 0.99f)).r;
+    shadow_factor+=0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy+vec2(dsf,-dsf),positionLS.z* 0.99f)).r;
+    shadow_factor+=0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy+vec2(-dsf,-dsf),positionLS.z* 0.99f)).r;
     color *= g_AtmosphereBrightColor*max(0,dot(pixel_to_light_vector,_input.normal))*shadow_factor;
 
     // making all brighter
     color*=2.0;
     // adding light from the sky
-    color += (0.0+0.2*max(0,(dot(float3(0,1,0),_input.normal))))*g_AtmosphereDarkColor;
+    color += (0.0+0.2*max(0,(dot(vec3(0,1,0),_input.normal))))*g_AtmosphereDarkColor;
 
 
     // calculating shore effects
     if((g_enableShoreEffects > 0) && (shore_darkening_factor < 1.0))
     {
-        float3 normal;
+        vec3 normal;
         float foam_trail;
         float water_layer;
         float water_layer_slow;
         float wave_pos;
-        float2 foamWSShift;
+        vec2 foamWSShift;
 
         GetGerstnerShoreAttributes(_input.positionWS, wave_pos, normal, foam_trail, foamWSShift, water_layer, water_layer_slow);
 
@@ -177,7 +193,7 @@ void main()
         float shore_foam_lower_bound_factor = saturate((_input.positionWS.y + g_BaseGerstnerAmplitude - wave_pos + 2.0)*min(3.0,3.0/(2.0*g_BaseGerstnerAmplitude)));
 
 
-        float3 reflected_eye_to_pixel_vector=-pixel_to_eye_vector+2*dot(pixel_to_eye_vector,_input.normal)*_input.normal;
+        vec3 reflected_eye_to_pixel_vector=-pixel_to_eye_vector+2*dot(pixel_to_eye_vector,_input.normal)*_input.normal;
         float specular_light = pow(max(0,dot(reflected_eye_to_pixel_vector,pixel_to_light_vector)),40.0);
 
         // calculating fresnel factor
@@ -195,14 +211,14 @@ void main()
         color += 5.0*g_AtmosphereBrightColor*specular_light*shadow_factor*fresnel_factor;
 
         // calculating reflection color
-        float3 reflection_color = CalculateFogColor(pixel_to_light_vector,-reflected_eye_to_pixel_vector);
+        vec3 reflection_color = CalculateFogColor(pixel_to_light_vector,-reflected_eye_to_pixel_vector);
 
         color = lerp(color, reflection_color.rgb, fresnel_factor);
 
         // adding foam
-        float2 positionWS_shifted = _input.positionWS.xz + foamWSShift;
-        float foam_intensity_map_lf = texture(g_FoamIntensityTexture, positionWS_shifted*0.04*float2(1,1)).x - 1.0;  // SamplerLinearWrap
-        float foam_intensity_map_hf = texture(g_FoamIntensityTexture, positionWS_shifted*0.15*float2(1,1)).x - 1.0;
+        vec2 positionWS_shifted = _input.positionWS.xz + foamWSShift;
+        float foam_intensity_map_lf = texture(g_FoamIntensityTexture, positionWS_shifted*0.04*vec2(1,1)).x - 1.0;  // SamplerLinearWrap
+        float foam_intensity_map_hf = texture(g_FoamIntensityTexture, positionWS_shifted*0.15*vec2(1,1)).x - 1.0;
 
         float foam_intensity;
         float k = 1.5;
@@ -219,7 +235,7 @@ void main()
         // foam diffuse color
         float foam_diffuse_factor = max(0,0.8+max(0,0.2*dot(pixel_to_light_vector,normal)));
 
-        color = lerp(color, foam_diffuse_factor*float3(1.0,1.0,1.0),foam_intensity);
+        color = lerp(color, foam_diffuse_factor*vec3(1.0,1.0,1.0),foam_intensity);
     }
 
     // applying fog
@@ -229,5 +245,5 @@ void main()
     }
 
 
-    Out_f4Color = float4(color, length(g_CameraPosition-_input.positionWS));
+    Out_f4Color = vec4(color, length(g_CameraPosition-_input.positionWS));
 }

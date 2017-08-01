@@ -9,9 +9,18 @@ class IsRenderHeightfieldProgram extends IsCoreBaseProgram{
 	int render_shadowmap_index;
 		
 	public IsRenderHeightfieldProgram(String prefix) {
-		super("RenderHeightfieldProgram", prefix+"RenderHeightfieldVS.vert", prefix+"RenderHeightfieldHS.gltc", 
+		super("RenderHeightfieldProgram", prefix+"RenderHeightfieldVS.vert", prefix+"RenderHeightfieldHS.gltc",
 				prefix+"RenderHeightfieldHD.glte", prefix+"RenderHeightfieldPS.frag");
-		
+
+		renderHeightFieldPS = gl.glGetSubroutineIndex(getProgram(), GLenum.GL_FRAGMENT_SHADER, "RenderHeightFieldPS");
+		colorPS = gl.glGetSubroutineIndex(getProgram(), GLenum.GL_FRAGMENT_SHADER, "ColorPS");
+		render_shadowmap_index = getUniformLocation("g_RenderShadowmap");
+	}
+
+	public IsRenderHeightfieldProgram(Void tag, String prefix) {
+		super("RenderHeightfieldProgram", prefix+"RenderHeightfieldVS.vert", prefix+"RenderHeightfieldHS.gltc",
+				prefix+"RenderHeightfieldHD.glte", prefix+"RenderHeightFieldPS_Ocean.frag");
+
 		renderHeightFieldPS = gl.glGetSubroutineIndex(getProgram(), GLenum.GL_FRAGMENT_SHADER, "RenderHeightFieldPS");
 		colorPS = gl.glGetSubroutineIndex(getProgram(), GLenum.GL_FRAGMENT_SHADER, "ColorPS");
 		render_shadowmap_index = getUniformLocation("g_RenderShadowmap");

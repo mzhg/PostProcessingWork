@@ -11,7 +11,6 @@ import org.lwjgl.assimp.AIMesh;
 import org.lwjgl.assimp.AIScene;
 import org.lwjgl.assimp.AIVector3D;
 import org.lwjgl.assimp.Assimp;
-import org.lwjgl.opengl.NVCommandList;
 import org.lwjgl.system.MemoryUtil;
 
 import java.io.File;
@@ -22,7 +21,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import jet.opengl.demos.nvidia.waves.samples.OceanCSDemo;
+import jet.opengl.demos.nvidia.waves.samples.IslandDemo;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
@@ -100,7 +99,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new OceanCSDemo());
+        run(new IslandDemo());
 
         if(true) return;
 

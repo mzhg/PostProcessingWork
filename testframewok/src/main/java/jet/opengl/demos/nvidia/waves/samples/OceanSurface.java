@@ -53,7 +53,7 @@ final class OceanSurface implements Disposeable{
         m_pSimulationShaderInputMappings_Shore = new int [NumSimulationShaderInputs];
     }
 
-    private DistanceField pDistanceFieldModule; // Not owned!
+    DistanceField pDistanceFieldModule; // Not owned!
     void AttachDistanceFieldModule( DistanceField pDistanceField ) { pDistanceFieldModule = pDistanceField; }
 
     public void init() {

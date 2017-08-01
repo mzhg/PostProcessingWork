@@ -1845,4 +1845,39 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
         GL40.glUniformSubroutinesui(type, index);
     }
 
+    @Override
+    public void glVertexAttribFormat(int index, int size, int type, boolean normalized, long offset) {
+        GL43.glVertexAttribFormat(index, size, type, normalized, (int)offset);
+    }
+
+    @Override
+    public void glVertexAttribBinding(int attribindex, int bindingindex) {
+        GL43.glVertexAttribBinding(attribindex, bindingindex);
+    }
+
+    @Override
+    public void glBindVertexBuffer(int bindingindex, int buffer, long offset, int stride) {
+        GL43.glBindVertexBuffer(bindingindex, buffer, offset, stride);
+    }
+
+    @Override
+    public void glTextureBuffer(int texture, int internalformat, int buffer) {
+        ARBDirectStateAccess.glTextureBuffer(texture, internalformat, buffer);
+    }
+
+    @Override
+    public void glDrawElementsIndirect(int mode, int type, long indirect) {
+        GL40.glDrawElementsIndirect(mode, type, indirect);
+    }
+
+    @Override
+    public void glTexBufferRange(int target, int internalFormat, int buffer, long offset, int size) {
+        GL43.glTexBufferRange(target, internalFormat, buffer, offset, size);
+    }
+
+    @Override
+    public void glTextureBufferRange(int texture, int internalformat, int buffer, long offset, int size) {
+        GL45.glTextureBufferRange(texture, internalformat, buffer, offset, size);
+    }
+
 }
