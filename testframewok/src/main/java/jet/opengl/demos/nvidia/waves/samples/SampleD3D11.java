@@ -184,7 +184,6 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 
         // Initialize terrain
         g_Terrain.Initialize(this/*pd3dDevice,g_pEffect*/);
-        g_Terrain.LoadTextures();
 
         // Creating pipeline query
 //        D3D11_QUERY_DESC queryDesc;

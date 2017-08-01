@@ -14,6 +14,7 @@ final class IsSamplers {
 	static int g_SamplerLinearClamp;
 	static int g_SamplerAnisotropicWrap;
 	static int g_SamplerDepthAnisotropic;
+	static int g_SamplerLinearBorder;
 
 	@CachaRes
 	static void createSamplers(){
@@ -51,6 +52,13 @@ final class IsSamplers {
 		gl.glSamplerParameteri(g_SamplerDepthAnisotropic, GLenum.GL_TEXTURE_COMPARE_FUNC, GLenum.GL_LESS);
 		gl.glSamplerParameteri(g_SamplerDepthAnisotropic, GLenum.GL_TEXTURE_COMPARE_MODE, GLenum.GL_COMPARE_REF_TO_TEXTURE);
 		gl.glSamplerParameterfv(g_SamplerDepthAnisotropic, GLenum.GL_TEXTURE_BORDER_COLOR, CacheBuffer.wrap(1.f,1,1,1));
+
+		g_SamplerLinearBorder = gl.glGenSampler();
+		gl.glSamplerParameteri(g_SamplerLinearBorder, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
+		gl.glSamplerParameteri(g_SamplerLinearBorder, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+		gl.glSamplerParameteri(g_SamplerLinearBorder, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_BORDER);
+		gl.glSamplerParameteri(g_SamplerLinearBorder, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_BORDER);
+		gl.glSamplerParameterfv(g_SamplerLinearBorder, GLenum.GL_TEXTURE_BORDER_COLOR, CacheBuffer.wrap(1.f,1,1,1));
 		
 		GLCheck.checkError();
 	}

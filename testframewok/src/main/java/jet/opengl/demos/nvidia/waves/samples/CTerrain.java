@@ -156,6 +156,10 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 //	ID3D11Buffer		*sky_vertexbuffer;
 	int 				heightfield_vertexbuffer;
 	int 				sky_vertexbuffer;
+
+	int 			    data_texture;
+	int                 foam_intensity_texture;
+	int 				foam_diffuse_texture;
 	
 	int backbufferWidth, backbufferHeight;
 	Random random = new Random(123);
@@ -195,7 +199,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		
 		createTerrain();
 		GLCheck.checkError();
-		renderHeightfieldProgram = new IsRenderHeightfieldProgram(shaderPath);GLCheck.checkError();
+		renderHeightfieldProgram = new IsRenderHeightfieldProgram(null, shaderPath);GLCheck.checkError();
 		waterNormalmapCombineProgram = new IsWaterNormalmapCombineProgram(shaderPath);GLCheck.checkError();
 		waterRenderProgram = new IsWaterRenderProgram(shaderPath);GLCheck.checkError();
 		skyProgram = new IsSkyProgram(shaderPath);GLCheck.checkError();
@@ -221,7 +225,12 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 //		g_RockDiffuseTexture,  9
 //		g_GrassDiffuseTexture,  10
 //		g_DepthTexture,  11
-		terrain_textures = new TextureSampler[12];
+
+//		g_DataTexture;   12
+//		g_FoamIntensityTexture; 13
+//		g_FoamDiffuseTexture;  14
+
+		terrain_textures = new TextureSampler[12 + 3];
 		terrain_textures[0] = new TextureSampler(heightmap_texture, IsSamplers.g_SamplerLinearWrap);
 		terrain_textures[1] = new TextureSampler(layerdef_texture, IsSamplers.g_SamplerLinearWrap);
 		terrain_textures[2] = new TextureSampler(sand_bump_texture, IsSamplers.g_SamplerLinearMipmapWrap);
@@ -234,7 +243,11 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		terrain_textures[9] = new TextureSampler(rock_diffuse_texture, IsSamplers.g_SamplerAnisotropicWrap);
 		terrain_textures[10] = new TextureSampler(grass_diffuse_texture, IsSamplers.g_SamplerAnisotropicWrap);
 		terrain_textures[11] = new TextureSampler(0, IsSamplers.g_SamplerDepthAnisotropic);
-		
+
+		terrain_textures[12] = new TextureSampler(data_texture, IsSamplers.g_SamplerLinearBorder);
+		terrain_textures[13] = new TextureSampler(foam_intensity_texture, IsSamplers.g_SamplerLinearWrap);
+		terrain_textures[14] = new TextureSampler(foam_diffuse_texture, IsSamplers.g_SamplerLinearWrap);
+
 		water_textures = new TextureSampler[7];
 		water_textures[0] = new TextureSampler(0, 0);  // g_HeightfieldTexture;
 		water_textures[1] = new TextureSampler(0, IsSamplers.g_SamplerDepthAnisotropic);  // g_DepthTexture;
@@ -336,6 +349,8 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		if(params.g_Wireframe){
 			gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
 		}
+
+		GLCheck.checkError();
 		renderShadowMap(params);
 		
 		if(debug_shadowmapping){
@@ -699,6 +714,9 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		printFormat("water_bump.dds", water_bump_texture);
 
 		sky_texture = NvImage.uploadTextureFromDDSFile(prefix + "sky.dds");
+		foam_intensity_texture = NvImage.uploadTextureFromDDSFile(prefix+"foam_intensity_perlin2.dds");
+		foam_diffuse_texture = NvImage.uploadTextureFromDDSFile(prefix+"foam24bit.dds");
+
 		GLCheck.checkError();
 		
 		gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);

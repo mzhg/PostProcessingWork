@@ -24,6 +24,21 @@ const float kBackWaveSpeed = 0.5;  // the speed of wave rolling back from shore,
 #define lerp(a,b,c) mix(a,b,c)
 #define frac(x)   fract(x)
 
+uniform sampler2D g_DataTexture;
+uniform sampler2D g_FoamIntensityTexture;
+uniform sampler2D g_FoamDiffuseTexture;
+
+uniform mat4 g_WorldToTopDownTextureMatrix;
+uniform float g_Time;
+uniform float g_BaseGerstnerWavelength;
+uniform float g_BaseGerstnerParallelness;
+uniform float g_BaseGerstnerSpeed;
+uniform float g_BaseGerstnerAmplitude;
+uniform vec2  g_WindDirection;
+uniform float g_GerstnerSteepness;
+uniform int g_enableShoreEffects;
+uniform int g_ApplyFog;
+
 void sincos(float angle, out float _sin, out float _cos)
 {
     _sin = sin(angle);
@@ -156,12 +171,13 @@ void main()
     positionLS.z=(positionLS.z+1)*0.5;
 
     // fetching shadowmap and shading
-    float dsf = 0.66f/4096.0f;
-    float shadow_factor = 0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy,positionLS.z* 0.99f)).r;   // SamplerDepthAnisotropic
-    shadow_factor+=0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy+vec2(dsf,dsf),positionLS.z* 0.99f)).r;
-    shadow_factor+=0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy+vec2(-dsf,dsf),positionLS.z* 0.99f)).r;
-    shadow_factor+=0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy+vec2(dsf,-dsf),positionLS.z* 0.99f)).r;
-    shadow_factor+=0.2*texture(g_ShadowmapTexture,vec3(positionLS.xy+vec2(-dsf,-dsf),positionLS.z* 0.99f)).r;
+    ivec2 shadow_size = textureSize(g_DepthTexture, 0);
+    float dsf = 0.66f/float(shadow_size.x);
+    float shadow_factor = 0.2*texture(g_DepthTexture,vec3(positionLS.xy,positionLS.z* 0.99f)).r;   // SamplerDepthAnisotropic
+    shadow_factor+=0.2*texture(g_DepthTexture,vec3(positionLS.xy+vec2(dsf,dsf),positionLS.z* 0.99f)).r;
+    shadow_factor+=0.2*texture(g_DepthTexture,vec3(positionLS.xy+vec2(-dsf,dsf),positionLS.z* 0.99f)).r;
+    shadow_factor+=0.2*texture(g_DepthTexture,vec3(positionLS.xy+vec2(dsf,-dsf),positionLS.z* 0.99f)).r;
+    shadow_factor+=0.2*texture(g_DepthTexture,vec3(positionLS.xy+vec2(-dsf,-dsf),positionLS.z* 0.99f)).r;
     color *= g_AtmosphereBrightColor*max(0,dot(pixel_to_light_vector,_input.normal))*shadow_factor;
 
     // making all brighter

@@ -26,7 +26,7 @@ class IsRenderHeightfieldProgram extends IsCoreBaseProgram{
 		render_shadowmap_index = getUniformLocation("g_RenderShadowmap");
 	}
 
-	public void setupRenderHeightFieldPass(){ gl.glUniformSubroutinesui(GLenum.GL_FRAGMENT_SHADER, renderHeightFieldPS);}
-	public void setupColorPass(){ gl.glUniformSubroutinesui(GLenum.GL_FRAGMENT_SHADER, colorPS);}
+	public void setupRenderHeightFieldPass(){ if(renderHeightFieldPS>=0)gl.glUniformSubroutinesui(GLenum.GL_FRAGMENT_SHADER, renderHeightFieldPS);}
+	public void setupColorPass(){ if(colorPS>=0)gl.glUniformSubroutinesui(GLenum.GL_FRAGMENT_SHADER, colorPS);}
 	public void setRenderShadowmap(boolean flag) { gl.glUniform1i(render_shadowmap_index, flag ? 1 : 0);}
 }

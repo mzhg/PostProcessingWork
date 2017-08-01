@@ -103,6 +103,8 @@ final class CTerrain2 implements Constants{
     private final RenderTargets m_RenderTarget = new RenderTargets();
     private final TextureAttachDesc m_ColorAttachDesc = new TextureAttachDesc();
     private final TextureAttachDesc m_DepthAttachDesc = new TextureAttachDesc();
+    private final IsParameters m_params = new IsParameters();
+    private TextureSampler[] terrain_textures;
 
     CTerrain2(){
         for(int i = 0; i < normal.length; i++){
@@ -126,6 +128,7 @@ final class CTerrain2 implements Constants{
 
     void Initialize(SampleD3D11 context){
         gl= GLFuncProviderFactory.getGLFuncProvider();
+        LoadTextures();
 //        pEffect = effect;
 //        pDevice = device;
         m_context = context;
@@ -156,6 +159,41 @@ final class CTerrain2 implements Constants{
         m_RenderHeightfieldProgram = new IsRenderHeightfieldProgram(null, "nvidia/WaveWorks/shaders/");
 
         CreateTerrain();
+
+        //		g_HeightfieldTexture,  0
+//		g_LayerdefTexture,  1
+//		g_SandBumpTexture,  2
+//		g_RockBumpTexture,  3
+//		g_WaterNormalMapTexture,  4
+//		g_SandMicroBumpTexture,  5
+//		g_RockMicroBumpTexture,  6
+//		g_SlopeDiffuseTexture,  7
+//		g_SandDiffuseTexture,  8
+//		g_RockDiffuseTexture,  9
+//		g_GrassDiffuseTexture,  10
+//		g_DepthTexture,  11
+
+//		g_DataTexture;   12
+//		g_FoamIntensityTexture; 13
+//		g_FoamDiffuseTexture;  14
+
+        terrain_textures = new TextureSampler[12 + 3];
+        terrain_textures[0] = new TextureSampler(heightmap_texture.getTexture(), IsSamplers.g_SamplerLinearWrap);
+        terrain_textures[1] = new TextureSampler(layerdef_texture.getTexture(), IsSamplers.g_SamplerLinearWrap);
+        terrain_textures[2] = new TextureSampler(/*sand_bump_texture*/0, IsSamplers.g_SamplerLinearMipmapWrap);
+        terrain_textures[3] = new TextureSampler(/*rock_bump_texture*/0, IsSamplers.g_SamplerLinearMipmapWrap);
+        terrain_textures[4] = new TextureSampler(0, IsSamplers.g_SamplerLinearWrap);
+        terrain_textures[5] = new TextureSampler(/*sand_microbump_texture*/0, IsSamplers.g_SamplerAnisotropicWrap);
+        terrain_textures[6] = new TextureSampler(/*rock_microbump_texture*/0, IsSamplers.g_SamplerAnisotropicWrap);
+        terrain_textures[7] = new TextureSampler(/*slope_diffuse_texture*/0, IsSamplers.g_SamplerAnisotropicWrap);
+        terrain_textures[8] = new TextureSampler(/*sand_diffuse_texture*/0, IsSamplers.g_SamplerAnisotropicWrap);
+        terrain_textures[9] = new TextureSampler(/*rock_diffuse_texture*/0, IsSamplers.g_SamplerAnisotropicWrap);
+        terrain_textures[10] = new TextureSampler(/*grass_diffuse_texture*/0, IsSamplers.g_SamplerAnisotropicWrap);
+        terrain_textures[11] = new TextureSampler(0, IsSamplers.g_SamplerDepthAnisotropic);
+
+        terrain_textures[12] = new TextureSampler(/*data_texture*/0, IsSamplers.g_SamplerLinearBorder);
+        terrain_textures[13] = new TextureSampler(foam_intensity_textureSRV.getTexture(), IsSamplers.g_SamplerLinearWrap);
+        terrain_textures[14] = new TextureSampler(foam_diffuse_textureSRV.getTexture(), IsSamplers.g_SamplerLinearWrap);
     }
 
     void DeInitialize(){
@@ -252,7 +290,7 @@ final class CTerrain2 implements Constants{
         shadowmap_resourceSRV = shadowmap_resourceDSV = TextureUtils.createTexture2D(tex_desc, null);
     }
 
-    void LoadTextures(){
+    private void LoadTextures(){
         try {
             int rock_bump_texture = NvImage.uploadTextureFromDDSFile("nvidia/WaveWorks/textures/rock_bump6.dds");
             rock_bump_textureSRV = TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, rock_bump_texture);
@@ -347,9 +385,11 @@ final class CTerrain2 implements Constants{
 //        pContext->RSSetViewports(1,&shadowmap_resource_viewport);
 //        pContext->OMSetRenderTargets( 0, NULL, shadowmap_resourceDSV);
 //        pContext->ClearDepthStencilView( shadowmap_resourceDSV, D3D11_CLEAR_DEPTH, 1.0, 0 );
+        gl.glBindVertexArray(0);  //  no need vao
         m_RenderTarget.bind();
         m_ColorAttachDesc.type = AttachType.TEXTURE_2D;
         m_RenderTarget.setRenderTexture(shadowmap_resourceDSV, m_ColorAttachDesc);
+        gl.glViewport(0,0, shadowmap_resourceDSV.getWidth(), shadowmap_resourceDSV.getHeight());
         gl.glClearBufferfv(GLenum.GL_DEPTH, 0, CacheBuffer.wrap(1.f));
 
         //drawing terrain to shadowmap
@@ -357,14 +397,24 @@ final class CTerrain2 implements Constants{
 
 //        pEffect->GetVariableByName("g_ShadowmapTexture")->AsShaderResource()->SetResource(NULL);
 //        pEffect->GetVariableByName("g_ApplyFog")->AsScalar()->SetFloat(0.0f);
+        m_params.g_ApplyFog = 0;
 //        pContext->IASetInputLayout(heightfield_inputlayout);
 //        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
 //        pEffect->GetTechniqueByName("RenderHeightfield")->GetPassByIndex(2)->Apply(0, pContext);
 //        stride=sizeof(float)*4;
 //        pContext->IASetVertexBuffers(0,1,&heightfield_vertexbuffer,&stride,&offset);
 //        pContext->Draw(terrain_numpatches_1d*terrain_numpatches_1d, 0);
-        // TODO Draw the shadowmap
-
+        m_RenderHeightfieldProgram.enable(m_params, terrain_textures);
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glDepthMask(true);
+        gl.glDepthFunc(GLenum.GL_LESS);
+        heightfield_vertexbuffer.bind();
+        gl.glEnableVertexAttribArray(0);
+        gl.glVertexAttribPointer(0, 4, GLenum.GL_FLOAT, false,0,0);
+        gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 1);
+        gl.glDrawArrays(GLenum.GL_PATCHES, 0, terrain_numpatches_1d*terrain_numpatches_1d);
+        gl.glEnableVertexAttribArray(0);
+        heightfield_vertexbuffer.unbind();
 
 //        pEffect->GetTechniqueByName("Default")->GetPassByIndex(0)->Apply(0, pContext);
 //        pEffect->GetVariableByName("g_ShadowmapTexture")->AsShaderResource()->SetResource(shadowmap_resourceSRV);
@@ -381,6 +431,7 @@ final class CTerrain2 implements Constants{
         m_DepthAttachDesc.index = m_DepthAttachDesc.layer = m_DepthAttachDesc.level = 0;
         m_RenderTarget.setRenderTextures(CommonUtil.toArray(reflection_color_resourceRTV, reflection_depth_resourceDSV),
                                         CommonUtil.toArray(m_ColorAttachDesc, m_DepthAttachDesc));
+        gl.glViewport(0,0, reflection_color_resourceRTV.getWidth(), reflection_color_resourceRTV.getHeight());
         gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(RefractionClearColor));
         gl.glClearBufferfv(GLenum.GL_DEPTH, 0, CacheBuffer.wrap(1.f));
 
@@ -393,6 +444,7 @@ final class CTerrain2 implements Constants{
 //        stride=sizeof(float)*6;
 //        pContext->IASetVertexBuffers(0,1,&sky_vertexbuffer,&stride,&offset);
 //        pContext->Draw(sky_gridpoints*(sky_gridpoints+2)*2, 0);
+        sky_vertexbuffer.bind();
 
         // drawing terrain to reflection RT  TODO
 //        pEffect->GetVariableByName("g_ApplyFog")->AsScalar()->SetFloat(0.0f);
@@ -798,7 +850,7 @@ final class CTerrain2 implements Constants{
                     mv+=backterrain[(i+currentstep/2)+terrain_gridpoints*(j+currentstep/2)];
                     mv+=backterrain[i+currentstep/2+terrain_gridpoints*gp_wrap(j-currentstep/2)];
                     mv/=4;
-                    backterrain[i+currentstep/2+terrain_gridpoints*j]=(float)(mv+rm*(Numeric.random()-0.5f));
+                    backterrain[i+currentstep/2+terrain_gridpoints*j]=(mv+rm*(Numeric.random()-0.5f));
 
                     mv=0;
                     mv=backterrain[i+terrain_gridpoints*j];
@@ -806,7 +858,7 @@ final class CTerrain2 implements Constants{
                     mv+=backterrain[(i+currentstep/2)+terrain_gridpoints*(j+currentstep/2)];
                     mv+=backterrain[gp_wrap(i-currentstep/2)+terrain_gridpoints*(j+currentstep/2)];
                     mv/=4;
-                    backterrain[i+terrain_gridpoints*(j+currentstep/2)]=(float)(mv+rm*(Numeric.random()-0.5f));
+                    backterrain[i+terrain_gridpoints*(j+currentstep/2)]=(mv+rm*(Numeric.random()-0.5f));
 
                     mv=0;
                     mv=backterrain[i+currentstep+terrain_gridpoints*j];
@@ -814,7 +866,7 @@ final class CTerrain2 implements Constants{
                     mv+=backterrain[(i+currentstep/2)+terrain_gridpoints*(j+currentstep/2)];
                     mv+=backterrain[gp_wrap(i+currentstep/2+currentstep)+terrain_gridpoints*(j+currentstep/2)];
                     mv/=4;
-                    backterrain[i+currentstep+terrain_gridpoints*(j+currentstep/2)]=(float)(mv+rm*(Numeric.random()-0.5f));
+                    backterrain[i+currentstep+terrain_gridpoints*(j+currentstep/2)]=(mv+rm*(Numeric.random()-0.5f));
 
                     mv=0;
                     mv=backterrain[i+currentstep+terrain_gridpoints*(j+currentstep)];
@@ -822,7 +874,7 @@ final class CTerrain2 implements Constants{
                     mv+=backterrain[(i+currentstep/2)+terrain_gridpoints*(j+currentstep/2)];
                     mv+=backterrain[i+currentstep/2+terrain_gridpoints*gp_wrap(j+currentstep/2+currentstep)];
                     mv/=4;
-                    backterrain[i+currentstep/2+terrain_gridpoints*(j+currentstep)]=(float)(mv+rm*(Numeric.random()-0.5f));
+                    backterrain[i+currentstep/2+terrain_gridpoints*(j+currentstep)]=(mv+rm*(Numeric.random()-0.5f));
                     j+=currentstep;
                 }
                 i+=currentstep;
@@ -1377,23 +1429,31 @@ final class CTerrain2 implements Constants{
 //        XMStoreFloat4x4(&vpiStore, mViewProjInv);
 //        XMFLOAT4 camStore, ndStore;
 //        XMStoreFloat4(&camStore, cameraPosition);
+        Matrix4f vpStore = mViewProj;
+        Matrix4f vpiStore = mViewProjInv;
+        Vector3f camStore = cameraPosition;
 
-         // TODO
 //        ID3DX11Effect* oceanFX = g_pOceanSurf->m_pOceanFX;
 //        oceanFX->GetVariableByName("g_LightModelViewProjectionMatrix")->AsMatrix()->SetMatrix((FLOAT*)&vpStore);
-//
+        m_params.g_LightModelViewProjectionMatrix.load(vpStore);
+
 //        pEffect->GetVariableByName("g_ModelViewProjectionMatrix")->AsMatrix()->SetMatrix((FLOAT*)&vpStore);
+        m_params.g_ModelViewProjectionMatrix.load(vpStore);
 //        pEffect->GetVariableByName("g_LightModelViewProjectionMatrix")->AsMatrix()->SetMatrix((FLOAT*)&vpStore);
-//        pEffect->GetVariableByName("g_LightModelViewProjectionMatrixInv")->AsMatrix()->SetMatrix((FLOAT*)&vpiStore);
+//        pEffect->GetVariableByName("g_LightModelViewProjectionMatrixInv")->AsMatrix()->SetMatrix((FLOAT*)&vpiStore); TODO
 //        pEffect->GetVariableByName("g_CameraPosition")->AsVector()->SetFloatVector((FLOAT*)&camStore);
+        m_params.g_CameraPosition.set(camStore);
 //
 //        XMVECTOR normalized_direction = XMVector3Normalize(cam->GetLookAtPt() - cam->GetEyePt());
 //        XMStoreFloat4(&ndStore, normalized_direction);
-//
 //        pEffect->GetVariableByName("g_CameraDirection")->AsVector()->SetFloatVector((FLOAT*)&ndStore);
+        Vector3f.sub(LookAtPoint, EyePoint, m_params.g_CameraDirection);
+        m_params.g_CameraDirection.normalise();
 //
 //        pEffect->GetVariableByName("g_HalfSpaceCullSign")->AsScalar()->SetFloat(1.0);
 //        pEffect->GetVariableByName("g_HalfSpaceCullPosition")->AsScalar()->SetFloat(terrain_minheight*2);
+        m_params.g_HalfSpaceCullSign = 1.f;
+        m_params.g_HalfSpaceCullPosition = terrain_minheight*2;
     }
     float BackbufferWidth;
     float BackbufferHeight;

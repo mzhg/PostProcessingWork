@@ -29,7 +29,7 @@ import jet.opengl.postprocessing.common.GLenum;
 //	uniform sampler2D g_RefractionTexture;      //unit 15
 //	unfiorm sampler2D g_DepthMapTexture;        //unit 17
 	
-	final int[] textureUniforms = new int[17];
+	final int[] textureUniforms = new int[20];
 	int textureUnits;
 	private GLFuncProvider gl;
 	public IsUniformTextures(String debug_name, int program) {
@@ -39,7 +39,7 @@ import jet.opengl.postprocessing.common.GLenum;
 			"g_RockMicroBumpTexture", "g_SlopeDiffuseTexture", "g_SandDiffuseTexture",
 			"g_RockDiffuseTexture", "g_GrassDiffuseTexture", "g_DepthTexture", "g_WaterBumpTexture",
 			"g_RefractionDepthTextureResolved", "g_ReflectionTexture", "g_RefractionTexture",
-			"g_DepthMapTexture"
+			"g_DepthMapTexture", "g_DataTexture", "g_FoamIntensityTexture", "g_FoamDiffuseTexture"
 		};
 
 		gl= GLFuncProviderFactory.getGLFuncProvider();

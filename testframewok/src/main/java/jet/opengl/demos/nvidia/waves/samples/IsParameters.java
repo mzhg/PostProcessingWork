@@ -35,4 +35,15 @@ import org.lwjgl.util.vector.Vector3f;
 	boolean g_Wireframe = false;
 	boolean g_showReflection = false;
 	boolean g_RenderWater = true;
+
+	final Matrix4f g_WorldToTopDownTextureMatrix = new Matrix4f();
+	float g_Time;
+	float g_BaseGerstnerWavelength;
+	float g_BaseGerstnerParallelness;
+	float g_BaseGerstnerSpeed;
+	float g_BaseGerstnerAmplitude;
+	final Vector2f  g_WindDirection = new Vector2f();
+	float g_GerstnerSteepness;
+	int g_enableShoreEffects;
+	int g_ApplyFog;
 }

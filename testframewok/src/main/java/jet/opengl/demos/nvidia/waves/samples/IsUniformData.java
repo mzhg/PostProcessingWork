@@ -29,7 +29,29 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 	int ssiOffset = -1;  // vec2  g_ScreenSizeInv;
 	int znearOffset = -1;// float	   g_ZNear;
 	int zfarOffset = -1; // float	   g_ZFar;
-	
+
+//	uniform mat4 g_WorldToTopDownTextureMatrix;
+//	uniform float g_Time;
+//	uniform float g_BaseGerstnerWavelength;
+//	uniform float g_BaseGerstnerParallelness;
+//	uniform float g_BaseGerstnerSpeed;
+//	uniform float g_BaseGerstnerAmplitude;
+//	uniform vec2  g_WindDirection;
+//	uniform float g_GerstnerSteepness;
+//	uniform int g_enableShoreEffects;
+//	uniform int g_ApplyFog;
+
+	int tdtmOffset = -1; // g_WorldToTopDownTextureMatrix
+	int timeOffset = -1; // g_Time
+	int baseGerstnerWavelengthOffset = -1; //g_BaseGerstnerWavelength
+	int baseGerstnerParallelnessOffset = -1; //g_BaseGerstnerParallelness
+	int baseGerstnerSpeedOffset = -1; //g_BaseGerstnerSpeed
+	int baseGerstnerAmplitudeOffset = -1; //g_BaseGerstnerAmplitude
+	int windDirectionOffset = -1; //g_WindDirection
+	int gerstnerSteepnessOffset = -1; //g_GerstnerSteepness
+	int enableShoreOffset = -1; //g_enableShoreEffects
+	int applyFogOffset = -1; //g_ApplyFog
+
 	int programId;
 	String debug_name;
 	
@@ -39,7 +61,18 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		gl= GLFuncProviderFactory.getGLFuncProvider();
 		this.debug_name = debug_name;
 		this.programId = programId;
-		
+
+		tdtmOffset = getUniformIndex("g_WorldToTopDownTextureMatrix");
+		timeOffset = getUniformIndex("g_Time");
+		baseGerstnerWavelengthOffset = getUniformIndex("g_BaseGerstnerWavelength");
+		baseGerstnerParallelnessOffset = getUniformIndex("g_BaseGerstnerParallelness");
+		baseGerstnerSpeedOffset = getUniformIndex("g_BaseGerstnerSpeed");
+		baseGerstnerAmplitudeOffset = getUniformIndex("g_BaseGerstnerAmplitude");
+		windDirectionOffset = getUniformIndex("g_WindDirection");
+		gerstnerSteepnessOffset = getUniformIndex("g_GerstnerSteepness");
+		enableShoreOffset = getUniformIndex("g_enableShoreEffects");
+		applyFogOffset = getUniformIndex("g_ApplyFog");
+
 		mvpOffset = getUniformIndex("g_ModelViewProjectionMatrix");
 		lmvpOffset = getUniformIndex("g_LightModelViewProjectionMatrix");
 		mvOffset = getUniformIndex("g_ModelViewMatrix");
@@ -104,6 +137,47 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 			gl.glUniform1f(znearOffset, params.g_ZNear);
 		if(zfarOffset != -1)
 			gl.glUniform1f(zfarOffset, params.g_ZFar);
+
+//		int tdtmOffset = -1; // g_WorldToTopDownTextureMatrix
+//		int timeOffset = -1; // g_Time
+//		int baseGerstnerWavelengthOffset = -1; //g_BaseGerstnerWavelength
+//		int baseGerstnerParallelnessOffset = -1; //g_BaseGerstnerParallelness
+//		int baseGerstnerSpeedOffset = -1; //g_BaseGerstnerSpeed
+//		int baseGerstnerAmplitudeOffset = -1; //g_BaseGerstnerAmplitude
+//		int windDirectionOffset = -1; //g_WindDirection
+//		int gerstnerSteepnessOffset = -1; //g_GerstnerSteepness
+//		int enableShoreOffset = -1; //g_enableShoreEffects
+//		int applyFogOffset = -1; //g_ApplyFog
+
+		if(tdtmOffset != -1)
+			gl.glUniformMatrix4fv(tdtmOffset, false, CacheBuffer.wrap(params.g_WorldToTopDownTextureMatrix));
+
+		if(timeOffset != -1)
+			gl.glUniform1f(timeOffset, params.g_Time);
+
+		if(baseGerstnerWavelengthOffset != -1)
+			gl.glUniform1f(baseGerstnerWavelengthOffset, params.g_BaseGerstnerWavelength);
+
+		if(baseGerstnerParallelnessOffset != -1)
+			gl.glUniform1f(baseGerstnerParallelnessOffset, params.g_BaseGerstnerParallelness);
+
+		if(baseGerstnerSpeedOffset != -1)
+			gl.glUniform1f(baseGerstnerSpeedOffset, params.g_BaseGerstnerSpeed);
+
+		if(baseGerstnerAmplitudeOffset != -1)
+			gl.glUniform1f(baseGerstnerAmplitudeOffset, params.g_BaseGerstnerAmplitude);
+
+		if(gerstnerSteepnessOffset != -1)
+			gl.glUniform1f(gerstnerSteepnessOffset, params.g_GerstnerSteepness);
+
+		if(enableShoreOffset != -1)
+			gl.glUniform1i(enableShoreOffset, params.g_enableShoreEffects);
+
+		if(applyFogOffset != -1)
+			gl.glUniform1i(applyFogOffset, params.g_ApplyFog);
+
+		if(windDirectionOffset != -1)
+			gl.glUniform2f(windDirectionOffset, params.g_WindDirection.x, params.g_WindDirection.y);
 	}
 	
 	private int getUniformIndex(String name){
