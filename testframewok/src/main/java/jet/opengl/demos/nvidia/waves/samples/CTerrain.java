@@ -199,7 +199,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		
 		createTerrain();
 		GLCheck.checkError();
-		renderHeightfieldProgram = new IsRenderHeightfieldProgram(null, shaderPath);GLCheck.checkError();
+		renderHeightfieldProgram = new IsRenderHeightfieldProgram(/*null,*/ shaderPath);GLCheck.checkError();
 		waterNormalmapCombineProgram = new IsWaterNormalmapCombineProgram(shaderPath);GLCheck.checkError();
 		waterRenderProgram = new IsWaterRenderProgram(shaderPath);GLCheck.checkError();
 		skyProgram = new IsSkyProgram(shaderPath);GLCheck.checkError();
@@ -646,7 +646,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		gl.glDisableVertexAttribArray(0);
 
 		gl.glDisable(GLenum.GL_CULL_FACE);
-		if(cullface)
+		if(!cullface)
 			gl.glFrontFace(GLenum.GL_CCW);
 
 		GLCheck.checkError();
@@ -788,7 +788,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 					backterrain[i+currentstep/2+terrain_gridpoints*(j+currentstep/2)]=(float)(mv+rm*(/*(rand()%1000)/1000.0f*/ random.nextFloat() -0.5f));
 					j+=currentstep;
 				}
-			i+=currentstep;
+				i+=currentstep;
 			}
 
 			//diamond step;
@@ -870,8 +870,8 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		for (i=0;i<terrain_gridpoints+1;i++)
 			for (j=0;j<terrain_gridpoints+1;j++)
 			{
-				mv=(float)((i-terrain_gridpoints/2.0f)*(i-terrain_gridpoints/2.0f)+(j-terrain_gridpoints/2.0f)*(j-terrain_gridpoints/2.0f));
-				rm=(float)((terrain_gridpoints*0.8f)*(terrain_gridpoints*0.8f)/4.0f);
+				mv=((i-terrain_gridpoints/2.0f)*(i-terrain_gridpoints/2.0f)+(j-terrain_gridpoints/2.0f)*(j-terrain_gridpoints/2.0f));
+				rm=((terrain_gridpoints*0.8f)*(terrain_gridpoints*0.8f)/4.0f);
 				if(mv>rm)
 				{
 					height[i][j]-=((mv-rm)/1000.0f)*terrain_geometry_scale;

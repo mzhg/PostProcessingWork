@@ -51,6 +51,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 	int gerstnerSteepnessOffset = -1; //g_GerstnerSteepness
 	int enableShoreOffset = -1; //g_enableShoreEffects
 	int applyFogOffset = -1; //g_ApplyFog
+	int heightFieldSizeOffset = -1;
 
 	int programId;
 	String debug_name;
@@ -93,6 +94,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		ssiOffset = getUniformIndex("g_ScreenSizeInv");
 		znearOffset = getUniformIndex("g_ZNear");
 		zfarOffset = getUniformIndex("g_ZFar");
+		heightFieldSizeOffset = getUniformIndex("g_HeightFieldSize");
 	}
 	
 	void setParameters(IsParameters params){
@@ -137,6 +139,8 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 			gl.glUniform1f(znearOffset, params.g_ZNear);
 		if(zfarOffset != -1)
 			gl.glUniform1f(zfarOffset, params.g_ZFar);
+		if(heightFieldSizeOffset != -1)
+			gl.glUniform1f(heightFieldSizeOffset, params.g_HeightFieldSize);
 
 //		int tdtmOffset = -1; // g_WorldToTopDownTextureMatrix
 //		int timeOffset = -1; // g_Time

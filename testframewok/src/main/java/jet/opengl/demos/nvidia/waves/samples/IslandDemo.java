@@ -33,7 +33,7 @@ public class IslandDemo extends NvSampleApp{
 	final Matrix4f g_DepthModifier = new Matrix4f();
 	
 	IsParameters g_Parameters = new IsParameters();
-	CTerrain g_Terrain;
+	CTerrainIsLand g_Terrain;
 	private GLFuncProvider gl;
 	private float m_TotalTime;
 
@@ -55,7 +55,7 @@ public class IslandDemo extends NvSampleApp{
 
 		IsSamplers.createSamplers();
 		GLCheck.checkError();
-		g_Terrain = new CTerrain();
+		g_Terrain = new CTerrainIsLand();
 		g_Terrain.onCreate("nvidia/WaveWorks/shaders/", "nvidia/WaveWorks/textures/");
 		GLCheck.checkError();
 
@@ -75,8 +75,6 @@ public class IslandDemo extends NvSampleApp{
 //		Matrix4f.perspective(60, 1.5f, 0.1f, 10000.0f, light_proj);
 		float length = g_Parameters.g_LightPosition.length();
 		float nr, fr;
-//		nr=sqrt(eyePoint.x*eyePoint.x+eyePoint.y*EyePoint.y+EyePoint.z*EyePoint.z)-terrain_far_range*0.7f;
-//		fr=sqrt(eyePoint.x*eyePoint.x+eyePoint.y*EyePoint.y+EyePoint.z*EyePoint.z)+terrain_far_range*0.7f;
 		nr = length - CTerrain.terrain_far_range*0.7f;
 		fr = length + CTerrain.terrain_far_range*0.7f;
 		float w = CTerrain.terrain_far_range*1.5f;

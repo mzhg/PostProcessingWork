@@ -1,6 +1,6 @@
 
 
-const float g_HeightFieldSize = 512.0;
+uniform float g_HeightFieldSize = 512.0;
 const vec2	g_RockBumpTexcoordScale=vec2(10.0,10.0);
 const float g_RockBumpHeightScale=3.0;
 const float g_WaterHeightBumpScale=1.0;

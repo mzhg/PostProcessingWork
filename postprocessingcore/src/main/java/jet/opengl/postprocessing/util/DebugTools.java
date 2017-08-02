@@ -6,8 +6,13 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
+import org.lwjgl.util.vector.WritableVector;
 
 import java.awt.Color;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -19,6 +24,10 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -28,17 +37,21 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
+import java.util.StringTokenizer;
 
 import javax.imageio.ImageIO;
 
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-
-import static jet.opengl.postprocessing.texture.TextureUtils.getTextureData;
+import jet.opengl.postprocessing.texture.TextureUtils;
 
 /**
  * Created by mazhen'gui on 2017/6/8.
@@ -133,7 +146,7 @@ public final class DebugTools {
     }
 
     public static void saveTextureAsBinary(int target, int textureID, int level, String filename) throws IOException{
-        write(getTextureData(target, textureID, level, true), filename, false);
+        write(TextureUtils.getTextureData(target, textureID, level, true), filename, false);
     }
 
     public static void saveTextureAsText(int target, int textureID, int level, String filename) throws IOException{
@@ -168,7 +181,7 @@ public final class DebugTools {
 
     public static void saveTextureAsText(int target, int textureID, int level, String filename, int flags) throws IOException{
         final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-        ByteBuffer result = getTextureData(target, textureID, level, true);
+        ByteBuffer result = TextureUtils.getTextureData(target, textureID, level, true);
         int internalFormat = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_INTERNAL_FORMAT);
         int width = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_WIDTH);
 
@@ -536,7 +549,7 @@ public final class DebugTools {
 
     public static void saveTextureAsText(int target, int textureID, int level, String filename, int cmpSize, int dataType) throws IOException{
         final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-        ByteBuffer result = getTextureData(target, textureID, level, true);
+        ByteBuffer result = TextureUtils.getTextureData(target, textureID, level, true);
         int width = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_WIDTH);
 
         File file = new File(filename);
@@ -1572,5 +1585,702 @@ public final class DebugTools {
             e.printStackTrace();
         }
 
+    }
+
+    public static String getTextFromClipBoard(){
+        Transferable t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
+        try {
+            return (String) t.getTransferData(DataFlavor.stringFlavor);
+        } catch (UnsupportedFlavorException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+
+    public static CharSequence covertTextToJavaStringFromClipBoard(String varname){
+        return covertTextToJavaString(varname, getTextFromClipBoard());
+    }
+
+    public static CharSequence covertTextToJavaString(String varname, String text){
+        StringBuilder sb = new StringBuilder();
+        StringTokenizer token = new StringTokenizer(text, "\n");
+        sb.append("final String ").append(varname).append(" = ").append('\n');
+        while(token.hasMoreTokens()){
+            String str = token.nextToken();
+            if(isEmpty(str)) continue;
+
+            sb.append('"');
+            sb.append(str);
+            sb.append("\\n\" + \n");
+        }
+        int idx = sb.length() - 3;
+        sb.replace(idx, idx + 2, ";");
+        return sb;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(covertTextToJavaStringFromClipBoard("cl_kenel"));
+    }
+
+    private static final boolean isEmpty(String str){
+        if(str == null || str.length() ==0)
+            return true;
+
+        for(int i = 0; i < str.length(); i++){
+            char c = str.charAt(i);
+            if(c != ' ' && c != '\t' && c != '\n')
+                return false;
+        }
+
+        return true;
+    }
+
+    public static void genStoreBytebuffer(Class<?> clazz){
+        StringBuilder sb = new StringBuilder();
+        Field[] fields = clazz.getDeclaredFields();
+        for(Field field : fields){
+            if((field.getModifiers() & Modifier.STATIC) != 0)
+                // igore the static field.
+                continue;
+
+            final Class<?> type = field.getType();
+            final String name = StringUtils.filterCharater(field.getName(), "[]");
+
+            if(type.isArray()){
+                Class<?> cmpClass = type.getComponentType();
+                String typename = cmpClass.getSimpleName();
+                final String upperCase = Character.toUpperCase(typename.charAt(0)) + typename.substring(1);
+                if(cmpClass == byte.class){
+                    sb.append("buf.put(").append(name).append(");\n");
+                }else if(cmpClass.isPrimitive()){
+                    sb.append("for(int i = 0; i < ").append(name).append(".length; i++)\n");
+                    sb.append("\t").append("buf.put").append(upperCase).append('(').append(name).append("[i]);\n");
+                }else if(hasInterFace(cmpClass, Readable.class)){
+                    sb.append("for(int i = 0; i < ").append(name).append(".length; i++)\n");
+                    sb.append("\t").append(name).append("[i]").append(".store(buf);\n");
+                }else{
+                    // igoren the other types.
+                    System.out.println("Unable to resolve the type: " + cmpClass.getName());
+                }
+            }else if(type.isPrimitive()){ //primitive type
+                String typename = type.getSimpleName();
+                final String upperCase = Character.toUpperCase(typename.charAt(0)) + typename.substring(1);
+                if(type == byte.class){
+//					sb.append(name).append(" = buf.get();\n");
+                    sb.append("buf.put(").append(name).append(");\n");
+                }else{
+//					sb.append(name).append(" = buf.get").append(upperCase).append("();\n");
+                    sb.append("buf.put").append(upperCase).append('(').append(name).append(");\n");
+                }
+            }else{
+                sb.append(name).append(".store(buf);\n");
+            }
+        }
+
+        System.out.println(sb);
+    }
+
+    public static void genLoadBytebuffer(Class<?> clazz){
+        StringBuilder sb = new StringBuilder();
+        sb.append("int old_pos = buf.position();\n");
+        Field[] fields = clazz.getDeclaredFields();
+        for(Field field : fields){
+            if((field.getModifiers() & Modifier.STATIC) != 0)
+                // igore the static field.
+                continue;
+
+            final Class<?> type = field.getType();
+            final String name = StringUtils.filterCharater(field.getName(), "[]");
+
+            if(type.isArray()){
+                Class<?> cmpClass = type.getComponentType();
+                String typename = cmpClass.getSimpleName();
+                final String upperCase = Character.toUpperCase(typename.charAt(0)) + typename.substring(1);
+                if(cmpClass == byte.class){
+                    sb.append("buf.get(").append(name).append(");\n");
+                }else if(cmpClass.isPrimitive()){
+                    sb.append("for(int i = 0; i < ").append(name).append(".length; i++)\n");
+                    sb.append("\t").append(name).append("[i] = buf.get").append(upperCase).append("();\n");
+                }else { // Assume this type has implemented Writeable interface
+                    sb.append("for(int i = 0; i < ").append(name).append(".length; i++)\n");
+                    sb.append("\t").append(name).append("[i].load(buf);\n");
+                }
+            }else if(type.isPrimitive()){ //primitive type
+                String typename = type.getSimpleName();
+                final String upperCase = Character.toUpperCase(typename.charAt(0)) + typename.substring(1);
+                if(type == byte.class){
+                    sb.append(name).append(" = buf.get();\n");
+                }else{
+                    sb.append(name).append(" = buf.get").append(upperCase).append("();\n");
+                }
+            }else{
+                sb.append(name).append(".load(buf);\n");
+            }
+        }
+
+        sb.append("\nbuf.position(old_pos);\n");
+        System.out.println(sb);
+    }
+
+    public static void genStructCopy(Class<?> clazz){
+//        String template = FileUtils.loadTextFromClassPath(CodeGen.class, "gen_template.txt").toString();
+        String template = "public %s() {}\n" +
+                "\t\n" +
+                "\tpublic %s(%s o) {\n" +
+                "\t\tset(o);\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\tpublic void set(%s o){\n" +
+                "\t\t##\n" +
+                "\t}";
+
+        StringBuilder out = new StringBuilder(512);
+        List<String> lines = new ArrayList<>();
+
+        parseClass(clazz, lines);
+
+        boolean first = true;
+        for(String line : lines){
+            if(!first){
+                out.append("\t\t");
+            }else{
+                first = false;
+            }
+
+            out.append(line).append('\n');
+        }
+
+        String className = clazz.getSimpleName();
+        template = String.format(template, className, className, className, className);
+        System.out.println(template.replace("##", out));
+    }
+
+    public static void genMKVec(Class<?> clazz){
+        Field[] fields = clazz.getDeclaredFields();
+        String vec_pattern = "MK_VEC(%s)";
+        String mat_pattern = "MK_MAT(%s)";
+        Object obj = null;
+//		String template =
+
+        StringBuilder out = new StringBuilder();
+        try {
+            obj = clazz.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+//			e.printStackTrace();
+        }
+
+        for(Field f: fields){
+            f.setAccessible(true);
+            Class<?> type = f.getType();
+            if(type.isArray()){
+                if(obj == null)
+                    continue;
+
+                Class<?> cmpType = type.getComponentType();
+                int length = -1;
+                try {
+                    length = Array.getLength(f.get(obj));
+                } catch (IllegalArgumentException | IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+
+
+            }else{
+                if(type == Matrix4f.class){
+                    System.out.println(String.format(mat_pattern, f.getName()));
+                }else{
+                    System.out.println(String.format(vec_pattern, f.getName()));
+                }
+            }
+
+
+        }
+    }
+
+    public static void loadTextDataTo(String filename, Object obj){
+        Properties properties = new Properties();
+
+        try(FileReader reader = new FileReader(filename)){
+            properties.load(reader);
+
+            _loadTextDataTo(properties, obj, "");
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+
+    }
+
+    private static void _loadTextDataTo(Properties properties, Object obj, String prefix) throws IllegalArgumentException, IllegalAccessException{
+        List<Field> fields = getFields(obj.getClass());
+
+        for(Field field : fields){
+            if(Modifier.isStatic(field.getModifiers()))
+                continue;
+
+            field.setAccessible(true);
+            Class<?> fieldType = field.getType();
+            String	 fieldName = field.getName();
+            if(fieldType.isArray() && !fieldType.isPrimitive()){
+                Object   fieldValue = field.get(obj);
+                int length = Array.getLength(fieldValue);
+                for(int i = 0; i < length; i++){
+                    String _prefix = fieldName + '[' + i + ']';
+                    _loadTextDataTo(properties, fieldValue, _prefix);
+                }
+            }else{
+                parsePropertyAndSetValue(obj, field, properties,prefix);
+            }
+        }
+    }
+
+    private static void parsePropertyAndSetValue(Object obj, Field field, Properties properties, String prefix) throws IllegalArgumentException, IllegalAccessException{
+        Class<?> fieldType = field.getType();
+        String	 fieldName = field.getName();
+        int      valueCount = 1;
+
+        if(prefix.length() > 0){
+            fieldName = prefix +'.'+ fieldName;
+        }
+
+        if(fieldType.isArray()){ // primitve array.
+            valueCount = Array.getLength(field.get(obj));
+            Object[] values = parsePropertyValues(properties.getProperty(fieldName), fieldType, valueCount);
+            if(fieldType == int.class){
+                int[] numberValues = new int[valueCount];
+                for(int i = 0; i <valueCount;i++ ) numberValues[i] = (Integer)values[i];
+                field.set(obj, numberValues);
+            }else if(fieldType == float.class){
+                float[] numberValues = new float[valueCount];
+                for(int i = 0; i <valueCount;i++ ) numberValues[i] = (Float)values[i];
+                field.set(obj, numberValues);
+            }else if(fieldType == boolean.class){
+                boolean[] numberValues = new boolean[valueCount];
+                for(int i = 0; i <valueCount;i++ ) numberValues[i] = (Boolean)values[i];
+                field.set(obj, numberValues);
+            }else{
+                throw new RuntimeException("Inner Error: Unhandle the type of " + fieldType.getComponentType());
+            }
+
+        }else{
+            if(fieldType.isPrimitive()){
+                String strValue = properties.getProperty(fieldName);
+                if(strValue == null)
+                    throw new NullPointerException("Can't find field: " + fieldName);
+                Object[] values = parsePropertyValues(strValue, fieldType, valueCount);
+                field.set(obj, values[0]);
+            }else{  // not the primitve type. E.g Vector2f,
+                if(fieldType == Matrix4f.class){
+                    float[] rows0 = parsePropertyValuesAsFloat(getProperty(properties, fieldName+"[0]"), fieldType, 4);
+                    float[] rows1 = parsePropertyValuesAsFloat(getProperty(properties, fieldName+"[1]"), fieldType, 4);
+                    float[] rows2 = parsePropertyValuesAsFloat(getProperty(properties, fieldName+"[2]"), fieldType, 4);
+                    float[] rows3 = parsePropertyValuesAsFloat(getProperty(properties, fieldName+"[3]"), fieldType, 4);
+
+                    Matrix4f matValue = (Matrix4f)field.get(obj);
+                    matValue.setRow(0, rows0[0], rows0[1], rows0[2], rows0[3]);
+                    matValue.setRow(1, rows1[0], rows1[1], rows1[2], rows1[3]);
+                    matValue.setRow(2, rows2[0], rows2[1], rows2[2], rows2[3]);
+                    matValue.setRow(3, rows3[0], rows3[1], rows3[2], rows3[3]);
+                }else if(hasInterFace(fieldType, WritableVector.class)){
+                    String strValue = properties.getProperty(fieldName);
+                    if(strValue == null){
+                        throw new NullPointerException("Can't find field: " + fieldName);
+                    }
+
+                    float[] values = parsePropertyValuesAsFloat(strValue, fieldType, 4);
+                    WritableVector vector = (WritableVector)field.get(obj);
+
+                    for(int i = 0; i < vector.getCount(); i++){
+                        vector.setValue(i, values[i]);
+                    }
+                }else{  // other data type.
+                    _loadTextDataTo(properties, field.get(obj), prefix);
+                }
+
+            }
+        }
+    }
+
+    private static String getProperty(Properties props, String key){
+        String strValue = props.getProperty(key);
+        if(strValue == null){
+            throw new NullPointerException("Can't find field: " + key);
+        }
+
+        return strValue;
+    }
+
+    private enum PropertyType{
+        INT, FLOAT, BOOLEAN
+    }
+
+    private static float[] parsePropertyValuesAsFloat(String strValue, Class<?> type, int count){
+        Object[] values = parsePropertyValues(strValue, type, count);
+        float[] floatValues = new float[count];
+        for(int i = 0; i < count; i++){
+            if(values[i] != null)
+                floatValues[i] = (Float)values[i];
+        }
+
+        return floatValues;
+    }
+
+    private static Object[] parsePropertyValues(String strValue, Class<?> type, int count){
+        Object[] returnedValues = new Object[count];
+        StringTokenizer tokens =new StringTokenizer(strValue, "(), \n");
+        count = 0;
+
+        // true is number, false is boolean value.
+        PropertyType propertyType = PropertyType.FLOAT;
+        if(type == int.class ){
+            propertyType = PropertyType.INT;
+        }else if(type == boolean.class){
+            propertyType = PropertyType.BOOLEAN;
+        }
+
+        while(tokens.hasMoreTokens()){
+            if(propertyType == PropertyType.INT){
+                returnedValues[count++] = Integer.parseInt(tokens.nextToken());
+            }else if(propertyType == PropertyType.FLOAT){
+                returnedValues[count++] = Float.parseFloat(tokens.nextToken());
+            }else if(propertyType == PropertyType.BOOLEAN){
+                String token = tokens.nextToken();
+                if(token.equalsIgnoreCase("true")){
+                    returnedValues[count++] = Boolean.TRUE;
+                }else if(token.equalsIgnoreCase("false")){
+                    returnedValues[count++] = Boolean.FALSE;
+                }else { // is a number
+                    returnedValues[count++] = Float.parseFloat(token) != 0;
+                }
+            }
+        }
+
+        return returnedValues;
+    }
+
+    public static void genSafeDelete(Class<?> clazz){
+        Field[] fields = clazz.getDeclaredFields();
+
+        StringBuilder out = new StringBuilder(512);
+        for(int i = 0; i < fields.length; i++){
+            Field field = fields[i];
+
+            parseFiled(field, out);
+        }
+
+        System.out.println(out);
+    }
+
+    public static void genToString(Class<?> clazz){
+        Field[] fields = clazz.getDeclaredFields();
+
+        StringBuilder out = new StringBuilder(512);
+        out.append("StringBuilder sb = new StringBuilder();\n");
+        out.append("sb.append(\"").append(clazz.getSimpleName()).append(":\\n\");\n");
+
+        String pattern = "sb.append(\"%s = \").append(%s).append('\\n');\n";
+        String pattern_array = "sb.append(\"%s = \").append(Arrays.toString(%s)).append('\\n');\n";
+        for(int i = 0; i < fields.length; i++){
+            Field field = fields[i];
+            if(Modifier.isStatic(field.getModifiers()))
+                continue;
+
+            out.append(String.format(field.getType().isArray()? pattern_array: pattern, field.getName(), field.getName()));
+        }
+
+        out.append("return sb.toString();\n");
+        System.out.println(out);
+    }
+
+    public enum GLObject {
+        Texture,
+        Buffer,
+    }
+
+    @Target(ElementType.FIELD)
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface GLType {
+        public GLObject type();
+    }
+
+    private static void parseFiled(Field field, StringBuilder output){
+        final String int_array_pattern =
+                "for(int i = 0; i < %s.length; i++){\n"+
+                        "\tif(%s[i] != 0){\n"+
+                        "\t\tgl.glDelete%s(%s[i]);\n"+
+                        "\t%s[i] = 0;\n"+
+                        "\t}\n"+
+                        "}\n";
+
+        final String int_pattern =
+                "if(%s != 0){\n"+
+                        "\tGL15.glDelete%ss(%s);\n"+
+                        "\t%s = 0;\n"+
+                        "}\n";
+
+        final String obj_pattern =
+                "if(%s != null){\n"+
+                        "\t%s.dispose();\n"+
+                        "\t%s = null;\n"+
+                        "}\n";
+
+        final String obj_array_pattern =
+                "for(int i = 0; i < %s.length; i++){\n"+
+                        "\tif(%s[i] != null){\n"+
+                        "\t\t%s[i].dispose();\n"+
+                        "\t\t%s[i] = null;\n"+
+                        "\t}\n" +
+                        "}\n";
+
+        String varname = field.getName();
+        Class<?> fieldType = field.getType();
+        GLType type = field.getDeclaredAnnotation(GLType.class);
+        if(type != null){
+            if(fieldType.isArray()){
+                Class<?> componentType = fieldType.getComponentType();
+                if(componentType == int.class){
+                    String result = String.format(int_array_pattern, varname,varname,type.type().name(), varname, varname);
+                    output.append(result).append('\n');
+                }else {
+                    Class<?> interfaces[] = componentType.getInterfaces();
+                    if(hasInterFace(interfaces, Disposeable.class)){
+                        String result = String.format(obj_array_pattern, varname,varname,varname, varname);
+                        output.append(result).append('\n');
+                    }else{
+                        System.err.println("UnkownType: " + varname + ", "+componentType.getName());
+                    }
+                }
+            }else{
+                if(fieldType == int.class){
+                    String result = String.format(int_pattern, varname,type.type().name(), varname, varname);
+                    output.append(result).append('\n');
+                }else {
+                    if(hasInterFace(fieldType, Disposeable.class)){
+                        String result = String.format(obj_pattern, varname,varname,varname);
+                        output.append(result).append('\n');
+                    }else{
+                        System.err.println("UnkownType: " + varname + ", "+fieldType.getName());
+                    }
+                }
+            }
+        }else{ // Type is null
+            if(fieldType.isArray()){
+                Class<?> componentType = fieldType.getComponentType();
+//				Class<?> interfaces[] = componentType.getInterfaces();
+                if(hasInterFace(componentType, Disposeable.class)){
+                    String result = String.format(obj_array_pattern, varname,varname,varname, varname);
+                    output.append(result).append('\n');
+                }else{
+//					System.err.println("UnkownType: " + varname + ", "+componentType.getName());
+                }
+            }else{
+                if(hasInterFace(fieldType, Disposeable.class)){
+                    String result = String.format(obj_pattern, varname,varname,varname);
+                    output.append(result).append('\n');
+                }else{
+//					System.err.println("UnkownType: " + varname + ", "+fieldType.getName());
+                }
+            }
+        }
+
+    }
+
+    public static boolean hasInterFace(Class<?>[] types, Class<?> _interface){
+        for(Class<?> type : types){
+            if(hasInterFace(type, _interface))
+                return true;
+        }
+
+        return false;
+    }
+
+    public static boolean hasInterFace(Class<?> type, Class<?> _interface){
+        Class<?> parent = type;
+        while(parent != null){
+            Class<?>[] interfaces = parent.getInterfaces();
+            if(CommonUtil.contain(interfaces, _interface)){
+                return true;
+            }
+
+            for(Class<?> i : interfaces){
+                if(hasInterFace(i, _interface))
+                    return true;
+            }
+
+            parent = parent.getSuperclass();
+        }
+
+        return false;
+    }
+
+    private static void parseClass(Class<?> clazz, List<String> lines){
+        String[] array = {
+                "java.lang.Integer", "java.lang.Byte", "java.lang.Boolean",
+                "java.lang.Character", "java.lang.Float", "java.lang.Double",
+                "java.lang.Short", "java.lang.String","java.lang.Long"
+        };
+
+        Arrays.sort(array);
+        Field[] fields = clazz.getDeclaredFields();
+        for(Field field : fields){
+            if((field.getModifiers() & Modifier.STATIC) != 0)
+                // igore the static field.
+                continue;
+
+            final Class<?> type = field.getType();
+            final String name = StringUtils.filterCharater(field.getName(), "[]");
+            final boolean isFinal = (field.getModifiers() & Modifier.FINAL) != 0;
+            if(type.isPrimitive() || type == String.class || (type.isInterface() && type != List.class) || type.isEnum()){
+                lines.add(String.format("%s = o.%s;", name, name));
+            }else{
+                if(type.isArray()){ // The field is a array.
+                    Class<?> compType = type.getComponentType();
+                    if(compType.isPrimitive() || compType == String.class || compType.isInterface()){
+                        if(!isFinal){
+                            lines.add(String.format("if(o.%s != null){", name));
+                            lines.add(String.format("\t%s = new %s[o.%s.length];", name, compType.getSimpleName(), name));
+                            lines.add(String.format("\t%s = Arrays.copyOf(o.%s, o.%s.length);", name, name, name));
+                            lines.add("}");
+                        }else{
+                            lines.add(String.format("System.arraycopy(o.%s, 0, %s, 0, o.%s.length);", name, name, name));
+                        }
+                    }else if(compType.isArray()){  // The field ia two dimension array.
+                        if(!isFinal){
+                            lines.add(String.format("if(o.%s != null){", name));
+                            lines.add(String.format("\t%s = new %s[o.%s.length][];", name, compType.getSimpleName(), name));
+                            lines.add(String.format("\tfor(int i = 0; i < o.%s.length; i++){", name));
+                            lines.add(String.format("\t\tif(o.%s[i] != null)", name));
+                            lines.add(String.format("\t\t\t%s[i] = Arrays.copyOf(o.%s[i], o.%s[i].length);", name, name, name));
+                            lines.add("\t}");
+                            lines.add("}");
+                        }else{
+                            lines.add(String.format("for(int i = 0; i < o.%s.length; i++)", name));
+                            lines.add(String.format("\tSystem.arraycopy(o.%s[i], 0, %s[i], 0, o.%s[i].length);", name,name,name));
+                        }
+                    }else{
+                        // object array.
+                        if(!isFinal){
+                            lines.add(String.format("if(o.%s != null){", name));
+                            lines.add(String.format("\t%s = Arrays.copyOf(o.%s, o.%s.length);", name, name, name));
+                        }else{
+                            String simpleName = compType.getSimpleName();
+//							lines.add(String.format("System.arraycopy(o.%s, 0, %s, 0, o.%s.length);", name, name, name));
+                            lines.add(String.format("for(int i = 0; i < o.%s.length; i++)", name));
+                            lines.add(String.format("\t%s[i] = new %s(o.%s[i]);", name, simpleName, name));
+                        }
+                    }
+                }else{
+                    boolean isList = false;
+                    if(type == List.class || type == ArrayList.class || type == LinkedList.class){
+                        isList = true;
+                    }
+
+                    if(!isList){
+                        Class<?>[] interfaces = type.getInterfaces();
+                        for(Class<?> inter : interfaces){
+                            if(inter == Collection.class){
+                                isList = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if(isList){
+                        String genricType = null;
+                        String simpleName = null;
+                        String typename = field.getGenericType().getTypeName();
+                        int i1 = typename.indexOf('<');
+                        if(i1 > 0){
+                            int i2 = typename.lastIndexOf('>');
+                            genricType = typename.substring(i1 + 1, i2);
+                            int last  =genricType.lastIndexOf('.');
+                            simpleName = genricType.substring(last + 1);
+                        }
+                        lines.add(String.format("%s.clear();", name));
+                        if(genricType == null || Arrays.binarySearch(array, genricType) >=0){
+                            lines.add(String.format("%s.addAll(o.%s);", name, name));
+                        }else{
+                            lines.add(String.format("for(int i = 0; i < o.%s.size(); i++)", name));
+                            lines.add(String.format("\t%s.add(new %s(o.%s.get(i)));", name, simpleName, name));
+                        }
+                    }else{
+                        if(isFinal){
+                            lines.add(String.format("%s.set(o.%s);", name, name));
+                        }else{
+                            lines.add(String.format("%s = o.%s;", name, name));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static Field getField(Object obj, String filedName) {
+        Class<? extends Object> objectType = obj.getClass();
+        return getField(objectType, filedName);
+    }
+
+    /** Get all of the fields that declared in the class. */
+    public static List<Field> getFields(Class<?> objectType){
+        List<Field> fields = new ArrayList<Field>();
+
+        while (objectType != null) {
+            for (Field f : objectType.getDeclaredFields())
+                fields.add(f);
+
+            objectType = objectType.getSuperclass();
+        }
+
+        return fields;
+    }
+
+    public static Field getField(Class<?> objectType, String filedName) {
+
+        boolean found = false;
+
+        while (objectType != null) {
+            for (Field f : objectType.getDeclaredFields())
+                if (f.getName().equals(filedName)) {
+                    found = true;
+                    break;
+                }
+
+            if (found)
+                break;
+            else
+                objectType = objectType.getSuperclass();
+        }
+
+        if (found) {
+            try {
+                Field field = objectType.getDeclaredField(filedName);
+
+                try {
+                    field.setAccessible(true);
+                    return field;
+                } catch (java.security.AccessControlException e) {
+                    e.printStackTrace();
+                }
+            } catch (NoSuchFieldException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("No such field named '" + filedName
+                    + "' in the class " + objectType.getName());
+        }
+        return null;
     }
 }

@@ -14,7 +14,8 @@ import org.lwjgl.util.vector.Vector3f;
 	Matrix4f g_Projection;  // Camera projection
 	final Vector3f g_CameraPosition = new Vector3f();
 	final Vector3f g_CameraDirection = new Vector3f();
-	final Vector3f  g_LightPosition = new Vector3f(-10000.0f,6500.0f,10000.0f);
+	final Vector3f  g_LightPosition = new Vector3f(14000.0f,6500.0f,4000.0f);
+	final Vector3f  g_LightTarget = new Vector3f();
 	final Vector2f  g_ScreenSizeInv = new Vector2f();
 	float	   g_ZNear;
 	float	   g_ZFar;
@@ -30,6 +31,7 @@ import org.lwjgl.util.vector.Vector3f;
 	boolean g_RenderCaustics = true;  // TODO default true
 	float g_HalfSpaceCullSign;
 	float g_HalfSpaceCullPosition;
+	float g_HeightFieldSize = 512;
 	// Uniform variable End.
 	
 	boolean g_Wireframe = false;
