@@ -1,4 +1,4 @@
-#include "../../../shader_libs/WaveWork/GFSDK_WaveWorks_Quadtree.glsl"
+#include "../../../shader_libs/WaveWork/GFSDK_WaveWorks_Attributes.glsl"
 #include "ocean_surface.glsl"
 
 layout(location=0) out vec4 Out_f4Color;
@@ -14,7 +14,7 @@ in PS_INPUT
 	float2								gerstner_sdfUV /*: TEXCOORD9*/;
 	float								gerstner_multiplier /*: TEXCOORD10*/;
 	noperspective float3				v_dist /*: TEXCOORD11*/;
-}_input;
+}In;
 
 float GetRefractionDepth(float2 position)
 {
@@ -81,7 +81,7 @@ void main()
     positionLS.z = min(0.99,positionLS.z);
 
     // calculating shadow multiplier to be applied to diffuse/scatter/specular light components
-    float shadow_factor = g_ShadowmapTexture.SampleCmp(SamplerDepthAnisotropic,positionLS.xy,positionLS.z* 0.995f).r;
+    float shadow_factor = texture(g_ShadowmapTexture,positionLS.xy,positionLS.z* 0.995f).r;  // SamplerDepthAnisotropic
 
     // simulating scattering/double refraction: light hits the side of wave, travels some distance in water, and leaves wave on the other side
     // it's difficult to do it physically correct without photon mapping/ray tracing, so using simple but plausible emulation below
@@ -113,7 +113,7 @@ void main()
         (100.0/(100+length(g_CameraPosition-water_vertex_positionWS)));
 
     // picking refraction depth at non-displaced point, need it to scale the refraction texture displacement amount according to water depth
-    float refraction_depth = GetRefractionDepth(In.positionClip.xy*g_ScreenSizeInv);
+    float refraction_depth = GetRefractionDepth(gl_FragCoord.xy*g_ScreenSizeInv);
     refraction_depth = g_ZFar*g_ZNear / (g_ZFar-refraction_depth*(g_ZFar-g_ZNear));
     float4 vertex_in_viewspace = mul(float4(In.positionWS.xyz,1),g_ModelViewMatrix);
     water_depth = refraction_depth-vertex_in_viewspace.z;
@@ -126,7 +126,7 @@ void main()
     refraction_disturbance *= min(1.0f,water_depth*0.03);
 
     // getting refraction depth again, at displaced point now
-    refraction_depth = GetRefractionDepth(In.positionClip.xy*g_ScreenSizeInv+refraction_disturbance);
+    refraction_depth = GetRefractionDepth(gl_FragCoord.xy*g_ScreenSizeInv+refraction_disturbance);
     refraction_depth = g_ZFar*g_ZNear / (g_ZFar-refraction_depth*(g_ZFar-g_ZNear));
     vertex_in_viewspace= mul(float4(In.positionWS.xyz,1),g_ModelViewMatrix);
     water_depth = max(water_depth,refraction_depth-vertex_in_viewspace.z);
@@ -135,8 +135,8 @@ void main()
     float depth_damper_sss = min(1,water_depth*0.5);
 
     // getting reflection and refraction color at disturbed texture coordinates
-    reflection_color = g_ReflectionTexture.SampleLevel(SamplerLinearClamp,float2(In.positionClip.x*g_ScreenSizeInv.x,1.0-In.positionClip.y*g_ScreenSizeInv.y)+reflection_disturbance,0).rgb;
-    refraction_color = g_RefractionTexture.SampleLevel(SamplerLinearClamp,In.positionClip.xy*g_ScreenSizeInv+refraction_disturbance,0).rgb;
+    reflection_color = textureLod(g_ReflectionTexture,float2(gl_FragCoord.x*g_ScreenSizeInv.x,1.0-gl_FragCoord.y*g_ScreenSizeInv.y)+reflection_disturbance,0).rgb;// SamplerLinearClamp
+    refraction_color = textureLod(g_RefractionTexture,gl_FragCoord.xy*g_ScreenSizeInv+refraction_disturbance,0).rgb;
 
     // fading fresnel factor to 0 to soften water surface edges
     fresnel_factor*=depth_damper;
@@ -183,7 +183,7 @@ void main()
 
     foam_intensity *= 1.0+0.8*saturate(surface_attributes.foam_surface_folding);
 
-    float foam_bubbles = g_FoamDiffuseTexture.Sample(SamplerLinearWrap, In.world_pos_undisplaced.xy*0.5).r;
+    float foam_bubbles = texture(g_FoamDiffuseTexture, In.world_pos_undisplaced.xy*0.5).r;  // SamplerLinearWrap
     foam_bubbles = saturate(5.0*(foam_bubbles-0.8));
 
     // applying foam hats

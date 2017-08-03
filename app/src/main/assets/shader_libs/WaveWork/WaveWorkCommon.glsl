@@ -27,4 +27,3 @@ layout(binding=0) uniform MyConstantBuffer
 
 	float m_choppy_scale;
 };
-

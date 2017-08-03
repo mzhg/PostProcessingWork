@@ -1,11 +1,12 @@
 #include "WaveWorkCommon.glsl"
+#include "ComputeCommon.comp"
 
-layout(binding=1) buffer g_ht_input
+layout(binding=1) buffer g_ht_input_buffer
 {
     float2 g_ht_input[];
 };
 
-layout(binding=2) buffer g_dt_input
+layout(binding=2) buffer g_dt_input_buffer
 {
     float4 g_dt_input[];
 };
@@ -21,8 +22,8 @@ void main()
     uint columnIdx = dispatchThreadId.y;
     uint reverseRowIdx = reversebits(rowIdx) >> m_32_minus_log2_resolution;
 
-    int index = reverseRowIdx * m_resolution + columnIdx;
-    int jndex = (m_half_resolution - reverseRowIdx) * m_resolution + columnIdx;
+    int index = int(reverseRowIdx * m_resolution + columnIdx);
+    int jndex = int((m_half_resolution - reverseRowIdx) * m_resolution + columnIdx);
 
     float2 ht[2], dx[2], dy[2];
     if(rowIdx < m_resolution)
@@ -44,7 +45,7 @@ void main()
 
     if(rowIdx < m_resolution)
     {
-        float sgn = (dispatchThreadId.x + columnIdx) & 0x1 ? -1.0f : +1.0f;
+        float sgn = bool((dispatchThreadId.x + columnIdx) & 0x1) ? -1.0f : +1.0f;
         float scale = m_choppy_scale * sgn;
 
 //        g_displacement_output[uint2(columnIdx, dispatchThreadId.x)] =

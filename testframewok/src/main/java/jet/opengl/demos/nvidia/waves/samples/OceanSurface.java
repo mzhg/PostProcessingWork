@@ -3,6 +3,8 @@ package jet.opengl.demos.nvidia.waves.samples;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector2f;
 
+import java.io.IOException;
+
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Params;
@@ -16,6 +18,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 
@@ -38,6 +41,7 @@ final class OceanSurface implements Disposeable{
     VertexArrayObject m_pQuadLayout;
     VertexArrayObject		m_pRayContactLayout;
     GLSLProgram m_pRenderRayContactTechnique;
+    GLSLProgram m_pRenderRaysTechnique;
     BufferGL m_pContactVB;
     BufferGL			m_pContactIB;
 
@@ -45,8 +49,11 @@ final class OceanSurface implements Disposeable{
     final int[] m_pSimulationShaderInputMappings_Shore;
     private GLFuncProvider gl;
     private final Matrix4f topDownMatrix = new Matrix4f();
+    private final SampleD3D11 context;
 
-    public OceanSurface(){
+    public OceanSurface(SampleD3D11 context){
+        this.context = context;
+
         int NumQuadtreeShaderInputs = GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_GetShaderInputCountD3D11();
         int NumSimulationShaderInputs = GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetShaderInputCountD3D11();
         m_pQuadTreeShaderInputMappings_Shore = new int [NumQuadtreeShaderInputs];
@@ -69,7 +76,15 @@ final class OceanSurface implements Disposeable{
 //        m_pRenderSurfaceShadedWithShorelinePass = m_pRenderSurfaceTechnique->GetPassByName("Pass_Solid_WithShoreline");
         final String shader_path = "nvidia/WaveWorks/shaders/";
         m_pRenderSurfaceShadedWithShorelinePass =GLSLProgram.createProgram(shader_path + "OceanWaveVS.vert", shader_path + "OceanWaveHS.gltc",
-                shader_path+"OceanWaveDS.glte", shader_path+"SolidWireGS.gemo", shader_path+"OceanWaveShorePS.frag", null);
+                shader_path+"OceanWaveDS.glte", shader_path+"SolidWireGS.gemo", shader_path+"OceanWaveShorePS.frag",
+                CommonUtil.toArray(new Macro("GFSDK_WAVEWORKS_USE_TESSELLATION", 1)));
+
+        try {
+            m_pRenderRayContactTechnique = GLSLProgram.createFromFiles(shader_path + "ContactVS.vert", shader_path + "RayContactPS.frag");
+            m_pRenderRaysTechnique = GLSLProgram.createFromFiles(shader_path + "RayVS.vert", shader_path + "RayContactPS.frag");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
 //        D3DX11_PASS_SHADER_DESC passShaderDesc;
 //
@@ -235,6 +250,84 @@ final class OceanSurface implements Disposeable{
 //        GFSDK_WaveWorks.GFSDK_WaveWorks_Savestate_RestoreD3D11(hSavestate, pDC);
     }
 
+    void renderReadbacks(Matrix4f viewProj){
+
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_pContactVB.getBuffer());
+        // TODO layout
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, m_pContactIB.getBuffer());
+
+        m_pRenderRayContactTechnique.enable();
+        int contactPosition = m_pRenderRayContactTechnique.getUniformLocation("g_ContactPosition");
+        for( int i = 0; i < SampleD3D11.NumMarkers; i++)
+        {
+//            contactPos = XMFLOAT4(context.g_readback_marker_positions[i].x, g_readback_marker_positions[i].y, g_readback_marker_positions[i].z, 0);
+//            g_pOceanSurf->m_pOceanFX->GetVariableByName("g_ContactPosition")->AsVector()->SetFloatVector((FLOAT*)&contactPos);
+//            g_pOceanSurf->m_pRenderRayContactTechnique->GetPassByIndex(0)->Apply(0, pContext);
+            gl.glUniform4f(contactPosition, context.g_readback_marker_positions[i].x, context.g_readback_marker_positions[i].y, context.g_readback_marker_positions[i].z, 0);
+//            pContext->DrawIndexed(12, 0, 0);
+            gl.glDrawElements(GLenum.GL_TRIANGLES, 12, GLenum.GL_UNSIGNED_SHORT, 0);
+        }
+
+        // TODO disable vertex attribu pointer.
+
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+
+    void renderRayContacts(Matrix4f viewProj){
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_pContactVB.getBuffer());
+        // TODO layout
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, m_pContactIB.getBuffer());
+
+        m_pRenderRayContactTechnique.enable();
+        int contactPosition = m_pRenderRayContactTechnique.getUniformLocation("g_ContactPosition");
+        for( int i = 0; i < SampleD3D11.NumMarkers; i++)
+        {
+//            contactPos = XMFLOAT4(context.g_readback_marker_positions[i].x, g_readback_marker_positions[i].y, g_readback_marker_positions[i].z, 0);
+//            g_pOceanSurf->m_pOceanFX->GetVariableByName("g_ContactPosition")->AsVector()->SetFloatVector((FLOAT*)&contactPos);
+//            g_pOceanSurf->m_pRenderRayContactTechnique->GetPassByIndex(0)->Apply(0, pContext);
+            gl.glUniform4f(contactPosition, context.g_raycast_hitpoints[i].x, context.g_raycast_hitpoints[i].y, context.g_raycast_hitpoints[i].z, 0);
+//            pContext->DrawIndexed(12, 0, 0);
+            gl.glDrawElements(GLenum.GL_TRIANGLES, 12, GLenum.GL_UNSIGNED_SHORT, 0);
+        }
+
+        // TODO disable vertex attribu pointer.
+
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+
+    void renderRays(Matrix4f viewProj) {
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_pContactVB.getBuffer());
+        // TODO layout
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, m_pContactIB.getBuffer());
+
+        m_pRenderRaysTechnique.enable();
+        int originPosition = m_pRenderRaysTechnique.getUniformLocation("g_OriginPosition");
+        int rayDirection = m_pRenderRaysTechnique.getUniformLocation("g_RayDirection");
+        for( int i = 0; i < SampleD3D11.NumMarkers; i++)
+        {
+//            XMStoreFloat4(&origPos, g_raycast_origins[i]);
+//            g_pOceanSurf->m_pOceanFX->GetVariableByName("g_OriginPosition")->AsVector()->SetFloatVector((FLOAT*)&origPos);
+//
+//            XMVECTOR vecRayDir = g_raycast_directions[i] * 100.0f;
+//            XMStoreFloat4(&rayDirection, vecRayDir);
+//
+//            g_pOceanSurf->m_pOceanFX->GetVariableByName("g_RayDirection")->AsVector()->SetFloatVector((FLOAT*) &rayDirection);
+//            g_pOceanSurf->m_pRenderRayContactTechnique->GetPassByIndex(1)->Apply(0, pContext);
+//            pContext->DrawIndexed(2, 0, 0);
+
+            gl.glUniform4f(originPosition, context.g_raycast_origins[i].x, context.g_raycast_origins[i].y, context.g_raycast_origins[i].z, 0);
+            gl.glUniform4f(rayDirection, context.g_raycast_directions[i].x*100, context.g_raycast_directions[i].y*100, context.g_raycast_directions[i].z*100, 0);
+            gl.glDrawElements(GLenum.GL_TRIANGLES, 2, GLenum.GL_UNSIGNED_SHORT, 0);
+        }
+
+        // TODO disable vertex attribu pointer.
+
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+
     void getQuadTreeStats(GFSDK_WaveWorks_Quadtree_Stats stats){
         GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_GetStats(m_hOceanQuadTree, stats);
     }
@@ -249,4 +342,6 @@ final class OceanSurface implements Disposeable{
         CommonUtil.safeRelease(m_pContactVB);
         CommonUtil.safeRelease(m_pContactIB);
     }
+
+
 }

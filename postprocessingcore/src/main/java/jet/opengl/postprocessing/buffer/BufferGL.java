@@ -63,6 +63,7 @@ public class BufferGL implements Disposeable{
     public void unbind(){gl.glBindBuffer(m_target, 0);}
     public int getTarget() { return m_target;}
     public int getUsage()  { return m_usage;}
+    public int getBuffer() { return m_bufferID;}
 
     @Override
     public void dispose() {

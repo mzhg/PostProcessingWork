@@ -46,6 +46,7 @@
 #define firstbithigh(x) findMSB(x)
 #define firstbitlow(x)  findLSB(x)
 #define atan2(y,x)  atan(y,x)
+#define reversebits(x) bitfieldReverse(x)
 // #define mul(M, V) M * V
 
 #define isfinite(x) !(isnan(x) || isinf(x))
@@ -54,6 +55,8 @@
 #define GroupMemoryBarrierWithGroupSync barrier
 #endif
 #define groupshared shared
+
+#define GroupMemoryBarrier memoryBarrier
 
 vec4 mul(in vec4 v, in mat4 m )
 {
@@ -76,6 +79,12 @@ vec3 mul(in mat3 m , in vec3 v)
 }
 
 void sincos(float angle, out float _sin, out float _cos)
+{
+    _sin = sin(angle);
+    _cos = cos(angle);
+}
+
+void sincos(float2 angle, out float2 _sin, out float2 _cos)
 {
     _sin = sin(angle);
     _cos = cos(angle);

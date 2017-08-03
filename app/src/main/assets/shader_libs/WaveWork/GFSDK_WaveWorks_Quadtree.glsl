@@ -110,7 +110,7 @@ float3 GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(float4 In_vPos)
 		else if(0.25f == rempart.x) vpos_target.x = vpos_src.x + geomorph_offset.x*mirror.x;
 		else if(0.25f == rempart.y) vpos_target.y = vpos_src.y + geomorph_offset.y*mirror.y;
 
-		float3 eyevec = mul(float4(vpos_target,0.f,1.f), g_matLocalWorld) - g_vsEyePos.xyz;
+		float3 eyevec = mul(float4(vpos_target,0.f,1.f), g_matLocalWorld).xyz - g_vsEyePos.xyz;
 		float d = length(eyevec);
 		float geomorph_target_level = log2(d * g_MorphParam.x) + 1.f;
 		geomorph_amount = saturate(2.0*(geomorph_target_level - float(geomorph_level)));
@@ -127,7 +127,7 @@ float3 GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(float4 In_vPos)
 	}
 
 	vpos.xy = lerp(vpos_src, vpos_target, geomorph_amount);
-	return mul(float4(vpos,In_vPos.zw), g_matLocalWorld);
+	return mul(float4(vpos,In_vPos.zw), g_matLocalWorld).xyz;
 }
 #endif
 
@@ -160,7 +160,7 @@ float3 GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(float4 In_vPos)
 			vpos_target.y = vpos_src.y + geomorph_offset;
 		}
 
-		float3 eyevec = mul(float4(vpos_target,0.f,1.f), g_matLocalWorld) - g_vsEyePos.xyz;
+		float3 eyevec = mul(float4(vpos_target,0.f,1.f), g_matLocalWorld).xyz - g_vsEyePos.xyz;
 		float d = length(eyevec);
 		float geomorph_target_level = log2(d * g_MorphParam.x) + 1.f;
 		geomorph_amount = saturate(3.0*(geomorph_target_level - float(geomorph_level)));
@@ -173,7 +173,7 @@ float3 GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(float4 In_vPos)
 		}
 	}
 	vpos.xy = lerp(vpos_src, vpos_target, geomorph_amount);
-	return mul(float4(vpos,In_vPos.zw), g_matLocalWorld);
+	return mul(float4(vpos,In_vPos.zw), g_matLocalWorld).xyz;
 }
 
 float GFSDK_WaveWorks_GetEdgeTessellationFactor(float4 vertex1, float4 vertex2)

@@ -28,9 +28,9 @@ layout(binding=1) uniform attr_ps_buffer
 };
 
 layout(binding=0) uniform sampler2D g_samplerGradientMap0;
-layout(binding=1) uniform sampler2D g_textureGradientMap1;
-layout(binding=2) uniform sampler2D g_textureGradientMap2;
-layout(binding=3) uniform sampler2D g_textureGradientMap3;
+layout(binding=1) uniform sampler2D g_samplerGradientMap1;
+layout(binding=2) uniform sampler2D g_samplerGradientMap2;
+layout(binding=3) uniform sampler2D g_samplerGradientMap3;
 layout(binding=4) uniform sampler2DArray g_samplerGradientMapTextureArray;
 
 struct GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT

@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import jet.opengl.postprocessing.buffer.AttribDesc;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
@@ -118,7 +119,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 
     public HRESULT initD3D11(GFSDK_WaveWorks_Detailed_Simulation_Params params, GFSDK_WaveWorks_CPU_Scheduler_Interface pOptionalScheduler/*, ID3D11Device* pD3DDevice*/){
         HRESULT hr;
-
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         if(nv_water_d3d_api_d3d11 != m_d3dAPI)
         {
             releaseAll();
@@ -135,8 +136,10 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 //            m_d3d._11.m_pd3d11Device->AddRef();
 
             m_pOptionalScheduler = pOptionalScheduler;
-
             m_params = params;
+            if(m_d3d._11 == null)
+                m_d3d._11 = new D3D11GlobalObjects();
+
             hr = allocateAll();
             if(hr != HRESULT.S_OK)
                 return hr;
@@ -156,6 +159,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 
     public HRESULT initGL2(GFSDK_WaveWorks_Detailed_Simulation_Params params/*, Object pGLContext*/){
         HRESULT hr;
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         if(nv_water_d3d_api_gl2 != m_d3dAPI)
         {
             releaseAll();
@@ -1746,7 +1750,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         gl.glBindBuffer(target, 0);
     }
 
-    static final String SHADER_PATH = "shader_libs/WaveWrok/";
+    static final String SHADER_PATH = "shader_libs/WaveWork/";
 
     private HRESULT initShaders(){
 //        #if WAVEWORKS_ENABLE_GRAPHICS

@@ -554,7 +554,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                V_RETURN(device->CreateComputeShader(g_ComputeRows, sizeof(g_ComputeRows), NULL, &m_d3d._11.m_row_shader));TODO
 //                V_RETURN(device->CreateComputeShader(g_ComputeColumns, sizeof(g_ComputeColumns), NULL, &m_d3d._11.m_column_shader));TODO
                 _11.m_update_h0_shader=create("ComputeH0.comp");
-                _11.m_row_shader=create("ComputerRows.comp");
+                _11.m_row_shader=create("ComputeRows.comp");
                 _11.m_column_shader=create("ComputeColumns.comp");
 
             }
@@ -573,7 +573,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
     // Create compute shader from the file
     private static final GLSLProgram create(String filename){
         try {
-            CharSequence computeSrc = ShaderLoader.loadShaderFile("shader_libs/" + filename, false);
+            CharSequence computeSrc = ShaderLoader.loadShaderFile(GFSDK_WaveWorks_Simulation.SHADER_PATH + filename, false);
             ShaderSourceItem cs_item = new ShaderSourceItem(computeSrc, ShaderType.COMPUTE);
             return GLSLProgram.createFromShaderItems(cs_item);
         } catch (IOException e) {

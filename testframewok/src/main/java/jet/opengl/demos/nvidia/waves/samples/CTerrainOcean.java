@@ -66,6 +66,7 @@ final class CTerrainOcean {
     TextureSampler[] terrain_textures;
 
     IsRenderHeightfieldProgram renderHeightfieldProgram;
+    IsRenderHeightfieldProgram renderHeightfieldPatchDataProgram;
     IsWaterNormalmapCombineProgram waterNormalmapCombineProgram;
     IsMainToBackBufferProgram mainToBackBufferProgram;
 
@@ -77,6 +78,9 @@ final class CTerrainOcean {
     private SkyRoundRenderer m_SkyRenderer;
 
     private GLFuncProvider gl;
+    private final SampleD3D11 context;
+
+    CTerrainOcean(SampleD3D11 context) { this.context = context;}
 
     void onCreate(String shaderPath, String texturePath){
         gl = GLFuncProviderFactory.getGLFuncProvider();
@@ -96,7 +100,8 @@ final class CTerrainOcean {
         m_SkyRenderer.initlize(m_SkyVB, sky_texture);
 
         GLCheck.checkError();
-        renderHeightfieldProgram = new IsRenderHeightfieldProgram(null, shaderPath);
+        renderHeightfieldProgram = new IsRenderHeightfieldProgram((Void)null, shaderPath);
+        renderHeightfieldPatchDataProgram = new IsRenderHeightfieldProgram(shaderPath, "RenderHeightFieldDataPatch.frag");
         waterNormalmapCombineProgram = new IsWaterNormalmapCombineProgram(shaderPath);
         mainToBackBufferProgram = new IsMainToBackBufferProgram(shaderPath);GLCheck.checkError();
 
@@ -108,7 +113,7 @@ final class CTerrainOcean {
 
         GLCheck.checkError();
         textureDebugProgram = new FullscreenProgram();
-        terrain_textures = new TextureSampler[12];
+        terrain_textures = new TextureSampler[12+3];
         terrain_textures[0] = new TextureSampler(m_TerrainVB.getHeightmapTexture().getTexture(), IsSamplers.g_SamplerLinearWrap);
         terrain_textures[1] = new TextureSampler(m_TerrainVB.getLayerdefTexture().getTexture(), IsSamplers.g_SamplerLinearWrap);
         terrain_textures[2] = new TextureSampler(0, IsSamplers.g_SamplerLinearMipmapWrap);
@@ -121,6 +126,10 @@ final class CTerrainOcean {
         terrain_textures[9] = new TextureSampler(0, IsSamplers.g_SamplerAnisotropicWrap);
         terrain_textures[10] = new TextureSampler(0, IsSamplers.g_SamplerAnisotropicWrap);
         terrain_textures[11] = new TextureSampler(0, IsSamplers.g_SamplerDepthAnisotropic);
+
+        terrain_textures[12] = new TextureSampler(context.g_pOceanSurf.pDistanceFieldModule.GetDataTextureSRV().getTexture(), IsSamplers.g_SamplerLinearBorder);
+        terrain_textures[13] = new TextureSampler(foam_intensity_perlin2.getTexture(), IsSamplers.g_SamplerLinearWrap);
+        terrain_textures[14] = new TextureSampler(foam24bit.getTexture(), IsSamplers.g_SamplerLinearWrap);
     }
 
     private void buildFramebuffer(FramebufferGL fbo, Texture2DDesc[] tex_descs, TextureAttachDesc[] attach_descs){
@@ -197,21 +206,12 @@ final class CTerrainOcean {
         if(params.g_Wireframe){
             gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
         }
-
-        GLCheck.checkError();
         renderShadowMap(params);
 
-        GLCheck.checkError();
-
-        // Stage 3. render the reflection mapping.
+        // Stage 2. render the reflection mapping.
         renderReflection(params);
 
-//        if(debug_reflection){
-//            drawFullscreen(reflection_framebuffer.getAttachedTex(0).getTexture());
-//            return;
-//        }
-
-        // Stage 4. render to the main_color_framebuffer.
+        // Stage 3. render to the main_color_framebuffer.
         float terrain_minheight=m_TerrainVB.getTerrainParams().terrain_minheight;
         params.g_HalfSpaceCullSign = 1.0f;
         params.g_HalfSpaceCullPosition=terrain_minheight*2;
@@ -222,7 +222,7 @@ final class CTerrainOcean {
             gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
         }
 
-        // Stage 5. getting back to rendering to default buffer
+        // Stage 4. getting back to rendering to default buffer
         int texture = params.g_showReflection ? refraction_framebuffer.getAttachedTex(0).getTexture() : main_color_framebuffer.getAttachedTex(0).getTexture();
         drawFullscreen(texture);
     }
@@ -237,6 +237,15 @@ final class CTerrainOcean {
         // drawing terrain to main buffer
         params.g_TerrainBeingRendered = 1.0f;
         params.g_SkipCausticsCalculation = 0;
+        params.g_ApplyFog = 1;
+//        params.g_Time = g_ShoreTime;  TODO
+        params.g_GerstnerSteepness = 1.f;
+        params.g_BaseGerstnerAmplitude = 0.279f;
+        params.g_BaseGerstnerWavelength = 3.912f;
+        params.g_BaseGerstnerSpeed = 2.472f;
+        params.g_BaseGerstnerParallelness = 0.2f;
+        params.g_WindDirection.set(0.8f, 0.6f);
+
         renderTerrain(params, true, false);
 
         // resolving main buffer color to refraction color resource
@@ -258,12 +267,47 @@ final class CTerrainOcean {
         if(params.g_RenderWater)
             renderWater(params);
 
+        // drawing readback markers to main buffer
+        context.g_pOceanSurf.renderReadbacks(params.g_ModelViewProjectionMatrix);
+
+        // drawing raycast contacts to main buffer
+        context.g_pOceanSurf.renderRayContacts(params.g_ModelViewProjectionMatrix);
+
+        // drawing rays to main buffer
+        context.g_pOceanSurf.renderRays(params.g_ModelViewProjectionMatrix);
+
         //drawing sky to main buffer
         renderSky(params);
     }
 
     void renderWater(IsParameters params){
+        final Matrix4f camera_modelView = new Matrix4f();
+        final Matrix4f camera_mvp = new Matrix4f();
 
+        camera_modelView.load(params.g_ModelViewMatrix);
+        camera_mvp.load(params.g_ModelViewProjectionMatrix);
+
+        camera_projection.set(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
+        Matrix4f.mul(camera_projection, params.g_ModelViewMatrix, params.g_ModelViewMatrix); // Rotate the model view
+        Matrix4f.mul(params.g_Projection, params.g_ModelViewMatrix, params.g_ModelViewProjectionMatrix);
+
+        // drawing water surface to main buffer
+        if(context.g_QueryStats) {
+            // some query stuffs
+        }
+
+        context.g_pOceanSurf.renderShaded(/*pContext,*/ camera_modelView,params.g_Projection,
+                context.g_hOceanSimulation, context.g_hOceanSavestate, params.g_WindDirection,
+                params.g_GerstnerSteepness, params.g_BaseGerstnerAmplitude, params.g_BaseGerstnerWavelength,
+                params.g_BaseGerstnerSpeed, params.g_BaseGerstnerParallelness, context.g_ShoreTime);
+        context.g_pOceanSurf.getQuadTreeStats(context.g_ocean_quadtree_stats);
+
+        params.g_ModelViewMatrix.load(camera_modelView);
+        params.g_ModelViewProjectionMatrix.load(camera_mvp);
+    }
+
+    void renderReadbacks(IsParameters params){
+        context.g_pOceanSurf.renderReadbacks(params.g_ModelViewProjectionMatrix);
     }
 
     void drawFullscreen(int textureId){
@@ -295,6 +339,7 @@ final class CTerrainOcean {
 
         // drawing terrain to reflection RT
         params.g_SkipCausticsCalculation = 1;
+        params.g_ApplyFog = 0;
         renderTerrain(params, false, false);
 
         endReflection(params);
@@ -332,7 +377,7 @@ final class CTerrainOcean {
         Matrix4f.mul(params.g_Projection, modelView, viewProj);
 
         params.g_HalfSpaceCullSign = 1.0f;
-        params.g_HalfSpaceCullPosition = -0.6f;
+        params.g_HalfSpaceCullPosition = 0.f;
     }
 
     void endReflection(IsParameters params){
@@ -374,7 +419,6 @@ final class CTerrainOcean {
         Vector3f LookAtPoint =params.g_LightTarget;
         LookAtPoint.set(terrain_far_range / 2.0f, 0.0f, terrain_far_range / 2.0f);
         ReadableVector3f lookUp = Vector3f.Y_AXIS;
-        Vector3f cameraPosition = params.g_CameraPosition;
 
         float nr, fr;
         nr=distanceFromLightToTarget-terrain_far_range*1.0f;
@@ -433,6 +477,72 @@ final class CTerrainOcean {
         renderHeightfieldProgram.setRenderShadowmap(shadow_map);
         m_TerrainVB.draw(0, cullface);
         renderHeightfieldProgram.disable();
+    }
+
+    void renderTerrainToHeightField(IsParameters params){
+        float origin[/*2*/]={0,0};
+        int stride=4*4;
+        int offset=0;
+
+//        pEffect->GetVariableByName("g_HeightfieldTexture")->AsShaderResource()->SetResource(heightmap_textureSRV);
+//        pEffect->GetVariableByName("g_LayerdefTexture")->AsShaderResource()->SetResource(layerdef_textureSRV);
+//        pEffect->GetVariableByName("g_RockBumpTexture")->AsShaderResource()->SetResource(rock_bump_textureSRV);
+//        pEffect->GetVariableByName("g_SkyTexture")->AsShaderResource()->SetResource(sky_textureSRV);
+//        pEffect->GetVariableByName("g_HeightFieldOrigin")->AsVector()->SetFloatVector(origin);
+//        pEffect->GetVariableByName("g_HeightFieldSize")->AsScalar()->SetFloat(terrain_gridpoints*terrain_geometry_scale);
+
+//        XMMATRIX worldToProjectionMatrix = worldToViewMatrix * viewToProjectionMatrix;
+//        XMMATRIX projectionToWorldMatrix = XMMatrixInverse(NULL, worldToProjectionMatrix);
+//    D3DXMatrixInverse(&projectionToWorldMatrix, NULL, &worldToProjectionMatrix);
+
+//        XMFLOAT4X4 wvMat, wtpMat, ptwMat;
+//        XMFLOAT3 epWS, vdWS;
+//
+//        XMStoreFloat4x4(&wvMat, worldToViewMatrix);
+//        XMStoreFloat4x4(&wtpMat, worldToProjectionMatrix);
+//        XMStoreFloat4x4(&ptwMat, projectionToWorldMatrix);
+//        XMStoreFloat3(&epWS, eyePositionWS);
+//        XMStoreFloat3(&vdWS, viewDirectionWS);
+//
+//        pEffect->GetVariableByName("g_ModelViewMatrix")->AsMatrix()->SetMatrix( (FLOAT*) &wvMat );
+//        pEffect->GetVariableByName("g_ModelViewProjectionMatrix")->AsMatrix()->SetMatrix((FLOAT*)&wtpMat);
+//        pEffect->GetVariableByName("g_ModelViewProjectionMatrixInv")->AsMatrix()->SetMatrix((FLOAT*)&ptwMat);
+//        pEffect->GetVariableByName("g_CameraPosition")->AsVector()->SetFloatVector((FLOAT*)&epWS);
+//        pEffect->GetVariableByName("g_CameraDirection")->AsVector()->SetFloatVector((FLOAT*)&vdWS);
+//
+//        pEffect->GetVariableByName("g_HalfSpaceCullSign")->AsScalar()->SetFloat(1.0);
+//        pEffect->GetVariableByName("g_HalfSpaceCullPosition")->AsScalar()->SetFloat(terrain_minheight*20);
+//
+//        // drawing terrain to main buffer
+//        pEffect->GetVariableByName("g_ApplyFog")->AsScalar()->SetFloat(0.0f);
+
+//        enum PassPermutation   TODO
+//        {
+//            kPermutationSolid = 0,
+//            kPermutationWireframe,
+//            kPermutationDepthOnly,
+//            kPermutationDataOnly
+//        };
+//
+//        pContext->IASetInputLayout(heightfield_inputlayout);
+//        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+//        pEffect->GetTechniqueByName("RenderHeightfield")->GetPassByIndex( kPermutationDataOnly )->Apply( 0, pContext );
+//        stride = sizeof(float) * 4;
+//        pContext->IASetVertexBuffers( 0, 1, &heightfield_vertexbuffer, &stride,&offset );
+//        pContext->Draw(terrain_numpatches_1d*terrain_numpatches_1d, 0);
+
+        params.g_HalfSpaceCullSign = 1.f;
+        params.g_HalfSpaceCullPosition = m_TerrainVB.getTerrainParams().terrain_minheight*20;
+
+        renderHeightfieldPatchDataProgram.enable(params, terrain_textures);
+        if(params.g_Wireframe){
+            renderHeightfieldPatchDataProgram.setupColorPass();
+        }else{
+            renderHeightfieldPatchDataProgram.setupRenderHeightFieldPass();
+        }
+        renderHeightfieldPatchDataProgram.setRenderShadowmap(false);
+        m_TerrainVB.draw(0, true);
+        renderHeightfieldPatchDataProgram.disable();
     }
 
     void releaseFrameBuffer(){

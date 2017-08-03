@@ -45,8 +45,8 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     private static final int ReadbackArchiveSize = 50;
     private static final int ReadbackArchiveInterval = 5;
 
-    private static final int NumMarkersXY = 10;
-    private static final int NumMarkers = NumMarkersXY*NumMarkersXY;
+    static final int NumMarkersXY = 10;
+    static final int NumMarkers = NumMarkersXY*NumMarkersXY;
     //--------------------------------------------------------------------------------------
     // Global variables
     //--------------------------------------------------------------------------------------
@@ -95,7 +95,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     float g_ShoreTime = 0.0f;
     int g_bSyncMode = SynchronizationMode_None;
 
-    CTerrain2 g_Terrain;
+    CTerrainOcean g_Terrain;
 //    ID3DX11Effect*      g_pEffect       = NULL;
 //
     FullscreenProgram g_pLogoTechnique = null;
@@ -133,6 +133,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     final Matrix4f m_proj = new Matrix4f();
     final Matrix4f m_view = new Matrix4f();
     private GLFuncProvider gl;
+    private final IsParameters m_params = new IsParameters();
 
     @Override
     protected void initRendering() {
@@ -150,7 +151,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         g_ForceKick = true;
 
         // Ocean object
-        g_pOceanSurf = new OceanSurface();
+        g_pOceanSurf = new OceanSurface(this);
         g_pOceanSurf.init();
         g_pOceanSurf.initQuadTree(g_ocean_quadtree_param);
 
@@ -178,12 +179,13 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 //        V_RETURN(D3DX11CreateEffectFromFile(path, 0, pd3dDevice, &g_pEffect));
 
         // Initialize shoreline interaction.
-        g_pDistanceField = new DistanceField( g_Terrain );
+        g_pDistanceField = new DistanceField( g_Terrain, m_params );
         g_pDistanceField.Init( /*pd3dDevice*/ );
         g_pOceanSurf.AttachDistanceFieldModule( g_pDistanceField );
 
         // Initialize terrain
-        g_Terrain.Initialize(this/*pd3dDevice,g_pEffect*/);
+        g_Terrain = new CTerrainOcean(this);
+        g_Terrain.onCreate("nvidia/WaveWorks/shaders/", "nvidia/WaveWorks/textures/");
 
         // Creating pipeline query
 //        D3D11_QUERY_DESC queryDesc;
@@ -308,7 +310,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 
         g_FrameTime = fElapsedTime;
 
-        Vector2f ScreenSizeInv=new Vector2f(1.0f / (g_Terrain.BackbufferWidth*main_buffer_size_multiplier), 1.0f / (g_Terrain.BackbufferHeight*main_buffer_size_multiplier));
+//        Vector2f ScreenSizeInv=new Vector2f(1.0f / (g_Terrain.BackbufferWidth*main_buffer_size_multiplier), 1.0f / (g_Terrain.BackbufferHeight*main_buffer_size_multiplier));
 
 //        ID3DX11Effect* oceanFX = g_pOceanSurf->m_pOceanFX;
 
@@ -324,7 +326,9 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 //        g_Terrain.pEffect->GetVariableByName("g_enableShoreEffects")->AsScalar()->SetFloat(g_enableShoreEffects? 1.0f:0.0f);TODO
 
         m_transformer.getModelViewMat(m_view);
-        g_Terrain.Render(m_proj, m_view);
+//        g_Terrain.Render(m_proj, m_view);
+        // TODO setup params.
+        g_Terrain.onDraw(m_params);
         g_pDistanceField.GenerateDataTexture( /*pDC*/ );
 
         //RenderLogo(pDC);
@@ -401,12 +405,13 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         float aspectRatio = (float)width/height;
         Matrix4f.perspective(camera_fov, aspectRatio, scene_z_near, scene_z_far, m_proj);
 
-        if(g_Terrain.BackbufferWidth == width && g_Terrain.BackbufferHeight == height)
-            return;
-
-        g_Terrain.BackbufferWidth=width;
-        g_Terrain.BackbufferHeight=height;
-        g_Terrain.ReCreateBuffers();
+//        if(g_Terrain.BackbufferWidth == width && g_Terrain.BackbufferHeight == height)
+//            return;
+//
+//        g_Terrain.BackbufferWidth=width;
+//        g_Terrain.BackbufferHeight=height;
+//        g_Terrain.ReCreateBuffers();
+        g_Terrain.onReshape(width, height);
     }
 
     private final Vector4f[] displacements = new Vector4f[NumMarkers];

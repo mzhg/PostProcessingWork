@@ -1,3 +1,4 @@
+#include "../../../shader_libs/WaveWork/GFSDK_WaveWorks_Attributes.glsl"
 #include "ocean_surface.glsl"
 
 layout(triangles) in;

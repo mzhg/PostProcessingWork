@@ -2,12 +2,12 @@
 
 layout (local_size_x = MAX_FFT_RESOLUTION) in;
 
-layout(binding =1) buffer StructuredBuffer
+layout(binding =1) buffer g_gauss_input_buffer
 {
     float2 g_gauss_input[];
 };
 
-layout(binding =2) buffer StructuredBuffer
+layout(binding =2) buffer g_h0_output_buffer
 {
     float2 g_h0_output[];
 };
@@ -20,12 +20,12 @@ void main()
 
     if(columnIdx < m_resolution)
     {
-        int nx = columnIdx - m_half_resolution;
-        int ny = rowIdx - m_half_resolution;
+        int nx = int(columnIdx) - int(m_half_resolution);
+        int ny = int(rowIdx) - int(m_half_resolution);
         float nr = sqrt(float(nx*nx + ny*ny));
 
         float amplitude = 0.0f;
-        if((nx || ny) && nr >= m_window_in && nr < m_window_out)
+        if((nx !=0U || ny != 0U) && nr >= m_window_in && nr < m_window_out)
         {
             float2 k = float2(nx * m_frequency_scale, ny * m_frequency_scale);
 
@@ -40,13 +40,13 @@ void main()
             amplitude = scale * exp(m_power_scale * kSqr + m_root_scale / kSqr);
         }
 
-        int index = rowIdx * m_resolution_plus_one + columnIdx;
+        int index = int(rowIdx * m_resolution_plus_one + columnIdx);
         float2 h0 = amplitude * g_gauss_input[index - rowIdx];
         g_h0_output[index] = h0;
 
         // mirror first row/column, CPU and CUDA paths don't do that
         // however, we need to initialize the N+1'th row/column to zero
-        if(!rowIdx || !columnIdx)
-            g_h0_output[m_resolution_plus_one_squared_minus_one - index] = 0; //h0;
+        if(rowIdx==0 || columnIdx==0)
+            g_h0_output[m_resolution_plus_one_squared_minus_one - index] = float2(0); //h0;
     }
 }

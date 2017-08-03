@@ -1,4 +1,5 @@
-#include "../../../shader_libs/WaveWork/GFSDK_WaveWorks_Quadtree.glsl"
+#include "../../../shader_libs/WaveWork/GFSDK_WaveWorks_Attributes.glsl"
+#include "ocean_surface.glsl"
 
 in HS_OUTPUT
 {

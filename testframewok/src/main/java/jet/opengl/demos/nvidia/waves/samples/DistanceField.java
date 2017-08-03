@@ -31,7 +31,7 @@ final class DistanceField implements Disposeable, Constants{
     private static final int kTopDownDataResolution = 256;
 
 // ---------------------------------- Not owned refrences ------------------------------------
-    private CTerrain2 m_pTerrainRenderer;	// Not owned.
+    private CTerrainOcean m_pTerrainRenderer;	// Not owned.
 
     // ---------------------------------- GPU shading data ------------------------------------
     private Texture2D m_pTopDownDataSRV;
@@ -49,9 +49,11 @@ final class DistanceField implements Disposeable, Constants{
 
     private boolean m_shouldGenerateDataTexture = true;
     private GLFuncProvider gl;
+    private IsParameters m_params;
 
-    DistanceField( CTerrain2 pTerrainRenderer ){
+    DistanceField( CTerrainOcean pTerrainRenderer, IsParameters params ){
         m_pTerrainRenderer = pTerrainRenderer;
+        m_params = params;
     }
 
     void Init( /*ID3D11Device* const pDevice*/ ){
@@ -180,7 +182,9 @@ final class DistanceField implements Disposeable, Constants{
 //        XMStoreFloat4x4(&m_worldToViewMatrix, XMMatrixLookAtLH(XMLoadFloat4(&m_topDownViewPositionWS), eyePositionWS, up));
         Matrix4f.lookAt(m_topDownViewPositionWS, eyePositionWS, Vector3f.Y_AXIS, m_worldToViewMatrix);
 
-        m_pTerrainRenderer.RenderTerrainToHeightField( /*pDC,*/ m_worldToViewMatrix, m_viewToProjectionMatrix, m_topDownViewPositionWS, m_viewDirectionWS );
+//        m_pTerrainRenderer.renderTerrainToHeightField( /*pDC,*/ m_worldToViewMatrix, m_viewToProjectionMatrix, m_topDownViewPositionWS, m_viewDirectionWS );
+        // TODO setup the parameters.
+        m_pTerrainRenderer.renderTerrainToHeightField(m_params);
 
 //        pDC->RSSetViewports(NumViewports, &vp);
 //        pDC->OMSetRenderTargetsAndUnorderedAccessViews( 1, &pRenderTarget, pDepthBuffer, 0, 0, NULL, NULL );

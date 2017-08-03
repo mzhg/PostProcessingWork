@@ -17,6 +17,7 @@ import java.util.List;
 import jet.opengl.postprocessing.buffer.AttribDesc;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -317,14 +318,14 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
                 if(m_d3dAPI == nv_water_d3d_api.nv_water_d3d_api_d3d11){
                     hr = NVWaveWorks_Mesh.CreateD3D11(	attribute_descs,
                             1, //sizeof(attribute_descs)/sizeof(attribute_descs[0]),
-                            4, vertex_buffer, num_vert,
+                            8, vertex_buffer, num_vert,
                             index_array, index_size_lookup[m_lods],
                     out_mesh
                     );
                 }else{
                     hr = NVWaveWorks_Mesh.CreateGL2(	attribute_descs,
                             1, //sizeof(attribute_descs)/sizeof(attribute_descs[0]),
-                            4, vertex_buffer, num_vert,
+                            8, vertex_buffer, num_vert,
                             index_array, index_size_lookup[m_lods],
                             out_mesh);
                 }
@@ -352,6 +353,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 //        #if WAVEWORKS_ENABLE_D3D11
         HRESULT hr;
 
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         if(nv_water_d3d_api.nv_water_d3d_api_d3d11 != m_d3dAPI)
         {
             releaseD3DObjects();
@@ -387,6 +389,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
     HRESULT initGL2(GFSDK_WaveWorks_Quadtree_Params params, int Program){
         HRESULT hr;
 
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         if(nv_water_d3d_api.nv_water_d3d_api_gl2 != m_d3dAPI)
         {
             releaseD3DObjects();

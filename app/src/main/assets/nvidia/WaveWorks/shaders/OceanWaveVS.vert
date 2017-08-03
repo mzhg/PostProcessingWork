@@ -9,5 +9,5 @@ out VS_OUTPUT
 
 void main()
 {
-    _output.worldspace_position = float4(GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(In),0.0);
+    _output.worldspace_position = float4(GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(In_f4Position),0.0);
 }

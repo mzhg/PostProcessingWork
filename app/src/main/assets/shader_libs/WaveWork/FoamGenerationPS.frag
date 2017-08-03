@@ -48,5 +48,5 @@ void main(){
     energy = min(1.0,energy);
 
     // Output
-    Output = float4(energy,energy,energy,energy);
+    Output = vec4(energy,energy,energy,energy);
 }
