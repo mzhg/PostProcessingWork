@@ -429,7 +429,7 @@ public final class GFSDK_WaveWorks {
         }
     }
 
-    static GFSDK_WaveWorks_Result CheckDetailLevelSupport(GFSDK_WaveWorks_Simulation_DetailLevel dl, String entrypointFnName)
+    private static GFSDK_WaveWorks_Result CheckDetailLevelSupport(GFSDK_WaveWorks_Simulation_DetailLevel dl, String entrypointFnName)
     {
 		final int simulationAPI = ToAPI(dl);
         switch(simulationAPI) {

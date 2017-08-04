@@ -146,6 +146,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         // Ocean sim
         GFSDK_WaveWorks.GFSDK_WaveWorks_InitD3D11(GFSDK_WaveWorks.GFSDK_WAVEWORKS_API_GUID);
 
+        g_ocean_simulation_settings.detail_level = GFSDK_WaveWorks_Simulation_DetailLevel.Extreme;
         g_hOceanSimulation = GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_CreateD3D11(g_ocean_simulation_settings, g_ocean_simulation_param);
 //        g_hOceanSavestate = GFSDK_WaveWorks.GFSDK_WaveWorks_Savestate_CreateD3D11(GFSDK_WaveWorks_StatePreserve_All);
         g_ForceKick = true;

@@ -21,6 +21,7 @@ public class BufferGL implements Disposeable{
     private ByteBuffer m_mapBuffer;
     private int m_bufferID;
     private GLFuncProvider gl;
+    private boolean m_bInMapping;
 
     public void initlize(int target, int size, Buffer data, int usage/*, boolean persistent*/){
         gl = GLFuncProviderFactory.getGLFuncProvider();
@@ -59,11 +60,42 @@ public class BufferGL implements Disposeable{
         gl.glBufferSubData(m_target, offset, data);
     }
 
+    public ByteBuffer map(int offset, int bufferSize, int mapBits){
+        if(GLCheck.CHECK){
+            if(offset < 0 || bufferSize > m_bufferSize || offset + bufferSize > m_bufferSize)
+                throw new IndexOutOfBoundsException();
+
+            if(m_bInMapping){
+                throw new IllegalStateException("The buffer had already in mapping.");
+            }
+
+            m_bInMapping = true;
+        }
+
+        gl.glBindBuffer(m_target, m_bufferID);
+        m_mapBuffer = gl.glMapBufferRange(m_target, offset, bufferSize, mapBits, m_mapBuffer);
+        return m_mapBuffer;
+    }
+
+    public void unmap(){
+        if(GLCheck.CHECK){
+            if(!m_bInMapping){
+                throw new IllegalStateException("The buffer is not in mapping.");
+            }
+
+            m_bInMapping = false;
+        }
+
+        gl.glBindBuffer(m_target, m_bufferID);
+        gl.glUnmapBuffer(m_target);
+    }
+
     public void bind(){gl.glBindBuffer(m_target, m_bufferID);}
     public void unbind(){gl.glBindBuffer(m_target, 0);}
     public int getTarget() { return m_target;}
     public int getUsage()  { return m_usage;}
     public int getBuffer() { return m_bufferID;}
+    public int getBufferSize() { return m_bufferSize;}
 
     @Override
     public void dispose() {

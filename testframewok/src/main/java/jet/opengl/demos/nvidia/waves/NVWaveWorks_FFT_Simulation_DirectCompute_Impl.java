@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
+import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -21,7 +23,6 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 
 import static jet.opengl.demos.nvidia.waves.HRESULT.E_FAIL;
-import static jet.opengl.demos.nvidia.waves.HRESULT.S_FALSE;
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_OK;
 import static jet.opengl.demos.nvidia.waves.Simulation_Util.gauss_map_resolution;
 import static jet.opengl.demos.nvidia.waves.Simulation_Util.gauss_map_size;
@@ -64,6 +65,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
     private int m_end_inflight_timer_slots;		// the first in-flight slot is always the one after active
     private final D3D11Objects _11 = new D3D11Objects();
     private GLFuncProvider gl;
+    private boolean m_bPrintOnce;
 
     HRESULT consumeAvailableTimerSlot(int[] slot, long kickID){
         if(m_active_timer_slot == m_end_inflight_timer_slots)
@@ -72,8 +74,6 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             {
                 case nv_water_d3d_api_d3d11:
                 {
-                    HRESULT hr = S_FALSE;
-
                     // No slots available - we must wait for the oldest in-flight timer to complete
                     int wait_slot = (m_active_timer_slot + 1) % NumTimerSlots;
                     int flag = 0;
@@ -97,8 +97,24 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                    {
 //                        return hr;
 //                    }
+
+                    int available;
+                    long start = -1, end= -1;
+
+                    do{
+                        available = gl.glGetQueryObjectuiv(_11.m_end_queries[wait_slot], GLenum.GL_QUERY_RESULT_AVAILABLE);
+                        if(available == GLenum.GL_TRUE){
+                            start = gl.glGetQueryObjectui64ui(_11.m_start_queries[wait_slot], GLenum.GL_QUERY_RESULT);
+                            end = gl.glGetQueryObjectui64ui(_11.m_start_queries[wait_slot], GLenum.GL_QUERY_RESULT);
+                        }
+                    }while (available == GLenum.GL_FALSE);
+
+                    m_timer_results[wait_slot] = (float)((double)(end - start) * 1.e-6);
+                    m_active_timer_slot = wait_slot;
+                    m_timer_kickIDs[wait_slot] = kickID;
+
+                    return HRESULT.S_OK;
                 }
-                break;
             }
         }
 
@@ -106,7 +122,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         m_end_inflight_timer_slots++;  // TODO
         m_end_inflight_timer_slots %= NumTimerSlots;
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     HRESULT waitForAllInFlightTimers(){
@@ -117,17 +133,23 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 // The slot after the active slot is always the first in-flight slot
                 for (int slot = m_active_timer_slot; m_end_inflight_timer_slots != (slot %= NumTimerSlots);slot++)
                 {
-//                    while(_11.m_context->GetData(m_d3d._11.m_frequency_queries[slot], nullptr, 0, 0))  TODO
+//                    while(_11.m_context->GetData(m_d3d._11.m_frequency_queries[slot], nullptr, 0, 0))
                     ;
+
+                    int available;
+                    do{
+                        available = gl.glGetQueryObjectuiv(_11.m_end_queries[slot], GLenum.GL_QUERY_RESULT_AVAILABLE);
+                    }while (available == GLenum.GL_FALSE);
                 }
             }
             break;
         }
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
-    void add_displacements_float16_d3d11(	Texture2D buffer,
+    void add_displacements_float16_d3d11(	BufferGL buffer,
+                                             int rowPitch,
                                              Vector2f[] inSamplePoints,
                                              Vector4f[] outDisplacements,
                                              int numSamples,
@@ -139,7 +161,12 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //        m_d3d._11.m_context->Map(buffer, 0, D3D11_MAP_READ, 0, &msr);
 //        const BYTE* pRB = reinterpret_cast<BYTE*>(msr.pData);
 //        GFSDK_WaveWorks_Simulation_Util::add_displacements_float16(m_params, pRB, msr.RowPitch, inSamplePoints, outDisplacements, numSamples, multiplier);
-//        m_d3d._11.m_context->Unmap(buffer, 0);  TODO
+//        m_d3d._11.m_context->Unmap(buffer, 0);
+
+        ByteBuffer pRB = buffer.map(0, buffer.getBufferSize(), GLenum.GL_MAP_READ_BIT| GLenum.GL_MAP_UNSYNCHRONIZED_BIT);
+        GLCheck.checkError();
+        Simulation_Util.add_displacements_float16(m_params, pRB, rowPitch, inSamplePoints, outDisplacements, numSamples, multiplier);
+        buffer.unbind();
     }
 
     HRESULT addArchivedDisplacementsD3D11(	float coord,
@@ -152,12 +179,12 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         if(null == _11.m_pReadbackFIFO)
         {
             // No FIFO, nothing to add
-            return S_OK;
+            return HRESULT.S_OK;
         }
         else if(0 == _11.m_pReadbackFIFO.range_count())
         {
             // No entries, nothing to add
-            return S_OK;
+            return HRESULT.S_OK;
         }
 
         final float coordMax = _11.m_pReadbackFIFO.range_count()-1;
@@ -180,8 +207,10 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             switch(m_d3dAPI)
             {
                 case nv_water_d3d_api_d3d11:
-                    add_displacements_float16_d3d11(_11.m_pReadbackFIFO.range_at(coord_lower).buffer, inSamplePoints, outDisplacements, numSamples, 1.f-coord_frac);
-                    add_displacements_float16_d3d11(_11.m_pReadbackFIFO.range_at(coord_upper).buffer, inSamplePoints, outDisplacements, numSamples, coord_frac);
+                    ReadbackFIFOSlot slot_lower =  _11.m_pReadbackFIFO.range_at(coord_lower);
+                    add_displacements_float16_d3d11(slot_lower.buffer, slot_lower.rowPitch, inSamplePoints, outDisplacements, numSamples, 1.f-coord_frac);
+                    ReadbackFIFOSlot slot_upper =  _11.m_pReadbackFIFO.range_at(coord_upper);
+                    add_displacements_float16_d3d11(slot_upper.buffer, slot_upper.rowPitch, inSamplePoints, outDisplacements, numSamples, coord_frac);
                     break;
             }
         }
@@ -190,7 +219,8 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             switch(m_d3dAPI)
             {
                 case nv_water_d3d_api_d3d11:
-                    add_displacements_float16_d3d11(_11.m_pReadbackFIFO.range_at(coord_lower).buffer, inSamplePoints, outDisplacements, numSamples, 1.f);
+                    ReadbackFIFOSlot slot_lower =  _11.m_pReadbackFIFO.range_at(coord_lower);
+                    add_displacements_float16_d3d11(slot_lower.buffer, slot_lower.rowPitch, inSamplePoints, outDisplacements, numSamples, 1.f);
                     break;
             }
         }
@@ -312,7 +342,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         switch(m_d3dAPI)
         {
             case nv_water_d3d_api_d3d11:
-                add_displacements_float16_d3d11(_11.m_active_readback_buffer, inSamplePoints, outDisplacements, numSamples, 1.f);
+                add_displacements_float16_d3d11(_11.m_active_readback_buffer, _11.m_active_readback_rowPitch, inSamplePoints, outDisplacements, numSamples, 1.f);
                 break;
         }
 
@@ -447,7 +477,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                buffer_desc.StructureByteStride = 0;
 //
 //                V_RETURN(device->CreateBuffer(&buffer_desc, NULL, &m_d3d._11.m_buffer_constants));
-                _11.m_buffer_constants = CreateBuffer(GLenum.GL_UNIFORM_BUFFER, ConstantBuffer.SIZE, GLenum.GL_DYNAMIC_READ);
+                _11.m_buffer_constants = CreateBuffer(GLenum.GL_UNIFORM_BUFFER, ConstantBuffer.SIZE, GLenum.GL_DYNAMIC_DRAW);
 
                 if(m_params.readback_displacements)
                 {
@@ -461,9 +491,12 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                     {
 //                        V_RETURN(device->CreateTexture2D(&texture_desc, nullptr, m_d3d._11.m_readback_buffers + slot));
 //                        V_RETURN(device->CreateQuery(&event_query_desc, m_d3d._11.m_readback_queries + slot));
-                        _11.m_readback_buffers[slot] = TextureUtils.createTexture2D(texture_desc, null); // TODO
-                        _11.m_readback_queries[slot] = gl.glGenQuery();
-
+//                        _11.m_readback_buffers[slot] = TextureUtils.createTexture2D(texture_desc, null);
+                        _11.m_readback_buffers[slot] = new BufferGL();
+                        _11.m_readback_buffers[slot].initlize(GLenum.GL_PIXEL_PACK_BUFFER,
+                                texture_desc.width * texture_desc.height * (int)TextureUtils.measureSizePerPixel(texture_desc.format), null, GLenum.GL_DYNAMIC_READ);
+//                        _11.m_readback_queries[slot] = gl.glGenQuery();  TODO we use syn to instead of the D3D11_QUERY_EVENT
+                        _11.m_readback_rowpitchs[slot] = texture_desc.width * (int)TextureUtils.measureSizePerPixel(texture_desc.format);
                         m_readback_kickIDs[slot] = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
                     }
                     m_active_readback_slot = 0;
@@ -478,7 +511,11 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                         {
                             ReadbackFIFOSlot slot = _11.m_pReadbackFIFO.raw_at(i);
 //                            V_RETURN(device->CreateTexture2D(&texture_desc, nullptr, &slot.buffer));
-                            slot.buffer = TextureUtils.createTexture2D(texture_desc, null);
+//                            slot.buffer = TextureUtils.createTexture2D(texture_desc, null);
+                            slot.buffer = new BufferGL();
+                            slot.buffer.initlize(GLenum.GL_PIXEL_PACK_BUFFER,
+                                    texture_desc.width * texture_desc.height * (int)TextureUtils.measureSizePerPixel(texture_desc.format), null, GLenum.GL_DYNAMIC_READ);
+                            slot.rowPitch = texture_desc.width * (int)TextureUtils.measureSizePerPixel(texture_desc.format);
                             slot.kickID = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
                         }
                     }
@@ -550,9 +587,9 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 _11.m_uav_Displacement = _11.m_texture_Displacement;
 
                 // shaders
-//                V_RETURN(device->CreateComputeShader(g_ComputeH0, sizeof(g_ComputeH0), NULL, &m_d3d._11.m_update_h0_shader));  TODO
-//                V_RETURN(device->CreateComputeShader(g_ComputeRows, sizeof(g_ComputeRows), NULL, &m_d3d._11.m_row_shader));TODO
-//                V_RETURN(device->CreateComputeShader(g_ComputeColumns, sizeof(g_ComputeColumns), NULL, &m_d3d._11.m_column_shader));TODO
+//                V_RETURN(device->CreateComputeShader(g_ComputeH0, sizeof(g_ComputeH0), NULL, &m_d3d._11.m_update_h0_shader));
+//                V_RETURN(device->CreateComputeShader(g_ComputeRows, sizeof(g_ComputeRows), NULL, &m_d3d._11.m_row_shader));
+//                V_RETURN(device->CreateComputeShader(g_ComputeColumns, sizeof(g_ComputeColumns), NULL, &m_d3d._11.m_column_shader));
                 _11.m_update_h0_shader=create("ComputeH0.comp");
                 _11.m_row_shader=create("ComputeRows.comp");
                 _11.m_column_shader=create("ComputeColumns.comp");
@@ -567,7 +604,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
         m_DisplacementMapVersion = GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID;
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     // Create compute shader from the file
@@ -575,7 +612,13 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         try {
             CharSequence computeSrc = ShaderLoader.loadShaderFile(GFSDK_WaveWorks_Simulation.SHADER_PATH + filename, false);
             ShaderSourceItem cs_item = new ShaderSourceItem(computeSrc, ShaderType.COMPUTE);
-            return GLSLProgram.createFromShaderItems(cs_item);
+            GLSLProgram program =  GLSLProgram.createFromShaderItems(cs_item);
+            int dot = filename.lastIndexOf('.');
+            if(dot > 0)
+                program.setName(filename.substring(0, dot));
+            else
+                program.setName(filename);
+            return program;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -786,7 +829,8 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                ID3D11DeviceContext* context = m_d3d._11.m_context;
 
 //                context->Begin(m_d3d._11.m_frequency_queries[timerSlot]);
-//                context->End(m_d3d._11.m_start_queries[timerSlot]);  TODO
+//                context->End(m_d3d._11.m_start_queries[timerSlot]);
+                gl.glQueryCounter(_11.m_start_queries[timerSlot[0]], GLenum.GL_TIMESTAMP);
 
                 updateConstantBuffer(fModeSimTime);
 //                context->CSSetConstantBuffers(0, 1, &m_d3d._11.m_buffer_constants);
@@ -800,20 +844,29 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 				context->ClearUnorderedAccessViewFloat(m_d3d._11.m_uav_Ht, zeros);
 				context->ClearUnorderedAccessViewFloat(m_d3d._11.m_uav_Dt, zeros);
 				*/
-//                    context->ClearUnorderedAccessViewFloat(m_d3d._11.m_uav_Displacement, zeros);  TODO
+//                    context->ClearUnorderedAccessViewFloat(m_d3d._11.m_uav_Displacement, zeros);
+                    gl.glClearTexImage(_11.m_uav_Displacement.getTexture(), 0, TextureUtils.measureFormat(_11.m_uav_Displacement.getFormat()),
+                            TextureUtils.measureDataType(_11.m_uav_Displacement.getFormat()), (ByteBuffer) null);
                 }
 
                 if(m_H0Dirty)
                 {
 //                    context->CSSetShader(m_d3d._11.m_update_h0_shader, NULL, 0);
-//                    context->CSSetUnorderedAccessViews(0, 1, &m_d3d._11.m_uav_H0, NULL);  TODO
-//                    context->CSSetShaderResources(0, 1, &m_d3d._11.m_srv_Gauss);  TODO
+//                    context->CSSetUnorderedAccessViews(0, 1, &m_d3d._11.m_uav_H0, NULL);
+//                    context->CSSetShaderResources(0, 1, &m_d3d._11.m_srv_Gauss);
 //                    context->Dispatch(1, m_resolution, 1);
                     _11.m_update_h0_shader.enable();
-                    // TODO
+                    gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, _11.m_srv_Gauss);  // read-only
+                    gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, _11.m_uav_H0);  // write-only
                     gl.glDispatchCompute(1, m_resolution,1);
 
+                    gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+                    gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
                     m_H0Dirty = false;
+
+                    if(!m_bPrintOnce){
+                        _11.m_update_h0_shader.printPrograminfo();
+                    }
                 }
 
 //                context->CSSetShader(m_d3d._11.m_row_shader, NULL, 0);
@@ -824,8 +877,21 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                context->Dispatch(1, m_half_resolution_plus_one, 1);
 
                 _11.m_row_shader.enable();
-                // TODO
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, _11.m_srv_H0);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, _11.m_srv_Omega);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, _11.m_uav_Ht);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 4, _11.m_uav_Dt);
+
                 gl.glDispatchCompute(1, m_half_resolution_plus_one, 1);
+
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 4, 0);
+
+                if(!m_bPrintOnce){
+                    _11.m_row_shader.printPrograminfo();
+                }
 
 //                context->CSSetShader(m_d3d._11.m_column_shader, NULL, 0);
 //                ID3D11UnorderedAccessView* column_uavs[] = { m_d3d._11.m_uav_Displacement, NULL };
@@ -834,8 +900,15 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                context->CSSetShaderResources(0, 2, column_srvs);
 //                context->Dispatch(1, m_resolution, 1);
                 _11.m_column_shader.enable();
-                // TODO
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, _11.m_srv_Ht);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, _11.m_srv_Dt);
+                gl.glBindImageTexture(0, _11.m_uav_Displacement.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, _11.m_uav_Displacement.getFormat());
+
                 gl.glDispatchCompute(1, m_resolution, 1);
+
+                if(!m_bPrintOnce){
+                    _11.m_column_shader.printPrograminfo();
+                }
 
                 // unbind
 //                ID3D11ShaderResourceView* null_srvs[2] = {};
@@ -843,15 +916,29 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                ID3D11UnorderedAccessView* null_uavs[2] = {};
 //                context->CSSetUnorderedAccessViews(0, 2, null_uavs, NULL);
 //                context->CSSetShader(NULL, NULL, 0);
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, 0);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 1);
+                gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, _11.m_uav_Displacement.getFormat());
 
                 if(m_ReadbackInitialised)
                 {
-//                    context->CopyResource(m_d3d._11.m_readback_buffers[readbackSlot], m_d3d._11.m_texture_Displacement);  TODO
-//                    context->End(m_d3d._11.m_readback_queries[readbackSlot]);  TODO
+//                    context->CopyResource(m_d3d._11.m_readback_buffers[readbackSlot], m_d3d._11.m_texture_Displacement);
+//                    context->End(m_d3d._11.m_readback_queries[readbackSlot]);
+
+                    _11.m_readback_buffers[readbackSlot[0]].bind();
+                    gl.glBindTexture(_11.m_texture_Displacement.getTarget(), _11.m_texture_Displacement.getTexture());
+                    gl.glReadPixels(0,0, _11.m_texture_Displacement.getWidth(), _11.m_texture_Displacement.getHeight(),
+                            TextureUtils.measureFormat(_11.m_texture_Displacement.getFormat()),
+                            TextureUtils.measureDataType(_11.m_texture_Displacement.getFormat()), null);
+                    _11.m_readback_buffers[readbackSlot[0]].unbind();
+                    _11.m_readback_queries[readbackSlot[0]] = gl.glFenceSync();
+
                 }
 
-//                context->End(m_d3d._11.m_end_queries[timerSlot]);  TODO
-//                context->End(m_d3d._11.m_frequency_queries[timerSlot]);  TODO
+//                context->End(m_d3d._11.m_end_queries[timerSlot]);
+//                context->End(m_d3d._11.m_frequency_queries[timerSlot]);  TODO There is no frequency_query in OpenGL
+                gl.glQueryCounter(_11.m_end_queries[timerSlot[0]], GLenum.GL_TIMESTAMP);
             }
             break;
         }
@@ -859,13 +946,14 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         // Update displacement map version
         m_DisplacementMapVersion = kickID;
 
-        return S_OK;
+        m_bPrintOnce = true;
+        return HRESULT.S_OK;
     }
 
     HRESULT collectSingleReadbackResult(boolean blocking){
         if(!m_ReadbackInitialised)
         {
-            return S_FALSE;
+            return HRESULT.S_FALSE;
         }
 
         final int wait_slot = (m_active_readback_slot + 1) % NumReadbackSlots;
@@ -875,29 +963,49 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         {
             if(blocking)
             {
-//                while(m_d3d._11.m_context->GetData(m_d3d._11.m_readback_queries[wait_slot], nullptr, 0, 0));  TODO
-//                m_active_readback_slot = wait_slot;
-//                m_d3d._11.m_active_readback_buffer = m_d3d._11.m_readback_buffers[m_active_readback_slot];
-                return S_OK;
+//                while(m_d3d._11.m_context->GetData(m_d3d._11.m_readback_queries[wait_slot], nullptr, 0, 0));
+                int status;
+                do{
+                    // Wait for the sync object to become signaled.
+                    // 1,000,000 ns = 1 ms.
+                    status = gl.glClientWaitSync(_11.m_readback_queries[wait_slot], GLenum.GL_SYNC_FLUSH_COMMANDS_BIT, 1000000);
+
+                    if(status == GLenum.GL_WAIT_FAILED){
+                        GLCheck.checkError("Error occurred in the calling of glClientWaitSync");
+                    }
+                }while (status == GLenum.GL_TIMEOUT_EXPIRED);
+
+                m_active_readback_slot = wait_slot;
+                _11.m_active_readback_buffer = _11.m_readback_buffers[m_active_readback_slot];
+                _11.m_active_readback_rowPitch = _11.m_readback_rowpitchs[m_active_readback_slot];
+                return HRESULT.S_OK;
             }
             else
             {
-                final HRESULT query_result =S_OK;  //_11.m_context->GetData(m_d3d._11.m_readback_queries[wait_slot], nullptr, 0, 0); TODO
-                if(S_OK == query_result)
+//                HRESULT query_result = _11.m_context->GetData(m_d3d._11.m_readback_queries[wait_slot], nullptr, 0, 0);
+                int status = gl.glClientWaitSync(_11.m_readback_queries[wait_slot], GLenum.GL_SYNC_FLUSH_COMMANDS_BIT, 1000000);
+                if(status == GLenum.GL_WAIT_FAILED){
+                    GLCheck.checkError();
+                    return HRESULT.E_FAIL;
+                }
+
+                HRESULT query_result = (status != GLenum.GL_TIMEOUT_EXPIRED) ? HRESULT.S_OK: HRESULT.S_FALSE;
+                if(HRESULT.S_OK == query_result)
                 {
                     m_active_readback_slot = wait_slot;
-//                    m_d3d._11.m_active_readback_buffer = m_d3d._11.m_readback_buffers[m_active_readback_slot];
-                    return S_OK;
+                    _11.m_active_readback_buffer = _11.m_readback_buffers[m_active_readback_slot];
+                    _11.m_active_readback_rowPitch = _11.m_readback_rowpitchs[m_active_readback_slot];
+                    return HRESULT.S_OK;
                 }
-                else  if(query_result ==E_FAIL )
+                else  if(query_result ==HRESULT.E_FAIL )
                 {
-                    return E_FAIL;
+                    return HRESULT.E_FAIL;
                 }
             }
         }
 
         // Nothing in-flight, or else not ready yet
-        return S_FALSE;
+        return HRESULT.S_FALSE;
     }
 
     boolean getReadbackCursor(long[] pKickID){
@@ -933,34 +1041,40 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
     HRESULT canCollectSingleReadbackResultWithoutBlocking(){
         if(!m_ReadbackInitialised)
         {
-            return S_FALSE;
+            return HRESULT.S_FALSE;
         }
 
         final int wait_slot = (m_active_readback_slot + 1) % NumReadbackSlots;
         if(wait_slot == m_end_inflight_readback_slots)
         {
             // Nothing in-flight...
-            return S_FALSE;
+            return HRESULT.S_FALSE;
         }
 
         // Do the query
-        HRESULT query_result =  S_OK;
 //                m_d3d._11.m_context->GetData(m_d3d._11.m_readback_queries[wait_slot], nullptr, 0, 0);  TODO
+        int status = gl.glClientWaitSync(_11.m_readback_queries[wait_slot], GLenum.GL_SYNC_FLUSH_COMMANDS_BIT, 1000000);
+        if(status == GLenum.GL_WAIT_FAILED){
+            GLCheck.checkError();
+            return HRESULT.E_FAIL;
+        }
 
-        if(S_OK == query_result)
+        HRESULT query_result = (status != GLenum.GL_TIMEOUT_EXPIRED) ? HRESULT.S_OK: HRESULT.S_FALSE;
+
+        if(HRESULT.S_OK == query_result)
         {
             // Whaddyaknow, it's ready!
-            return S_OK;
+            return HRESULT.S_OK;
         }
-        else if(S_FALSE == query_result)
+        else if(HRESULT.S_FALSE == query_result)
         {
             // Not ready
-            return S_FALSE;
+            return HRESULT.S_FALSE;
         }
         else
         {
             // Fail
-            return E_FAIL;
+            return HRESULT.E_FAIL;
         }
     }
 
@@ -970,11 +1084,11 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         if(!m_ReadbackInitialised)
         {
             // Nothing to reset
-            return S_OK;
+            return HRESULT.S_OK;
         }
 
         hr = waitForAllInFlightReadbacks();
-        if(hr != S_OK)  return hr;
+        if(hr != HRESULT.E_FAIL)  return hr;
 
         m_active_readback_slot = 0;
         m_end_inflight_readback_slots = 1;
@@ -989,7 +1103,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             break;
         }
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     HRESULT archiveDisplacements(){
@@ -1006,7 +1120,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 if(kickID[0] == _11.m_pReadbackFIFO.range_at(0).kickID)
                 {
                     // It is an error to archive the same results twice...
-                    return E_FAIL;
+                    return HRESULT.E_FAIL;
                 }
             }
 
@@ -1017,10 +1131,11 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             ReadbackFIFOSlot slot = _11.m_pReadbackFIFO.consume_one();
             _11.m_readback_buffers[m_active_readback_slot] = slot.buffer;
             slot.buffer = _11.m_active_readback_buffer;
+            slot.rowPitch = _11.m_active_readback_rowPitch;
             slot.kickID = kickID[0];
         }
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     HRESULT consumeAvailableReadbackSlot(int[] slot, long kickID){
@@ -1040,13 +1155,20 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                     int flag = 0;
                     do
                     {
-//                        hr = m_d3d._11.m_context->GetData(m_d3d._11.m_readback_queries[wait_slot], nullptr, 0, flag);  TODO
-                    } while(S_FALSE == hr);
+//                        hr = m_d3d._11.m_context->GetData(m_d3d._11.m_readback_queries[wait_slot], nullptr, 0, flag);
+                        int status = gl.glClientWaitSync(_11.m_readback_queries[wait_slot], GLenum.GL_SYNC_FLUSH_COMMANDS_BIT, 1000000);
+                        if(status == GLenum.GL_WAIT_FAILED){
+                            GLCheck.checkError();
+                            return HRESULT.E_FAIL;
+                        }
 
-                    if(hr == S_OK)
-                    {
+                        hr = (status != GLenum.GL_TIMEOUT_EXPIRED) ? HRESULT.S_OK: HRESULT.S_FALSE;
+                    } while(HRESULT.S_FALSE == hr);
+
+                    if(hr == HRESULT.S_OK) {
                         m_active_readback_slot = wait_slot;
                         _11.m_active_readback_buffer = _11.m_readback_buffers[m_active_readback_slot];
+                        _11.m_active_readback_rowPitch = _11.m_readback_rowpitchs[m_active_readback_slot];
                     }
                     else
                     {
@@ -1058,11 +1180,11 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         }
 
         slot[0] = m_end_inflight_readback_slots;
-        m_end_inflight_readback_slots++; // TODO
+        m_end_inflight_readback_slots++;
         m_end_inflight_readback_slots %= NumReadbackSlots;
         m_readback_kickIDs[slot[0]] = kickID;
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     HRESULT waitForAllInFlightReadbacks(){
@@ -1073,12 +1195,12 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         while(wait_slot != m_end_inflight_readback_slots)
         {
             hr = collectSingleReadbackResult(true);
-            if(hr != S_OK)
+            if(hr == HRESULT.E_FAIL)
                 return hr;
             wait_slot = (m_active_readback_slot + 1) % NumReadbackSlots;
         }
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     private static final class D3D11Objects
@@ -1114,10 +1236,11 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         Texture2D m_uav_Displacement;
 
         // readback staging
-        Texture2D[] m_readback_buffers = new Texture2D[NumReadbackSlots];
-        int[] m_readback_queries = new int[NumReadbackSlots];
-        Texture2D m_active_readback_buffer;
-
+        BufferGL[] m_readback_buffers = new BufferGL[NumReadbackSlots];
+        final int[] m_readback_rowpitchs = new int[NumReadbackSlots];
+        final int[] m_readback_queries = new int[NumReadbackSlots];
+        BufferGL m_active_readback_buffer;
+        int m_active_readback_rowPitch;
 
         CircularFIFO<ReadbackFIFOSlot> m_pReadbackFIFO;
 
@@ -1135,7 +1258,8 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
     private static final class ReadbackFIFOSlot
     {
         long kickID;
-        Texture2D buffer;
+        BufferGL buffer;
+        int rowPitch;
     }
 
     private static final class ConstantBuffer{

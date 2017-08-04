@@ -1619,4 +1619,25 @@ public interface GLFuncProvider {
                                   int buffer,
                                   long offset,
                                   int size);
+
+    int glFenceSync();
+
+    /**
+     * block and wait for a sync object to become signaled
+     * @param sync  The sync object whose status to wait on.
+     * @param flags  A bitfield controlling the command flushing behavior. flags may be GL_SYNC_FLUSH_COMMANDS_BIT.
+     * @param timeout  The timeout, specified in nanoseconds, for which the implementation should wait for sync to become signaled.
+     * @return The return value is one of four status values:<ul>
+     * <li>GL_ALREADY_SIGNALED indicates that sync was signaled at the time that glClientWaitSync was called.
+     * <li>GL_TIMEOUT_EXPIRED indicates that at least timeout nanoseconds passed and sync did not become signaled.
+     * <li>GL_CONDITION_SATISFIED indicates that sync was signaled before the timeout expired.
+     * <li>GL_WAIT_FAILED indicates that an error occurred. Additionally, an OpenGL error will be generated.
+     * </ul>
+     */
+    int glClientWaitSync(int sync,
+                         int flags,
+                         long timeout);
+
+    ByteBuffer glMapBufferRange(int target, int offset, int length, int access, ByteBuffer old_buffer);
+    ByteBuffer glMapBufferRange(int target, int offset, int length, int access);
 }

@@ -156,7 +156,7 @@ final class CTerrain2 implements Constants{
 //                passDesc.IAInputSignatureSize,
 //                &trianglestrip_inputlayout );
 
-        m_RenderHeightfieldProgram = new IsRenderHeightfieldProgram(null, "nvidia/WaveWorks/shaders/");
+        m_RenderHeightfieldProgram = new IsRenderHeightfieldProgram((Void)null, "nvidia/WaveWorks/shaders/");
 
         CreateTerrain();
 

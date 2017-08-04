@@ -8,6 +8,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.shader.ProgramResources;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -132,5 +133,15 @@ public interface OpenGLProgram extends Disposeable{
         ByteBuffer binary = BufferUtils.createByteBuffer(len);
         gl.glGetProgramBinary(programId, new int[len], binaryFormats, binary);
         return  binary;
+    }
+
+    /**
+     * Print the program states to the console, the method only used for debugging.
+     */
+    default void printPrograminfo(){
+        System.out.println("----------------------------"+getName() +"-----------------------------------------" );
+//        ProgramProperties props = GLSLUtil.getProperties(getProgram());
+        ProgramResources resources = GLSLUtil.getProgramResources(getProgram());
+        System.out.println(resources);
     }
 }

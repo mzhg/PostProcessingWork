@@ -1,7 +1,9 @@
 package jet.opengl.demos.nvidia.waves;
 
 import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector4f;
 
+import java.nio.ByteBuffer;
 import java.util.Random;
 
 import jet.opengl.postprocessing.util.Numeric;
@@ -136,5 +138,180 @@ final class Simulation_Util {
         rms_est *= phil_norm;
 
         return rms_est;
+    }
+
+    private static abstract class  InputPolicy{
+        final Vector4f m_data = new Vector4f();
+        abstract int stride();
+        abstract Vector4f get_float4(ByteBuffer input);
+    }
+
+    private static final class Float16InputPolicy extends InputPolicy{
+        @Override
+        int stride() {return Vector4f.SIZE/2;}
+
+        @Override
+        Vector4f get_float4(ByteBuffer input) {
+            m_data.x = Numeric.convertHFloatToFloat(input.getShort());
+            m_data.y = Numeric.convertHFloatToFloat(input.getShort());
+            m_data.z = Numeric.convertHFloatToFloat(input.getShort());
+            m_data.w = Numeric.convertHFloatToFloat(input.getShort());
+            return m_data;
+        }
+    }
+
+    private interface MultiplierPolicy{
+        Vector4f mult(Vector4f val);
+    }
+
+    private static final class NoMultiplierPolicy implements MultiplierPolicy{
+        @Override
+        public Vector4f mult(Vector4f val) { return val;}
+    }
+
+    private static final class ParameterizedMultiplierPolicy implements MultiplierPolicy {
+        ParameterizedMultiplierPolicy(float m) {m_multiplier = m;}
+
+        public Vector4f mult(Vector4f val) {
+            Vector4f.scale(val, m_multiplier, m_data);
+            return m_data;
+        }
+
+        float m_multiplier;
+        final Vector4f m_data = new Vector4f();
+    }
+
+    static void add_displacements_float16(GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params,
+                                       ByteBuffer pReadbackData,
+                                       int rowPitch,
+                                       Vector2f[] inSamplePoints,
+                                       Vector4f[] outDisplacements,
+                                       int numSamples,
+                                       float multiplier
+    )
+    {
+        add_displacements/*<Float16InputPolicy>*/(new Float16InputPolicy(), params,pReadbackData,rowPitch,inSamplePoints,outDisplacements,numSamples,multiplier);
+    }
+
+    private static void add_displacements(
+                                InputPolicy inputPolicy,
+                               GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params,
+                               ByteBuffer pReadbackData,
+                               int rowPitch,
+                               Vector2f[] inSamplePoints,
+                               Vector4f[] outDisplacements,
+                               int numSamples,
+                               float multiplier
+    )
+    {
+        if(1.f == multiplier)
+        {
+            // No multiplier required
+            add_displacements/*<InputPolicy,NoMultiplierPolicy>*/(inputPolicy, params,pReadbackData,rowPitch,inSamplePoints,outDisplacements,numSamples,new NoMultiplierPolicy());
+        }
+        else if(0.f != multiplier)
+        {
+            add_displacements/*<InputPolicy,ParameterizedMultiplierPolicy>*/(inputPolicy,params,pReadbackData,rowPitch,inSamplePoints,outDisplacements,numSamples,
+                    new ParameterizedMultiplierPolicy(multiplier));
+        }
+        else
+        {
+            // Nothin to add, do nothin
+        }
+    }
+
+    private static void add_displacements(	InputPolicy inputPolicy, GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params,
+                               ByteBuffer pReadbackData,
+                               int rowPitch,
+                               Vector2f[] inSamplePoints,
+                               Vector4f[] outDisplacements,
+                               int numSamples,
+                               MultiplierPolicy multiplier
+    )
+    {
+        final int dmap_dim = params.fft_resolution;
+        final float f_dmap_dim = dmap_dim;
+        final float uv_scale = f_dmap_dim / params.fft_period;
+        final Vector2f uv = new Vector2f();
+        final Vector2f uv_wrap = new Vector2f();
+        final Vector2f uv_round = new Vector2f();
+        final Vector2f uv_frac = new Vector2f();
+        final Vector4f toadd = new Vector4f();
+
+//        const gfsdk_float2* currSrc = inSamplePoints;
+//        gfsdk_float4* currDst = outDisplacements;
+        for(int sample = 0; sample != numSamples; ++sample/*, ++currSrc, ++currDst*/)
+        {
+            // Calculate the UV coords, in texels
+            final Vector2f currSrc = inSamplePoints[sample];
+            final Vector4f currDst = outDisplacements[sample];
+//            const gfsdk_float2 uv = *currSrc * uv_scale - gfsdk_make_float2(0.5f, 0.5f);
+            uv.x = currSrc.x * uv_scale - 0.5f;
+            uv.y = currSrc.y * uv_scale - 0.5f;
+
+//            gfsdk_float2 uv_wrap = gfsdk_make_float2(fmodf(uv.x,f_dmap_dim),fmodf(uv.y,f_dmap_dim));
+            uv_wrap.x = uv.x % f_dmap_dim;
+            uv_wrap.y = uv.y % f_dmap_dim;
+            if(uv_wrap.x < 0.f)
+                uv_wrap.x += f_dmap_dim;
+            else if(uv_wrap.x >= f_dmap_dim)
+                uv_wrap.x -= f_dmap_dim;
+            if(uv_wrap.y < 0.f)
+                uv_wrap.y += f_dmap_dim;
+            else if(uv_wrap.y >= f_dmap_dim)
+                uv_wrap.y -= f_dmap_dim;
+//            const gfsdk_float2 uv_round = gfsdk_make_float2(floorf(uv_wrap.x),floorf(uv_wrap.y));
+            uv_round.x = (float) Math.floor(uv_wrap.x);
+            uv_round.y = (float) Math.floor(uv_wrap.y);
+//            const gfsdk_float2 uv_frac = uv_wrap - uv_round;
+            Vector2f.sub(uv_wrap, uv_round, uv_frac);
+
+            final int uv_x = ((int)uv_round.x) % dmap_dim;
+            final int uv_y = ((int)uv_round.y) % dmap_dim;
+            final int uv_x_1 = (uv_x + 1) % dmap_dim;
+            final int uv_y_1 = (uv_y + 1) % dmap_dim;
+
+            // Ensure we wrap round during the lerp too
+//            const typename InputPolicy::InputType* pTL = reinterpret_cast<const typename InputPolicy::InputType*>(pReadbackData + uv_y * rowPitch);
+//            const typename InputPolicy::InputType* pTR = pTL + uv_x_1;
+//            pTL += uv_x;
+//            const typename InputPolicy::InputType* pBL = reinterpret_cast<const typename InputPolicy::InputType*>(pReadbackData + uv_y_1 * rowPitch);
+//            const typename InputPolicy::InputType* pBR = pBL + uv_x_1;
+//            pBL += uv_x;
+
+            int pTL = uv_y * rowPitch;
+            int pTR = pTL + uv_x_1;
+            pTL += uv_x;
+            int pBL = uv_y_1 * rowPitch;
+            int pBR = pBL + uv_x_1;
+            pBL += uv_x;
+
+//            Vector4f toadd = (1.f - uv_frac.x) * (1.f - uv_frac.y) * InputPolicy::get_float4(pTL);
+            pReadbackData.position(pTL * inputPolicy.stride());
+            Vector4f value = inputPolicy.get_float4(pReadbackData);
+            value.scale((1.f - uv_frac.x) * (1.f - uv_frac.y));
+            toadd.set(value);
+
+//            toadd             +=        uv_frac.x  * (1.f - uv_frac.y) * InputPolicy::get_float4(pTR);
+            pReadbackData.position(pTR * inputPolicy.stride());
+            value = inputPolicy.get_float4(pReadbackData);
+            value.scale(uv_frac.x  * (1.f - uv_frac.y));
+            Vector4f.add(toadd, value, toadd);
+
+//            toadd             += (1.f - uv_frac.x) *        uv_frac.y  * InputPolicy::get_float4(pBL);
+            pReadbackData.position(pBL * inputPolicy.stride());
+            value = inputPolicy.get_float4(pReadbackData);
+            value.scale((1.f - uv_frac.x) *        uv_frac.y);
+            Vector4f.add(toadd, value, toadd);
+
+//            toadd             +=        uv_frac.x  *        uv_frac.y  * InputPolicy::get_float4(pBR);
+            pReadbackData.position(pBR * inputPolicy.stride());
+            value = inputPolicy.get_float4(pReadbackData);
+            value.scale(uv_frac.x  *        uv_frac.y);
+            Vector4f.add(toadd, value, toadd);
+
+//            *currDst += multiplier.mult(toadd);
+            Vector4f.add(toadd, currDst, currDst);
+        }
     }
 }

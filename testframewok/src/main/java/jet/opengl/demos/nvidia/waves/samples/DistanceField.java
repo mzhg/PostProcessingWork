@@ -226,7 +226,6 @@ final class DistanceField implements Disposeable, Constants{
                     pTextureWriteData[ (x * kTopDownDataResolution + y) * 4 + 0 ] = distanceToNearestPixel;
                     pTextureWriteData[ (x * kTopDownDataResolution + y) * 4 + 2] = gradientY;
                     pTextureWriteData[ (x * kTopDownDataResolution + y) * 4 + 3] = gradientX;
-
                 }
             }
 
@@ -321,7 +320,6 @@ final class DistanceField implements Disposeable, Constants{
                     {
                         gradientX=-gradientX;
                         gradientY=-gradientY;
-
                     }
                 }
             }
