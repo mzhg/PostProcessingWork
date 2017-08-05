@@ -657,7 +657,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 for(int slot = 0; slot != NumReadbackSlots; ++slot)
                 {
                     CommonUtil.safeRelease(_11.m_readback_buffers[slot]);
-                    gl.glDeleteQuery(_11.m_readback_queries[slot]);
+//                    gl.glDeleteQuery(_11.m_readback_queries[slot]);
                 }
 
                 if(_11.m_pReadbackFIFO != null)
@@ -975,6 +975,8 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                     }
                 }while (status == GLenum.GL_TIMEOUT_EXPIRED);
 
+                gl.glDeleteSync(_11.m_readback_queries[wait_slot]);
+
                 m_active_readback_slot = wait_slot;
                 _11.m_active_readback_buffer = _11.m_readback_buffers[m_active_readback_slot];
                 _11.m_active_readback_rowPitch = _11.m_readback_rowpitchs[m_active_readback_slot];
@@ -995,6 +997,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                     m_active_readback_slot = wait_slot;
                     _11.m_active_readback_buffer = _11.m_readback_buffers[m_active_readback_slot];
                     _11.m_active_readback_rowPitch = _11.m_readback_rowpitchs[m_active_readback_slot];
+                    gl.glDeleteSync(_11.m_readback_queries[wait_slot]);
                     return HRESULT.S_OK;
                 }
                 else  if(query_result ==HRESULT.E_FAIL )
@@ -1063,6 +1066,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
         if(HRESULT.S_OK == query_result)
         {
+            gl.glDeleteSync(_11.m_readback_queries[wait_slot]);
             // Whaddyaknow, it's ready!
             return HRESULT.S_OK;
         }
@@ -1165,6 +1169,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                         hr = (status != GLenum.GL_TIMEOUT_EXPIRED) ? HRESULT.S_OK: HRESULT.S_FALSE;
                     } while(HRESULT.S_FALSE == hr);
 
+                    gl.glDeleteSync(_11.m_readback_queries[wait_slot]);
                     if(hr == HRESULT.S_OK) {
                         m_active_readback_slot = wait_slot;
                         _11.m_active_readback_buffer = _11.m_readback_buffers[m_active_readback_slot];
@@ -1238,7 +1243,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         // readback staging
         BufferGL[] m_readback_buffers = new BufferGL[NumReadbackSlots];
         final int[] m_readback_rowpitchs = new int[NumReadbackSlots];
-        final int[] m_readback_queries = new int[NumReadbackSlots];
+        final long[] m_readback_queries = new long[NumReadbackSlots];
         BufferGL m_active_readback_buffer;
         int m_active_readback_rowPitch;
 

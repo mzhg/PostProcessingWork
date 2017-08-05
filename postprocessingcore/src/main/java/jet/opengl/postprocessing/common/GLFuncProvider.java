@@ -1620,7 +1620,7 @@ public interface GLFuncProvider {
                                   long offset,
                                   int size);
 
-    int glFenceSync();
+    long glFenceSync();
 
     /**
      * block and wait for a sync object to become signaled
@@ -1634,10 +1634,11 @@ public interface GLFuncProvider {
      * <li>GL_WAIT_FAILED indicates that an error occurred. Additionally, an OpenGL error will be generated.
      * </ul>
      */
-    int glClientWaitSync(int sync,
+    int glClientWaitSync(long sync,
                          int flags,
                          long timeout);
 
     ByteBuffer glMapBufferRange(int target, int offset, int length, int access, ByteBuffer old_buffer);
     ByteBuffer glMapBufferRange(int target, int offset, int length, int access);
+    void glDeleteSync(long sync);
 }

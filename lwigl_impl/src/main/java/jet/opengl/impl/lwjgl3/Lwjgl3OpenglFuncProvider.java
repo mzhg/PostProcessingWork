@@ -1880,4 +1880,29 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
         GL45.glTextureBufferRange(texture, internalformat, buffer, offset, size);
     }
 
+    @Override
+    public long glFenceSync() {
+        return GL32.glFenceSync(GL32.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    }
+
+    @Override
+    public int glClientWaitSync(long sync, int flags, long timeout) {
+        return GL32.glClientWaitSync(sync, flags, timeout);
+    }
+
+    @Override
+    public ByteBuffer glMapBufferRange(int target, int offset, int length, int access, ByteBuffer old_buffer) {
+        return GL30.glMapBufferRange(target, offset, length, access, old_buffer);
+    }
+
+    @Override
+    public ByteBuffer glMapBufferRange(int target, int offset, int length, int access) {
+        return GL30.glMapBufferRange(target, offset, length, access);
+    }
+
+    @Override
+    public void glDeleteSync(long sync) {
+        GL32.glDeleteSync(sync);
+    }
+
 }

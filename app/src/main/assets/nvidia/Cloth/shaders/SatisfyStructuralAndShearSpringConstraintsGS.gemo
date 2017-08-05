@@ -1,0 +1,113 @@
+#include "Cloth_Common.glsl"
+
+in VS_OUT
+{
+    Particle particle;
+    Particle old_particle;
+    vec3 normal;
+}_input[];
+
+layout (stream = 0) out uint Out_State;
+layout (stream = 0) out vec3 Out_Position;
+
+layout (lines_adjacency) in;
+layout (points, max_vertices = 4) out;
+
+void main()
+{
+    Particle particle[4] = Particle[4]
+    (
+        _input[0].particle,
+        _input[1].particle,
+        _input[2].particle,
+        _input[3].particle
+    );
+
+    // Connection configuration
+    int connectionConfig = ConnectionConfig(particle[0], ConnectionConfigOffset);
+
+    // Cutting
+    if (Cut)
+        switch (connectionConfig) {
+            case STATE_CONNECTION_CONFIG_0:
+                // Structural springs
+                TestSpring(particle[0], STATE_RIGHT_CONNECTION, particle[1]);
+                TestSpring(particle[0], STATE_BOTTOM_CONNECTION, particle[2]);
+                TestSpring(particle[2], STATE_RIGHT_CONNECTION, particle[3]);
+                TestSpring(particle[1], STATE_BOTTOM_CONNECTION, particle[3]);
+
+                // Shear springs
+                TestSpring(particle[0], STATE_BOTTOMRIGHT_CONNECTION, particle[3]);
+                TestSpring(particle[1], STATE_BOTTOMLEFT_CONNECTION, particle[2]);
+
+                // Maintain consistency within a quad
+                TestSpringQuad(particle);
+
+                break;
+
+            // Structural springs
+            case STATE_CONNECTION_CONFIG_1:
+                TestSpring(particle[0], STATE_RIGHT_CONNECTION, particle[1]);
+                TestSpring(particle[2], STATE_RIGHT_CONNECTION, particle[3]);
+                break;
+            case STATE_CONNECTION_CONFIG_2:
+                TestSpring(particle[0], STATE_RIGHT_CONNECTION, particle[1]);
+                TestSpring(particle[2], STATE_BOTTOM_CONNECTION, particle[3]);
+                break;
+            case STATE_CONNECTION_CONFIG_3:
+                TestSpring(particle[0], STATE_BOTTOM_CONNECTION, particle[1]);
+                TestSpring(particle[2], STATE_BOTTOM_CONNECTION, particle[3]);
+                break;
+            case STATE_CONNECTION_CONFIG_4:
+                TestSpring(particle[0], STATE_BOTTOM_CONNECTION, particle[1]);
+                break;
+            default:
+                break;
+        }
+
+    // Constraints enforcement
+    switch (connectionConfig) {
+        case STATE_CONNECTION_CONFIG_0:
+            // Structural springs
+            SatisfyStructuralSpringConstraint(particle[0], STATE_RIGHT_CONNECTION, particle[1], DistanceAtRestX);
+            SatisfyStructuralSpringConstraint(particle[0], STATE_BOTTOM_CONNECTION, particle[2], DistanceAtRestY);
+            SatisfyStructuralSpringConstraint(particle[2], STATE_RIGHT_CONNECTION, particle[3], DistanceAtRestX);
+            SatisfyStructuralSpringConstraint(particle[1], STATE_BOTTOM_CONNECTION, particle[3], DistanceAtRestY);
+
+            // Shear springs
+            SatisfyShearSpringConstraint(particle[0], STATE_BOTTOMRIGHT_CONNECTION, particle[3], DistanceAtRestXY);
+            SatisfyShearSpringConstraint(particle[1], STATE_BOTTOMLEFT_CONNECTION, particle[2], DistanceAtRestXY);
+            break;
+
+        // Structural springs
+        case STATE_CONNECTION_CONFIG_1:
+            SatisfyStructuralSpringConstraint(particle[0], STATE_RIGHT_CONNECTION, particle[1], DistanceAtRestX);
+            SatisfyStructuralSpringConstraint(particle[2], STATE_RIGHT_CONNECTION, particle[3], DistanceAtRestX);
+            break;
+        case STATE_CONNECTION_CONFIG_2:
+            SatisfyStructuralSpringConstraint(particle[0], STATE_RIGHT_CONNECTION, particle[1], DistanceAtRestX);
+            SatisfyStructuralSpringConstraint(particle[2], STATE_BOTTOM_CONNECTION, particle[3], DistanceAtRestY);
+            break;
+        case STATE_CONNECTION_CONFIG_3:
+            SatisfyStructuralSpringConstraint(particle[0], STATE_BOTTOM_CONNECTION, particle[1], DistanceAtRestY);
+            SatisfyStructuralSpringConstraint(particle[2], STATE_BOTTOM_CONNECTION, particle[3], DistanceAtRestY);
+            break;
+        case STATE_CONNECTION_CONFIG_4:
+            SatisfyStructuralSpringConstraint(particle[0], STATE_BOTTOM_CONNECTION, particle[1], DistanceAtRestY);
+            break;
+
+        default:
+            break;
+    }
+
+    // Emitting
+    for (int i = 0; i < (id == LastPrimitiveIndex ? LastPrimitiveSize : 4); ++i)
+    {
+        Out_State = particle[i].State;
+        Out_Position = particle[i].Position;
+
+        EmitStreamVertex(0);
+        EndStreamPrimitive(0);
+    }
+//        stream.Append(particle[i]);
+}

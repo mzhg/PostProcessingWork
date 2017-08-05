@@ -1,0 +1,45 @@
+#include "Cloth.h"
+
+in VS_OUT
+{
+    Particle particle;
+    Particle old_particle;
+    vec3 normal;
+}_input[];
+
+layout (points) in;
+layout (points, max_vertices = 1) out;
+
+layout (stream = 0) out uint Out_State;
+layout (stream = 0) out vec3 Out_Position;
+
+void main()
+{
+    // Forces
+    float3 force = float3(0);
+
+    // Gravity
+    force += float3(0, - GravityStrength, 0);
+
+    // Wind
+    force += dot(Wind, normal) * _input.normal;
+
+    // Damping
+    float speedCoeff = 0.99;
+
+    // Integration step
+    if (IsFree(_input[0].particle))
+    {
+        Out_Position += (TimeStep / OldTimeStep) * speedCoeff * (_input[0].particle.Position - _input[0].oldParticle.Position)
+                              + force * TimeStep * OldTimeStep;
+        Out_State = _input[0].particle.State;
+    }
+    else
+    {
+        Out_Position = _input[0].particle.Position;
+        Out_State = _input[0].particle.State;
+    }
+
+    EmitStreamVertex(0);
+    EndStreamPrimitive(0);
+}
