@@ -7,9 +7,6 @@ import jet.opengl.postprocessing.common.GLenum;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_d3d11;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_gl2;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_undefined;
-import static jet.opengl.postprocessing.common.GLenum.GL_FALSE;
-import static jet.opengl.postprocessing.common.GLenum.GL_QUERY_RESULT;
-import static jet.opengl.postprocessing.common.GLenum.GL_QUERY_RESULT_AVAILABLE;
 
 /**
  * Created by mazhen'gui on 2017/7/22.
@@ -111,7 +108,7 @@ final class NVWaveWorks_GFX_Timer_Impl {
                 TimerQueryData tqd = m_pTimersPool.addInactiveQuery();
 //                ID3D11DeviceContext* pDC_d3d11 = pGC->d3d11();
 //                pDC_d3d11->End(tqd.m_d3d._11.m_pTimerQuery);
-                // TODO
+                gl.glQueryCounter(tqd.m_GLTimerQuery, GLenum.GL_TIMESTAMP);
             }
             break;
             case nv_water_d3d_api_gnm:
@@ -136,25 +133,29 @@ final class NVWaveWorks_GFX_Timer_Impl {
         m_pTimersPool.releaseQuery(ix);
     }
 
-    long waitTimerQuery(int ix){
+    HRESULT waitTimerQuery(int ix, long[] time){
 // No built-in sync in DX, roll our own as best we can...
-//        HRESULT status = S_FALSE;
-//        do
-//        {
-//            status = getTimerQuery(pGC, ix, t);
-//            if(S_FALSE == status)
-//            {
-//                Sleep(0);
-//            }
-//        }
-//        while(S_FALSE == status);
+        HRESULT status = HRESULT.S_FALSE;
+        do
+        {
+            status = getTimerQuery(/*pGC,*/ ix, time);
+            if(HRESULT.S_FALSE == status)
+            {
+                try {
+                    Thread.sleep(0);
+                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+                }
+            }
+        }
+        while(HRESULT.S_FALSE == status);
 //
 //        return status;
 
-        return 0;
+        return status;
     }
 
-    long getTimerQuery(/*Graphics_Context* pGC,*/ int ix){
+    HRESULT getTimerQuery(/*Graphics_Context* pGC,*/ int ix, long[] time){
         TimerQueryData tqd = m_pTimersPool.getQueryData(ix);
         if(HRESULT.S_FALSE == tqd.m_status)
         {
@@ -166,14 +167,14 @@ final class NVWaveWorks_GFX_Timer_Impl {
                 {
 //                    ID3D11DeviceContext* pDC_d3d11 = pGC->d3d11();
 //                    hr = pDC_d3d11->GetData(tqd.m_d3d._11.m_pTimerQuery, &result, sizeof(result), 0);
-                    result = gl.glGetQueryObjectui64ui(tqd.m_GLTimerQuery, GL_QUERY_RESULT_AVAILABLE);
-                    if(result == GL_FALSE)
+                    result = gl.glGetQueryObjectuiv(tqd.m_GLTimerQuery, GLenum.GL_QUERY_RESULT_AVAILABLE);
+                    if(result == GLenum.GL_FALSE)
                     {
                         hr = HRESULT.S_FALSE;
                     }
                     else
                     {
-                        result = gl.glGetQueryObjectui64ui(tqd.m_GLTimerQuery, GL_QUERY_RESULT);
+                        result = gl.glGetQueryObjectui64ui(tqd.m_GLTimerQuery, GLenum.GL_QUERY_RESULT);
                         hr = HRESULT.S_OK;
                     }
                 }
@@ -185,14 +186,14 @@ final class NVWaveWorks_GFX_Timer_Impl {
 
                 case nv_water_d3d_api_gl2:
                 {
-                    result = gl.glGetQueryObjectui64ui(tqd.m_GLTimerQuery, GL_QUERY_RESULT_AVAILABLE);
-                    if(result == GL_FALSE)
+                    result = gl.glGetQueryObjectuiv(tqd.m_GLTimerQuery, GLenum.GL_QUERY_RESULT_AVAILABLE);
+                    if(result == GLenum.GL_FALSE)
                     {
                         hr = HRESULT.S_FALSE;
                     }
                     else
                     {
-                        result = gl.glGetQueryObjectui64ui(tqd.m_GLTimerQuery, GL_QUERY_RESULT);
+                        result = gl.glGetQueryObjectui64ui(tqd.m_GLTimerQuery, GLenum.GL_QUERY_RESULT);
                         hr = HRESULT.S_OK;
                     }
                 }
@@ -219,73 +220,291 @@ final class NVWaveWorks_GFX_Timer_Impl {
                     tqd.m_status = hr;
                     break;
             }
+            return hr;
         }
 
-        return tqd.m_timestampResult;
+        if(HRESULT.S_FALSE != tqd.m_status && time != null)
+        {
+            time[0] = tqd.m_timestampResult;
+        }
+
+        return tqd.m_status;
     }
 
     // Pair-wise get/wait
     HRESULT getTimerQueries(/*Graphics_Context* pGC,*/ int ix1, int ix2, long[] tdiff){
-//        UINT64 stamp1;
-//        HRESULT hr1 = getTimerQuery(pGC, ix1, stamp1);
-//        if(S_FALSE == hr1)
-//            return S_FALSE;
-//        UINT64 stamp2;
-//        HRESULT hr2 = getTimerQuery(pGC, ix2, stamp2);
-//        if(S_FALSE == hr2)
-//            return S_FALSE;
-//
-//        if(S_OK == hr1 && S_OK ==hr2)
-//        {
-//            tdiff = stamp2 - stamp1;
-//            return S_OK;
-//        }
-//        else if(S_OK == hr1)
-//        {
-//            return hr2;
-//        }
-//        else
-//        {
-//            return hr1;
-//        }
+        long[] stamp1 ={0};
+        HRESULT hr1 = getTimerQuery(/*pGC,*/ ix1, stamp1);
+        if(HRESULT.S_FALSE == hr1)
+            return HRESULT.S_FALSE;
+        long[] stamp2={0};
+        HRESULT hr2 = getTimerQuery(/*pGC,*/ ix2, stamp2);
+        if(HRESULT.S_FALSE == hr2)
+            return HRESULT.S_FALSE;
 
-        return HRESULT.E_FAIL;
+        if(HRESULT.S_OK == hr1 && HRESULT.S_OK ==hr2)
+        {
+            tdiff[0] = stamp2[0] - stamp1[0];
+            return HRESULT.S_OK;
+        }
+        else if(HRESULT.S_OK == hr1)
+        {
+            return hr2;
+        }
+        else
+        {
+            return hr1;
+        }
     }
 
-    long waitTimerQueries(/*Graphics_Context* pGC,*/ int ix1, int ix2/*, UINT64& tdiff*/){
+    HRESULT waitTimerQueries(/*Graphics_Context* pGC,*/ int ix1, int ix2, long[] tdiff){
 // No built-in sync in DX, roll our own as best we can...
-//        HRESULT status = S_FALSE;
-//        do
-//        {
-//            status = getTimerQueries(pGC, ix1, ix2, tdiff);
-//            if(S_FALSE == status)
-//            {
-//                Sleep(0);
-//            }
-//        }
-//        while(S_FALSE == status);
-//
-//        return status;
-        return 0;
+        HRESULT status = HRESULT.S_FALSE;
+        do
+        {
+            status = getTimerQueries(/*pGC,*/ ix1, ix2, tdiff);
+            if(HRESULT.S_FALSE == status)
+            {
+                try {
+                    Thread.sleep(0);
+                } catch (InterruptedException e) {
+                }
+            }
+        }
+        while(HRESULT.S_FALSE == status);
+
+        return status;
     }
 
     // Disjoint queries wrapper
     HRESULT beginDisjoint(){
+        if(0 == m_pDisjointTimersPool.getNumInactiveQueries())
+        {
+            // Add D3D resources
+//            #if WAVEWORKS_ENABLE_GRAPHICS
+            switch(m_d3dAPI)
+            {
 
-        return null;
+//                #if WAVEWORKS_ENABLE_D3D11
+                case nv_water_d3d_api_d3d11:
+                case nv_water_d3d_api_gl2:
+                {
+                    HRESULT hr;
+                    DisjointQueryData dqd = m_pDisjointTimersPool.addInactiveQuery();
+//                    D3D11_QUERY_DESC query_desc;
+//                    query_desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+//                    query_desc.MiscFlags = 0;
+//                    V_RETURN(m_d3d._11.m_pd3d11Device->CreateQuery(&query_desc, &dqd.m_d3d._11.m_pDisjointTimerQuery));
+                }
+                break;
+//                #endif
+//                #if WAVEWORKS_ENABLE_GNM
+//                case nv_water_d3d_api_gnm:
+//                {
+//				/*DisjointQueryData& dqd = */ m_pDisjointTimersPool->addInactiveQuery();
+//                }
+//                break;
+//                #endif
+//
+//                #if WAVEWORKS_ENABLE_GL
+//                case nv_water_d3d_api_gl2:
+//                {
+//				/*DisjointQueryData& dqd =*/ m_pDisjointTimersPool->addInactiveQuery();
+//                    // GL doesn't have disjoint queries atm, so doing nothing
+//                }
+//                break;
+//                #endif
+
+                default:
+                    // Unexpected API
+                    return HRESULT.E_FAIL;
+            }
+//            #endif // WAVEWORKS_ENABLE_GRAPHICS
+        }
+
+        // Make an inactive query current
+        assert(m_CurrentDisjointTimerQuery == -1);
+        m_CurrentDisjointTimerQuery = m_pDisjointTimersPool.activateQuery();
+
+        // Begin the disjoint query
+        /*#if WAVEWORKS_ENABLE_GRAPHICS
+        switch(m_d3dAPI)
+        {
+            #if WAVEWORKS_ENABLE_D3D11
+            case nv_water_d3d_api_d3d11:
+            {
+                ID3D11DeviceContext* pDC_d3d11 = pGC->d3d11();
+                const DisjointQueryData& dqd = m_pDisjointTimersPool->getQueryData(m_CurrentDisjointTimerQuery);
+                pDC_d3d11->Begin(dqd.m_d3d._11.m_pDisjointTimerQuery);
+            }
+            break;
+            #endif
+            #if WAVEWORKS_ENABLE_GNM
+            case nv_water_d3d_api_gnm:
+            {
+			*//*const DisjointQueryData& dqd =*//* m_pDisjointTimersPool->getQueryData(m_CurrentDisjointTimerQuery);
+            }
+            break;
+            #endif
+
+            #if WAVEWORKS_ENABLE_GL
+            case nv_water_d3d_api_gl2:
+            {
+                // GL doesn't have disjoint queries atm, so doing nothing
+            }
+            break;
+            #endif
+            default:
+                // Unexpected API
+                return E_FAIL;
+        }
+        #endif // WAVEWORKS_ENABLE_GRAPHICS*/
+
+        return HRESULT.S_OK;
     }
     HRESULT endDisjoint(){
-        return null;
+        assert(m_CurrentDisjointTimerQuery != -1);
 
+        // End the disjoint query
+        /*#if WAVEWORKS_ENABLE_GRAPHICS
+        switch(m_d3dAPI)
+        {
+
+            #if WAVEWORKS_ENABLE_D3D11
+            case nv_water_d3d_api_d3d11:
+            {
+                ID3D11DeviceContext* pDC_d3d11 = pGC->d3d11();
+                const DisjointQueryData& dqd = m_pDisjointTimersPool->getQueryData(m_CurrentDisjointTimerQuery);
+                pDC_d3d11->End(dqd.m_d3d._11.m_pDisjointTimerQuery);
+            }
+            break;
+            #endif
+            #if WAVEWORKS_ENABLE_GNM
+            case nv_water_d3d_api_gnm:
+            {
+			*//*const DisjointQueryData& dqd =*//* m_pDisjointTimersPool->getQueryData(m_CurrentDisjointTimerQuery);
+            }
+            break;
+            #endif
+
+            #if WAVEWORKS_ENABLE_GL
+            case nv_water_d3d_api_gl2:
+            {
+                // GL doesn't have disjoint queries atm, so doing nothing
+            }
+            break;
+            #endif
+
+            default:
+                // Unexpected API
+                return E_FAIL;
+        }
+        #endif // WAVEWORKS_ENABLE_GRAPHICS*/
+
+        // Release the query (but others may have referenced it by now...)
+        m_pDisjointTimersPool.releaseQuery(m_CurrentDisjointTimerQuery);
+        m_CurrentDisjointTimerQuery = -1;
+
+        return HRESULT.S_OK;
     }
 
     int getCurrentDisjointQuery(){
-        return 9;
+        assert(m_CurrentDisjointTimerQuery != -1);
+
+        m_pDisjointTimersPool.addRefQuery(m_CurrentDisjointTimerQuery);	// udpate ref-count
+        return m_CurrentDisjointTimerQuery;
     }
-    void releaseDisjointQuery(int ix){}
-    long waitDisjointQuery(/*Graphics_Context* pGC,*/ int ix/*, UINT64& f*/) { return 0;}
+
+    void releaseDisjointQuery(int ix){m_pDisjointTimersPool.releaseQuery(ix);}
+    HRESULT waitDisjointQuery(/*Graphics_Context* pGC,*/ int ix, long[] f) {
+        // No built-in sync in DX, roll our own as best we can...
+        HRESULT status = HRESULT.S_FALSE;
+        do
+        {
+            status = getDisjointQuery(/*pGC,*/ ix, f);
+            if(HRESULT.S_FALSE == status)
+            {
+                try {
+                    Thread.sleep(0);
+                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+                }
+            }
+        }
+        while(HRESULT.S_FALSE == status);
+
+        return status;
+    }
+
     HRESULT getDisjointQuery(/*Graphics_Context* pGC,*/ int ix, long[] f){
-        return HRESULT.E_FAIL;
+        DisjointQueryData dqd = m_pDisjointTimersPool.getQueryData(ix);
+        if(HRESULT.S_FALSE == dqd.m_status)
+        {
+            HRESULT hr = HRESULT.E_FAIL;
+            boolean WasDisjoint = false;
+            long RawF = 0;
+
+//            #if WAVEWORKS_ENABLE_GRAPHICS
+            switch(m_d3dAPI)
+            {
+                /*#if WAVEWORKS_ENABLE_D3D11
+                case nv_water_d3d_api_d3d11:
+                {
+                    ID3D11DeviceContext* pDC_d3d11 = pGC->d3d11();
+
+                    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT result;
+                    hr = pDC_d3d11->GetData(dqd.m_d3d._11.m_pDisjointTimerQuery, &result, sizeof(result), 0);
+
+                    RawF = result.Frequency;
+                    WasDisjoint = result.Disjoint;
+                }
+                break;
+                #endif
+                #if WAVEWORKS_ENABLE_GNM
+                case nv_water_d3d_api_gnm:
+                {
+                    hr = S_OK;
+                }
+                break;
+                #endif
+                #if WAVEWORKS_ENABLE_GL*/
+                case nv_water_d3d_api_d3d11:
+                case nv_water_d3d_api_gl2:
+                {
+                    // GL doesn't have disjoint queries atm, so assuming the queries are not disjoint
+                    hr = HRESULT.S_OK;
+                    RawF = 1000000000;
+                    WasDisjoint = false;
+                }
+                break;
+//                #endif
+                default:
+                    // Unexpected API
+                    return HRESULT.E_FAIL;
+            }
+//            #endif // WAVEWORKS_ENABLE_GRAPHICS
+
+            switch(hr)
+            {
+                case S_FALSE:
+                    break;
+                case S_OK:
+                    dqd.m_freqResult = WasDisjoint ? 0 : RawF;
+                    dqd.m_status = WasDisjoint ? HRESULT.E_FAIL : HRESULT.S_OK;
+                    break;
+                default:
+                    dqd.m_freqResult = 0;
+                    dqd.m_status = hr;
+                    break;
+            }
+        }
+
+        if(HRESULT.S_FALSE != dqd.m_status)
+        {
+            f[0] = dqd.m_freqResult;
+        }
+
+        return dqd.m_status;
     }
 
     private void allocateAllResources(){
@@ -306,12 +525,12 @@ final class NVWaveWorks_GFX_Timer_Impl {
                 for(int i = 0; i != m_pDisjointTimersPool.getNumQueries(); ++i)
                 {
                     DisjointQueryData dqd = m_pDisjointTimersPool.getQueryData(i);
-//                    SAFE_RELEASE(dqd.m_d3d._11.m_pDisjointTimerQuery); TODO
+                    gl.glDeleteQuery(dqd.m_pDisjointTimerQuery);
                 }
                 for(int i = 0; i != m_pTimersPool.getNumQueries(); ++i)
                 {
                     TimerQueryData tqd = m_pTimersPool.getQueryData(i);
-//                    SAFE_RELEASE(tqd.m_d3d._11.m_pTimerQuery); TODO
+                    gl.glDeleteQuery(tqd.m_GLTimerQuery);
                 }
                 break;
             }

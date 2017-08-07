@@ -1,0 +1,323 @@
+#include "Cloth.h"
+
+struct ClothPixel
+{
+    float4 SV_Position /*: SV_Position*/;
+    float3 Position /*: Position2*/;
+    float3 Normal /*: Normal*/;
+    float3 TangentX /*: TangentX*/;
+    float3 TangentY /*: TangentY*/;
+    float2 TexCoord /*: TexCoord*/;
+};
+
+in gl_PerVertex
+{
+    vec4 gl_Position;
+}gl_in[];
+
+in ParticleVertex
+{
+    Particle ParticleData;
+    ClothPixel PixelData;
+}vertex[];
+
+out GS_OUT
+{
+    ClothPixel PixelData;
+}_output;
+
+layout (lines_adjacency) in;
+layout (triangle_strip, max_vertices = 12) out;
+
+ClothPixel NewVertex(ClothPixel vertex, float3 position, float2 texCoord)
+{
+    //MovePositionOutsideEnvironment(position);
+    ClothPixel newVertex = vertex;
+    newVertex.SV_Position = mul(float4(position, 1), ViewProjection);
+    newVertex.Position = position;
+    newVertex.TexCoord = texCoord;
+    return newVertex;
+}
+
+void main()
+{
+    int id = gl_PrimitiveIDIn;
+    int cornerIndex = id % 2;
+    if (IsConnected(vertex[0].ParticleData, STATE_RIGHT_CONNECTION) &&
+        IsConnected(vertex[1].ParticleData, STATE_BOTTOM_CONNECTION) &&
+        IsConnected(vertex[1-cornerIndex].ParticleData, STATE_BOTTOMRIGHT_CONNECTION)) {
+        for (int i = 0; i < 3; ++i)
+        {
+            _output.PixelData = vertex[i].PixelData;
+            gl_Position = gl_in[i] = gl_Position;
+            EmitVertex();
+        }
+        EndPrimitive();
+//            stream.Append(vertex[i].PixelData);
+    }
+    else {
+        /*
+           X increases from left to right and Y increases from top to bottom
+
+           top 1 ____            left 0 ____ 1 corner
+                |\   |                 |\   |
+                | \  |                 | \  |
+                |  \ |                 |  \ |
+                |___\|                 |___\|
+        corner 0      2 right                2 bottom
+
+        */
+        int leftrightIndex = cornerIndex ? 0 : 2;
+        int topbottomIndex = cornerIndex ? 2 : 1;
+        Particle corner = vertex[cornerIndex].ParticleData;
+        Particle leftright = vertex[leftrightIndex].ParticleData;
+        Particle topbottom = vertex[topbottomIndex].ParticleData;
+        ClothPixel cornerVertex = vertex[cornerIndex].PixelData;
+        ClothPixel leftrightVertex = vertex[leftrightIndex].PixelData;
+        ClothPixel topbottomVertex = vertex[topbottomIndex].PixelData;
+        float2 texCoordXOffset = float2(TexCoordStepX, 0);
+        float2 texCoordYOffset = float2(0, TexCoordStepY);
+        float3 cornerXOffset = PositionStepX * cornerVertex.TangentX;
+        float2 cornerXOffsetT = texCoordXOffset;
+        float3 cornerYOffset = - PositionStepY * cornerVertex.TangentY;
+        float2 cornerYOffsetT = - texCoordYOffset;
+        float3 cornerXYOffset = cornerXOffset + cornerYOffset;
+        float2 cornerXYOffsetT = cornerXOffsetT + cornerYOffsetT;
+        float3 leftrightXOffset = - PositionStepX * leftrightVertex.TangentX;
+        float2 leftrightXOffsetT = - texCoordXOffset;
+        float3 leftrightXYOffset = leftrightXOffset - PositionStepY * leftrightVertex.TangentY;
+        float2 leftrightXYOffsetT = leftrightXOffsetT - texCoordYOffset;
+        float3 topbottomYOffset = PositionStepY * topbottomVertex.TangentY;
+        float2 topbottomYOffsetT = texCoordYOffset;
+        float3 topbottomXYOffset = PositionStepX * topbottomVertex.TangentX + topbottomYOffset;
+        float2 topbottomXYOffsetT = texCoordXOffset + topbottomYOffsetT;
+        if (cornerIndex) {
+            cornerXOffset = - cornerXOffset;
+            cornerXOffsetT = - cornerXOffsetT;
+            cornerYOffset = - cornerYOffset;
+            cornerYOffsetT = - cornerYOffsetT;
+            cornerXYOffset = - cornerXYOffset;
+            cornerXYOffsetT = - cornerXYOffsetT;
+            leftrightXOffset = - leftrightXOffset;
+            leftrightXOffsetT = - leftrightXOffsetT;
+            leftrightXYOffset = - leftrightXYOffset;
+            leftrightXYOffsetT = - leftrightXYOffsetT;
+            topbottomYOffset = - topbottomYOffset;
+            topbottomYOffsetT = - topbottomYOffsetT;
+            topbottomXYOffset = - topbottomXYOffset;
+            topbottomXYOffsetT = - topbottomXYOffsetT;
+        }
+        if (!IsConnected(vertex[0].ParticleData, STATE_RIGHT_CONNECTION)) {
+            if (!IsConnected(vertex[1].ParticleData, STATE_BOTTOM_CONNECTION)) {
+//                stream.Append(leftrightVertex);
+//                stream.Append(NewVertex(leftrightVertex, leftright.Position + leftrightXOffset, leftrightVertex.TexCoord + leftrightXOffsetT));
+//                stream.Append(NewVertex(leftrightVertex, leftright.Position + leftrightXYOffset, leftrightVertex.TexCoord + leftrightXYOffsetT));
+//                stream.RestartStrip();
+                _output.ClothPixel = leftrightVertex;
+                gl_Position = leftrightVertex.SV_Position;
+                EmitVertex();
+
+                _output.ClothPixel = NewVertex(leftrightVertex, leftright.Position + leftrightXOffset, leftrightVertex.TexCoord + leftrightXOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+
+                _output.ClothPixel = NewVertex(leftrightVertex, leftright.Position + leftrightXYOffset, leftrightVertex.TexCoord + leftrightXYOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+                EndPrimitive();
+
+//                stream.Append(topbottomVertex);
+//                stream.Append(NewVertex(topbottomVertex, topbottom.Position + topbottomXYOffset, topbottomVertex.TexCoord + topbottomXYOffsetT));
+//                stream.Append(NewVertex(topbottomVertex, topbottom.Position + topbottomYOffset, topbottomVertex.TexCoord + topbottomYOffsetT));
+//                stream.RestartStrip();
+                _output.ClothPixel = topbottomVertex;
+                gl_Position = topbottomVertex.SV_Position;
+
+                _output.ClothPixel = NewVertex(topbottomVertex, topbottom.Position + topbottomXYOffset, topbottomVertex.TexCoord + topbottomXYOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+
+                _output.ClothPixel = NewVertex(topbottomVertex, topbottom.Position + topbottomYOffset, topbottomVertex.TexCoord + topbottomYOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+                EndPrimitive();
+
+//                stream.Append(cornerVertex);
+//                stream.Append(NewVertex(cornerVertex, corner.Position + cornerXYOffset, cornerVertex.TexCoord + cornerXYOffsetT));
+//                stream.Append(NewVertex(cornerVertex, corner.Position + cornerXOffset, cornerVertex.TexCoord + cornerXOffsetT));
+//                stream.RestartStrip();
+                _output.ClothPixel = cornerVertex;
+                gl_Position = cornerVertex.SV_Position;
+
+                _output.ClothPixel = NewVertex(cornerVertex, corner.Position + cornerXYOffset, cornerVertex.TexCoord + cornerXYOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+
+                _output.ClothPixel = NewVertex(cornerVertex, corner.Position + cornerXOffset, cornerVertex.TexCoord + cornerXOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+                EndPrimitive();
+
+//                stream.Append(cornerVertex);
+//                stream.Append(NewVertex(cornerVertex, corner.Position + cornerYOffset, cornerVertex.TexCoord + cornerYOffsetT));
+//                stream.Append(NewVertex(cornerVertex, corner.Position + cornerXYOffset, cornerVertex.TexCoord + cornerXYOffsetT));
+
+                _output.ClothPixel = cornerVertex;
+                gl_Position = cornerVertex.SV_Position;
+
+                _output.ClothPixel = NewVertex(cornerVertex, corner.Position + cornerYOffset, cornerVertex.TexCoord + cornerYOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+
+                _output.ClothPixel = NewVertex(cornerVertex, corner.Position + cornerXYOffset, cornerVertex.TexCoord + cornerXYOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+                EndPrimitive();
+            }
+            else {
+//                stream.Append(leftrightVertex);
+//                stream.Append(NewVertex(leftrightVertex, leftright.Position + leftrightXOffset, leftrightVertex.TexCoord + leftrightXOffsetT));
+//                stream.Append(NewVertex(leftrightVertex, leftright.Position + leftrightXYOffset, leftrightVertex.TexCoord + leftrightXYOffsetT));
+//                stream.RestartStrip();
+                _output.ClothPixel = leftrightVertex;
+                gl_Position = leftrightVertex.SV_Position;
+
+                _output.ClothPixel = NewVertex(leftrightVertex, leftright.Position + leftrightXOffset, leftrightVertex.TexCoord + leftrightXOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+
+                _output.ClothPixel = NewVertex(leftrightVertex, leftright.Position + leftrightXYOffset, leftrightVertex.TexCoord + leftrightXYOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+                EndPrimitive();
+
+                float3 v = float3(0, 0, 0.03);
+                if (cornerIndex != 0)
+                    v = float3(0);
+                ClothPixel newVertex = NewVertex(topbottomVertex, topbottom.Position + topbottomXYOffset, topbottomVertex.TexCoord + topbottomXYOffsetT);
+//                stream.Append(cornerVertex);
+//                stream.Append(newVertex);
+                _output.ClothPixel = cornerVertex;
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+
+                _output.ClothPixel = newVertex;
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+
+                float3 u = float3(0, 0, -0.03);
+                if (cornerIndex != 0)
+                    u = float3(0);
+//                stream.Append(NewVertex(cornerVertex, corner.Position + cornerXOffset, cornerVertex.TexCoord + cornerXOffsetT));
+//                stream.RestartStrip();
+                _output.ClothPixel = NewVertex(cornerVertex, corner.Position + cornerXOffset, cornerVertex.TexCoord + cornerXOffsetT);
+                gl_Position = _output.ClothPixel.SV_Position;
+                EmitVertex();
+                EndPrimitive();
+
+//                stream.Append(cornerVertex);
+//                stream.Append(topbottomVertex);
+//                stream.Append(newVertex);
+                _output.ClothPixel = cornerVertex;
+                gl_Position = cornerVertex.SV_Position;
+                EmitVertex();
+
+                _output.ClothPixel = topbottomVertex;
+                gl_Position = topbottomVertex.SV_Position;
+                EmitVertex();
+
+                _output.ClothPixel = newVertex;
+                gl_Position = newVertex.SV_Position;
+                EmitVertex();
+                EndPrimitive();
+            }
+        }
+        else if (!IsConnected(vertex[1].ParticleData, STATE_BOTTOM_CONNECTION)) {
+//            stream.Append(topbottomVertex);
+//            stream.Append(NewVertex(topbottomVertex, topbottom.Position + topbottomXYOffset, topbottomVertex.TexCoord + topbottomXYOffsetT));
+//            stream.Append(NewVertex(topbottomVertex, topbottom.Position + topbottomYOffset, topbottomVertex.TexCoord + topbottomYOffsetT));
+//            stream.RestartStrip();
+
+            _output.ClothPixel = topbottomVertex;
+            gl_Position = topbottomVertex.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = NewVertex(topbottomVertex, topbottom.Position + topbottomXYOffset, topbottomVertex.TexCoord + topbottomXYOffsetT);
+            gl_Position = _output.ClothPixel.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = NewVertex(topbottomVertex, topbottom.Position + topbottomYOffset, topbottomVertex.TexCoord + topbottomYOffsetT);
+            gl_Position = _output.ClothPixel.SV_Position;
+            EmitVertex();
+            EndPrimitive();
+
+            ClothPixel newVertex = NewVertex(leftrightVertex, leftright.Position + leftrightXYOffset, leftrightVertex.TexCoord + leftrightXYOffsetT);
+//            stream.Append(cornerVertex);
+//            stream.Append(NewVertex(cornerVertex, corner.Position + cornerYOffset, cornerVertex.TexCoord + cornerYOffsetT));
+//            stream.Append(newVertex);
+//            stream.RestartStrip();
+            _output.ClothPixel = cornerVertex;
+            gl_Position = cornerVertex.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = NewVertex(cornerVertex, corner.Position + cornerYOffset, cornerVertex.TexCoord + cornerYOffsetT);
+            gl_Position = _output.ClothPixel.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = newVertex;
+            gl_Position = newVertex.SV_Position;
+            EmitVertex();
+            EndPrimitive();
+
+//            stream.Append(cornerVertex);
+//            stream.Append(newVertex);
+//            stream.Append(leftrightVertex);
+            _output.ClothPixel = cornerVertex;
+            gl_Position = cornerVertex.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = newVertex;
+            gl_Position = newVertex.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = leftrightVertex;
+            gl_Position = leftrightVertex.SV_Position;
+            EmitVertex();
+        }
+        else if (!IsConnected(vertex[1-cornerIndex].ParticleData, STATE_BOTTOMRIGHT_CONNECTION)) {
+//            stream.Append(leftrightVertex);
+//            stream.Append(cornerVertex);
+//            stream.Append(NewVertex(leftrightVertex, leftright.Position + leftrightXYOffset, leftrightVertex.TexCoord + leftrightXYOffsetT));
+//            stream.RestartStrip();
+            _output.ClothPixel = leftrightVertex;
+            gl_Position = leftrightVertex.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = cornerVertex;
+            gl_Position = cornerVertex.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = NewVertex(leftrightVertex, leftright.Position + leftrightXYOffset, leftrightVertex.TexCoord + leftrightXYOffsetT);
+            gl_Position = _output.ClothPixel.SV_Position;
+            EmitVertex();
+            EndPrimitive();
+
+//            stream.Append(topbottomVertex);
+//            stream.Append(NewVertex(topbottomVertex, topbottom.Position + topbottomXYOffset, topbottomVertex.TexCoord + topbottomXYOffsetT));
+//            stream.Append(cornerVertex);
+
+            _output.ClothPixel = topbottomVertex;
+            gl_Position = topbottomVertex.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = NewVertex(topbottomVertex, topbottom.Position + topbottomXYOffset, topbottomVertex.TexCoord + topbottomXYOffsetT);
+            gl_Position = _output.ClothPixel.SV_Position;
+            EmitVertex();
+
+            _output.ClothPixel = cornerVertex;
+            gl_Position = cornerVertex.SV_Position;
+            EmitVertex();
+            EndPrimitive();
+        }
+    }
+}

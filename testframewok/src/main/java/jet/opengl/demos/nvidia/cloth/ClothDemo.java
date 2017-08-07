@@ -164,10 +164,10 @@ public class ClothDemo extends NvSampleApp {
 
     @Override
     protected void initRendering() {
-        InitPlanes();
-        InitSpheres();
-        InitCapsules();
-        InitEllipsoids();
+//        InitPlanes();  TODO
+//        InitSpheres();  TODO
+//        InitCapsules();  TODO
+//        InitEllipsoids();  TODO
     }
 
     //--------------------------------------------------------------------------------------
@@ -211,7 +211,7 @@ public class ClothDemo extends NvSampleApp {
             g_CurrentTime += timeStep;
 
             // Simulate cloth
-            SimulateCloth(/*pd3dDevice,*/ timeStep, g_OldTimeStep < 0 ? timeStep : g_OldTimeStep);
+//            SimulateCloth(/*pd3dDevice,*/ timeStep, g_OldTimeStep < 0 ? timeStep : g_OldTimeStep); TODO
 
             g_OldTimeStep = timeStep;
             g_OldStateTime = g_NewStateTime;

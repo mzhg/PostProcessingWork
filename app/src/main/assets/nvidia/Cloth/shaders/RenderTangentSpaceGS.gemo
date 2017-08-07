@@ -1,0 +1,47 @@
+#include "Cloth.h"
+
+in TangentSpace
+{
+    float3 Position /*: Position*/;
+    float3 Normal /*: Normal*/;
+    float3 TangentX /*: TangentX*/;
+    float3 TangentY /*: TangentY*/;
+}tangentSpace[];
+
+layout (points) in;
+layout (line_strips, max_vertices = 1) out;
+
+out float3 m_Color;
+
+void main()
+{
+    float scale = 0.12;
+    float4 position = mul(float4(tangentSpace[0].Position, 1), ViewProjection);
+//    TangentSpaceVertex vertex;
+    gl_Position = position;
+    m_Color = float3(1, 0, 0);
+//    stream.Append(vertex);
+    EmitVertex();
+
+    gl_Position = mul(float4(tangentSpace[0].Position + scale * tangentSpace[0].TangentX, 1), ViewProjection);
+//    stream.Append(vertex);
+    EmitVertex();
+
+    gl_Position = position;
+    m_Color = float3(0, 1, 0);
+//    stream.Append(vertex);
+    EmitVertex();
+
+    gl_Position = mul(float4(tangentSpace[0].Position + scale * tangentSpace[0].TangentY, 1), ViewProjection);
+//    stream.Append(vertex);
+    EmitVertex();
+
+    gl_Position = position;
+    m_Color = float3(0, 0, 1);
+//    stream.Append(vertex);
+    EmitVertex();
+
+    gl_Position = mul(float4(tangentSpace[0].Position + scale * tangentSpace[0].Normal, 1), ViewProjection);
+//    stream.Append(vertex);
+    EmitVertex();
+}

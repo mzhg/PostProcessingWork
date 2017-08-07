@@ -1018,7 +1018,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         return HRESULT.S_OK;
     }
 
-    private HRESULT updateGradientMapsGnm(/*Graphics_Context* pGC,*/ GFSDK_WaveWorks_Savestate pSavestateImpl){ return S_FALSE;}
+    private HRESULT updateGradientMapsGnm(/*Graphics_Context* pGC,*/ GFSDK_WaveWorks_Savestate pSavestateImpl){ return HRESULT.S_FALSE;}
 
     private HRESULT updateGradientMapsGL2(/*Graphics_Context* pGC*/){
         HRESULT hr;
@@ -1199,6 +1199,8 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         return HRESULT.S_OK;
     }
 
+    final vs_attr_cbuffer pVSDSCB = new vs_attr_cbuffer();
+    final ps_attr_cbuffer pPSCB = new ps_attr_cbuffer();
     private HRESULT setRenderStateD3D11(//	ID3D11DeviceContext* pDC,
 									Matrix4f matView,
 									int[] pShaderInputRegisterMappings,
@@ -1357,34 +1359,36 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             pDC->PSSetShaderResources(rm_g_textureGradientMap2, 1, &cascade_states[2].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot]);
         if(rm_g_textureGradientMap3 != nvrm_unused)
             pDC->PSSetShaderResources(rm_g_textureGradientMap3, 1, &cascade_states[3].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot]);
+        */
 
         // Constants
-        vs_ds_attr_cbuffer VSDSCB;
-        vs_ds_attr_cbuffer* pVSDSCB = NULL;
-        if(rm_ds_buffer != nvrm_unused || rm_vs_buffer != nvrm_unused)
+//        vs_ds_attr_cbuffer* pVSDSCB = NULL;
+//        if(rm_ds_buffer != nvrm_unused || rm_vs_buffer != nvrm_unused)
         {
-            pVSDSCB = &VSDSCB;
+//            pVSDSCB = &VSDSCB;
 
-            pVSDSCB->g_UVScaleCascade0123[0] = 1.0f / m_params.cascades[0].fft_period;
-            pVSDSCB->g_UVScaleCascade0123[1] = 1.0f / m_params.cascades[1].fft_period;
-            pVSDSCB->g_UVScaleCascade0123[2] = 1.0f / m_params.cascades[2].fft_period;
-            pVSDSCB->g_UVScaleCascade0123[3] = 1.0f / m_params.cascades[3].fft_period;
+            pVSDSCB.g_UVScaleCascade0123[0] = 1.0f / m_params.cascades[0].fft_period;
+            pVSDSCB.g_UVScaleCascade0123[1] = 1.0f / m_params.cascades[1].fft_period;
+            pVSDSCB.g_UVScaleCascade0123[2] = 1.0f / m_params.cascades[2].fft_period;
+            pVSDSCB.g_UVScaleCascade0123[3] = 1.0f / m_params.cascades[3].fft_period;
+            Matrix4f.decompseRigidMatrix(matView, pVSDSCB.g_WorldEye, null,null);
 
-            gfsdk_float4x4 inv_mat_view;
-            gfsdk_float4 vec_original = {0,0,0,1};
-            gfsdk_float4 vec_transformed;
-            mat4Inverse(inv_mat_view,matView);
-            vec4Mat4Mul(vec_transformed, vec_original, inv_mat_view);
-            gfsdk_float4 vGlobalEye = vec_transformed;
+//            gfsdk_float4x4 inv_mat_view;
+//            gfsdk_float4 vec_original = {0,0,0,1};
+//            gfsdk_float4 vec_transformed;
+//            mat4Inverse(inv_mat_view,matView);
+//            vec4Mat4Mul(vec_transformed, vec_original, inv_mat_view);
+//            gfsdk_float4 vGlobalEye = vec_transformed;
+//
+//            pVSDSCB.g_WorldEye[0] = vGlobalEye.x;
+//            pVSDSCB->g_WorldEye[1] = vGlobalEye.y;
+//            pVSDSCB->g_WorldEye[2] = vGlobalEye.z;
 
-            pVSDSCB->g_WorldEye[0] = vGlobalEye.x;
-            pVSDSCB->g_WorldEye[1] = vGlobalEye.y;
-            pVSDSCB->g_WorldEye[2] = vGlobalEye.z;
+            // TODO update the buffer
         }
 
-        ps_attr_cbuffer PSCB;
-        ps_attr_cbuffer* pPSCB = NULL;
-        const FLOAT texel_len = m_params.cascades[0].fft_period / m_params.cascades[0].fft_resolution;
+//        ps_attr_cbuffer PSCB;
+        final float texel_len = m_params.cascades[0].fft_period / m_params.cascades[0].fft_resolution;
         final float cascade1Scale = m_params.cascades[0].fft_period/m_params.cascades[1].fft_period;
         final float cascade1UVOffset = 0.f; // half-pixel not required in D3D11
         final float cascade2Scale = m_params.cascades[0].fft_period/m_params.cascades[2].fft_period;
@@ -1392,45 +1396,45 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         final float cascade3Scale = m_params.cascades[0].fft_period/m_params.cascades[3].fft_period;
         final float cascade3UVOffset = 0.f; // half-pixel not required in D3D11
 
-        if(rm_ps_buffer != nvrm_unused)
+//        if(rm_ps_buffer != nvrm_unused)
         {
-            pPSCB = &PSCB;
-            pPSCB->g_TexelLength_x2_PS = texel_len;
+//            pPSCB = &PSCB;
+            pPSCB.g_TexelLength_x2_PS = texel_len;
         }
 
-        if(NULL != pPSCB)
+//        if(NULL != pPSCB)
         {
-            pPSCB->g_Cascade1Scale_PS = cascade1Scale;
-            pPSCB->g_Cascade1UVOffset_PS = cascade1UVOffset;
-            pPSCB->g_Cascade2Scale_PS = cascade2Scale;
-            pPSCB->g_Cascade2UVOffset_PS = cascade2UVOffset;
-            pPSCB->g_Cascade3Scale_PS = cascade3Scale;
-            pPSCB->g_Cascade3UVOffset_PS = cascade3UVOffset;
-            pPSCB->g_Cascade1TexelScale_PS = (m_params.cascades[0].fft_period * m_params.cascades[1].fft_resolution) / (m_params.cascades[1].fft_period * m_params.cascades[0].fft_resolution);
-            pPSCB->g_Cascade2TexelScale_PS = (m_params.cascades[0].fft_period * m_params.cascades[2].fft_resolution) / (m_params.cascades[2].fft_period * m_params.cascades[0].fft_resolution);
-            pPSCB->g_Cascade3TexelScale_PS = (m_params.cascades[0].fft_period * m_params.cascades[3].fft_resolution) / (m_params.cascades[3].fft_period * m_params.cascades[0].fft_resolution);
+            pPSCB.g_Cascade1Scale_PS = cascade1Scale;
+            pPSCB.g_Cascade1UVOffset_PS = cascade1UVOffset;
+            pPSCB.g_Cascade2Scale_PS = cascade2Scale;
+            pPSCB.g_Cascade2UVOffset_PS = cascade2UVOffset;
+            pPSCB.g_Cascade3Scale_PS = cascade3Scale;
+            pPSCB.g_Cascade3UVOffset_PS = cascade3UVOffset;
+            pPSCB.g_Cascade1TexelScale_PS = (m_params.cascades[0].fft_period * m_params.cascades[1].fft_resolution) / (m_params.cascades[1].fft_period * m_params.cascades[0].fft_resolution);
+            pPSCB.g_Cascade2TexelScale_PS = (m_params.cascades[0].fft_period * m_params.cascades[2].fft_resolution) / (m_params.cascades[2].fft_period * m_params.cascades[0].fft_resolution);
+            pPSCB.g_Cascade3TexelScale_PS = (m_params.cascades[0].fft_period * m_params.cascades[3].fft_resolution) / (m_params.cascades[3].fft_period * m_params.cascades[0].fft_resolution);
         }
 
-        if(pVSDSCB)
-        {
-            {
-                D3D11_CB_Updater<vs_ds_attr_cbuffer> cb(pDC,m_d3d._11.m_pd3d11VertexDomainShaderCB);
-                cb.cb() = *pVSDSCB;
-            }
-            if(rm_vs_buffer != nvrm_unused)
-                pDC->VSSetConstantBuffers(rm_vs_buffer, 1, &m_d3d._11.m_pd3d11VertexDomainShaderCB);
-            if(rm_ds_buffer != nvrm_unused)
-                pDC->DSSetConstantBuffers(rm_ds_buffer, 1, &m_d3d._11.m_pd3d11VertexDomainShaderCB);
-        }
-        if(pPSCB)
-        {
-            {
-                D3D11_CB_Updater<ps_attr_cbuffer> cb(pDC,m_d3d._11.m_pd3d11PixelShaderCB);
-                cb.cb() = *pPSCB;
-            }
-            pDC->PSSetConstantBuffers(rm_ps_buffer, 1, &m_d3d._11.m_pd3d11PixelShaderCB);
-        }*/
-        return S_OK;
+//        if(pVSDSCB)
+//        {
+//            {
+//                D3D11_CB_Updater<vs_ds_attr_cbuffer> cb(pDC,m_d3d._11.m_pd3d11VertexDomainShaderCB);
+//                cb.cb() = *pVSDSCB;
+//            }
+//            if(rm_vs_buffer != nvrm_unused)
+//                pDC->VSSetConstantBuffers(rm_vs_buffer, 1, &m_d3d._11.m_pd3d11VertexDomainShaderCB);
+//            if(rm_ds_buffer != nvrm_unused)
+//                pDC->DSSetConstantBuffers(rm_ds_buffer, 1, &m_d3d._11.m_pd3d11VertexDomainShaderCB);
+//        }
+//        if(pPSCB)
+//        {
+//            {
+//                D3D11_CB_Updater<ps_attr_cbuffer> cb(pDC,m_d3d._11.m_pd3d11PixelShaderCB);
+//                cb.cb() = *pPSCB;
+//            }
+//            pDC->PSSetConstantBuffers(rm_ps_buffer, 1, &m_d3d._11.m_pd3d11PixelShaderCB);
+//        }
+        return HRESULT.S_OK;
     }
     private HRESULT setRenderStateGnm(//		sce::Gnmx::LightweightGfxContext* gfxContext,
 									Matrix4f matView,
@@ -1796,7 +1800,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 
 //                cbDesc.ByteWidth = sizeof(ps_attr_cbuffer);
 //                V_RETURN(m_d3d._11.m_pd3d11Device->CreateBuffer(&cbDesc, NULL, &m_d3d._11.m_pd3d11PixelShaderCB));
-                m_d3d._11.m_pd3d11PixelShaderCB = CreateBuffer(GLenum.GL_UNIFORM_BUFFER, 3 * Vector4f.SIZE, GLenum.GL_DYNAMIC_READ);
+                m_d3d._11.m_pd3d11PixelShaderCB = CreateBuffer(GLenum.GL_UNIFORM_BUFFER, ps_attr_cbuffer.SIZE, GLenum.GL_DYNAMIC_READ);
 
 //                cbDesc.ByteWidth = sizeof(vs_ds_attr_cbuffer);
 //                V_RETURN(m_d3d._11.m_pd3d11Device->CreateBuffer(&cbDesc, NULL, &m_d3d._11.m_pd3d11VertexDomainShaderCB));
@@ -2792,19 +2796,19 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 
             if(NVWaveWorks_GFX_Timer_Impl.InvalidQueryIndex != pWaitSlot.m_DisjointQueryIndex)
             {
-                long t_gfx =
-                pGFXTimer.waitTimerQueries(pWaitSlot.m_StartGFXQueryIndex, pWaitSlot.m_StopGFXQueryIndex/*, t_gfx*/);
+                long[] t_gfx = new long[1];
+                pGFXTimer.waitTimerQueries(pWaitSlot.m_StartGFXQueryIndex, pWaitSlot.m_StopGFXQueryIndex, t_gfx);
 
-                long t_update =
-                pGFXTimer.waitTimerQueries(pWaitSlot.m_StartQueryIndex, pWaitSlot.m_StopQueryIndex/*, t_update*/);
+                long[] t_update = new long[1];
+                pGFXTimer.waitTimerQueries(pWaitSlot.m_StartQueryIndex, pWaitSlot.m_StopQueryIndex, t_update);
 
-                long f =
-                pGFXTimer.waitDisjointQuery(pWaitSlot.m_DisjointQueryIndex);
+                long[] f = new long[1];
+                pGFXTimer.waitDisjointQuery(pWaitSlot.m_DisjointQueryIndex, f);
 
-                if(f > 0)
+                if(f[0] > 0)
                 {
-                    pWaitSlot.m_elapsed_gfx_time = 1000.f * (t_gfx)/(f);
-                    pWaitSlot.m_elapsed_time = 1000.f * (t_update)/(f);
+                    pWaitSlot.m_elapsed_gfx_time = 1000.f * (t_gfx[0])/(f[0]);
+                    pWaitSlot.m_elapsed_time = 1000.f * (t_update[0])/(f[0]);
                 }
 
                 pGFXTimer.releaseDisjointQuery(pWaitSlot.m_DisjointQueryIndex);
@@ -3062,14 +3066,12 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
     private static final class vs_attr_cbuffer
     {
         static final int SIZE = 2 * Vector4f.SIZE;
-        float[] g_WorldEye = new float[3];
+        final Vector3f g_WorldEye = new Vector3f();
         float pad1;
         float[] g_UVScaleCascade0123 = new float[4];
 
         ByteBuffer store(ByteBuffer buf){
-            buf.putFloat(g_WorldEye[0]);
-            buf.putFloat(g_WorldEye[1]);
-            buf.putFloat(g_WorldEye[2]);
+            g_WorldEye.store(buf);
             buf.putFloat(pad1);
 
             for(int i = 0; i < g_UVScaleCascade0123.length;i++)

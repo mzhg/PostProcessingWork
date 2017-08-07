@@ -1,0 +1,51 @@
+#include "Cloth.h"
+
+in VS_OUT
+{
+    Particle particle;
+    Particle old_particle;
+    vec3 normal;
+}_input[];
+
+layout (lines_adjacency) in;
+layout (points, max_vertices = 1) out;
+
+layout (stream = 0) out vec3 Out_Normal;
+layout (stream = 0) out vec3 Out_TangentX;
+
+void main()
+{
+    Particle center = _input[0].particle;
+    Particle left = _input[1].particle;
+    Particle top = _input[2].particle;
+    Particle right = _input[3].particle;
+    Particle bottom = _input[4].particle;
+    NormalTangent ts;
+    float epsilon = 1e-7;
+
+    ts.TangentX = float3(0);
+    if (IsConnected(center, STATE_RIGHT_CONNECTION))
+        ts.TangentX += right.Position - center.Position;
+    if (IsConnected(left, STATE_RIGHT_CONNECTION))
+        ts.TangentX += center.Position - left.Position;
+    if (dot(ts.TangentX, ts.TangentX) < epsilon)
+        ts.TangentX = float3(1, 0, 0);
+    ts.TangentX = normalize(ts.TangentX);
+
+    float3 tangentY = float3(0);
+    if (IsConnected(center, STATE_BOTTOM_CONNECTION))
+        tangentY += bottom.Position - center.Position;
+    if (IsConnected(top, STATE_BOTTOM_CONNECTION))
+        tangentY += center.Position - top.Position;
+    if (dot(tangentY, tangentY) < epsilon)
+        tangentY = float3(0, -1, 0);
+
+    ts.Normal = cross(ts.TangentX, tangentY);
+    if (dot(ts.Normal, ts.Normal) < epsilon)
+        ts.Normal = float3(0, 0, 1);
+    ts.Normal = normalize(ts.Normal);
+
+//    stream.Append(ts);
+    Out_Normal = ts.Normal;
+    Out_TangentX = ts.TangentX;
+}

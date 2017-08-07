@@ -1,0 +1,26 @@
+#include "Cloth.h"
+
+in VS_OUT
+{
+    Particle particle;
+    Particle old_particle;
+    vec3 normal;
+}_input[];
+
+layout (points) in;
+layout (points, max_vertices = 1) out;
+
+layout (stream = 0) out uint Out_State;
+layout (stream = 0) out vec3 Out_Position;
+
+void main()
+{
+    Particle particle = _input[0].particle;
+    ResetConnectivity(particle);
+
+    Out_Position = particle.Position;
+    Out_State =    particle.State;
+
+    EmitStreamVertex(0);
+    EndStreamPrimitive(0);
+}

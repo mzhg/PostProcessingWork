@@ -1,0 +1,141 @@
+#include "Cloth_Common.glsl"
+
+in VS_OUT
+{
+    Particle particle;
+    Particle old_particle;
+    vec3 normal;
+}_input[];
+
+layout (stream = 0) out uint Out_State;
+layout (stream = 0) out vec3 Out_Position;
+
+layout (lines_adjacency) in;
+layout (points, max_vertices = 4) out;
+
+// Collision constraints: Force particles to be outside the collision objects
+
+// Plane list
+uint NumPlanes;
+Plane PlaneList[MAX_PLANES];
+
+// Sphere list
+uint NumSpheres;
+Sphere SphereList[MAX_SPHERES];
+
+// Capsule list
+uint NumCapsules;
+Capsule CapsuleList[MAX_CAPSULES];
+
+// Ellipsoid list
+uint NumEllipsoids;
+Ellipsoid EllipsoidList[MAX_ELLIPSOIDS];
+
+float3 PlaneConstraint(float3 position, float3 normal, float dist)
+{
+    float distance = dot(position, normal) + dist;
+    if (distance < 0) {
+        return - distance * normal;
+    }
+    else
+        return float3(0);
+}
+
+float3 SphereConstraint(float3 position, float3 center, float radius)
+{
+    float3 delta = position - center;
+    float distance = length(delta);
+    if (distance < radius)
+        return (radius - distance) * delta / distance;
+    else
+        return float3(0);
+}
+
+float3 CapsuleConstraint(float3 position, float3 origin, float3 axis, float length, float2 radius)
+{
+    float3 delta = position - origin;
+    float l = clamp(dot(delta, axis), 0, length);
+    float3 center = origin + l * axis;
+    return SphereConstraint(position, center, lerp(radius.x, radius.y, l / length));
+}
+
+// It would be better to project the position to its closest position on the ellipsoid,
+// but this requires an iterative calculation. For simplicity, the position is moved to
+// the intersection of the ellipsoid with the line that goes from the ellipsoid抯 center to
+// the current position.
+float3 EllipsoidConstraint(float3 position, float4 transform[3])
+{
+    // Get the position in a space where we fall back to intersecting a sphere of radius 1 and centered at 0
+    float3 position0;
+    position0.x = dot(float4(position, 1), transform[0]);
+    position0.y = dot(float4(position, 1), transform[1]);
+    position0.z = dot(float4(position, 1), transform[2]);
+
+    // Resolve constraint in this space
+    float3 center = float3(0);
+    float radius = 1;
+    float3 delta0 = position0 - center;
+    float distance = length(delta0);
+    if (distance < radius) {
+        delta0 = (radius - distance) * delta0 / distance;
+
+        // Transform the delta back to original space
+        float3 delta;
+        float3 transformInv;
+        transformInv = float3(transform[0].x, transform[1].x, transform[2].x);
+        transformInv /= dot(transformInv, transformInv);
+        delta.x = dot(delta0, transformInv);
+        transformInv = float3(transform[0].y, transform[1].y, transform[2].y);
+        transformInv /= dot(transformInv, transformInv);
+        delta.y = dot(delta0, transformInv);
+        transformInv = float3(transform[0].z, transform[1].z, transform[2].z);
+        transformInv /= dot(transformInv, transformInv);
+        delta.z = dot(delta0, transformInv);
+
+        return delta;
+    }
+    else
+        return 0;
+}
+
+void MovePositionOutsideEnvironment(inout float3 position)
+{
+    // Planes
+    for (int i = 0; i < NumPlanes; ++i)
+        position += PlaneConstraint(position, PlaneList[i].Normal, PlaneList[i].Distance);
+
+    // Spheres
+    for (int i = 0; i < NumSpheres; ++i)
+        position += SphereConstraint(position, SphereList[i].Center, SphereList[i].Radius);
+
+    // Capsules
+    for (int i = 0; i < NumCapsules; ++i)
+        position += CapsuleConstraint(position, CapsuleList[i].Origin, CapsuleList[i].Axis, CapsuleList[i].Length, CapsuleList[i].Radius);
+
+    // Ellipsoids
+    for (int i = 0; i < NumEllipsoids; ++i)
+        position += EllipsoidConstraint(position, EllipsoidList[i].Transform);
+}
+
+layout (points) in;
+layout (points, max_vertices = 1) out;
+
+layout (stream = 0) out uint Out_State;
+layout (stream = 0) out vec3 Out_Position;
+
+void SatisfyCollisionConstraints(inout Particle particle)
+{
+    MovePositionOutsideEnvironment(particle.Position);
+}
+
+void main()
+{
+    Particle particle = _input[0].particle;
+    SatisfyCollisionConstraints(particle);
+
+    Out_Position = particle.Position;
+    Out_State =    particle.State;
+
+    EmitStreamVertex(0);
+    EndStreamPrimitive(0);
+}
