@@ -4,6 +4,7 @@ import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
@@ -105,7 +106,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                         available = gl.glGetQueryObjectuiv(_11.m_end_queries[wait_slot], GLenum.GL_QUERY_RESULT_AVAILABLE);
                         if(available == GLenum.GL_TRUE){
                             start = gl.glGetQueryObjectui64ui(_11.m_start_queries[wait_slot], GLenum.GL_QUERY_RESULT);
-                            end = gl.glGetQueryObjectui64ui(_11.m_start_queries[wait_slot], GLenum.GL_QUERY_RESULT);
+                            end =   gl.glGetQueryObjectui64ui(_11.m_end_queries[wait_slot],   GLenum.GL_QUERY_RESULT);
                         }
                     }while (available == GLenum.GL_FALSE);
 
@@ -162,10 +163,9 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //        const BYTE* pRB = reinterpret_cast<BYTE*>(msr.pData);
 //        GFSDK_WaveWorks_Simulation_Util::add_displacements_float16(m_params, pRB, msr.RowPitch, inSamplePoints, outDisplacements, numSamples, multiplier);
 //        m_d3d._11.m_context->Unmap(buffer, 0);
-
-        ByteBuffer pRB = buffer.map(0, buffer.getBufferSize(), GLenum.GL_MAP_READ_BIT| GLenum.GL_MAP_UNSYNCHRONIZED_BIT);
-        GLCheck.checkError();
+        ByteBuffer pRB = buffer.map(0, buffer.getBufferSize(), GLenum.GL_MAP_READ_BIT);
         Simulation_Util.add_displacements_float16(m_params, pRB, rowPitch, inSamplePoints, outDisplacements, numSamples, multiplier);
+        buffer.unmap();
         buffer.unbind();
     }
 
@@ -225,7 +225,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             }
         }
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     // D3D API handling
@@ -273,7 +273,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //            V_RETURN(allocateAllResources());
 
             hr = allocateAllResources();
-            if(hr != S_OK)
+            if(hr != HRESULT.S_OK)
                 return false;
         }
 
@@ -325,18 +325,18 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         {
             releaseAllResources();
             hr = allocateAllResources();
-            if(hr != S_OK)
+            if(hr != HRESULT.S_OK)
                 return hr;
         }
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     @Override
     public HRESULT addDisplacements(Vector2f[] inSamplePoints, Vector4f[] outDisplacements, int numSamples) {
         if(!getReadbackCursor(null))
         {
-            return S_OK;
+            return HRESULT.S_OK;
         }
 
         switch(m_d3dAPI)
@@ -346,7 +346,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 break;
         }
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     @Override
@@ -356,7 +356,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             case nv_water_d3d_api_d3d11:
                 return addArchivedDisplacementsD3D11(coord, inSamplePoints, outDisplacements, numSamples);
             default:
-                return E_FAIL;
+                return HRESULT.E_FAIL;
         }
     }
 
@@ -364,7 +364,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
     public HRESULT getTimings(NVWaveWorks_FFT_Simulation_Timings timings) {
         timings.GPU_simulation_time = m_timer_results[m_active_timer_slot];
         timings.GPU_FFT_simulation_time = 0.0f;
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     @Override
@@ -392,9 +392,19 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
     }
 
     private void UpdateSubresource(int target, int buffer, float[] data){
+        if(buffer == 0)
+            throw new IllegalArgumentException("Invalid buffer: 0.");
         FloatBuffer content = CacheBuffer.wrap(data);
         gl.glBindBuffer(target, buffer);
-        gl.glBufferSubData(target, 0, content);
+        gl.glBufferSubData(target, 0, content);GLCheck.checkError();
+        gl.glBindBuffer(target, 0);
+    }
+
+    private void UpdateSubresource(int target, int buffer, Buffer data){
+        if(buffer == 0)
+            throw new IllegalArgumentException("Invalid buffer: 0.");
+        gl.glBindBuffer(target, buffer);
+        gl.glBufferSubData(target, 0, data);GLCheck.checkError();
         gl.glBindBuffer(target, 0);
     }
 
@@ -466,6 +476,11 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                texture_desc.MiscFlags = 0;
 //                V_RETURN(device->CreateTexture2D(&texture_desc, NULL, &m_d3d._11.m_texture_Displacement));
                 _11.m_texture_Displacement = TextureUtils.createTexture2D(texture_desc, null);
+                _11.m_fbo_displacement = gl.glGenFramebuffer();
+                gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, _11.m_fbo_displacement);
+                gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, _11.m_texture_Displacement.getTarget(), _11.m_texture_Displacement.getTexture(), 0);
+                gl.glReadBuffer(GLenum.GL_COLOR_ATTACHMENT0);
+                gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER,0);
 
 
                 // constant buffer
@@ -735,10 +750,12 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             {
 //                CD3D11_BOX gauss_box = CD3D11_BOX(0, 0, 0, gauss_size * sizeof(float2), 1, 1);
 //                m_d3d._11.m_context->UpdateSubresource(m_d3d._11.m_buffer_Gauss, 0, &gauss_box, gauss, 0, 0);
-                UpdateSubresource(GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_buffer_Gauss, gauss);
+                FloatBuffer gauss_buffer = CacheBuffer.wrap(gauss, 0, gauss_size * 2);
+                UpdateSubresource(GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_buffer_Gauss, gauss_buffer);
 //                CD3D11_BOX omega_box = CD3D11_BOX(0, 0, 0, omega_size * sizeof(float), 1, 1);
 //                m_d3d._11.m_context->UpdateSubresource(m_d3d._11.m_buffer_Omega, 0, &omega_box, omega, 0, 0);
-                UpdateSubresource(GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_buffer_Omega, omega);
+                FloatBuffer omega_buffer = CacheBuffer.wrap(omega, 0, omega_size);
+                UpdateSubresource(GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_buffer_Omega, omega_buffer);
             }
             break;
         }
@@ -751,6 +768,9 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
         return S_OK;
     }
+
+    private static float sqr(float s){ return s*s;}
+
     void updateConstantBuffer(double simTime) {
         final float twoPi = 6.28318530718f;
         final float gravity = 9.810f;
@@ -759,13 +779,13 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
         float fftNorm = (float) Math.pow(m_resolution, -0.25f);
         float philNorm = euler / m_params.fft_period;
-        float gravityScale = (float) Math.sqrt(gravity / Math.sqrt(m_params.wind_speed));
+        float gravityScale = sqr(gravity / sqr(m_params.wind_speed));
 
         constant_buffer.m_resolution = m_resolution;
         constant_buffer.m_resolution_plus_one = m_resolution + 1;
         constant_buffer.m_half_resolution = m_resolution / 2;
         constant_buffer.m_half_resolution_plus_one = m_resolution / 2 + 1;
-        constant_buffer.m_resolution_plus_one_squared_minus_one = (int) (Math.sqrt(m_resolution + 1)) - 1;
+        constant_buffer.m_resolution_plus_one_squared_minus_one = (int) (sqr(m_resolution + 1)) - 1;
         for(int i=0; (1 << i) <= m_resolution; ++i)
             constant_buffer.m_32_minus_log2_resolution = 32 - i;
         constant_buffer.m_window_in = m_params.window_in;
@@ -798,14 +818,21 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             }
             break;
         }
+
+        if(m_bPrintOnce == false){
+            System.out.println("constant_buffer_" + g_save_id + ":\n" + constant_buffer);
+        }
     }
 
+    private static int g_save_id = 0;
     HRESULT kick(/*Graphics_Context* pGC,*/ double dSimTime, long kickID){
         HRESULT hr;
 
         if(!m_GaussAndOmegaInitialised)
         {
+            GLCheck.checkError();
             hr = initGaussAndOmega();
+            GLCheck.checkError();
             if(hr != HRESULT.S_OK)
                 return hr;
         }
@@ -831,7 +858,6 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                context->Begin(m_d3d._11.m_frequency_queries[timerSlot]);
 //                context->End(m_d3d._11.m_start_queries[timerSlot]);
                 gl.glQueryCounter(_11.m_start_queries[timerSlot[0]], GLenum.GL_TIMESTAMP);
-
                 updateConstantBuffer(fModeSimTime);
 //                context->CSSetConstantBuffers(0, 1, &m_d3d._11.m_buffer_constants);
                 gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, _11.m_buffer_constants);
@@ -848,7 +874,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                     gl.glClearTexImage(_11.m_uav_Displacement.getTexture(), 0, TextureUtils.measureFormat(_11.m_uav_Displacement.getFormat()),
                             TextureUtils.measureDataType(_11.m_uav_Displacement.getFormat()), (ByteBuffer) null);
                 }
-
+                GLCheck.checkError();
                 if(m_H0Dirty)
                 {
 //                    context->CSSetShader(m_d3d._11.m_update_h0_shader, NULL, 0);
@@ -856,16 +882,26 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                    context->CSSetShaderResources(0, 1, &m_d3d._11.m_srv_Gauss);
 //                    context->Dispatch(1, m_resolution, 1);
                     _11.m_update_h0_shader.enable();
+                    if(_11.m_srv_Gauss == 0)
+                        throw new IllegalArgumentException();
+
+                    if(_11.m_uav_H0 == 0)
+                        throw new IllegalArgumentException();
+
                     gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, _11.m_srv_Gauss);  // read-only
                     gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, _11.m_uav_H0);  // write-only
                     gl.glDispatchCompute(1, m_resolution,1);
+                    gl.glMemoryBarrier(GLenum.GL_SHADER_STORAGE_BARRIER_BIT);
 
                     gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
                     gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
                     m_H0Dirty = false;
 
                     if(!m_bPrintOnce){
+                        System.out.println("m_resolution = " + m_resolution);
                         _11.m_update_h0_shader.printPrograminfo();
+                        Simulation_Util.saveTextData("ComputeH0_" + g_save_id + ".txt", GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_uav_H0, GLenum.GL_RG32F);
+                        Simulation_Util.saveTextData("GaussGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_srv_Gauss, GLenum.GL_RG32F);
                     }
                 }
 
@@ -883,14 +919,17 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 4, _11.m_uav_Dt);
 
                 gl.glDispatchCompute(1, m_half_resolution_plus_one, 1);
+                gl.glMemoryBarrier(GLenum.GL_SHADER_STORAGE_BARRIER_BIT);
 
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 4, 0);
-
+                GLCheck.checkError();
                 if(!m_bPrintOnce){
                     _11.m_row_shader.printPrograminfo();
+                    Simulation_Util.saveTextData("ComputeRow_Ht_" + g_save_id + ".txt", GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_uav_Ht, GLenum.GL_RG32F);
+                    Simulation_Util.saveTextData("ComputeRow_Dt_" + g_save_id + ".txt", GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_uav_Dt, GLenum.GL_RG32F);
                 }
 
 //                context->CSSetShader(m_d3d._11.m_column_shader, NULL, 0);
@@ -905,9 +944,11 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 gl.glBindImageTexture(0, _11.m_uav_Displacement.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, _11.m_uav_Displacement.getFormat());
 
                 gl.glDispatchCompute(1, m_resolution, 1);
+                gl.glMemoryBarrier(GLenum.GL_SHADER_STORAGE_BARRIER_BIT|GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
                 if(!m_bPrintOnce){
                     _11.m_column_shader.printPrograminfo();
+                    Simulation_Util.saveTextData("Displacement_" + g_save_id + ".txt", _11.m_uav_Displacement);
                 }
 
                 // unbind
@@ -920,25 +961,27 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 1);
                 gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, _11.m_uav_Displacement.getFormat());
-
+                GLCheck.checkError();
                 if(m_ReadbackInitialised)
                 {
 //                    context->CopyResource(m_d3d._11.m_readback_buffers[readbackSlot], m_d3d._11.m_texture_Displacement);
 //                    context->End(m_d3d._11.m_readback_queries[readbackSlot]);
 
-                    _11.m_readback_buffers[readbackSlot[0]].bind();
-                    gl.glBindTexture(_11.m_texture_Displacement.getTarget(), _11.m_texture_Displacement.getTexture());
+                    _11.m_readback_buffers[readbackSlot[0]].bind();GLCheck.checkError();
+                    gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, _11.m_fbo_displacement);
                     gl.glReadPixels(0,0, _11.m_texture_Displacement.getWidth(), _11.m_texture_Displacement.getHeight(),
                             TextureUtils.measureFormat(_11.m_texture_Displacement.getFormat()),
                             TextureUtils.measureDataType(_11.m_texture_Displacement.getFormat()), null);
+                    gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
                     _11.m_readback_buffers[readbackSlot[0]].unbind();
                     _11.m_readback_queries[readbackSlot[0]] = gl.glFenceSync();
-
                 }
 
 //                context->End(m_d3d._11.m_end_queries[timerSlot]);
 //                context->End(m_d3d._11.m_frequency_queries[timerSlot]);  TODO There is no frequency_query in OpenGL
+                GLCheck.checkError();
                 gl.glQueryCounter(_11.m_end_queries[timerSlot[0]], GLenum.GL_TIMESTAMP);
+                GLCheck.checkError();
             }
             break;
         }
@@ -946,6 +989,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         // Update displacement map version
         m_DisplacementMapVersion = kickID;
 
+        g_save_id++;
         m_bPrintOnce = true;
         return HRESULT.S_OK;
     }
@@ -1254,6 +1298,8 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         int[] m_start_queries =new int[NumTimerSlots];
         int[] m_end_queries =new int[NumTimerSlots];
 
+        int m_fbo_displacement;
+
         // Shaders
         GLSLProgram m_update_h0_shader;
         GLSLProgram m_row_shader;
@@ -1298,8 +1344,11 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             buf.putInt(m_resolution_plus_one);
             buf.putInt(m_half_resolution);
             buf.putInt(m_half_resolution_plus_one);
+
             buf.putInt(m_resolution_plus_one_squared_minus_one);
             buf.putInt(m_32_minus_log2_resolution);
+            buf.putInt(0);
+            buf.putInt(0);
 
             buf.putFloat(m_window_in);
             buf.putFloat(m_window_out);
@@ -1309,14 +1358,36 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             buf.putFloat(m_linear_scale);
             buf.putFloat(m_wind_scale);
             buf.putFloat(m_root_scale);
+
             buf.putFloat(m_power_scale);
             buf.putFloat(m_time);
             buf.putFloat(m_choppy_scale);
             buf.putFloat(0);
-            buf.putFloat(0);
-            buf.putFloat(0);
 
             return buf;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuffer sb = new StringBuffer("ConstantBuffer{");
+            sb.append("m_resolution=").append(m_resolution);
+            sb.append("\n m_resolution_plus_one=").append(m_resolution_plus_one);
+            sb.append("\n m_half_resolution=").append(m_half_resolution);
+            sb.append("\n m_half_resolution_plus_one=").append(m_half_resolution_plus_one);
+            sb.append("\n m_resolution_plus_one_squared_minus_one=").append(m_resolution_plus_one_squared_minus_one);
+            sb.append("\n m_32_minus_log2_resolution=").append(m_32_minus_log2_resolution);
+            sb.append("\n m_window_in=").append(m_window_in);
+            sb.append("\n m_window_out=").append(m_window_out);
+            sb.append("\n m_wind_dir=").append(m_wind_dir);
+            sb.append("\n m_frequency_scale=").append(m_frequency_scale);
+            sb.append("\n m_linear_scale=").append(m_linear_scale);
+            sb.append("\n m_wind_scale=").append(m_wind_scale);
+            sb.append("\n m_root_scale=").append(m_root_scale);
+            sb.append("\n m_power_scale=").append(m_power_scale);
+            sb.append("\n m_time=").append(m_time);
+            sb.append("\n m_choppy_scale=").append(m_choppy_scale);
+            sb.append('}');
+            return sb.toString();
         }
     }
 

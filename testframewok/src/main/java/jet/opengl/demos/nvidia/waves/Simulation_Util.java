@@ -3,9 +3,12 @@ package jet.opengl.demos.nvidia.waves;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
+import jet.opengl.postprocessing.texture.TextureGL;
+import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.Numeric;
 
 /**
@@ -148,7 +151,7 @@ final class Simulation_Util {
 
     private static final class Float16InputPolicy extends InputPolicy{
         @Override
-        int stride() {return Vector4f.SIZE/2;}
+        int stride() {return /*Vector4f.SIZE/2*/1; /* TODO */}
 
         @Override
         Vector4f get_float4(ByteBuffer input) {
@@ -312,6 +315,33 @@ final class Simulation_Util {
 
 //            *currDst += multiplier.mult(toadd);
             Vector4f.add(toadd, currDst, currDst);
+        }
+    }
+
+    static final void saveTextData(String filename, TextureGL texture){
+        final String filepath = "E:/textures/WaveWorks/";
+        try {
+            DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, filepath + filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    static final void saveTextData(String filename, int target, int buffer, int internalformat){
+        final String filepath = "E:/textures/WaveWorks/";
+        try {
+            DebugTools.saveBufferAsText(target, buffer, internalformat, 128, filepath + filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    static final void saveTextData(String filename, int target, int buffer, Class<?> internalformat){
+        final String filepath = "E:/textures/WaveWorks/";
+        try {
+            DebugTools.saveBufferAsText(target, buffer, internalformat, 128, filepath + filename);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

@@ -66,7 +66,7 @@ public final class TextureUtils {
 	/** Get the texture image Data. Call this method would change the texture binding.*/
 	public static ByteBuffer getTextureData(int target, int textureID, int level, boolean fromCache){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-
+		gl.glBindBuffer(GLenum.GL_PIXEL_PACK_BUFFER, 0);
 		gl.glBindTexture(target, textureID);
 		GLCheck.checkError();
 		int width = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_WIDTH);

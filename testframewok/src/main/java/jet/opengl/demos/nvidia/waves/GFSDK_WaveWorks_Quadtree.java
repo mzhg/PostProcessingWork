@@ -22,6 +22,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
 /**
@@ -70,11 +71,19 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
     private final vs_cbuffer m_vs_cbuffer = new vs_cbuffer();
     private final hs_cbuffer m_hs_cbuffer = new hs_cbuffer();
 
+    public GFSDK_WaveWorks_Quadtree(){
+        for(int i = 0; i < m_bbox_verts.length; i++)
+            m_bbox_verts[i] = new Vector4f();
+
+        for(int i = 0; i <m_sub_quad_coords.length; i++)
+            m_sub_quad_coords[i] = new QuadCoord();
+    }
+
     // Pick a proper mesh pattern according to the adjacent patches.
     private QuadRenderParam selectMeshPattern(QuadNode quad_node){
         // Check 4 adjacent quad.
 //        gfsdk_float2 point_left = quad_node.bottom_left + gfsdk_make_float2(-m_params.min_patch_length * 0.5f, quad_node.length * 0.5f);
-        float point_x = quad_node.bottom_left_x + (-m_params.min_patch_length * 0.5f);
+        float point_x = quad_node.bottom_left_x - m_params.min_patch_length * 0.5f;
         float point_y = quad_node.bottom_left_y + quad_node.length * 0.5f;
         int left_adj_index = searchLeaf(m_render_roots_list, m_unsorted_render_list, point_x, point_y);
 
@@ -85,7 +94,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 
 //        gfsdk_float2 point_bottom = quad_node.bottom_left + gfsdk_make_float2(quad_node.length * 0.5f, -m_params.min_patch_length * 0.5f);
         point_x = quad_node.bottom_left_x + quad_node.length * 0.5f;
-        point_y = quad_node.bottom_left_y -m_params.min_patch_length * 0.5f;
+        point_y = quad_node.bottom_left_y - m_params.min_patch_length * 0.5f;
         int bottom_adj_index = searchLeaf(m_render_roots_list, m_unsorted_render_list, point_x, point_y);
 
 //        gfsdk_float2 point_top = quad_node.bottom_left + gfsdk_make_float2(quad_node.length * 0.5f, quad_node.length + m_params.min_patch_length * 0.5f);
@@ -161,7 +170,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 
         for (int i = mesh_dim; i > 1; i >>= 1)
             m_lods ++;
-
+        System.out.println("m_lods = " + m_lods);
 
         int num_vert = (mesh_dim + 1) * (mesh_dim + 1);
 
@@ -261,6 +270,9 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         }
 
         assert(offset == index_size_lookup[m_lods]);
+        if(offset != index_size_lookup[m_lods]){
+            System.err.println("initGeometry: Inner Error");
+        }
 
 //        #if WAVEWORKS_ENABLE_GRAPHICS
         // --------------------------------- Initialise mesh -------------------------------
@@ -305,7 +317,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
             {
                 AttribDesc attribute_descs[] =
                 {
-                        new AttribDesc(0, 2, GLenum.GL_FLOAT, false, 4, 0)	// vPos
+                        new AttribDesc(0, 2, GLenum.GL_FLOAT, false, 0, 0)	// vPos
                 };
 
                 NVWaveWorks_Mesh[] out_mesh = new NVWaveWorks_Mesh[1];
@@ -347,6 +359,11 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 //        SAFE_DELETE_ARRAY(index_array);
 
         return HRESULT.S_OK;
+    }
+
+    // Used to debug
+    public void init(GFSDK_WaveWorks_Quadtree_Params params){
+        initD3D11(params);
     }
 
     HRESULT initD3D11(GFSDK_WaveWorks_Quadtree_Params params/*, ID3D11Device* pD3DDevice*/){
@@ -682,29 +699,32 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
             Matrix4f.transform(mat_view_proj, bbox_verts[i], bbox_verts_transformed[i]);
         }
 
-
         if (bbox_verts_transformed[0].x < -bbox_verts_transformed[0].w && bbox_verts_transformed[1].x < -bbox_verts_transformed[1].w && bbox_verts_transformed[2].x < -bbox_verts_transformed[2].w && bbox_verts_transformed[3].x < -bbox_verts_transformed[3].w &&
-                bbox_verts_transformed[4].x < -bbox_verts_transformed[4].w && bbox_verts_transformed[5].x < -bbox_verts_transformed[5].w && bbox_verts_transformed[6].x < -bbox_verts_transformed[6].w && bbox_verts_transformed[7].x < -bbox_verts_transformed[7].w)
+            bbox_verts_transformed[4].x < -bbox_verts_transformed[4].w && bbox_verts_transformed[5].x < -bbox_verts_transformed[5].w && bbox_verts_transformed[6].x < -bbox_verts_transformed[6].w && bbox_verts_transformed[7].x < -bbox_verts_transformed[7].w)
             return false;
 
         if (bbox_verts_transformed[0].x > bbox_verts_transformed[0].w && bbox_verts_transformed[1].x > bbox_verts_transformed[1].w && bbox_verts_transformed[2].x > bbox_verts_transformed[2].w && bbox_verts_transformed[3].x > bbox_verts_transformed[3].w &&
-                bbox_verts_transformed[4].x > bbox_verts_transformed[4].w && bbox_verts_transformed[5].x > bbox_verts_transformed[5].w && bbox_verts_transformed[6].x > bbox_verts_transformed[6].w && bbox_verts_transformed[7].x > bbox_verts_transformed[7].w)
+            bbox_verts_transformed[4].x > bbox_verts_transformed[4].w && bbox_verts_transformed[5].x > bbox_verts_transformed[5].w && bbox_verts_transformed[6].x > bbox_verts_transformed[6].w && bbox_verts_transformed[7].x > bbox_verts_transformed[7].w)
             return false;
 
         if (bbox_verts_transformed[0].y < -bbox_verts_transformed[0].w && bbox_verts_transformed[1].y < -bbox_verts_transformed[1].w && bbox_verts_transformed[2].y < -bbox_verts_transformed[2].w && bbox_verts_transformed[3].y < -bbox_verts_transformed[3].w &&
-                bbox_verts_transformed[4].y < -bbox_verts_transformed[4].w && bbox_verts_transformed[5].y < -bbox_verts_transformed[5].w && bbox_verts_transformed[6].y < -bbox_verts_transformed[6].w && bbox_verts_transformed[7].y < -bbox_verts_transformed[7].w)
+            bbox_verts_transformed[4].y < -bbox_verts_transformed[4].w && bbox_verts_transformed[5].y < -bbox_verts_transformed[5].w && bbox_verts_transformed[6].y < -bbox_verts_transformed[6].w && bbox_verts_transformed[7].y < -bbox_verts_transformed[7].w)
             return false;
 
         if (bbox_verts_transformed[0].y > bbox_verts_transformed[0].w && bbox_verts_transformed[1].y > bbox_verts_transformed[1].w && bbox_verts_transformed[2].y > bbox_verts_transformed[2].w && bbox_verts_transformed[3].y > bbox_verts_transformed[3].w &&
-                bbox_verts_transformed[4].y > bbox_verts_transformed[4].w && bbox_verts_transformed[5].y > bbox_verts_transformed[5].w && bbox_verts_transformed[6].y > bbox_verts_transformed[6].w && bbox_verts_transformed[7].y > bbox_verts_transformed[7].w)
+            bbox_verts_transformed[4].y > bbox_verts_transformed[4].w && bbox_verts_transformed[5].y > bbox_verts_transformed[5].w && bbox_verts_transformed[6].y > bbox_verts_transformed[6].w && bbox_verts_transformed[7].y > bbox_verts_transformed[7].w)
             return false;
 
-        if (bbox_verts_transformed[0].z < 0.f && bbox_verts_transformed[1].z < 0.f && bbox_verts_transformed[2].z < 0.f && bbox_verts_transformed[3].z < 0.f &&
-                bbox_verts_transformed[4].z < 0.f && bbox_verts_transformed[5].z < 0.f && bbox_verts_transformed[6].z < 0.f && bbox_verts_transformed[7].z < 0.f)
+        if (bbox_verts_transformed[0].z < -bbox_verts_transformed[0].w && bbox_verts_transformed[1].z < -bbox_verts_transformed[1].w && bbox_verts_transformed[2].z < -bbox_verts_transformed[2].w && bbox_verts_transformed[3].z < -bbox_verts_transformed[3].w &&
+            bbox_verts_transformed[4].z < -bbox_verts_transformed[4].w && bbox_verts_transformed[5].z < -bbox_verts_transformed[5].w && bbox_verts_transformed[6].z < -bbox_verts_transformed[6].w && bbox_verts_transformed[7].z < -bbox_verts_transformed[7].w)
             return false;
+
+//        if (bbox_verts_transformed[0].z < 0.f && bbox_verts_transformed[1].z < 0.f && bbox_verts_transformed[2].z < 0.f && bbox_verts_transformed[3].z < 0.f &&
+//            bbox_verts_transformed[4].z < 0.f && bbox_verts_transformed[5].z < 0.f && bbox_verts_transformed[6].z < 0.f && bbox_verts_transformed[7].z < 0.f)
+//            return false;
 
         if (bbox_verts_transformed[0].z > bbox_verts_transformed[0].w && bbox_verts_transformed[1].z > bbox_verts_transformed[1].w && bbox_verts_transformed[2].z > bbox_verts_transformed[2].w && bbox_verts_transformed[3].z > bbox_verts_transformed[3].w &&
-                bbox_verts_transformed[4].z > bbox_verts_transformed[4].w && bbox_verts_transformed[5].z > bbox_verts_transformed[5].w && bbox_verts_transformed[6].z > bbox_verts_transformed[6].w && bbox_verts_transformed[7].z > bbox_verts_transformed[7].w)
+            bbox_verts_transformed[4].z > bbox_verts_transformed[4].w && bbox_verts_transformed[5].z > bbox_verts_transformed[5].w && bbox_verts_transformed[6].z > bbox_verts_transformed[6].w && bbox_verts_transformed[7].z > bbox_verts_transformed[7].w)
             return false;
 
         return true;
@@ -754,10 +774,10 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
             float eye_vec_x = x - eye_point.getX();
             float eye_vec_y = y - eye_point.getY();
             float eye_vec_z = z - eye_point.getZ();
-            float dist = Vector3f.length(eye_vec_x, eye_vec_y, eye_vec_z);
+            float dist2 = Vector3f.lengthSquare(eye_vec_x, eye_vec_y, eye_vec_z);
 
             float area_world = grid_len_world * grid_len_world;// * abs(eye_point.z) / sqrt(nearest_sqr_dist);
-            float area_proj = area_world * matProj.m11 * matProj.m22 / (dist * dist);
+            float area_proj = area_world * matProj.m00 * matProj.m11 / dist2;
 
             if (max_area_proj < area_proj)
                 max_area_proj = area_proj;
@@ -785,7 +805,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         for(QuadNode it : root_node_list)
         {
             if (point_x >= it.bottom_left_x && point_x <= it.bottom_left_x + it.length &&
-                    point_y >= it.bottom_left_y && point_y <= it.bottom_left_y + it.length)
+                point_y >= it.bottom_left_y && point_y <= it.bottom_left_y + it.length)
             {
                 node = it;
                 foundRoot = true;
@@ -808,7 +828,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 
                 QuadNode sub_node = node_list.get(index);
                 if (point_x >= sub_node.bottom_left_x && point_x <= sub_node.bottom_left_x + sub_node.length &&
-                        point_y >= sub_node.bottom_left_y && point_y <= sub_node.bottom_left_y + sub_node.length)
+                    point_y >= sub_node.bottom_left_y && point_y <= sub_node.bottom_left_y + sub_node.length)
                 {
                     assert(node.length > sub_node.length);
                     node = sub_node;
@@ -885,6 +905,10 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
                 gl.glGetIntegerv( GLenum.GL_VIEWPORT, vp);
                 viewportW = vp.get(2);
                 viewportH = vp.get(3);
+                if(!m_printOnce){
+                    System.out.printf("Viewpot = (%f, %f).\n", viewportW, viewportH);
+                }
+
                 break;
             }
 //            #endif
@@ -933,6 +957,12 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         else
         {
             m_stats.CPU_quadtree_update_time = 0;
+        }
+
+        if(!m_printOnce){
+            System.out.println("Quadtree params: \n" + m_params);
+            System.out.println("MatView:" + matView);
+            System.out.println("MatProj:" + matProj);
         }
 
         return HRESULT.S_OK;
@@ -1002,7 +1032,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 //        #endif
 
         // We assume the center of the water surface is at (0, 0, 0).
-        for (int i = 0; i < (int)m_sorted_render_list.size(); i++)
+        for (int i = 0; i < m_sorted_render_list.size(); i++)
         {
             QuadNode node = m_sorted_render_list.get(i);
 
@@ -1052,8 +1082,8 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 //                #if WAVEWORKS_ENABLE_D3D11
                 case nv_water_d3d_api_d3d11:
                 {
-                    final int regvs = pShaderInputRegisterMappings[ShaderInputD3D11_vs_buffer];
-                    if(regvs != nvrm_unused)
+//                    final int regvs = pShaderInputRegisterMappings[ShaderInputD3D11_vs_buffer];
+//                    if(regvs != nvrm_unused)
                     {
                         {
 //                            D3D11_CB_Updater<vs_cbuffer> cbu(pDC_d3d11,m_d3d._11.m_pd3d11VertexShaderCB);
@@ -1077,8 +1107,8 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 //                        pDC_d3d11->VSSetConstantBuffers(regvs, 1, &m_d3d._11.m_pd3d11VertexShaderCB);
                         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_d3d._11.m_pd3d11VertexShaderCB);
                     }
-                    final int reghs = pShaderInputRegisterMappings[ShaderInputD3D11_hs_buffer];
-                    if(reghs != nvrm_unused)
+//                    final int reghs = pShaderInputRegisterMappings[ShaderInputD3D11_hs_buffer];
+//                    if(reghs != nvrm_unused)
                     {
                         {
 //                            D3D11_CB_Updater<hs_cbuffer> cbu(pDC_d3d11,m_d3d._11.m_pd3d11HullShaderCB);
@@ -1193,11 +1223,66 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
             ++m_stats.num_patches_drawn;
         }
 
+        LogUtil.i(LogUtil.LogType.DEFAULT, "render count = " + m_stats.num_patches_drawn);
 //        #if WAVEWORKS_ENABLE_GNM
 //        gnmxWrap->popMarker(*gfxContext_gnm);
 //        #endif
 
+        m_printOnce = true;
         return HRESULT.S_OK;
+    }
+
+    public interface QuadRendererListener{
+        void onQuadDraw(GFSDK_WaveWorks_Quadtree_Params params, Matrix4f modelMat);
+    }
+
+    public void renderShaded(Matrix4f matView, Matrix4f matProj, QuadRendererListener renderer){
+        buildRenderList(matView, matProj, null);
+        m_stats.num_patches_drawn = 0;
+
+        // We assume the center of the water surface is at (0, 0, 0).
+        for (int i = 0; i < m_sorted_render_list.size(); i++)
+        {
+            QuadNode node = m_sorted_render_list.get(i);
+
+            if (!isLeaf(node))
+                continue;
+
+            // Check adjacent patches and select mesh pattern
+            QuadRenderParam render_param = selectMeshPattern(node);
+
+            // Find the right LOD to render
+            int level_size = m_params.mesh_dim >> node.lod;
+
+            Matrix4f matLocalWorld = m_tempMat;
+            matLocalWorld.setIdentity();
+            matLocalWorld.m00 = node.length / level_size;
+            matLocalWorld.m11 = node.length / level_size;
+            matLocalWorld.m22 = 0;
+            matLocalWorld.m30 = node.bottom_left_x;
+            matLocalWorld.m31 = node.bottom_left_y;
+            matLocalWorld.m32 = m_params.sea_level;
+
+            NVWaveWorks_Mesh.PrimitiveType prim_type = NVWaveWorks_Mesh.PrimitiveType.PT_TriangleList;
+//            #endif // WAVEWORKS_ENABLE_GRAPHICS
+
+            renderer.onQuadDraw(m_params, matLocalWorld);
+
+            // Render
+            int mesh_dim = m_params.mesh_dim;
+            int num_vert = (mesh_dim + 1) * (mesh_dim + 1);
+            if (render_param.num_inner_faces > 0)
+            {
+                m_pMesh.Draw(prim_type, 0, 0, num_vert, render_param.inner_start_index, render_param.num_inner_faces, null);
+            }
+            if (render_param.num_boundary_faces > 0)
+            {
+                m_pMesh.Draw(prim_type, 0, 0, num_vert, render_param.boundary_start_index, render_param.num_boundary_faces, null);
+            }
+            ++m_stats.num_patches_drawn;
+        }
+//        LogUtil.i(LogUtil.LogType.DEFAULT, "render count = " + m_stats.num_patches_drawn);
+        m_printOnce = true;
     }
 
     HRESULT allocPatch(int x, int y, int lod, boolean enabled){
@@ -1282,6 +1367,8 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         return node;
     }
 
+    private boolean m_printOnce;
+
     // Rendering list
     private int buildNodeList(	QuadNode quad_node,
                           float NumPixelsInViewport,
@@ -1290,7 +1377,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
                           ReadableVector3f eyePoint,
                           QuadCoord quad_coords){
         // Check if the node is disabled
-        if(quad_coords != null)
+        if(quad_coords != null && !m_allocated_patches_list.isEmpty())
         {
 //            typedef std::vector<AllocQuad>::iterator it_type;
 //            const it_type endIt = m_allocated_patches_list.end();
@@ -1412,9 +1499,14 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
                                             float viewportH){
         // Centre the top-level node on the nearest largest-patch boundary
         final float patch_length = m_params.min_patch_length;
-        final float root_patch_length = patch_length * (float)(0x00000001 << m_params.auto_root_lod);
+        final float root_patch_length = patch_length * (0x00000001 << m_params.auto_root_lod);
         final float centreX = (float) (root_patch_length * Math.floor(eyePoint.getX()/root_patch_length + 0.5f));
         final float centreY = (float) (root_patch_length * Math.floor(eyePoint.getY()/root_patch_length + 0.5f));
+        if(!m_printOnce){
+            System.out.println("path_length = " + patch_length);
+            System.out.println("root_patch_length = " + root_patch_length);
+            System.out.printf("center = (%f, %f).\n", centreX, centreY);
+        }
 
         // Build rendering list
 
@@ -1430,12 +1522,23 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 
         if(buildNodeList(root_node00, viewportW * viewportH, matView, matProj, eyePoint, null) >= 0)
             m_render_roots_list.add(root_node00);
+        else
+            g_QuadNodePool.free(root_node00);
+
         if(buildNodeList(root_node01, viewportW * viewportH, matView, matProj, eyePoint, null) >= 0)
             m_render_roots_list.add(root_node01);
+        else
+            g_QuadNodePool.free(root_node01);
+
         if(buildNodeList(root_node10, viewportW * viewportH, matView, matProj, eyePoint, null) >= 0)
             m_render_roots_list.add(root_node10);
+        else
+            g_QuadNodePool.free(root_node10);
+
         if(buildNodeList(root_node11, viewportW * viewportH, matView, matProj, eyePoint, null) >= 0)
             m_render_roots_list.add(root_node11);
+        else
+            g_QuadNodePool.free(root_node11);
 
         return HRESULT.S_OK;
     }
@@ -1471,6 +1574,8 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
             final int ix = buildNodeList(root_node, viewportW * viewportH, matView, matProj, eyePoint, it.coords);
             if(ix >= 0)
                 m_render_roots_list.add(root_node);
+            else
+                g_QuadNodePool.free(root_node);
         }
 
         return HRESULT.S_OK;
@@ -1481,7 +1586,13 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 //        m_sorted_render_list = m_unsorted_render_list;
 //        std::sort(m_sorted_render_list.begin(), m_sorted_render_list.end(), compareQuadNodeLength);
 
-        m_unsorted_render_list.sort(null);
+        m_sorted_render_list.clear();
+        m_sorted_render_list.addAll(m_unsorted_render_list);
+        m_sorted_render_list.sort(null);
+
+        if(!m_printOnce){
+            System.out.println("m_unsorted_render_list.size() = " + m_unsorted_render_list.size());
+        }
     }
 
     private void releaseD3DObjects(){
@@ -1604,6 +1715,8 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         int y;
         int lod;
 
+        QuadCoord(){}
+
         public QuadCoord(int x, int y, int lod) {
             this.x = x;
             this.y = y;
@@ -1716,8 +1829,8 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
 
     private static final class vs_cbuffer
     {
-        static final int SIZE = (12+4+4)* 4;
-        final float[] g_matLocalWorld = new float[12];
+        static final int SIZE = (16+4+4)* 4;
+        final float[] g_matLocalWorld = new float[16];
         final float[] g_vsEyePos = new float[4];
         final float[] g_MorphParam = new float[4];
 

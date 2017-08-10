@@ -1,5 +1,6 @@
 package jet.opengl.demos.nvidia.waves;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -105,10 +106,12 @@ final class NVWaveWorks_GFX_Timer_Impl {
         switch (m_d3dAPI){
             case nv_water_d3d_api_d3d11:
             {
-                TimerQueryData tqd = m_pTimersPool.addInactiveQuery();
+                TimerQueryData tqd = m_pTimersPool.getQueryData(ix);
 //                ID3D11DeviceContext* pDC_d3d11 = pGC->d3d11();
 //                pDC_d3d11->End(tqd.m_d3d._11.m_pTimerQuery);
+                GLCheck.checkError();
                 gl.glQueryCounter(tqd.m_GLTimerQuery, GLenum.GL_TIMESTAMP);
+                GLCheck.checkError();
             }
             break;
             case nv_water_d3d_api_gnm:
@@ -117,7 +120,7 @@ final class NVWaveWorks_GFX_Timer_Impl {
             }
             case nv_water_d3d_api_gl2:
             {
-                TimerQueryData tqd = m_pTimersPool.addInactiveQuery();
+                TimerQueryData tqd = m_pTimersPool.getQueryData(ix);
                 gl.glQueryCounter(tqd.m_GLTimerQuery, GLenum.GL_TIMESTAMP);
             }
             break;

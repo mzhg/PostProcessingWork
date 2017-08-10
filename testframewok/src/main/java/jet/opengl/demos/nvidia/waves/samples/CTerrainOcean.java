@@ -66,8 +66,8 @@ final class CTerrainOcean {
     TextureSampler[] terrain_textures;
 
     IsRenderHeightfieldProgram renderHeightfieldProgram;
+    IsRenderHeightfieldProgram renderHeightfieldShadowProgram;
     IsRenderHeightfieldProgram renderHeightfieldPatchDataProgram;
-    IsWaterNormalmapCombineProgram waterNormalmapCombineProgram;
     IsMainToBackBufferProgram mainToBackBufferProgram;
 
     VisualDepthTextureProgram shadowDebugProgram;
@@ -101,8 +101,10 @@ final class CTerrainOcean {
 
         GLCheck.checkError();
         renderHeightfieldProgram = new IsRenderHeightfieldProgram((Void)null, shaderPath);
+        renderHeightfieldShadowProgram = new IsRenderHeightfieldProgram(shaderPath, "ColorPS.frag");
+        renderHeightfieldShadowProgram.setName("RenderTerrainShadow");
         renderHeightfieldPatchDataProgram = new IsRenderHeightfieldProgram(shaderPath, "RenderHeightFieldDataPatch.frag");
-        waterNormalmapCombineProgram = new IsWaterNormalmapCombineProgram(shaderPath);
+        renderHeightfieldPatchDataProgram.setName("RenderTerrainDataPatch");
         mainToBackBufferProgram = new IsMainToBackBufferProgram(shaderPath);GLCheck.checkError();
 
         try {
@@ -127,9 +129,12 @@ final class CTerrainOcean {
         terrain_textures[10] = new TextureSampler(0, IsSamplers.g_SamplerAnisotropicWrap);
         terrain_textures[11] = new TextureSampler(0, IsSamplers.g_SamplerDepthAnisotropic);
 
-        terrain_textures[12] = new TextureSampler(context.g_pOceanSurf.pDistanceFieldModule.GetDataTextureSRV().getTexture(), IsSamplers.g_SamplerLinearBorder);
         terrain_textures[13] = new TextureSampler(foam_intensity_perlin2.getTexture(), IsSamplers.g_SamplerLinearWrap);
         terrain_textures[14] = new TextureSampler(foam24bit.getTexture(), IsSamplers.g_SamplerLinearWrap);
+    }
+
+    void setupDataTexture(){
+        terrain_textures[12] = new TextureSampler(context.g_pOceanSurf.pDistanceFieldModule.GetDataTextureSRV().getTexture(), IsSamplers.g_SamplerLinearBorder);
     }
 
     private void buildFramebuffer(FramebufferGL fbo, Texture2DDesc[] tex_descs, TextureAttachDesc[] attach_descs){
@@ -238,15 +243,7 @@ final class CTerrainOcean {
         params.g_TerrainBeingRendered = 1.0f;
         params.g_SkipCausticsCalculation = 0;
         params.g_ApplyFog = 1;
-//        params.g_Time = g_ShoreTime;  TODO
-        params.g_GerstnerSteepness = 1.f;
-        params.g_BaseGerstnerAmplitude = 0.279f;
-        params.g_BaseGerstnerWavelength = 3.912f;
-        params.g_BaseGerstnerSpeed = 2.472f;
-        params.g_BaseGerstnerParallelness = 0.2f;
-        params.g_WindDirection.set(0.8f, 0.6f);
-
-        renderTerrain(params, true, false);
+        renderTerrain(params, true, false, renderHeightfieldProgram);
 
         // resolving main buffer color to refraction color resource
         gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, refraction_framebuffer.getFramebuffer());
@@ -340,7 +337,7 @@ final class CTerrainOcean {
         // drawing terrain to reflection RT
         params.g_SkipCausticsCalculation = 1;
         params.g_ApplyFog = 0;
-        renderTerrain(params, false, false);
+        renderTerrain(params, false, false, renderHeightfieldProgram);
 
         endReflection(params);
     }
@@ -402,7 +399,7 @@ final class CTerrainOcean {
 
         setupLightView(params);
         params.g_Wireframe = true; // Enable this to get better performance.
-        renderTerrain(params, false, true);
+        renderTerrain(params, false, true, renderHeightfieldShadowProgram);
         gl.glColorMask(true, true, true, true);
         params.g_Wireframe = false;
         GLCheck.checkError();
@@ -465,18 +462,22 @@ final class CTerrainOcean {
         params.g_SkipCausticsCalculation = 1;
     }
 
-    void renderTerrain(IsParameters params, boolean cullface, boolean shadow_map){
+    void renderTerrain(IsParameters params, boolean cullface, boolean shadow_map, IsRenderHeightfieldProgram program){
 
-        renderHeightfieldProgram.enable(params, terrain_textures);
+        program.enable(params, terrain_textures);
         if(params.g_Wireframe){
-            renderHeightfieldProgram.setupColorPass();
+            program.setupColorPass();
         }else{
-            renderHeightfieldProgram.setupRenderHeightFieldPass();
+            program.setupRenderHeightFieldPass();
         }
 
-        renderHeightfieldProgram.setRenderShadowmap(shadow_map);
+        program.setRenderShadowmap(shadow_map);
         m_TerrainVB.draw(0, cullface);
-        renderHeightfieldProgram.disable();
+        program.disable();
+
+        if(!context.m_printOcen){
+            program.printPrograminfo();
+        }
     }
 
     void renderTerrainToHeightField(IsParameters params){

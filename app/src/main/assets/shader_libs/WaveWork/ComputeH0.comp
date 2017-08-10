@@ -25,7 +25,7 @@ void main()
         float nr = sqrt(float(nx*nx + ny*ny));
 
         float amplitude = 0.0f;
-        if((nx !=0U || ny != 0U) && nr >= m_window_in && nr < m_window_out)
+        if((nx !=0 || ny != 0) && nr >= m_window_in && nr < m_window_out)
         {
             float2 k = float2(nx * m_frequency_scale, ny * m_frequency_scale);
 

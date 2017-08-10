@@ -181,6 +181,7 @@ public final class DebugTools {
 
     public static void saveTextureAsText(int target, int textureID, int level, String filename, int flags) throws IOException{
         final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glBindTexture(target, textureID);
         ByteBuffer result = TextureUtils.getTextureData(target, textureID, level, true);
         int internalFormat = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_INTERNAL_FORMAT);
         int width = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_WIDTH);

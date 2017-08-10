@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.buffer.AttribDesc;
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -32,7 +33,6 @@ import static jet.opengl.demos.nvidia.waves.HRESULT.E_FAIL;
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_FALSE;
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_OK;
 import static jet.opengl.demos.nvidia.waves.NVWaveWorks_Mesh.PrimitiveType.PT_TriangleStrip;
-import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_d3d11;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_gl2;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_gnm;
 import static jet.opengl.demos.nvidia.waves.nv_water_d3d_api.nv_water_d3d_api_none;
@@ -120,7 +120,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
     public HRESULT initD3D11(GFSDK_WaveWorks_Detailed_Simulation_Params params, GFSDK_WaveWorks_CPU_Scheduler_Interface pOptionalScheduler/*, ID3D11Device* pD3DDevice*/){
         HRESULT hr;
         gl = GLFuncProviderFactory.getGLFuncProvider();
-        if(nv_water_d3d_api_d3d11 != m_d3dAPI)
+        if(nv_water_d3d_api.nv_water_d3d_api_d3d11 != m_d3dAPI)
         {
             releaseAll();
         }
@@ -129,9 +129,9 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 //            releaseAll();
 //        }
 
-        if(nv_water_d3d_api_undefined == m_d3dAPI)
+        if(nv_water_d3d_api.nv_water_d3d_api_undefined == m_d3dAPI)
         {
-            m_d3dAPI = nv_water_d3d_api_d3d11;
+            m_d3dAPI = nv_water_d3d_api.nv_water_d3d_api_d3d11;
 //            m_d3d._11.m_pd3d11Device = pD3DDevice;
 //            m_d3d._11.m_pd3d11Device->AddRef();
 
@@ -430,12 +430,13 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         if(m_pGFXTimer != null)
         {
             hr = queryAllGfxTimers(m_pGFXTimer); if(hr != HRESULT.S_OK) return hr;
-
+            GLCheck.checkError();
             // Bracket GPU work with a disjoint timer query
             hr = m_pGFXTimer.beginDisjoint();if(hr != HRESULT.S_OK) return hr;
-
+            GLCheck.checkError();
             hr = consumeAvailableTimerSlot(m_pGFXTimer, m_gpu_kick_timers, pTimerSlot);if(hr != HRESULT.S_OK) return hr;
             pTimerSlot[0].m_StartQueryIndex = m_pGFXTimer.issueTimerQuery();
+            GLCheck.checkError();
 
             // This is ensures that wait-timers report zero when the wait API is unused
             // The converse is unnecessary, since the user cannot get useful work done without calling kick()
@@ -455,6 +456,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             }
         }
 
+        GLCheck.checkError();
         // Reset for next kick-to-kick interval
         m_has_consumed_wait_timer_slot_since_last_kick = false;
 
@@ -802,6 +804,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 
             // Render-targets + viewport
 //            pDC_d3d11->OMSetRenderTargets(1, &cascade_states[cascade].m_d3d._11.m_pd3d11GradientRenderTarget[m_active_GPU_slot], NULL);
+            m_RenderTarget.bind();
             m_RenderTarget.setRenderTexture(cascade_states[cascade].m_d3d._11.m_pd3d11GradientRenderTarget[m_active_GPU_slot], attachDesc);
 
             // Clear the gradient map if necessary
@@ -2010,12 +2013,12 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 break;
             default:
                 // Unexpected API
-                return E_FAIL;
+                return HRESULT.E_FAIL;
         }
 
 //        #endif // WAVEWORKS_ENABLE_GRAPHICS
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     private HRESULT initGradMapSamplers(){
@@ -2155,7 +2158,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 break;
             default:
                 // Unexpected API
-                return E_FAIL;
+                return HRESULT.E_FAIL;
         }
 
 //        #endif // WAVEWORKS_ENABLE_GRAPHICS
@@ -2260,11 +2263,11 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 break;
             default:
                 // Unexpected API
-                return E_FAIL;
+                return HRESULT.E_FAIL;
         }
 //        #endif // WAVEWORKS_ENABLE_GRAPHICS
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     private HRESULT allocateAll(){
@@ -2804,7 +2807,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 
                 long[] f = new long[1];
                 pGFXTimer.waitDisjointQuery(pWaitSlot.m_DisjointQueryIndex, f);
-
+                GLCheck.checkError();
                 if(f[0] > 0)
                 {
                     pWaitSlot.m_elapsed_gfx_time = 1000.f * (t_gfx[0])/(f[0]);
@@ -2816,6 +2819,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 pGFXTimer.releaseTimerQuery(pWaitSlot.m_StopGFXQueryIndex);
                 pGFXTimer.releaseTimerQuery(pWaitSlot.m_StartQueryIndex);
                 pGFXTimer.releaseTimerQuery(pWaitSlot.m_StopQueryIndex);
+                GLCheck.checkError();
             }
 
             pool.m_active_timer_slot = wait_slot;
@@ -2828,6 +2832,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         ppSlot[0].m_DisjointQueryIndex = pGFXTimer.getCurrentDisjointQuery();
         pool.m_end_inflight_timer_slots = (pool.m_end_inflight_timer_slots + 1) % NumTimerSlots;
 
+        GLCheck.checkError();
         return HRESULT.S_OK;
     }
 
@@ -2846,18 +2851,18 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             {
                 long t_gfx;
                 hr = pGFXTimer.getTimerQueries(pWaitSlot.m_StartGFXQueryIndex, pWaitSlot.m_StopGFXQueryIndex, tdiff);  t_gfx = tdiff[0];
-                if(hr == S_FALSE)
-                    return S_OK;
+                if(hr == HRESULT.S_FALSE)
+                    return HRESULT.S_OK;
 
                 long t_update;
                 hr = pGFXTimer.getTimerQueries(pWaitSlot.m_StartQueryIndex, pWaitSlot.m_StopQueryIndex, tdiff);  t_update = tdiff[0];
-                if(hr == S_FALSE)
-                    return S_OK;
+                if(hr == HRESULT.S_FALSE)
+                    return HRESULT.S_OK;
 
                 long f;
                 hr = pGFXTimer.getDisjointQuery(pWaitSlot.m_DisjointQueryIndex, tdiff);  f = tdiff[0];
-                if(hr == S_FALSE)
-                    return S_OK;
+                if(hr == HRESULT.S_FALSE)
+                    return HRESULT.S_OK;
 
                 if(f > 0)
                 {
@@ -2874,8 +2879,8 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 
             pool.m_active_timer_slot = wait_slot;
         }
-
-        return S_OK;
+        GLCheck.checkError();
+        return HRESULT.S_OK;
     }
 
     private HRESULT queryAllGfxTimers(/*Graphics_Context* pGC,*/ NVWaveWorks_GFX_Timer_Impl pGFXTimer){

@@ -77,7 +77,8 @@ interface NVWaveWorks_Mesh extends Disposeable{
 //        pLayout->Release();
 //        pVB->Release();
 //        pIB->Release();
-
+        pVB.unbind();
+        pIB.unbind();
         return HRESULT.S_OK;
     }
 

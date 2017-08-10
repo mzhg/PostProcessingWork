@@ -44,4 +44,21 @@ public class GFSDK_WaveWorks_Quadtree_Params {
         geomorphing_degree = params.geomorphing_degree;
         enable_CPU_timers = params.enable_CPU_timers;
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("GFSDK_WaveWorks_Quadtree_Params{");
+        sb.append("mesh_dim=").append(mesh_dim);
+        sb.append("\n min_patch_length=").append(min_patch_length);
+        sb.append("\n patch_origin=").append(patch_origin);
+        sb.append("\n auto_root_lod=").append(auto_root_lod);
+        sb.append("\n upper_grid_coverage=").append(upper_grid_coverage);
+        sb.append("\n sea_level=").append(sea_level);
+        sb.append("\n use_tessellation=").append(use_tessellation);
+        sb.append("\n tessellation_lod=").append(tessellation_lod);
+        sb.append("\n geomorphing_degree=").append(geomorphing_degree);
+        sb.append("\n enable_CPU_timers=").append(enable_CPU_timers);
+        sb.append('}');
+        return sb.toString();
+    }
 }

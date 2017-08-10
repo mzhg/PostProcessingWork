@@ -78,6 +78,7 @@ final class OceanSurface implements Disposeable{
         m_pRenderSurfaceShadedWithShorelinePass =GLSLProgram.createProgram(shader_path + "OceanWaveVS.vert", shader_path + "OceanWaveHS.gltc",
                 shader_path+"OceanWaveDS.glte", shader_path+"SolidWireGS.gemo", shader_path+"OceanWaveShorePS.frag",
                 CommonUtil.toArray(new Macro("GFSDK_WAVEWORKS_USE_TESSELLATION", 1)));
+        m_pRenderSurfaceShadedWithShorelinePass.setName("RenderOceanWave");
 
         try {
             m_pRenderRayContactTechnique = GLSLProgram.createFromFiles(shader_path + "ContactVS.vert", shader_path + "RayContactPS.frag");
@@ -172,6 +173,7 @@ final class OceanSurface implements Disposeable{
             GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_UpdateParams(m_hOceanQuadTree, params);
         }
     }
+
     // --------------------------------- Rendering routines -----------------------------------
     // Rendering
     void renderShaded(//		ID3D11DeviceContext* pDC,
@@ -248,6 +250,10 @@ final class OceanSurface implements Disposeable{
 //            m_pOceanFX->GetVariableByName("g_DataTexture")->AsShaderResource()->SetResource( NULL );
         }
 //        GFSDK_WaveWorks.GFSDK_WaveWorks_Savestate_RestoreD3D11(hSavestate, pDC);
+
+        if(!context.m_printOcen){
+            m_pRenderSurfaceShadedWithShorelinePass.printPrograminfo();
+        }
     }
 
     void renderReadbacks(Matrix4f viewProj){
@@ -272,6 +278,11 @@ final class OceanSurface implements Disposeable{
 
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        if(context.m_printOcen == false){
+            m_pRenderRayContactTechnique.setName("RenderReadbacks");
+            m_pRenderRayContactTechnique.printPrograminfo();
+        }
     }
 
     void renderRayContacts(Matrix4f viewProj){
@@ -295,6 +306,11 @@ final class OceanSurface implements Disposeable{
 
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        if(context.m_printOcen == false){
+            m_pRenderRayContactTechnique.setName("RenderRayContact");
+            m_pRenderRayContactTechnique.printPrograminfo();
+        }
     }
 
     void renderRays(Matrix4f viewProj) {
@@ -326,6 +342,11 @@ final class OceanSurface implements Disposeable{
 
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        if(context.m_printOcen == false){
+            m_pRenderRaysTechnique.setName("RenderRays");
+            m_pRenderRaysTechnique.printPrograminfo();
+        }
     }
 
     void getQuadTreeStats(GFSDK_WaveWorks_Quadtree_Stats stats){

@@ -21,13 +21,15 @@ class GFSDK_WaveWorks_GFX_Query_Pool_Impl<QueryDataType extends QueryData> {
     QueryDataType addInactiveQuery(){
         int newQueryIndex = m_NumQueries;
         int newNumQueries = m_NumQueries + 1;
-        QueryDataType[] pNewDatas = (QueryDataType[]) new Object[newNumQueries];
+        QueryDataType[] pNewDatas = (QueryDataType[]) new QueryData[newNumQueries];
         int[] pNewInactiveQueries = new int[newNumQueries];
 
 //        memcpy(pNewDatas, m_pQueriesData, m_NumQueries * sizeof(m_pQueriesData[0]));
 //        memcpy(pNewInactiveQueries, m_pInactiveQueries, m_NumInactiveQueries * sizeof(m_pInactiveQueries[0]));
-        System.arraycopy(m_pQueriesData, 0, pNewDatas, 0,m_NumQueries);
-        System.arraycopy(m_pInactiveQueries, 0, pNewInactiveQueries, 0,m_NumInactiveQueries);
+        if(m_pQueriesData != null){
+            System.arraycopy(m_pQueriesData, 0, pNewDatas, 0,m_NumQueries);
+            System.arraycopy(m_pInactiveQueries, 0, pNewInactiveQueries, 0,m_NumInactiveQueries);
+        }
 
         m_pQueriesData = pNewDatas;
         m_pInactiveQueries = pNewInactiveQueries;

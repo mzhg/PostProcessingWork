@@ -23,6 +23,7 @@ import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_DetailLevel;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_Params;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_Settings;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_Stats;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -129,16 +130,29 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     final float kMaxTimeScale = 1.f;
     final float kMinWindSpeedBeaufort = 2.0f;
     final float kMaxWindSpeedBeaufort = 4.0f;
+    boolean m_printOcen;
 
     final Matrix4f m_proj = new Matrix4f();
-    final Matrix4f m_view = new Matrix4f();
     private GLFuncProvider gl;
     private final IsParameters m_params = new IsParameters();
 
+    public SampleD3D11(){
+        for(int i = 0; i < NumMarkers; i++){
+            g_readback_marker_coords[i] = new Vector2f();
+            g_readback_marker_positions[i] = new Vector4f();
+
+            g_raycast_origins[i] = new Vector3f();
+            g_raycast_directions[i] = new Vector3f();
+            g_raycast_hitpoints[i] = new Vector3f();
+        }
+    }
+
     @Override
     protected void initRendering() {
+        getGLContext().setSwapInterval(0);
         initApp();
 
+        IsSamplers.createSamplers();
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_transformer.setTranslation(100.f, -8.0f, -200.f);
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
@@ -179,21 +193,22 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(path, MAX_PATH, TEXT("sample_d3d11.fxo")));
 //        V_RETURN(D3DX11CreateEffectFromFile(path, 0, pd3dDevice, &g_pEffect));
 
-        // Initialize shoreline interaction.
-        g_pDistanceField = new DistanceField( g_Terrain, m_params );
-        g_pDistanceField.Init( /*pd3dDevice*/ );
-        g_pOceanSurf.AttachDistanceFieldModule( g_pDistanceField );
-
         // Initialize terrain
         g_Terrain = new CTerrainOcean(this);
         g_Terrain.onCreate("nvidia/WaveWorks/shaders/", "nvidia/WaveWorks/textures/");
 
+        // Initialize shoreline interaction.
+        g_pDistanceField = new DistanceField( g_Terrain, m_params );
+        g_pDistanceField.Init( /*pd3dDevice*/ );
+        g_pOceanSurf.AttachDistanceFieldModule( g_pDistanceField );
+        g_Terrain.setupDataTexture();
         // Creating pipeline query
 //        D3D11_QUERY_DESC queryDesc;
 //        queryDesc.Query = D3D11_QUERY_PIPELINE_STATISTICS;
 //        queryDesc.MiscFlags = 0;
 //        pd3dDevice->CreateQuery(&queryDesc, &g_pPipelineQuery);
         g_pPipelineQuery = gl.glGenQuery();
+        GLCheck.checkError();
     }
 
     @Override
@@ -207,7 +222,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 
         if(g_SimulateWater || g_ForceKick || (GFSDK_WaveWorks_Result.NONE==GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,null)))
         {
-            GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_SetTime(g_hOceanSimulation, g_SimulationTime);
+            GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_SetTime(g_hOceanSimulation, g_SimulationTime);  GLCheck.checkError();
             GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_KickD3D11(g_hOceanSimulation, g_LastKickID, /*pDC,*/ g_hOceanSavestate);
 
             if(g_bSyncMode >= SynchronizationMode_RenderOnly)
@@ -326,9 +341,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 //        g_pOceanSurf->m_pOceanFX->GetVariableByName("g_enableShoreEffects")->AsScalar()->SetFloat(g_enableShoreEffects? 1.0f:0.0f);TODO
 //        g_Terrain.pEffect->GetVariableByName("g_enableShoreEffects")->AsScalar()->SetFloat(g_enableShoreEffects? 1.0f:0.0f);TODO
 
-        m_transformer.getModelViewMat(m_view);
-//        g_Terrain.Render(m_proj, m_view);
-        // TODO setup params.
+        buildRenderParams();
         g_Terrain.onDraw(m_params);
         g_pDistanceField.GenerateDataTexture( /*pDC*/ );
 
@@ -357,6 +370,27 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 //            g_SampleUI.OnRender( fElapsedTime );
 //            RenderText( fTime );
         }
+
+        m_printOcen = true;
+    }
+
+    private void buildRenderParams(){
+        m_transformer.getModelViewMat(m_params.g_ModelViewMatrix);
+        Matrix4f.decompseRigidMatrix(m_params.g_ModelViewMatrix, m_params.g_CameraPosition, null, null, m_params.g_CameraDirection);
+        m_params.g_CameraDirection.scale(-1);
+
+        m_params.g_Projection = m_proj;
+
+
+        Matrix4f.mul(m_proj, m_params.g_ModelViewMatrix, m_params.g_ModelViewProjectionMatrix);
+
+        m_params.g_Time += getFrameDeltaTime();
+        m_params.g_GerstnerSteepness = 1.f;
+        m_params.g_BaseGerstnerAmplitude = 0.279f;
+        m_params.g_BaseGerstnerWavelength = 3.912f;
+        m_params.g_BaseGerstnerSpeed = 2.472f;
+        m_params.g_BaseGerstnerParallelness = 0.2f;
+        m_params.g_WindDirection.set(0.8f, 0.6f);
     }
 
     private void initApp(){
@@ -404,7 +438,8 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
             return;
 
         float aspectRatio = (float)width/height;
-        Matrix4f.perspective(camera_fov, aspectRatio, scene_z_near, scene_z_far, m_proj);
+        Matrix4f.perspective(camera_fov/3, aspectRatio, scene_z_near, scene_z_far, m_proj);
+        m_params.g_Projection = m_proj;
 
 //        if(g_Terrain.BackbufferWidth == width && g_Terrain.BackbufferHeight == height)
 //            return;
@@ -413,6 +448,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 //        g_Terrain.BackbufferHeight=height;
 //        g_Terrain.ReCreateBuffers();
         g_Terrain.onReshape(width, height);
+        GLCheck.checkError();
     }
 
     private final Vector4f[] displacements = new Vector4f[NumMarkers];

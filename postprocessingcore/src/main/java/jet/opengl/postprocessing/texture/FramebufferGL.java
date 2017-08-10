@@ -184,6 +184,7 @@ public class FramebufferGL implements Disposeable {
                 Texture2D tex = (Texture2D) m_AttachedTextures[i];
                 GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
                 gl.glViewport(0,0, tex.getWidth(), tex.getHeight());
+                break;
             }
         }
     }

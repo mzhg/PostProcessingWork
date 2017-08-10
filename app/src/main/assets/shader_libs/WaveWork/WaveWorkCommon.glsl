@@ -10,8 +10,10 @@ layout(binding=0) uniform MyConstantBuffer
 	uint m_resolution_plus_one;
 	uint m_half_resolution;
 	uint m_half_resolution_plus_one;
+
 	uint m_resolution_plus_one_squared_minus_one;
 	uint m_32_minus_log2_resolution;
+	uint2 m_ipad2;
 
 	float m_window_in;
 	float m_window_out;
@@ -23,7 +25,7 @@ layout(binding=0) uniform MyConstantBuffer
 	float m_root_scale;
 	float m_power_scale;
 
-	double m_time;
+	float m_time;
 
 	float m_choppy_scale;
 };

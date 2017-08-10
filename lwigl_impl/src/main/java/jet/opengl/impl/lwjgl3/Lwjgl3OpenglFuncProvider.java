@@ -281,7 +281,7 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
 
     @Override
     public void glReadPixels(int x, int y, int width, int height, int format, int type, ByteBuffer pixels) {
-        GL11.glReadPixels(x, y, width, height, format, type, pixels);
+        GL11.glReadPixels(x, y, width, height, format, type, MemoryUtil.memAddressSafe(pixels));
     }
 
     @Override

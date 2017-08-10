@@ -2,6 +2,8 @@ package jet.opengl.demos.nvidia.waves;
 
 import java.util.ArrayList;
 
+import jet.opengl.postprocessing.common.GLCheck;
+
 /**
  * Created by mazhen'gui on 2017/7/22.
  */
@@ -70,6 +72,7 @@ final class NVWaveWorks_FFT_Simulation_Manager_DirectCompute_Impl implements NVW
         VerifyReadbackLockstep();
 //#endif
 
+        GLCheck.checkError();
         return HRESULT.S_OK;
     }
 
@@ -152,7 +155,7 @@ final class NVWaveWorks_FFT_Simulation_Manager_DirectCompute_Impl implements NVW
             return AdvanceCursorResult.AdvanceCursorResult_None;
 
         // First, check whether we even have readbacks in-flight
-	final boolean hasReadbacksInFlightSim0 = m_Simulations.get(0).hasReadbacksInFlight();
+	    final boolean hasReadbacksInFlightSim0 = m_Simulations.get(0).hasReadbacksInFlight();
 
         // Usual paranoid verficiation that we're maintaining lockstep...
 //#ifdef _DEV
@@ -258,6 +261,9 @@ final class NVWaveWorks_FFT_Simulation_Manager_DirectCompute_Impl implements NVW
     }
 
     private void VerifyReadbackLockstep(){
+        if(GLCheck.CHECK == false)
+            return;
+
         if(m_Simulations.size() > 1)
         {
             long[] sim0KickID=new long[1];
@@ -268,12 +274,17 @@ final class NVWaveWorks_FFT_Simulation_Manager_DirectCompute_Impl implements NVW
                 long[] simNKickID=new long[1];
                 boolean simNGRCresult = pSim.getReadbackCursor(simNKickID);
                 assert(simNGRCresult == sim0GRCresult);
+                if(simNGRCresult != sim0GRCresult){
+                    throw new IllegalStateException();
+                }
                 if(sim0GRCresult)
                 {
                     assert(sim0KickID[0] == simNKickID[0]);
+                    if(sim0KickID[0] != simNKickID[0]){
+                        throw new IllegalStateException();
+                    }
                 }
             }
-
         }
     }
 

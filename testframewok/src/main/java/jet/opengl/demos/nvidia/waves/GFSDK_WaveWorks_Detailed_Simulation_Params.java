@@ -56,7 +56,7 @@ final class GFSDK_WaveWorks_Detailed_Simulation_Params {
             fft_period = o.fft_period;
             time_scale = o.time_scale;
             wave_amplitude = o.wave_amplitude;
-            wind_dir.set(wind_dir);
+            wind_dir.set(o.wind_dir);
             wind_speed = o.wind_speed;
             wind_dependency = o.wind_dependency;
             choppy_scale = o.choppy_scale;

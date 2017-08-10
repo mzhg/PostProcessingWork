@@ -82,7 +82,7 @@ final class NVWaveWorks_MeshD3D11 implements NVWaveWorks_Mesh, Disposeable {
 //            pDC_d3d11->IASetPrimitiveTopology(d3dPrimTopology);
 //            pDC_d3d11->DrawIndexed(IndexCount, StartIndex, BaseVertexIndex);
             m_pVAO.bind();
-            gl.glDrawElementsBaseVertex(d3dPrimTopology, IndexCount, GLenum.GL_UNSIGNED_INT, StartIndex, BaseVertexIndex);
+            gl.glDrawElements/*BaseVertex*/(d3dPrimTopology, IndexCount, GLenum.GL_UNSIGNED_INT, StartIndex * 4);
             m_pVAO.unbind();
             hr = S_OK;
         }

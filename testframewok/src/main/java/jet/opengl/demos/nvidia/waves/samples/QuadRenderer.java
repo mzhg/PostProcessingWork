@@ -119,10 +119,10 @@ final class QuadRenderer {
 		}
 		
 		g_pOceanSurfaceFX = new OceanShadingPorgram(shader_prefix);
-		
+
 		// Constants
 		g_pOceanSurfaceFX.enable();
-		
+
 		// Grid side length * 2
 		g_pOceanSurfaceFX.setTexelLength_x2(g_PatchLength / g_DisplaceMapDim * 2);
 		// Color
@@ -142,7 +142,7 @@ final class QuadRenderer {
 		g_pOceanSurfaceFX.setSunColor(g_SunColor);
 		g_pOceanSurfaceFX.setSunDir(g_SunDir);
 		g_pOceanSurfaceFX.setShineness(g_Shineness);
-		
+
 		gl.glUseProgram(0);
 	}
 	
@@ -173,7 +173,7 @@ final class QuadRenderer {
 		// --------------------------------- Index Buffer -------------------------------
 		// The index numbers for all mesh LODs (up to 256x256)
 		final int index_size_lookup[] = {0, 0, 4284, 18828, 69444, 254412, 956916, 3689820, 14464836};
-		
+
 		g_Lods = 0;
 		for (i = g_MeshDim; i > 1; i >>= 1)
 			g_Lods ++;
@@ -523,7 +523,7 @@ final class QuadRenderer {
 			
 			// Matrices
 			Matrix4f matView = g_ModelView; //Matrix4f.mul(mCam.view(), m_const_mat, m_model);
-			
+
 			// VS & PS
 			g_pOceanSurfaceFX.enable();
 			g_pOceanSurfaceFX.enableOceanSurfPS();
