@@ -40,7 +40,7 @@ uniform float		g_BaseGerstnerAmplitude;
 uniform float		g_BaseGerstnerWavelength;
 uniform float		g_BaseGerstnerSpeed;
 uniform float		g_BaseGerstnerParallelness;
-uniform float		g_enableShoreEffects;
+uniform int		    g_enableShoreEffects;
 
 uniform float		g_Wireframe;
 uniform float2		g_WinSize = {1920.0,1080.0};
@@ -48,15 +48,15 @@ uniform float2		g_WinSize = {1920.0,1080.0};
 //-----------------------------------------------------------------------------------
 // Texture & Samplers
 //-----------------------------------------------------------------------------------
-layout(binding = 0) uniform sampler2D g_LogoTexture;
-layout(binding = 1) uniform sampler2D g_ReflectionTexture;
-layout(binding = 2) uniform sampler2D g_RefractionTexture;
-layout(binding = 3) uniform sampler2D g_RefractionDepthTextureResolved;
-layout(binding = 4) uniform sampler2D g_WaterNormalMapTexture;
-layout(binding = 5) uniform sampler2D g_ShadowmapTexture;
-layout(binding = 6) uniform sampler2D g_FoamIntensityTexture;
-layout(binding = 7) uniform sampler2D g_FoamDiffuseTexture;
-layout(binding = 8) uniform sampler2D g_DataTexture;
+//layout(binding = 8) uniform sampler2D g_LogoTexture;
+layout(binding = 8) uniform sampler2D g_ReflectionTexture;
+layout(binding = 9) uniform sampler2D g_RefractionTexture;
+layout(binding = 10) uniform sampler2D g_RefractionDepthTextureResolved;
+layout(binding = 11) uniform sampler2D g_WaterNormalMapTexture;
+layout(binding = 12) uniform sampler2D g_ShadowmapTexture;
+layout(binding = 13) uniform sampler2D g_FoamIntensityTexture;
+layout(binding = 14) uniform sampler2D g_FoamDiffuseTexture;
+layout(binding = 15) uniform sampler2D g_DataTexture;
 
 const float kTopDownDataPixelsPerMeter = 256.0f/700.0; // taken from SDF generation source code, the SDF texture size is 256x256, the viewport size is 700x700
 const float kMaxDepthBelowSea = 50.0f;

@@ -59,7 +59,7 @@ public class OceanWaveDemo extends NvSampleApp{
 //		g_Camera.SetViewParams(&vecEye, &vecAt);
 		
 		getGLContext().setSwapInterval(0);
-		getGLContext().setAppTitle("OceanCS");
+		getGLContext().setAppTitle("OceanWave");
 		m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 		m_transformer.setTranslation(-1562.24f, -801.291f, 1224.99f);
 		m_transformer.setRotationVec(new Vector3f(0.1f, Numeric.PI * 0.7f, 0));

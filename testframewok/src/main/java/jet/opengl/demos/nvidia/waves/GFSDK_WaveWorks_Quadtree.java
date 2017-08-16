@@ -1105,7 +1105,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
                             UpdateSubresource(GLenum.GL_UNIFORM_BUFFER, m_d3d._11.m_pd3d11VertexShaderCB, bytes);
                         }
 //                        pDC_d3d11->VSSetConstantBuffers(regvs, 1, &m_d3d._11.m_pd3d11VertexShaderCB);
-                        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_d3d._11.m_pd3d11VertexShaderCB);
+                        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, m_d3d._11.m_pd3d11VertexShaderCB);
                     }
 //                    final int reghs = pShaderInputRegisterMappings[ShaderInputD3D11_hs_buffer];
 //                    if(reghs != nvrm_unused)
@@ -1127,7 +1127,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
                             UpdateSubresource(GLenum.GL_UNIFORM_BUFFER, m_d3d._11.m_pd3d11HullShaderCB, bytes);
                         }
 //                        pDC_d3d11->HSSetConstantBuffers(reghs, 1, &m_d3d._11.m_pd3d11HullShaderCB);
-                        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, m_d3d._11.m_pd3d11HullShaderCB);
+                        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, m_d3d._11.m_pd3d11HullShaderCB);
                     }
                 }
                 break;
@@ -1222,6 +1222,9 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
             }
             ++m_stats.num_patches_drawn;
         }
+
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, 0);  // unbind the eypos_buffer
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, 0);  // unbind the gemo_buffer.
 
         LogUtil.i(LogUtil.LogType.DEFAULT, "render count = " + m_stats.num_patches_drawn);
 //        #if WAVEWORKS_ENABLE_GNM

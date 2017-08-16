@@ -391,6 +391,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         m_params.g_BaseGerstnerSpeed = 2.472f;
         m_params.g_BaseGerstnerParallelness = 0.2f;
         m_params.g_WindDirection.set(0.8f, 0.6f);
+
     }
 
     private void initApp(){
@@ -440,6 +441,8 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         float aspectRatio = (float)width/height;
         Matrix4f.perspective(camera_fov/3, aspectRatio, scene_z_near, scene_z_far, m_proj);
         m_params.g_Projection = m_proj;
+        m_params.g_ZNear = scene_z_near;
+        m_params.g_ZFar = scene_z_far;
 
 //        if(g_Terrain.BackbufferWidth == width && g_Terrain.BackbufferHeight == height)
 //            return;

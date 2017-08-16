@@ -23,7 +23,6 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 
-import static jet.opengl.demos.nvidia.waves.HRESULT.E_FAIL;
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_OK;
 import static jet.opengl.demos.nvidia.waves.Simulation_Util.gauss_map_resolution;
 import static jet.opengl.demos.nvidia.waves.Simulation_Util.gauss_map_size;
@@ -771,7 +770,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
     private static float sqr(float s){ return s*s;}
 
-    void updateConstantBuffer(double simTime) {
+    private void updateConstantBuffer(double simTime) {
         final float twoPi = 6.28318530718f;
         final float gravity = 9.810f;
         final float sqrtHalf = 0.707106781186f;
@@ -957,7 +956,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                ID3D11UnorderedAccessView* null_uavs[2] = {};
 //                context->CSSetUnorderedAccessViews(0, 2, null_uavs, NULL);
 //                context->CSSetShader(NULL, NULL, 0);
-                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, 0);
+//                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0); TODO keep the MyConstantBuffer binding for the Ocean Rendering..
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 1);
                 gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, _11.m_uav_Displacement.getFormat());

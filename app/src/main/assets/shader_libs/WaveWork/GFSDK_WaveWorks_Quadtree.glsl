@@ -45,7 +45,7 @@
 //	GFSDK_WAVEWORKS_DECLARE_GEOM_HS_CONSTANT(float4, g_tessellationParams, 1)
 //	GFSDK_WAVEWORKS_END_GEOM_HS_CBUFFER
 
-    layout(binding = 0) uniform eyepos_buffer
+    layout(binding = 2) uniform eyepos_buffer
     {
         float4 g_hsWorldEye;
         float4 g_tessellationParams;
@@ -60,7 +60,7 @@ GFSDK_WAVEWORKS_DECLARE_GEOM_VS_CONSTANT(float4, g_MorphParam, 4)
 GFSDK_WAVEWORKS_END_GEOM_VS_CBUFFER
 #endif
 
-layout(binding = 1) uniform geom_buffer
+layout(binding = 3) uniform geom_buffer
 {
    float4x4  g_matLocalWorld;
    float4    g_vsEyePos;

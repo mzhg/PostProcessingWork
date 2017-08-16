@@ -1,5 +1,6 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -141,7 +142,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 			gl.glUniform1f(zfarOffset, params.g_ZFar);
 		if(heightFieldSizeOffset != -1)
 			gl.glUniform1f(heightFieldSizeOffset, params.g_HeightFieldSize);
-
+		GLCheck.checkError();
 //		int tdtmOffset = -1; // g_WorldToTopDownTextureMatrix
 //		int timeOffset = -1; // g_Time
 //		int baseGerstnerWavelengthOffset = -1; //g_BaseGerstnerWavelength
@@ -153,35 +154,54 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 //		int enableShoreOffset = -1; //g_enableShoreEffects
 //		int applyFogOffset = -1; //g_ApplyFog
 
-		if(tdtmOffset != -1)
+		GLCheck.checkError();
+		if(tdtmOffset != -1) {
 			gl.glUniformMatrix4fv(tdtmOffset, false, CacheBuffer.wrap(params.g_WorldToTopDownTextureMatrix));
+			GLCheck.checkError();
+		}
 
-		if(timeOffset != -1)
+		if(timeOffset != -1) {
 			gl.glUniform1f(timeOffset, params.g_Time);
+			GLCheck.checkError();
+		}
 
-		if(baseGerstnerWavelengthOffset != -1)
+		if(baseGerstnerWavelengthOffset != -1) {
 			gl.glUniform1f(baseGerstnerWavelengthOffset, params.g_BaseGerstnerWavelength);
+			GLCheck.checkError();
+		}
 
-		if(baseGerstnerParallelnessOffset != -1)
+		if(baseGerstnerParallelnessOffset != -1) {
 			gl.glUniform1f(baseGerstnerParallelnessOffset, params.g_BaseGerstnerParallelness);
+			GLCheck.checkError();
+		}
 
-		if(baseGerstnerSpeedOffset != -1)
+		if(baseGerstnerSpeedOffset != -1) {
 			gl.glUniform1f(baseGerstnerSpeedOffset, params.g_BaseGerstnerSpeed);
+			GLCheck.checkError();
+		}
 
 		if(baseGerstnerAmplitudeOffset != -1)
 			gl.glUniform1f(baseGerstnerAmplitudeOffset, params.g_BaseGerstnerAmplitude);
 
-		if(gerstnerSteepnessOffset != -1)
+		if(gerstnerSteepnessOffset != -1) {
 			gl.glUniform1f(gerstnerSteepnessOffset, params.g_GerstnerSteepness);
+			GLCheck.checkError();
+		}
 
-		if(enableShoreOffset != -1)
+		if(enableShoreOffset != -1) {
 			gl.glUniform1i(enableShoreOffset, params.g_enableShoreEffects);
+			GLCheck.checkError();
+		}
 
-		if(applyFogOffset != -1)
+		if(applyFogOffset != -1) {
 			gl.glUniform1i(applyFogOffset, params.g_ApplyFog);
+			GLCheck.checkError();
+		}
 
-		if(windDirectionOffset != -1)
+		if(windDirectionOffset != -1) {
 			gl.glUniform2f(windDirectionOffset, params.g_WindDirection.x, params.g_WindDirection.y);
+			GLCheck.checkError();
+		}
 	}
 	
 	private int getUniformIndex(String name){

@@ -1,6 +1,6 @@
 #include "GFSDK_WaveWorks_Quadtree.glsl"
 
-layout(binding=0) uniform attr_vs_buffer
+layout(binding=1) uniform attr_vs_buffer
 {
     float3 g_WorldEye;
     float  g_UseTextureArrays;
@@ -11,9 +11,9 @@ layout(binding=0) uniform sampler2D g_samplerDisplacementMap0;
 layout(binding=1) uniform sampler2D g_samplerDisplacementMap1;
 layout(binding=2) uniform sampler2D g_samplerDisplacementMap2;
 layout(binding=3) uniform sampler2D g_samplerDisplacementMap3;
-layout(binding=4) uniform sampler2DArray g_samplerDisplacementMapTextureArray;
+layout(binding=0) uniform sampler2DArray g_samplerDisplacementMapTextureArray;
 
-layout(binding=1) uniform attr_ps_buffer
+layout(binding=4) uniform attr_ps_buffer
 {
     float g_TexelLength_x2_PS;
     float g_Cascade1Scale_PS;
@@ -27,11 +27,11 @@ layout(binding=1) uniform attr_ps_buffer
     float g_Cascade3UVOffset_PS;
 };
 
-layout(binding=0) uniform sampler2D g_samplerGradientMap0;
-layout(binding=1) uniform sampler2D g_samplerGradientMap1;
-layout(binding=2) uniform sampler2D g_samplerGradientMap2;
-layout(binding=3) uniform sampler2D g_samplerGradientMap3;
-layout(binding=4) uniform sampler2DArray g_samplerGradientMapTextureArray;
+layout(binding=4) uniform sampler2D g_samplerGradientMap0;
+layout(binding=5) uniform sampler2D g_samplerGradientMap1;
+layout(binding=6) uniform sampler2D g_samplerGradientMap2;
+layout(binding=7) uniform sampler2D g_samplerGradientMap3;
+layout(binding=1) uniform sampler2DArray g_samplerGradientMapTextureArray;
 
 struct GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT
 {

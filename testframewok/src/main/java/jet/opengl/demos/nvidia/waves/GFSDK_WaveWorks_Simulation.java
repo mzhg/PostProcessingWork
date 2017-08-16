@@ -1387,7 +1387,10 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 //            pVSDSCB->g_WorldEye[1] = vGlobalEye.y;
 //            pVSDSCB->g_WorldEye[2] = vGlobalEye.z;
 
-            // TODO update the buffer
+            ByteBuffer bytes = CacheBuffer.getCachedByteBuffer(vs_attr_cbuffer.SIZE);
+            pVSDSCB.store(bytes).flip();
+            UpdateSubresource(GLenum.GL_UNIFORM_BUFFER, m_d3d._11.m_pd3d11VertexDomainShaderCB, bytes);
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, m_d3d._11.m_pd3d11VertexDomainShaderCB);
         }
 
 //        ps_attr_cbuffer PSCB;
@@ -1416,6 +1419,11 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             pPSCB.g_Cascade1TexelScale_PS = (m_params.cascades[0].fft_period * m_params.cascades[1].fft_resolution) / (m_params.cascades[1].fft_period * m_params.cascades[0].fft_resolution);
             pPSCB.g_Cascade2TexelScale_PS = (m_params.cascades[0].fft_period * m_params.cascades[2].fft_resolution) / (m_params.cascades[2].fft_period * m_params.cascades[0].fft_resolution);
             pPSCB.g_Cascade3TexelScale_PS = (m_params.cascades[0].fft_period * m_params.cascades[3].fft_resolution) / (m_params.cascades[3].fft_period * m_params.cascades[0].fft_resolution);
+
+            ByteBuffer bytes = CacheBuffer.getCachedByteBuffer(ps_attr_cbuffer.SIZE);
+            pPSCB.store(bytes).flip();
+            UpdateSubresource(GLenum.GL_UNIFORM_BUFFER, m_d3d._11.m_pd3d11PixelShaderCB, bytes);
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 4, m_d3d._11.m_pd3d11PixelShaderCB);
         }
 
 //        if(pVSDSCB)
@@ -1437,6 +1445,8 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 //            }
 //            pDC->PSSetConstantBuffers(rm_ps_buffer, 1, &m_d3d._11.m_pd3d11PixelShaderCB);
 //        }
+
+        bindRenderTexturesD3D11();
         return HRESULT.S_OK;
     }
     private HRESULT setRenderStateGnm(//		sce::Gnmx::LightweightGfxContext* gfxContext,
@@ -1448,16 +1458,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
     private HRESULT setRenderStateGL2(		Matrix4f matView,
 									int[] pShaderInputRegisterMappings, GFSDK_WaveWorks_Simulation_GL_Pool glPool
     ){
-        final int rm_g_textureBindLocationDisplacementMap0 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMap0];
-        final int rm_g_textureBindLocationDisplacementMap1 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMap1];
-        final int rm_g_textureBindLocationDisplacementMap2 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMap2];
-        final int rm_g_textureBindLocationDisplacementMap3 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMap3];
-        final int rm_g_textureBindLocationGradientMap0 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMap0];
-        final int rm_g_textureBindLocationGradientMap1 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMap1];
-        final int rm_g_textureBindLocationGradientMap2 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMap2];
-        final int rm_g_textureBindLocationGradientMap3 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMap3];
-        final int rm_g_textureBindLocationDisplacementMapArray = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMapArray];
-        final int rm_g_textureBindLocationGradientMapArray = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMapArray];
+
         final int rm_g_WorldEye = pShaderInputRegisterMappings[ShaderInputGL2_g_WorldEye];
         final int rm_g_UseTextureArrays = pShaderInputRegisterMappings[ShaderInputGL2_g_UseTextureArrays];
         final int rm_g_UVScaleCascade0123 = pShaderInputRegisterMappings[ShaderInputGL2_g_UVScaleCascade0123];
@@ -1472,32 +1473,11 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         final int rm_g_Cascade3TexelScale_PS = pShaderInputRegisterMappings[ShaderInputGL2_g_Cascade3TexelScale_PS];
         final int rm_g_Cascade3UVOffset_PS = pShaderInputRegisterMappings[ShaderInputGL2_g_Cascade3UVOffset_PS];
 
-        int tu_DisplacementMap0 = 0;
-        int tu_DisplacementMap1 = 0;
-        int tu_DisplacementMap2 = 0;
-        int tu_DisplacementMap3 = 0;
-        int tu_GradientMap0 = 0;
-        int tu_GradientMap1 = 0;
-        int tu_GradientMap2 = 0;
-        int tu_GradientMap3 = 0;
-        int tu_DisplacementMapTextureArray = 0;
         int tu_GradientMapTextureArray = 0;
 
         if(m_params.use_texture_arrays)
         {
-            tu_DisplacementMapTextureArray = glPool.Reserved_Texture_Units[0];
             tu_GradientMapTextureArray = glPool.Reserved_Texture_Units[1];
-        }
-        else
-        {
-            tu_DisplacementMap0 = glPool.Reserved_Texture_Units[0];
-            tu_DisplacementMap1 = glPool.Reserved_Texture_Units[1];
-            tu_DisplacementMap2 = glPool.Reserved_Texture_Units[2];
-            tu_DisplacementMap3 = glPool.Reserved_Texture_Units[3];
-            tu_GradientMap0 = glPool.Reserved_Texture_Units[4];
-            tu_GradientMap1 = glPool.Reserved_Texture_Units[5];
-            tu_GradientMap2 = glPool.Reserved_Texture_Units[6];
-            tu_GradientMap3 = glPool.Reserved_Texture_Units[7];
         }
 
         if(m_params.use_texture_arrays)
@@ -1539,6 +1519,135 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             }
         }
 
+        bindRenderTexturesGL2(pShaderInputRegisterMappings, glPool);
+
+        // Constants
+        Vector4f UVScaleCascade0123 = new Vector4f();
+        UVScaleCascade0123.x = 1.0f / m_params.cascades[0].fft_period;
+        UVScaleCascade0123.y = 1.0f / m_params.cascades[1].fft_period;
+        UVScaleCascade0123.z = 1.0f / m_params.cascades[2].fft_period;
+        UVScaleCascade0123.w = 1.0f / m_params.cascades[3].fft_period;
+
+//        gfsdk_float4x4 inv_mat_view;
+//        gfsdk_float4 vec_original = {0,0,0,1};
+//        gfsdk_float4 vec_transformed;
+//        mat4Inverse(inv_mat_view,matView);
+//        vec4Mat4Mul(vec_transformed, vec_original, inv_mat_view);
+//        gfsdk_float4 vGlobalEye = vec_transformed;
+        Vector3f vGlobalEye = new Vector3f();
+        Matrix4f.decompseRigidMatrix(matView, vGlobalEye, null, null, null);
+
+        final float texel_len = m_params.cascades[0].fft_period / m_params.cascades[0].fft_resolution;
+        final float cascade1Scale = m_params.cascades[0].fft_period/m_params.cascades[1].fft_period;
+        final float cascade1TexelScale = (m_params.cascades[0].fft_period * m_params.cascades[1].fft_resolution) / (m_params.cascades[1].fft_period * m_params.cascades[0].fft_resolution);
+        final float cascade1UVOffset = 0;
+        final float cascade2Scale = m_params.cascades[0].fft_period/m_params.cascades[2].fft_period;
+        final float cascade2TexelScale = (m_params.cascades[0].fft_period * m_params.cascades[2].fft_resolution) / (m_params.cascades[2].fft_period * m_params.cascades[0].fft_resolution);
+        final float cascade2UVOffset = 0;
+        final float cascade3Scale = m_params.cascades[0].fft_period/m_params.cascades[3].fft_period;
+        final float cascade3TexelScale = (m_params.cascades[0].fft_period * m_params.cascades[3].fft_resolution) / (m_params.cascades[3].fft_period * m_params.cascades[0].fft_resolution);
+        final float cascade3UVOffset = 0;
+
+        if(rm_g_WorldEye != nvrm_unused)
+        {
+            gl.glUniform3f(rm_g_WorldEye, vGlobalEye.x, vGlobalEye.y, vGlobalEye.z);
+        }
+        if(rm_g_UseTextureArrays != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_UseTextureArrays, m_params.use_texture_arrays ? 1.0f:0.0f); 
+        }
+        if(rm_g_UVScaleCascade0123 != nvrm_unused)
+        {
+            gl.glUniform4f(rm_g_UVScaleCascade0123, UVScaleCascade0123.x, UVScaleCascade0123.y, UVScaleCascade0123.z, UVScaleCascade0123.w);
+        }
+        if(rm_g_TexelLength_x2_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_TexelLength_x2_PS, texel_len); 
+        }
+        //
+        if(rm_g_Cascade1Scale_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_Cascade1Scale_PS, cascade1Scale); 
+        }
+        if(rm_g_Cascade1TexelScale_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_Cascade1TexelScale_PS, cascade1TexelScale); 
+        }
+        if(rm_g_Cascade1UVOffset_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_Cascade1UVOffset_PS, cascade1UVOffset); 
+        }
+
+        if(rm_g_Cascade2Scale_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_Cascade2Scale_PS, cascade2Scale); 
+        }
+        if(rm_g_Cascade2TexelScale_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_Cascade2TexelScale_PS, cascade2TexelScale); 
+        }
+        if(rm_g_Cascade2UVOffset_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_Cascade2UVOffset_PS, cascade2UVOffset); 
+        }
+
+        if(rm_g_Cascade3Scale_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_Cascade3Scale_PS, cascade3Scale); 
+        }
+        if(rm_g_Cascade3TexelScale_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_Cascade3TexelScale_PS, cascade3TexelScale); 
+        }
+        if(rm_g_Cascade3UVOffset_PS != nvrm_unused)
+        {
+            gl.glUniform1f(rm_g_Cascade3UVOffset_PS, cascade3UVOffset); 
+        }
+        return HRESULT.S_OK;
+    }
+
+    private void bindRenderTexturesGL2(int[] pShaderInputRegisterMappings, GFSDK_WaveWorks_Simulation_GL_Pool glPool
+                                       ){
+
+        final int rm_g_textureBindLocationDisplacementMap0 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMap0];
+        final int rm_g_textureBindLocationDisplacementMap1 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMap1];
+        final int rm_g_textureBindLocationDisplacementMap2 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMap2];
+        final int rm_g_textureBindLocationDisplacementMap3 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMap3];
+        final int rm_g_textureBindLocationGradientMap0 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMap0];
+        final int rm_g_textureBindLocationGradientMap1 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMap1];
+        final int rm_g_textureBindLocationGradientMap2 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMap2];
+        final int rm_g_textureBindLocationGradientMap3 = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMap3];
+        final int rm_g_textureBindLocationDisplacementMapArray = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationDisplacementMapArray];
+        final int rm_g_textureBindLocationGradientMapArray = pShaderInputRegisterMappings[ShaderInputGL2_g_textureBindLocationGradientMapArray];
+
+        int tu_DisplacementMap0 = 0;
+        int tu_DisplacementMap1 = 0;
+        int tu_DisplacementMap2 = 0;
+        int tu_DisplacementMap3 = 0;
+        int tu_GradientMap0 = 0;
+        int tu_GradientMap1 = 0;
+        int tu_GradientMap2 = 0;
+        int tu_GradientMap3 = 0;
+        int tu_DisplacementMapTextureArray = 0;
+        int tu_GradientMapTextureArray = 0;
+
+        if(m_params.use_texture_arrays)
+        {
+            tu_DisplacementMapTextureArray = glPool.Reserved_Texture_Units[0];
+            tu_GradientMapTextureArray = glPool.Reserved_Texture_Units[1];
+        }
+        else
+        {
+            tu_DisplacementMap0 = glPool.Reserved_Texture_Units[0];
+            tu_DisplacementMap1 = glPool.Reserved_Texture_Units[1];
+            tu_DisplacementMap2 = glPool.Reserved_Texture_Units[2];
+            tu_DisplacementMap3 = glPool.Reserved_Texture_Units[3];
+            tu_GradientMap0 = glPool.Reserved_Texture_Units[4];
+            tu_GradientMap1 = glPool.Reserved_Texture_Units[5];
+            tu_GradientMap2 = glPool.Reserved_Texture_Units[6];
+            tu_GradientMap3 = glPool.Reserved_Texture_Units[7];
+        }
+
         // Textures
         if(m_params.use_texture_arrays)
         {
@@ -1546,12 +1655,14 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             {
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMapTextureArray);
                 gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_d3d._GL2.m_DisplacementsTextureArray);
+
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
                 gl.glUniform1i(rm_g_textureBindLocationDisplacementMapArray, tu_DisplacementMapTextureArray);
             }
+
             if(rm_g_textureBindLocationGradientMapArray != nvrm_unused)
             {
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMapTextureArray);
@@ -1653,90 +1764,155 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glUniform1i(rm_g_textureBindLocationGradientMap3, tu_GradientMap3);
             }
         }
+    }
 
-        // Constants
-        Vector4f UVScaleCascade0123 = new Vector4f();
-        UVScaleCascade0123.x = 1.0f / m_params.cascades[0].fft_period;
-        UVScaleCascade0123.y = 1.0f / m_params.cascades[1].fft_period;
-        UVScaleCascade0123.z = 1.0f / m_params.cascades[2].fft_period;
-        UVScaleCascade0123.w = 1.0f / m_params.cascades[3].fft_period;
+    private void bindRenderTexturesD3D11(){
+        int tu_DisplacementMap0 = 0;
+        int tu_DisplacementMap1 = 0;
+        int tu_DisplacementMap2 = 0;
+        int tu_DisplacementMap3 = 0;
+        int tu_GradientMap0 = 0;
+        int tu_GradientMap1 = 0;
+        int tu_GradientMap2 = 0;
+        int tu_GradientMap3 = 0;
+        int tu_DisplacementMapTextureArray = 0;
+        int tu_GradientMapTextureArray = 0;
 
-//        gfsdk_float4x4 inv_mat_view;
-//        gfsdk_float4 vec_original = {0,0,0,1};
-//        gfsdk_float4 vec_transformed;
-//        mat4Inverse(inv_mat_view,matView);
-//        vec4Mat4Mul(vec_transformed, vec_original, inv_mat_view);
-//        gfsdk_float4 vGlobalEye = vec_transformed;
-        Vector3f vGlobalEye = new Vector3f();
-        Matrix4f.decompseRigidMatrix(matView, vGlobalEye, null, null, null);
-
-        final float texel_len = m_params.cascades[0].fft_period / m_params.cascades[0].fft_resolution;
-        final float cascade1Scale = m_params.cascades[0].fft_period/m_params.cascades[1].fft_period;
-        final float cascade1TexelScale = (m_params.cascades[0].fft_period * m_params.cascades[1].fft_resolution) / (m_params.cascades[1].fft_period * m_params.cascades[0].fft_resolution);
-        final float cascade1UVOffset = 0;
-        final float cascade2Scale = m_params.cascades[0].fft_period/m_params.cascades[2].fft_period;
-        final float cascade2TexelScale = (m_params.cascades[0].fft_period * m_params.cascades[2].fft_resolution) / (m_params.cascades[2].fft_period * m_params.cascades[0].fft_resolution);
-        final float cascade2UVOffset = 0;
-        final float cascade3Scale = m_params.cascades[0].fft_period/m_params.cascades[3].fft_period;
-        final float cascade3TexelScale = (m_params.cascades[0].fft_period * m_params.cascades[3].fft_resolution) / (m_params.cascades[3].fft_period * m_params.cascades[0].fft_resolution);
-        final float cascade3UVOffset = 0;
-
-        if(rm_g_WorldEye != nvrm_unused)
+        if(m_params.use_texture_arrays)
         {
-            gl.glUniform3f(rm_g_WorldEye, vGlobalEye.x, vGlobalEye.y, vGlobalEye.z);
+            tu_DisplacementMapTextureArray = 0;
+            tu_GradientMapTextureArray = 1;
         }
-        if(rm_g_UseTextureArrays != nvrm_unused)
+        else
         {
-            gl.glUniform1f(rm_g_UseTextureArrays, m_params.use_texture_arrays ? 1.0f:0.0f); 
-        }
-        if(rm_g_UVScaleCascade0123 != nvrm_unused)
-        {
-            gl.glUniform4f(rm_g_UVScaleCascade0123, UVScaleCascade0123.x, UVScaleCascade0123.y, UVScaleCascade0123.z, UVScaleCascade0123.w);
-        }
-        if(rm_g_TexelLength_x2_PS != nvrm_unused)
-        {
-            gl.glUniform1f(rm_g_TexelLength_x2_PS, texel_len); 
-        }
-        //
-        if(rm_g_Cascade1Scale_PS != nvrm_unused)
-        {
-            gl.glUniform1f(rm_g_Cascade1Scale_PS, cascade1Scale); 
-        }
-        if(rm_g_Cascade1TexelScale_PS != nvrm_unused)
-        {
-            gl.glUniform1f(rm_g_Cascade1TexelScale_PS, cascade1TexelScale); 
-        }
-        if(rm_g_Cascade1UVOffset_PS != nvrm_unused)
-        {
-            gl.glUniform1f(rm_g_Cascade1UVOffset_PS, cascade1UVOffset); 
+            tu_DisplacementMap0 = 0;
+            tu_DisplacementMap1 = 1;
+            tu_DisplacementMap2 = 2;
+            tu_DisplacementMap3 = 3;
+            tu_GradientMap0 = 4;
+            tu_GradientMap1 = 5;
+            tu_GradientMap2 = 6;
+            tu_GradientMap3 = 7;
         }
 
-        if(rm_g_Cascade2Scale_PS != nvrm_unused)
+        // Textures
+        if(m_params.use_texture_arrays)
         {
-            gl.glUniform1f(rm_g_Cascade2Scale_PS, cascade2Scale); 
-        }
-        if(rm_g_Cascade2TexelScale_PS != nvrm_unused)
-        {
-            gl.glUniform1f(rm_g_Cascade2TexelScale_PS, cascade2TexelScale); 
-        }
-        if(rm_g_Cascade2UVOffset_PS != nvrm_unused)
-        {
-            gl.glUniform1f(rm_g_Cascade2UVOffset_PS, cascade2UVOffset); 
-        }
+//            if(rm_g_textureBindLocationDisplacementMapArray != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMapTextureArray);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_d3d._GL2.m_DisplacementsTextureArray);
 
-        if(rm_g_Cascade3Scale_PS != nvrm_unused)
-        {
-            gl.glUniform1f(rm_g_Cascade3Scale_PS, cascade3Scale); 
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+            }
+
+//            if(rm_g_textureBindLocationGradientMapArray != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMapTextureArray);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_d3d._GL2.m_GradientsTextureArray);
+                gl.glTexParameterf(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MAX_ANISOTROPY_EXT, m_params.aniso_level);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+            }
         }
-        if(rm_g_Cascade3TexelScale_PS != nvrm_unused)
+        else
+
         {
-            gl.glUniform1f(rm_g_Cascade3TexelScale_PS, cascade3TexelScale); 
+//            if(rm_g_textureBindLocationDisplacementMap0 != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMap0);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[0].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture());
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+//                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap0, tu_DisplacementMap0);
+            }
+//            if(rm_g_textureBindLocationDisplacementMap1 != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMap1);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[1].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture());
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+//                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap1, tu_DisplacementMap1);
+            }
+//            if(rm_g_textureBindLocationDisplacementMap2 != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMap2);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[2].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture());
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+//                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap2, tu_DisplacementMap2);
+            }
+//            if(rm_g_textureBindLocationDisplacementMap3 != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMap3);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[3].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture());
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+//                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap3, tu_DisplacementMap3);
+            }
+            //
+//            if(rm_g_textureBindLocationGradientMap0 != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMap0);
+//                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[0].m_d3d._GL2.m_GL2GradientMap[m_active_GPU_slot]);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[0].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture());
+                gl.glTexParameterf(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAX_ANISOTROPY_EXT, m_params.aniso_level);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+//                gl.glUniform1i(rm_g_textureBindLocationGradientMap0, tu_GradientMap0);
+            }
+//            if(rm_g_textureBindLocationGradientMap1 != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMap1);
+//                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[1].m_d3d._GL2.m_GL2GradientMap[m_active_GPU_slot]);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[1].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture());
+                gl.glTexParameterf(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAX_ANISOTROPY_EXT, m_params.aniso_level);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+//                gl.glUniform1i(rm_g_textureBindLocationGradientMap1, tu_GradientMap1);
+            }
+//            if(rm_g_textureBindLocationGradientMap2 != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMap2);
+//                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[2].m_d3d._GL2.m_GL2GradientMap[m_active_GPU_slot]);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[2].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture());
+                gl.glTexParameterf(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAX_ANISOTROPY_EXT, m_params.aniso_level);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+//                gl.glUniform1i(rm_g_textureBindLocationGradientMap2, tu_GradientMap2);
+            }
+//            if(rm_g_textureBindLocationGradientMap3 != nvrm_unused)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMap3);
+//                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[3].m_d3d._GL2.m_GL2GradientMap[m_active_GPU_slot]);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[3].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture());
+                gl.glTexParameterf(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAX_ANISOTROPY_EXT, m_params.aniso_level);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+//                gl.glUniform1i(rm_g_textureBindLocationGradientMap3, tu_GradientMap3);
+            }
         }
-        if(rm_g_Cascade3UVOffset_PS != nvrm_unused)
-        {
-            gl.glUniform1f(rm_g_Cascade3UVOffset_PS, cascade3UVOffset); 
-        }
-        return HRESULT.S_OK;
     }
 
     private void consumeGPUSlot(){

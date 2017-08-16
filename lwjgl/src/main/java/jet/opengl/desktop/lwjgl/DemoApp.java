@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import jet.opengl.demos.nvidia.waves.samples.OceanWaveDemo;
+import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
@@ -99,7 +99,9 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new OceanWaveDemo());
+        run(new SampleD3D11());
+
+        testRectVertex();
 
         if(true) return;
 
@@ -118,6 +120,30 @@ public class DemoApp {
         }
 
         Assimp.aiReleaseImport(scene);
+    }
+
+    private static void testRectVertex(){
+        int mWidth = 1,
+                mHeight = 1,
+                mSegsH = 1,
+                mSegsW = 1;
+        int i, j;
+        for(i = 0; i <= mSegsH; i++){
+            for(j = 0; j <= mSegsW; j++){
+
+                //Vertices
+                float v1 = ((float)j/mSegsW - 0.5f)*mWidth;
+                float v2 = ((float)i/mSegsH - 0.5f)*mHeight;
+
+                System.out.printf("Vertex: %f, %f.\n", v1, v2);
+
+                //TextureCoords
+                float u = (float) j / (float) mSegsW;
+                float v = (float) i / (float) mSegsH;
+
+                System.out.printf("Texcoord: %f, %f.\n", u, v);
+            }
+        }
     }
 
     static void saveMeshData(AIMesh mesh, int index){

@@ -14,11 +14,11 @@ import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.buffer.VertexArrayObject;
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
-import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 
@@ -35,7 +35,7 @@ final class OceanSurface implements Disposeable{
 
 //    ID3DX11Effect*			m_pOceanFX;
     GLSLProgram m_pRenderSurfaceTechnique;
-    GLSLProgram		m_pRenderSurfaceShadedWithShorelinePass;
+    OceanSurfaceShadedProgram		m_pRenderSurfaceShadedWithShorelinePass;
 //	ID3DX11EffectPass*		m_pRenderSurfaceWireframeWithShorelinePass;
 
     VertexArrayObject m_pQuadLayout;
@@ -75,9 +75,10 @@ final class OceanSurface implements Disposeable{
 //        m_pRenderSurfaceTechnique = m_pOceanFX->GetTechniqueByName("RenderOceanSurfTech");
 //        m_pRenderSurfaceShadedWithShorelinePass = m_pRenderSurfaceTechnique->GetPassByName("Pass_Solid_WithShoreline");
         final String shader_path = "nvidia/WaveWorks/shaders/";
-        m_pRenderSurfaceShadedWithShorelinePass =GLSLProgram.createProgram(shader_path + "OceanWaveVS.vert", shader_path + "OceanWaveHS.gltc",
+        m_pRenderSurfaceShadedWithShorelinePass =/*GLSLProgram.createProgram(shader_path + "OceanWaveVS.vert", shader_path + "OceanWaveHS.gltc",
                 shader_path+"OceanWaveDS.glte", shader_path+"SolidWireGS.gemo", shader_path+"OceanWaveShorePS.frag",
-                CommonUtil.toArray(new Macro("GFSDK_WAVEWORKS_USE_TESSELLATION", 1)));
+                CommonUtil.toArray(new Macro("GFSDK_WAVEWORKS_USE_TESSELLATION", 1)))*/
+                new OceanSurfaceShadedProgram();
         m_pRenderSurfaceShadedWithShorelinePass.setName("RenderOceanWave");
 
         try {
@@ -253,6 +254,47 @@ final class OceanSurface implements Disposeable{
 
         if(!context.m_printOcen){
             m_pRenderSurfaceShadedWithShorelinePass.printPrograminfo();
+        }
+    }
+
+    void renderShaded(IsParameters params,
+                      GFSDK_WaveWorks_Simulation hSim,
+                      GFSDK_WaveWorks_Savestate hSavestate){
+        if( pDistanceFieldModule != null)
+        {
+            // Apply data tex SRV
+            pDistanceFieldModule.GetWorldToTopDownTextureMatrix( topDownMatrix );
+
+//            XMFLOAT4X4 tdmStore;
+//            XMStoreFloat4x4(&tdmStore, topDownMatrix);
+            GLCheck.checkError();
+            m_pRenderSurfaceShadedWithShorelinePass.enable();
+//            m_pOceanFX->GetVariableByName("g_WorldToTopDownTextureMatrix")->AsMatrix()->SetMatrix( (FLOAT*)&tdmStore );
+            GLCheck.checkError();
+            m_pRenderSurfaceShadedWithShorelinePass.setUniforms(params);
+            GLCheck.checkError();
+
+//            m_pRenderSurfaceShadedWithShorelinePass->Apply( 0, pDC );
+            GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_SetRenderStateD3D11(hSim, params.g_ModelViewMatrix, m_pSimulationShaderInputMappings_Shore, hSavestate);
+            GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_DrawD3D11(m_hOceanQuadTree, params.g_ModelViewMatrix, params.g_Projection, m_pQuadTreeShaderInputMappings_Shore, hSavestate);
+
+//            m_pOceanFX->GetVariableByName("g_DataTexture")->AsShaderResource()->SetResource( NULL );
+            GLCheck.checkError();
+        }
+//        GFSDK_WaveWorks.GFSDK_WaveWorks_Savestate_RestoreD3D11(hSavestate, pDC);
+
+        if(!context.m_printOcen){
+            m_pRenderSurfaceShadedWithShorelinePass.printPrograminfo();
+        }
+
+        for(int i = 15; i >=0; i--){
+            gl.glActiveTexture(GLenum.GL_TEXTURE0 + i);
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+            gl.glBindSampler(i, 0);
+        }
+
+        for(int i = 4; i >=0; i--){
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, i, 0);
         }
     }
 

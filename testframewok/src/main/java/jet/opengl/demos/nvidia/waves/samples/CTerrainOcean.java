@@ -238,6 +238,7 @@ final class CTerrainOcean {
 
         gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(clearColor));
         gl.glClearBufferfv(GLenum.GL_DEPTH, 0, CacheBuffer.wrap(1.0f));
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
 
         // drawing terrain to main buffer
         params.g_TerrainBeingRendered = 1.0f;
@@ -284,8 +285,12 @@ final class CTerrainOcean {
         camera_modelView.load(params.g_ModelViewMatrix);
         camera_mvp.load(params.g_ModelViewProjectionMatrix);
 
-        camera_projection.set(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
-        Matrix4f.mul(camera_projection, params.g_ModelViewMatrix, params.g_ModelViewMatrix); // Rotate the model view
+        camera_projection.setIdentity();
+        camera_projection.m11 = camera_projection.m22 = 0;
+        camera_projection.m12 = -1;
+        camera_projection.m21 = 1;
+//        camera_projection.set(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
+        Matrix4f.mul(params.g_ModelViewMatrix, camera_projection,params.g_ModelViewMatrix); // Rotate the model view
         Matrix4f.mul(params.g_Projection, params.g_ModelViewMatrix, params.g_ModelViewProjectionMatrix);
 
         // drawing water surface to main buffer
@@ -293,10 +298,13 @@ final class CTerrainOcean {
             // some query stuffs
         }
 
-        context.g_pOceanSurf.renderShaded(/*pContext,*/ camera_modelView,params.g_Projection,
-                context.g_hOceanSimulation, context.g_hOceanSavestate, params.g_WindDirection,
-                params.g_GerstnerSteepness, params.g_BaseGerstnerAmplitude, params.g_BaseGerstnerWavelength,
-                params.g_BaseGerstnerSpeed, params.g_BaseGerstnerParallelness, context.g_ShoreTime);
+//        context.g_pOceanSurf.renderShaded(/*pContext,*/ params.g_ModelViewMatrix,params.g_Projection,
+//                context.g_hOceanSimulation, context.g_hOceanSavestate, params.g_WindDirection,
+//                params.g_GerstnerSteepness, params.g_BaseGerstnerAmplitude, params.g_BaseGerstnerWavelength,
+//                params.g_BaseGerstnerSpeed, params.g_BaseGerstnerParallelness, context.g_ShoreTime);
+
+        context.g_pOceanSurf.renderShaded(params, context.g_hOceanSimulation, context.g_hOceanSavestate);
+
         context.g_pOceanSurf.getQuadTreeStats(context.g_ocean_quadtree_stats);
 
         params.g_ModelViewMatrix.load(camera_modelView);
