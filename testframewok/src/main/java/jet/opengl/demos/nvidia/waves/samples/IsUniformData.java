@@ -53,6 +53,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 	int enableShoreOffset = -1; //g_enableShoreEffects
 	int applyFogOffset = -1; //g_ApplyFog
 	int heightFieldSizeOffset = -1;
+	int wireFrameOffset = -1;
 
 	int programId;
 	String debug_name;
@@ -96,6 +97,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 		znearOffset = getUniformIndex("g_ZNear");
 		zfarOffset = getUniformIndex("g_ZFar");
 		heightFieldSizeOffset = getUniformIndex("g_HeightFieldSize");
+		wireFrameOffset = getUniformIndex("g_Wireframe");
 	}
 	
 	void setParameters(IsParameters params){
@@ -142,6 +144,10 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 			gl.glUniform1f(zfarOffset, params.g_ZFar);
 		if(heightFieldSizeOffset != -1)
 			gl.glUniform1f(heightFieldSizeOffset, params.g_HeightFieldSize);
+
+		if(wireFrameOffset != -1)
+			gl.glUniform1f(wireFrameOffset, params.g_Wireframe ? 1.0f: 0.0f);
+
 		GLCheck.checkError();
 //		int tdtmOffset = -1; // g_WorldToTopDownTextureMatrix
 //		int timeOffset = -1; // g_Time

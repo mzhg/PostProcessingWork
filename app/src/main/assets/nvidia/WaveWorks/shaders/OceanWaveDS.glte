@@ -34,18 +34,21 @@ void main()
 
     if(g_enableShoreEffects > 0)
     {
-        GetGerstnerVertexAttributes(NV_ocean.pos_world_undisplaced.xzy, sdfUV, gerstnerDisplacement, gerstnerMultiplier);
+//        GetGerstnerVertexAttributes(NV_ocean.pos_world_undisplaced.xzy, sdfUV, gerstnerDisplacement, gerstnerMultiplier);
+        GetGerstnerVertexAttributes(ConvertToWorldPos(NV_ocean.pos_world_undisplaced.xyz), sdfUV, gerstnerDisplacement, gerstnerMultiplier);
     }
 
     NV_ocean.world_displacement *= 1.0 - 0.7*gerstnerMultiplier;
-    NV_ocean.world_displacement += gerstnerDisplacement.xzy*gerstnerMultiplier;
+//    NV_ocean.world_displacement += gerstnerDisplacement.xzy*gerstnerMultiplier;
+    NV_ocean.world_displacement += ConvertToWorldPos(gerstnerDisplacement)*gerstnerMultiplier;
 
     NV_ocean.pos_world = NV_ocean.pos_world_undisplaced + NV_ocean.world_displacement;
     _output.positionWS = NV_ocean.pos_world;
     _output.displacementWS = NV_ocean.world_displacement;
     _output.positionClip = mul(float4(NV_ocean.pos_world,1.0), g_ModelViewProjectionMatrix);
     _output.world_pos_undisplaced = NV_ocean.pos_world_undisplaced;
-    _output.gerstner_displacement = gerstnerDisplacement.xzy;
+//    _output.gerstner_displacement = gerstnerDisplacement.xzy;
+    _output.gerstner_displacement = ConvertToWorldPos(gerstnerDisplacement);
     _output.gerstner_sdfUV = sdfUV;
     _output.gerstner_multiplier = gerstnerMultiplier;
     _output.NV_ocean_interp = NV_ocean.interp;

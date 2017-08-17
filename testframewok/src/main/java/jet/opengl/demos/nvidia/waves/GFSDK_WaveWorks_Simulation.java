@@ -86,6 +86,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
     
     private final ps_calcgradient_cbuffer m_calcgradient_cbuffer = new ps_calcgradient_cbuffer();
     private final ps_foamgeneration_cbuffer m_foamgeneration_cbuffer = new ps_foamgeneration_cbuffer();
+    private boolean m_printOnce;
 
     public GFSDK_WaveWorks_Simulation(){
         for(int i = 0; i != GFSDK_WaveWorks_Detailed_Simulation_Params.MaxNumCascades; ++i)
@@ -876,6 +877,11 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             hr = cascade_states[cascade].m_pQuadMesh.Draw(/*pGC,*/ PT_TriangleStrip, 0, 0, 4, 0, 2, null);
             if(hr != HRESULT.S_OK) return hr;
 
+            if(!m_printOnce){
+                m_d3d._11.m_pd3d11GradCalcProgram.setName("Grad Calculation");
+                m_d3d._11.m_pd3d11GradCalcProgram.printPrograminfo();
+            }
+
             // Accumulating energy in foam energy map //////////////////////////////////
 
             // Render-targets + viewport
@@ -903,7 +909,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 //            pDC_d3d11->DSSetShader(NULL,NULL,0);
 //            pDC_d3d11->GSSetShader(NULL,NULL,0);
 //            pDC_d3d11->PSSetShader(m_d3d._11.m_pd3d11FoamGenPS,NULL,0);
-
+            m_d3d._11.m_pd3d11FoamGenProgram.enable();
             // Constants
             {
 //                D3D11_CB_Updater<ps_foamgeneration_cbuffer> cbu(pDC_d3d11,m_d3d._11.m_pd3d11FoamGenPixelShaderCB);
@@ -942,6 +948,11 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             // Draw
             hr = cascade_states[cascade].m_pQuadMesh.Draw(PT_TriangleStrip, 0, 0, 4, 0, 2, null);
             if(hr != HRESULT.S_OK)  return hr;
+
+            if(!m_printOnce){
+                m_d3d._11.m_pd3d11FoamGenProgram.setName("Foam Generation BlurY");
+                m_d3d._11.m_pd3d11FoamGenProgram.printPrograminfo();
+            }
 
             // Clear shader resource from inputs
 //            ID3D11ShaderResourceView* pNullSRV = NULL;
@@ -1007,11 +1018,17 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             // Draw
             hr = cascade_states[cascade].m_pQuadMesh.Draw(NVWaveWorks_Mesh.PrimitiveType.PT_TriangleStrip, 0, 0, 4, 0, 2, null);
 
+            if(!m_printOnce){
+                m_d3d._11.m_pd3d11FoamGenProgram.setName("Foam Generation BlurX");
+                m_d3d._11.m_pd3d11FoamGenProgram.printPrograminfo();
+            }
+
             // Generate mips
 //            pDC_d3d11->GenerateMips(cascade_states[cascade].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot]);
             gl.glGenerateTextureMipmap(cascade_states[cascade].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture()); // TODO Need check
 
             cascade_states[cascade].m_gradient_map_version = cascade_states[cascade].m_pFFTSimulation.getDisplacementMapVersion();
+            m_printOnce = true;
         }
 
         // Clear any lingering displacement map reference
@@ -1807,6 +1824,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_DisplacementMapTextureArray, 0);
             }
 
 //            if(rm_g_textureBindLocationGradientMapArray != nvrm_unused)
@@ -1818,6 +1836,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_GradientMapTextureArray, 0);
             }
         }
         else
@@ -1831,6 +1850,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_DisplacementMap0, 0);
 //                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap0, tu_DisplacementMap0);
             }
 //            if(rm_g_textureBindLocationDisplacementMap1 != nvrm_unused)
@@ -1841,6 +1861,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_DisplacementMap1, 0);
 //                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap1, tu_DisplacementMap1);
             }
 //            if(rm_g_textureBindLocationDisplacementMap2 != nvrm_unused)
@@ -1851,6 +1872,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_DisplacementMap2, 0);
 //                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap2, tu_DisplacementMap2);
             }
 //            if(rm_g_textureBindLocationDisplacementMap3 != nvrm_unused)
@@ -1861,6 +1883,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_DisplacementMap3, 0);
 //                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap3, tu_DisplacementMap3);
             }
             //
@@ -1874,6 +1897,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_GradientMap0, 0);
 //                gl.glUniform1i(rm_g_textureBindLocationGradientMap0, tu_GradientMap0);
             }
 //            if(rm_g_textureBindLocationGradientMap1 != nvrm_unused)
@@ -1886,6 +1910,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_GradientMap1, 0);
 //                gl.glUniform1i(rm_g_textureBindLocationGradientMap1, tu_GradientMap1);
             }
 //            if(rm_g_textureBindLocationGradientMap2 != nvrm_unused)
@@ -1898,6 +1923,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_GradientMap2, 0);
 //                gl.glUniform1i(rm_g_textureBindLocationGradientMap2, tu_GradientMap2);
             }
 //            if(rm_g_textureBindLocationGradientMap3 != nvrm_unused)
@@ -1910,6 +1936,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
                 gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+                gl.glBindSampler(tu_GradientMap3, 0);
 //                gl.glUniform1i(rm_g_textureBindLocationGradientMap3, tu_GradientMap3);
             }
         }

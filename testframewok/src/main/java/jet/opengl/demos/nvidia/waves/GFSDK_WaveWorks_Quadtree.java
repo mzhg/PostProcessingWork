@@ -22,7 +22,6 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
-import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
 /**
@@ -1226,7 +1225,7 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, 0);  // unbind the eypos_buffer
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, 0);  // unbind the gemo_buffer.
 
-        LogUtil.i(LogUtil.LogType.DEFAULT, "render count = " + m_stats.num_patches_drawn);
+//        LogUtil.i(LogUtil.LogType.DEFAULT, "render count = " + m_stats.num_patches_drawn);
 //        #if WAVEWORKS_ENABLE_GNM
 //        gnmxWrap->popMarker(*gfxContext_gnm);
 //        #endif

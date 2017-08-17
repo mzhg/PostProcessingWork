@@ -306,7 +306,7 @@ GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES GFSDK_WaveWorks_GetSurfaceAttributes(GFSDK_WA
 					  (1.0-grad_fold3.z));
 
 	// Calculate normal here.
-	float3 normal = normalize(float3(grad, g_TexelLength_x2_PS));
+	float3 normal = normalize(float3(grad.xy, g_TexelLength_x2_PS));
 
 	float hats_c2c_scale = 0.5;		// the larger is the wave, the higher is the chance to start breaking at high folding, so folding for smaller cascade s is decreased
 	float foam_wave_hats =

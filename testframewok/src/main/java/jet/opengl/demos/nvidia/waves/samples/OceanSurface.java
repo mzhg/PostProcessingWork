@@ -215,6 +215,7 @@ final class OceanSurface implements Disposeable{
             }
 
 //            m_pOceanFX->GetVariableByName("g_BaseGerstnerWavelength")->AsScalar()->SetFloat( wavelength );
+
             index = m_pRenderSurfaceShadedWithShorelinePass.getUniformLocation("g_BaseGerstnerWavelength");
             if(index>=0){
                 gl.glUniform1f(index, wavelength);
@@ -260,6 +261,8 @@ final class OceanSurface implements Disposeable{
     void renderShaded(IsParameters params,
                       GFSDK_WaveWorks_Simulation hSim,
                       GFSDK_WaveWorks_Savestate hSavestate){
+        params.g_enableShoreEffects = 1;
+//        params.g_Wireframe = true;
         if( pDistanceFieldModule != null)
         {
             // Apply data tex SRV
@@ -267,17 +270,24 @@ final class OceanSurface implements Disposeable{
 
 //            XMFLOAT4X4 tdmStore;
 //            XMStoreFloat4x4(&tdmStore, topDownMatrix);
-            GLCheck.checkError();
             m_pRenderSurfaceShadedWithShorelinePass.enable();
 //            m_pOceanFX->GetVariableByName("g_WorldToTopDownTextureMatrix")->AsMatrix()->SetMatrix( (FLOAT*)&tdmStore );
-            GLCheck.checkError();
             m_pRenderSurfaceShadedWithShorelinePass.setUniforms(params);
-            GLCheck.checkError();
 
+            int index = m_pRenderSurfaceShadedWithShorelinePass.getUniformLocation("g_WorldToTopDownTextureMatrix");
+            if(index >=0){
+                gl.glUniformMatrix4fv(index, false, CacheBuffer.wrap(topDownMatrix));
+            }
+            if(params.g_Wireframe){
+                gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
+            }
+//
 //            m_pRenderSurfaceShadedWithShorelinePass->Apply( 0, pDC );
             GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_SetRenderStateD3D11(hSim, params.g_ModelViewMatrix, m_pSimulationShaderInputMappings_Shore, hSavestate);
             GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_DrawD3D11(m_hOceanQuadTree, params.g_ModelViewMatrix, params.g_Projection, m_pQuadTreeShaderInputMappings_Shore, hSavestate);
-
+            if(params.g_Wireframe) {
+                gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+            }
 //            m_pOceanFX->GetVariableByName("g_DataTexture")->AsShaderResource()->SetResource( NULL );
             GLCheck.checkError();
         }

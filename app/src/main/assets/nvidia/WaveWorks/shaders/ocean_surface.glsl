@@ -30,7 +30,7 @@ uniform float4		g_WireframeColor = {1.0,1.0,1.0,1.0};
 
 uniform float2      g_WindDirection;
 
-uniform float2      g_ScreenSizeInv;
+uniform float2      g_ScreenSizeInv = {1.0/1280.0, 1.0/720.0};
 uniform float		g_ZNear;
 uniform float		g_ZFar;
 uniform float		g_Time;
@@ -43,7 +43,7 @@ uniform float		g_BaseGerstnerParallelness;
 uniform int		    g_enableShoreEffects;
 
 uniform float		g_Wireframe;
-uniform float2		g_WinSize = {1920.0,1080.0};
+uniform float2		g_WinSize = {1280.0,720.0};
 
 //-----------------------------------------------------------------------------------
 // Texture & Samplers
@@ -53,7 +53,7 @@ layout(binding = 8) uniform sampler2D g_ReflectionTexture;
 layout(binding = 9) uniform sampler2D g_RefractionTexture;
 layout(binding = 10) uniform sampler2D g_RefractionDepthTextureResolved;
 layout(binding = 11) uniform sampler2D g_WaterNormalMapTexture;
-layout(binding = 12) uniform sampler2D g_ShadowmapTexture;
+layout(binding = 12) uniform sampler2DShadow g_ShadowmapTexture;
 layout(binding = 13) uniform sampler2D g_FoamIntensityTexture;
 layout(binding = 14) uniform sampler2D g_FoamDiffuseTexture;
 layout(binding = 15) uniform sampler2D g_DataTexture;
@@ -65,6 +65,11 @@ const float kNumWaves = 1.0; // Total number of Gerster waves of different ampli
 									// i+1-th wave has 20% smaller amplitude, 
 								    // 20% smaller phase and group speed and 20% less parallelity
 							        // Note that all the waves will share the same gerstnerMultiplierOut (lerping between ocean waves and Gerstner waves) for simplicity
+
+float3 ConvertToWorldPos(float3 pos)
+{
+    return float3(pos.xz, -pos.y);
+}
 
 void GetGerstnerVertexAttributes(float3 posWS, out float2 sdfUVOut, out float3 offsetOut, out float gerstnerMultiplierOut)
 {

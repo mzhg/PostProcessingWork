@@ -384,7 +384,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 
         Matrix4f.mul(m_proj, m_params.g_ModelViewMatrix, m_params.g_ModelViewProjectionMatrix);
 
-        m_params.g_Time += getFrameDeltaTime();
+        m_params.g_Time = (float) g_SimulationTime;
         m_params.g_GerstnerSteepness = 1.f;
         m_params.g_BaseGerstnerAmplitude = 0.279f;
         m_params.g_BaseGerstnerWavelength = 3.912f;
@@ -443,6 +443,8 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         m_params.g_Projection = m_proj;
         m_params.g_ZNear = scene_z_near;
         m_params.g_ZFar = scene_z_far;
+        m_params.g_ScreenSizeInv.x = 1.0f/width;
+        m_params.g_ScreenSizeInv.y = 1.0f/height;
 
 //        if(g_Terrain.BackbufferWidth == width && g_Terrain.BackbufferHeight == height)
 //            return;

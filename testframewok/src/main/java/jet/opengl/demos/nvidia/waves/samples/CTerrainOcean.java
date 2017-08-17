@@ -8,7 +8,6 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
-import java.util.Random;
 
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -20,6 +19,7 @@ import jet.opengl.postprocessing.texture.FramebufferGL;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
@@ -52,7 +52,6 @@ final class CTerrainOcean {
     FramebufferGL   main_color_framebuffer;
 
     int backbufferWidth, backbufferHeight;
-    Random random = new Random(123);
 
     float[] clearColor = {0.8f, 0.8f, 1.0f, 1.0f};
     float[] refractionClearColor = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -293,6 +292,38 @@ final class CTerrainOcean {
         Matrix4f.mul(params.g_ModelViewMatrix, camera_projection,params.g_ModelViewMatrix); // Rotate the model view
         Matrix4f.mul(params.g_Projection, params.g_ModelViewMatrix, params.g_ModelViewProjectionMatrix);
 
+        Texture2D dataTexture = context.g_pOceanSurf.pDistanceFieldModule.GetDataTextureSRV();
+        gl.glActiveTexture(GLenum.GL_TEXTURE15);
+        gl.glBindTexture(dataTexture.getTarget(), dataTexture.getTexture());
+        gl.glBindSampler(15, IsSamplers.g_SamplerTrilinearBorder);
+
+        gl.glActiveTexture(GLenum.GL_TEXTURE14);
+        gl.glBindTexture(foam24bit.getTarget(), foam24bit.getTarget());
+        gl.glBindSampler(14, IsSamplers.g_SamplerLinearClamp);
+
+        gl.glActiveTexture(GLenum.GL_TEXTURE13);
+        gl.glBindTexture(foam_intensity_perlin2.getTarget(), foam_intensity_perlin2.getTexture());
+        gl.glBindSampler(13, IsSamplers.g_SamplerLinearWrap);
+
+        gl.glActiveTexture(GLenum.GL_TEXTURE12);
+        gl.glBindTexture(shadownmap_framebuffer.getAttachedTex(0).getTarget(), shadownmap_framebuffer.getAttachedTex(0).getTexture());
+        gl.glBindSampler(12, IsSamplers.g_SamplerDepthAnisotropic);
+
+        gl.glActiveTexture(GLenum.GL_TEXTURE8);
+        TextureGL reflectionTexture = reflection_framebuffer.getAttachedTex(0);
+        gl.glBindTexture(reflectionTexture.getTarget(), reflectionTexture.getTexture());
+        gl.glBindSampler(8, IsSamplers.g_SamplerLinearClamp);
+
+        gl.glActiveTexture(GLenum.GL_TEXTURE10);
+        TextureGL refractionDepthTexture = refraction_framebuffer.getAttachedTex(1);
+        gl.glBindTexture(refractionDepthTexture.getTarget(), refractionDepthTexture.getTexture());
+        gl.glBindSampler(10, IsSamplers.g_SamplerLinearClamp);
+
+        gl.glActiveTexture(GLenum.GL_TEXTURE9);
+        TextureGL refractionTexture = refraction_framebuffer.getAttachedTex(0);
+        gl.glBindTexture(refractionTexture.getTarget(), refractionTexture.getTexture());
+        gl.glBindSampler(9, IsSamplers.g_SamplerLinearWrap);
+
         // drawing water surface to main buffer
         if(context.g_QueryStats) {
             // some query stuffs
@@ -417,7 +448,7 @@ final class CTerrainOcean {
         float terrain_far_range = m_TerrainVB.getTerrainParams().terrain_geometry_scale * m_TerrainVB.getTerrainParams().terrain_gridpoints;
         Matrix4f worldToLightSpace =  params.g_LightModelViewProjectionMatrix;
         Vector3f EyePoint = params.g_LightPosition;
-        EyePoint.set(14000.0f,6500.0f,4000.0f);
+//        EyePoint.set(14000.0f,6500.0f,-4000.0f);
         float distanceFromLightToTarget = EyePoint.length();
 
 //        XMVECTOR LookAtPoint  = XMVectorSet(terrain_far_range / 2.0f, 0.0f, terrain_far_range / 2.0f, 0);
@@ -552,6 +583,11 @@ final class CTerrainOcean {
         renderHeightfieldPatchDataProgram.setRenderShadowmap(false);
         m_TerrainVB.draw(0, true);
         renderHeightfieldPatchDataProgram.disable();
+
+        if(!context.m_printOcen){
+            renderHeightfieldPatchDataProgram.setName("Render Patch Data");
+            renderHeightfieldPatchDataProgram.printPrograminfo();
+        }
     }
 
     void releaseFrameBuffer(){

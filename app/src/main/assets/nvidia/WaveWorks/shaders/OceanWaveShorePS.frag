@@ -41,7 +41,8 @@ void main()
 
     float water_depth;
 
-    float3 water_vertex_positionWS = In.positionWS.xzy;
+//    float3 water_vertex_positionWS = In.positionWS.xzy;
+    float3 water_vertex_positionWS = ConvertToWorldPos(In.positionWS.xyz);
 
     float3 pixel_to_light_vector = normalize(g_LightPosition-water_vertex_positionWS);
     float3 pixel_to_eye_vector = normalize(g_CameraPosition-water_vertex_positionWS);
@@ -64,11 +65,13 @@ void main()
 
         // using PD normal combination
         normal = normalize(float3(surface_attributes.normal.xz*gerstner_normal.y + gerstner_normal.xz*surface_attributes.normal.y, surface_attributes.normal.y*gerstner_normal.y));
-        normal = normal.xzy;
+//        normal = normal.xzy;
+        normal = ConvertToWorldPos(normal);
     }
     else
     {
-        normal = surface_attributes.normal.xzy;
+//        normal = surface_attributes.normal.xzy;
+        normal = ConvertToWorldPos(surface_attributes.normal);
     }
 
     float3 reflected_eye_to_pixel_vector=-pixel_to_eye_vector+2*dot(pixel_to_eye_vector,normal)*normal;
@@ -76,12 +79,13 @@ void main()
     // calculating pixel position in light space
     float4 positionLS = mul(float4(water_vertex_positionWS,1),g_LightModelViewProjectionMatrix);
     positionLS.xyz/=positionLS.w;
-    positionLS.x=(positionLS.x+1)*0.5;
-    positionLS.y=(1-positionLS.y)*0.5;
+//    positionLS.x=(positionLS.x+1)*0.5;
+//    positionLS.y=(1-positionLS.y)*0.5;
+    positionLS.xyz = 0.5 * positionLS.xyz + 0.5;
     positionLS.z = min(0.99,positionLS.z);
 
     // calculating shadow multiplier to be applied to diffuse/scatter/specular light components
-    float shadow_factor = texture(g_ShadowmapTexture,positionLS.xy,positionLS.z* 0.995f).r;  // SamplerDepthAnisotropic
+    float shadow_factor = texture(g_ShadowmapTexture,float3(positionLS.xy,positionLS.z* 0.995f));  // SamplerDepthAnisotropic
 
     // simulating scattering/double refraction: light hits the side of wave, travels some distance in water, and leaves wave on the other side
     // it's difficult to do it physically correct without photon mapping/ray tracing, so using simple but plausible emulation below
@@ -116,7 +120,7 @@ void main()
     float refraction_depth = GetRefractionDepth(gl_FragCoord.xy*g_ScreenSizeInv);
     refraction_depth = g_ZFar*g_ZNear / (g_ZFar-refraction_depth*(g_ZFar-g_ZNear));
     float4 vertex_in_viewspace = mul(float4(In.positionWS.xyz,1),g_ModelViewMatrix);
-    water_depth = refraction_depth-vertex_in_viewspace.z;
+    water_depth = refraction_depth-abs(vertex_in_viewspace.z);
 
     if(water_depth < 0)
     {
@@ -129,7 +133,7 @@ void main()
     refraction_depth = GetRefractionDepth(gl_FragCoord.xy*g_ScreenSizeInv+refraction_disturbance);
     refraction_depth = g_ZFar*g_ZNear / (g_ZFar-refraction_depth*(g_ZFar-g_ZNear));
     vertex_in_viewspace= mul(float4(In.positionWS.xyz,1),g_ModelViewMatrix);
-    water_depth = max(water_depth,refraction_depth-vertex_in_viewspace.z);
+    water_depth = max(water_depth,refraction_depth-abs(vertex_in_viewspace.z));
     water_depth = max(0,water_depth);
     float depth_damper = min(1,water_depth*3.0);
     float depth_damper_sss = min(1,water_depth*0.5);

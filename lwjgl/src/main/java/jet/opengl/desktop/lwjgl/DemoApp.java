@@ -101,7 +101,7 @@ public class DemoApp {
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
         run(new SampleD3D11());
 
-        testRectVertex();
+//        testRectVertex();
 
         if(true) return;
 

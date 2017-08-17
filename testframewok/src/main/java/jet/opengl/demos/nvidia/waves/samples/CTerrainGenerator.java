@@ -24,7 +24,7 @@ public class CTerrainGenerator implements Disposeable{
 
     private int heightfield_vertexbuffer;
     private int m_terrian_grid_count;
-    private final Random m_Random = new Random();
+    private final Random m_Random = new Random(123);
     private TerrainParams m_TerrainParams;
 
     private Texture2D m_layerdef_texture;
@@ -620,7 +620,7 @@ public class CTerrainGenerator implements Disposeable{
 //        public int water_normalmap_resource_buffer_size_xy = 2048;
         public int terrain_layerdef_map_texture_size = 1024;
         public int terrain_depth_shadow_map_texture_size = 512;
-        public long random_seed;
+        public long random_seed = 123;
 //        public int sky_gridpoints = 10;
 //        public float sky_texture_angle = 0.425f;
 //        public float main_buffer_size_multiplier = 1.1f;
