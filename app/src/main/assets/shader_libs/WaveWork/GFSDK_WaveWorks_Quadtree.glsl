@@ -27,7 +27,10 @@
  * strictly prohibited.
  */
 
-#include "WaveWorkCommon.glsl"
+#include "../PostProcessingHLSLCompatiable.glsl"
+
+#define MAX_FFT_RESOLUTION 512
+#define WARP_WIDTH 8 // minimum number of threads which execute in lockstep
 
 /*
  *

@@ -42,7 +42,7 @@ subroutine(ColorOutput) vec4 WaterPatchPS()
 	vec4 positionLS = g_LightModelViewProjectionMatrix * vec4(_input.positionWS, 1);
 	positionLS.xyz/=positionLS.w;
 	positionLS.x=(positionLS.x+1.0)*0.5;
-	positionLS.y=(1.0-positionLS.y)*0.5;
+	positionLS.y=(positionLS.y+1.0)*0.5;
 
 	// calculating shadow multiplier to be applied to diffuse/scatter/specular light components
 	float dsf=1.0f/4096.0f;

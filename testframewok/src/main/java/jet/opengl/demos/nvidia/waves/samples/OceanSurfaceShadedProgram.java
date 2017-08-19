@@ -14,7 +14,10 @@ import jet.opengl.postprocessing.shader.ShaderType;
 
 final class OceanSurfaceShadedProgram extends GLSLProgram{
     private IsUniformData uniformData;
-    OceanSurfaceShadedProgram(){
+
+    OceanSurfaceShadedProgram(){this(false);}
+
+    OceanSurfaceShadedProgram(boolean onlyWave){
 
         final String shader_path = "nvidia/WaveWorks/shaders/";
 //        m_pRenderSurfaceShadedWithShorelinePass =GLSLProgram.createProgram(shader_path + "OceanWaveVS.vert", shader_path + "OceanWaveHS.gltc",
@@ -32,7 +35,7 @@ final class OceanSurfaceShadedProgram extends GLSLProgram{
             ctrl = ShaderLoader.loadShaderFile(shader_path + "OceanWaveHS.gltc", false);
             tess = ShaderLoader.loadShaderFile(shader_path + "OceanWaveDS.glte", false);
             gemo = ShaderLoader.loadShaderFile(shader_path + "SolidWireGS.gemo", false);
-            frag = ShaderLoader.loadShaderFile(shader_path + "OceanWaveShorePS.frag", false);
+            frag = ShaderLoader.loadShaderFile(shader_path + (onlyWave? "OceanWavePS.frag" : "OceanWaveShorePS.frag"), false);
         } catch (IOException e) {
             e.printStackTrace();
         }

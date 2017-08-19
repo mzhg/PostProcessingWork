@@ -799,7 +799,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         for(int cascade = 0; cascade != m_params.num_cascades; ++cascade)
         {
             if(cascade_states[cascade].m_gradient_map_version == cascade_states[cascade].m_pFFTSimulation.getDisplacementMapVersion())
-            continue;
+                continue;
 
             // Rendering folding to gradient map //////////////////////////////////
 
@@ -852,6 +852,10 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 m_calcgradient_cbuffer.store(buf).flip();
 
                 UpdateSubresource(GLenum.GL_UNIFORM_BUFFER, m_d3d._11.m_pd3d11GradCalcPixelShaderCB, buf);
+                if(!m_printOnce){
+                    System.out.println("cascade: " + cascade);
+                    System.out.println(m_calcgradient_cbuffer);
+                }
             }
 //            pDC_d3d11->PSSetConstantBuffers(0, 1, &m_d3d._11.m_pd3d11GradCalcPixelShaderCB);
             gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_d3d._11.m_pd3d11GradCalcPixelShaderCB);
@@ -880,6 +884,8 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             if(!m_printOnce){
                 m_d3d._11.m_pd3d11GradCalcProgram.setName("Grad Calculation");
                 m_d3d._11.m_pd3d11GradCalcProgram.printPrograminfo();
+
+                Simulation_Util.saveTextData("Gradient" + cascade + ".txt", cascade_states[cascade].m_d3d._11.m_pd3d11GradientRenderTarget[m_active_GPU_slot]);
             }
 
             // Accumulating energy in foam energy map //////////////////////////////////
@@ -952,6 +958,8 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             if(!m_printOnce){
                 m_d3d._11.m_pd3d11FoamGenProgram.setName("Foam Generation BlurY");
                 m_d3d._11.m_pd3d11FoamGenProgram.printPrograminfo();
+
+                Simulation_Util.saveTextData("FoamY" + cascade + ".txt", cascade_states[cascade].m_d3d._11.m_pd3d11FoamEnergyRenderTarget);
             }
 
             // Clear shader resource from inputs
@@ -1021,6 +1029,8 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             if(!m_printOnce){
                 m_d3d._11.m_pd3d11FoamGenProgram.setName("Foam Generation BlurX");
                 m_d3d._11.m_pd3d11FoamGenProgram.printPrograminfo();
+
+                Simulation_Util.saveTextData("FoamX" + cascade + ".txt", cascade_states[cascade].m_d3d._11.m_pd3d11GradientRenderTarget[m_active_GPU_slot]);
             }
 
             // Generate mips
@@ -1028,13 +1038,13 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             gl.glGenerateTextureMipmap(cascade_states[cascade].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture()); // TODO Need check
 
             cascade_states[cascade].m_gradient_map_version = cascade_states[cascade].m_pFFTSimulation.getDisplacementMapVersion();
-            m_printOnce = true;
         }
 
         // Clear any lingering displacement map reference
 //        ID3D11ShaderResourceView* pNullSRV = NULL;
 //        pDC_d3d11->PSSetShaderResources(0, 1, &pNullSRV);
 
+        m_printOnce = true;
         return HRESULT.S_OK;
     }
 
@@ -2436,8 +2446,8 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
 
                 final AttribDesc attribute_descs[] =
                 {
-                    new AttribDesc(0,3, GLenum.GL_FLOAT, false, 5*4, 0),			// Pos
-                    new AttribDesc(1,2, GLenum.GL_FLOAT, false, 5*4, 3*4),			// TexCoord
+                    new AttribDesc(0,3, GLenum.GL_FLOAT, false, VertexStride, 0),			// Pos
+                    new AttribDesc(1,2, GLenum.GL_FLOAT, false, VertexStride, 3*4),			// TexCoord
                 };
 
                 NVWaveWorks_Mesh[] out = new NVWaveWorks_Mesh[1];
@@ -3268,6 +3278,19 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
             g_OneTexel_Front.store(buf);
             
             return buf;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuffer sb = new StringBuffer("ps_calcgradient_cbuffer{\n");
+            sb.append("g_ChoppyScale=").append(g_ChoppyScale);
+            sb.append("\n g_GradMap2TexelWSScale=").append(g_GradMap2TexelWSScale);
+            sb.append("\n g_OneTexel_Left=").append(g_OneTexel_Left);
+            sb.append("\n g_OneTexel_Right=").append(g_OneTexel_Right);
+            sb.append("\n g_OneTexel_Back=").append(g_OneTexel_Back);
+            sb.append("\n g_OneTexel_Front=").append(g_OneTexel_Front);
+            sb.append('}');
+            return sb.toString();
         }
     }
 

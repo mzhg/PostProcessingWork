@@ -265,13 +265,13 @@ final class CTerrainOcean {
             renderWater(params);
 
         // drawing readback markers to main buffer
-        context.g_pOceanSurf.renderReadbacks(params.g_ModelViewProjectionMatrix);
+//        context.g_pOceanSurf.renderReadbacks(params.g_ModelViewProjectionMatrix);
 
         // drawing raycast contacts to main buffer
-        context.g_pOceanSurf.renderRayContacts(params.g_ModelViewProjectionMatrix);
+//        context.g_pOceanSurf.renderRayContacts(params.g_ModelViewProjectionMatrix);
 
         // drawing rays to main buffer
-        context.g_pOceanSurf.renderRays(params.g_ModelViewProjectionMatrix);
+//        context.g_pOceanSurf.renderRays(params.g_ModelViewProjectionMatrix);
 
         //drawing sky to main buffer
         renderSky(params);
@@ -286,7 +286,7 @@ final class CTerrainOcean {
 
         camera_projection.setIdentity();
         camera_projection.m11 = camera_projection.m22 = 0;
-        camera_projection.m12 = -1;
+        camera_projection.m12 = 1;
         camera_projection.m21 = 1;
 //        camera_projection.set(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
         Matrix4f.mul(params.g_ModelViewMatrix, camera_projection,params.g_ModelViewMatrix); // Rotate the model view
@@ -299,7 +299,7 @@ final class CTerrainOcean {
 
         gl.glActiveTexture(GLenum.GL_TEXTURE14);
         gl.glBindTexture(foam24bit.getTarget(), foam24bit.getTarget());
-        gl.glBindSampler(14, IsSamplers.g_SamplerLinearClamp);
+        gl.glBindSampler(14, IsSamplers.g_SamplerLinearWrap);
 
         gl.glActiveTexture(GLenum.GL_TEXTURE13);
         gl.glBindTexture(foam_intensity_perlin2.getTarget(), foam_intensity_perlin2.getTexture());
@@ -322,7 +322,7 @@ final class CTerrainOcean {
         gl.glActiveTexture(GLenum.GL_TEXTURE9);
         TextureGL refractionTexture = refraction_framebuffer.getAttachedTex(0);
         gl.glBindTexture(refractionTexture.getTarget(), refractionTexture.getTexture());
-        gl.glBindSampler(9, IsSamplers.g_SamplerLinearWrap);
+        gl.glBindSampler(9, IsSamplers.g_SamplerLinearClamp);
 
         // drawing water surface to main buffer
         if(context.g_QueryStats) {

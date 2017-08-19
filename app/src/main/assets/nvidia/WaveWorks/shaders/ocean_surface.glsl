@@ -68,7 +68,7 @@ const float kNumWaves = 1.0; // Total number of Gerster waves of different ampli
 
 float3 ConvertToWorldPos(float3 pos)
 {
-    return float3(pos.xz, -pos.y);
+    return float3(pos.xz, pos.y);
 }
 
 void GetGerstnerVertexAttributes(float3 posWS, out float2 sdfUVOut, out float3 offsetOut, out float gerstnerMultiplierOut)
@@ -76,7 +76,7 @@ void GetGerstnerVertexAttributes(float3 posWS, out float2 sdfUVOut, out float3 o
 	// getting UV for fetching SDF texture
 	float4 topDownPosition = mul( float4( posWS.xyz, 1), g_WorldToTopDownTextureMatrix );
 	float2 uv = topDownPosition.xy/topDownPosition.w * 0.5f + 0.5f;
-//	uv.y = 1-uv.y;  TODO
+//	uv.y = 1-uv.y;
 
 	// initializing the outputs so we can exit early
 	sdfUVOut = uv;

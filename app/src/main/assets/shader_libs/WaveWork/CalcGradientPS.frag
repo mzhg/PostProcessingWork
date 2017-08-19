@@ -37,10 +37,11 @@ uniform vec4 g_OneTexel_Front;
 
 void main(){
     // Sample neighbour texels
-    vec3 displace_left	    = texture(g_samplerDisplacementMap, vInterpTexCoord.xy + g_OneTexel_Left.xy).rgb;
-    vec3 displace_right	    = texture(g_samplerDisplacementMap, vInterpTexCoord.xy + g_OneTexel_Right.xy).rgb;
-    vec3 displace_back	    = texture(g_samplerDisplacementMap, vInterpTexCoord.xy + g_OneTexel_Back.xy).rgb;
-    vec3 displace_front	    = texture(g_samplerDisplacementMap, vInterpTexCoord.xy + g_OneTexel_Front.xy).rgb;
+    vec3 displace_left	    = textureLod(g_samplerDisplacementMap, vInterpTexCoord.xy + g_OneTexel_Left.xy, 0.0).rgb;
+    vec3 displace_right	    = textureLod(g_samplerDisplacementMap, vInterpTexCoord.xy + g_OneTexel_Right.xy, 0.0).rgb;
+    vec3 displace_back	    = textureLod(g_samplerDisplacementMap, vInterpTexCoord.xy + g_OneTexel_Back.xy, 0.0).rgb;
+    vec3 displace_front	    = textureLod(g_samplerDisplacementMap, vInterpTexCoord.xy + g_OneTexel_Front.xy, 0.0).rgb;
+    vec4 debug_value	    = textureLod(g_samplerDisplacementMap, vInterpTexCoord.xy, 0.0);
 
     // -------- Do not store the actual normal value, instead, it preserves two differential values.
     vec2 gradient = vec2(-(displace_right.z - displace_left.z) / max(0.01,1.0 + g_Scales.y*(displace_right.x - displace_left.x)), -(displace_front.z - displace_back.z) / max(0.01,1.0+g_Scales.y*(displace_front.y - displace_back.y)));

@@ -22,6 +22,8 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.Numeric;
 
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_OK;
 import static jet.opengl.demos.nvidia.waves.Simulation_Util.gauss_map_resolution;
@@ -435,12 +437,14 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                buffer_desc.StructureByteStride = sizeof(float2);
 //                V_RETURN(device->CreateBuffer(&buffer_desc, nullptr, &m_d3d._11.m_buffer_Gauss));
                 _11.m_buffer_Gauss = CreateBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, gauss_size * Vector2f.SIZE, GLenum.GL_DYNAMIC_COPY);
+                System.out.println("The length of the m_buffer_Gauss is "+gauss_size * Vector2f.SIZE);
 
                 // omega
 //                buffer_desc.ByteWidth = omega_size * sizeof(float);
 //                buffer_desc.StructureByteStride = sizeof(float);
 //                V_RETURN(device->CreateBuffer(&buffer_desc, nullptr, &m_d3d._11.m_buffer_Omega));
                 _11.m_buffer_Omega = CreateBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, omega_size * 4, GLenum.GL_DYNAMIC_COPY);
+                System.out.println("The length of the m_buffer_Omega is " + omega_size * 4);
 
 //                buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 
@@ -716,6 +720,27 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         m_d3dAPI = nv_water_d3d_api_undefined;
     }
 
+    private static int g_init_count;
+    HRESULT initGaussAndOmegaLoadData(){
+        final String FILE_PATH = "E:\\textures\\WaveWorks\\";
+        byte[] gauss = DebugTools.loadBytes(FILE_PATH + "gauss" + g_init_count + ".dat");
+        byte[] omega = DebugTools.loadBytes(FILE_PATH + "omega" + g_init_count + ".dat");
+
+        System.out.println("gauss.length = " + gauss.length);
+        System.out.println("omega.length = " + omega.length);
+
+        ByteBuffer gauss_buffer = CacheBuffer.wrap(gauss);
+        UpdateSubresource(GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_buffer_Gauss, gauss_buffer);
+        ByteBuffer omega_buffer = CacheBuffer.wrap(omega);
+        UpdateSubresource(GLenum.GL_SHADER_STORAGE_BUFFER, _11.m_buffer_Omega, omega_buffer);
+
+        m_GaussAndOmegaInitialised = true;
+        m_H0Dirty = true;
+        g_init_count++;
+
+        return HRESULT.S_OK;
+    }
+
     HRESULT initGaussAndOmega(){
 
         int omega_width = m_resolution + 4;
@@ -765,11 +790,13 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         m_GaussAndOmegaInitialised = true;
         m_H0Dirty = true;
 
-        return S_OK;
+        return HRESULT.S_OK;
     }
 
     private static float sqr(float s){ return s*s;}
 
+    private boolean firstFrame;
+//    private static
     private void updateConstantBuffer(double simTime) {
         final float twoPi = 6.28318530718f;
         final float gravity = 9.810f;
@@ -798,6 +825,12 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         constant_buffer.m_power_scale = (float) (-0.5f / gravityScale * Math.sqrt(m_params.small_wave_fraction));
         constant_buffer.m_time = (float) simTime;
         constant_buffer.m_choppy_scale = m_params.choppy_scale;
+
+        if(!firstFrame){
+            byte[] bytes = DebugTools.loadBytes("E:/textures/WaveWorks/time.dat");
+            constant_buffer.m_time = (float) Numeric.getDouble(bytes, 0);
+            firstFrame = true;
+        }
 
         switch(m_d3dAPI)
         {
@@ -830,7 +863,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         if(!m_GaussAndOmegaInitialised)
         {
             GLCheck.checkError();
-            hr = initGaussAndOmega();
+            hr = initGaussAndOmegaLoadData();
             GLCheck.checkError();
             if(hr != HRESULT.S_OK)
                 return hr;
@@ -956,9 +989,9 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                ID3D11UnorderedAccessView* null_uavs[2] = {};
 //                context->CSSetUnorderedAccessViews(0, 2, null_uavs, NULL);
 //                context->CSSetShader(NULL, NULL, 0);
-//                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0); TODO keep the MyConstantBuffer binding for the Ocean Rendering..
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
-                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 1);
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
                 gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, _11.m_uav_Displacement.getFormat());
                 GLCheck.checkError();
                 if(m_ReadbackInitialised)

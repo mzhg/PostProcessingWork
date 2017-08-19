@@ -2,6 +2,7 @@ package jet.opengl.demos.nvidia.waves.samples;
 
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.utils.FieldControl;
 import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
@@ -86,7 +87,6 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     float g_NearPlane = 1.0f;
     float g_FarPlane = 25000.0f;
     double g_SimulationTime = 0.0;
-    float g_FrameTime = 0.0f;
 
     float g_GerstnerSteepness = 1.0f;
     float g_BaseGerstnerAmplitude = 0.279f;
@@ -148,8 +148,14 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     }
 
     @Override
+    public void initUI() {
+        mTweakBar.addValue("Wireframe", new FieldControl(m_params, "g_Wireframe"));
+    }
+
+    @Override
     protected void initRendering() {
         getGLContext().setSwapInterval(0);
+        getGLContext().setAppTitle("SampleD3D11");
         initApp();
 
         IsSamplers.createSamplers();
@@ -324,8 +330,6 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 //            return;
 //        }
 
-        g_FrameTime = fElapsedTime;
-
 //        Vector2f ScreenSizeInv=new Vector2f(1.0f / (g_Terrain.BackbufferWidth*main_buffer_size_multiplier), 1.0f / (g_Terrain.BackbufferHeight*main_buffer_size_multiplier));
 
 //        ID3DX11Effect* oceanFX = g_pOceanSurf->m_pOceanFX;
@@ -341,6 +345,9 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 //        g_pOceanSurf->m_pOceanFX->GetVariableByName("g_enableShoreEffects")->AsScalar()->SetFloat(g_enableShoreEffects? 1.0f:0.0f);TODO
 //        g_Terrain.pEffect->GetVariableByName("g_enableShoreEffects")->AsScalar()->SetFloat(g_enableShoreEffects? 1.0f:0.0f);TODO
 
+        gl.glColorMask(true, true, true, true);
+        gl.glDisable(GLenum.GL_BLEND);
+        gl.glDisable(GLenum.GL_CULL_FACE);
         buildRenderParams();
         g_Terrain.onDraw(m_params);
         g_pDistanceField.GenerateDataTexture( /*pDC*/ );
@@ -398,7 +405,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         g_ocean_quadtree_param.min_patch_length		= 40.f;
         g_ocean_quadtree_param.upper_grid_coverage	= 64.0f;
         g_ocean_quadtree_param.mesh_dim				= 128;
-        g_ocean_quadtree_param.sea_level			= -2.f;
+        g_ocean_quadtree_param.sea_level			= 0.f;
         g_ocean_quadtree_param.auto_root_lod		= 10;
         g_ocean_quadtree_param.use_tessellation		= true;
         g_ocean_quadtree_param.tessellation_lod		= 50.0f;
