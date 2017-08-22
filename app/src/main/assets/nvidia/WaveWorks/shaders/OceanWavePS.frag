@@ -48,12 +48,14 @@ const float3		foam_underwater_color = {0.90f, 0.95f, 1.0f};
 void main()
 {
     GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surface_attributes = GFSDK_WaveWorks_GetSurfaceAttributes(In.NV_ocean_interp);
+//    surface_attributes.normal = float3(surface_attributes.normal.xz, -surface_attributes.normal.y);
 
     float fresnel_factor;
     float diffuse_factor;
     float specular_factor;
     float scatter_factor;
 
+//    surface_attributes.eye_dir = normalize(g_CameraPosition-In.positionWS);
     float3 pixel_to_light_vector=g_SunDir;
     float3 pixel_to_eye_vector=surface_attributes.eye_dir;
     float3 reflected_eye_to_pixel_vector = reflect(-surface_attributes.eye_dir, surface_attributes.normal);
@@ -65,7 +67,7 @@ void main()
     // A worksaround to deal with "indirect reflection vectors" (which are rays requiring multiple
     // reflections to reach the sky).
     if (reflected_eye_to_pixel_vector.z < g_BendParam.x)
-        ramp.y = lerp(ramp.y, g_BendParam.z, (g_BendParam.x - reflected_eye_to_pixel_vector.z)/(g_BendParam.x - g_BendParam.y));
+        ramp.y = lerp(ramp.y, float(g_BendParam.z), (g_BendParam.x - reflected_eye_to_pixel_vector.z)/(g_BendParam.x - g_BendParam.y));
     reflected_eye_to_pixel_vector.z = max(0, reflected_eye_to_pixel_vector.z);
 
 

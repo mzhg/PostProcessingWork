@@ -119,7 +119,7 @@ final class OceanSurfaceTest {
         gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, m_pCubeMap);
         gl.glBindSampler(9, OceanSamplers.g_pCubeSampler);
 
-        params.g_Wireframe = true;
+        params.g_Wireframe = false;
         if(params.g_Wireframe){
             gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
         }
@@ -139,6 +139,7 @@ final class OceanSurfaceTest {
         gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, 0);
 
         if(!m_printOnce){
+            m_pRenderSurfaceShadedPass.setName("Render Ocean Surface");
             m_pRenderSurfaceShadedPass.printPrograminfo();
             m_printOnce = true;
         }

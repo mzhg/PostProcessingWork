@@ -58,9 +58,9 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     GFSDK_WaveWorks_Savestate g_hOceanSavestate = null ;
     GFSDK_WaveWorks_Simulation g_hOceanSimulation = null;
 
-    long[] g_LastKickID = new long[1];
-    long[] g_LastArchivedKickID = {GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID};
-    long[] g_LastReadbackKickID = {GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID};
+    final long[] g_LastKickID = new long[1];
+    final long[] g_LastArchivedKickID = {GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID};
+    final long[] g_LastReadbackKickID = {GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID};
     int g_RenderLatency = 0;
     int g_ReadbackLatency = 0;
     float g_ReadbackCoord = 0.f;
@@ -221,6 +221,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
     public void display() {
         float fElapsedTime = getFrameDeltaTime();
         g_SimulationTime += fElapsedTime;
+//        g_SimulationTime = 10920.f;
         if(g_SimulateWater)
         {
             g_ShoreTime += fElapsedTime*g_ocean_simulation_param.time_scale;
@@ -234,7 +235,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
             if(g_bSyncMode >= SynchronizationMode_RenderOnly)
             {
                 // Block until the just-submitted kick is ready to render
-                long[] stagingCursorKickID = {g_LastKickID[0] - 1};	// Just ensure that the initial value is different from last kick,
+                final long[] stagingCursorKickID = {g_LastKickID[0] - 1};	// Just ensure that the initial value is different from last kick,
                 // so that we continue waiting if the staging cursor is empty
                 GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation, stagingCursorKickID);
                 while(stagingCursorKickID[0] != g_LastKickID[0])
@@ -246,9 +247,9 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 
                 if(g_bSyncMode >= SynchronizationMode_Readback && g_ocean_simulation_settings.readback_displacements)
                 {
-                    long[] readbackCursorKickID = {g_LastKickID[0] - 1};	// Just ensure that the initial value is different from last kick,
+                    final long[] readbackCursorKickID = {g_LastKickID[0] - 1};	// Just ensure that the initial value is different from last kick,
                     // so that we continue waiting if the staging cursor is empty
-                    while(readbackCursorKickID != g_LastKickID)
+                    while(readbackCursorKickID[0] != g_LastKickID[0])
                     {
                         final boolean doBlock = true;
                         GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_AdvanceReadbackCursor(g_hOceanSimulation, doBlock);
@@ -276,14 +277,14 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
                 if((g_LastReadbackKickID[0]-g_LastArchivedKickID[0]) > ReadbackArchiveInterval)
                 {
                     GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_ArchiveDisplacements(g_hOceanSimulation);
-                    g_LastArchivedKickID = g_LastReadbackKickID;
+                    g_LastArchivedKickID[0] = g_LastReadbackKickID[0];
                 }
             }
         }
 
         // deduce the rendering latency of the WaveWorks pipeline
         {
-            long[] staging_cursor_kickID = {0};
+            final long[] staging_cursor_kickID = {0};
             GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,staging_cursor_kickID);
             g_RenderLatency = (int)(g_LastKickID[0] - staging_cursor_kickID[0]);
         }
@@ -291,7 +292,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         // likewise with the readback latency
         if(g_ocean_simulation_settings.readback_displacements)
         {
-            long[] readback_cursor_kickID = {0};
+            final long[] readback_cursor_kickID = {0};
             if(GFSDK_WaveWorks_Result.OK == GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetReadbackCursor(g_hOceanSimulation,readback_cursor_kickID))
             {
                 g_ReadbackLatency = (int)(g_LastKickID[0] - readback_cursor_kickID[0]);
@@ -310,8 +311,8 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
         GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStats(g_hOceanSimulation,g_ocean_simulation_stats);
 
         // Performing treadbacks and raycasts
-        UpdateReadbackPositions();
-        UpdateRaycastPositions();
+//        UpdateReadbackPositions();
+//        UpdateRaycastPositions();
 
         // exponential filtering for stats
         g_ocean_simulation_stats_filtered.CPU_main_thread_wait_time			= g_ocean_simulation_stats_filtered.CPU_main_thread_wait_time*0.98f + 0.02f*g_ocean_simulation_stats.CPU_main_thread_wait_time;
@@ -426,7 +427,7 @@ public class SampleD3D11 extends NvSampleApp implements Constants{
 
         g_ocean_simulation_settings.fft_period						= 400.0f;
         g_ocean_simulation_settings.detail_level					= GFSDK_WaveWorks_Simulation_DetailLevel.Normal;
-        g_ocean_simulation_settings.readback_displacements			= true;
+        g_ocean_simulation_settings.readback_displacements			= false;
         g_ocean_simulation_settings.num_readback_FIFO_entries		= ReadbackArchiveSize;
         g_ocean_simulation_settings.aniso_level						= 16;
         g_ocean_simulation_settings.CPU_simulation_threading_model = GFSDK_WaveWorks_Simulation_CPU_Threading_Model.GFSDK_WaveWorks_Simulation_CPU_Threading_Model_Automatic;

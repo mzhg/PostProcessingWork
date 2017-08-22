@@ -832,6 +832,8 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
             firstFrame = true;
         }
 
+//        System.out.println("constant_buffer.m_time = " + constant_buffer.m_time);
+
         switch(m_d3dAPI)
         {
             case nv_water_d3d_api_d3d11:
@@ -871,12 +873,12 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
         final double fModeSimTime = dSimTime * m_params.time_scale;
 
-        int[] timerSlot = new int[1];
+        final int[] timerSlot = new int[1];
         hr = consumeAvailableTimerSlot(timerSlot,kickID);
         if(hr != HRESULT.S_OK)
             return hr;
 
-        int[] readbackSlot = new int[1];
+        final int[] readbackSlot = new int[1];
         hr = consumeAvailableReadbackSlot(readbackSlot,kickID);
         if(hr != HRESULT.S_OK)
             return hr;
@@ -1218,7 +1220,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         return HRESULT.S_OK;
     }
 
-    HRESULT consumeAvailableReadbackSlot(int[] slot, long kickID){
+    HRESULT consumeAvailableReadbackSlot(final int[] slot, long kickID){
         if(!m_ReadbackInitialised)
             return HRESULT.S_OK;
 

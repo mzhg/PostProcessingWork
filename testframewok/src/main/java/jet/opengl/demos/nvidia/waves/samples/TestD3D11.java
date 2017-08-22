@@ -4,6 +4,8 @@ import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
@@ -32,13 +34,19 @@ public class TestD3D11 extends NvSampleApp {
 
     private static final int ReadbackArchiveSize = 32;
     private static final int ReadbackArchiveInterval = 30;
+    private static final int NumMarkersXY = 7, NumMarkers = NumMarkersXY*NumMarkersXY;
+
+    final Vector2f[] g_local_marker_coords = new Vector2f[NumMarkers];
+    final Vector2f[] g_remote_marker_coords = new Vector2f[NumMarkers];
+    final Vector4f[] g_local_marker_positions = new Vector4f[NumMarkers];
+    final Vector4f[] displacements = new Vector4f[NumMarkers];
 
     private GLFuncProvider gl;
     GFSDK_WaveWorks_Savestate g_hOceanSavestate = null;
     GFSDK_WaveWorks_Simulation g_hOceanSimulation = null;
-    long[] g_LastKickID = {0};
-    long[] g_LastArchivedKickID = {GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID};
-    long[] g_LastReadbackKickID = {GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID};
+    final long[] g_LastKickID = {0};
+    final long[] g_LastArchivedKickID = {GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID};
+    final long[] g_LastReadbackKickID = {GFSDK_WaveWorks.GFSDK_WaveWorks_InvalidKickID};
     int g_RenderLatency = 0;
     int g_ReadbackLatency = 0;
     float g_ReadbackCoord = 0.f;
@@ -114,7 +122,7 @@ public class TestD3D11 extends NvSampleApp {
     final float kFoamDissipationSpeedFactor = 100.0f;
     final float kFoamFadeoutSpeedFactor = 1000.0f;
 
-    final float kWaterScale = 10.f;
+    final float kWaterScale = 1.f;
 
     public TestD3D11() {initApp();}
 
@@ -127,7 +135,7 @@ public class TestD3D11 extends NvSampleApp {
         IsSamplers.createSamplers();
 
         gl = GLFuncProviderFactory.getGLFuncProvider();
-        m_transformer.setTranslation(0.f, -1210.534f, 0.f);
+        m_transformer.setTranslation(0.f, -200.534f, 0.f);
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 
         // Ocean sim
@@ -142,6 +150,7 @@ public class TestD3D11 extends NvSampleApp {
         g_pOceanSurf = new OceanSurfaceTest();
         g_pOceanSurf.init(g_ocean_surface_param);
         g_pOceanSurf.initQuadTree(g_ocean_param_quadtree);
+        GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_UpdateProperties(g_hOceanSimulation, g_ocean_simulation_settings, g_ocean_simulation_param);
         GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_SetFrustumCullMargin(g_pOceanSurf.m_hOceanQuadTree, GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetConservativeMaxDisplacementEstimate(g_hOceanSimulation));
 
         g_SkyBoxRender = new SkyBoxRender(500);
@@ -161,7 +170,7 @@ public class TestD3D11 extends NvSampleApp {
 
     @Override
     public void display() {
-        updateWaveStage();
+        updateWaveState2();
 
 
         // If the settings dialog is being shown, then
@@ -193,7 +202,7 @@ public class TestD3D11 extends NvSampleApp {
 
 //        if(true) return;
 
-        UpdateMarkers();
+//        UpdateMarkers();
         if(g_ocean_simulation_settings.readback_displacements)
             RenderLocalMarkers(/*pDC*/);
         if(g_bShowRemoteMarkers)
@@ -219,6 +228,7 @@ public class TestD3D11 extends NvSampleApp {
             gl.glBindSampler(15, IsSamplers.g_SamplerTrilinearBorder);
 
             g_pOceanSurf.renderShaded(m_params,g_hOceanSimulation, g_hOceanSavestate, g_DebugCam);
+            GLCheck.checkError();
 
 //            if (g_RenderWireframe)
 //                g_pOceanSurf.renderWireframe(pDC, matView,matProj,g_hOceanSimulation, g_hOceanSavestate, g_DebugCam);
@@ -250,7 +260,7 @@ public class TestD3D11 extends NvSampleApp {
     }
 
     void updateWaveState2(){
-        g_SimulationTime += getFrameDeltaTime();
+        g_SimulationTime += getFrameDeltaTime()*5;
 
         if(g_SimulateWater || g_ForceKick || (GFSDK_WaveWorks_Result.NONE==GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,null)))
         {
@@ -274,7 +284,7 @@ public class TestD3D11 extends NvSampleApp {
                 {
                     long[] readbackCursorKickID = {g_LastKickID[0] - 1};	// Just ensure that the initial value is different from last kick,
                     // so that we continue waiting if the staging cursor is empty
-                    while(readbackCursorKickID != g_LastKickID)
+                    while(readbackCursorKickID[0] != g_LastKickID[0])
                     {
                         final boolean doBlock = true;
                         GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_AdvanceReadbackCursor(g_hOceanSimulation, doBlock);
@@ -302,7 +312,7 @@ public class TestD3D11 extends NvSampleApp {
                 if((g_LastReadbackKickID[0]-g_LastArchivedKickID[0]) > ReadbackArchiveInterval)
                 {
                     GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_ArchiveDisplacements(g_hOceanSimulation);
-                    g_LastArchivedKickID = g_LastReadbackKickID;
+                    g_LastArchivedKickID[0] = g_LastReadbackKickID[0];
                 }
             }
         }
@@ -454,7 +464,65 @@ public class TestD3D11 extends NvSampleApp {
     }
 
     void RenderRemoteMarkers(/*ID3D11DeviceContext* pDC*/){}
-    void UpdateMarkers(){}
+    void UpdateMarkers(){
+        // Find where the camera vector intersects mean sea level
+//        XMVECTOR eye_pos = g_Camera.GetEyePt();
+//        XMVECTOR lookat_pos = g_Camera.GetLookAtPt();
+        final Vector3f eye_pos = new Vector3f();
+        final Vector3f lookat_pos = new Vector3f();
+        Matrix4f.decompseRigidMatrix(m_params.g_ModelViewMatrix, eye_pos, lookat_pos, null);
+
+        final float intersectionHeight = g_ocean_param_quadtree.sea_level;
+        final float lambda = (intersectionHeight - eye_pos.getY())/(lookat_pos.getY() - eye_pos.getY());
+//        const XMVECTOR sea_level_pos = (1.f - lambda) * eye_pos + lambda * lookat_pos;
+        final Vector3f sea_level_pos = Vector3f.linear(eye_pos, 1.f - lambda, lookat_pos, lambda, null);
+//        const XMVECTOR sea_level_xy = XMVectorSet(XMVectorGetX(sea_level_pos), XMVectorGetZ(sea_level_pos), 0, 0);
+        final Vector3f sea_level_xy = new Vector3f(sea_level_pos.x, sea_level_pos.z, 0);
+
+        // Update local marker coords, we could need them any time for remote
+        for(int x = 0; x != NumMarkersXY; ++x)
+        {
+            for(int y = 0; y != NumMarkersXY; ++y)
+            {
+//                XMVECTOR offset = XMVectorSet(2.f * (x - ((NumMarkersXY - 1) / 2)), 2.f * (y - ((NumMarkersXY - 1) / 2)), 0, 0);
+//                XMVECTOR newPos = sea_level_xy / kWaterScale + offset;
+                float offsetX = 2.f * (x - ((NumMarkersXY - 1) / 2));
+                float offsetY = 2.f * (y - ((NumMarkersXY - 1) / 2));
+                float newPosX = sea_level_xy.x/kWaterScale + offsetX;
+                float newPosY = sea_level_xy.y/kWaterScale + offsetY;
+
+                g_local_marker_coords[y * NumMarkersXY + x].x = newPosX;
+                g_local_marker_coords[y * NumMarkersXY + x].x = newPosY;
+            }
+        }
+
+        // Do local readback, if requested
+        if(g_ocean_simulation_settings.readback_displacements)
+        {
+            if(g_ReadbackCoord >= 1.f)
+            {
+                final float coord = g_ReadbackCoord - (g_LastReadbackKickID[0]-g_LastArchivedKickID[0]) * 1.f/ReadbackArchiveInterval;
+                GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetArchivedDisplacements(g_hOceanSimulation, coord, g_local_marker_coords, displacements, NumMarkers);
+            }
+            else
+            {
+                GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetDisplacements(g_hOceanSimulation, g_local_marker_coords, displacements, NumMarkers);
+            }
+
+            for(int ix = 0; ix != NumMarkers; ++ix)
+            {
+                g_local_marker_positions[ix].x = displacements[ix].x + g_local_marker_coords[ix].x;
+                g_local_marker_positions[ix].y = displacements[ix].y + g_local_marker_coords[ix].y;
+                g_local_marker_positions[ix].z = displacements[ix].z;
+                g_local_marker_positions[ix].w = 1.f;
+            }
+        }
+
+//        if(g_bShowRemoteMarkers && NULL != g_pNetworkClient)
+//        {
+//            g_pNetworkClient->RequestRemoteMarkerPositions(g_remote_marker_coords,NumMarkers);
+//        }
+    }
 
     void RenderSkybox(/*ID3D11DeviceContext* pDC*/) {
         g_FlipMat.setIdentity();
@@ -488,7 +556,6 @@ public class TestD3D11 extends NvSampleApp {
         m_params.g_BaseGerstnerSpeed = 2.472f;
         m_params.g_BaseGerstnerParallelness = 0.2f;
         m_params.g_WindDirection.set(0.8f, 0.6f);
-
     }
 
     @Override
@@ -510,7 +577,13 @@ public class TestD3D11 extends NvSampleApp {
 //--------------------------------------------------------------------------------------
     void initApp()
     {
-        g_ocean_param_quadtree.min_patch_length		= 40.0f;
+        for(int i = 0; i < g_local_marker_coords.length; i++) {
+            g_local_marker_coords[i] = new Vector2f();
+            g_remote_marker_coords[i] = new Vector2f();
+            g_local_marker_positions[i] = new Vector4f();
+        }
+
+        g_ocean_param_quadtree.min_patch_length		= 1000;
         g_ocean_param_quadtree.upper_grid_coverage	= 64.0f;
         g_ocean_param_quadtree.mesh_dim				= 128;
         g_ocean_param_quadtree.sea_level			= 0.0f;
@@ -518,11 +591,11 @@ public class TestD3D11 extends NvSampleApp {
         g_ocean_param_quadtree.tessellation_lod		= 40.0f;
         g_ocean_param_quadtree.geomorphing_degree	= 1.f;
         g_ocean_param_quadtree.use_tessellation     = true;
-        g_ocean_param_quadtree.enable_CPU_timers	= false;
+        g_ocean_param_quadtree.enable_CPU_timers	= true;
 
         g_ocean_simulation_param.time_scale				= 0.5f;
         g_ocean_simulation_param.wave_amplitude			= 1.0f;
-        g_ocean_simulation_param.wind_dir			    .set(0.8f, 0.6f);
+        g_ocean_simulation_param.wind_dir			    .set(-0.8f, -0.6f);
         g_ocean_simulation_param.wind_speed				= 9.0f;
         g_ocean_simulation_param.wind_dependency			= 0.98f;
         g_ocean_simulation_param.choppy_scale				= 1.f;
@@ -534,11 +607,11 @@ public class TestD3D11 extends NvSampleApp {
 
         g_ocean_simulation_settings.fft_period						= 1000.0f;
         g_ocean_simulation_settings.detail_level					= GFSDK_WaveWorks_Simulation_DetailLevel.High;
-        g_ocean_simulation_settings.readback_displacements			= false;
+        g_ocean_simulation_settings.readback_displacements			= true;
         g_ocean_simulation_settings.num_readback_FIFO_entries		= ReadbackArchiveSize;
         g_ocean_simulation_settings.aniso_level						= 4;
         g_ocean_simulation_settings.CPU_simulation_threading_model  = GFSDK_WaveWorks_Simulation_CPU_Threading_Model.GFSDK_WaveWorks_Simulation_CPU_Threading_Model_Automatic;
-        g_ocean_simulation_settings.use_Beaufort_scale				= false;
+        g_ocean_simulation_settings.use_Beaufort_scale				= true;
         g_ocean_simulation_settings.num_GPUs						= 1;
         g_ocean_simulation_settings.enable_CUDA_timers				= true;
         g_ocean_simulation_settings.enable_gfx_timers				= true;

@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
+import jet.opengl.demos.os.LauncherDemo;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
@@ -99,7 +99,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new TestD3D11());
+        run(new LauncherDemo());
 
 //        testRectVertex();
 

@@ -1043,7 +1043,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         // Clear any lingering displacement map reference
 //        ID3D11ShaderResourceView* pNullSRV = NULL;
 //        pDC_d3d11->PSSetShaderResources(0, 1, &pNullSRV);
-
+        gl.glColorMask(true, true, true, true);
         m_printOnce = true;
         return HRESULT.S_OK;
     }
@@ -1809,6 +1809,7 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         {
             tu_DisplacementMapTextureArray = 0;
             tu_GradientMapTextureArray = 1;
+            throw new IllegalStateException();
         }
         else
         {
@@ -1852,48 +1853,33 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
         else
 
         {
+            boolean useMultiTex = true;
 //            if(rm_g_textureBindLocationDisplacementMap0 != nvrm_unused)
             {
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMap0);
                 gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[0].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture());
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
-                gl.glBindSampler(tu_DisplacementMap0, 0);
+                gl.glBindSampler(tu_DisplacementMap0, m_d3d._11.m_pd3d11LinearNoMipSampler);
 //                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap0, tu_DisplacementMap0);
             }
 //            if(rm_g_textureBindLocationDisplacementMap1 != nvrm_unused)
             {
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMap1);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[1].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture());
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
-                gl.glBindSampler(tu_DisplacementMap1, 0);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, useMultiTex ? cascade_states[1].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture() : 0);
+                gl.glBindSampler(tu_DisplacementMap1, m_d3d._11.m_pd3d11LinearNoMipSampler);
 //                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap1, tu_DisplacementMap1);
             }
 //            if(rm_g_textureBindLocationDisplacementMap2 != nvrm_unused)
             {
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMap2);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[2].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture());
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
-                gl.glBindSampler(tu_DisplacementMap2, 0);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, useMultiTex ? cascade_states[2].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture() : 0);
+                gl.glBindSampler(tu_DisplacementMap2, m_d3d._11.m_pd3d11LinearNoMipSampler);
 //                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap2, tu_DisplacementMap2);
             }
 //            if(rm_g_textureBindLocationDisplacementMap3 != nvrm_unused)
             {
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_DisplacementMap3);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[3].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture());
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
-                gl.glBindSampler(tu_DisplacementMap3, 0);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, useMultiTex ? cascade_states[3].m_pFFTSimulation.GetDisplacementMapD3D11().getTexture() : 0);
+                gl.glBindSampler(tu_DisplacementMap3, m_d3d._11.m_pd3d11LinearNoMipSampler);
 //                gl.glUniform1i(rm_g_textureBindLocationDisplacementMap3, tu_DisplacementMap3);
             }
             //
@@ -1902,51 +1888,28 @@ public class GFSDK_WaveWorks_Simulation implements Disposeable{
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMap0);
 //                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[0].m_d3d._GL2.m_GL2GradientMap[m_active_GPU_slot]);
                 gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[0].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture());
-                gl.glTexParameterf(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAX_ANISOTROPY_EXT, m_params.aniso_level);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
-                gl.glBindSampler(tu_GradientMap0, 0);
+                gl.glBindSampler(tu_GradientMap0, m_d3d._11.m_pd3d11GradMapSampler);
 //                gl.glUniform1i(rm_g_textureBindLocationGradientMap0, tu_GradientMap0);
             }
 //            if(rm_g_textureBindLocationGradientMap1 != nvrm_unused)
             {
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMap1);
-//                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[1].m_d3d._GL2.m_GL2GradientMap[m_active_GPU_slot]);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[1].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture());
-                gl.glTexParameterf(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAX_ANISOTROPY_EXT, m_params.aniso_level);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
-                gl.glBindSampler(tu_GradientMap1, 0);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, useMultiTex ? cascade_states[1].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture() : 0);
+                gl.glBindSampler(tu_GradientMap1, m_d3d._11.m_pd3d11GradMapSampler);
 //                gl.glUniform1i(rm_g_textureBindLocationGradientMap1, tu_GradientMap1);
             }
 //            if(rm_g_textureBindLocationGradientMap2 != nvrm_unused)
             {
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMap2);
-//                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[2].m_d3d._GL2.m_GL2GradientMap[m_active_GPU_slot]);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[2].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture());
-                gl.glTexParameterf(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAX_ANISOTROPY_EXT, m_params.aniso_level);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
-                gl.glBindSampler(tu_GradientMap2, 0);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, useMultiTex ? cascade_states[2].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture() : 0);
+                gl.glBindSampler(tu_GradientMap2, m_d3d._11.m_pd3d11GradMapSampler);
 //                gl.glUniform1i(rm_g_textureBindLocationGradientMap2, tu_GradientMap2);
             }
 //            if(rm_g_textureBindLocationGradientMap3 != nvrm_unused)
             {
                 gl.glActiveTexture(GLenum.GL_TEXTURE0 + tu_GradientMap3);
-//                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[3].m_d3d._GL2.m_GL2GradientMap[m_active_GPU_slot]);
-                gl.glBindTexture(GLenum.GL_TEXTURE_2D, cascade_states[3].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture());
-                gl.glTexParameterf(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAX_ANISOTROPY_EXT, m_params.aniso_level);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
-                gl.glTexParameteri(GLenum.GL_TEXTURE_2D,GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
-                gl.glBindSampler(tu_GradientMap3, 0);
+                gl.glBindTexture(GLenum.GL_TEXTURE_2D, useMultiTex ? cascade_states[3].m_d3d._11.m_pd3d11GradientMap[m_active_GPU_slot].getTexture() : 0);
+                gl.glBindSampler(tu_GradientMap3, m_d3d._11.m_pd3d11GradMapSampler);
 //                gl.glUniform1i(rm_g_textureBindLocationGradientMap3, tu_GradientMap3);
             }
         }

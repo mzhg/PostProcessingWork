@@ -12,6 +12,7 @@ import org.lwjgl.util.vector.Vector3f;
 import java.io.IOException;
 import java.nio.IntBuffer;
 
+import jet.opengl.demos.nvidia.water.WaterWaveSimulator;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree;
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Params;
 import jet.opengl.postprocessing.common.GLCheck;
@@ -25,7 +26,7 @@ public class OceanWaveDemo extends NvSampleApp{
 	static final int FRESNEL_TEX_SIZE = 256;
 	
 	// Ocean simulation variables
-	OceanSimulator g_pOceanSimulator = null;
+	WaterWaveSimulator g_pOceanSimulator = null;
 	GFSDK_WaveWorks_Quadtree g_pOceanRender = null;
 	boolean g_RenderWireframe = false;
 	boolean g_PauseSimulation = false;
@@ -131,9 +132,9 @@ public class OceanWaveDemo extends NvSampleApp{
 		g_ocean_quadtree_param.geomorphing_degree	= 1.f;
 		g_ocean_quadtree_param.enable_CPU_timers	= true;
 
-		g_pOceanSimulator = new OceanSimulator("nvidia/WaveWorks/shaders/", ocean_param);
+		g_pOceanSimulator = WaterWaveSimulator.createOceanSimulator(ocean_param);
 		// Update the simulation for the first time.
-		g_pOceanSimulator.updateDisplacementMap(0);
+		g_pOceanSimulator.updateSimulation(0);
 
 		// Init D3D11 resources for rendering
 		g_pOceanRender = new GFSDK_WaveWorks_Quadtree();
@@ -182,7 +183,7 @@ public class OceanWaveDemo extends NvSampleApp{
 		for(int i = 0; i < FRESNEL_TEX_SIZE; i++){
 			float cos_a = (float)i / FRESNEL_TEX_SIZE;
 			// Using water's refraction index 1.33
-			int fresnel = (int)(Numeric.fresnelTerm(cos_a, 1.33f) * 255);  // TODO
+			int fresnel = (int)(Numeric.fresnelTerm(cos_a, 1.33f) * 255);
 
 			int sky_blend = (int)(Math.pow(1.0 / (1 + cos_a), g_SkyBlending) * 255);
 
@@ -246,11 +247,11 @@ public class OceanWaveDemo extends NvSampleApp{
 			g_SkyBoxRender.draw();
 		}
 		
-		g_pOceanSimulator.updateDisplacementMap(g_AppTime);
+		g_pOceanSimulator.updateSimulation(g_AppTime);
 		
 		// Ocean rendering
-		int tex_displacement = g_pOceanSimulator.getD3D11DisplacementMap();
-		int tex_gradient = g_pOceanSimulator.getD3D11GradientMap();
+		int tex_displacement = g_pOceanSimulator.getDisplacementMap().getTexture();
+		int tex_gradient = g_pOceanSimulator.getGradMap().getTexture();
 
 		renderShaded(tex_displacement, tex_gradient, g_AppTime);
 
@@ -331,5 +332,6 @@ public class OceanWaveDemo extends NvSampleApp{
 	@Override
 	public void onDestroy() {
 		OceanSamplers.destroySamplers();
+		g_pOceanSimulator.dispose();
 	}
 }

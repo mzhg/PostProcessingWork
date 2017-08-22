@@ -74,6 +74,7 @@ subroutine (Technique) void GenGradientFoldingPS()
 	vec3 displace_front = texture(g_samplerDisplacementMap, tc_front).xyz;
 	
 	// Do not store the actual normal value. Using gradient instead, which preserves two differential values.
+//	vec2 gradient = vec2(-(displace_right.z - displace_left.z) / max(0.01,1.0 + g_Scales.y*(displace_right.x - displace_left.x)), -(displace_front.z - displace_back.z) / max(0.01,1.0+g_Scales.y*(displace_front.y - displace_back.y)));
 	vec2 gradient = {-(displace_right.z - displace_left.z), -(displace_front.z - displace_back.z)};
 	
 

@@ -40,7 +40,7 @@ public class OceanSimulatorProgram extends GLSLProgram{
 		mInWidthLoc = gl.glGetUniformLocation(programId, "g_InWidth");
 		mTimeLoc = gl.glGetUniformLocation(programId, "g_Time");
 		mOutHeightLoc = gl.glGetUniformLocation(programId, "g_OutHeight");
-		
+
 		mUpdateDisplacementPSLoc = gl.glGetSubroutineIndex(programId, GLenum.GL_FRAGMENT_SHADER, "UpdateDisplacementPS");
 		mGenGradientFoldingPSLoc = gl.glGetSubroutineIndex(programId, GLenum.GL_FRAGMENT_SHADER, "GenGradientFoldingPS");
 		
@@ -55,7 +55,7 @@ public class OceanSimulatorProgram extends GLSLProgram{
 	public void setChoppyScale(float f) { gl.glUniform1f(mChoppyScaleLoc, f);}
 	public void setDxAddressOffset(int i) { gl.glUniform1i(mDxAddressOffsetLoc, i);}
 	public void setInWidth(int i) { gl.glUniform1i(mInWidthLoc, i);}
-	public void setTime(float f) { gl.glUniform1f(mTimeLoc, f);}
+	public void setTime(float f) { if(mTimeLoc >= 0) gl.glUniform1f(mTimeLoc, f);}
 	public void setOutHeight(int i) { gl.glUniform1i(mOutHeightLoc, i);}
 	public void setSamplerDisplacementMap(int texture) {
 		gl.glActiveTexture(GLenum.GL_TEXTURE0 + 0);

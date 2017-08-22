@@ -1329,7 +1329,7 @@ public final class DebugTools {
                 for(int j = 0; j < length; j ++){
                     float ogl_value = fsrcValues[j];
                     float dx_value = fdstValues[j];
-                    if(!Numeric.isClose(ogl_value, dx_value, 0.01f)){
+                    if(!Numeric.isClose(ogl_value, dx_value, 0.1f)){
                         result.add(mkToken(fsrcValues), mkToken(fdstValues), i);
                         break;
                     }

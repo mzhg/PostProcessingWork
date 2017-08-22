@@ -45,7 +45,7 @@ void main(){
 
     // -------- Do not store the actual normal value, instead, it preserves two differential values.
     vec2 gradient = vec2(-(displace_right.z - displace_left.z) / max(0.01,1.0 + g_Scales.y*(displace_right.x - displace_left.x)), -(displace_front.z - displace_back.z) / max(0.01,1.0+g_Scales.y*(displace_front.y - displace_back.y)));
-    //float2 gradient = {-(displace_right.z - displace_left.z), -(displace_front.z - displace_back.z) };
+//    vec2 gradient = {-(displace_right.z - displace_left.z), -(displace_front.z - displace_back.z) };
 
     // Calculate Jacobian corelation from the partial differential of displacement field
     vec2 Dx = (displace_right.xy - displace_left.xy) * g_Scales.x;
