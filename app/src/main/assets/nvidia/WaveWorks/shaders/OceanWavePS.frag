@@ -35,11 +35,11 @@ const float3		g_BendParam = {0.1f, -0.4f, 0.2f};
 const float3        g_SkyColor = {0.38f, 0.45f, 0.56f};
 const float3		g_SunDir = {0.936016f, -0.343206f, 0.0780013f};
 const float3		g_SunColor = {1.0f, 1.0f, 0.6f};
-const float		g_Shineness = 20.0f;
-const float3      g_WaterDeepColor={0.0,0.4,0.6};
+const float		    g_Shineness = 20.0f;
+const float3        g_WaterDeepColor={0.0,0.4,0.6};
 //const float3      g_WaterScatterColor={0.0,0.7,0.6};
 //const float3      g_WaterSpecularColor={1,0.8,0.5};
-const float2      g_WaterColorIntensity={0.2,0.1};
+const float2        g_WaterColorIntensity={0.2,0.1};
 //const float		g_WaterSpecularIntensity = 0.7f;
 
 //const float3		g_FoamColor = {0.90f, 0.95f, 1.0f};
@@ -48,7 +48,7 @@ const float3		foam_underwater_color = {0.90f, 0.95f, 1.0f};
 void main()
 {
     GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surface_attributes = GFSDK_WaveWorks_GetSurfaceAttributes(In.NV_ocean_interp);
-//    surface_attributes.normal = float3(surface_attributes.normal.xz, -surface_attributes.normal.y);
+//    surface_attributes.normal = float3(surface_attributes.normal.xz, surface_attributes.normal.y);
 
     float fresnel_factor;
     float diffuse_factor;
@@ -69,8 +69,6 @@ void main()
     if (reflected_eye_to_pixel_vector.z < g_BendParam.x)
         ramp.y = lerp(ramp.y, float(g_BendParam.z), (g_BendParam.x - reflected_eye_to_pixel_vector.z)/(g_BendParam.x - g_BendParam.y));
     reflected_eye_to_pixel_vector.z = max(0, reflected_eye_to_pixel_vector.z);
-
-
 
     // simulating scattering/double refraction: light hits the side of wave, travels some distance in water, and leaves wave on the other side
     // it's difficult to do it physically correct without photon mapping/ray tracing, so using simple but plausible emulation below
@@ -152,7 +150,7 @@ void main()
     specular_factor=pow(max(0,dot(pixel_to_light_vector,reflected_eye_to_pixel_vector)),g_Shineness);
 
     // adding specular component
-    //water_color+=g_WaterSpecularIntensity*specular_factor*g_WaterSpecularColor*/*fresnel_factor*/saturate(1.0-5.0*foam_intensity);
+    water_color+=g_WaterSpecularIntensity*specular_factor*g_WaterSpecularColor*/*fresnel_factor*/saturate(1.0-5.0*foam_intensity) * 0.3;
 
     Out_f4Color = float4(water_color, 1);
 }

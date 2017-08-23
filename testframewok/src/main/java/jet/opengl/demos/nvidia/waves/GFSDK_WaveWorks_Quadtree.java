@@ -420,7 +420,9 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         return reinit(params);
     }
 
-
+    public void updateParams(GFSDK_WaveWorks_Quadtree_Params params){
+        reinit(params);
+    }
     // API-independent init
     HRESULT reinit(GFSDK_WaveWorks_Quadtree_Params params){
         HRESULT hr;
@@ -844,9 +846,14 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
     }
 
 
-    HRESULT setFrustumCullMargin (float margin){
+    public void setFrustumCullMargin (float margin){
         frustum_cull_margin = margin;
-        return HRESULT.S_OK;
+//        return HRESULT.S_OK;
+    }
+
+    public void drawMesh(Matrix4f matView, Matrix4f matProj, Vector2f pViewportDims){
+        buildRenderList(matView, matProj, pViewportDims);
+        flushRenderList(null, null);
     }
 
     @CachaRes
@@ -1287,6 +1294,10 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         m_printOnce = true;
     }
 
+    public void createPatch(int x, int y, int lod, boolean enabled){
+        allocPatch(x, y, lod, enabled);
+    }
+
     HRESULT allocPatch(int x, int y, int lod, boolean enabled){
         final AllocQuad  quad = new AllocQuad(new QuadCoord(x,y,lod), enabled);
 
@@ -1313,6 +1324,10 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         return HRESULT.S_OK;
     }
 
+    public void deletePatch(int x, int y, int lod){
+        freePatch(x, y, lod);
+    }
+
     HRESULT freePatch(int x, int y, int lod){
         final AllocQuad dummy_quad = new AllocQuad( new QuadCoord(x,y,lod), true );
 
@@ -1333,9 +1348,9 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
         return HRESULT.S_OK;
     }
 
-    HRESULT getStats(GFSDK_WaveWorks_Quadtree_Stats stats) {
+    public void getStats(GFSDK_WaveWorks_Quadtree_Stats stats) {
         stats.set(m_stats);
-        return HRESULT.S_OK;
+//        return HRESULT.S_OK;
     }
 
     static int getShaderInputCountD3D11() { return NumShaderInputsD3D11;}

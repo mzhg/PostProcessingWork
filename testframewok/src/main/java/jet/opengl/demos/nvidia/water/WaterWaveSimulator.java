@@ -10,6 +10,7 @@ import jet.opengl.postprocessing.texture.Texture2D;
  */
 
 public interface WaterWaveSimulator extends Disposeable{
+    String SHADER_PATH = "nvidia/WaveWorks/shaders/";
     Texture2D getDisplacementMap();
     Texture2D getGradMap();
     Texture2D getNormalMap();
@@ -17,6 +18,6 @@ public interface WaterWaveSimulator extends Disposeable{
     void updateSimulation(float time);
 
     static OceanSimulator createOceanSimulator(OceanParameter params){
-        return new OceanSimulator("nvidia/WaveWorks/shaders/", params);
+        return new OceanSimulator(SHADER_PATH, params);
     }
 }

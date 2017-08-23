@@ -128,14 +128,14 @@ public class TestD3D11 extends NvSampleApp {
 
     @Override
     protected void initRendering() {
-//        getGLContext().setSwapInterval(0);
-        getGLContext().setAppTitle("SampleD3D11");
+        getGLContext().setSwapInterval(0);
+        getGLContext().setAppTitle("TestD3D11");
 
         OceanSamplers.createSamplers();
         IsSamplers.createSamplers();
 
         gl = GLFuncProviderFactory.getGLFuncProvider();
-        m_transformer.setTranslation(0.f, -200.534f, 0.f);
+        m_transformer.setTranslation(0.f, -100.534f, 0.f);
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 
         // Ocean sim

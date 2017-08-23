@@ -1137,7 +1137,8 @@ public final class GFSDK_WaveWorks {
 
     // Get the most recent quadtree rendering statistics
     public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Quadtree_GetStats(GFSDK_WaveWorks_Quadtree hQuadtree, GFSDK_WaveWorks_Quadtree_Stats stats){
-        return ToAPIResult(hQuadtree.getStats(stats));
+        hQuadtree.getStats(stats);
+        return GFSDK_WaveWorks_Result.OK;
     }
 
     // Patches are culled based on their undisplaced footrpint plus an additional user-supplied margin to take account
@@ -1145,7 +1146,8 @@ public final class GFSDK_WaveWorks {
 // when WaveWorks is the only source of displacement on the water surface, otherwise it can be added to estimates
 // from any other sources as necessary (e.g. wakes, explosions etc.)
     public static GFSDK_WaveWorks_Result GFSDK_WaveWorks_Quadtree_SetFrustumCullMargin(GFSDK_WaveWorks_Quadtree hQuadtree, float margin){
-        return ToAPIResult(hQuadtree.setFrustumCullMargin(margin));
+        hQuadtree.setFrustumCullMargin(margin);
+        return GFSDK_WaveWorks_Result.OK;
     }
 
 }

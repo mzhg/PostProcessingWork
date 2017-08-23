@@ -370,7 +370,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
     @Override
     public long getDisplacementMapVersion() {
-        return 0;
+        return m_DisplacementMapVersion;
     }
 
     @Override

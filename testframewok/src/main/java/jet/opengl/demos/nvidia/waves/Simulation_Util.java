@@ -15,16 +15,16 @@ import jet.opengl.postprocessing.util.Numeric;
  * Created by mazhen'gui on 2017/7/22.
  */
 
-final class Simulation_Util {
+public final class Simulation_Util {
 
-    static final int MAX_NUM_CASCADES = 4;
-    static final int MAX_FFT_RESOLUTION = 512;
+    public static final int MAX_NUM_CASCADES = 4;
+    public static final int MAX_FFT_RESOLUTION = 512;
 
-    static final int gauss_map_resolution	= (MAX_FFT_RESOLUTION);
-    static final int gauss_map_size		= ((gauss_map_resolution + 4) * (gauss_map_resolution + 1));
+    public static final int gauss_map_resolution	= (MAX_FFT_RESOLUTION);
+    public static final int gauss_map_size		= ((gauss_map_resolution + 4) * (gauss_map_resolution + 1));
     static final float GRAV_ACCEL =	9.810f;
 
-    static void init_gauss(GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params, float[] pOutGauss)
+    public static void init_gauss(GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params, float[] pOutGauss)
     {
         Random random = new Random();
         for (int i = 0; i <= gauss_map_resolution; i++)
@@ -91,7 +91,7 @@ final class Simulation_Util {
         }
     }
 
-    static void init_omega(GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params, float[] pOutOmega)
+    public static void init_omega(GFSDK_WaveWorks_Detailed_Simulation_Params.Cascade params, float[] pOutOmega)
     {
         init_omega_functor f = new init_omega_functor();
         f.dmap_dim = params.fft_resolution;
@@ -318,7 +318,7 @@ final class Simulation_Util {
         }
     }
 
-    static final void saveTextData(String filename, TextureGL texture){
+    public static final void saveTextData(String filename, TextureGL texture){
         final String filepath = "E:/textures/WaveWorks/";
         try {
             DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, filepath + filename);
@@ -327,7 +327,7 @@ final class Simulation_Util {
         }
     }
 
-    static final void saveTextData(String filename, int target, int buffer, int internalformat){
+    public static final void saveTextData(String filename, int target, int buffer, int internalformat){
         final String filepath = "E:/textures/WaveWorks/";
         try {
             DebugTools.saveBufferAsText(target, buffer, internalformat, 128, filepath + filename);
@@ -336,7 +336,7 @@ final class Simulation_Util {
         }
     }
 
-    static final void saveTextData(String filename, int target, int buffer, Class<?> internalformat){
+    public static final void saveTextData(String filename, int target, int buffer, Class<?> internalformat){
         final String filepath = "E:/textures/WaveWorks/";
         try {
             DebugTools.saveBufferAsText(target, buffer, internalformat, 128, filepath + filename);
