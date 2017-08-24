@@ -198,7 +198,6 @@ public class OceanSimulatorFFT implements WaterWaveSimulator {
         gl.glReadBuffer(GLenum.GL_COLOR_ATTACHMENT0);
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER,0);
 
-
         // constant buffer
 //                buffer_desc.ByteWidth = 128;
 //                buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
