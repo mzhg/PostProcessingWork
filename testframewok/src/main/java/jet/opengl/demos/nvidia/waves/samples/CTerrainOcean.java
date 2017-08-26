@@ -298,12 +298,12 @@ final class CTerrainOcean {
         gl.glBindSampler(15, IsSamplers.g_SamplerTrilinearBorder);
 
         gl.glActiveTexture(GLenum.GL_TEXTURE14);
-        gl.glBindTexture(foam24bit.getTarget(), foam24bit.getTarget());
-        gl.glBindSampler(14, IsSamplers.g_SamplerLinearWrap);
+        gl.glBindTexture(foam24bit.getTarget(), foam24bit.getTexture());
+        gl.glBindSampler(14, IsSamplers.g_SamplerLinearMipmapWrap);
 
         gl.glActiveTexture(GLenum.GL_TEXTURE13);
         gl.glBindTexture(foam_intensity_perlin2.getTarget(), foam_intensity_perlin2.getTexture());
-        gl.glBindSampler(13, IsSamplers.g_SamplerLinearWrap);
+        gl.glBindSampler(13, IsSamplers.g_SamplerLinearMipmapWrap);
 
         gl.glActiveTexture(GLenum.GL_TEXTURE12);
         gl.glBindTexture(shadownmap_framebuffer.getAttachedTex(0).getTarget(), shadownmap_framebuffer.getAttachedTex(0).getTexture());

@@ -170,7 +170,7 @@ public class TestD3D11 extends NvSampleApp {
 
     @Override
     public void display() {
-        updateWaveState2();
+        updateWaveStage();
 
 
         // If the settings dialog is being shown, then
@@ -583,7 +583,7 @@ public class TestD3D11 extends NvSampleApp {
             g_local_marker_positions[i] = new Vector4f();
         }
 
-        g_ocean_param_quadtree.min_patch_length		= 1000;
+        g_ocean_param_quadtree.min_patch_length		= 40;
         g_ocean_param_quadtree.upper_grid_coverage	= 64.0f;
         g_ocean_param_quadtree.mesh_dim				= 128;
         g_ocean_param_quadtree.sea_level			= 0.0f;
@@ -593,10 +593,10 @@ public class TestD3D11 extends NvSampleApp {
         g_ocean_param_quadtree.use_tessellation     = true;
         g_ocean_param_quadtree.enable_CPU_timers	= true;
 
-        g_ocean_simulation_param.time_scale				= 0.5f;
+        g_ocean_simulation_param.time_scale				= 1.0f;
         g_ocean_simulation_param.wave_amplitude			= 1.0f;
         g_ocean_simulation_param.wind_dir			    .set(-0.8f, -0.6f);
-        g_ocean_simulation_param.wind_speed				= 9.0f;
+        g_ocean_simulation_param.wind_speed				= 119.0f;
         g_ocean_simulation_param.wind_dependency			= 0.98f;
         g_ocean_simulation_param.choppy_scale				= 1.f;
         g_ocean_simulation_param.small_wave_fraction		= 0.f;

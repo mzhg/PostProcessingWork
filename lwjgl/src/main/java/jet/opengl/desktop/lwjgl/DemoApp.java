@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import jet.opengl.demos.nvidia.waves.test.SumSinWaveDemo;
+import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
@@ -99,7 +99,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new SumSinWaveDemo());
+        run(new TestD3D11());
 
 //        testRectVertex();
 
@@ -124,9 +124,9 @@ public class DemoApp {
 
     private static void testRectVertex(){
         int mWidth = 1,
-                mHeight = 1,
-                mSegsH = 1,
-                mSegsW = 1;
+            mHeight = 1,
+            mSegsH = 1,
+            mSegsW = 1;
         int i, j;
         for(i = 0; i <= mSegsH; i++){
             for(j = 0; j <= mSegsW; j++){

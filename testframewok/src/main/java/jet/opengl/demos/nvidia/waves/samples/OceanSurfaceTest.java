@@ -103,12 +103,12 @@ final class OceanSurfaceTest {
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
 
         gl.glActiveTexture(GLenum.GL_TEXTURE14);
-        gl.glBindTexture(m_pFoamDiffuseMap.getTarget(), m_pFoamDiffuseMap.getTarget());
-        gl.glBindSampler(14, IsSamplers.g_SamplerLinearWrap);
+        gl.glBindTexture(m_pFoamDiffuseMap.getTarget(), m_pFoamDiffuseMap.getTexture());
+        gl.glBindSampler(14, IsSamplers.g_SamplerLinearMipmapWrap);
 
         gl.glActiveTexture(GLenum.GL_TEXTURE13);
         gl.glBindTexture(m_pFoamIntensityMap.getTarget(), m_pFoamIntensityMap.getTexture());
-        gl.glBindSampler(13, IsSamplers.g_SamplerLinearWrap);
+        gl.glBindSampler(13, IsSamplers.g_SamplerLinearMipmapWrap);
 
         gl.glActiveTexture(GLenum.GL_TEXTURE8);
         gl.glBindTexture(GLenum.GL_TEXTURE_1D, m_pBicolorMap);
