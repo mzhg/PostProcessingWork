@@ -1,0 +1,76 @@
+#include "LightningCommon.glsl"
+
+in SubdivideVSOut
+{
+    vec3 Start;
+    vec3 End;
+    vec3 Up;
+    uint Level;
+}_inputs[];
+
+out BoltOutVertexGS2PS
+{
+//	float4	Position : SV_Position;
+	float2	Gradient /*: Gradient*/;
+	int		Level	/*: Level*/;
+}_output;
+
+layout (points) in;
+layout (triangle_strip, max_vertices = 8) out;
+
+void AppendStream(vec4 postion, float2 gradient, uint level)
+{
+    gl_Position = postion;
+    _output.Gradient = gradient;
+    _output.Level = level;
+    EmitVertex();
+}
+
+// generate camera and segment aligned quads with inter segment gaps filled
+void main()
+{
+    // vs stands for view space
+    float3 vs_start = mul(float4(_inputs[0].Start, 1.0f), world_view);
+    float3 vs_end = mul(float4(_inputs[0].End, 1.0f), world_view);
+    float3 vs_forward = normalize(vs_end - vs_start);
+
+    float width =  Decay(BoltWidth, _inputs[0].Level);
+
+    float3 right = width * normalize(cross(vs_forward,float3(0,0,1)));
+
+    float x = 1.0;
+    float y = 1.0;
+
+    const bool close_gaps = true;
+
+
+    if(close_gaps)
+    {
+        AppendStream( mul(float4(vs_start - right - width * vs_forward, 1.0f), projection), float2(-x,1), _inputs[0].Level);
+        AppendStream( mul(float4(vs_start + right - width * vs_forward, 1.0f), projection), float2(x,1), _inputs[0].Level);
+    }
+
+    AppendStream( mul(float4(vs_start - right, 1.0f), projection), float2(-x,0), _inputs[0].Level );
+//    output.Append(v2);
+
+    AppendStream( mul(float4(vs_start + right, 1.0f), projection), float2(x,0), _inputs[0].Level);
+//    output.Append(v3);
+
+    AppendStream( mul(float4(vs_end - right, 1.0f), projection), float2(-x,0), _inputs[0].Level);
+//    output.Append(v4);
+
+    AppendStream( mul(float4(vs_end + right, 1.0f), projection), float2(x,0), _inputs[0].Level);
+//    output.Append(v5);
+
+
+    if(close_gaps)
+    {
+        AppendStream( mul(float4(vs_end - right + width * vs_forward, 1.0f), projection), float2(-x,1), _inputs[0].Level );
+//        output.Append(v6);
+
+        AppendStream( mul(float4(vs_end + right + width * vs_forward, 1.0f), projection), float2(x,1), _inputs[0].Level);
+//        output.Append(v7);
+     }
+
+//    output.RestartStrip();
+}

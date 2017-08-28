@@ -1,0 +1,31 @@
+#include "LightningCommon.glsl"
+
+in SubdivideVSOut
+{
+    vec3 Start;
+    vec3 End;
+    vec3 Up;
+    uint Level;
+}_inputs[];
+
+out LinesOutVertexGS2PS
+{
+//    float4 Position;
+    uint Level;
+}_output;
+
+layout (points) in;
+layout (lines, max_vertices = 2) out;
+
+void main()
+{
+    gl_Position = mul(float4(_inputs[0].Start,1.0f), world_view_projection);
+    _output.Level = _inputs[0].Level;
+
+    EmitVertex();
+
+    gl_Position = mul(float4(_inputs[0].End,1.0f), world_view_projection);
+    _output.Level = _inputs[0].Level;
+
+    EmitVertex();
+}

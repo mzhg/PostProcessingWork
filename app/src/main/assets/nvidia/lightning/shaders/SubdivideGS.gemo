@@ -1,0 +1,128 @@
+#include "LightningCommon.glsl"
+
+in SubdivideVSOut
+{
+    vec3 Start;
+    vec3 End;
+    vec3 Up;
+    uint Level;
+}_inputs[];
+
+layout (points) in;
+layout (points, max_vertices = 3) out;
+
+layout (stream = 0) out float3 Out_Start;
+layout (stream = 0) out float3 Out_End;
+layout (stream = 0) out float3 Out_Up;
+layout (stream = 0) out uint Out_Level;
+
+// helper data structure for passing stuff around
+struct Segment
+{
+	float3 Start;
+	float3 End;
+
+	float3 Center;
+
+	float3 Right;
+	float3 Up;
+	float3 Forward;
+
+	uint Level;
+	uint Primitive;
+};
+
+// make coordinate frame
+float3 GetUp(float3 start, float3 end, float3 right)
+{
+	float3 forward = normalize(end - start);
+	return cross(right, forward);
+}
+
+// appends vertex representing a segment to stream
+void DrawLineRight
+(
+	float3 start,
+	float3 end,
+	float3 right,
+	uint level/*,
+	inout PointStream<SubdivideVertex> output*/)
+{
+//	SubdivideVertex v = {start, end, GetUp(start,end,right), level};
+//	output.Append(v);
+    Out_Start = start;
+    Out_End = end;
+    Out_Up = GetUp(start,end,right);
+    Out_Level = Level;
+
+    EmitStreamVertex(0);
+    EndStreamPrimitive(0);
+}
+
+// subdivision by splitting segment into two and randomly moving split point
+void PatternZigZag(in Segment segment /*, inout PointStream<SubdivideVertex> output*/)
+{
+	float2 delta = Decay(ZigZagDeviationDecay) * float2(Random(ZigZagDeviationRight.x,ZigZagDeviationRight.y), Random(ZigZagDeviationUp.x,ZigZagDeviationUp.y));
+
+	float3 	jittered = lerp(segment.Start,segment.End, Random(ZigZagFraction.x, ZigZagFraction.y)) +
+			delta.x * segment.Right + delta.y * segment.Up;
+
+	DrawLineRight(segment.Start, jittered, segment.Right, segment.Level/*,   output*/);
+	DrawLineRight(jittered, segment.End, segment.Right, segment.Level/*,  output*/);
+
+}
+
+// subdivision by splitting segment into two and randomly moving split point
+// and adding a branch segment between the split position and the random end point
+void PatternFork(in Segment segment /*, inout PointStream<SubdivideVertex> output*/)
+{
+	float2 delta = Decay(ForkZigZagDeviationDecay) * float2(Random(ForkZigZagDeviationRight.x,ForkZigZagDeviationRight.y), Random(ForkZigZagDeviationUp.x, ForkZigZagDeviationUp.y));
+
+	float3 	jittered = lerp(segment.Start,segment.End, Random(ForkFraction.x, ForkFraction.y)) +
+			delta.x * segment.Right + delta.y * segment.Up;
+
+	DrawLineRight(segment.Start, jittered, segment.Right, segment.Level/*, output*/);
+	DrawLineRight(jittered, segment.End, segment.Right, segment.Level/*, output*/);
+
+
+	float3 fork_dir = normalize(segment.Right);
+
+
+	float3 f_delta = Decay(ForkDeviationDecay) * float3(Random(ForkDeviationRight.x,ForkDeviationRight.y), Random(ForkDeviationUp.x, ForkDeviationUp.y),  Random(ForkDeviationForward.x, ForkDeviationForward.y));
+	float  f_length = Random(ForkLength.x, ForkLength.y) * Decay(ForkLengthDecay);
+	float3 f_jittered = jittered + f_length * normalize(f_delta.x * segment.Right + f_delta.y  * segment.Up + f_delta.z * segment.Forward);
+
+	DrawLineRight(jittered, f_jittered, segment.Forward,  segment.Level + 1/*, output*/);
+
+}
+
+void main()
+{
+    int primitive_id = int(gl_PrimitiveID);
+    RandomSeed(primitive_id + 1 + time * AnimationSpeed);
+
+    float3 center = 0.5f * ( _inputs[0].Start + _inputs[0].End );
+
+    Segment segment;
+
+    segment.Start = _inputs[0].Start;
+    segment.End = _inputs[0].End;
+
+    segment.Center = 0.5f * (segment.Start + segment.End);
+
+    segment.Up = _inputs[0].Up;
+
+    segment.Forward = normalize(segment.End - segment.Start);
+    segment.Right = normalize(cross(segment.Forward, segment.Up));
+    segment.Up = normalize(cross(segment.Right, segment.Forward));
+
+
+    segment.Level = _inputs[0].Level;
+
+    segment.Primitive = primitive_id;
+
+    if(Fork)
+        PatternFork(segment);
+    else
+        PatternZigZag(segment);
+}
