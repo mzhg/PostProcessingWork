@@ -1,17 +1,32 @@
 package jet.opengl.demos.nvidia.lightning;
 
+import java.nio.ByteBuffer;
+
+import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
  * Created by mazhen'gui on 2017/8/28.
  */
 
 class LightningSeed {
-    final LightningStructure Structure = new LightningStructure();
+
+    LightningStructure Structure;
     GLFuncProvider gl;
+    int		m_pattern_mask;
+    int m_subdivisions;
+
+//    ID3D10Device*	m_device;
+
+    //    ID3D10Effect*			m_effect;
+    GLSLProgram	m_tech_first_pass;
+    GLSLProgram	m_tech_subdivide;
+
+    BufferGL m_constants_lightning_structure;
 
     LightningSeed( GLSLProgram first_pass, GLSLProgram subdivide, int pattern_mask, int subdivisions)
     {
@@ -20,10 +35,9 @@ class LightningSeed {
         m_tech_subdivide = subdivide;
 
 //        m_constants_lightning_structure(effect,"LightningStructure"),
-        m_constants_lightning_structure = gl.glGenBuffer();
-        gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, m_constants_lightning_structure);
-        gl.glBufferData(GLenum.GL_UNIFORM_BUFFER, LightningStructure.SIZE, GLenum.GL_STREAM_DRAW);
-        gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, 0);
+        m_constants_lightning_structure = new BufferGL();
+        m_constants_lightning_structure.initlize(GLenum.GL_UNIFORM_BUFFER, LightningStructure.SIZE, null, GLenum.GL_STREAM_DRAW);
+        m_constants_lightning_structure.unbind();
 
         m_pattern_mask = pattern_mask;
         m_subdivisions = subdivisions;
@@ -66,7 +80,12 @@ class LightningSeed {
 
     void SetConstants()
     {
-        m_constants_lightning_structure.set(Structure);
+//        m_constants_lightning_structure.set(Structure);
+
+        ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(m_constants_lightning_structure.getBufferSize());
+        Structure.store(buffer).flip();
+        m_constants_lightning_structure.update(0, buffer);
+        m_constants_lightning_structure.unbind();
         SetChildConstants();
 
     }
@@ -99,16 +118,15 @@ class LightningSeed {
         return m_pattern_mask;
     }
 
-    int		m_pattern_mask;
-    int m_subdivisions;
+    static GLSLProgram createProgram(String vertfile, String fragFile){
+        final String path = "nvidia/lightning/shaders/";
+        return GLSLProgram.createProgram(path + vertfile, path + fragFile, null);
+    }
 
-//    ID3D10Device*	m_device;
-
-//    ID3D10Effect*			m_effect;
-    GLSLProgram	m_tech_first_pass;
-    GLSLProgram	m_tech_subdivide;
-
-    int  m_constants_lightning_structure;
+    static GLSLProgram createStreamProgram(String vertfile, String gemoFile){
+        final String path = "nvidia/lightning/shaders/";
+        return GLSLProgram.createProgram(path + vertfile, path + gemoFile, null, null);
+    }
 
 //    LightningSeed():
 //    m_constants_lightning_structure(0,"LightningStructure")

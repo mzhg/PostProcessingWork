@@ -33,4 +33,11 @@ final class LightningAppearance implements Readable{
         buf.putFloat(0).putFloat(0);
         return buf;
     }
+
+    public void set(LightningAppearance other) {
+        ColorInside.set(other.ColorInside);
+        ColorFallOffExponent = other.ColorFallOffExponent;
+        ColorOutside.set(other.ColorOutside);
+        BoltWidth.set(other.BoltWidth);
+    }
 }

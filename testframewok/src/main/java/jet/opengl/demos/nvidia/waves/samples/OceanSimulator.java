@@ -245,11 +245,11 @@ public class OceanSimulator implements WaterWaveSimulator{
 
 		int vw,vh;
 		IntBuffer vp=CacheBuffer.getCachedIntBuffer(4);
-		gl.glGetInteger(GLenum.GL_VIEWPORT, vp);
+		gl.glGetIntegerv(GLenum.GL_VIEWPORT, vp);
 		vw=vp.get(2);
 		vh=vp.get(3);
 
-		// Set RT
+		// Set RTv
 		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_pDisplacementFBO);
 		gl.glViewport(0, 0, m_param.dmap_dim, m_param.dmap_dim);
 		gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);

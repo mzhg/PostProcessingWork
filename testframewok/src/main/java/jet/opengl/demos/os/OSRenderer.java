@@ -149,7 +149,7 @@ final class OSRenderer implements Constant{
                     baseAngle = -(2 * BETA + ALPHA);
                 }
 
-                baseAngle += groudID * PI/3;
+                baseAngle += middleAngle;
                 translate.z = (float) (R * Math.cos(baseAngle));
                 translate.x = (float) (R * Math.sin(baseAngle));
                 translate.y = 0;

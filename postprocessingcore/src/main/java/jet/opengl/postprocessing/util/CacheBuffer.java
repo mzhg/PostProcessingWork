@@ -178,21 +178,6 @@ public class CacheBuffer {
 		return buffer;
 	}
 	
-	public static ByteBuffer wrapToBytes(float[] data){
-		wrap(data);
-		return getCachedByteBuffer(data.length << 2);
-	}
-
-	public static ByteBuffer wrapToBytes(long[] data){
-		wrap(data);
-		return getCachedByteBuffer(data.length << 3);
-	}
-
-	public static ByteBuffer wrapToBytes(double[] data){
-		wrap(data);
-		return getCachedByteBuffer(data.length << 3);
-	}
-	
 	public static ShortBuffer wrap(short[] data, int offset, int length){
 		ShortBuffer buffer = getCachedShortBuffer(length);
 		buffer.put(data, offset, length).flip();
@@ -255,6 +240,21 @@ public class CacheBuffer {
 	public static ByteBuffer wrapToBytes(int[] data){
 		wrap(data);
 		return getCachedByteBuffer(data.length * 4);
+	}
+
+	public static ByteBuffer wrapToBytes(float[] data){
+		wrap(data);
+		return getCachedByteBuffer(data.length << 2);
+	}
+
+	public static ByteBuffer wrapToBytes(long[] data){
+		wrap(data);
+		return getCachedByteBuffer(data.length << 3);
+	}
+
+	public static ByteBuffer wrapToBytes(double[] data){
+		wrap(data);
+		return getCachedByteBuffer(data.length << 3);
 	}
 	
 	public static ByteBuffer wrap(byte[] data, int offset, int length){

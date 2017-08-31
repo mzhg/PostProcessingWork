@@ -1,8 +1,11 @@
 package jet.opengl.demos.nvidia.lightning;
 
+import java.nio.ByteBuffer;
+
+import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.buffer.VertexArrayObject;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
  * Created by mazhen'gui on 2017/8/28.
@@ -12,26 +15,30 @@ final class ChainLightning extends LightningSeed{
 
     final ChainLightningProperties Properties = new ChainLightningProperties();
 
-    private int  m_constants_chain_lightning;
+    private BufferGL m_constants_chain_lightning;
     private VertexArrayObject m_subdivide_layout;
 
-    ChainLightning(GLSLProgram first_pass, GLSLProgram subdivide, int pattern_mask, int subdivisions) {
-        super(first_pass, subdivide, pattern_mask, subdivisions);
-    }
-
     ChainLightning( int pattern_mask, int subdivisions){
-        super(null, null, pattern_mask, subdivisions); // TODO
+        super(createProgram("ChainLightningVS.vert", "SubdivideGS.gemo"),
+              createProgram("SubdivideVS.vert", "SubdivideGS.gemo"), pattern_mask, subdivisions);
+
+        m_constants_chain_lightning = new BufferGL();
+        m_constants_chain_lightning.initlize(GLenum.GL_UNIFORM_BUFFER, ChainLightningProperties.SIZE, null, GLenum.GL_STREAM_DRAW);
+        m_constants_chain_lightning.unbind();
     }
 
     void SetChildConstants()
     {
-//        m_constants_chain_lightning = Properties;  TODO
+        ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(ChainLightningProperties.SIZE);
+        Properties.store(buffer).flip();
+        m_constants_chain_lightning.update(0, buffer);
+        m_constants_chain_lightning.unbind();
     }
 
     void RenderFirstPass()
     {
-//        m_constants_chain_lightning = Properties; TODO
-
+        SetChildConstants();
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_constants_chain_lightning.getBuffer());
 //        m_device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_POINTLIST);
 //
 //        ID3D10Buffer* zero = 0;

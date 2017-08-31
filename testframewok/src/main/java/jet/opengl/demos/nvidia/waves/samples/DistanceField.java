@@ -139,7 +139,7 @@ final class DistanceField implements Disposeable, Constants{
 //        pDC->RSGetViewports(&NumViewports,&vp);
         int vx, vy, vw, vh;
         IntBuffer vp = CacheBuffer.getCachedIntBuffer(4);
-        gl.glGetInteger(GLenum.GL_VIEWPORT, vp);
+        gl.glGetIntegerv(GLenum.GL_VIEWPORT, vp);
         vx = vp.get();
         vy = vp.get();
         vw = vp.get();

@@ -1,5 +1,7 @@
 package jet.opengl.demos.nvidia.lightning;
 
+import org.lwjgl.util.vector.Vector3f;
+
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -21,7 +23,7 @@ class PathLightning extends LightningSeed{
     private int m_num_vertices;
 
     PathLightning(List<LightningPathSegment> segments, int pattern_mask, int subdivisions) {
-        super(null, null, pattern_mask, subdivisions);
+        super(createStreamProgram("SubdivideVS.vert", "SubdivideGS.gemo"), createStreamProgram("SubdivideVS.vert", "SubdivideGS.gemo"), pattern_mask, subdivisions);
 
         m_num_vertices = segments.size();
         int buffer_size = m_num_vertices * LightningPathSegment.SIZE;
@@ -33,7 +35,13 @@ class PathLightning extends LightningSeed{
         }
         buffer.flip();
 
-        AttribDesc[] layout = null; // TODO Later implemente it.
+        final int stride = Vector3f.SIZE * 3 + 4;
+        AttribDesc[] layout = {
+          new AttribDesc(0, 3, GLenum.GL_FLOAT, false, stride, 0),
+          new AttribDesc(1, 3, GLenum.GL_FLOAT, false, stride, 12),
+          new AttribDesc(2, 3, GLenum.GL_FLOAT, false, stride, 24),
+          new AttribDesc(3, 1, GLenum.GL_UNSIGNED_INT, false, stride, 36),
+        };
 
         m_path_segments = new BufferGL();
         m_path_segments.initlize(GLenum.GL_ARRAY_BUFFER, buffer_size, buffer, GLenum.GL_STATIC_DRAW);

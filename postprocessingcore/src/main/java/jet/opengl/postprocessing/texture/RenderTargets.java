@@ -3,10 +3,12 @@ package jet.opengl.postprocessing.texture;
 import java.nio.IntBuffer;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
@@ -14,6 +16,9 @@ import jet.opengl.postprocessing.util.CacheBuffer;
  */
 
 public class RenderTargets implements Disposeable{
+
+    private static final TextureAttachDesc g_DefaultAttachDesc = new TextureAttachDesc();
+    private static boolean g_DefaultAttachInit = false;
 
     private final AttachInfo m_DepthAttach = new AttachInfo();
     private final AttachInfo m_StencilAttach = new AttachInfo();
@@ -58,6 +63,22 @@ public class RenderTargets implements Disposeable{
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_Framebuffer);
     }
 
+    static TextureAttachDesc getDefaultAttachDesc(){
+        if(!g_DefaultAttachInit){
+            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+            GLAPIVersion api = gl.getGLAPIVersion();
+            if(api.major >= 3 && api.minor >= 2){ // Both the opengl and opengl es require the 3.2 that can support glFramebufferTexture.
+                g_DefaultAttachDesc.type = AttachType.TEXTURE;
+            }else{
+                g_DefaultAttachDesc.type = AttachType.TEXTURE_2D;
+            }
+
+            g_DefaultAttachInit = true;
+        }
+
+        return g_DefaultAttachDesc;
+    }
+
     public int getFramebuffer() {return m_Framebuffer;}
 
     public void unbind(){
@@ -94,6 +115,7 @@ public class RenderTargets implements Disposeable{
     private final TextureGL[] texArrays = new TextureGL[1];
     private final TextureAttachDesc[] descArrays = new TextureAttachDesc[1];
 
+    @CachaRes
     public void setRenderTexture(TextureGL texture, TextureAttachDesc desc){
         texArrays[0] = texture;
         descArrays[0] = desc;
@@ -105,6 +127,7 @@ public class RenderTargets implements Disposeable{
         }
     }
 
+    @CachaRes
     public void setRenderTextures(TextureGL[] textures, TextureAttachDesc[] descs){
         boolean depthHandled = false;
         boolean depthStencilHandled = false;
@@ -122,6 +145,7 @@ public class RenderTargets implements Disposeable{
             }
         }
 
+        int colorAttachIndex  = 0;
         IntBuffer buffers = CacheBuffer.getCachedIntBuffer(textures.length);
         for (int i = 0; i < textures.length; i++)
         {
@@ -129,9 +153,15 @@ public class RenderTargets implements Disposeable{
             if(pTex == null)
                 continue;
 
-            TextureAttachDesc desc = descs[i];
-            int index = desc.index;
+            TextureAttachDesc desc;
+            if(descs != null && descs[i] != null){
+                desc = descs[i];
+            }else{
+                desc = getDefaultAttachDesc();
+                desc.index = colorAttachIndex;
+            }
 
+            int index = desc.index;
             assert(index < 8);
 
             int format_conponemt = TextureUtils.measureFormat(pTex.getFormat());
@@ -158,6 +188,7 @@ public class RenderTargets implements Disposeable{
                     colorHandled[index] = true;
 
                     buffers.put(GLenum.GL_COLOR_ATTACHMENT0 + index);
+                    colorAttachIndex++;
                     break;
             }
         }

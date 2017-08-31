@@ -10,6 +10,7 @@ const float  blur_scale = 2.0f;
 
 uniform vec3 BlurSigma;
 uniform bool horizontal;
+uniform vec2 buffer_texel_size;
 layout(binding = 0) uniform sampler2D Buffer;
 
 float Gaussian(float2 xy, float sigma)

@@ -250,11 +250,6 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
-    public void glGetInteger(int pname, IntBuffer params) {
-        GL11.glGetIntegerv(pname, params);
-    }
-
-    @Override
     public String glGetString(int name) {
         return GL11.glGetString(name);
     }

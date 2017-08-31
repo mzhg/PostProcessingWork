@@ -87,7 +87,6 @@ public interface GLFuncProvider {
     public int glGetError ();
 
     public int glGetInteger(int pname);
-    public void glGetInteger (int pname, IntBuffer params);
 
     public String glGetString (int name);
 

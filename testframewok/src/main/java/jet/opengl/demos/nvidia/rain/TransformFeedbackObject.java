@@ -1,5 +1,7 @@
 package jet.opengl.demos.nvidia.rain;
 
+import java.util.Arrays;
+
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -11,7 +13,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
  * Created by mazhen'gui on 2017/7/3.
  */
 
-final class TransformFeedbackObject implements Disposeable{
+public final class TransformFeedbackObject implements Disposeable{
     private int transformFeedback;
 //    private int primitve_count;
 
@@ -19,6 +21,7 @@ final class TransformFeedbackObject implements Disposeable{
     private final int[] stream_vaos;
     private final int[] stream_vbos;
     private final int[] stream_quey;
+    private final int[] buffer_sizes;
     private GLFuncProvider gl;
 
     @CachaRes
@@ -30,9 +33,14 @@ final class TransformFeedbackObject implements Disposeable{
         gl.glDeleteBuffers(CacheBuffer.wrap(stream_vbos));
     }
 
+    public TransformFeedbackObject(int bufferSize, Runnable vertex_binding){
+        this(new int[]{bufferSize}, new Runnable[]{vertex_binding});
+    }
+
     public TransformFeedbackObject(int[] bufferSize, Runnable[] vertex_binding) {
         gl = GLFuncProviderFactory.getGLFuncProvider();
 
+        buffer_sizes = Arrays.copyOf(bufferSize, bufferSize.length);
         stream_vaos = new int[bufferSize.length];
         stream_vbos = new int[bufferSize.length];
         stream_quey = new int[bufferSize.length];
@@ -91,6 +99,8 @@ final class TransformFeedbackObject implements Disposeable{
 //                throw new IllegalArgumentException("No program binded.");
 //        }
     }
+
+    public int getBufferSize(int index){ return buffer_sizes[index];}
 
     public void endRecord(){
 //        if(debug){
