@@ -37,7 +37,7 @@ import jet.opengl.postprocessing.util.CommonUtil;
  * Created by mazhen'gui on 2017/7/27.
  */
 
-public class SampleD3D11 extends NvSampleApp implements Constants{
+public final class SampleD3D11 extends NvSampleApp implements Constants{
     private static final int
             SynchronizationMode_None = 0,
             SynchronizationMode_RenderOnly = 1,

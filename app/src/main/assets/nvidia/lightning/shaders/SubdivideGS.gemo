@@ -53,7 +53,7 @@ void DrawLineRight
     Out_Start = start;
     Out_End = end;
     Out_Up = GetUp(start,end,right);
-    Out_Level = Level;
+    Out_Level = level;
 
     EmitStreamVertex(0);
     EndStreamPrimitive(0);
@@ -99,7 +99,7 @@ void PatternFork(in Segment segment /*, inout PointStream<SubdivideVertex> outpu
 void main()
 {
     int primitive_id = int(gl_PrimitiveID);
-    RandomSeed(primitive_id + 1 + time * AnimationSpeed);
+    RandomSeed(int(primitive_id + 1 + time * AnimationSpeed));
 
     float3 center = 0.5f * ( _inputs[0].Start + _inputs[0].End );
 

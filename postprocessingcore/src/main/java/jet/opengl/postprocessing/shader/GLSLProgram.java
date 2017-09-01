@@ -465,9 +465,10 @@ public class GLSLProgram implements OpenGLProgram{
 
 	/** Conversion method for creating program object, but not safe. */
 	public static GLSLProgram createProgram(String vertFile, String tcFile, String teFile, String gsFile, String fragFile, Macro[] macros){
-		ShaderSourceItem vs_item = new ShaderSourceItem();
+		ShaderSourceItem vs_item = null;
 		if(vertFile != null){
 			try {
+				vs_item = new ShaderSourceItem();
 				vs_item.source = ShaderLoader.loadShaderFile(vertFile, false);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -515,9 +516,10 @@ public class GLSLProgram implements OpenGLProgram{
 			gs_item.type = ShaderType.GEOMETRY;
 		}
 
-		ShaderSourceItem ps_item = new ShaderSourceItem();
+		ShaderSourceItem ps_item = null;
 		if(fragFile != null){
 			try {
+				ps_item = new ShaderSourceItem();
 				ps_item.source = ShaderLoader.loadShaderFile(fragFile, false);
 			} catch (IOException e) {
 				e.printStackTrace();

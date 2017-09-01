@@ -22,7 +22,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 
-public class OceanWaveDemo extends NvSampleApp{
+public final class OceanWaveDemo extends NvSampleApp{
 	static final int FRESNEL_TEX_SIZE = 256;
 	
 	// Ocean simulation variables

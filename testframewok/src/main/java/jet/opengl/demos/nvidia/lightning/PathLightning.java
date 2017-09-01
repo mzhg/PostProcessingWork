@@ -23,7 +23,7 @@ class PathLightning extends LightningSeed{
     private int m_num_vertices;
 
     PathLightning(List<LightningPathSegment> segments, int pattern_mask, int subdivisions) {
-        super(createStreamProgram("SubdivideVS.vert", "SubdivideGS.gemo"), createStreamProgram("SubdivideVS.vert", "SubdivideGS.gemo"), pattern_mask, subdivisions);
+        super(createProgram("SubdivideVS.vert", "SubdivideGS.gemo", null), createProgram("SubdivideVS.vert", "SubdivideGS.gemo", null), pattern_mask, subdivisions);
 
         m_num_vertices = segments.size();
         int buffer_size = m_num_vertices * LightningPathSegment.SIZE;

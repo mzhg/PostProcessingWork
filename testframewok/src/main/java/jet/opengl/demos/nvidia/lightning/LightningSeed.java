@@ -118,16 +118,12 @@ class LightningSeed {
         return m_pattern_mask;
     }
 
-    static GLSLProgram createProgram(String vertfile, String fragFile){
+    static GLSLProgram createProgram(String vertfile, String gemoFile, String fragFile){
         final String path = "nvidia/lightning/shaders/";
-        return GLSLProgram.createProgram(path + vertfile, path + fragFile, null);
+        return GLSLProgram.createProgram(path + vertfile, gemoFile != null? (path + gemoFile):null,
+                                                          fragFile != null?(path + fragFile):null,
+                                                           null);
     }
-
-    static GLSLProgram createStreamProgram(String vertfile, String gemoFile){
-        final String path = "nvidia/lightning/shaders/";
-        return GLSLProgram.createProgram(path + vertfile, path + gemoFile, null, null);
-    }
-
 //    LightningSeed():
 //    m_constants_lightning_structure(0,"LightningStructure")
 //    {

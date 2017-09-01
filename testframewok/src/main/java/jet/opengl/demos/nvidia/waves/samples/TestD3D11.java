@@ -30,7 +30,7 @@ import jet.opengl.postprocessing.common.GLenum;
  * Created by mazhen'gui on 2017/8/19.
  */
 
-public class TestD3D11 extends NvSampleApp {
+public final class TestD3D11 extends NvSampleApp {
 
     private static final int ReadbackArchiveSize = 32;
     private static final int ReadbackArchiveInterval = 30;

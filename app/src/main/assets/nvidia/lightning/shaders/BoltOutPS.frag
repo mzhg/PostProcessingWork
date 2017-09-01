@@ -4,7 +4,7 @@ in BoltOutVertexGS2PS
 {
 //	float4	Position : SV_Position;
 	float2	Gradient /*: Gradient*/;
-	int		Level	/*: Level*/;
+	flat uint		Level	/*: Level*/;
 }_input;
 
 layout(location=0) out vec4 Out_Color;

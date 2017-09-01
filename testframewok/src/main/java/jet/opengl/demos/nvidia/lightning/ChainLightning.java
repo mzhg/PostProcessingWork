@@ -3,7 +3,6 @@ package jet.opengl.demos.nvidia.lightning;
 import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
-import jet.opengl.postprocessing.buffer.VertexArrayObject;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
@@ -16,11 +15,11 @@ final class ChainLightning extends LightningSeed{
     final ChainLightningProperties Properties = new ChainLightningProperties();
 
     private BufferGL m_constants_chain_lightning;
-    private VertexArrayObject m_subdivide_layout;
+    private int m_subdivide_layout;
 
     ChainLightning( int pattern_mask, int subdivisions){
-        super(createProgram("ChainLightningVS.vert", "SubdivideGS.gemo"),
-              createProgram("SubdivideVS.vert", "SubdivideGS.gemo"), pattern_mask, subdivisions);
+        super(createProgram("ChainLightningVS.vert", "SubdivideGS.gemo", null),
+                createProgram("SubdivideVS.vert", "SubdivideGS.gemo", null), pattern_mask, subdivisions);
 
         m_constants_chain_lightning = new BufferGL();
         m_constants_chain_lightning.initlize(GLenum.GL_UNIFORM_BUFFER, ChainLightningProperties.SIZE, null, GLenum.GL_STREAM_DRAW);
@@ -52,9 +51,8 @@ final class ChainLightning extends LightningSeed{
 //
 //        m_device->IASetInputLayout(m_subdivide_layout);
 
-        m_subdivide_layout.bind();
+        gl.glBindVertexArray(0);
         gl.glDrawArrays(GLenum.GL_POINTS, 0, GetNumVertices(0));
-        m_subdivide_layout.unbind();
     }
 
     int GetMaxNumVertices()

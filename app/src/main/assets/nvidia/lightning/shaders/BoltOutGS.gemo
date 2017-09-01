@@ -12,7 +12,7 @@ out BoltOutVertexGS2PS
 {
 //	float4	Position : SV_Position;
 	float2	Gradient /*: Gradient*/;
-	int		Level	/*: Level*/;
+	flat uint	Level	/*: Level*/;
 }_output;
 
 layout (points) in;
@@ -30,8 +30,8 @@ void AppendStream(vec4 postion, float2 gradient, uint level)
 void main()
 {
     // vs stands for view space
-    float3 vs_start = mul(float4(_inputs[0].Start, 1.0f), world_view);
-    float3 vs_end = mul(float4(_inputs[0].End, 1.0f), world_view);
+    float3 vs_start = mul(float4(_inputs[0].Start, 1.0f), world_view).xyz;
+    float3 vs_end = mul(float4(_inputs[0].End, 1.0f), world_view).xyz;
     float3 vs_forward = normalize(vs_end - vs_start);
 
     float width =  Decay(BoltWidth, _inputs[0].Level);

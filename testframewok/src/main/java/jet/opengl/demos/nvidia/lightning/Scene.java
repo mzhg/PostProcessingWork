@@ -41,7 +41,7 @@ final class Scene {
 //    private VertexArrayObject m_scene_layout;
 
     Scene(){
-        m_tech_scene = LightningSeed.createProgram("SceneVS.vert", "ScenePS.frag");
+        m_tech_scene = LightningSeed.createProgram("SceneVS.vert", null, "ScenePS.frag");
         final String shader_path = "nvidia/lightning/shaders/";
         final String model_path = "nvidia/lightning/models/";
         final String textures_path = "nvidia/lightning/textures/";

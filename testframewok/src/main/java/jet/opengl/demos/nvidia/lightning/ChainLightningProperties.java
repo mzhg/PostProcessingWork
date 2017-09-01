@@ -21,6 +21,10 @@ final class ChainLightningProperties implements Readable{
     final Vector4f[] ChainTargetPositions = new Vector4f[MaxTargets];
     int			NumTargets;
 
+    ChainLightningProperties(){
+        for(int i=0;i < ChainTargetPositions.length; i++)
+            ChainTargetPositions[i] = new Vector4f();
+    }
 
     @Override
     public ByteBuffer store(ByteBuffer buf) {

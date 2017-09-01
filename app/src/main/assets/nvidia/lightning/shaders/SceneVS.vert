@@ -14,14 +14,15 @@ out SceneVS2PS
 //void SceneVS( SceneApp2VS input, out SceneVS2PS output )
 void main()
 {
-    float3 world_position = mul( float4(In_Position, 1.0f), world );
+    float3 world_position = mul( float4(In_Position, 1.0f), world ).xyz;
 	float3 world_normal = normalize(mul(world, float4(In_Normal,0)).xyz);
 
 	float3 light_position = float3(0, 20,0);
 	float3 light_dir = normalize(light_position - world_position);
 
 	gl_Position = mul( float4(In_Position, 1.0f), world_view_projection );
-    _output.Color = 0.3f + saturate(dot(world_normal, light_dir));
+    _output.Color = float4(0.3f + saturate(dot(world_normal, light_dir)));
+    _output.Color.a =1.0;
     _output.TexCoord = In_TexCoord;
 
 }

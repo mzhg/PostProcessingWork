@@ -47,6 +47,7 @@ final class Arena {
         m_lightning_renderer = new LightningRenderer(back_buffer_sample_desc);
         m_back_buffer_sample_desc = back_buffer_sample_desc;
 
+        m_scene = new Scene();
         CreateLightning();
     }
 

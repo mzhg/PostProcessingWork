@@ -6,6 +6,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -61,7 +62,7 @@ final class LightningRenderer {
 
     GLSLProgram	m_tech_down_sample_2x2;
 
-    Set<LightningSeed> m_lightning_seeds;
+    final Set<LightningSeed> m_lightning_seeds = new HashSet<>();
     int				m_max_vertices;
     private int m_subdivision_level;
     private boolean m_fork;
@@ -121,8 +122,13 @@ final class LightningRenderer {
         m_write_fbo = gl.glGenFramebuffer();
         m_dummy_vao = gl.glGenVertexArray();
 
+        for(int i = 0; i < m_down_sample_buffer_sizes.length; i++)
+            m_down_sample_buffer_sizes[i] = new Vector2i();
+
 //        m_tech_bolt_out(m_effect->GetTechniqueByName("BoltOut")),
 //        m_tech_lines_out(m_effect->GetTechniqueByName("ShowLines")),
+        m_tech_lines_out = PathLightning.createProgram("LinesOutVS.vert", "LinesOutGS.gemo", "LinesOutPS.frag");
+        m_tech_bolt_out = PathLightning.createProgram("LinesOutVS.vert", "BoltOutGS.gemo", "BoltOutPS.frag");
 
 //        m_tech_add_buffer(m_effect->GetTechniqueByName("AddBuffer")),
 //        m_tech_blur_buffer_horizontal(m_effect->GetTechniqueByName("BlurBufferHorizontal")),
@@ -353,8 +359,8 @@ final class LightningRenderer {
         if( (null != m_subdivide_buffer0) && (max_segments == m_subdivide_buffer0.getBufferSize(0)/SubdivideVertex.SIZE))
         return;
 
-        m_subdivide_buffer0.dispose();
-        m_subdivide_buffer1.dispose();
+        CommonUtil.safeRelease(m_subdivide_buffer0);
+        CommonUtil.safeRelease(m_subdivide_buffer1);
 
 //        vector<SubdivideVertex> init_data(max_segments, SubdivideVertex());
 //
@@ -480,12 +486,11 @@ final class LightningRenderer {
         }
 
         Vector2i last = m_down_sample_buffer_sizes[m_down_sample_buffer_sizes.length - 1];
-        if(m_small_lightning_buffer0.getWidth() != last.x || m_small_lightning_buffer0.getHeight() != last.y){
-            m_small_lightning_buffer0.dispose();
-            m_small_lightning_buffer1.dispose();
+        if(m_small_lightning_buffer0 ==null || m_small_lightning_buffer0.getWidth() != last.x || m_small_lightning_buffer0.getHeight() != last.y){
+            CommonUtil.safeRelease(m_small_lightning_buffer0);
+            CommonUtil.safeRelease(m_small_lightning_buffer1);
 
-            Texture2DDesc tex_desc = new Texture2DDesc(last.x, last.y, m_small_lightning_buffer0.getFormat());
-            tex_desc.sampleCount = m_small_lightning_buffer0.getSampleCount();
+            Texture2DDesc tex_desc = new Texture2DDesc(last.x, last.y, BackBufferFormat);
 
             m_small_lightning_buffer0 = TextureUtils.createTexture2D(tex_desc, null);
             m_small_lightning_buffer1 = TextureUtils.createTexture2D(tex_desc, null);

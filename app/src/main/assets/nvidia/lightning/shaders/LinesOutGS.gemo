@@ -11,11 +11,11 @@ in SubdivideVSOut
 out LinesOutVertexGS2PS
 {
 //    float4 Position;
-    uint Level;
+   flat uint Level;
 }_output;
 
 layout (points) in;
-layout (lines, max_vertices = 2) out;
+layout (line_strip, max_vertices = 2) out;
 
 void main()
 {
