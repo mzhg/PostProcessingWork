@@ -1,6 +1,7 @@
 package jet.opengl.demos.amdfx.common;
 
 import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,10 +9,10 @@ import java.util.List;
 
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.util.StackInt;
+import sun.security.provider.certpath.Vertex;
 
 public final class AMD_Mesh {
 
-	private final List<MaterialGroup> _material_group = new ArrayList<>();
 	private String                    _name = "default";
     private int                       _id;
     private SDKmesh m_sdkMesh;
@@ -68,17 +69,4 @@ public final class AMD_Mesh {
     }
 
     Texture2D[] srv(){ return null;}
-	
-	private static final class MaterialGroup{
-		int _first_index;
-        int _index_count;
-        int _texture_index;
-	}
-	
-	private static final class Vertex
-    {
-        final float[] position = new float[3];
-        final float[] normal   = new float[3];
-        final float[] uv       = new float[2];
-    };
 }

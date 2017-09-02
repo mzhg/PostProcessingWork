@@ -6,13 +6,15 @@ import com.nvidia.developer.opengl.app.NvSampleApp;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
+import jet.opengl.demos.amdfx.common.AMD_Mesh;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.texture.Texture2D;
 
 /**
  * Created by mazhen'gui on 2017/8/31.
  */
 
-public class LightningDemo extends NvSampleApp {
+public final class LightningDemo extends NvSampleApp {
     Arena	g_arena = null;
     final LightningAppearance g_beam_parameters = new LightningAppearance();
 
@@ -50,8 +52,25 @@ public class LightningDemo extends NvSampleApp {
     Texture2D g_pResolvedBuffer;
     float m_total_time;
 
+    static void loadOrcXMesh(){
+        String root = "nvidia\\PerlinFire\\models\\";
+        String[] tokens = {"bonfire_wOrcs"};
+        String[] exts = {".X"};
+
+
+        for(int i = 0; i < tokens.length; i++){
+            String token =tokens[i];
+            String ext = exts[i];
+            AMD_Mesh mesh = new AMD_Mesh();
+            mesh.Create(root, token + ext, true);
+        }
+    }
+
     @Override
     protected void initRendering() {
+//        loadOrcXMesh();
+        GLCheck.checkError();
+
         m_transformer.setTranslation(-44.5418f, -53.0726f, 42.1582f);
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 

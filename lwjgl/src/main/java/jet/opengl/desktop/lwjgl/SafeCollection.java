@@ -77,7 +77,7 @@ public class SafeCollection<E> implements Collection<E>{
 		}
 	}
 
-	// It takes O(n) time in worse case on list-data structure.
+	// It takes O(n) time in worse case on list-based structure.
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean remove(Object o) {

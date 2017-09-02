@@ -65,13 +65,17 @@ public class FramebufferGL implements Disposeable {
             }
         }
 
-
         for (int i = 0; i < textures.length; i++)
         {
             TextureGL pTex = textures[i];
             Texture2D tex2D = (Texture2D)pTex;  // Not safe
-            m_Width = tex2D.getWidth();
-            m_Height = tex2D.getHeight();
+            if(m_Width == 0){
+                m_Width = tex2D.getWidth();
+                m_Height = tex2D.getHeight();
+            }else{
+                m_Width = Math.max(m_Width, tex2D.getWidth());
+                m_Height = Math.max(m_Height, tex2D.getHeight());
+            }
 
             TextureAttachDesc desc = descs[i];
             m_AttachedTextures[m_AttachCount] = pTex;
@@ -179,6 +183,13 @@ public class FramebufferGL implements Disposeable {
     }
 
     public void setViewPort(){
+        if(m_Width  > 0){
+            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+            gl.glViewport(0,0, m_Width, m_Height);
+        }else{
+            throw new IllegalArgumentException("Invalid size: width = " + m_Width + ", height = " + m_Height);
+        }
+
         for(int i = 0; i < m_AttachCount; i++){
             if(m_AttachedTextures[i] != null){
                 Texture2D tex = (Texture2D) m_AttachedTextures[i];

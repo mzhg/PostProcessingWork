@@ -2,8 +2,11 @@ package jet.opengl.desktop.lwjgl;
 
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.assimp.AIFace;
+import org.lwjgl.assimp.AIMaterial;
+import org.lwjgl.assimp.AIMaterialProperty;
 import org.lwjgl.assimp.AIMesh;
 import org.lwjgl.assimp.AIScene;
+import org.lwjgl.assimp.AIString;
 import org.lwjgl.assimp.AIVector3D;
 import org.lwjgl.assimp.Assimp;
 import org.lwjgl.system.MemoryUtil;
@@ -12,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.DebugTools;
@@ -22,7 +26,8 @@ import jet.opengl.postprocessing.util.DebugTools;
 
 public class MeshLoader {
     public static void main(String[] args) {
-        loadLightningXMesh();
+//        loadLightningXMesh();
+        loadOrcXMesh();
     }
 
     static void loadLightningXMesh(){
@@ -62,6 +67,101 @@ public class MeshLoader {
             }
         }
 
+    }
+
+    static void loadOrcXMesh(){
+        String root = "E:\\SDK\\PerlinFire\\Direct3D\\Media\\Orcs\\";
+        String[] tokens = {"bonfire_wOrcs"};
+        String[] exts = {".X"};
+
+        for(int i = 0; i < tokens.length; i++){
+            String token =tokens[i];
+            String ext = exts[i];
+            File file = new File(root + token + ext);
+            if(file.exists() == false)
+                throw new IllegalArgumentException();
+
+
+            AIScene scene = Assimp.aiImportFile(file.getAbsolutePath(), 0);
+            if (scene == null) {
+                throw new IllegalStateException(Assimp.aiGetErrorString());
+            }
+            int numMesh = scene.mNumMeshes();
+            PointerBuffer meshesBuffer  =  scene.mMeshes();
+
+            final String output = root + token;
+            for(int j = 0; j < numMesh; j++){
+                saveMeshData(AIMesh.create(meshesBuffer.get(j)), j, output, token);
+                System.out.println();
+            }
+
+            printMaterials(scene);
+
+            try {
+                Assimp.aiReleaseImport(scene);
+            } catch (Exception e) {
+//                e.printStackTrace();
+            }
+        }
+    }
+
+    static void printMaterials(AIScene scene){
+        int numMaterials = scene.mNumMaterials();
+        PointerBuffer materialsBuffer = scene.mMaterials();
+        for(int j = 0; j < numMaterials; j++){
+            AIMaterial material = AIMaterial.create(materialsBuffer.get(j));
+            int numProperties = material.mNumProperties();
+            PointerBuffer propertyViews = material.mProperties();
+            for(int k = 0; k < numProperties; k++){
+                AIMaterialProperty property = AIMaterialProperty.create(propertyViews.get(k));
+                AIString key =  property.mKey();
+                ByteBuffer value = property.mData();
+                int type = property.mType();
+                String type_str;
+                if(type == Assimp.aiPTI_Float){
+                    int count = value.remaining()/4;
+                    if(count == 1){
+                        type_str = Float.toString(value.getFloat());
+                    }else{
+                        float[] values = new float[count];
+                        for(int l = 0; l < count; l++){
+                            values[l] = value.getFloat();
+                        }
+                        type_str = Arrays.toString(values);
+                    }
+                }else if(type == Assimp.aiPTI_Integer){
+                    int count = value.remaining()/4;
+                    if(count == 1){
+                        type_str = Integer.toString(value.getInt());
+                    }else{
+                        int[] values = new int[count];
+                        for(int l = 0; l < count; l++){
+                            values[l] = value.getInt();
+                        }
+                        type_str = Arrays.toString(values);
+                    }
+                }else if(type == Assimp.aiPTI_Double){
+                    int count = value.remaining()/8;
+                    if(count == 1){
+                        type_str = Double.toString(value.getDouble());
+                    }else{
+                        double[] values = new double[count];
+                        for(int l = 0; l < count; l++){
+                            values[l] = value.getDouble();
+                        }
+                        type_str = Arrays.toString(values);
+                    }
+                }else if(type == Assimp.aiPTI_Buffer){
+                    type_str = "Binary";
+                }else if(type == Assimp.aiPTI_String){
+                    type_str = MemoryUtil.memUTF8(value);
+                }else{
+                    throw new IllegalArgumentException("Unkown type");
+                }
+
+                System.out.println("Material: " + j + ", property: "+ k +" ,key = " + key.dataString() + ", value = " + type_str);
+            }
+        }
     }
 
     static void loadBrigeXMesh(){

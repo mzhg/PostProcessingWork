@@ -19,11 +19,6 @@ import org.lwjgl.glfw.GLFWWindowPosCallback;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL;
 
-import java.awt.Toolkit;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -340,27 +335,6 @@ public class LwjglApp implements NvGLAppContext{
     
 	public void registerGLFWListener(GLFWListener listener){
 		if(listener != null) windowCallbacks.add(listener);
-	}
-	
-	/**
-	 * Returns the contents of the system clipboard, may be null.
-	 * @return
-	 */
-	public String getClipboardString(){
-		if(window != 0){
-			return GLFW.glfwGetClipboardString(window);
-		}else{
-			Transferable t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
-			try {
-				return (String) t.getTransferData(DataFlavor.stringFlavor);
-			} catch (UnsupportedFlavorException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			return null;
-		}
 	}
 	
 	public void toggleFullScreen(){

@@ -35,6 +35,17 @@ final class RenderProgram extends GLSLProgram{
         initUniforms();
     }
 
+    public RenderProgram(String vert){
+        final String path = "nvidia/fire/shaders/";
+        try {
+            setSourceFromFiles(path + vert, "Scenes/Cube16/shaders/Dummy_PS.frag");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        initUniforms();
+    }
+
     private void initUniforms(){
         // Obtain miscellaneous variables
         g_pmCubeViewMatrixVariable = getUniformLocation("CubeViewMatrices");
@@ -58,7 +69,7 @@ final class RenderProgram extends GLSLProgram{
         }
 
         if(g_pmCubeProjMatrixVariable>=0){
-            gl.glUniformMatrix4fv(g_pmCubeProjMatrixVariable, false, CacheBuffer.wrap(data.mCubeProjMatrixs));
+            gl.glUniformMatrix4fv(g_pmCubeProjMatrixVariable, false, CacheBuffer.wrap(data.mCubeProjMatrix));
         }
 
         if(g_pmWorldViewProj >=0){
