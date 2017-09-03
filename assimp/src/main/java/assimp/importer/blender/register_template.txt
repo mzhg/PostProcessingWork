@@ -1,0 +1,11 @@
+converters.put("%s", new FactoryPair(new FactoryPair.AllocProcPtr() {
+			public ElemBase call() {
+				return new %s();
+			}
+		},
+		new FactoryPair.ConvertProcPtr() {
+			public void call(Structure s, ElemBase in, FileDatabase<ElemBase> db) {
+				s.convert((%s)in, db);
+			}
+		}
+		));

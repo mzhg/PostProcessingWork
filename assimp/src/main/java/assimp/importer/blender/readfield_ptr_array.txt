@@ -1,0 +1,105 @@
+	boolean readFieldPtr%s(%s[] out, String name, FileDatabase db,int error_flag)
+	{
+		int old = db.reader.getCurrentPos();
+		Pointer[] ptrval = new Pointer[out.length];
+		AssUtil.initArray(ptrval);
+		Field f;
+		try {
+			f = get(name);
+
+			// sanity check, should never happen if the genblenddna script is right
+			if ((FieldFlag_Pointer|FieldFlag_Pointer) != (f.flags & (FieldFlag_Pointer|FieldFlag_Pointer))) {
+				throw new Error("Field `" + name + "` of structure `"+
+					name + "` ought to be a pointer AND an array");
+			}
+
+			db.reader.incPtr(f.offset);
+			int i = 0;
+			for(; i < Math.min(f.array_sizes[0], ptrval.length); i++)
+				convert(ptrval[i],db);
+			
+			// actually it is meaningless on which Structure the Convert is called
+			// because the `Pointer` argument triggers a special implementation.
+		}
+		catch (Exception e) {
+//			_defaultInitializer<error_policy>()(out,e.what());
+			_defaultInitializer((ElemBase)null, error_flag, e);
+			Arrays.fill(out, null);
+			return false;
+		}
+		
+		ObjectHolder<%s> holder = new ObjectHolder<%s>();
+		boolean res = true;
+		for(int i = 0; i < out.length; ++i) {
+			// resolve the pointer and load the corresponding structure
+			res = resolvePointer%s(holder,ptrval[i],db) && res;
+			out[i] = holder.get();
+		}
+
+		// and recover the previous stream position
+		db.reader.setCurrentPos(old);
+
+		if(!AssimpConfig.ASSIMP_BUILD_BLENDER_NO_STATS)
+			++db.stats().fields_read;
+		return res;
+	}
+	
+	boolean resolvePointer%s(ObjectHolder<%s> out, Pointer ptrval, FileDatabase db)
+	{
+		out.reset(); // ensure null pointers work
+		if (ptrval.val == 0) { 
+			return false;
+		}
+		
+		// find the file block the pointer is pointing to
+		FileBlockHead block = locateFileBlockForAddress(ptrval,db);
+		
+		// determine the target type from the block header
+		Structure s = db.dna.get(block.dna_index);
+
+		// try to retrieve the object from the cache
+		out.set((%s) db.cache().get(s,ptrval)); 
+		if (out.notNull()) {
+			return true;
+		}
+
+		// seek to this location, but save the previous stream pointer.
+		int pold = db.reader.getCurrentPos();
+		db.reader.setCurrentPos((int) (block.start+ /*static_cast<size_t>*/((ptrval.val - block.address.val) )));
+		// FIXME: basically, this could cause problems with 64 bit pointers on 32 bit systems.
+		// I really ought to improve StreamReader to work with 64 bit indices exclusively.
+
+		// continue conversion after allocating the required storage
+		FactoryPair builders = db.dna.getBlobToStructureConverter(s, db);
+		if(builders.first == null){
+			// this might happen if DNA::RegisterConverters hasn't been called so far
+			// or if the target type is not contained in `our` DNA.
+			out.reset();
+			DefaultLogger.warn(AssUtil.makeString(
+				"Failed to find a converter for the `",s.name,"` structure"
+				));
+			return false;
+		}
+		
+		// allocate the object hull
+		out.set((%s)builders.first.call());
+		// cache the object immediately to prevent infinite recursion in a 
+		// circular list with a single element (i.e. a self-referencing element).
+		db.cache().set(s, out.get(), ptrval);
+		
+		// and do the actual conversion
+		builders.second.call(s, out.get(), db);
+		db.reader.setCurrentPos(pold);
+		
+		// store a pointer to the name string of the actual type
+		// in the object itself. This allows the conversion code
+		// to perform additional type checking.
+//		out->dna_type = s.name.c_str();
+		out.get().dna_type = s.name;
+
+		if(!AssimpConfig.ASSIMP_BUILD_BLENDER_NO_STATS){
+			++db.stats().pointers_resolved;
+		}
+		
+		return false;
+	}

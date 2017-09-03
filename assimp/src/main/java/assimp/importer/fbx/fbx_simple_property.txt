@@ -1,0 +1,1 @@
+%s %s() { return PropertyTable.propertyGet(props(), "%s", %s);}

@@ -1,0 +1,35 @@
+void readFieldArray(%s[] out, String name, FileDatabase db, int error_policy){
+		int old = db.reader.getCurrentPos();
+		%s default_value = 0;
+		
+		try{
+			final int length = out.length;
+			Field f = get(name);
+			Structure s = db.dna.get(f.type);
+			
+			// is the input actually an array?
+			if ((f.flags & FieldFlags.FieldFlag_Array) == 0) {
+				throw new Error("Field `"+name+"` of structure `"+ name + "` ought to be an array of size " + length);
+			}
+
+			db.reader.incPtr(f.offset);
+
+			// size conversions are always allowed, regardless of error_policy
+			int i = 0;
+			for(; i < Math.min(f.array_sizes[0],length); ++i) {
+				out[i] = s.convert%s(db);
+			}
+			
+			for(; i < length; ++i) {
+//				_defaultInitializer<ErrorPolicy_Igno>()(out[i]);
+				out[i] = default_value;
+			}
+		}catch(Exception e){
+			Arrays.fill(out, default_value);
+		}
+		
+		// and recover the previous stream position
+		db.reader.setCurrentPos(old);
+		if(!AssimpConfig.ASSIMP_BUILD_BLENDER_NO_STATS)
+			++db.stats().fields_read;
+	}

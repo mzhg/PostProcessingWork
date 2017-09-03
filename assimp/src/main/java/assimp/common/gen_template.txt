@@ -1,0 +1,9 @@
+	public %s() {}
+	
+	public %s(%s o) {
+		set(o);
+	}
+	
+	public void set(%s o){
+		##
+	}

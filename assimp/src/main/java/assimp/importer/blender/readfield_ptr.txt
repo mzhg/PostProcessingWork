@@ -1,0 +1,100 @@
+	boolean readFieldPtr%s(ObjectHolder<%s> out, String name, FileDatabase db, boolean non_recursive,int error_flag)
+	{
+		int old = db.reader.getCurrentPos();
+		Pointer ptrval = new Pointer();
+		Field f;
+		try {
+			f = get(name);
+
+			// sanity check, should never happen if the genblenddna script is right
+			if ((f.flags & FieldFlag_Pointer) == 0) {
+				throw new Error("Field `" + name + "` of structure `"+
+					name + "` ought to be a pointer");
+			}
+
+			db.reader.incPtr(f.offset);
+			convert(ptrval,db);
+			// actually it is meaningless on which Structure the Convert is called
+			// because the `Pointer` argument triggers a special implementation.
+		}
+		catch (Exception e) {
+//			_defaultInitializer<error_policy>()(out,e.what());
+			_defaultInitializer((ElemBase)null, error_flag, e);
+			out.reset();
+			return false;
+		}
+
+		// resolve the pointer and load the corresponding structure
+		final boolean res = resolvePointer%s(out,ptrval,db,f, non_recursive);
+
+		if(!non_recursive) {
+			// and recover the previous stream position
+			db.reader.setCurrentPos(old);
+		}
+
+		if(!AssimpConfig.ASSIMP_BUILD_BLENDER_NO_STATS)
+			++db.stats().fields_read;
+		return res;
+	}
+	
+	boolean resolvePointer%s(ObjectHolder<%s> out, Pointer ptrval, FileDatabase db, Field f, boolean non_recursive)
+	{
+		out.reset(); // ensure null pointers work
+		if (ptrval.val == 0) { 
+			return false;
+		}
+		Structure s = db.dna.get(f.type);
+		// find the file block the pointer is pointing to
+		FileBlockHead block = locateFileBlockForAddress(ptrval,db);
+
+		// also determine the target type from the block header
+		// and check if it matches the type which we expect.
+		Structure ss = db.dna.get(block.dna_index);
+		if (ss != s) {
+			throw new Error("Expected target to be of type `" + s.name +
+				"` but seemingly it is a `"+ss.name+"` instead"
+				);
+		}
+
+		// try to retrieve the object from the cache
+		out.set((%s) db.cache().get(s,ptrval)); 
+		if (out.notNull()) {
+			return true;
+		}
+
+		// seek to this location, but save the previous stream pointer.
+		int pold = db.reader.getCurrentPos();
+		db.reader.setCurrentPos((int) (block.start+ /*static_cast<size_t>*/((ptrval.val - block.address.val) )));
+		// FIXME: basically, this could cause problems with 64 bit pointers on 32 bit systems.
+		// I really ought to improve StreamReader to work with 64 bit indices exclusively.
+
+		// continue conversion after allocating the required storage
+//		int num = block.size / ss.size; 
+//		T* o = _allocate(out,num);
+		out.reset(new %s());
+		%s o = out.get();
+
+		// cache the object before we convert it to avoid cyclic recursion.
+		db.cache().set(s,o,ptrval); 
+
+		// if the non_recursive flag is set, we don't do anything but leave
+		// the cursor at the correct position to resolve the object.
+		if (!non_recursive) {
+//			for (int i = 0; i < num; ++i,++o) {
+//				s.Convert(*o,db);
+//			}
+//
+//			db.reader->SetCurrentPos(pold);
+			
+			s.convert(o, db);
+			db.reader.setCurrentPos(pold);
+		}
+
+		if(!AssimpConfig.ASSIMP_BUILD_BLENDER_NO_STATS){
+			if(out.notNull()) {
+				++db.stats().pointers_resolved;
+			}
+		}
+		
+		return false;
+	}

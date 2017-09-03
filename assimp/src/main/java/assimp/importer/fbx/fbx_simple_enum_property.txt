@@ -1,0 +1,8 @@
+%s %s() {
+	final int ival = PropertyTable.propertyGet(props(), "%s", Integer.valueOf(%s));
+	if (ival < 0 || ival >= %s/*AI_CONCAT(type, _MAX)*/) {
+		assert(%s >= 0 && %s < %s/*AI_CONCAT(type, _MAX)*/);
+		return (%s);
+	}
+	return (ival);
+}

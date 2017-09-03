@@ -827,8 +827,8 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         constant_buffer.m_choppy_scale = m_params.choppy_scale;
 
         if(!firstFrame){
-            byte[] bytes = DebugTools.loadBytes("E:/textures/WaveWorks/time.dat");
-            constant_buffer.m_time = (float) Numeric.getDouble(bytes, 0);
+//            byte[] bytes = DebugTools.loadBytes("E:/textures/WaveWorks/time.dat");
+//            constant_buffer.m_time = (float) Numeric.getDouble(bytes, 0);
             firstFrame = true;
         }
 
@@ -865,7 +865,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         if(!m_GaussAndOmegaInitialised)
         {
             GLCheck.checkError();
-            hr = initGaussAndOmegaLoadData();
+            hr = initGaussAndOmega();
             GLCheck.checkError();
             if(hr != HRESULT.S_OK)
                 return hr;
@@ -1183,6 +1183,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 _11.m_active_readback_buffer = null;
             }
             break;
+
         }
 
         return HRESULT.S_OK;

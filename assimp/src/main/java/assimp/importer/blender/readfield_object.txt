@@ -1,0 +1,21 @@
+void readField(%s out, String name, FileDatabase db, int error_flag){
+		int old = db.reader.getCurrentPos();
+		try {
+			Field f = get(name);
+			// find the structure definition pertaining to this field
+			Structure s = db.dna.get(f.type);
+
+			db.reader.incPtr(f.offset);
+			s.convert(out,db);
+		}
+		catch (Exception e) {
+//			_defaultInitializer<error_policy>()(out,e.what());
+			_defaultInitializer(out, error_flag, e);
+		}
+
+		// and recover the previous stream position
+		db.reader.setCurrentPos(old);
+
+		if(!AssimpConfig.ASSIMP_BUILD_BLENDER_NO_STATS)
+			++db.stats().fields_read;
+	}

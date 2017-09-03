@@ -1,0 +1,3 @@
+	void convert(%s dest, FileDatabase db){
+		##
+	}
