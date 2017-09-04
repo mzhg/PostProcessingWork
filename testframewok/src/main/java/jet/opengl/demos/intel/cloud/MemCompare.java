@@ -122,7 +122,6 @@ final class MemCompare {
     }
 
     static void testSortParticles(){
-
         String[] tokens = {"VisibleParticlesSortedList","VisibleParticlesMergedList", "SerializedVisibleParticles"};
         for(int i = 0; i < tokens.length; i ++){
             System.out.println(String.format("test%s: ", tokens[i]));

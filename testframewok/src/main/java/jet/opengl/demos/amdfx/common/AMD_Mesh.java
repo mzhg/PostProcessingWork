@@ -4,23 +4,11 @@ import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import jet.opengl.postprocessing.texture.Texture2D;
-import jet.opengl.postprocessing.util.StackInt;
-import sun.security.provider.certpath.Vertex;
 
 public final class AMD_Mesh {
 
-	private String                    _name = "default";
-    private int                       _id;
     private SDKmesh m_sdkMesh;
     private boolean                   m_isSdkMesh;
-    
-    private final List<Vertex>        _vertex = new ArrayList<>();
-    private final StackInt _index  = new StackInt();
-    private final List<Texture2D>     _srv = new ArrayList<>();
 
     public void Create(String path, String name, boolean sdkmesh){
     	m_isSdkMesh = sdkmesh;
@@ -67,6 +55,4 @@ public final class AMD_Mesh {
 
     	}
     }
-
-    Texture2D[] srv(){ return null;}
 }

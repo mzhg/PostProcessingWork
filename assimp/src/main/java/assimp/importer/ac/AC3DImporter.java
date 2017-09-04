@@ -1,13 +1,13 @@
 package assimp.importer.ac;
 
+import org.lwjgl.util.vector.Vector3f;
+
 import java.io.File;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.lwjgl.util.vector.Vector3f;
 
 import assimp.common.AssUtil;
 import assimp.common.AssimpConfig;
@@ -548,7 +548,7 @@ public class AC3DImporter extends BaseImporter{
 	 *  @param meshes Pointer to the list of output meshes
 	 *  @param outMaterials List of output materials
 	 *  @param materials Material list
-	 *  @param Scenegraph node for the object */
+	 *  @param parent node for the object */
 	Node convertObjectSection(ACObject object, List<Mesh> meshes, List<Material> outMaterials, List<ACMaterial> materials,Node parent){
 		
 		Node node = new Node();

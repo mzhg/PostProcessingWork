@@ -20,13 +20,13 @@ final class PostProcessingGhostImageProgram extends GLSLProgram{
         gl.glUniform1i(iChannel0Loc, 0);  // set the texture0 location.
 
         iChannel0Loc = getUniformLocation("g_Texture2");
-        gl.glUniform1i(iChannel0Loc, 1);  // set the texture0 location.
+        gl.glUniform1i(iChannel0Loc, 1);  // set the texture1 location.
 
         iChannel0Loc = getUniformLocation("g_Texture3");
-        gl.glUniform1i(iChannel0Loc, 2);  // set the texture0 location.
+        gl.glUniform1i(iChannel0Loc, 2);  // set the texture2 location.
 
         iChannel0Loc = getUniformLocation("g_Texture4");
-        gl.glUniform1i(iChannel0Loc, 3);  // set the texture0 location.
+        gl.glUniform1i(iChannel0Loc, 3);  // set the texture3 location.
 
         uniformIndex = getUniformLocation("g_Scalar");
         colorCoeffIndex = getUniformLocation("g_ColorCoeff");
