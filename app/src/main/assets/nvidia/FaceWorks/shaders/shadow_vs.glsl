@@ -1,5 +1,11 @@
+// This code contains NVIDIA Confidential Information and is disclosed
+// under the Mutual Non-Disclosure Agreement.
+//
+// Notice
+// ALL NVIDIA DESIGN SPECIFICATIONS AND CODE ("MATERIALS") ARE PROVIDED "AS IS" NVIDIA MAKES
+// NO REPRESENTATIONS, WARRANTIES, EXPRESSED, IMPLIED, STATUTORY, OR OTHERWISE WITH RESPECT TO
 //----------------------------------------------------------------------------------
-// File:        FaceWorks/samples/sample_d3d11/shaders/tess_vs.hlsl
+// File:        FaceWorks/samples/sample_d3d11/shaders/shadow_vs.hlsl
 // SDK Version: v1.0
 // Email:       gameworks@nvidia.com
 // Site:        http://developer.nvidia.com/
@@ -32,12 +38,23 @@
 //
 //----------------------------------------------------------------------------------
 
-#include "common.hlsli"
-#include "tess.hlsli"
+#include "common.glsl"
+
+//cbuffer cbShader : CB_SHADER
+layout(binding=CB_SHADER) uniform cbShader
+{
+	float4x4	g_matWorldToClipShadow;
+};
+
+layout(location =0) in float3		m_pos		/*: POSITION*/;
+layout(location =1) in float3		m_normal	/*: NORMAL*/;
+layout(location =2) in float2		m_uv		/*: UV*/;
+layout(location =3) in float3		m_tangent	/*: TANGENT*/;
+layout(location =4) in float		m_curvature /*: CURVATURE*/;
 
 void main(
-	in Vertex i_vtx,
-	out Vertex o_vtx)
+	/*in Vertex i_vtx,
+	out float4 o_posClip : SV_Position*/)
 {
-	o_vtx = i_vtx;
+	gl_Position = mul(float4(m_pos, 1.0), g_matWorldToClipShadow);
 }

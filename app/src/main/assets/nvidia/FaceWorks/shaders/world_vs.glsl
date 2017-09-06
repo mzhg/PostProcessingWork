@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------
-// File:        FaceWorks/samples/sample_d3d11/shaders/skybox_ps.hlsl
+// File:        FaceWorks/samples/sample_d3d11/shaders/world_vs.hlsl
 // SDK Version: v1.0
 // Email:       gameworks@nvidia.com
 // Site:        http://developer.nvidia.com/
@@ -32,12 +32,31 @@
 //
 //----------------------------------------------------------------------------------
 
-#include "common.hlsli"
-#include "tonemap.hlsli"
+#include "common.glsl"
 
-TextureCube<float3> g_texSkybox : TEX_SOURCE;
+layout(location =0) in float3		m_pos		/*: POSITION*/;
+layout(location =1) in float3		m_normal	/*: NORMAL*/;
+layout(location =2) in float2		m_uv		/*: UV*/;
+layout(location =3) in float3		m_tangent	/*: TANGENT*/;
+layout(location =4) in float		m_curvature /*: CURVATURE*/;
 
-float3 main(in float3 i_vecView : VIEW) : SV_Target
+out Vertex o_vtx;
+out float3 o_vecCamera;
+out float4 o_uvzwShadow;
+
+void main(
+	/*in Vertex i_vtx,
+	out Vertex o_vtx,
+	out float3 o_vecCamera : CAMERA,
+	out float4 o_uvzwShadow : UVZW_SHADOW,
+	out float4 o_posClip : SV_Position*/)
 {
-	return Tonemap(g_texSkybox.Sample(g_ssTrilinearRepeat, i_vecView));
+	o_vtx.m_pos = m_pos;
+    o_vtx.m_normal = m_normal;
+    o_vtx.m_uv = m_uv;
+    o_vtx.m_tangent = m_tangent;
+    o_vtx.m_curvature = m_curvature;
+	o_vecCamera = g_posCamera - o_vtx.m_pos;
+	o_uvzwShadow = mul(float4(o_vtx.m_pos, 1.0), g_matWorldToUvzwShadow);
+	gl_Position = mul(float4(o_vtx.m_pos, 1.0), g_matWorldToClip);
 }

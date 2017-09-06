@@ -72,16 +72,19 @@ void main(
 		i_vtx.m_normal = -i_vtx.m_normal;
 
     GFSDK_FaceWorks_CBData dummy;
+    dummy.data[0] = float4(0);
+    dummy.data[1] = float4(0);
+    dummy.data[2] = float4(0);
 	LightingMegashader(
 		i_vtx,
 		i_vecCamera,
 		i_uvzwShadow,
 		rgbaDiffuse.rgb,
-		0.0.xxx,
-		0.0.xxx,
+		float3(0.0),
+		float3(0.0),
 		g_specReflectance,
 		g_gloss,
-		0.0.xxx,
+		float3(0.0),
 		dummy,
 		Out_Color.rgb,
 		false,	// useNormalMap

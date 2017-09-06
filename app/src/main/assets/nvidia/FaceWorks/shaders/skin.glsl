@@ -35,57 +35,63 @@
 #ifndef SKIN_HLSLI
 #define SKIN_HLSLI
 
-#include "common.hlsli"
-#include "lighting.hlsli"
-#include "GFSDK_FaceWorks.hlsli"
+#include "common.glsl"
+#include "lighting.glsl"
+#include "../../../shader_libs/FaceWork/GFSDK_FaceWorks.glsl"
 
-cbuffer cbShader : CB_SHADER
+//cbuffer cbShader : CB_SHADER
+layout(binding = CB_SHADER) uniform cbShader
 {
 	float		g_normalStrength;
 	float		g_gloss;
 
 	GFSDK_FaceWorks_CBData	g_faceworksData;
-}
+};
 
+#if 0
 Texture2D<float3> g_texDiffuse			: TEX_DIFFUSE0;
 Texture2D<float3> g_texNormal			: TEX_NORMAL;
 Texture2D<float> g_texSpec				: TEX_SPEC;
 Texture2D<float3> g_texDeepScatterColor	: TEX_DEEP_SCATTER_COLOR;
-
-
+#else
+layout(binding=TEX_DIFFUSE0) uniform sampler2D g_texDiffuse;
+layout(binding=TEX_NORMAL) uniform sampler2D g_texNormal;
+layout(binding=TEX_SPEC) uniform sampler2D g_texSpec;
+layout(binding=TEX_DEEP_SCATTER_COLOR) uniform sampler2D g_texDeepScatterColor;
+#endif
 
 void SkinMegashader(
 	in Vertex i_vtx,
 	in float3 i_vecCamera,
 	in float4 i_uvzwShadow,
 	out float3 o_rgbLit,
-	uniform bool useSSS,
-	uniform bool useDeepScatter)
+	bool useSSS,
+	bool useDeepScatter)
 {
 	float2 uv = i_vtx.m_uv;
 
 	// Sample textures
 
-	float3 rgbDiffuse = g_texDiffuse.Sample(g_ssTrilinearRepeatAniso, uv);
-	float3 normalTangent = UnpackNormal(g_texNormal.Sample(g_ssTrilinearRepeatAniso, uv),
+	float3 rgbDiffuse = texture(g_texDiffuse, uv).rgb;  // g_ssTrilinearRepeatAniso
+	float3 normalTangent = UnpackNormal(texture(g_texNormal, uv).xyz,  //g_ssTrilinearRepeatAniso
 										g_normalStrength);
-	float specReflectance = g_texSpec.Sample(g_ssTrilinearRepeatAniso, uv);
+	float specReflectance = texture(g_texSpec, uv).x;   //g_ssTrilinearRepeatAniso
 
 	float3 normalTangentBlurred;
 	if (useSSS || useDeepScatter)
 	{
 		// Sample normal map with level clamped based on blur, to get normal for SSS
 		float level = GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
-						g_faceworksData, g_texNormal, g_ssTrilinearRepeatAniso, uv);
+						g_faceworksData, g_texNormal, /*g_ssTrilinearRepeatAniso,*/ uv);
 		normalTangentBlurred = UnpackNormal(
-									g_texNormal.SampleLevel(g_ssTrilinearRepeatAniso, uv, level),
+									textureLod(g_texNormal, uv, level).xyz,  // g_ssTrilinearRepeatAniso
 									g_normalStrength);
 	}
 
 	float3 rgbDeepScatter;
 	if (useDeepScatter)
 	{
-		rgbDeepScatter = g_texDeepScatterColor.Sample(g_ssTrilinearRepeatAniso, uv);
+		rgbDeepScatter = texture(g_texDeepScatterColor, uv).xyz;   // g_ssTrilinearRepeatAniso
 	}
 
 	LightingMegashader(

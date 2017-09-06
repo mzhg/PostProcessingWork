@@ -1,11 +1,5 @@
-// This code contains NVIDIA Confidential Information and is disclosed
-// under the Mutual Non-Disclosure Agreement.
-//
-// Notice
-// ALL NVIDIA DESIGN SPECIFICATIONS AND CODE ("MATERIALS") ARE PROVIDED "AS IS" NVIDIA MAKES
-// NO REPRESENTATIONS, WARRANTIES, EXPRESSED, IMPLIED, STATUTORY, OR OTHERWISE WITH RESPECT TO
 //----------------------------------------------------------------------------------
-// File:        FaceWorks/samples/sample_d3d11/shaders/shadow_vs.hlsl
+// File:        FaceWorks/samples/sample_d3d11/shaders/tess.hlsli
 // SDK Version: v1.0
 // Email:       gameworks@nvidia.com
 // Site:        http://developer.nvidia.com/
@@ -38,16 +32,16 @@
 //
 //----------------------------------------------------------------------------------
 
-#include "common.hlsli"
+#ifndef TESS_HLSLI
+#define TESS_HLSLI
 
-cbuffer cbShader : CB_SHADER
+/*
+struct PatchConstData
 {
-	float4x4	g_matWorldToClipShadow;
-}
+	float		m_tessFactor[3] : SV_TessFactor;
+	float		m_insideTessFactor : SV_InsideTessFactor;
+};
+*/
+const float s_tessFactorMax = 3.0;
 
-void main(
-	in Vertex i_vtx,
-	out float4 o_posClip : SV_Position)
-{
-	o_posClip = mul(float4(i_vtx.m_pos, 1.0), g_matWorldToClipShadow);
-}
+#endif // TESS_HLSLI

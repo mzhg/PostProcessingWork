@@ -44,11 +44,11 @@
 // Normal mapping
 
 float3 UnpackNormal(
-	float3 sample,
+	float3 normal,
 	float normalStrength)
 {
 	return lerp(float3(0, 0, 1),
-				sample * 2.0 - 1.0,
+				normal * 2.0 - 1.0,
 				normalStrength);
 }
 
@@ -83,7 +83,7 @@ float3 EvaluateDiffuseLight(
 	float3 rgbLightDiffuse = g_rgbDirectionalLight * (NdotL * shadow);
 
 	// IBL diffuse
-	rgbLightDiffuse += g_texCubeDiffuse.Sample(g_ssTrilinearRepeat, normalShade);
+	rgbLightDiffuse += texture(g_texCubeDiffuse, normalShade);   // g_ssTrilinearRepeat
 
 	return rgbLightDiffuse;
 }
@@ -113,9 +113,9 @@ float3 EvaluateSSSDiffuseLight(
 	GFSDK_FaceWorks_CalculateNormalsForAmbientLight(
 		normalShade, normalBlurred,
 		normalAmbient0, normalAmbient1, normalAmbient2);
-	float3 rgbAmbient0 = g_texCubeDiffuse.Sample(g_ssTrilinearRepeat, normalAmbient0);
-	float3 rgbAmbient1 = g_texCubeDiffuse.Sample(g_ssTrilinearRepeat, normalAmbient1);
-	float3 rgbAmbient2 = g_texCubeDiffuse.Sample(g_ssTrilinearRepeat, normalAmbient2);
+	float3 rgbAmbient0 = texture(g_texCubeDiffuse, normalAmbient0);  // g_ssTrilinearRepeat
+	float3 rgbAmbient1 = texture(g_texCubeDiffuse, normalAmbient1);
+	float3 rgbAmbient2 = texture(g_texCubeDiffuse, normalAmbient2);
 	rgbLightDiffuse += GFSDK_FaceWorks_EvaluateSSSAmbientLight(
 							rgbAmbient0, rgbAmbient1, rgbAmbient2);
 
@@ -172,13 +172,13 @@ float3 EvaluateSpecularLight(
 	float fresnelIBL0 = lerp(specReflectance, 1.0,
 							pow(1.0 - NdotV, 5.0) / (-3.0 * gloss0 + 4.0));
 	float mipLevel0 = -9.0 * gloss0 + 9.0;
-	float3 iblSpec0 = fresnelIBL0 * g_texCubeSpec.SampleLevel(
-										g_ssTrilinearRepeat, vecReflect, mipLevel0);
+	float3 iblSpec0 = fresnelIBL0 * textureLod(g_texCubeSpec
+										, vecReflect, mipLevel0);  //g_ssTrilinearRepeat
 	float fresnelIBL1 = lerp(specReflectance, 1.0,
 							pow(1.0 - NdotV, 5.0) / (-3.0 * gloss1 + 4.0));
 	float mipLevel1 = -9.0 * gloss1 + 9.0;
-	float3 iblSpec1 = fresnelIBL1 * g_texCubeSpec.SampleLevel(
-										g_ssTrilinearRepeat, vecReflect, mipLevel1);
+	float3 iblSpec1 = fresnelIBL1 * textureLod(g_texCubeSpec
+										, vecReflect, mipLevel1);  //g_ssTrilinearRepeat
 	rgbLitSpecular += lerp(iblSpec0, iblSpec1, specLobeBlend);
 
 	return rgbLitSpecular;
@@ -200,9 +200,9 @@ void LightingMegashader(
 	in float3 rgbDeepScatter,
 	in GFSDK_FaceWorks_CBData faceworksData,
 	out float3 o_rgbLit,
-	uniform bool useNormalMap,
-	uniform bool useSSS,
-	uniform bool useDeepScatter)
+	bool useNormalMap,
+	bool useSSS,
+	bool useDeepScatter)
 {
 	float3 normalGeom = normalize(i_vtx.m_normal);
 	float3 vecCamera = normalize(i_vecCamera);

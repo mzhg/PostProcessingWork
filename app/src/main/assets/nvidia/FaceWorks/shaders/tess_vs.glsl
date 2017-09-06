@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------
-// File:        FaceWorks/samples/sample_d3d11/shaders/thickness_ps.hlsl
+// File:        FaceWorks/samples/sample_d3d11/shaders/tess_vs.hlsl
 // SDK Version: v1.0
 // Email:       gameworks@nvidia.com
 // Site:        http://developer.nvidia.com/
@@ -32,31 +32,27 @@
 //
 //----------------------------------------------------------------------------------
 
-#include "common.hlsli"
-#include "GFSDK_FaceWorks.hlsli"
+#include "common.glsl"
+#include "tess.glsl"
 
-cbuffer cbShader : CB_SHADER
+layout(location =0) in float3		m_pos		/*: POSITION*/;
+layout(location =1) in float3		m_normal	/*: NORMAL*/;
+layout(location =2) in float2		m_uv		/*: UV*/;
+layout(location =3) in float3		m_tangent	/*: TANGENT*/;
+layout(location =4) in float		m_curvature /*: CURVATURE*/;
+
+out TessVSOut
 {
-	GFSDK_FaceWorks_CBData	g_faceworksData;
-}
+    Vertex vtx;
+}_output;
 
 void main(
-	in Vertex i_vtx,
-	in float3 i_vecCamera : CAMERA,
-	in float4 i_uvzwShadow : UVZW_SHADOW,
-	out float4 o_rgba : SV_Target)
+	/*in Vertex i_vtx,
+	out Vertex o_vtx*/)
 {
-	float3 normalGeom = normalize(i_vtx.m_normal);
-	float3 uvzShadow = i_uvzwShadow.xyz / i_uvzwShadow.w;
-
-	// Apply normal offset to avoid silhouette edge artifacts
-	// !!!UNDONE: move this to vertex shader
-	float3 normalShadow = mul(normalGeom, g_matWorldToUvzShadowNormal);
-	uvzShadow += normalShadow * g_deepScatterNormalOffset;
-
-	float thickness = GFSDK_FaceWorks_EstimateThicknessFromParallelShadowPoisson32(
-						g_faceworksData,
-						g_texShadowMap, g_ssBilinearClamp, uvzShadow);
-
-	o_rgba = float4(thickness.xxx * 0.05, 1.0);
+	_output.vtx.m_pos = m_pos;
+	_output.vtx.m_normal = m_normal;
+	_output.vtx.m_uv = m_uv;
+	_output.vtx.m_tangent = m_tangent;
+	_output.vtx.m_curvature = m_curvature;
 }

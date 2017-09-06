@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------
-// File:        FaceWorks/samples/sample_d3d11/shaders/tess.hlsli
+// File:        FaceWorks/samples/sample_d3d11/shaders/skybox_ps.hlsl
 // SDK Version: v1.0
 // Email:       gameworks@nvidia.com
 // Site:        http://developer.nvidia.com/
@@ -32,15 +32,17 @@
 //
 //----------------------------------------------------------------------------------
 
-#ifndef TESS_HLSLI
-#define TESS_HLSLI
+#include "common.glsl"
+#include "tonemap.glsl"
 
-struct PatchConstData
+//TextureCube<float3> g_texSkybox : TEX_SOURCE;
+layout(binding = TEX_SOURCE) uniform samplerCube g_texSkybox;
+
+in float3 o_vecView;
+layout(location=0) out vec4 Out_Color;
+
+//float3 main(in float3 i_vecView : VIEW) : SV_Target
+void main()
 {
-	float		m_tessFactor[3] : SV_TessFactor;
-	float		m_insideTessFactor : SV_InsideTessFactor;
-};
-
-static const float s_tessFactorMax = 3.0;
-
-#endif // TESS_HLSLI
+	Out_Color = Tonemap(texture(g_texSkybox, o_vecView).xyz);   // g_ssTrilinearRepeat
+}

@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------
-// File:        FaceWorks/samples/sample_d3d11/shaders/world_vs.hlsl
+// File:        FaceWorks/samples/sample_d3d11/shaders/tonemap.hlsli
 // SDK Version: v1.0
 // Email:       gameworks@nvidia.com
 // Site:        http://developer.nvidia.com/
@@ -32,17 +32,31 @@
 //
 //----------------------------------------------------------------------------------
 
-#include "common.hlsli"
+#ifndef TONEMAP_HLSLI
+#define TONEMAP_HLSLI
 
-void main(
-	in Vertex i_vtx,
-	out Vertex o_vtx,
-	out float3 o_vecCamera : CAMERA,
-	out float4 o_uvzwShadow : UVZW_SHADOW,
-	out float4 o_posClip : SV_Position)
+#include "common.glsl"
+
+float3 Tonemap(float3 rgb)
 {
-	o_vtx = i_vtx;
-	o_vecCamera = g_posCamera - i_vtx.m_pos;
-	o_uvzwShadow = mul(float4(i_vtx.m_pos, 1.0), g_matWorldToUvzwShadow);
-	o_posClip = mul(float4(i_vtx.m_pos, 1.0), g_matWorldToClip);
+	// Apply exposure
+	rgb *= g_exposure;
+
+	// Apply the magic Jim Hejl tonemapping curve (see:
+	// http://www.slideshare.net/ozlael/hable-john-uncharted2-hdr-lighting, slide #140)
+	const bool useTonemapping = true;
+	if (useTonemapping)
+	{
+		rgb = max(float3(0), rgb - 0.004);
+		rgb = (rgb * (6.2 * rgb + 0.5)) / (rgb * (6.2 * rgb + 1.7) + 0.06);
+	}
+	else
+	{
+		// Just convert to SRGB gamma space
+		rgb = (rgb < 0.0031308) ? (12.92 * rgb) : (1.055 * pow(rgb, float3(1.0/2.4)) - 0.055);
+	}
+
+	return rgb;
 }
+
+#endif // TONEMAP_HLSLI

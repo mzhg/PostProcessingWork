@@ -8,6 +8,7 @@ import org.lwjgl.util.vector.Vector3f;
  */
 
 final class Vertex {
+    static final int SIZE = Vector3f.SIZE * 4;
     final Vector3f m_pos = new Vector3f();
     final Vector3f m_normal = new Vector3f();
     final Vector2f m_uv = new Vector2f();

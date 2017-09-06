@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------
-// File:        FaceWorks/samples/sample_d3d11/shaders/tess_ds.hlsl
+// File:        FaceWorks/samples/sample_d3d11/shaders/thickness_ps.hlsl
 // SDK Version: v1.0
 // Email:       gameworks@nvidia.com
 // Site:        http://developer.nvidia.com/
@@ -32,44 +32,37 @@
 //
 //----------------------------------------------------------------------------------
 
-#include "common.hlsli"
-#include "tess.hlsli"
+#include "common.glsl"
+#include "GFSDK_FaceWorks.glsl"
 
-[domain("tri")]
-void main(
-	in OutputPatch<Vertex, 3> i_cps,
-	in PatchConstData i_pcd,
-	in float3 i_bary : SV_DomainLocation,
-	out Vertex o_vtx,
-	out float3 o_vecCamera : CAMERA,
-	out float4 o_uvzwShadow : UVZW_SHADOW,
-	out float4 o_posClip : SV_Position)
+//cbuffer cbShader : CB_SHADER
+layout(binding=CB_SHADER) uniform cbShader
 {
-	// Lerp all attributes but position
-	o_vtx.m_normal = i_bary.x * i_cps[0].m_normal + i_bary.y * i_cps[1].m_normal + i_bary.z * i_cps[2].m_normal;
-	o_vtx.m_uv = i_bary.x * i_cps[0].m_uv + i_bary.y * i_cps[1].m_uv + i_bary.z * i_cps[2].m_uv;
-	o_vtx.m_tangent = i_bary.x * i_cps[0].m_tangent + i_bary.y * i_cps[1].m_tangent + i_bary.z * i_cps[2].m_tangent;
-	o_vtx.m_curvature = i_bary.x * i_cps[0].m_curvature + i_bary.y * i_cps[1].m_curvature + i_bary.z * i_cps[2].m_curvature;
+	GFSDK_FaceWorks_CBData	g_faceworksData;
+};
 
-	// Calculate output position using Phong tessellation
-	// (http://perso.telecom-paristech.fr/~boubek/papers/PhongTessellation/)
+in Vertex o_vtx;
+in float3 o_vecCamera;
+in float4 o_uvzwShadow;
+layout(location=0) out vec4 Out_Color;
 
-	// Compute lerped position
-	float3 posVtx = i_bary.x * i_cps[0].m_pos + i_bary.y * i_cps[1].m_pos + i_bary.z * i_cps[2].m_pos;
+void main(
+	/*in Vertex i_vtx,
+	in float3 i_vecCamera : CAMERA,
+	in float4 i_uvzwShadow : UVZW_SHADOW,
+	out float4 o_rgba : SV_Target*/)
+{
+	float3 normalGeom = normalize(o_vtx.m_normal);
+	float3 uvzShadow = o_uvzwShadow.xyz / o_uvzwShadow.w;
 
-	// Calculate deltas to project onto three tangent planes
-	float3 vecProj0 = dot(i_cps[0].m_pos - posVtx, i_cps[0].m_normal) * i_cps[0].m_normal;
-	float3 vecProj1 = dot(i_cps[1].m_pos - posVtx, i_cps[1].m_normal) * i_cps[1].m_normal;
-	float3 vecProj2 = dot(i_cps[2].m_pos - posVtx, i_cps[2].m_normal) * i_cps[2].m_normal;
+	// Apply normal offset to avoid silhouette edge artifacts
+	// !!!UNDONE: move this to vertex shader
+	float3 normalShadow = mul(normalGeom, g_matWorldToUvzShadowNormal);
+	uvzShadow += normalShadow * g_deepScatterNormalOffset;
 
-	// Lerp between projection vectors
-	float3 vecOffset = i_bary.x * vecProj0 + i_bary.y * vecProj1 + i_bary.z * vecProj2;
+	float thickness = GFSDK_FaceWorks_EstimateThicknessFromParallelShadowPoisson32(
+						g_faceworksData,
+						g_texShadowMap, /*g_ssBilinearClamp,*/ uvzShadow);
 
-	// Add a fraction of the offset vector to the lerped position
-	posVtx += 0.5 * vecOffset;
-
-	o_vtx.m_pos = posVtx;
-	o_vecCamera = g_posCamera - posVtx;
-	o_uvzwShadow = mul(float4(posVtx, 1.0), g_matWorldToUvzwShadow);
-	o_posClip = mul(float4(posVtx, 1.0), g_matWorldToClip);
+	Out_Color = float4(thickness.xxx * 0.05, 1.0);
 }

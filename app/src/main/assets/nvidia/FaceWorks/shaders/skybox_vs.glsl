@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------
-// File:        FaceWorks/samples/sample_d3d11/shaders/screen_vs.hlsl
+// File:        FaceWorks/samples/sample_d3d11/shaders/skybox_vs.hlsl
 // SDK Version: v1.0
 // Email:       gameworks@nvidia.com
 // Site:        http://developer.nvidia.com/
@@ -32,14 +32,28 @@
 //
 //----------------------------------------------------------------------------------
 
+#include "common.glsl"
+layout(location =0) in float3		m_pos		/*: POSITION*/;
+layout(location =1) in float3		m_normal	/*: NORMAL*/;
+layout(location =2) in float2		m_uv		/*: UV*/;
+layout(location =3) in float3		m_tangent	/*: TANGENT*/;
+layout(location =4) in float		m_curvature /*: CURVATURE*/;
 
-#include "common.hlsli"
-
-void main(
-	in Vertex i_vtx,
-	out float2 o_uv : UV,
-	out float4 o_posClip : SV_Position)
+//cbuffer cbShader : CB_SHADER
+layout(location =CB_SHADER) uniform cbShader
 {
-	o_posClip = float4(i_vtx.m_pos.xy, 0.0, 1.0);
-	o_uv = i_vtx.m_uv;
+	float4x4	g_matClipToWorldAxes;
+};
+
+out float3 o_vecView;
+void main(
+	/*in Vertex i_vtx,
+	out float3 o_vecView : VIEW,
+	out float4 o_posClip : SV_Position*/)
+{
+	// Set z = 1 to draw skybox at the back of the depth range
+	gl_Position = float4(m_pos.xy, 1.0, 1.0);
+
+	float4 vecView = mul(gl_Position, g_matClipToWorldAxes);
+	o_vecView = vecView.xyz / vecView.w;
 }

@@ -32,44 +32,62 @@
 //
 //----------------------------------------------------------------------------------
 
-#include "common.hlsli"
-#include "tess.hlsli"
+#include "common.glsl"
+#include "tess.glsl"
 
-void calcHSConstants(
-	in InputPatch<Vertex, 3> i_cps,
-	out PatchConstData o_pcd)
+layout (vertices = 3) out;
+
+in TessVSOut
 {
+    Vertex vtx;
+}i_cps[];
+
+out TessHSOut
+{
+    Vertex vtx;
+}_outputs[];
+
+/*void calcHSConstants(
+	in InputPatch<Vertex, 3> i_cps,
+	out PatchConstData o_pcd)*/
+	void main()
+{
+    _outputs[gl_InvocationID].vtx = i_cps[gl_InvocationID].vtx;
 	// Backface culling: check if the camera is behind all three tangent planes
 	float3 vecNdotV =
 	{
-		dot(g_posCamera - i_cps[0].m_pos, i_cps[0].m_normal),
-		dot(g_posCamera - i_cps[1].m_pos, i_cps[1].m_normal),
-		dot(g_posCamera - i_cps[2].m_pos, i_cps[2].m_normal),
+		dot(g_posCamera - i_cps[0].vtx.m_pos, i_cps[0].vtx.m_normal),
+		dot(g_posCamera - i_cps[1].vtx.m_pos, i_cps[1].vtx.m_normal),
+		dot(g_posCamera - i_cps[2].vtx.m_pos, i_cps[2].vtx.m_normal),
 	};
-	if (all(vecNdotV < 0.0))
+
+//	if (all(vecNdotV < 0.0))
+    if (all(lessThan(vecNdotV, float3(0))))
 	{
-		o_pcd.m_tessFactor[0] = 0.0;
-		o_pcd.m_tessFactor[1] = 0.0;
-		o_pcd.m_tessFactor[2] = 0.0;
-		o_pcd.m_insideTessFactor = 0.0;
+		gl_TessLevelOuter[0] = 0.0;
+		gl_TessLevelOuter[1] = 0.0;
+		gl_TessLevelOuter[2] = 0.0;
+		gl_TessLevelInner[0] = 0.0;
+		gl_TessLevelInner[1] = 0.0;
 		return;
 	}
 
 	// Frustum culling: check if all three verts are out on the same side of the frustum
 	// This isn't quite correct because the displacement could make a patch visible even if
 	// it fails this test; but in practice this is nearly impossible to notice
-	float4 posClip0 = mul(float4(i_cps[0].m_pos, 1.0), g_matWorldToClip);
-	float4 posClip1 = mul(float4(i_cps[1].m_pos, 1.0), g_matWorldToClip);
-	float4 posClip2 = mul(float4(i_cps[2].m_pos, 1.0), g_matWorldToClip);
+	float4 posClip0 = mul(float4(i_cps[0].vtx.m_pos, 1.0), g_matWorldToClip);
+	float4 posClip1 = mul(float4(i_cps[1].vtx.m_pos, 1.0), g_matWorldToClip);
+	float4 posClip2 = mul(float4(i_cps[2].vtx.m_pos, 1.0), g_matWorldToClip);
 	float3 xs = { posClip0.x, posClip1.x, posClip2.x };
 	float3 ys = { posClip0.y, posClip1.y, posClip2.y };
 	float3 ws = { posClip0.w, posClip1.w, posClip2.w };
-	if (all(xs < -ws) || all(xs > ws) || all(ys < -ws) || all(ys > ws))
+	if (all(lessThan(xs , -ws)) || all(greaterThan(xs , ws)) || all(lessThan(ys , -ws)) || all(greaterThan(ys, ws)))
 	{
-		o_pcd.m_tessFactor[0] = 0.0;
-		o_pcd.m_tessFactor[1] = 0.0;
-		o_pcd.m_tessFactor[2] = 0.0;
-		o_pcd.m_insideTessFactor = 0.0;
+		gl_TessLevelOuter[0] = 0.0;
+		gl_TessLevelOuter[1] = 0.0;
+		gl_TessLevelOuter[2] = 0.0;
+		gl_TessLevelInner[0] = 0.0;
+        gl_TessLevelInner[1] = 0.0;
 		return;
 	}
 
@@ -77,39 +95,41 @@ void calcHSConstants(
 
 	// Calculate approximate screen-space edge length, but including z length as well,
 	// so we don't undertessellate edges that are foreshortened
-	float edge0 = length(i_cps[2].m_pos - i_cps[1].m_pos) / (0.5 * (posClip2.w + posClip1.w));
-	float edge1 = length(i_cps[0].m_pos - i_cps[2].m_pos) / (0.5 * (posClip0.w + posClip2.w));
-	float edge2 = length(i_cps[1].m_pos - i_cps[0].m_pos) / (0.5 * (posClip1.w + posClip0.w));
+	float edge0 = length(i_cps[2].vtx.m_pos - i_cps[1].vtx.m_pos) / (0.5 * (posClip2.w + posClip1.w));
+	float edge1 = length(i_cps[0].vtx.m_pos - i_cps[2].vtx.m_pos) / (0.5 * (posClip0.w + posClip2.w));
+	float edge2 = length(i_cps[1].vtx.m_pos - i_cps[0].vtx.m_pos) / (0.5 * (posClip1.w + posClip0.w));
 
 	// Calculate dots of the two normals on each edge - used to give more tessellation
 	// in areas with higher curvature
-	float normalDot0 = dot(i_cps[2].m_normal, i_cps[1].m_normal);
-	float normalDot1 = dot(i_cps[0].m_normal, i_cps[2].m_normal);
-	float normalDot2 = dot(i_cps[1].m_normal, i_cps[0].m_normal);
+	float normalDot0 = dot(i_cps[2].vtx.m_normal, i_cps[1].vtx.m_normal);
+	float normalDot1 = dot(i_cps[0].vtx.m_normal, i_cps[2].vtx.m_normal);
+	float normalDot2 = dot(i_cps[1].vtx.m_normal, i_cps[0].vtx.m_normal);
 
 	// Calculate target screen-space error
-	static const float errPxTarget = 0.5;
-	static const float tanHalfFov = tan(0.5 * 0.5);
-	static const float errTarget = errPxTarget * 2.0 * tanHalfFov / 1080.0;
+	const float errPxTarget = 0.5;
+	const float tanHalfFov = tan(0.5 * 0.5);
+	const float errTarget = errPxTarget * 2.0 * tanHalfFov / 1080.0;
 
 	// Calculate tess factors using curve fitting approximation to screen-space error
 	// derived from curvature and edge length
-	static const float tessScale = 0.41 / sqrt(errTarget);
-	o_pcd.m_tessFactor[0] = g_tessScale * sqrt(edge0) * pow(1.0 - saturate(normalDot0), 0.27);
-	o_pcd.m_tessFactor[1] = g_tessScale * sqrt(edge1) * pow(1.0 - saturate(normalDot1), 0.27);
-	o_pcd.m_tessFactor[2] = g_tessScale * sqrt(edge2) * pow(1.0 - saturate(normalDot2), 0.27);
+	const float tessScale = 0.41 / sqrt(errTarget);
+	gl_TessLevelOuter[0] = g_tessScale * sqrt(edge0) * pow(1.0 - saturate(normalDot0), 0.27);
+	gl_TessLevelOuter[1] = g_tessScale * sqrt(edge1) * pow(1.0 - saturate(normalDot1), 0.27);
+	gl_TessLevelOuter[2] = g_tessScale * sqrt(edge2) * pow(1.0 - saturate(normalDot2), 0.27);
 
 	// Clamp to supported range
-	o_pcd.m_tessFactor[0] = clamp(o_pcd.m_tessFactor[0], 1.0, s_tessFactorMax);
-	o_pcd.m_tessFactor[1] = clamp(o_pcd.m_tessFactor[1], 1.0, s_tessFactorMax);
-	o_pcd.m_tessFactor[2] = clamp(o_pcd.m_tessFactor[2], 1.0, s_tessFactorMax);
+	gl_TessLevelOuter[0] = clamp(gl_TessLevelOuter[0], 1.0, s_tessFactorMax);
+	gl_TessLevelOuter[1] = clamp(gl_TessLevelOuter[1], 1.0, s_tessFactorMax);
+	gl_TessLevelOuter[2] = clamp(gl_TessLevelOuter[2], 1.0, s_tessFactorMax);
 
 	// Set interior tess factor to maximum of edge factors
-	o_pcd.m_insideTessFactor = max(max(o_pcd.m_tessFactor[0],
-									   o_pcd.m_tessFactor[1]),
-									   o_pcd.m_tessFactor[2]);
+	gl_TessLevelInner[0] = max(max(gl_TessLevelOuter[0],
+									   gl_TessLevelOuter[1]),
+									   gl_TessLevelOuter[2]);
+    gl_TessLevelInner[1] = 0.0;
 }
 
+/*
 [domain("tri")]
 [maxtessfactor(s_tessFactorMax)]
 [outputcontrolpoints(3)]
@@ -122,3 +142,4 @@ Vertex main(
 {
 	return i_cps[iCp];
 }
+*/
