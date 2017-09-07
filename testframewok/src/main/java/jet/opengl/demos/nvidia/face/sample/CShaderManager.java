@@ -37,24 +37,24 @@ final class CShaderManager {
 
     SHDFEAT_PSMask			= 0x06;				// Features that affect the pixel shader
 
-    private static final int CB_DEBUG						=(0);
-    private static final int CB_FRAME						=(1);
-    private static final int CB_SHADER						=(2);
+    static final int CB_DEBUG						=(0);
+    static final int CB_FRAME						=(1);
+    static final int CB_SHADER						=(2);
 
-    private static final int TEX_CUBE_DIFFUSE				=(0);
-    private static final int TEX_CUBE_SPEC					=(1);
-    private static final int TEX_SHADOW_MAP					=(2);
-    private static final int TEX_VSM						=(3);
-    private static final int TEX_DIFFUSE0					=(4);
-    private static final int TEX_DIFFUSE1					=(5);
-    private static final int TEX_NORMAL						=(6);
-    private static final int TEX_SPEC						=(7);
-    private static final int TEX_GLOSS						=(8);
-    private static final int TEX_SSS_MASK					=(9);
-    private static final int TEX_DEEP_SCATTER_COLOR			=(10);
-    private static final int TEX_SOURCE						=(11);
-    private static final int TEX_CURVATURE_LUT				=(12);
-    private static final int TEX_SHADOW_LUT					=(13);
+    static final int TEX_CUBE_DIFFUSE				=(0);
+    static final int TEX_CUBE_SPEC					=(1);
+    static final int TEX_SHADOW_MAP					=(2);
+    static final int TEX_VSM						=(3);
+    static final int TEX_DIFFUSE0					=(4);
+    static final int TEX_DIFFUSE1					=(5);
+    static final int TEX_NORMAL						=(6);
+    static final int TEX_SPEC						=(7);
+    static final int TEX_GLOSS						=(8);
+    static final int TEX_SSS_MASK					=(9);
+    static final int TEX_DEEP_SCATTER_COLOR			=(10);
+    static final int TEX_SOURCE						=(11);
+    static final int TEX_CURVATURE_LUT				=(12);
+    static final int TEX_SHADOW_LUT					=(13);
 
     private static final int SAMP_POINT_CLAMP				=(0);
     private static final int SAMP_BILINEAR_CLAMP			=(1);
@@ -462,9 +462,9 @@ final class CShaderManager {
         ShaderProgram pPs;
         switch (pMtl.m_shader)
         {
-            case SHADER_Skin:	pPs = GetSkinShader(features); break;
-            case SHADER_Eye:	pPs = GetEyeShader(features); break;
-            case SHADER_Hair:	pPs = m_pPsHair; break;
+            case Skin:	pPs = GetSkinShader(features); break;
+            case Eye:	pPs = GetEyeShader(features); break;
+            case Hair:	pPs = m_pPsHair; break;
             default:
                 throw new IllegalArgumentException();
         }

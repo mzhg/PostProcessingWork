@@ -6,7 +6,7 @@ package jet.opengl.demos.nvidia.face.sample;
  */
 
 enum SHADER {
-    SHADER_Skin,
-    SHADER_Eye,
-    SHADER_Hair,
+    Skin,
+    Eye,
+    Hair,
 }

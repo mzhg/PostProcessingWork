@@ -123,8 +123,10 @@ public final class GFSDK_FaceWorks {
             int vertexCount,
             float[] pPositions,
             int positionStrideBytes,
+            int positionOffsetBytes,
             float[] pNormals,
             int normalStrideBytes,
+            int normalOffsetBytes,
             int indexCount,
             int[] pIndices,
             int smoothingPassCount,
@@ -192,7 +194,9 @@ public final class GFSDK_FaceWorks {
 
         int triCount = indexCount / 3;
         positionStrideBytes /= 4;
+        positionOffsetBytes /= 4;
         normalStrideBytes   /= 4;
+        normalOffsetBytes   /= 4;
         curvatureStrideBytes/= 4;
 
         // Catch out-of-memory exceptions
@@ -225,9 +229,9 @@ public final class GFSDK_FaceWorks {
 //                    reinterpret_cast<float *>((char *)pPositions + indices[1] * positionStrideBytes),
 //                    reinterpret_cast<float *>((char *)pPositions + indices[2] * positionStrideBytes),
 //                };
-                final int pos0 = indices0 * positionStrideBytes;
-                final int pos1 = indices1 * positionStrideBytes;
-                final int pos2 = indices2 * positionStrideBytes;
+                final int pos0 = indices0 * positionStrideBytes + positionOffsetBytes;
+                final int pos1 = indices1 * positionStrideBytes + positionOffsetBytes;
+                final int pos2 = indices2 * positionStrideBytes + positionOffsetBytes;
 
 //                float * normal[] =
 //                {
@@ -235,9 +239,9 @@ public final class GFSDK_FaceWorks {
 //                    reinterpret_cast<float *>((char *)pNormals + indices[1] * normalStrideBytes),
 //                    reinterpret_cast<float *>((char *)pNormals + indices[2] * normalStrideBytes),
 //                };
-                final int normal0 = indices0 * normalStrideBytes;
-                final int normal1 = indices1 * normalStrideBytes;
-                final int normal2 = indices2 * normalStrideBytes;
+                final int normal0 = indices0 * normalStrideBytes + normalOffsetBytes;
+                final int normal1 = indices1 * normalStrideBytes + normalOffsetBytes;
+                final int normal2 = indices2 * normalStrideBytes + normalOffsetBytes;
 
                 // Calculate each edge's curvature - most edges will be calculated twice this
                 // way, but it's hard to fix that while still making sure to handle boundary edges.
@@ -413,8 +417,10 @@ public final class GFSDK_FaceWorks {
             int vertexCount,
             float[] pPositions,
             int positionStrideBytes,
+            int positionOffsetBytes,
             float[] pUVs,
             int uvStrideBytes,
+            int uvOffsetBytes,
             int indexCount,
             int[] pIndices,
             float[] pAverageUVScaleOut,
@@ -474,7 +480,9 @@ public final class GFSDK_FaceWorks {
         int logUvScaleCount = 0;
 
         positionStrideBytes /= 4;
+        positionOffsetBytes /= 4;
         uvStrideBytes /= 4;
+        uvOffsetBytes /= 4;
 
         // !!!UNDONE: SIMD-ize or GPU-ize all this math
 
@@ -496,9 +504,9 @@ public final class GFSDK_FaceWorks {
 //                reinterpret_cast<float *>((char *)pPositions + indices[1] * positionStrideBytes),
 //                reinterpret_cast<float *>((char *)pPositions + indices[2] * positionStrideBytes),
 //            };
-            final int pos0 = indices0 * positionStrideBytes;
-            final int pos1 = indices1 * positionStrideBytes;
-            final int pos2 = indices2 * positionStrideBytes;
+            final int pos0 = indices0 * positionStrideBytes+positionOffsetBytes;
+            final int pos1 = indices1 * positionStrideBytes+positionOffsetBytes;
+            final int pos2 = indices2 * positionStrideBytes+positionOffsetBytes;
 
 //            float * uv[] =
 //            {
@@ -506,9 +514,9 @@ public final class GFSDK_FaceWorks {
 //                reinterpret_cast<float *>((char *)pUVs + indices[1] * uvStrideBytes),
 //                reinterpret_cast<float *>((char *)pUVs + indices[2] * uvStrideBytes),
 //            };
-            final int uv0 = indices0 * uvStrideBytes;
-            final int uv1 = indices1 * uvStrideBytes;
-            final int uv2 = indices2 * uvStrideBytes;
+            final int uv0 = indices0 * uvStrideBytes+uvOffsetBytes;
+            final int uv1 = indices1 * uvStrideBytes+uvOffsetBytes;
+            final int uv2 = indices2 * uvStrideBytes+uvOffsetBytes;
 
             // Find longest edge length in local space
 //            float dP0x = pos[1][0] - pos[0][0];

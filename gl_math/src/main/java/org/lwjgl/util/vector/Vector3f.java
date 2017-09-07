@@ -717,7 +717,7 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static<T extends WritableVector3f> T computeNormal(ReadableVector3f v0, ReadableVector3f v1, ReadableVector3f v2, WritableVector3f normal){
+	public static<T extends WritableVector3f> T computeNormal(ReadableVector3f v0, ReadableVector3f v1, ReadableVector3f v2, T normal){
 		float leftX = v1.getX() - v0.getX();
 		float leftY = v1.getY() - v0.getY();
 		float leftZ = v1.getZ() - v0.getZ();
@@ -727,7 +727,7 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 		float rightZ = v2.getZ() - v0.getZ();
 		
 		if(normal == null)
-			normal = new Vector3f();
+			normal = (T) new Vector3f();
 		
 		normal.set(
 				leftY * rightZ - leftZ * rightY,
@@ -735,7 +735,31 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 				leftX * rightY - leftY * rightX
 				);
 		
-		return (T)normal;
+		return normal;
+	}
+
+	public static<T extends WritableVector3f> T min(ReadableVector3f a, ReadableVector3f b, T result){
+		if(result == null)
+			result = (T) new Vector3f();
+
+		result.set( Math.min(a.getX(), b.getX()),
+					Math.min(a.getY(), b.getY()),
+					Math.min(a.getZ(), b.getZ())
+				);
+
+		return result;
+	}
+
+	public static<T extends WritableVector3f> T max(ReadableVector3f a, ReadableVector3f b, T result){
+		if(result == null)
+			result = (T) new Vector3f();
+
+		result.set( Math.max(a.getX(), b.getX()),
+				Math.max(a.getY(), b.getY()),
+				Math.max(a.getZ(), b.getZ())
+		);
+
+		return result;
 	}
 	
 	@Override
