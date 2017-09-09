@@ -13,7 +13,6 @@ import jet.opengl.postprocessing.util.CommonUtil;
 /**
  * Created by mazhen'gui on 2017/9/7.
  */
-
 public class FaceWorkDemo extends NvSampleApp {
     static float	g_normalStrength = 1.0f;
     static float	g_glossSkin = 0.35f;
