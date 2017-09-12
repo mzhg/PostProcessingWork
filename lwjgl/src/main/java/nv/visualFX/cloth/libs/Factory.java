@@ -1,11 +1,7 @@
-package nv.visualFX.cloth;
-
-import org.lwjgl.util.vector.Vector3f;
-import org.lwjgl.util.vector.Vector4f;
+package nv.visualFX.cloth.libs;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.ArrayDeque;
 
 /**
  * abstract factory to create context-specific simulation components
@@ -36,7 +32,7 @@ public interface Factory {
      @param particles initial particle positions.
      @param fabric edge distance constraint structure
      */
-    Cloth createCloth(ArrayDeque<Vector4f> particles, Fabric fabric);
+    Cloth createCloth(FloatBuffer particles, Fabric fabric);
 
     /**
      \Create cloth solver object.
@@ -72,8 +68,8 @@ public interface Factory {
      @param convexes pre-allocated memory range to write convexes
      @param triangles pre-allocated memory range to write triangles
      */
-    void extractCollisionData(Cloth cloth, ArrayDeque<Vector4f> spheres, IntBuffer capsules,
-                                      ArrayDeque<Vector4f> planes, IntBuffer convexes, ArrayDeque<Vector3f> triangles);
+    void extractCollisionData(Cloth cloth, FloatBuffer spheres, IntBuffer capsules,
+                                      FloatBuffer planes, IntBuffer convexes, FloatBuffer triangles);
 
     /**
      Extract current motion constraints from a cloth object
@@ -81,21 +77,21 @@ public interface Factory {
      @param cloth the instance to extract from, must match factory type
      @param destConstraints pre-allocated memory range to write constraints
      */
-    void extractMotionConstraints( Cloth cloth, ArrayDeque<Vector4f> destConstraints);
+    void extractMotionConstraints( Cloth cloth, FloatBuffer destConstraints);
 
     /**
      Extract current separation constraints from a cloth object
      @param cloth the instance to extract from, must match factory type
      @param destConstraints pre-allocated memory range to write constraints
      */
-    void extractSeparationConstraints( Cloth cloth, ArrayDeque<Vector4f> destConstraints);
+    void extractSeparationConstraints( Cloth cloth, FloatBuffer destConstraints);
 
     /**
      Extract current particle accelerations from a cloth object
      @param cloth the instance to extract from, must match factory type
      @param destAccelerations pre-allocated memory range to write accelerations
      */
-    void extractParticleAccelerations( Cloth cloth, ArrayDeque<Vector4f> destAccelerations);
+    void extractParticleAccelerations( Cloth cloth, FloatBuffer destAccelerations);
 
     /**
      Extract particles from a cloth object
@@ -104,7 +100,7 @@ public interface Factory {
      @param destWeights pre-allocated memory range to write weights
      */
     void extractVirtualParticles( Cloth cloth, IntBuffer destIndices,
-                                         ArrayDeque<Vector3f> destWeights);
+                                         FloatBuffer destWeights);
 
     /**
      Extract self collision indices from cloth object.
@@ -118,5 +114,5 @@ public interface Factory {
      @param cloth the instance to extract from, must match factory type
      @param destRestPositions pre-allocated memory range to write rest positions
      */
-    void extractRestPositions(Cloth cloth, ArrayDeque<Vector4f> destRestPositions);
+    void extractRestPositions(Cloth cloth, FloatBuffer destRestPositions);
 }

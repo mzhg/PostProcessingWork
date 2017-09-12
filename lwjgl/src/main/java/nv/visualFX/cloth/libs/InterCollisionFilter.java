@@ -1,4 +1,4 @@
-package nv.visualFX.cloth;
+package nv.visualFX.cloth.libs;
 
 /**
  * Created by mazhen'gui on 2017/9/9.

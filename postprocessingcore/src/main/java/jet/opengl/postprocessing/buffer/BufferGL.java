@@ -60,6 +60,8 @@ public class BufferGL implements Disposeable{
         gl.glBufferSubData(m_target, offset, data);
     }
 
+    public ByteBuffer map(int mapBits){ return map(0, m_bufferSize, mapBits);}
+
     public ByteBuffer map(int offset, int bufferSize, int mapBits){
         if(GLCheck.CHECK){
             if(offset < 0 || bufferSize > m_bufferSize || offset + bufferSize > m_bufferSize)

@@ -1,4 +1,4 @@
-package nv.visualFX.cloth;
+package nv.visualFX.cloth.libs;
 
 /**
  * abstract cloth constraints and triangle indices<p></p>
