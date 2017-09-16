@@ -3,9 +3,9 @@ package nv.visualFX.cloth.libs;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.ReadableVector3f;
 
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.List;
 
 /**
  * Created by mazhen'gui on 2017/9/9.
@@ -22,6 +22,8 @@ public interface Cloth {
 
     /** \brief Returns the fabric used to create this Cloth.*/
     Fabric getFabric();
+    /**Returns the Factory used to create this Cloth.*/
+    Factory getFactory();
 
     /* particle properties */
     /// Returns the number of particles simulated by this fabric.
@@ -129,7 +131,7 @@ public interface Cloth {
     int getAccelerationFilterWidth();
 
     // setup edge constraint solver iteration
-    void setPhaseConfig(ByteBuffer configs);
+    void setPhaseConfig(List<PhaseConfig> configs);
 
 	/* collision parameters */
 

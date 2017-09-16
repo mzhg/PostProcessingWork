@@ -11,5 +11,15 @@ import jet.opengl.postprocessing.buffer.BufferGL;
 public class GpuParticles {
     FloatBuffer mCurrent;
     FloatBuffer mPrevious;
+
+    int mCurrentOffset;
+    int mPreviousOffset;
+
     BufferGL mBuffer;
+
+    public GpuParticles(int currentOffset, int previousOffset, BufferGL buffer){
+        mCurrentOffset = currentOffset;
+        mPreviousOffset = previousOffset;
+        mBuffer = buffer;
+    }
 }

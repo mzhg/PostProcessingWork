@@ -1,8 +1,10 @@
 package nv.visualFX.cloth.libs.dx;
 
+import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -10,6 +12,7 @@ import java.util.List;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import nv.visualFX.cloth.libs.Cloth;
@@ -113,6 +116,12 @@ public class DxFactory implements Factory, Disposeable {
         }
     }
 
+    static int sNextFabricId = 0;
+    private static int getNextFabricId()
+    {
+        return sNextFabricId++;
+    }
+
     @Override
     public Platform getPlatform() {
         return Platform.DX11;
@@ -132,12 +141,12 @@ public class DxFactory implements Factory, Disposeable {
     @Override
     public Solver createSolver() {
         CompileComputeShaders(); //Make sure our compute shaders are ready
-        DxSolver solver = NV_CLOTH_NEW(DxSolver)(*this);
+        DxSolver solver = new DxSolver(this);
 
-        if (solver->hasError())
+        if (solver.hasError())
         {
-            NV_CLOTH_DELETE(solver);
-            return NULL;
+//            NV_CLOTH_DELETE(solver);
+            return null;
         }
 
         return solver;
@@ -150,7 +159,80 @@ public class DxFactory implements Factory, Disposeable {
 
     @Override
     public void extractFabricData(Fabric fabric, IntBuffer phaseIndices, IntBuffer sets, FloatBuffer restvalues, FloatBuffer stiffnessValues, IntBuffer indices, IntBuffer anchors, FloatBuffer tetherLengths, IntBuffer triangles) {
+        DxContextLock contextLock = new DxContextLock(this);
 
+	    DxFabric dxFabric = (DxFabric) fabric;
+
+        /*if (phaseIndices.remaining() > 0)
+        {
+            assert(phaseIndices.remaining() == dxFabric.mPhases.size());
+            memcpy(phaseIndices.begin(), dxFabric.mPhases.begin(), phaseIndices.size() * sizeof(uint32_t));
+        }
+
+        if (!restvalues.empty())
+        {
+            NV_CLOTH_ASSERT(restvalues.size() == dxFabric.mConstraints.size());
+            Vector<DxConstraint>::Type hostConstraints(restvalues.size());
+            copyToHost(hostConstraints.begin(), dxFabric.mConstraints.buffer(), dxFabric.mConstraints.mOffset * sizeof(DxConstraint),
+                    uint32_t(hostConstraints.size() * sizeof(DxConstraint)));
+            for (uint32_t i = 0, n = restvalues.size(); i < n; ++i)
+                restvalues[i] = hostConstraints[i].mRestvalue;
+        }
+
+        if (!stiffnessValues.empty())
+        {
+            NV_CLOTH_ASSERT(stiffnessValues.size() == dxFabric.mStiffnessValues.size());
+            Vector<float>::Type hostStiffnessValues(stiffnessValues.size());
+            copyToHost(hostStiffnessValues.begin(), dxFabric.mStiffnessValues.buffer(), dxFabric.mStiffnessValues.mOffset * sizeof(float),
+            uint32_t(hostStiffnessValues.size() * sizeof(float)));
+            for (uint32_t i = 0, n = stiffnessValues.size(); i < n; ++i)
+                stiffnessValues[i] = hostStiffnessValues[i];
+        }
+
+        if (!sets.empty())
+        {
+            // need to skip copying the first element
+            NV_CLOTH_ASSERT(sets.size() == dxFabric.mSets.size());
+            memcpy(sets.begin(), dxFabric.mSets.begin(), sets.size() * sizeof(uint32_t));
+        }
+
+        if (!indices.empty())
+        {
+            NV_CLOTH_ASSERT(indices.size() == dxFabric.mConstraints.size()*2);
+            Vector<DxConstraint>::Type hostConstraints(dxFabric.mConstraints.size());
+            copyToHost(hostConstraints.begin(), dxFabric.mConstraints.buffer(), dxFabric.mConstraints.mOffset * sizeof(DxConstraint),
+                    uint32_t(hostConstraints.size() * sizeof(DxConstraint)));
+
+            auto cIt = hostConstraints.begin(), cEnd = hostConstraints.end();
+            for (uint32_t* iIt = indices.begin(); cIt != cEnd; ++cIt)
+            {
+			*iIt++ = cIt->mFirstIndex;
+			*iIt++ = cIt->mSecondIndex;
+            }
+        }
+
+        if (!anchors.empty() || !tetherLengths.empty())
+        {
+            uint32_t numTethers = uint32_t(dxFabric.mTethers.size());
+            Vector<DxTether>::Type tethers(numTethers, DxTether(0, 0));
+            copyToHost(tethers.begin(), dxFabric.mTethers.buffer(), dxFabric.mTethers.mOffset  * sizeof(DxTether),
+                    uint32_t(tethers.size() * sizeof(DxTether)));
+
+            NV_CLOTH_ASSERT(anchors.empty() || anchors.size() == tethers.size());
+            for (uint32_t i = 0; !anchors.empty(); ++i, anchors.popFront())
+                anchors.front() = tethers[i].mAnchor;
+
+            NV_CLOTH_ASSERT(tetherLengths.empty() || tetherLengths.size() == tethers.size());
+            for (uint32_t i = 0; !tetherLengths.empty(); ++i, tetherLengths.popFront())
+                tetherLengths.front() = tethers[i].mLength * dxFabric.mTetherLengthScale;
+        }
+
+        if (!triangles.empty())
+        {
+            // todo triangles
+        }*/
+
+        contextLock.release();
     }
 
     @Override
@@ -188,12 +270,43 @@ public class DxFactory implements Factory, Disposeable {
 
     }
 
-    void copyToHost(void* dst, ID3D11Buffer* buffer, uint32_t offset, uint32_t size) const; //size and offset in bytes (or in pixels when buffer is a texture?)
-    void CompileComputeShaders(); // this is called once to setup the shaders
+    void copyToHost(ByteBuffer dst, BufferGL buffer, int offset, int size) //size and offset in bytes (or in pixels when buffer is a texture?)
+    {
+        if (size == 0)
+            return;
 
-    void reserveStagingBuffer(uint32_t size);
-    void* mapStagingBuffer(D3D11_MAP) const;
-    void unmapStagingBuffer()
+        DxContextLock contextLock = new DxContextLock(this);
+
+        reserveStagingBuffer(size);
+//        CD3D11_BOX box(offset, 0, 0, offset + size, 1, 1);
+//        mContextManager->getContext()->CopySubresourceRegion(mStagingBuffer, 0, 0, 0, 0, srcBuffer, 0, &box);
+        DxBatchedStorage.CopySubresourceRegion(mStagingBuffer, 0, buffer, offset, size, GLFuncProviderFactory.getGLFuncProvider());
+//	void* mapIt = mapStagingBuffer(D3D11_MAP_READ);
+//        memcpy(dst, mapIt, size);
+        ByteBuffer mapIt = mapStagingBuffer(GLenum.GL_READ_ONLY);
+        mapIt.position(0).limit(size);
+        MemoryUtil.memCopy(MemoryUtil.memAddress(mapIt), MemoryUtil.memAddress(dst), size);
+
+        unmapStagingBuffer();
+
+        contextLock.release();
+    }
+
+    void CompileComputeShaders() // this is called once to setup the shaders
+    {
+
+    }
+
+    void reserveStagingBuffer(int size){
+
+    }
+    ByteBuffer mapStagingBuffer(int mapBits){
+
+        return null;
+    }
+    void unmapStagingBuffer(){
+
+    }
 
     @Override
     public void dispose() {

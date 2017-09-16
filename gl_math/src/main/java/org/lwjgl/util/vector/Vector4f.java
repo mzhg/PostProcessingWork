@@ -578,4 +578,30 @@ public class Vector4f extends Vector implements Serializable, ReadableVector4f, 
 		w = buf.getFloat();
 		return this;
 	}
+
+	public static<T extends WritableVector4f> T min(ReadableVector4f a, ReadableVector4f b, T result){
+		if(result == null)
+			result = (T) new Vector4f();
+
+		result.set( Math.min(a.getX(), b.getX()),
+				Math.min(a.getY(), b.getY()),
+				Math.min(a.getZ(), b.getZ()),
+				Math.min(a.getW(), b.getW())
+		);
+
+		return result;
+	}
+
+	public static<T extends WritableVector4f> T max(ReadableVector4f a, ReadableVector4f b, T result){
+		if(result == null)
+			result = (T) new Vector4f();
+
+		result.set( Math.max(a.getX(), b.getX()),
+				Math.max(a.getY(), b.getY()),
+				Math.max(a.getZ(), b.getZ()),
+				Math.max(a.getW(), b.getW())
+		);
+
+		return result;
+	}
 }

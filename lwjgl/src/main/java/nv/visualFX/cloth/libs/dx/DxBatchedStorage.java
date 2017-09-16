@@ -1,5 +1,6 @@
 package nv.visualFX.cloth.libs.dx;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +10,7 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.BufferUtils;
 import nv.visualFX.cloth.libs.DxContextManagerCallback;
 
 /**
@@ -26,10 +28,12 @@ final class DxBatchedStorage implements Disposeable{
     private int m_usage;
     final int SizeOfT;
     private GLFuncProvider gl;
+    DxContextManagerCallback m_manager;
 
     DxBatchedStorage(DxContextManagerCallback manager, int target, int usage, int stride)
 //            : mBuffer(manager, flags), mSize(0), mMapRefCount(0), mMapPointer(0)
     {
+        m_manager = manager;
 //        mBuffer = new BufferGL();
         m_target = target;
         m_usage = usage;
@@ -55,7 +59,7 @@ final class DxBatchedStorage implements Disposeable{
         view.mCapacity = capacity;
     }
 
-    void assign(DxBatchedVector view, ByteBuffer data, int newSize)
+    void assign(DxBatchedVector view, Buffer data, int newSize)
     {
         int offset = view.mOffset;
         int oldSize = Math.min(newSize, view.mCapacity);
@@ -98,9 +102,9 @@ final class DxBatchedStorage implements Disposeable{
     }
 
     // not updating mSize!
-    void replace(int first, int last, int data_length, ByteBuffer data)
+    void replace(int first, int last, int data_length, Buffer data)
     {
-        int tail = first + /*uint32_t(end - begin)*/ (data != null ? data.remaining() / SizeOfT : data_length /SizeOfT);
+        int tail = first + /*uint32_t(end - begin)*/ (data != null ? BufferUtils.measureSize(data) / SizeOfT : data_length /SizeOfT);
         int newSize = tail == last ? 0 : mSize + tail - last;
         if (newSize > 0)
         {

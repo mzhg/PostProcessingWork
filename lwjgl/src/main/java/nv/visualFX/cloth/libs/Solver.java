@@ -17,7 +17,7 @@ public interface Solver {
     int getNumCloths() ;
 
     /// Returns the pointer to the first cloth added to the solver
-    List<Cloth> getClothList() ;
+    List<? extends Cloth> getClothList() ;
 
     // functions executing the simulation work.
     /** Begins a simulation frame.

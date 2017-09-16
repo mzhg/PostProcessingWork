@@ -1,11 +1,20 @@
 package nv.visualFX.cloth.libs.dx;
 
+
+import org.lwjgl.util.vector.Readable;
+import org.lwjgl.util.vector.Writable;
+
+import java.nio.ByteBuffer;
+
+import nv.visualFX.cloth.libs.IterationState;
+
 /**
  * per-frame data (stored in pinned memory)<p></p>
  * Created by mazhen'gui on 2017/9/12.
  */
 
-final class DxFrameData {
+final class DxFrameData implements Readable, Writable{
+    static final int SIZE = 0;
     boolean mDeviceParticlesDirty;
 
     // number of particle copies that fit in shared memory (0, 1, or 2)
@@ -58,7 +67,8 @@ final class DxFrameData {
 
     boolean mInitSelfCollisionData;
 
-    /*DxFrameData(DxCloth cloth, uint32_t numSharedPositions, const IterationState<Simd4f>& state, uint32_t firstIteration)
+    DxFrameData(){}
+    DxFrameData(DxCloth cloth, int numSharedPositions, IterationState state, int firstIteration)
     {
         mDeviceParticlesDirty = cloth.mDeviceParticlesDirty;
 
@@ -101,7 +111,7 @@ final class DxFrameData {
         mTargetCollisionTrianglesOffset =
                 cloth.mTargetCollisionTriangles.empty() ? mStartCollisionTrianglesOffset : cloth.mTargetCollisionTriangles.mOffset;
 
-        for (uint32_t i = 0; i < 3; ++i)
+        for (int i = 0; i < 3; ++i)
         {
             float c = array(cloth.mParticleBoundsCenter)[i];
             float r = array(cloth.mParticleBoundsHalfExtent)[i];
@@ -125,5 +135,16 @@ final class DxFrameData {
 
         mInitSelfCollisionData = cloth.mInitSelfCollisionData;
         cloth.mInitSelfCollisionData = false;
-    }*/
+    }
+
+    @Override
+    public ByteBuffer store(ByteBuffer buf) {
+        // TODO
+        return buf;
+    }
+
+    @Override
+    public Writable load(ByteBuffer buf) {
+        return null;
+    }
 }

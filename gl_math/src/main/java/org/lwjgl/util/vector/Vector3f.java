@@ -525,13 +525,13 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		Vector3f other = (Vector3f) obj;
+		ReadableVector3f other = (ReadableVector3f) obj;
 		
-		if (Float.floatToIntBits(x) != Float.floatToIntBits(other.x))
+		if (Float.floatToIntBits(x) != Float.floatToIntBits(other.getX()))
 			return false;
-		if (Float.floatToIntBits(y) != Float.floatToIntBits(other.y))
+		if (Float.floatToIntBits(y) != Float.floatToIntBits(other.getY()))
 			return false;
-		if (Float.floatToIntBits(z) != Float.floatToIntBits(other.z))
+		if (Float.floatToIntBits(z) != Float.floatToIntBits(other.getZ()))
 			return false;
 		return true;
 	}

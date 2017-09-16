@@ -1,10 +1,8 @@
-package jet.opengl.demos.nvidia.raws;
+package nv.samples;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
-import org.lwjgl.util.vector.Matrix;
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector2i;
 import org.lwjgl.util.vector.Vector3f;
@@ -615,11 +613,11 @@ public final class DynamicLod extends NvSampleApp{
 
                     gl.glUniform1i(UNI_USE_CMDOFFSET, 0);
                     gl.glDrawElementsIndirect(GLenum.GL_PATCHES, GL_UNSIGNED_INT,
-                            /*NV_BUFFER_OFFSET(offsetof(DrawIndirects,nearFull)*/DrawIndirects.SIZE-DrawElements.SIZE*2 + (i * jobSize));
+                            /*NV_BUFFER_OFFSET(offsetof(DrawIndirects,nearFull)*/DrawIndirects.SIZE- DrawElements.SIZE*2 + (i * jobSize));
 
                     gl.glUniform1i(UNI_USE_CMDOFFSET, 1);
                     gl.glDrawElementsIndirect(GLenum.GL_PATCHES, GL_UNSIGNED_INT,
-                            /*NV_BUFFER_OFFSET(offsetof(DrawIndirects,nearRest)*/DrawIndirects.SIZE-DrawElements.SIZE + (i * jobSize));
+                            /*NV_BUFFER_OFFSET(offsetof(DrawIndirects,nearRest)*/DrawIndirects.SIZE- DrawElements.SIZE + (i * jobSize));
 
                     gl.glDisableVertexAttribArray(VERTEX_POS);
                     gl.glBindVertexBuffer(0,0,0,0);
@@ -653,11 +651,11 @@ public final class DynamicLod extends NvSampleApp{
 
                     gl.glUniform1i(UNI_USE_CMDOFFSET, 0);
                     gl.glDrawElementsIndirect(GLenum.GL_TRIANGLES, GL_UNSIGNED_INT,
-                            /*NV_BUFFER_OFFSET(offsetof(DrawIndirects,medFull)*/DrawIndirects.SIZE-DrawElements.SIZE*2 + (i * jobSize));
+                            /*NV_BUFFER_OFFSET(offsetof(DrawIndirects,medFull)*/DrawIndirects.SIZE- DrawElements.SIZE*2 + (i * jobSize));
 
                     gl.glUniform1i(UNI_USE_CMDOFFSET, 1);
                     gl.glDrawElementsIndirect(GLenum.GL_TRIANGLES, GL_UNSIGNED_INT,
-                            /*NV_BUFFER_OFFSET(offsetof(DrawIndirects,medRest)*/ DrawIndirects.SIZE-DrawElements.SIZE+ (i * jobSize));
+                            /*NV_BUFFER_OFFSET(offsetof(DrawIndirects,medRest)*/ DrawIndirects.SIZE- DrawElements.SIZE+ (i * jobSize));
 
                     gl.glDisableVertexAttribArray(VERTEX_POS);
                     gl.glBindVertexBuffer(0,0,0,0);
@@ -963,7 +961,7 @@ public final class DynamicLod extends NvSampleApp{
     };
 
     private static final class DrawIndirects {
-        static final int SIZE=DrawCounters.SIZE+DrawArrays.SIZE+DrawElements.SIZE*5;
+        static final int SIZE= DrawCounters.SIZE+ DrawArrays.SIZE+ DrawElements.SIZE*5;
         final DrawCounters  counters=new DrawCounters();
 
         final DrawArrays    farArray=new DrawArrays();

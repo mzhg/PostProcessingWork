@@ -1,11 +1,13 @@
 package nv.visualFX.cloth.libs.dx;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 
 /**
  * Created by mazhen'gui on 2017/9/12.
@@ -77,6 +79,13 @@ final class DxBatchedVector implements Disposeable{
         return *this;
     }*/
 
+    void load(DxBatchedVector other){
+        assert (mSize == other.size()); // current limitation
+        assert (mStorage.mMapRefCount == 0); // This will trigger if the user still has a reference to the MappedRange returned by Cloth::getCurrentParticles
+
+        DxBatchedStorage.CopySubresourceRegion(buffer(), mOffset * SizeOfT, other.buffer(), other.mOffset * SizeOfT, other.size() * SizeOfT, gl);
+    }
+
     int capacity()
     {
         return mCapacity;
@@ -100,7 +109,7 @@ final class DxBatchedVector implements Disposeable{
         mStorage.assign(this, null, size);
     }
 
-    void assign(int size, ByteBuffer data)
+    void assign(int size, Buffer data)
     {
 //        mStorage.assign(this, first, uint32_t(last - first));
         mStorage.assign(this, data, size);
@@ -112,6 +121,7 @@ final class DxBatchedVector implements Disposeable{
         return mStorage.mBuffer;
     }
 
+    ByteBuffer map() { return map(GLenum.GL_READ_WRITE);}
     ByteBuffer map(int mapType /*= D3D11_MAP_READ_WRITE*/)
     {
 //        return buffer() != null ? mStorage.map(mapType) + mOffset : 0;

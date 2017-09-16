@@ -2,34 +2,34 @@ package jet.opengl.postprocessing.util;
 
 import java.util.Arrays;
 
-public class StackInt {
+public class StackLong {
 
-	private int[] items;
+	private long[] items;
 	private transient int size;
 
-	public StackInt() {
-		items = Numeric.EMPTY_INT;
+	public StackLong() {
+		items = Numeric.EMPTY_LONG;
 	}
 
-	public StackInt(int capacity) {
+	public StackLong(int capacity) {
 		capacity = capacity < 1 ? 1 : capacity;
-		items = new int[capacity];
+		items = new long[capacity];
 	}
 
-	public void push(int item) {
+	public void push(long item) {
 		if (size == items.length)
 			items = Arrays.copyOf(items, Math.max(16, items.length * 2));
 
 		items[size++] = item;
 	}
 
-	public void addAll(StackInt ints) {
+	public void addAll(StackLong ints) {
 		for (int i = 0; i < ints.size; i++) {
 			push(ints.get(i));
 		}
 	}
 	
-	public void copyFrom(StackInt ints) {
+	public void copyFrom(StackLong ints) {
 		size = 0;
 		addAll(ints);
 	}
@@ -38,7 +38,7 @@ public class StackInt {
 		return size == 0;
 	}
 
-	public int pop() {
+	public long pop() {
 		if (isEmpty())
 			throw new NullPointerException("stack is empty!");
 
@@ -49,7 +49,7 @@ public class StackInt {
 		return size;
 	}
 
-	public int[] getData() {
+	public long[] getData() {
 		return items;
 	}
 
@@ -63,17 +63,17 @@ public class StackInt {
 	public void clear() {
 		size = 0;
 		if (items.length >= 256) {
-			items = Numeric.EMPTY_INT;
+			items = Numeric.EMPTY_LONG;
 		}
 	}
 
-	public int[] toArray() {
-		int[] tmp = new int[size];
+	public long[] toArray() {
+		long[] tmp = new long[size];
 		System.arraycopy(items, 0, tmp, 0, size);
 		return tmp;
 	}
 
-	public int get(int index) {
+	public long get(int index) {
 		if(index >= size)
 			throw new IndexOutOfBoundsException("size is " + size + ", and the index is " + index);
 		return items[index];
@@ -91,14 +91,14 @@ public class StackInt {
 		}
 	}
 
-	public int incrLeft(int index){
+	public long incrLeft(int index){
 		if(index >= size)
 			throw new IndexOutOfBoundsException("size is " + size + ", and the index is " + index);
 
 		return ++items[index];
 	}
 
-	public int incrRight(int index){
+	public long incrRight(int index){
 		if(index >= size)
 			throw new IndexOutOfBoundsException("size is " + size + ", and the index is " + index);
 
@@ -111,7 +111,7 @@ public class StackInt {
 		}
 	}
 	
-	public void fill(int offset, int len, int value){
+	public void fill(int offset, int len, long value){
 		if(len < 0)
 			throw new IllegalArgumentException("len < 0. len = " + len);
 		if(offset + len - 1 >= size)
@@ -122,15 +122,15 @@ public class StackInt {
 		}
 	}
 
-	public int peer() {
+	public long peer() {
 		if (isEmpty())
 			throw new NullPointerException("stack is empty!");
 
 		return items[size - 1];
 	}
 
-	public StackInt copy() {
-		StackInt sf = new StackInt(size);
+	public StackLong copy() {
+		StackLong sf = new StackLong(size);
 		System.arraycopy(items, 0, sf.items, 0, size);
 		return sf;
 	}
