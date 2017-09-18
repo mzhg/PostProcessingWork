@@ -2,6 +2,7 @@ package nv.visualFX.cloth.libs.dx;
 
 
 import org.lwjgl.util.vector.Readable;
+import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Writable;
 
 import java.nio.ByteBuffer;
@@ -79,24 +80,35 @@ final class DxFrameData implements Readable, Writable{
         mFirstIteration = firstIteration;
         mNumIterations = state.mRemainingIterations;
 
-        Simd4f stiffnessExponent = simd4f(cloth.mStiffnessFrequency * mIterDt);
+        float stiffnessExponent = cloth.mStiffnessFrequency * mIterDt;
         {
-            Simd4f logStiffness = simd4f(0.0f, cloth.mSelfCollisionLogStiffness, cloth.mMotionConstraintLogStiffness,
+            Vector4f logStiffness = new Vector4f(0.0f, cloth.mSelfCollisionLogStiffness, cloth.mMotionConstraintLogStiffness,
                     cloth.mTetherConstraintLogStiffness);
-            Simd4f stiffness = gSimd4fOne - exp2(logStiffness * stiffnessExponent);
+//            Simd4f stiffness = gSimd4fOne - exp2(logStiffness * stiffnessExponent);
+            Vector4f stiffness = new Vector4f();
+            stiffness.x = (float) (1 - Math.pow(2, logStiffness.x * stiffnessExponent));
+            stiffness.y = (float) (1 - Math.pow(2, logStiffness.y * stiffnessExponent));
+            stiffness.z = (float) (1 - Math.pow(2, logStiffness.z * stiffnessExponent));
+            stiffness.w = (float) (1 - Math.pow(2, logStiffness.w * stiffnessExponent));
 
-            mTetherConstraintStiffness = array(stiffness)[3];
-            mMotionConstraintStiffness = array(stiffness)[2];
-            mSelfCollisionStiffness = array(stiffness)[1];
+            mTetherConstraintStiffness = stiffness.get(3);
+            mMotionConstraintStiffness = stiffness.get(2);
+            mSelfCollisionStiffness = stiffness.get(1);
         }
         {
-            Simd4f logStiffness = simd4f(cloth.mDragLogCoefficient, cloth.mLiftLogCoefficient, 0.0f, 0.0f);
-            Simd4f stiffness = gSimd4fOne - exp2(logStiffness * stiffnessExponent);
-            mDragCoefficient = array(stiffness)[0];
-            mLiftCoefficient = array(stiffness)[1];
+            Vector4f logStiffness = new Vector4f(cloth.mDragLogCoefficient, cloth.mLiftLogCoefficient, 0.0f, 0.0f);
+//            Simd4f stiffness = gSimd4fOne - exp2(logStiffness * stiffnessExponent);
+            Vector4f stiffness = new Vector4f();
+            stiffness.x = (float) (1 - Math.pow(2, logStiffness.x * stiffnessExponent));
+            stiffness.y = (float) (1 - Math.pow(2, logStiffness.y * stiffnessExponent));
+            stiffness.z = (float) (1 - Math.pow(2, logStiffness.z * stiffnessExponent));
+            stiffness.w = (float) (1 - Math.pow(2, logStiffness.w * stiffnessExponent));
+
+            mDragCoefficient = stiffness.get(0);
+            mLiftCoefficient = stiffness.get(1);
             mFluidDensity = cloth.mFluidDensity * 0.5f; //divide by 2 to so we don't have to compensate for double area from cross product in the solver
             for(int i = 0; i < 9; ++i)
-                mRotation[i] = array(state.mRotationMatrix[i / 3])[i % 3];
+                mRotation[i] = state.mRotationMatrix[i / 3].get(i % 3);
         }
 
         mStartSphereOffset = cloth.mStartCollisionSpheres.mOffset;
@@ -113,8 +125,8 @@ final class DxFrameData implements Readable, Writable{
 
         for (int i = 0; i < 3; ++i)
         {
-            float c = array(cloth.mParticleBoundsCenter)[i];
-            float r = array(cloth.mParticleBoundsHalfExtent)[i];
+            float c = cloth.mParticleBoundsCenter.get(i);
+            float r = cloth.mParticleBoundsHalfExtent.get(i);
             mParticleBounds[i * 2 + 0] = r + c;
             mParticleBounds[i * 2 + 1] = r - c;
         }
@@ -124,14 +136,14 @@ final class DxFrameData implements Readable, Writable{
 
         mStiffnessExponent = cloth.mStiffnessFrequency * mIterDt;
 
-        mStartMotionConstrainsOffset = cloth.mMotionConstraints.mStart.empty() ? uint32_t(-1) : cloth.mMotionConstraints.mStart.mOffset;
+        mStartMotionConstrainsOffset = cloth.mMotionConstraints.mStart.empty() ? -1 : cloth.mMotionConstraints.mStart.mOffset;
         mTargetMotionConstrainsOffset = cloth.mMotionConstraints.mTarget.empty() ? mStartMotionConstrainsOffset : cloth.mMotionConstraints.mTarget.mOffset;
 
-        mStartSeparationConstrainsOffset = cloth.mSeparationConstraints.mStart.empty() ? uint32_t(-1) : cloth.mSeparationConstraints.mStart.mOffset;
+        mStartSeparationConstrainsOffset = cloth.mSeparationConstraints.mStart.empty() ? -1 : cloth.mSeparationConstraints.mStart.mOffset;
         mTargetSeparationConstrainsOffset = cloth.mSeparationConstraints.mTarget.empty() ? mStartSeparationConstrainsOffset : cloth.mSeparationConstraints.mTarget.mOffset;
 
         mParticleAccelerationsOffset = cloth.mParticleAccelerations.mOffset;
-        mRestPositionsOffset = cloth.mRestPositions.empty() ? uint32_t(-1) : cloth.mRestPositions.mOffset;
+        mRestPositionsOffset = cloth.mRestPositions.empty() ? -1 : cloth.mRestPositions.mOffset;
 
         mInitSelfCollisionData = cloth.mInitSelfCollisionData;
         cloth.mInitSelfCollisionData = false;

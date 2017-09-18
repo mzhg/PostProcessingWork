@@ -1,5 +1,6 @@
 package nv.visualFX.cloth.libs;
 
+import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 /**
@@ -38,6 +39,18 @@ public class IterationState {
             out.y += matrix[i].y * v;
             out.z += matrix[i].z * v;
             out.w += matrix[i].w * v;
+        }
+    }
+
+    public static void transform(Vector4f[] matrix, Vector3f vec, Vector4f out){
+        final int count = Math.min(matrix.length, 3);
+
+        out.set(0,0,0, 0);
+        for(int i = 0; i < count; i++){
+            float v = vec.get(i);
+            out.x += matrix[i].x * v;
+            out.y += matrix[i].y * v;
+            out.z += matrix[i].z * v;
         }
     }
 

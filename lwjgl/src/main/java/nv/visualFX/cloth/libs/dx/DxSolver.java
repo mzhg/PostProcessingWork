@@ -3,6 +3,8 @@ package nv.visualFX.cloth.libs.dx;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -492,52 +494,65 @@ final class DxSolver extends DxContextLock implements Solver, Disposeable{
 //        typedef SwInterCollision<Simd4f> SwInterCollision;
 
         // rebuild cloth instance array
-        mInterCollisionInstances.resize(0);
-        DxFrameData* frameData = mFrameDataHostCopy.map(D3D11_MAP_READ);
-        for (uint32_t i = 0, n = mCloths.size(); i < n; ++i)
+//        mInterCollisionInstances.resize(0);
+        mInterCollisionInstances.clear();
+//        DxFrameData* frameData = mFrameDataHostCopy.map(D3D11_MAP_READ);
+        ByteBuffer _frameData = mFrameDataHostCopy.map(GLenum.GL_READ_ONLY);
+        DxFrameData frameData = new DxFrameData();
+        for (int i = 0, n = mCloths.size(); i < n; ++i)
         {
-            DxCloth& cloth = *mCloths[i];
+            frameData.load(_frameData);
+            DxCloth cloth = mCloths.get(i);
 
             cloth.mapParticles();
-            float elasticity = 1.0f / frameData[i].mNumIterations;
-            NV_CLOTH_ASSERT(!cloth.mHostParticlesDirty);
-            PxVec4* particles = cloth.mParticlesMapPointer;
-            uint32_t* indices = NULL, numIndices = cloth.mNumParticles;
+            float elasticity = 1.0f / frameData.mNumIterations;
+            assert (!cloth.mHostParticlesDirty);
+            FloatBuffer particles = cloth.mParticlesMapPointer.asFloatBuffer();
+            int pos = particles.position();
+            particles.position(cloth.mNumParticles * 4);
+            FloatBuffer prevParticles = particles.slice();
+            particles.position(pos);
+            int numIndices = cloth.mNumParticles;
+            IntBuffer indices = null;
             if (!cloth.mSelfCollisionIndices.empty())
             {
-                indices = cloth.mSelfCollisionIndicesHost.begin();
-                numIndices = uint32_t(cloth.mSelfCollisionIndices.size());
+                indices = cloth.mSelfCollisionIndicesHost/*.begin()*/;
+                numIndices = (cloth.mSelfCollisionIndices.size());
             }
 
-            mInterCollisionInstances.pushBack(SwInterCollisionData(
-                    particles, particles + cloth.mNumParticles, numIndices, indices, cloth.mTargetMotion,
+            mInterCollisionInstances.add(new SwInterCollisionData(
+                    particles, /*particles + cloth.mNumParticles*/prevParticles, numIndices, indices, cloth.mTargetMotion,
                     cloth.mParticleBoundsCenter, cloth.mParticleBoundsHalfExtent, elasticity, cloth.mUserData));
 
             cloth.mDeviceParticlesDirty = true;
         }
         mFrameDataHostCopy.unmap();
 
-        uint32_t requiredTempMemorySize = uint32_t(
-                SwInterCollision::estimateTemporaryMemory(&mInterCollisionInstances[0], mInterCollisionInstances.size()));
+        final SwInterCollisionData[] interCollisionInstances = mInterCollisionInstances.toArray(new SwInterCollisionData[mInterCollisionInstances.size()]);
+
+        int requiredTempMemorySize = (
+                SwInterCollision.estimateTemporaryMemory(interCollisionInstances, mInterCollisionInstances.size()));
 
         // realloc temp memory if necessary
         if (mInterCollisionScratchMemSize < requiredTempMemorySize)
         {
-            if (mInterCollisionScratchMem)
-                NV_CLOTH_FREE(mInterCollisionScratchMem);
+            if (mInterCollisionScratchMem != null) {
+//                NV_CLOTH_FREE(mInterCollisionScratchMem);
+                mInterCollisionScratchMem = null;
+            }
 
-            mInterCollisionScratchMem = NV_CLOTH_ALLOC(requiredTempMemorySize, "cloth::SwSolver::mInterCollisionScratchMem");
-            mInterCollisionScratchMemSize = requiredTempMemorySize;
+//            mInterCollisionScratchMem = NV_CLOTH_ALLOC(requiredTempMemorySize, "cloth::SwSolver::mInterCollisionScratchMem");
+//            mInterCollisionScratchMemSize = requiredTempMemorySize;
         }
 
-        SwKernelAllocator allocator(mInterCollisionScratchMem, mInterCollisionScratchMemSize);
+//        SwKernelAllocator allocator(mInterCollisionScratchMem, mInterCollisionScratchMemSize);
 
         // run inter-collision
-        SwInterCollision(mInterCollisionInstances.begin(), mInterCollisionInstances.size(), mInterCollisionDistance,
-                mInterCollisionStiffness, mInterCollisionIterations, mInterCollisionFilter, allocator)();
+        new SwInterCollision(interCollisionInstances, mInterCollisionInstances.size(), mInterCollisionDistance,
+                mInterCollisionStiffness, mInterCollisionIterations, mInterCollisionFilter).invoke();
 
-        for (uint32_t i = 0, n = mCloths.size(); i < n; ++i)
-            mCloths[i]->unmapParticles();
+        for (int i = 0, n = mCloths.size(); i < n; ++i)
+            mCloths.get(i).unmapParticles();
     }
 
     @Override

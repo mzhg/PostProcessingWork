@@ -28,7 +28,7 @@ public class MovingAverage {
         mSize = other.mSize;
     }
 
-    boolean empty()
+    public boolean empty()
     {
         return mCount == 0;
     }
@@ -67,7 +67,7 @@ public class MovingAverage {
         mBegin = 0;
     }
 
-    void push(int n, float value)
+    public void push(int n, float value)
     {
         n = Math.min(n, mSize);
 		final int start = (mBegin + mCount) % mSize;
@@ -88,7 +88,7 @@ public class MovingAverage {
         mCount = newCount;
     }
 
-    float average()
+    public float average()
     {
         assert (!empty());
 

@@ -6,5 +6,5 @@ package nv.visualFX.cloth.libs;
 
 public interface InterCollisionFilter {
     /** called during inter-collision, user0 and user1 are the user data from each cloth */
-    void onCollision(Object user0, Object user1);
+    boolean onCollision(Object user0, Object user1);
 }

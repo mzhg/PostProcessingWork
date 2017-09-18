@@ -9,9 +9,11 @@ import jet.opengl.postprocessing.buffer.AttribDesc;
 import jet.opengl.postprocessing.buffer.BufferBinding;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.buffer.VertexArrayObject;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.AttachType;
 import jet.opengl.postprocessing.texture.FramebufferGL;
 import jet.opengl.postprocessing.texture.Texture2D;
@@ -34,9 +36,11 @@ final class OSRenderer implements Constant{
 
     boolean           m_bEnableMultisample = false;
     FramebufferGL     m_ScreenFBO;
+    FramebufferGL[]     m_Textures;
     Texture2D         m_ScreenColor;
     Texture2D         m_ScreenDepth;
     SingleTextureProgram m_DefaultProgram;
+    GLSLProgram       m_combineProgram;
     VertexArrayObject m_RectVAO;
     BufferGL          m_RectVBO;
     Background        m_Background;
@@ -54,6 +58,7 @@ final class OSRenderer implements Constant{
     Drawable       m_WatchedDrawable;
     Drawable       m_CloseDrawable;
     float          m_WatchingTime;
+    final Matrix4f[] m_Views = new Matrix4f[2];
 
 //    final Ray      m_TouchRay = new Ray();
 
@@ -65,6 +70,10 @@ final class OSRenderer implements Constant{
 
         m_Eyepoint = new Eyepoint();
         m_Eyepoint.initlize();
+
+        m_Views[0] = new Matrix4f();
+        m_Views[1] = new Matrix4f();
+        m_Textures = new FramebufferGL[2];
     }
 
     private void initAppIcons(){
@@ -213,8 +222,21 @@ final class OSRenderer implements Constant{
 
     private void update(Matrix4f viewMat, float dt){
         // calculate the view ray
-        Matrix4f.decompseRigidMatrix(viewMat, m_ViewRay.m_orig, null, null, m_ViewRay.m_dir);
+        final Vector3f xAxis = new Vector3f();
+        final Vector3f yAxis = new Vector3f();
+        Matrix4f.decompseRigidMatrix(viewMat, m_ViewRay.m_orig, xAxis, yAxis, m_ViewRay.m_dir);
         m_ViewRay.m_dir.scale(-1);
+
+        {
+            final float distance = .15f;
+            Vector3f left_pos = Vector3f.linear(m_ViewRay.m_orig, xAxis, -distance, null);
+            Vector3f left_target = Vector3f.add(left_pos, m_ViewRay.m_dir, null);
+            Matrix4f.lookAt(left_pos, left_target, yAxis, m_Views[0]);
+
+            Vector3f right_pos = Vector3f.linear(m_ViewRay.m_orig, xAxis, distance, left_pos);
+            Vector3f right_target = Vector3f.add(right_pos, m_ViewRay.m_dir, left_target);
+            Matrix4f.lookAt(right_pos, right_target, yAxis, m_Views[1]);
+        }
 
         int groupID;
         double _theta = Math.acos(m_ViewRay.m_dir.y);
@@ -257,7 +279,37 @@ final class OSRenderer implements Constant{
 
         if(m_bEnableMultisample)
             m_ScreenFBO.bind();
-        renderScene(viewMat);
+        for(int i =0; i < 2; i++){
+            m_Textures[i].bind();
+            if(i == 0){
+                gl.glColorMask(true, false, false, false);
+            }else{
+                gl.glColorMask(false, true, true, false);
+            }
+            renderScene(m_Views[i]);
+        }
+
+        {
+            gl.glColorMask(true, true, true, true);
+            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+            gl.glDisable(GLenum.GL_DEPTH_TEST);
+
+            m_combineProgram.enable();
+            gl.glBindVertexArray(0);
+
+            gl.glActiveTexture(GLenum.GL_TEXTURE1);
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_Textures[1].getAttachedTex(0).getTexture());
+            gl.glActiveTexture(GLenum.GL_TEXTURE0);
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_Textures[0].getAttachedTex(0).getTexture());
+
+            gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+            gl.glActiveTexture(GLenum.GL_TEXTURE1);
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+            gl.glActiveTexture(GLenum.GL_TEXTURE0);
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+            GLCheck.checkError();
+        }
 
         if(m_bEnableMultisample) {
             // resolve the framebuffer
@@ -301,6 +353,14 @@ final class OSRenderer implements Constant{
         m_ScreenRatio = (float)width/height;
         Matrix4f.perspective(90, m_ScreenRatio, 0.1f, 100.0f, m_Proj);
 
+        for(int i = 0; i < 2; i++){
+            m_Textures[i] = new FramebufferGL();
+            m_Textures[i].bind();
+            m_Textures[i].addTexture2D(new Texture2DDesc(width, height, GLenum.GL_RGBA8), new TextureAttachDesc(0, AttachType.TEXTURE_2D, 0,0));
+            m_Textures[i].addTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH_COMPONENT16), new TextureAttachDesc(0, AttachType.TEXTURE_2D, 0,0));
+            m_Textures[i].unbind();
+        }
+
         if(!m_bEnableMultisample)
             return;
 
@@ -314,11 +374,20 @@ final class OSRenderer implements Constant{
         m_ScreenColor = m_ScreenFBO.addTexture2D(new Texture2DDesc(width, height, 1, 1,GLenum.GL_RGBA8, 4), new TextureAttachDesc(0, AttachType.TEXTURE_2D, 0,0));
         m_ScreenDepth = m_ScreenFBO.addTexture2D(new Texture2DDesc(width, height, 1,1, GLenum.GL_DEPTH_COMPONENT16,4), new TextureAttachDesc(0, AttachType.TEXTURE_2D, 0,0));
         m_ScreenFBO.unbind();
+
     }
 
     private Drawable createDrawable(int groupId, int index){
         if(m_DefaultProgram == null){
             m_DefaultProgram = new SingleTextureProgram();
+        }
+
+        if(m_combineProgram == null){
+            try {
+                m_combineProgram = GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "OS/shaders/red_blue_process.frag");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         if(m_RectVAO == null){
