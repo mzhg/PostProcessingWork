@@ -4,13 +4,14 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 /** OpenGL Vertex Array Object. */
-public class GLVAO {
+public class GLVAO implements Disposeable{
 
 //	final Model parent;
 	int vaoID;

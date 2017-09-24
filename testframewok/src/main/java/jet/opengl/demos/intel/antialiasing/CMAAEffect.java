@@ -769,6 +769,8 @@ final class CMAAEffect implements Disposeable{
 //            context->PSSetShaderResources( 0, _countof(nullSRVs), nullSRVs );
         }
 //        context->PSSetShaderResources( 0, _countof(nullSRVs), nullSRVs );
+
+        m_prinOnce = true;
     }
 
     @Override

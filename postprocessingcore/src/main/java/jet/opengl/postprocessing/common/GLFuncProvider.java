@@ -1555,8 +1555,7 @@ public interface GLFuncProvider {
 
     void glGetBufferSubData(int target, int offset, int size, ByteBuffer data);
     void glDrawTransformFeedbackStream(int m_currentMode, int transformFeedback, int index);
-    void glClearTexImage(int texture, int level, int format, int type, ByteBuffer data);
-    void glClearTexImage(int texture, int level, int format, int type, FloatBuffer data);
+    void glClearTexImage(int texture, int level, int format, int type, Buffer data);
     void glUniform1ui(int location, int i);
 
     void glDispatchComputeIndirect(int indirect);
