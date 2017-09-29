@@ -67,6 +67,7 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
         m_InitAttribs.m_bOptimizeSampleLocations = true;
         m_RuntimeAttribs = new OutdoorLightScatteringFrameAttribs();
         m_RuntimeAttribs.f4ExtraterrestrialSunColor.set(5,5,5,5);
+        gl.glEnable(GLenum.GL_FRAMEBUFFER_SRGB);
     }
 
     @Override

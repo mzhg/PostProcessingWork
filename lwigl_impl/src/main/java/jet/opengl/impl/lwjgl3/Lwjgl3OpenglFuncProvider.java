@@ -1756,13 +1756,8 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
-    public void glClearTexImage(int texture, int level, int format, int type, ByteBuffer data) {
-        GL44.glClearTexImage(texture, level, format, type, data);
-    }
-
-    @Override
-    public void glClearTexImage(int texture, int level, int format, int type, FloatBuffer data) {
-        GL44.glClearTexImage(texture, level, format, type, data);
+    public void glClearTexImage(int texture, int level, int format, int type, Buffer data) {
+        GL44.nglClearTexImage(texture, level, format, type, MemoryUtil.memAddress0Safe(data));
     }
 
     @Override

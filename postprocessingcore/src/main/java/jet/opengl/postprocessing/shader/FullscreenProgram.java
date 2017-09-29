@@ -9,7 +9,6 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
-
 public class FullscreenProgram extends GLSLProgram {
 	
 	/** The varying variable between vertex shader and fragment shader. */

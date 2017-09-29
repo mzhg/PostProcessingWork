@@ -447,7 +447,7 @@ public final class SampleD3D11 extends NvSampleApp implements Constants{
             return;
 
         float aspectRatio = (float)width/height;
-        Matrix4f.perspective(camera_fov/3, aspectRatio, scene_z_near, scene_z_far, m_proj);
+        Matrix4f.perspective(camera_fov/2, aspectRatio, scene_z_near, scene_z_far, m_proj);
         m_params.g_Projection = m_proj;
         m_params.g_ZNear = scene_z_near;
         m_params.g_ZFar = scene_z_far;

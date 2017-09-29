@@ -15,6 +15,7 @@ import jet.opengl.postprocessing.util.LogUtil;
 
 public final class GFSDK_WaveWorks {
 
+    public static final int GFSDK_WaveWorks_UnusedShaderInputRegisterMapping = -1;
     public static final int GFSDK_WaveWorks_InvalidKickID = -1;
     public static final GFSDK_WaveWorks_API_GUID GFSDK_WAVEWORKS_API_GUID = new GFSDK_WaveWorks_API_GUID(0x40C55E2B, 0x2AE34be0, 0xA4849F24, 0x585EB898);
     private static nv_water_d3d_api g_InitialisedAPI= nv_water_d3d_api.nv_water_d3d_api_undefined;

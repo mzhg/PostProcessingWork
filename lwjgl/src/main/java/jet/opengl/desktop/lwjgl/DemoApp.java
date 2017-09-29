@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.os.LauncherDemo;
+import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -87,7 +87,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new LauncherDemo());
+        run(new OutdoorLightScatteringSample());
 
 //        testRectVertex();
     }

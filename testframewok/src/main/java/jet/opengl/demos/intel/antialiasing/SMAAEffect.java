@@ -6,8 +6,15 @@ import com.nvidia.developer.opengl.models.ModelGenerator;
 import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.StringTokenizer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
@@ -19,10 +26,12 @@ import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.FileUtils;
 
 /**
  * Created by mazhen'gui on 2017/9/23.
@@ -85,8 +94,8 @@ final class SMAAEffect implements Disposeable{
 //        ID3DBlob *pPSBlob = NULL;
         m_renderTargets = new RenderTargets();
         gl = GLFuncProviderFactory.getGLFuncProvider();
-        m_areaTexSRV = CreateTextureFromRAWMemory( pD3DDevice, AREATEX_WIDTH, AREATEX_HEIGHT, AREATEX_PITCH, AREATEX_SIZE, DXGI_FORMAT_R8G8_UNORM, areaTexBytes );
-        m_searchTexSRV = CreateTextureFromRAWMemory( pD3DDevice, SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, SEARCHTEX_PITCH, SEARCHTEX_SIZE, DXGI_FORMAT_R8_UNORM, searchTexBytes );
+        m_areaTexSRV = CreateTextureFromRAWMemory( AREATEX_WIDTH, AREATEX_HEIGHT, AREATEX_PITCH, AREATEX_SIZE, GLenum.GL_RG8, "shader_libs/AntiAliasing/AreaTex.dat" );
+        m_searchTexSRV = CreateTextureFromRAWMemory( SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, SEARCHTEX_PITCH, SEARCHTEX_SIZE, GLenum.GL_R8, "shader_libs/AntiAliasing/SearchTex.dat" );
 
         // Create constant buffer
         /*D3D11_BUFFER_DESC BufferDesc;
@@ -153,6 +162,21 @@ final class SMAAEffect implements Disposeable{
             hr = pD3DDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(),NULL, &m_SMAANeighborhoodBlendingPS);
             SAFE_RELEASE( pPSBlob );*/
         }
+    }
+
+    static Texture2D CreateTextureFromRAWMemory(int width, int height, int pitch, int size, int format, String filename){
+        try {
+            byte[] data = FileUtils.loadBytes(filename);
+            if(size != data.length)
+                throw new IllegalArgumentException();
+            Texture2DDesc desc = new Texture2DDesc(width,height, format);
+            TextureDataDesc dataDesc = new TextureDataDesc(TextureUtils.measureFormat(format), TextureUtils.measureDataType(format), data);
+            return TextureUtils.createTexture2D(desc, dataDesc);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     private static GLSLProgram createProgram(String shaderName, Macro... macros){
@@ -475,5 +499,55 @@ final class SMAAEffect implements Disposeable{
         //float maxSearchSteps;
         //float maxSearchStepsDiag;
         //float cornerRounding;
+    }
+
+    public static void main(String[] args){
+        convertFiles("E:\\SDK\\smaa\\Textures\\AreaTex.h");
+        convertFiles("E:\\SDK\\smaa\\Textures\\SearchTex.h");
+    }
+
+    private static void convertFiles(String filename){
+        int dot = filename.lastIndexOf('.');
+        String _filename = dot > 0 ? filename.substring(0, dot) : filename;
+        File file = new File(filename);
+        File outFile = new File(_filename + ".dat");
+
+        int lineNumber = 0;
+        String token = "";
+        try {
+            BufferedReader in = new BufferedReader(new FileReader(file));
+            BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(outFile));
+
+            String line;
+            boolean inArrayBlock = false;
+            Tag: while((line = in.readLine()) != null){
+                if(inArrayBlock){
+                    StringTokenizer tokenizer = new StringTokenizer(line, " \t\f,");
+                    while (tokenizer.hasMoreElements()){
+                        token = tokenizer.nextToken().trim();
+                        if(token.equals("") || token.equals("};"))
+                            break Tag;
+                        int value = Integer.parseInt(token.substring(2), 16);
+                        out.write(value);
+                    }
+                }else if(line.startsWith("static const unsigned char")){
+                    inArrayBlock = true;
+                }
+
+                lineNumber ++;
+            }
+
+            in.close();
+            out.flush();
+            out.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (NumberFormatException e){
+            System.out.println("Error occored in the number: " + lineNumber + ", in the file: " + filename + ", the token is: " + token);
+            e.printStackTrace();
+
+        }
     }
 }
