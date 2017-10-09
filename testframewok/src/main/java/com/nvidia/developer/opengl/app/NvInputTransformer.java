@@ -432,6 +432,37 @@ public class NvInputTransformer {
 	}
 
 	/**
+	 * Set the current rotation velocity.
+	 * <p>
+	 * Note this this velocity will be overwritten by gamepad axis motion. It is
+	 * mainly useful for adding an initial rotation animation on the camera
+	 * before the user has provided input
+	 *
+	 * @param[in] vec the current rotation velocity about each axis in radians
+	 *            per second.
+	 * @param[in] xform the index of the transform to be referenced. For all
+	 *            modes except DUAL_ORBITAL, this can be left as the default
+	 **/
+	public void setRotationVel(float x, float y, float z, int xform) {
+		m_xforms[xform].m_rotateVel.set(x,y,z);
+	}
+
+	/**
+	 * Set the current rotation velocity.
+	 * <p>
+	 * Note this this velocity will be overwritten by gamepad axis motion. It is
+	 * mainly useful for adding an initial rotation animation on the camera
+	 * before the user has provided input
+	 *
+	 * @param[in] vec the current rotation velocity about each axis in radians
+	 *            per second.
+	 * @see #setRotationVel(Vector3f, int)
+	 **/
+	public void setRotationVel(float x, float y, float z) {
+		m_xforms[NvCameraXformType.MAIN.ordinal()].m_rotateVel.set(x,y,z);
+	}
+
+	/**
 	 * Get the current translation velocity.
 	 * 
 	 * @param xform

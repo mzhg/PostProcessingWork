@@ -231,6 +231,9 @@ public class Matrix4f extends Matrix implements Serializable {
 	public static Matrix4f load(Matrix4f src, Matrix4f dest) {
 		if (dest == null)
 			dest = new Matrix4f();
+
+		if(src == dest)return src;
+
 		dest.m00 = src.m00;
 		dest.m01 = src.m01;
 		dest.m02 = src.m02;

@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
+import jet.opengl.demos.postprocessing.LightingVolumeDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -62,10 +62,11 @@ public class DemoApp {
 
             @Override
             public String getParent(String file) {
-                if(file.contains(path)){
-                    return new File(file).getParent();
-                }
-                return new File(path + file).getParent();
+//                if(file.contains(path)){
+//                    return new File(file).getParent();
+//                }
+//                return new File(path + file).getParent();
+                return FileUtils.getParent(file);
             }
 
             @Override
@@ -87,7 +88,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new OutdoorLightScatteringSample());
+        run(new LightingVolumeDemo());
 
 //        testRectVertex();
     }

@@ -1438,6 +1438,101 @@ public final class TextureUtils {
 			throw new IllegalArgumentException("Unkown internalFormat: " + internalFormat);
 		}
 	}
+
+	public static boolean isDepthFormat(int internalFormat){
+		switch (internalFormat) {
+			case GLenum.GL_DEPTH_COMPONENT16:
+			case GLenum.GL_DEPTH_COMPONENT24:
+			case GLenum.GL_DEPTH_COMPONENT32:
+			case GLenum.GL_DEPTH_COMPONENT32F:
+			case GLenum.GL_DEPTH24_STENCIL8:
+			case GLenum.GL_DEPTH32F_STENCIL8:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	public static boolean isStencilFormat(int internalFormat){
+		switch (internalFormat) {
+			case GLenum.GL_DEPTH24_STENCIL8:
+			case GLenum.GL_DEPTH32F_STENCIL8:
+			case GLenum.GL_STENCIL_INDEX8:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	public static boolean isColorFormat(int internalFormat){
+		switch (internalFormat) {
+			case GLenum.GL_R8:
+			case GLenum.GL_R8_SNORM:
+			case GLenum.GL_R16:
+			case GLenum.GL_R16_SNORM:
+			case GLenum.GL_RG8:
+			case GLenum.GL_RG8_SNORM:
+			case GLenum.GL_RG16:
+			case GLenum.GL_RG16_SNORM:
+			case GLenum.GL_R3_G3_B2:
+			case GLenum.GL_RGB4:
+			case GLenum.GL_RGB5:
+			case GLenum.GL_RGB8:
+			case GLenum.GL_RGB8_SNORM:
+			case GLenum.GL_RGB10:
+			case GLenum.GL_RGB12:
+			case GLenum.GL_RGB16_SNORM:
+			case GLenum.GL_RGBA2:
+			case GLenum.GL_RGBA4:
+			case GLenum.GL_RGB5_A1:
+			case GLenum.GL_RGBA8:
+			case GLenum.GL_RGBA8_SNORM:
+			case GLenum.GL_RGB10_A2:
+			case GLenum.GL_RGB10_A2UI:
+			case GLenum.GL_RGBA12:
+			case GLenum.GL_RGBA16:
+			case GLenum.GL_SRGB8:
+			case GLenum.GL_SRGB8_ALPHA8:
+			case GLenum.GL_R16F:
+			case GLenum.GL_RG16F:
+			case GLenum.GL_RGB16F:
+			case GLenum.GL_RGBA16F:
+			case GLenum.GL_R32F:
+			case GLenum.GL_RG32F:
+			case GLenum.GL_RGB32F:
+			case GLenum.GL_RGBA32F:
+			case GLenum.GL_R11F_G11F_B10F:
+			case GLenum.GL_RGB9_E5:
+			case GLenum.GL_R8I:
+			case GLenum.GL_R8UI:
+			case GLenum.GL_R16I:
+			case GLenum.GL_R16UI:
+			case GLenum.GL_R32I:
+			case GLenum.GL_R32UI:
+			case GLenum.GL_RG8I:
+			case GLenum.GL_RG8UI:
+			case GLenum.GL_RG16I:
+			case GLenum.GL_RG16UI:
+			case GLenum.GL_RG32I:
+			case GLenum.GL_RG32UI:
+			case GLenum.GL_RGB8I:
+			case GLenum.GL_RGB8UI:
+			case GLenum.GL_RGB16I:
+			case GLenum.GL_RGB16UI:
+			case GLenum.GL_RGB32I:
+			case GLenum.GL_RGB32UI:
+
+			case GLenum.GL_RGBA8I:
+			case GLenum.GL_RGBA8UI:
+			case GLenum.GL_RGBA16I:
+			case GLenum.GL_RGBA16UI:
+			case GLenum.GL_RGBA32I:
+			case GLenum.GL_RGBA32UI:
+				return true;
+			default:
+				return false;
+		}
+	}
 	
 	public static int measureDataType(int internalFormat){
 		switch (internalFormat) {

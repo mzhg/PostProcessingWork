@@ -127,4 +127,37 @@ public class FileUtils {
 
         return null;
     }
+
+    public static final String getParent(String path){
+        if(path == null || path.length() == 0)
+            throw new NullPointerException("path is empty");
+
+        int index;
+        char c;  // record the last charactor
+        // eat up the charactors '/' and '\'
+        for(index = path.length() -1; index >=0; index--){
+            c = path.charAt(index);
+            if(c != '/' && c != '\\'){
+                break;
+            }
+        }
+
+        // eat up all the letters and other stuff
+        for(; index >=0; index--){
+            c = path.charAt(index);
+            if(c == '/' || c == '\\'){
+                break;
+            }
+        }
+
+        // eat up the charactors '/' and '\'
+        for(; index >=0; index--){
+            c = path.charAt(index);
+            if(c != '/' && c != '\\'){
+                break;
+            }
+        }
+
+        return path.substring(0, index+1);
+    }
 }
