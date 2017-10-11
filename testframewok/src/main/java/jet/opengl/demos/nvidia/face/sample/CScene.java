@@ -36,11 +36,6 @@ interface CScene {
         }
 
         @Override
-        public String getParent(String file) {
-            return new File(file).getParent();
-        }
-
-        @Override
         public String getCanonicalPath(String file) throws IOException {
             return new File(file).getCanonicalPath();
         }

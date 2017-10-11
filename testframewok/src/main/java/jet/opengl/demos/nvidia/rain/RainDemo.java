@@ -210,7 +210,7 @@ public class RainDemo extends NvSampleApp {
         //----------------------------------------------------------------------------------------------
         //vertex buffers
         //----------------------------------------------------------------------------------------------
-        g_MeshArrow = new XMesh("arrow_mesh", 2, GLenum.GL_UNSIGNED_SHORT);
+//        g_MeshArrow = new XMesh("arrow_mesh", 2, GLenum.GL_UNSIGNED_SHORT);
         g_Mesh      = new XMesh("Bridge", 1, GLenum.GL_UNSIGNED_INT);
 
         //vertices for the rain particles---------------------------------------------------------------

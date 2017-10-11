@@ -156,7 +156,7 @@ final class IncludeFile {
 					}
 				}else{
 //					file = new File(new File(parentFile.filepath).getParent(), result.filepath);
-					String file = loader.getParent(parentFile.filepath) + "/" + result.filepath;
+					String file = FileUtils.getParent(parentFile.filepath) + "/" + result.filepath;
 					if(loader.exists(file)){
 						result.filepath = loader.getCanonicalPath(file);
 						result.key = "<file>" + result.filepath;

@@ -70,6 +70,7 @@ final class Arena {
             m_scene.Render();
 
         boolean do_lightning = settings.Fence ||settings.InterCoil || settings.CoilHelix|| settings.Chain;
+        do_lightning = false;
 
         if(do_lightning)
         {

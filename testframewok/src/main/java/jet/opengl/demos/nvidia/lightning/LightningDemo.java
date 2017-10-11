@@ -115,8 +115,6 @@ public final class LightningDemo extends NvSampleApp {
 
         g_beam_parameters.ColorFallOffExponent = 5; // float(g_SampleUI.GetSlider(IDC_COLOR_EXPONENT)->GetValue());
 
-
-
         g_arena.settings.Scene =  true; // g_SampleUI.GetCheckBox(IDC_ENABLE_SCENE)->GetChecked();
         g_arena.settings.Chain =  true; // g_SampleUI.GetCheckBox(IDC_ENABLE_CHAIN)->GetChecked();
         g_arena.settings.Fence =  true; //g_SampleUI.GetCheckBox(IDC_ENABLE_FENCE)->GetChecked();

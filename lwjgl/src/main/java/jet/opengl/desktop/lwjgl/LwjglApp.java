@@ -365,6 +365,14 @@ public class LwjglApp implements NvGLAppContext{
 			needCreateWindow = true;
 		}
 	}
+
+	/**
+	 * Set the window weather in fullscreen mode. Note, this method only called when the window show before.
+  	 * @param fullScreen
+	 */
+	public void setFullScreenMode(boolean fullScreen){
+		fullScreenMode = fullScreen;
+	}
 	
 	public boolean isFullScreen(){ return fullScreenMode;}
 	

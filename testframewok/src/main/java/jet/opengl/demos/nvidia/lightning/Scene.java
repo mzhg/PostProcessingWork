@@ -4,6 +4,7 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 
 /**
@@ -133,6 +134,8 @@ final class Scene {
 
         for(int i = 0; i < NumTargets; ++i)
             RenderTarget(m_target_transforms[i]);
+
+        GLCheck.checkError();
     }
 
     private final Vector4f m_default_pos = new Vector4f(0,0,0,1);

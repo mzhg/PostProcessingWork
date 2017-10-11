@@ -19,11 +19,6 @@ public interface FileLoader {
         }
 
         @Override
-        public String getParent(String filename) {
-            return new File(filename).getParent();
-        }
-
-        @Override
         public String getCanonicalPath(String file) throws IOException {
             return new File(file).getCanonicalPath();
         }
@@ -35,7 +30,6 @@ public interface FileLoader {
     };
 
     public InputStream open(String file) throws FileNotFoundException;
-    public String getParent(String file);
     public String getCanonicalPath(String file) throws IOException;
     public boolean exists(String file);
 }

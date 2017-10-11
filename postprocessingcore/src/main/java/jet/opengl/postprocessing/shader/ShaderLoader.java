@@ -165,7 +165,7 @@ public class ShaderLoader {
 			if(in == null)
 				throw new NullPointerException("Couldn't find the external-file: " + file.filepath);
 //			parent = ff.getParent();
-			parent = loader.getParent(file.filepath);
+			parent = FileUtils.getParent(file.filepath);
 
 			if(key == null)
 				key = "<file>"+loader.getCanonicalPath(file.filepath);
