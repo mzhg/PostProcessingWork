@@ -2,7 +2,6 @@ package jet.opengl.postprocessing.util;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -14,7 +13,7 @@ public interface FileLoader {
 
     public static FileLoader g_DefaultFileLoader = new FileLoader() {
         @Override
-        public InputStream open(String filename) throws FileNotFoundException {
+        public InputStream open(String filename) throws IOException {
             return new FileInputStream(new File(filename));
         }
 
@@ -29,7 +28,7 @@ public interface FileLoader {
         }
     };
 
-    public InputStream open(String file) throws FileNotFoundException;
+    public InputStream open(String file) throws IOException;
     public String getCanonicalPath(String file) throws IOException;
     public boolean exists(String file);
 }

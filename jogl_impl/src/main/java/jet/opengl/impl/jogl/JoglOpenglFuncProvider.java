@@ -13,7 +13,8 @@ import java.nio.LongBuffer;
 import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
-import jet.opengl.postprocessing.texture.ImageLoader;
+import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.NativeAPI;
 import jet.opengl.postprocessing.util.BufferUtils;
 
 /**
@@ -27,6 +28,7 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     private final byte[] byteValues = new byte[1];
     private final float[] floatValues = new float[1];
     private final double[] doubleValues = new double[1];
+    private final long[] longValues = new long[1];
 
     public JoglOpenglFuncProvider(GL4 gl){
         this.gl = gl;
@@ -197,11 +199,6 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
-    public void glGetInteger(int pname, IntBuffer params) {
-        gl.glGetIntegerv(pname, params);
-    }
-
-    @Override
     public String glGetString(int name) {
         return gl.glGetString(name);
     }
@@ -274,6 +271,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, long pixels_offset) {
         gl.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels_offset);
+    }
+
+    @Override
+    public void glTexImage1D(int target, int level, int internalformat, int width, int border, int format, int type, Buffer pixels) {
+
     }
 
     @Override
@@ -493,7 +495,7 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
 
     @Override
     public boolean glGetBoolean(int pname) {
-        gl.glGetBooleanv(pname, byteValues, 1);return byteValues[0] != 0;
+        gl.glGetBooleanv(pname, byteValues, 0);return byteValues[0] != 0;
     }
 
     @Override
@@ -1607,7 +1609,7 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
-    public ImageLoader getImageLoader() {
+    public NativeAPI getNativeAPI() {
         return null;
     }
 
@@ -1725,12 +1727,7 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
-    public void glClearTexImage(int texture, int level, int format, int type, ByteBuffer data) {
-        gl.glClearTexImage(texture, level, format, type, data);
-    }
-
-    @Override
-    public void glClearTexImage(int texture, int level, int format, int type, FloatBuffer data) {
+    public void glClearTexImage(int texture, int level, int format, int type, Buffer data) {
         gl.glClearTexImage(texture, level, format, type, data);
     }
 
@@ -1797,5 +1794,92 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
             bytes[i] = (byte) name.charAt(i);
         }
         return gl.glGetProgramResourceLocationIndex(program, programInterface, bytes, 0);
+    }
+
+    @Override
+    public void glGenerateTextureMipmap(int texture) {
+        gl.glGenerateTextureMipmap(texture);
+    }
+
+    @Override
+    public void glQueryCounter(int id, int target) {
+        gl.glQueryCounter(id, target);
+    }
+
+    @Override
+    public long glGetQueryObjectui64ui(int id, int pname) {
+        gl.glGetQueryObjectui64v(id, pname, longValues, 0);
+        return longValues[0];
+    }
+
+    @Override
+    public int glGetSubroutineIndex(int program, int type, String name) {
+        return gl.glGetSubroutineIndex(program, type, name);
+    }
+
+    @Override
+    public void glUniformSubroutinesui(int type, int index) {
+        intValues[0] = index;
+        gl.glUniformSubroutinesuiv(type, 1, intValues, 0);
+    }
+
+    @Override
+    public void glVertexAttribFormat(int index, int size, int type, boolean normalized, long offset) {
+        gl.glVertexAttribFormat(index, size, type, normalized, (int)offset);
+    }
+
+    @Override
+    public void glVertexAttribBinding(int attribindex, int bindingindex) {
+        gl.glVertexAttribBinding(attribindex, bindingindex);
+    }
+
+    @Override
+    public void glBindVertexBuffer(int bindingindex, int buffer, long offset, int stride) {
+        gl.glBindVertexBuffer(bindingindex, buffer, offset, stride);
+    }
+
+    @Override
+    public void glTextureBuffer(int texture, int internalformat, int buffer) {
+        gl.glTextureBuffer(texture, internalformat, buffer);
+    }
+
+    @Override
+    public void glDrawElementsIndirect(int mode, int type, long indirect) {
+        gl.glDrawElementsIndirect(mode, type, indirect);
+    }
+
+    @Override
+    public void glTexBufferRange(int target, int internalFormat, int buffer, long offset, int size) {
+        gl.glTexBufferRange(target, internalFormat, buffer, (int)offset, size);
+    }
+
+    @Override
+    public void glTextureBufferRange(int texture, int internalformat, int buffer, long offset, int size) {
+        gl.glTextureBufferRange(texture, internalformat, buffer, (int)offset, size);
+    }
+
+    @Override
+    public long glFenceSync() {
+        return gl.glFenceSync(GLenum.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    }
+
+    @Override
+    public int glClientWaitSync(long sync, int flags, long timeout) {
+        return gl.glClientWaitSync(sync, flags, timeout);
+    }
+
+    @Override
+    public ByteBuffer glMapBufferRange(int target, int offset, int length, int access, ByteBuffer old_buffer) {
+        return gl.glMapBufferRange(target, offset, length, access);
+    }
+
+    @Override
+    public ByteBuffer glMapBufferRange(int target, int offset, int length, int access) {
+        return gl.glMapBufferRange(target, offset, length, access);
+    }
+
+    @Override
+    public void glDeleteSync(long sync) {
+        gl.glDeleteSync(sync);
     }
 }

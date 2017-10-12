@@ -7,7 +7,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.Collection;
 
-import jet.opengl.postprocessing.texture.ImageLoader;
+import jet.opengl.postprocessing.texture.NativeAPI;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
@@ -1498,7 +1498,7 @@ public interface GLFuncProvider {
     void glBindSamplers(int first, IntBuffer samplernames);
     void glDrawElementsInstancedBaseVertex(int mode, int count, int type, int offset, int instance_count, int base_vertex);
 
-    ImageLoader getImageLoader();
+    NativeAPI getNativeAPI();
 
     int glGetIntegeri(int panme, int index);
     /**

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="postprocessing.opengl.jet.postprocessingwork">
+    package="jet.opengl.android">
 
     <application
         android:allowBackup="true"
@@ -8,13 +8,48 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity android:name=".common.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".common.OpenGLES2ExampleActivity"
+            android:configChanges="keyboardHidden|orientation"
+            android:screenOrientation="portrait"
+            android:label="OpenGL ES 2.0 Examples" >
+            <meta-data android:name="BuildVersion" android:value="8"></meta-data>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="jet.learning.opengl.action.sample" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".common.OpenGLES3ExampleActivity"
+            android:configChanges="keyboardHidden|orientation"
+            android:screenOrientation="portrait"
+            android:label="OpenGL ES 3.0 Examples" >
+            <meta-data android:name="BuildVersion" android:value="18"></meta-data>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="jet.learning.opengl.action.sample" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".demos.HDRDemo"
+            android:screenOrientation="portrait"
+            android:label="HDRDemo" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="jet.learning.opengl.category.es3" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>

@@ -4,6 +4,7 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile project(':testframewok')
     compile project(':jogl_impl')
+    compile project(':postprocessingcore')
 }
 
 sourceCompatibility = "1.8"

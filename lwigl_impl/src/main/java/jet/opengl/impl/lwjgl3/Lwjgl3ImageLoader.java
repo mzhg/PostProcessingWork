@@ -5,12 +5,20 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.stb.STBImage;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
+import javax.imageio.ImageIO;
+
 import jet.opengl.postprocessing.texture.ImageData;
-import jet.opengl.postprocessing.texture.ImageLoader;
+import jet.opengl.postprocessing.texture.NativeAPI;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
 
@@ -18,7 +26,7 @@ import jet.opengl.postprocessing.util.LogUtil;
  * Created by mazhen'gui on 2017/5/6.
  */
 
-final class Lwjgl3ImageLoader implements ImageLoader{
+final class Lwjgl3ImageLoader implements NativeAPI {
 
     @Override
     public ImageData load(String filename, boolean flip) throws IOException {
@@ -57,5 +65,41 @@ final class Lwjgl3ImageLoader implements ImageLoader{
         imageData.pixels = pixels;
 
         return imageData;
+    }
+
+    @Override
+    public String getTextFromClipBoard() {
+        Transferable t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
+        try {
+            return (String) t.getTransferData(DataFlavor.stringFlavor);
+        } catch (UnsupportedFlavorException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+
+    @Override
+    public void saveImageFile(int width, int height, boolean hasAlpha, int[] pixels, String img_filename) throws IOException{
+        BufferedImage image = new BufferedImage(width, height, hasAlpha ? BufferedImage.TYPE_4BYTE_ABGR : BufferedImage.TYPE_3BYTE_BGR);
+
+        for(int i = 0; i < height; i++){
+            for(int j = 0; j < width; j++){
+                int idx = j + i * width;
+                int value = pixels[idx];
+                image.setRGB(j, i, value);
+            }
+        }
+
+        String ext = hasAlpha ? "png" : "jpg";
+        int dot = img_filename.lastIndexOf('.');
+        if(dot >= 0){
+            img_filename = img_filename.substring(0, dot + 1) + ext;
+        }else{
+            img_filename = img_filename + '.' + ext;
+        }
+        ImageIO.write(image, ext, new File(img_filename));
     }
 }

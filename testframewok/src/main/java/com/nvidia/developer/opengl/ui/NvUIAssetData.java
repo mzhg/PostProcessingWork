@@ -37,6 +37,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import jet.opengl.postprocessing.util.FileUtils;
+
 final class NvUIAssetData {
 	
 	private static final Class<NvUIAssetData> clazz = NvUIAssetData.class;
@@ -60,14 +62,15 @@ final class NvUIAssetData {
 		packName = packName.replace("NvUIAssetData", "");
 		packName = packName.replace('.', '/');
 		
-		BufferedReader in = new BufferedReader(new InputStreamReader(clazz.getClassLoader().getResourceAsStream(packName + "NvUIAssetData.h")));
+//		BufferedReader in = new BufferedReader(new InputStreamReader(clazz.getClassLoader().getResourceAsStream(packName + "NvUIAssetData.h")));
+
 		byte[] data = null;
 	    
 		int cursor = 0;
 		int i = 0;
 		String line;
 		
-		try {
+		try (BufferedReader in = new BufferedReader(new InputStreamReader(FileUtils.open("shader_libs/NvUIAssetData.h")))){
 			while((line = in.readLine()) != null){
 				line = line.trim();
 				

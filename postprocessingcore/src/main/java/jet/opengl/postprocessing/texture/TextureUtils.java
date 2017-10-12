@@ -150,7 +150,7 @@ public final class TextureUtils {
 	}
 
 	public static Texture2D createTexture2DFromFile(String filename, boolean flip, boolean genmipmap, Texture2D out) throws IOException{
-		ImageLoader loader = GLFuncProviderFactory.getGLFuncProvider().getImageLoader();
+		NativeAPI loader = GLFuncProviderFactory.getGLFuncProvider().getNativeAPI();
 		ImageData data = loader.load(filename, flip);
 
 		Texture2DDesc desc = new Texture2DDesc(data.width, data.height, data.internalFormat);

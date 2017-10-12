@@ -8,12 +8,6 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.WritableVector;
 
-import java.awt.Color;
-import java.awt.Toolkit;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -45,12 +39,11 @@ import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
-import javax.imageio.ImageIO;
-
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.NativeAPI;
 import jet.opengl.postprocessing.texture.TextureUtils;
 
 /**
@@ -425,7 +418,13 @@ public final class DebugTools {
 
         private static final int[] SIZES = new int[ACCETS.length];
 
-        private static final Comparator<Class<?>> CLASS_COMPARATOR  = (a, b )-> a.getName().compareTo(b.getName());
+        private static final Comparator<Class<?>> CLASS_COMPARATOR  = /*(a, b )-> a.getName().compareTo(b.getName())*/
+            new Comparator<Class<?>>() {
+                @Override
+                public int compare(Class<?> a, Class<?> b) {
+                    return a.getName().compareTo(b.getName());
+                }
+            };
         static {
             Arrays.sort(ACCETS, CLASS_COMPARATOR);
             for(int i = 0; i < ACCETS.length; i++){
@@ -1445,7 +1444,11 @@ public final class DebugTools {
         return Float.parseFloat(token);
     }
 
-    public static void saveStencilAsImage(String filename, String img_filename, HashMap<Integer, Color> colorMap){
+    public static void saveStencilAsImage(String filename, String img_filename, HashMap<Integer, Integer> colorMap){
+        NativeAPI nativeAPI = GLFuncProviderFactory.getGLFuncProvider().getNativeAPI();
+        if(nativeAPI == null || !nativeAPI.isSupportSaveImageFile()){
+            return;
+        }
         try(BufferedReader in = new BufferedReader(new FileReader(filename))){
             String line;
             final List<float[]> dsValues = new ArrayList<float[]>();
@@ -1472,29 +1475,23 @@ public final class DebugTools {
                 }
             }
 
-            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
+//            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
             int[] stencilValues = allValues.getData();
+            int[] out_pixels = new int[width * height];
             for(int i = 0; i < height; i++){
                 for(int j = 0; j < width; j++){
                     int idx = j + i * width;
                     int stencil = stencilValues[idx];
-                    Color color = colorMap.get(stencil);
+                    Integer color = colorMap.get(stencil);
                     if(color == null){
-                        color = Color.BLACK;
+                        color = 0xFF000000;
                     }
 
-                    image.setRGB(j, i, color.getRGB());
+//                    image.setRGB(j, i, color.getRGB());
+                    out_pixels[idx] = color;
                 }
             }
-
-            int dot = img_filename.lastIndexOf('.');
-            if(dot >= 0){
-                img_filename = img_filename.substring(0, dot + 1) + "jpg";
-            }else{
-                img_filename = img_filename + ".jpg";
-            }
-
-            ImageIO.write(image, "jpg", new File(img_filename));
+            nativeAPI.saveImageFile(width, height, false, out_pixels, img_filename);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -1589,16 +1586,7 @@ public final class DebugTools {
     }
 
     public static String getTextFromClipBoard(){
-        Transferable t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
-        try {
-            return (String) t.getTransferData(DataFlavor.stringFlavor);
-        } catch (UnsupportedFlavorException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return "";
+        return GLFuncProviderFactory.getGLFuncProvider().getNativeAPI().getTextFromClipBoard();
     }
 
     public static CharSequence covertTextToJavaStringFromClipBoard(String varname){

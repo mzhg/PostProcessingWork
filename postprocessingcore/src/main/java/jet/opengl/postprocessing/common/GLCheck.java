@@ -6,7 +6,7 @@ import jet.opengl.postprocessing.util.LogUtil;
  * Created by mazhen'gui on 2017/4/1.
  */
 
-public class GLCheck {
+public final class GLCheck {
 
     public static final boolean CHECK;
     public static final boolean INGORE_UNSUPPORT_FUNC;

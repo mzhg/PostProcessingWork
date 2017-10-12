@@ -21,7 +21,7 @@ import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
-import jet.opengl.postprocessing.texture.ImageLoader;
+import jet.opengl.postprocessing.texture.NativeAPI;
 import jet.opengl.postprocessing.util.BufferUtils;
 
 /**
@@ -208,11 +208,6 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
-    public void glGetInteger(int pname, IntBuffer params) {
-        GLES11.glGetIntegerv(pname, params);
-    }
-
-    @Override
     public String glGetString(int name) {
         return GLES11.glGetString(name);
     }
@@ -295,6 +290,12 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
         }else{
             GLES11.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, null);
         }
+    }
+
+    @Override
+    public void glTexImage1D(int target, int level, int internalformat, int width, int border, int format, int type, Buffer pixels) {
+        final String error_msg = "Unspport glTexImage1D(int target, int level, int internalformat, int width, int border, int format, int type, Buffer pixels) on Android platform!";
+        GLCheck.printUnsupportFuncError(error_msg);
     }
 
     @Override
@@ -1647,7 +1648,7 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
-    public ImageLoader getImageLoader() {
+    public NativeAPI getNativeAPI() {
         return null;
     }
 
@@ -1778,13 +1779,8 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
-    public void glClearTexImage(int texture, int level, int format, int type, ByteBuffer data) {
-        GLCheck.printUnsupportFuncError("Unsupport 'glClearTexImage(int texture, int level, int format, int type, ByteBuffer data)' on Android Platform!");
-    }
-
-    @Override
-    public void glClearTexImage(int texture, int level, int format, int type, FloatBuffer data) {
-        GLCheck.printUnsupportFuncError("Unsupport 'glClearTexImage(int texture, int level, int format, int type, FloatBuffer data)' on Android Platform!");
+    public void glClearTexImage(int texture, int level, int format, int type, Buffer data) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glClearTexImage(int texture, int level, int format, int type, Buffer data)' on Android Platform!");
     }
 
     @Override
@@ -1845,5 +1841,97 @@ public class AndroidOpenglFuncProvider implements GLFuncProvider {
     public int glGetProgramResourceLocationIndex(int program, int programInterface, CharSequence name) {
         GLCheck.printUnsupportFuncError("Unsupport 'glGetProgramResourceLocationIndex(int program, int programInterface, CharSequence name)' on Android Platform!");
         return -1;
+    }
+
+    @Override
+    public void glGenerateTextureMipmap(int texture) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glGenerateTextureMipmap(int texture)' on Android Platform!");
+    }
+
+    @Override
+    public void glQueryCounter(int id, int target) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glQueryCounter(int id, int target)' on Android Platform!");
+    }
+
+    @Override
+    public long glGetQueryObjectui64ui(int id, int pname) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glGetQueryObjectui64ui(int id, int pname)' on Android Platform!");
+        return -1;
+    }
+
+    @Override
+    public int glGetSubroutineIndex(int program, int type, String name) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glGetSubroutineIndex(int program, int type, String name)' on Android Platform!");
+        return -1;
+    }
+
+    @Override
+    public void glUniformSubroutinesui(int type, int index) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glGetSubroutineIndex(int program, int type, String name)' on Android Platform!");
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glVertexAttribFormat(int index, int size, int type, boolean normalized, long offset) {
+        GLES31.glVertexAttribFormat(index,size, type, normalized, (int)offset);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glVertexAttribBinding(int attribindex, int bindingindex) {
+        GLES31.glVertexAttribBinding(attribindex, bindingindex);
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glBindVertexBuffer(int bindingindex, int buffer, long offset, int stride) {
+        GLES31.glBindVertexBuffer(bindingindex, buffer, offset, stride);
+    }
+
+    @Override
+    public void glTextureBuffer(int texture, int internalformat, int buffer) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glTextureBuffer(int texture, int internalformat, int buffer)' on Android Platform!");
+    }
+
+    @TargetApi(21)
+    @Override
+    public void glDrawElementsIndirect(int mode, int type, long indirect) {
+        GLES31.glDrawElementsIndirect(mode, type, indirect);
+    }
+
+    @TargetApi(24)
+    @Override
+    public void glTexBufferRange(int target, int internalFormat, int buffer, long offset, int size) {
+        GLES32.glTexBufferRange(target, internalFormat, buffer, (int)offset, size);
+    }
+
+    @Override
+    public void glTextureBufferRange(int texture, int internalformat, int buffer, long offset, int size) {
+        GLCheck.printUnsupportFuncError("Unsupport 'glTextureBufferRange(int texture, int internalformat, int buffer, long offset, int size)' on Android Platform!");
+    }
+
+    @Override
+    public long glFenceSync() {
+        return GLES30.glFenceSync(GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    }
+
+    @Override
+    public int glClientWaitSync(long sync, int flags, long timeout) {
+        return GLES30.glClientWaitSync(sync, flags, timeout);
+    }
+
+    @Override
+    public ByteBuffer glMapBufferRange(int target, int offset, int length, int access, ByteBuffer old_buffer) {
+        return (ByteBuffer) GLES30.glMapBufferRange(target, offset, length, access);
+    }
+
+    @Override
+    public ByteBuffer glMapBufferRange(int target, int offset, int length, int access) {
+        return (ByteBuffer) GLES30.glMapBufferRange(target, offset, length, access);
+    }
+
+    @Override
+    public void glDeleteSync(long sync) {
+        GLES30.glDeleteSync(sync);
     }
 }

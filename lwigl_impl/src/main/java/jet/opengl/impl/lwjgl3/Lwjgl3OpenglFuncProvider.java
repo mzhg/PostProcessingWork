@@ -38,7 +38,7 @@ import java.util.Arrays;
 import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
-import jet.opengl.postprocessing.texture.ImageLoader;
+import jet.opengl.postprocessing.texture.NativeAPI;
 
 /**
  * Created by mazhen'gui on 2017/4/10.
@@ -1638,7 +1638,7 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
-    public ImageLoader getImageLoader() {
+    public NativeAPI getNativeAPI() {
         if(m_ImageLoader == null)
             m_ImageLoader = new Lwjgl3ImageLoader();
 

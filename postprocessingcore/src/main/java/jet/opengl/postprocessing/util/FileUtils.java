@@ -2,7 +2,6 @@ package jet.opengl.postprocessing.util;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -57,7 +56,7 @@ public class FileUtils {
         return out;
     }
 
-    public static InputStream open(String file) throws FileNotFoundException {
+    public static InputStream open(String file) throws IOException {
         return g_IntenalFileLoader.open(file);
     }
 
@@ -159,5 +158,27 @@ public class FileUtils {
         }
 
         return path.substring(0, index+1);
+    }
+
+    public static String getFile(String path){
+        if(path == null || path.length() == 0)
+            throw new NullPointerException("path is empty");
+
+        char c = path.charAt(path.length() - 1);
+        if(c == '/' || c == '\\'){
+            return "";
+        }
+
+        int index = path.length() - 1;
+        // eat up all the letters and other stuff
+        for(; index >=0; index--){
+            c = path.charAt(index);
+            if(c == '/' || c == '\\'){
+                break;
+            }
+        }
+
+        return path.substring(index + 1);
+
     }
 }

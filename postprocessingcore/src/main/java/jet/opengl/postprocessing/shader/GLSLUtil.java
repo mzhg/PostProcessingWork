@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.function.IntConsumer;
 
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -47,7 +46,7 @@ public final class GLSLUtil {
 		return shader;
 	}
 	
-	public static int createProgramFromShaders(int vertexShader,int tessControlShader, int tessEvalateShader, int geometyShader, int fragmentShader, IntConsumer taskBeforeLink){
+	public static int createProgramFromShaders(int vertexShader,int tessControlShader, int tessEvalateShader, int geometyShader, int fragmentShader, ProgramLinkTask taskBeforeLink){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		
 		int program = gl.glCreateProgram();
@@ -59,7 +58,7 @@ public final class GLSLUtil {
 		if(fragmentShader != 0) gl.glAttachShader(program, fragmentShader);
 		
 		if(taskBeforeLink != null)
-			taskBeforeLink.accept(program);
+			taskBeforeLink.invoke(program);
 		
 		gl.glLinkProgram(program);
 	    
@@ -79,14 +78,14 @@ public final class GLSLUtil {
 	 * @param taskBeforeLink
 	 * @return
 	 */
-	public static int createProgramFromShaders(int computeShader, IntConsumer taskBeforeLink){
+	public static int createProgramFromShaders(int computeShader, ProgramLinkTask taskBeforeLink){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int program = gl.glCreateProgram();
 		
 		gl.glAttachShader(program, computeShader);
 		
 		if(taskBeforeLink != null)
-			taskBeforeLink.accept(program);
+			taskBeforeLink.invoke(program);
 		
 		gl.glLinkProgram(program);
 	    
@@ -331,7 +330,7 @@ public final class GLSLUtil {
 				continue;
 			}
 
-			if(typeinfo.isSampler() || typeinfo.isImage()){
+			if((typeinfo.isSampler() || typeinfo.isImage()) && properties.location >=0){
 				properties.value = gl.glGetUniformi(programId, properties.location);
 				GLCheck.checkError();
 			}else{

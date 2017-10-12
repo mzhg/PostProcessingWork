@@ -3,7 +3,6 @@ package jet.opengl.desktop.lwjgl;
 import com.nvidia.developer.opengl.app.GLEventListener;
 import com.nvidia.developer.opengl.app.NvAppBase;
 import com.nvidia.developer.opengl.app.NvEGLConfiguration;
-import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
 import com.nvidia.developer.opengl.utils.NvImage;
 
@@ -44,7 +43,7 @@ import jet.opengl.postprocessing.util.FileUtils;
 /**
  * Created by mazhen'gui on 2017/10/10.
  */
-public class DemoMain implements GLEventListener, ListSelectionListener, ItemListener, ActionListener {
+public class LwjglDemoMain implements GLEventListener, ListSelectionListener, ItemListener, ActionListener {
     private JFrame mFrame;
     private JList<DemoDesc> mComboBox;
     private JScrollPane     mComboBoxPanel;
@@ -53,11 +52,11 @@ public class DemoMain implements GLEventListener, ListSelectionListener, ItemLis
     private JButton   mStartApp;
     private final Vector<String> mResolutionList = new Vector<>();
     private final Vector<DemoDesc> mDemoList = new Vector<>();
-    private NvSampleApp mCurrentDemo;
+    private NvAppBase mCurrentDemo;
     private int mCurrentDemoIdx = -1;
     private Point mSize = new Point();
 
-    public DemoMain(){
+    public LwjglDemoMain(){
         initDemoLists();
         initResolutionLists();
 
@@ -92,7 +91,7 @@ public class DemoMain implements GLEventListener, ListSelectionListener, ItemLis
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
 
         mFrame = new JFrame();
-        mFrame.setTitle("Graphics Demos");
+        mFrame.setTitle("Graphics Demos[Lwjgl]");
         mFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mFrame.setResizable(false);
         Container contentPane = mFrame.getContentPane();
@@ -149,7 +148,7 @@ public class DemoMain implements GLEventListener, ListSelectionListener, ItemLis
     }
 
     public static void main(String[] args) {
-        new DemoMain();
+        new LwjglDemoMain();
     }
 
     @Override
@@ -255,13 +254,13 @@ public class DemoMain implements GLEventListener, ListSelectionListener, ItemLis
             this.title = title;
         }
 
-        NvSampleApp newInstance(){
+        NvAppBase newInstance(){
             if(classPath == null)
                 return null;
 
             try {
                 Class<?> clazz = Class.forName(classPath);
-                return (NvSampleApp)clazz.newInstance();
+                return (NvAppBase)clazz.newInstance();
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             } catch (InstantiationException e) {
