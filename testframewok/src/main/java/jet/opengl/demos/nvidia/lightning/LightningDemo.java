@@ -8,6 +8,9 @@ import org.lwjgl.util.vector.Vector3f;
 
 import jet.opengl.demos.amdfx.common.AMD_Mesh;
 import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 
 /**
@@ -24,6 +27,7 @@ public final class LightningDemo extends NvSampleApp {
 
     boolean	g_screen_capture = false;
     boolean	g_single_frame = false;
+    private GLFuncProvider gl;
 
     final Vector3f g_colors[] =
     {
@@ -71,6 +75,7 @@ public final class LightningDemo extends NvSampleApp {
 //        loadOrcXMesh();
         GLCheck.checkError();
 
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         m_transformer.setTranslation(-44.5418f, -53.0726f, 42.1582f);
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 
@@ -79,8 +84,6 @@ public final class LightningDemo extends NvSampleApp {
 
     @Override
     public void display() {
-        float ClearColor[] = { 0.0f, 0.0f, 0.3f, 1.0f };
-
 //        ID3D10RenderTargetView* pRTV = DXUTGetD3D10RenderTargetView();
 //        pd3dDevice->ClearRenderTargetView( pRTV, ClearColor );
 
@@ -94,6 +97,10 @@ public final class LightningDemo extends NvSampleApp {
 //            g_SettingsDlg.OnRender( fElapsedTime );
 //            return;
 //        }
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        gl.glClearColor(0.0f, 0.0f, 0.3f, 1.0f);
+        gl.glClearDepthf(1.0f);
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
 
         float  t = m_total_time;
         float dt = getFrameDeltaTime();
