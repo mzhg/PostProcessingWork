@@ -15,21 +15,21 @@ layout(binding = 0) uniform sampler2D Buffer;
 
 float Gaussian(float2 xy, float sigma)
 {
-	return exp(- (dot(xy,xy) / (2.0f * sigma * sigma ))) / (2.0f * pi * sigma * sigma);
+	return exp(- (dot(xy,xy) / (2.0f * sigma * sigma ))) / (2.0f * PI * sigma * sigma);
 }
 
 float3 Gaussian(float2 xy, float3 sigma)
 {
 	float3 sigma_prime = sigma * sigma * 2;
-	float3 d = dot(xy,xy);
+	float d = dot(xy,xy);
 
-	return	exp(- d / sigma_prime) / ( pi * sigma_prime);
+	return	exp(- d / sigma_prime) / ( PI * sigma_prime);
 
 }
 float3 Gaussian(float d, float3 sigma)
 {
 	float3 sigma_prime = sigma * sigma * 2;
-	return	exp(- abs(d) / sigma_prime) / ( pi * sigma_prime);
+	return	exp(- abs(d) / sigma_prime) / ( PI * sigma_prime);
 }
 
 in vec4 m_f4UVAndScreenPos;

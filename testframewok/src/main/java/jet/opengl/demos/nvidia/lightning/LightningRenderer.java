@@ -4,6 +4,7 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2i;
 import org.lwjgl.util.vector.Vector3f;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.HashSet;
@@ -17,6 +18,8 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.OpenGLProgram;
+import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
@@ -34,15 +37,17 @@ import jet.opengl.postprocessing.util.Recti;
  */
 
 final class LightningRenderer {
-    static final int D3D10_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE = 16;
+    static final int D3D10_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE = 1;
     static final int DecimationLevels = 2;				// number of downsampling steps
 
     static int BackBufferFormat = GLenum.GL_RGBA8;
 
     final Recti[] m_viewports = new Recti[D3D10_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
-    final Recti[] m_scissor_rects = new Recti[D3D10_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
-    int m_num_viewports;
-    int m_num_scissor_rects;
+
+    static final int UNIFORM_PERFRAME = 0;
+    static final int UNIFORM_LIGHT_APPEARANCE = 1;
+    static final int UNIFORM_LIGHT_CHAIN = 3;
+    static final int UNIFORM_LIGHT_STRUCTURE = 2;
 
 
 //    ID3D10Device*	m_device;
@@ -58,7 +63,6 @@ final class LightningRenderer {
     GLSLProgram	m_tech_blur_buffer_vertical;
 
     BufferGL  m_constants_lightning_appearance;
-    BufferGL  m_constants_lightning_structure;
 
     GLSLProgram	m_tech_down_sample_2x2;
 
@@ -112,6 +116,7 @@ final class LightningRenderer {
     TransformFeedbackObject/*Geometry::SimpleVertexBuffer<SubdivideVertex>**/	m_subdivide_buffer0;
     TransformFeedbackObject/*Geometry::SimpleVertexBuffer<SubdivideVertex>**/	m_subdivide_buffer1;
     VertexArrayObject m_subdivide_layout;
+    private BufferGL m_per_frame_buffer;
     private int m_dummy_vao;
 
     public LightningRenderer(int back_buffer_sample_desc ){
@@ -127,22 +132,29 @@ final class LightningRenderer {
 
 //        m_tech_bolt_out(m_effect->GetTechniqueByName("BoltOut")),
 //        m_tech_lines_out(m_effect->GetTechniqueByName("ShowLines")),
-        m_tech_lines_out = PathLightning.createProgram("LinesOutVS.vert", "LinesOutGS.gemo", "LinesOutPS.frag");
-        m_tech_bolt_out = PathLightning.createProgram("LinesOutVS.vert", "BoltOutGS.gemo", "BoltOutPS.frag");
+        m_tech_lines_out = PathLightning.createProgram("LinesOutVS.vert", "LinesOutGS.gemo", "LinesOutPS.frag", null, "LinesOut");
+        m_tech_bolt_out = PathLightning.createProgram("LinesOutVS.vert", "BoltOutGS.gemo", "BoltOutPS.frag", null, "BoltOut");
 
 //        m_tech_add_buffer(m_effect->GetTechniqueByName("AddBuffer")),
 //        m_tech_blur_buffer_horizontal(m_effect->GetTechniqueByName("BlurBufferHorizontal")),
 //        m_tech_blur_buffer_vertical(m_effect->GetTechniqueByName("BlurBufferVertical")),
-
+        try {
+            m_tech_blur_buffer_horizontal = GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert",
+                                            "nvidia/lightning/shaders/BlurBufferPS.frag");
+            m_tech_blur_buffer_vertical = m_tech_blur_buffer_horizontal;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
 //        m_tech_down_sample_2x2(m_effect->GetTechniqueByName("DownSample2x2")),
+        m_tech_add_buffer = m_tech_down_sample_2x2 = new FullscreenProgram(false);
 
 //        m_constants_lightning_appearance(m_effect, "LightningAppearance"),
 //        m_constants_lightning_structure(m_effect, "LightningStructure"),
         m_constants_lightning_appearance = new BufferGL();
         m_constants_lightning_appearance.initlize(GLenum.GL_UNIFORM_BUFFER, LightningAppearance.SIZE, null, GLenum.GL_STREAM_DRAW);
-        m_constants_lightning_structure = new BufferGL();
-        m_constants_lightning_structure.initlize(GLenum.GL_UNIFORM_BUFFER, LightningStructure.SIZE, null, GLenum.GL_STREAM_DRAW);
+        m_per_frame_buffer = new BufferGL();
+        m_per_frame_buffer.initlize(GLenum.GL_UNIFORM_BUFFER, PerFrame.SIZE, null, GLenum.GL_STREAM_DRAW);
 
 //        m_world(m_effect,"world"),
 //        m_view(m_effect,"view"),
@@ -185,10 +197,15 @@ final class LightningRenderer {
         m_scene_render_target_view = null;
 
         m_down_sample_buffers = new Texture2D[DecimationLevels -1];
+        GLCheck.checkError();
 
         /*m_num_scissor_rects(0),
         m_num_viewports(0),
         m_max_vertices(0)*/
+
+        for(int i = 0; i < m_viewports.length; i++){
+            m_viewports[i] = new Recti();
+        }
     }
 
 
@@ -255,10 +272,20 @@ final class LightningRenderer {
         m_RenderTarget.setRenderTextures(views, null);
         gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0.0f, 0.0f,0.0f, 0.0f));
         gl.glViewport(0,0, m_lightning_buffer0.getWidth(), m_lightning_buffer0.getHeight());
+
         BuildSubdivisionBuffers();
+
+        bindPerFrameBuffer();  // for the time variable
     }
 
-    public void Render(LightningSeed seed, LightningAppearance appearance, float charge, float animation_speed, boolean as_lines){
+    void bindPerFrameBuffer(){
+        ByteBuffer bytes = CacheBuffer.getCachedByteBuffer(PerFrame.SIZE);
+        m_per_frame.store(bytes).flip();
+        m_per_frame_buffer.update(0, bytes);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, UNIFORM_PERFRAME, m_per_frame_buffer.getBuffer());
+    }
+
+    public void Render(LightningSeed seed, LightningAppearance appearance, float charge, float animation_speed, boolean as_lines, String debugStr){
         {
 //            UINT offset[1] = {0};
 //            ID3D10Buffer* zero[1] = {0};
@@ -272,10 +299,11 @@ final class LightningRenderer {
         appearance.store(bytes).flip();
         m_constants_lightning_appearance.update(0, bytes);
         m_constants_lightning_appearance.unbind();
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, UNIFORM_LIGHT_APPEARANCE, m_constants_lightning_appearance.getBuffer());
 
         seed.SetConstants();
 
-        TransformFeedbackObject subdivided = Subdivide(seed);
+        TransformFeedbackObject subdivided = Subdivide(seed, debugStr);
 
 //        subdivided.BindToInputAssembler();
         m_subdivision_level = 0;
@@ -283,16 +311,33 @@ final class LightningRenderer {
 //        m_device->IASetInputLayout(m_subdivide_layout);
 //        m_device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-        if(as_lines)
-            m_tech_lines_out.enable();
-        else
-            m_tech_bolt_out.enable();
+        GLSLProgram program;
+        if(as_lines) {
+            program = m_tech_lines_out;
+            gl.glEnable(GLenum.GL_DEPTH_TEST);
+            gl.glDisable(GLenum.GL_BLEND);
+        }else {
+            program = m_tech_bolt_out;
+            gl.glEnable(GLenum.GL_DEPTH_TEST);
+            gl.glEnable(GLenum.GL_BLEND);
+            gl.glBlendFuncSeparate(GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ZERO);
+        }
 
+        program.enable();
 //        m_device->Draw(seed->GetNumVertices(seed->GetSubdivisions()),0);
-        subdivided.drawArrays(0, seed.GetNumVertices(seed.GetSubdivisions()));
+        int count = seed.GetNumVertices(seed.GetSubdivisions());
+        subdivided.drawArrays(0, count);
+
+        if(LightningDemo.canPrintLog()){
+            System.out.print("LightningRenderer::Render::" + debugStr + "::Count::"+count + '\n');
+            program.printPrograminfo();
+        }
+
+        GLCheck.checkError();
     }
 
     private void ResolveSubresource(Texture2D dest, Texture2D source){
+        int old_fbo = gl.glGetInteger(GLenum.GL_FRAMEBUFFER_BINDING);
         gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, m_read_fbo);
         gl.glFramebufferTexture2D(GLenum.GL_READ_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, source.getTarget(), source.getTexture(), 0);
         gl.glReadBuffer(GLenum.GL_COLOR_ATTACHMENT0);
@@ -307,10 +352,13 @@ final class LightningRenderer {
 
         gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, 0);
         gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, 0);
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, old_fbo);
         GLCheck.checkError();
     }
 
     public void End(boolean glow, Vector3f blur_sigma){
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+
 //        m_device->ResolveSubresource(m_original_lightning_buffer.Texture(),0,m_lightning_buffer0.Texture(),0,BackBufferFormat);
         ResolveSubresource(m_original_lightning_buffer, m_lightning_buffer0);
         if(glow)
@@ -327,25 +375,41 @@ final class LightningRenderer {
             ping_pong.Apply(m_tech_blur_buffer_vertical);
 
             RestoreViewports();
-
+            GLCheck.checkError();
 //            m_device->OMSetRenderTargets(1, &m_scene_render_target_view, m_scene_depth_stencil_view);
-            m_RenderTarget.setRenderTextures(CommonUtil.toArray(m_scene_render_target_view, m_scene_depth_stencil_view), null);
+            if(m_scene_render_target_view == null && m_scene_depth_stencil_view == null){
+                gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+            }else{
+                m_RenderTarget.bind();
+                m_RenderTarget.setRenderTextures(CommonUtil.toArray(m_scene_render_target_view, m_scene_depth_stencil_view), null);
+            }
+
             Texture2D tex = ping_pong.LastTarget();
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
             gl.glBindTexture(tex.getTarget(), tex.getTexture());
+            gl.glEnable(GLenum.GL_BLEND);
+            gl.glBlendFuncSeparate(GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ZERO, GLenum.GL_ZERO);
             DrawQuad(m_tech_add_buffer);
         }
         else
         {
 //            m_device->OMSetRenderTargets(1, &m_scene_render_target_view, m_scene_depth_stencil_view);
-            m_RenderTarget.setRenderTextures(CommonUtil.toArray(m_scene_render_target_view, m_scene_depth_stencil_view), null);
+            if(m_scene_render_target_view == null && m_scene_depth_stencil_view == null){
+                gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+            }else{
+                m_RenderTarget.bind();
+                m_RenderTarget.setRenderTextures(CommonUtil.toArray(m_scene_render_target_view, m_scene_depth_stencil_view), null);
+            }
         }
 
 //        m_buffer = m_original_lightning_buffer.ShaderResourceView();
         Texture2D tex = m_original_lightning_buffer;
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(tex.getTarget(), tex.getTexture());
+        gl.glEnable(GLenum.GL_BLEND);
+        gl.glBlendFuncSeparate(GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ZERO);
         DrawQuad(m_tech_add_buffer);
+        GLCheck.checkError();
     }
 
     private void	BuildSubdivisionBuffers(){
@@ -357,10 +421,11 @@ final class LightningRenderer {
         }
 
         if( (null != m_subdivide_buffer0) && (max_segments == m_subdivide_buffer0.getBufferSize(0)/SubdivideVertex.SIZE))
-        return;
+            return;
 
         CommonUtil.safeRelease(m_subdivide_buffer0);
         CommonUtil.safeRelease(m_subdivide_buffer1);
+        System.out.println("max_segments = " + max_segments);
 
 //        vector<SubdivideVertex> init_data(max_segments, SubdivideVertex());
 //
@@ -382,14 +447,24 @@ final class LightningRenderer {
             gl.glVertexAttribPointer(2,3,GLenum.GL_FLOAT, false, SubdivideVertex.SIZE, 24);
 
             gl.glEnableVertexAttribArray(3);
-            gl.glVertexAttribIPointer(3, 3, GLenum.GL_UNSIGNED_INT, SubdivideVertex.SIZE, 36);
+            gl.glVertexAttribIPointer(3, 1, GLenum.GL_UNSIGNED_INT, SubdivideVertex.SIZE, 36);
         };
 
         m_subdivide_buffer0 = new TransformFeedbackObject(max_segments * SubdivideVertex.SIZE, layout);
         m_subdivide_buffer1 = new TransformFeedbackObject(max_segments * SubdivideVertex.SIZE, layout);
+        GLCheck.checkError();
     }
 
-    private TransformFeedbackObject		Subdivide(LightningSeed seed){
+    private void applySubdivideUniforms(OpenGLProgram program){
+        if(program instanceof  SubdivideProgram) {
+            SubdivideProgram _program = (SubdivideProgram) program;
+            _program.setAnimationSpeed(m_animation_speed);
+            _program.setFork(m_fork);
+            _program.setSubdivisionLevel(m_subdivision_level);
+        }
+    }
+
+    private TransformFeedbackObject		Subdivide(LightningSeed seed, String debugString){
         TransformFeedbackObject source = m_subdivide_buffer0;
         TransformFeedbackObject target = m_subdivide_buffer1;
         TransformFeedbackObject last_target = target;
@@ -399,12 +474,17 @@ final class LightningRenderer {
 //        m_subdivide_layout.bind();
 
 //        target->BindToStreamOut();
+        seed.GetFirstPassTechnique().enable();
         target.beginRecord(GLenum.GL_POINTS);
 
         m_subdivision_level = 0;
         m_fork = (seed.GetPatternMask() & (1 << 0))!=0;
+        applySubdivideUniforms(seed.GetFirstPassTechnique());
 
-        seed.RenderFirstPass();
+        if(LightningDemo.canPrintLog())
+            System.out.print(debugString + "::");
+
+        seed.RenderFirstPass(false);
         {
 //            UINT offset[1] = {0};
 //            ID3D10Buffer* zero[1] = {0};
@@ -422,13 +502,14 @@ final class LightningRenderer {
         {
 //            source->BindToInputAssembler();
 //            target->BindToStreamOut();
-            target.beginRecord(GLenum.GL_POINTS);
 
+            seed.GetSubdivideTechnique().enable();
+            target.beginRecord(GLenum.GL_POINTS);
             m_subdivision_level = i;
             m_fork = (seed.GetPatternMask() & (1 << i)) !=0;
+            applySubdivideUniforms(seed.GetSubdivideTechnique());
 
 //            seed.GetSubdivideTechnique()->GetPassByIndex(0)->Apply(0);
-            seed.GetSubdivideTechnique().enable();
 //            m_device->Draw( seed->GetNumVertices(i),0);
 //            gl.glDrawArrays(GLenum.GL_POINTS, 0, seed.GetNumVertices(i));
             source.drawArrays(0, seed.GetNumVertices(i));
@@ -444,6 +525,11 @@ final class LightningRenderer {
             tmp = source;
             source = target;
             target = tmp;
+
+            if(LightningDemo.canPrintLog()){
+                System.out.print("LightningRenderer::Subdivide::" + debugString + "::" + i + ":\n");
+                seed.GetSubdivideTechnique().printPrograminfo();
+            }
         }
 
         {
@@ -453,6 +539,8 @@ final class LightningRenderer {
 //            m_device->IASetVertexBuffers(0,1,zero,offset,offset);
 
         }
+
+        GLCheck.checkError();
         return last_target;
     }
 
@@ -527,12 +615,19 @@ final class LightningRenderer {
         {
 //            ID3D10RenderTargetView* view[] = { targets[i]->RenderTargetView()};
 //            m_device->OMSetRenderTargets(1, const_cast<ID3D10RenderTargetView**> (view), 0);
+            m_RenderTarget.bind();
             m_RenderTarget.setRenderTexture(targets[i], null);
             ResizeViewport(m_down_sample_buffer_sizes[i].x, m_down_sample_buffer_sizes[i].y );
+            gl.glDisable(GLenum.GL_BLEND);
 
 //            m_buffer = sources[i]->ShaderResourceView();
             gl.glBindTexture(sources[i].getTarget(), sources[i].getTexture());
+            m_tech_down_sample_2x2.setName("Downsample");
             DrawQuad(m_tech_down_sample_2x2);
+            if(LightningDemo.canPrintLog()){
+                System.out.println("Downsample::" + i + "::");
+                m_tech_down_sample_2x2.printPrograminfo();
+            }
         }
     }
 

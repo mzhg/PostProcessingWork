@@ -150,7 +150,7 @@ public abstract class NvAppBase implements NvInputCallbacks, NvKey, GLEventListe
         if(!handled){
         	switch (nvkey) {
             case K_ESC:
-//                exit();  TODO
+            	getGLContext().requestExit();
                 break;
             default:
                 characterInput((char) nvkey);
@@ -173,7 +173,7 @@ public abstract class NvAppBase implements NvInputCallbacks, NvKey, GLEventListe
         if(!handled){
         	switch (nvkey) {
             case K_ESC:
-//                exit();   TODO
+				getGLContext().requestExit();
                 break;
             default:
                 characterInput((char) nvkey);

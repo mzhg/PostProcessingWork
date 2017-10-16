@@ -1,13 +1,17 @@
 package jet.opengl.demos.nvidia.lightning;
 
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
+import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.utils.FieldControl;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import jet.opengl.demos.amdfx.common.AMD_Mesh;
 import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.texture.Texture2D;
 
 /**
@@ -24,6 +28,8 @@ public final class LightningDemo extends NvSampleApp {
 
     boolean	g_screen_capture = false;
     boolean	g_single_frame = false;
+    private GLFuncProvider gl;
+    private static boolean g_printLog;
 
     final Vector3f g_colors[] =
     {
@@ -67,20 +73,31 @@ public final class LightningDemo extends NvSampleApp {
     }
 
     @Override
+    public void initUI() {
+        mTweakBar.addValue("Show Scene", new FieldControl(g_arena.settings, "Scene"));
+        mTweakBar.addValue("Chain", new FieldControl(g_arena.settings, "Chain"));
+        mTweakBar.addValue("Fence", new FieldControl(g_arena.settings, "Fence"));
+        mTweakBar.addValue("CoilHelix", new FieldControl(g_arena.settings, "CoilHelix"));
+        mTweakBar.addValue("InterCoil", new FieldControl(g_arena.settings, "InterCoil"));
+        mTweakBar.addValue("Glow", new FieldControl(g_arena.settings, "Glow"));
+        mTweakBar.addValue("Lines", new FieldControl(g_arena.settings, "Lines"));
+    }
+
+    @Override
     protected void initRendering() {
 //        loadOrcXMesh();
         GLCheck.checkError();
 
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         m_transformer.setTranslation(-44.5418f, -53.0726f, 42.1582f);
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
+        m_transformer.setRotationVec(new Vector3f(0.7f, -2.2f, -1.0f));
 
         g_arena = new Arena(1);
     }
 
     @Override
     public void display() {
-        float ClearColor[] = { 0.0f, 0.0f, 0.3f, 1.0f };
-
 //        ID3D10RenderTargetView* pRTV = DXUTGetD3D10RenderTargetView();
 //        pd3dDevice->ClearRenderTargetView( pRTV, ClearColor );
 
@@ -115,12 +132,13 @@ public final class LightningDemo extends NvSampleApp {
 
         g_beam_parameters.ColorFallOffExponent = 5; // float(g_SampleUI.GetSlider(IDC_COLOR_EXPONENT)->GetValue());
 
-        g_arena.settings.Scene =  true; // g_SampleUI.GetCheckBox(IDC_ENABLE_SCENE)->GetChecked();
-        g_arena.settings.Chain =  true; // g_SampleUI.GetCheckBox(IDC_ENABLE_CHAIN)->GetChecked();
-        g_arena.settings.Fence =  true; //g_SampleUI.GetCheckBox(IDC_ENABLE_FENCE)->GetChecked();
-        g_arena.settings.CoilHelix =  true; //g_SampleUI.GetCheckBox(IDC_ENABLE_COIL_HELIX)->GetChecked();
-        g_arena.settings.InterCoil =  true; //g_SampleUI.GetCheckBox(IDC_ENABLE_INTER_COIL)->GetChecked();
-
+        /*g_arena.settings.Scene =  true;
+        g_arena.settings.Chain =  true;
+        g_arena.settings.Fence =  true;
+        g_arena.settings.CoilHelix =  true;
+        g_arena.settings.InterCoil =  true;
+        g_arena.settings.Glow =  true;
+        g_arena.settings.Lines =  true;*/
 
 //        g_arena.settings.BlurSigma = D3DXVECTOR3
 //                (
@@ -135,11 +153,8 @@ public final class LightningDemo extends NvSampleApp {
         g_arena.settings.Beam.set(g_beam_parameters);
         g_arena.settings.AnimationSpeed =  15; //float(g_SampleUI.GetSlider(IDC_ANIMATION_SPEED)->GetValue());
 
-        g_arena.settings.Glow =  true; //g_SampleUI.GetCheckBox(IDC_ENABLE_GLOW)->GetChecked();
-        g_arena.settings.Lines =  true; //g_SampleUI.GetCheckBox(IDC_ENABLE_LINES)->GetChecked();
-
         g_arena.Matrices(m_view, m_proj);
-        g_arena.Time(t,dt);
+        g_arena.Time(0,dt);
         g_arena.Render();
         m_total_time += dt;
 
@@ -182,6 +197,12 @@ public final class LightningDemo extends NvSampleApp {
             g_HUD.OnRender( fElapsedTime );
             g_SampleUI.OnRender( fElapsedTime );
         }*/
+
+        g_printLog = true;
+    }
+
+    static boolean canPrintLog(){
+        return !g_printLog;
     }
 
     @Override
@@ -194,6 +215,11 @@ public final class LightningDemo extends NvSampleApp {
         Matrix4f.perspective(60, fAspectRatio, 0.1f, 1000.0f, m_proj);
 
         if(null != g_arena)
-            g_arena.RenderTargetResize(width, height,  null, null);
+            g_arena.RenderTargetResize(width, height);
+    }
+
+    @Override
+    public boolean handleKeyInput(int code, NvKeyActionType action) {
+        return super.handleKeyInput(code, action);
     }
 }

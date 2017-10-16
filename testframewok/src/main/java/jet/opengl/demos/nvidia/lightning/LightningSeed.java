@@ -6,14 +6,16 @@ import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.ProgramLinkTask;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
  * Created by mazhen'gui on 2017/8/28.
  */
 
-class LightningSeed {
+abstract class LightningSeed {
 
     LightningStructure Structure;
     GLFuncProvider gl;
@@ -23,12 +25,12 @@ class LightningSeed {
 //    ID3D10Device*	m_device;
 
     //    ID3D10Effect*			m_effect;
-    GLSLProgram	m_tech_first_pass;
-    GLSLProgram	m_tech_subdivide;
+    OpenGLProgram m_tech_first_pass;
+    OpenGLProgram	m_tech_subdivide;
 
     BufferGL m_constants_lightning_structure;
 
-    LightningSeed( GLSLProgram first_pass, GLSLProgram subdivide, int pattern_mask, int subdivisions)
+    LightningSeed( OpenGLProgram first_pass, OpenGLProgram subdivide, int pattern_mask, int subdivisions)
     {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_tech_first_pass = first_pass;
@@ -69,10 +71,7 @@ class LightningSeed {
         return result;
     }
 
-    int GetNumVertices(int level)
-    {
-        return 0;
-    }
+    abstract int GetNumVertices(int level);
 
     void SetChildConstants()
     {
@@ -84,31 +83,36 @@ class LightningSeed {
 
         ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(m_constants_lightning_structure.getBufferSize());
         Structure.store(buffer).flip();
+        if(buffer.remaining() != Structure.SIZE)
+            throw new IllegalArgumentException();
+
         m_constants_lightning_structure.update(0, buffer);
         m_constants_lightning_structure.unbind();
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, LightningRenderer.UNIFORM_LIGHT_STRUCTURE, m_constants_lightning_structure.getBuffer());
+
         SetChildConstants();
 
     }
 
-    void RenderFirstPass()
-    {
-//        ID3D10Buffer* zero = 0;
-//        UINT nought = 0;
-//        m_device->IASetVertexBuffers(0,1,&zero,&nought,&nought);
-//        m_device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_POINTLIST);
-//        m_device->IASetInputLayout(0);
-//
-//        m_tech_first_pass->GetPassByIndex(0)->Apply(0);
-//        m_device->Draw(GetNumVertices(0),0);
-        throw new UnsupportedOperationException();
+    static void bindFeedback(int programid){
+        final String[] varyings =
+        {
+                "Out_Start", "Out_End","Out_Up", "Out_Level",
+        };
+
+        GLFuncProviderFactory.getGLFuncProvider().glTransformFeedbackVaryings(programid, varyings, GLenum.GL_INTERLEAVED_ATTRIBS);
     }
 
-    GLSLProgram GetFirstPassTechnique()
+    final void RenderFirstPass(){RenderFirstPass(true); }
+
+    abstract void RenderFirstPass(boolean bindProgram);
+
+    OpenGLProgram GetFirstPassTechnique()
     {
         return m_tech_first_pass;
     }
 
-    GLSLProgram	GetSubdivideTechnique()
+    OpenGLProgram	GetSubdivideTechnique()
     {
         return m_tech_subdivide;
     }
@@ -118,12 +122,29 @@ class LightningSeed {
         return m_pattern_mask;
     }
 
-    static GLSLProgram createProgram(String vertfile, String gemoFile, String fragFile){
+    static GLSLProgram createProgram(String vertfile, String gemoFile, String fragFile, ProgramLinkTask task){
         final String path = "nvidia/lightning/shaders/";
-        return GLSLProgram.createProgram(path + vertfile, gemoFile != null? (path + gemoFile):null,
+        GLSLProgram program =  GLSLProgram.createProgram(path + vertfile, gemoFile != null? (path + gemoFile):null,
                                                           fragFile != null?(path + fragFile):null,
                                                            null);
+
+        if(task != null){
+            if(fragFile != null)
+                throw new IllegalArgumentException();
+
+            program.addLinkTask(task);
+            program.relink();
+        }
+
+        return program;
     }
+
+    static GLSLProgram createProgram(String vertfile, String gemoFile, String fragFile, ProgramLinkTask task, String debugName){
+        GLSLProgram program = createProgram(vertfile, gemoFile, fragFile, task);
+        program.setName(debugName);
+        return program;
+    }
+
 //    LightningSeed():
 //    m_constants_lightning_structure(0,"LightningStructure")
 //    {

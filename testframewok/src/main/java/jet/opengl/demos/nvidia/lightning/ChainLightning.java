@@ -15,11 +15,11 @@ final class ChainLightning extends LightningSeed{
     final ChainLightningProperties Properties = new ChainLightningProperties();
 
     private BufferGL m_constants_chain_lightning;
-    private int m_subdivide_layout;
 
     ChainLightning( int pattern_mask, int subdivisions){
-        super(createProgram("ChainLightningVS.vert", "SubdivideGS.gemo", null),
-                createProgram("SubdivideVS.vert", "SubdivideGS.gemo", null), pattern_mask, subdivisions);
+        super(new SubdivideProgram(createProgram("ChainLightningVS.vert", "SubdivideGS.gemo", null, LightningSeed::bindFeedback,  "ChainLightning")),
+                new SubdivideProgram(createProgram("SubdivideVS.vert", "SubdivideGS.gemo", null, LightningSeed::bindFeedback, "Subdivide")),
+                pattern_mask, subdivisions);
 
         m_constants_chain_lightning = new BufferGL();
         m_constants_chain_lightning.initlize(GLenum.GL_UNIFORM_BUFFER, ChainLightningProperties.SIZE, null, GLenum.GL_STREAM_DRAW);
@@ -32,9 +32,11 @@ final class ChainLightning extends LightningSeed{
         Properties.store(buffer).flip();
         m_constants_chain_lightning.update(0, buffer);
         m_constants_chain_lightning.unbind();
+
+        gl.glBindBufferBase(m_constants_chain_lightning.getTarget(), LightningRenderer.UNIFORM_LIGHT_CHAIN, m_constants_chain_lightning.getBuffer());
     }
 
-    void RenderFirstPass()
+    void RenderFirstPass(boolean bindPro)
     {
         SetChildConstants();
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_constants_chain_lightning.getBuffer());
@@ -51,8 +53,16 @@ final class ChainLightning extends LightningSeed{
 //
 //        m_device->IASetInputLayout(m_subdivide_layout);
 
+        if(bindPro){
+            m_tech_first_pass.enable();
+        }
+
         gl.glBindVertexArray(0);
         gl.glDrawArrays(GLenum.GL_POINTS, 0, GetNumVertices(0));
+
+        if(LightningDemo.canPrintLog()){
+            m_tech_first_pass.printPrograminfo();
+        }
     }
 
     int GetMaxNumVertices()

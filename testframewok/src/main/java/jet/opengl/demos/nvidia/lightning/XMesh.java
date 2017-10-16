@@ -42,7 +42,7 @@ final class XMesh implements Disposeable{
             try {
                 m_mesh_slices[i].initlize(pattern);
                 if(textureNames[i] != null){
-                    m_textures[i] = TextureUtils.createTexture2DFromFile(textureNames[i], true);
+                    m_textures[i] = TextureUtils.createTexture2DFromFile(textureNames[i], true, true);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -52,6 +52,7 @@ final class XMesh implements Disposeable{
 
     public void draw(){
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindSampler(0,0);
 
         for(int i = 0; i < m_mesh_slices.length; i++){
             Texture2D tex = m_textures[i];
@@ -148,15 +149,15 @@ final class XMesh implements Disposeable{
             m_vao = new VertexArrayObject();
             List<BufferBinding> bindings = new ArrayList<>(3);
             if(m_position != null){
-                bindings.add(new BufferBinding(m_position, new AttribDesc(0, 3, GLenum.GL_FLOAT, false, stride, 0)));
+                bindings.add(new BufferBinding(m_position, new AttribDesc(0, 3, GLenum.GL_FLOAT, false, 0, 0)));
             }
 
             if(m_normal!=null){
-                bindings.add(new BufferBinding(m_normal, new AttribDesc(1, 3, GLenum.GL_FLOAT, false, stride, normal_offset)));
+                bindings.add(new BufferBinding(m_normal, new AttribDesc(1, 3, GLenum.GL_FLOAT, false, 0, 0)));
             }
 
             if(m_texcoord!=null){
-                bindings.add(new BufferBinding(m_texcoord, new AttribDesc(2, 2, GLenum.GL_FLOAT, false, stride, texcoord_offset)));
+                bindings.add(new BufferBinding(m_texcoord, new AttribDesc(2, 2, GLenum.GL_FLOAT, false, 0, 0)));
             }
 
             m_vao.initlize(bindings.toArray(new BufferBinding[bindings.size()]), m_indices);

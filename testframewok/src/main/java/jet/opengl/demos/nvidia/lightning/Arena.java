@@ -12,7 +12,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
 
@@ -37,11 +39,8 @@ final class Arena {
     private final LightningAppearance m_red_beam = new LightningAppearance();
     private final LightningAppearance m_blue_beam = new LightningAppearance();
     private final LightningAppearance m_blue_cyan_beam = new LightningAppearance();
-    private final Matrix4f m_world = new Matrix4f();
 
     private Scene			m_scene;
-
-    private float m_time;
 
     Arena(int back_buffer_sample_desc){
         m_lightning_renderer = new LightningRenderer(back_buffer_sample_desc);
@@ -52,17 +51,18 @@ final class Arena {
     }
 
     void Matrices(Matrix4f view, Matrix4f projection){
-        m_scene.Matrices(m_world, view, projection);
-        m_lightning_renderer.SetMatrices(m_world, view, projection);
+        m_scene.Matrices(Matrix4f.IDENTITY, view, projection);
+        m_lightning_renderer.SetMatrices(Matrix4f.IDENTITY, view, projection);
     }
     void Time(float time, float delta_time){
-        m_time = time;
         m_scene.Time(time);
+//        System.out.println("time = " + time);
         m_lightning_renderer.SetTime(time);
     }
 
-    void RenderTargetResize(int width, int height, Texture2D render_target_view, Texture2D depth_stencil_view){
-        m_lightning_renderer.OnRenderTargetResize(width, height, render_target_view, depth_stencil_view);
+    void RenderTargetResize(int width, int height){
+        m_scene.reshape(width, height);
+        m_lightning_renderer.OnRenderTargetResize(width, height, m_scene.getSceneColorTex(), m_scene.getSceneDepthTex());
     }
 
     void Render(){
@@ -70,20 +70,19 @@ final class Arena {
             m_scene.Render();
 
         boolean do_lightning = settings.Fence ||settings.InterCoil || settings.CoilHelix|| settings.Chain;
-        do_lightning = false;
 
         if(do_lightning)
         {
             m_lightning_renderer.Begin();
 
             if(settings.Fence)
-                m_lightning_renderer.Render(m_fence_lightning,m_red_beam,1.0f,settings.AnimationSpeed, settings.Lines);
+                m_lightning_renderer.Render(m_fence_lightning,m_red_beam,1.0f,settings.AnimationSpeed, settings.Lines, "Fence");
 
             if(settings.InterCoil)
-                m_lightning_renderer.Render(m_inter_coil_lightning,m_blue_beam,1.0f,settings.AnimationSpeed, settings.Lines);
+                m_lightning_renderer.Render(m_inter_coil_lightning,m_blue_beam,1.0f,settings.AnimationSpeed, settings.Lines,"InterCoil");
 
             if(settings.CoilHelix)
-                m_lightning_renderer.Render(m_coil_helix_lightning,m_blue_cyan_beam,1.0f,settings.AnimationSpeed, settings.Lines);
+                m_lightning_renderer.Render(m_coil_helix_lightning,m_blue_cyan_beam,1.0f,settings.AnimationSpeed, settings.Lines, "CoilHelix");
 
             m_chain_lightning.Properties.ChainSource.set(0,25,31);
             m_chain_lightning.Properties.NumTargets = 4;
@@ -92,9 +91,16 @@ final class Arena {
                 m_chain_lightning.Properties.ChainTargetPositions[i] = m_scene.TargetPosition(i);
 
             if(settings.Chain)
-                m_lightning_renderer.Render(m_chain_lightning, settings.Beam,1.0f,settings.AnimationSpeed, settings.Lines);
+                m_lightning_renderer.Render(m_chain_lightning, settings.Beam,1.0f,settings.AnimationSpeed, settings.Lines, "Chain");
 
             m_lightning_renderer.End(settings.Glow, settings.BlurSigma);
+        }
+
+        m_scene.resoveSceneTex();
+
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        for(int i = 0; i < 4; i++){
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, i, 0);  // unbind the uniform buffers.
         }
     }
 
@@ -299,14 +305,11 @@ final class Arena {
             inter_coil_structure.ZigZagDeviationUp.set(-5.0f,5.0f);
 
             inter_coil_structure.ZigZagDeviationDecay = 0.5f;
-
-
             inter_coil_structure.ForkFraction.set(0.45f, 0.55f);
 
             inter_coil_structure.ForkZigZagDeviationRight.set(-1.0f,1.0f);
             inter_coil_structure.ForkZigZagDeviationUp.set(-1.0f,1.0f);
             inter_coil_structure.ForkZigZagDeviationDecay = 0.5f;
-
 
             inter_coil_structure.ForkDeviationRight.set(-1.0f,1.0f);
             inter_coil_structure.ForkDeviationUp.set(-1.0f,1.0f);

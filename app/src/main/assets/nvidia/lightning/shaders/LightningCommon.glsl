@@ -61,16 +61,21 @@ layout(binding = 3) uniform LightningChain
 	int			NumTargets;
 };
 
+/*
 layout(binding = 4) uniform PerSubdivision
 {
-	bool	Fork;
-	uint	SubdivisionLevel;
+
 };
 
 layout(binding = 5) uniform Lightning
 {
-	float	AnimationSpeed;
+	;
 };
+*/
+
+uniform bool	Fork;
+uniform uint	SubdivisionLevel;
+uniform float AnimationSpeed;
 
 // decay based on global subdivision level
 float Decay(float amount)
@@ -109,6 +114,7 @@ int random_x;
 #define RANDOM_IQ 127773
 #define RANDOM_IR 2836
 #define RANDOM_MASK 123459876
+#define PI        3.14159265
 
 float Random()
 {

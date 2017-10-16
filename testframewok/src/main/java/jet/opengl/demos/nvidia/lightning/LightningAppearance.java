@@ -30,7 +30,7 @@ final class LightningAppearance implements Readable{
         buf.putFloat(0);
 
         BoltWidth.store(buf);
-        buf.putFloat(0).putFloat(0);
+        buf.putInt(0).putInt(0);
         return buf;
     }
 

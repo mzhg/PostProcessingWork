@@ -71,25 +71,25 @@ final class LightningStructure implements Readable{
 
         ZigZagDeviationUp.store(buf);
         buf.putFloat(ZigZagDeviationDecay);
-        buf.putFloat(0);
+        buf.putInt(0);
 
         ForkFraction.store(buf);
         ForkZigZagDeviationRight.store(buf);
 
         ForkZigZagDeviationUp.store(buf);
         buf.putFloat(ForkZigZagDeviationDecay);
-        buf.putFloat(0);
+        buf.putInt(0);
 
         ForkDeviationRight.store(buf);
         ForkDeviationUp.store(buf);
 
         ForkDeviationForward.store(buf);
         buf.putFloat(ForkDeviationDecay);
-        buf.putFloat(0);
+        buf.putInt(0);
 
         ForkLength.store(buf);
         buf.putFloat(ForkLengthDecay);
-        buf.putFloat(0);
+        buf.putInt(0);
 
         return buf;
     }

@@ -122,6 +122,9 @@ public final class TransformFeedbackObject implements Disposeable{
         gl.glBindTransformFeedback(GLenum.GL_TRANSFORM_FEEDBACK, 0);
         gl.glDisable(GLenum.GL_RASTERIZER_DISCARD);
 
+        /*int primitve_count = gl.glGetQueryObjectuiv(stream_quey[0], GLenum.GL_QUERY_RESULT);
+        System.out.println("primitve_count = " + primitve_count);*/
+
 //        if(debug){
 //            primitve_count = GL15.glGetQueryObjectui(stream_quey[0], GL15.GL_QUERY_RESULT);
 //            int nebula_count = GL15.glGetQueryObjectui(stream_quey[1], GL15.GL_QUERY_RESULT);
@@ -153,6 +156,8 @@ public final class TransformFeedbackObject implements Disposeable{
     }
 
     public void drawArrays(int index, int primive_count){
+//        drawStream(index);
+
         gl.glBindVertexArray(stream_vaos[index]);
 //			GL40.glDrawTransformFeedback(GL11.GL_POINTS,transformFeedback);
 //        gl.glDrawTransformFeedbackStream(m_CurrentMode, transformFeedback, index);

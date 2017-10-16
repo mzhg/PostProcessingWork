@@ -31,10 +31,10 @@ final class ChainLightningProperties implements Readable{
         ChainSource.store(buf);
         buf.putFloat(0);
         CacheBuffer.put(buf, ChainTargetPositions);
-        buf.putFloat(NumTargets);
-        buf.putFloat(0);
-        buf.putFloat(0);
-        buf.putFloat(0);
+        buf.putInt(NumTargets);
+        buf.putInt(0);
+        buf.putInt(0);
+        buf.putInt(0);
 
         return buf;
     }
