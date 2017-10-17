@@ -1639,4 +1639,6 @@ public interface GLFuncProvider {
     ByteBuffer glMapBufferRange(int target, int offset, int length, int access, ByteBuffer old_buffer);
     ByteBuffer glMapBufferRange(int target, int offset, int length, int access);
     void glDeleteSync(long sync);
+
+    void glProgramUniform3f(int program, int index, float x, float y, float z);
 }

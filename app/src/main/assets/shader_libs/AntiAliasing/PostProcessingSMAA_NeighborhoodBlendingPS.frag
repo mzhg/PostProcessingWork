@@ -1,4 +1,6 @@
 #define SMAA_GLSL_4 1
+#define SMAA_INCLUDE_VS 0
+#define SMAA_INCLUDE_PS 1
 #include "PostProcessingSMAA.glsl"
 
 
@@ -10,10 +12,10 @@
     SMAAEdgeDetectionVS(position, svPosition, texcoord, offset);
 }*/
 
-layout(location = 0) in float4 OutColor;
+layout(location = 0) out float4 OutColor;
 
-out float4 offset[3];
-out float2 texcoord;
+in float4 offset;
+in float2 texcoord;
 
 layout(binding = 0) uniform sampler2D colorTex;
 layout(binding = 1) uniform sampler2D blendTex;

@@ -4,17 +4,20 @@ layout(location = 0) out uint4 outEdges;
 
 void main()
 {
-    outDepth = 0.0;
+//    outDepth = 0.0;
 
 //    const int3 screenPosIBase = int3( ((int2)_screenPos) * 2, 0 );
-    const int2 screenPosIBase = int2(gl_FragCoord.xy);
+    const int2 screenPosIBase = int2(gl_FragCoord.xy) * 2;
 
     uint packedEdgesArray[3][3];
 
+//    uint4 sampA = (uint4)(g_src0TextureFlt.GatherRed( PointSampler, screenPosIBase.xy * g_CMAA.OneOverScreenSize, int2( 1, 0 ) ) * 255.0 - 127.5);
+//        uint4 sampB = (uint4)(g_src0TextureFlt.GatherRed( PointSampler, screenPosIBase.xy * g_CMAA.OneOverScreenSize, int2( 0, 1 ) ) * 255.0 - 127.5);
+//        uint  sampC = (uint)(g_src0TextureFlt.Load( screenPosIBase.xyz, int2( 1, 1 ) ) * 255.0 - 127.5);
     // use only if it has the 'prev frame' flag: do "sample * 255.0 - 127.5" -> if it has the last bit flag (128), it's going to stay above 0
     uint4 sampA = uint4(textureGatherOffset( g_src0TextureFlt, screenPosIBase.xy * g_CMAA.OneOverScreenSize, int2( 1, 0 ) ) * 255.0 - 127.5);   //PointSampler
-    uint4 sampB = uint4(textureGatherOffset( PointSampler, g_src0TextureFlt.xy * g_CMAA.OneOverScreenSize, int2( 0, 1 ) ) * 255.0 - 127.5);
-    uint  sampC = uint(texelFetchOffset(g_src0TextureFlt, screenPosIBase.xy,0, int2( 1, 1 ) ) * 255.0 - 127.5);
+    uint4 sampB = uint4(textureGatherOffset( g_src0TextureFlt, screenPosIBase.xy * g_CMAA.OneOverScreenSize, int2( 0, 1 ) ) * 255.0 - 127.5);   // PointSampler
+    uint  sampC = uint(texelFetchOffset(g_src0TextureFlt, screenPosIBase.xy,0, int2( 1, 1 ) ).x * 255.0 - 127.5);
     packedEdgesArray[0][0] = 0;
     packedEdgesArray[1][0] = sampA.w;
     packedEdgesArray[2][0] = sampA.z;
@@ -30,7 +33,7 @@ void main()
     uint4 pixelsU = uint4( packedEdgesArray[1+0][0+0], packedEdgesArray[1+1][0+0], packedEdgesArray[1+0][0+1], packedEdgesArray[1+1][0+1] );
 
     uint4 outEdge4 = pixelsC | ((pixelsL & 0x01) << 2) | ((pixelsU & 0x02u) << 2);
-    float4 outEdge4Flt = outEdge4 / 255.0;
+    float4 outEdge4Flt = float4(outEdge4) / 255.0;
 
 //    g_resultTextureSlot2[ screenPosIBase.xy + int2( 0, 0 ) ] = outEdge4Flt.x;
 //    g_resultTextureSlot2[ screenPosIBase.xy + int2( 1, 0 ) ] = outEdge4Flt.y;

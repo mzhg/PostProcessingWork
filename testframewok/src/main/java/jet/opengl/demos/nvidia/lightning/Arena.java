@@ -114,6 +114,9 @@ final class Arena {
     }
 
     private static SeedRecord get(Map<String, SeedRecord > seeds, String name){
+        if(name.length() == 0)
+            throw new IllegalArgumentException();
+
         SeedRecord record = seeds.get(name);
         if(record == null){
             record = new SeedRecord();
@@ -171,8 +174,8 @@ final class Arena {
 //                    seeds[cur_seed].InterpolatedVertices.push_back(vertex);
                     line.nextToken();
                     vertex.x = Float.parseFloat(line.nextToken());
-                    vertex.y = Float.parseFloat(line.nextToken());
                     vertex.z = Float.parseFloat(line.nextToken());
+                    vertex.y = Float.parseFloat(line.nextToken());
 
                     SeedRecord seedRecord = get(seeds, cur_seed);
                     seedRecord.Vertices.add(vertex);
@@ -187,8 +190,8 @@ final class Arena {
 //                    seeds[cur_seed].InterpolatedVertices.push_back(vertex);
                     line.nextToken();
                     vertex.x = Float.parseFloat(line.nextToken());
-                    vertex.y = Float.parseFloat(line.nextToken());
                     vertex.z = Float.parseFloat(line.nextToken());
+                    vertex.y = Float.parseFloat(line.nextToken());
 
                     SeedRecord seedRecord = get(seeds, cur_seed);
                     seedRecord.InterpolatedVertices.add(vertex);

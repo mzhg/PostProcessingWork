@@ -3,7 +3,6 @@ package jet.opengl.demos.intel.antialiasing;
 import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector4f;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
@@ -413,7 +412,7 @@ final class SAAPostProcessGPU {
     }
 
     private static GLSLProgram createProgram(String computeShaderName, Macro... macros){
-        GLSLProgram program = GLSLProgram.createProgram(String.format("shader_libs/AntiAliasing/PostProcessing_SAA%s.comp", computeShaderName), macros);
+        GLSLProgram program = GLSLProgram.createProgram(String.format("shader_libs/AntiAliasing/PostProcessingSAA_%s.comp", computeShaderName), macros);
         program.setName(computeShaderName);
         return program;
     }

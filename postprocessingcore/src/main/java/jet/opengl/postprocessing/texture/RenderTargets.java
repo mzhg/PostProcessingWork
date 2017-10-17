@@ -121,10 +121,6 @@ public class RenderTargets implements Disposeable{
         descArrays[0] = desc;
 
         setRenderTextures(texArrays, descArrays);
-
-        if(GLCheck.CHECK){
-            GLCheck.checkFramebufferStatus();
-        }
     }
 
     @CachaRes
@@ -235,6 +231,10 @@ public class RenderTargets implements Disposeable{
 
         for(int i = 0; i < colorAttachedCount; i++){
             colorHandled[i] = false;
+        }
+
+        if(GLCheck.CHECK){
+            GLCheck.checkFramebufferStatus();
         }
     }
 

@@ -1,4 +1,7 @@
 #define SMAA_GLSL_4 1
+#define SMAA_INCLUDE_VS 0
+#define SMAA_INCLUDE_PS 1
+
 #include "PostProcessingSMAA.glsl"
 
 layout(location = 0) out float4 OutColor;
@@ -42,7 +45,7 @@ layout(binding = 0) uniform SMAAConstants
  */
 //    float c_blendFactor = 1.0;
 
-}
+};
 
 void main()
 {

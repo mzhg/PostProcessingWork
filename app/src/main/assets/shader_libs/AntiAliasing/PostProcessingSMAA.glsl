@@ -611,8 +611,8 @@ SamplerState PointSampler { Filter = MIN_MAG_MIP_POINT; AddressU = Clamp; Addres
 #define bool2 bvec2
 #endif
 
-#ifndef bool4
-#define bool4 bvec3
+#ifndef bool3
+#define bool3 bvec3
 #endif
 
 #ifndef bool4
@@ -665,8 +665,13 @@ void SMAAMovc(bool2 cond, inout float2 variable, float2 value) {
 }
 
 void SMAAMovc(bool4 cond, inout float4 variable, float4 value) {
-    SMAAMovc(cond.xy, variable.xy, value.xy);
-    SMAAMovc(cond.zw, variable.zw, value.zw);
+//    SMAAMovc(cond.xy, variable.xy, value.xy);
+//    SMAAMovc(cond.zw, variable.zw, value.zw);
+
+    SMAA_FLATTEN if (cond.x) variable.x = value.x;
+    SMAA_FLATTEN if (cond.y) variable.y = value.y;
+    SMAA_FLATTEN if (cond.z) variable.z = value.z;
+    SMAA_FLATTEN if (cond.w) variable.w = value.w;
 }
 
 

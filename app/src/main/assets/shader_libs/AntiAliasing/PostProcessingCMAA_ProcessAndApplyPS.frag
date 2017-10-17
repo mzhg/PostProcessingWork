@@ -16,10 +16,11 @@ void main()
 
     uint packedEdgesArray[4][4];
 
-    uint4 sampA = textureGatherOffset( g_src0TextureFlt, screenPosIBase.xy * g_CMAA.OneOverScreenSize, int2( 0, 0 ) ) * 255.5;  // PointSampler
-    uint4 sampB = textureGatherOffset( g_src0TextureFlt, screenPosIBase.xy * g_CMAA.OneOverScreenSize, int2( 2, 0 ) ) * 255.5;
-    uint4 sampC = textureGatherOffset( g_src0TextureFlt, screenPosIBase.xy * g_CMAA.OneOverScreenSize, int2( 0, 2 ) ) * 255.5;
-    uint4 sampD = textureGatherOffset( g_src0TextureFlt, screenPosIBase.xy * g_CMAA.OneOverScreenSize, int2( 2, 2 ) ) * 255.5;
+    float2 gatherUV = screenPosIBase.xy * g_CMAA.OneOverScreenSize;
+    uint4 sampA = uint4(textureGatherOffset( g_src0TextureFlt, gatherUV, int2( 0, 0 ) ) * 255.5);  // PointSampler
+    uint4 sampB = uint4(textureGatherOffset( g_src0TextureFlt, gatherUV, int2( 2, 0 ) ) * 255.5);
+    uint4 sampC = uint4(textureGatherOffset( g_src0TextureFlt, gatherUV, int2( 0, 2 ) ) * 255.5);
+    uint4 sampD = uint4(textureGatherOffset( g_src0TextureFlt, gatherUV, int2( 2, 2 ) ) * 255.5);
     packedEdgesArray[0][0] = sampA.w;
     packedEdgesArray[1][0] = sampA.z;
     packedEdgesArray[0][1] = sampA.x;
@@ -67,7 +68,7 @@ void main()
 
         float numberOfEdges = dot( edgesFlt, float4( 1, 1, 1, 1 ) );
 
-        if( numberOfEdges < 2 )
+        if( numberOfEdges < 2.0 )
             continue;
 
         const float fromRight   = edgesFlt.r;
@@ -180,7 +181,7 @@ void main()
 #ifdef DEBUG_OUTPUT_AAINFO
     #ifndef DEBUG_DISABLE_SIMPLE_SHAPES // enable/disable simple shapes
 //        g_resultTextureSlot2[ screenPosI.xy ] = PackBlurAAInfo( screenPosI.xy, numberOfEdges );
-          imageStore(g_resultTextureSlot2, screenPosI.xy, float4(PackBlurAAInfo( screenPosI.xy, numberOfEdges )));
+          imageStore(g_resultTextureSlot2, screenPosI.xy, float4(PackBlurAAInfo( screenPosI.xy, uint(numberOfEdges) )));
     #endif
 #endif
 
@@ -235,7 +236,7 @@ void main()
             //uint4 edges        = UnpackEdge( packedEdgesC );
             uint4 edgesM1P0    = UnpackEdge( packedEdgesM1P0 );
             uint4 edgesP1P0    = UnpackEdge( packedEdgesP1P0 );
-            uint4 edgesP2P0    = UnpackEdge( texelFetch(g_src0TextureFlt, screenPosI.xy + offsetC, 0).r * 255.5 );
+            uint4 edgesP2P0    = UnpackEdge( uint(texelFetch(g_src0TextureFlt, screenPosI.xy + offsetC, 0).r * 255.5) );
 
             uint4 arg0;
             uint4 arg1;
@@ -289,7 +290,7 @@ void main()
                     isZShape           *= ( _edgesM1P0.g + _edgesP2P0.a ); // and at least one of these need to be there
 #endif
 
-                    if( isZShape > 0.0 )
+                    if( isZShape > 0 )
                     {
                         isInvertedZ = true;
                     }
@@ -307,7 +308,7 @@ void main()
                     isZShape         *= ( _edgesM1P0.a + _edgesP2P0.g ); // and at least one of these need to be there
 #endif
 
-                    if( isZShape > 0.0 )
+                    if( isZShape > 0 )
                     {
                         isNormalZ = true;
                     }
@@ -333,6 +334,6 @@ void main()
     for( _i = 0; _i < forFollowUpCount; _i++ )
     {
         int4 data = forFollowUpCoords[_i];
-        ProcessDetectedZ( data.xy, data.z, data.w );
+        ProcessDetectedZ( data.xy, bool(data.z), bool(data.w) );
     }
 }

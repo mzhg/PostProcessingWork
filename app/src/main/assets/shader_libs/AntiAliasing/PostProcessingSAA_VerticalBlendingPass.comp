@@ -12,7 +12,7 @@
 // assume any responsibility for any errors which may appear in this software nor any
 // responsibility to update it.
 
-#include "PostProcessingSAA_Shared.hlsl"
+#include "PostProcessingSAA_Shared.glsl"
 
 //-----------------------------------------------------------------------------------------------------
 // Globals
@@ -50,6 +50,7 @@ layout(rgba8, binding = 1) uniform image2D Result;
 /*[numthreads(1,32,1)]
 void CSMain( uint3 TileCoords      : SV_GroupID,
              uint3 ColCoords       : SV_DispatchThreadID)*/
+layout (local_size_y = 32) in;
 void main()
 {
     uint3 TileCoords = gl_WorkGroupID;
@@ -64,15 +65,15 @@ void main()
 	// We retrieve the edge flags for this column of 32 pixels, as well as the columns above and below it
 	// (The << 2 converts the offset to byte units)
 	uint3 current = /*EdgeVBitArray.Load3( (FlagsOffset - 1) << 2)*/
-	                imageLoad(EdgeVBitArray, FlagsOffset - 1).xyz; // TODO
+	                imageLoad(EdgeVBitArray, int(FlagsOffset - 1)).xyz;
 	uint BgMask = current.y;	// This is the edge bit mask for this column (Bg stands for "blending group")
 
 	if(BgMask != 0)
 	{	// There is at least one vertical discontinuity flagged in this group of 32 pixels...
 		uint3 rightLine  = /*EdgeVBitArray.Load3( (FlagsRightOffset - 1)  << 2 )*/
-		                    imageLoad(EdgeVBitArray, FlagsRightOffset - 1).xyz; // TODO
+		                    imageLoad(EdgeVBitArray, int(FlagsRightOffset - 1)).xyz;
 		uint3 leftLine   = /*EdgeVBitArray.Load3( (FlagsLeftOffset -  1)  << 2 )*/
-		                    imageLoad(EdgeVBitArray, FlagsLeftOffset - 1).xyz; // TODO
+		                    imageLoad(EdgeVBitArray, int(FlagsLeftOffset - 1)).xyz;
 
 		uint up = current.x, down = current.z;
 		uint rightUp = rightLine.x, right = rightLine.y, rightDown = rightLine.z;
@@ -164,9 +165,9 @@ void main()
 			}
 
 			// ... then compute the equations parameters.
-			float adec = (xddec - xudec)/(float)(EdgeLength);
+			float adec = (xddec - xudec)/float(EdgeLength);
 			float bdec = xudec;
-			float ainc = (xdinc - xuinc)/(float)(EdgeLength);
+			float ainc = (xdinc - xuinc)/float(EdgeLength);
 			float binc = xuinc;
 
 			for( uint i = 0; i <= from - ClampedTo; ++i )

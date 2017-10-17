@@ -1,4 +1,7 @@
 #define SMAA_GLSL_4 1
+#define SMAA_INCLUDE_VS 1
+#define SMAA_INCLUDE_PS 0
+
 #include "PostProcessingSMAA.glsl"
 
 
@@ -13,12 +16,12 @@
 layout(location = 0) in float4 In_Position;
 layout(location = 1) in float2 In_Texcoord;
 
-out float4 offset[3];
+out float4 offset;
 out float2 texcoord;
 
 void main()
 {
-    gl_Position = position;
+    gl_Position = In_Position;
     SMAANeighborhoodBlendingVS(In_Texcoord, offset);
     texcoord = In_Texcoord;
 }

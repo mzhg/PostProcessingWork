@@ -1895,4 +1895,9 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
         GL32.glDeleteSync(sync);
     }
 
+    @Override
+    public void glProgramUniform3f(int program, int index, float x, float y, float z) {
+        GL41.glProgramUniform3f(program, index, x, y, z);
+    }
+
 }

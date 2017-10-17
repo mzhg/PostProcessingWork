@@ -1,6 +1,8 @@
 package jet.opengl.demos.scenes;
 
 import com.nvidia.developer.opengl.app.NvInputTransformer;
+import com.nvidia.developer.opengl.ui.NvTweakBar;
+import com.nvidia.developer.opengl.utils.FieldControl;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -41,7 +43,7 @@ public class WireSphere extends BaseScene {
     boolean m_autoSpin = true;
 
     @Override
-    public void onCreate(Object prevSavedData) {
+    protected void onCreate(Object prevSavedData) {
         mNVApp.getInputTransformer().setTranslationVec(new Vector3f(0.0f, 0.0f, -3.0f));
         mNVApp.getInputTransformer().setRotationVec(new Vector3f(Numeric.PI * 0.15f, 0.0f, 0.0f));
 
@@ -68,6 +70,11 @@ public class WireSphere extends BaseScene {
         }
     }
 
+    @Override
+    public void onCreateUI(NvTweakBar tweakBar) {
+        tweakBar.addValue("Animation:", new FieldControl(this, "m_autoSpin"));
+    }
+
     private void loadDataAndPrograms() throws IOException {
         int i;
         byte[] pData;
@@ -91,13 +98,13 @@ public class WireSphere extends BaseScene {
     }
 
     @Override
-    public void update(float dt) {
+    protected void update(float dt) {
         NvInputTransformer m_transformer = mNVApp.getInputTransformer();
         m_transformer.setRotationVel(0.0f, m_autoSpin ? (Numeric.PI * 0.05f) : 0.0f, 0.0f);
     }
 
     @Override
-    public void onRender(boolean clearFBO) {
+    protected void onRender(boolean clearFBO) {
         if(clearFBO) {
             gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             gl.glClear(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
@@ -208,7 +215,7 @@ public class WireSphere extends BaseScene {
         gl.glUniformMatrix4fv(mvpIdx, false, CacheBuffer.wrap(mvp));
 
         int colorIdx = m_LineProg.getUniformLocation("color");
-        gl.glUniform4f(colorIdx, 0, 0, 0, 1);
+        gl.glUniform4f(colorIdx, 0.0f, 0.0f, 1.0f, 1.0f);
 
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_sphereVBO);
         gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 0, 0);
@@ -231,9 +238,6 @@ public class WireSphere extends BaseScene {
         m_FloorProg.enable();
         int mvpIdx = m_FloorProg.getUniformLocation("mvp");
         gl.glUniformMatrix4fv(mvpIdx, false, CacheBuffer.wrap(mvp));
-        int instanceIdx = m_FloorProg.getUniformLocation("instances");
-        gl.glUniform1i(instanceIdx, instances);
-
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_floorVBO);
         gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 0, 0);
         gl.glEnableVertexAttribArray(0);
@@ -253,7 +257,7 @@ public class WireSphere extends BaseScene {
     }
 
     @Override
-    public void onDestroy() {
+    protected void onDestroy() {
         CommonUtil.safeRelease(m_ObjectProg);
         CommonUtil.safeRelease(m_LineProg);
         CommonUtil.safeRelease(m_FloorProg);

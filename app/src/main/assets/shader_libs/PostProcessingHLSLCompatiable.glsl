@@ -47,6 +47,7 @@
 #define firstbitlow(x)  findLSB(x)
 #define atan2(y,x)  atan(y,x)
 #define reversebits(x) bitfieldReverse(x)
+#define countbits(x)   bitCount(x)
 // #define mul(M, V) M * V
 
 #define isfinite(x) !(isnan(x) || isinf(x))

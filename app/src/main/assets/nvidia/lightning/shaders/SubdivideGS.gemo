@@ -93,7 +93,6 @@ void PatternFork(in Segment segment /*, inout PointStream<SubdivideVertex> outpu
 	float3 f_jittered = jittered + f_length * normalize(f_delta.x * segment.Right + f_delta.y  * segment.Up + f_delta.z * segment.Forward);
 
 	DrawLineRight(jittered, f_jittered, segment.Forward,  segment.Level + 1/*, output*/);
-
 }
 
 void main()

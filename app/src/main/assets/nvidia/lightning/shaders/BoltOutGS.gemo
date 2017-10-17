@@ -36,13 +36,12 @@ void main()
 
     float width =  Decay(BoltWidth, _inputs[0].Level);
 
-    float3 right = width * normalize(cross(vs_forward,float3(0,0,1)));
+    float3 right = width * normalize(cross(vs_forward,float3(0,0,-1)));
 
     float x = 1.0;
     float y = 1.0;
 
     const bool close_gaps = true;
-
 
     if(close_gaps)
     {

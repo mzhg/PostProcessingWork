@@ -146,6 +146,10 @@ public final class TransformFeedbackObject implements Disposeable{
 //        }
     }
 
+    public int getPrimitiveCount(int index){
+        return gl.glGetQueryObjectuiv(stream_quey[index], GLenum.GL_QUERY_RESULT);
+    }
+
 //		public void bindVAO(){	GL30.glBindVertexArray(vao);}
 
     public void drawStream(int index){

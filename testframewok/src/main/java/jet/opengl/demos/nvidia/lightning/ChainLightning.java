@@ -33,13 +33,12 @@ final class ChainLightning extends LightningSeed{
         m_constants_chain_lightning.update(0, buffer);
         m_constants_chain_lightning.unbind();
 
-        gl.glBindBufferBase(m_constants_chain_lightning.getTarget(), LightningRenderer.UNIFORM_LIGHT_CHAIN, m_constants_chain_lightning.getBuffer());
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, LightningRenderer.UNIFORM_LIGHT_CHAIN, m_constants_chain_lightning.getBuffer());
     }
 
     void RenderFirstPass(boolean bindPro)
     {
-        SetChildConstants();
-        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_constants_chain_lightning.getBuffer());
+//        SetChildConstants();
 //        m_device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_POINTLIST);
 //
 //        ID3D10Buffer* zero = 0;
@@ -67,15 +66,11 @@ final class ChainLightning extends LightningSeed{
 
     int GetMaxNumVertices()
     {
-
         return  ChainLightningProperties.MaxTargets * GetNumBoltVertices(m_subdivisions);
     }
 
     int GetNumVertices(int level)
     {
-
         return Properties.NumTargets * GetNumBoltVertices(level);
     }
-
-
 }

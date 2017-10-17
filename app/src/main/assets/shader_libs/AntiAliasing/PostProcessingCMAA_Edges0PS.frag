@@ -7,14 +7,14 @@ void main()
     int3 screenPosI = int3( gl_FragCoord.xy, 0 ) * int3( 2, 2, 0 );
 
     // .rgb contains colour, .a contains flag whether to output it to working colour texture
-    float4 pixel00   = float4( texelFetch(g_screenTexture, screenPosI.xy, screenPosI.z ).rgba);
-    float4 pixel10   = float4( texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, uint2(  1, 0 ) ).rgba );
-    float4 pixel20   = float4( texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, uint2(  2, 0 ) ).rgba );
-    float4 pixel01   = float4( texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, uint2( 0,  1 ) ).rgba );
-    float4 pixel11   = float4( texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, uint2( 1,  1 ) ).rgba );
-    float4 pixel21   = float4( texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, uint2( 2,  1 ) ).rgba );
-    float4 pixel02   = float4( texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, uint2( 0,  2 ) ).rgba );
-    float4 pixel12   = float4( texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, uint2( 1,  2 ) ).rgba );
+    float4 pixel00   = texelFetch(g_screenTexture, screenPosI.xy, screenPosI.z );
+    float4 pixel10   = texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, int2(  1, 0 ) );
+    float4 pixel20   = texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, int2(  2, 0 ) );
+    float4 pixel01   = texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, int2( 0,  1 ) );
+    float4 pixel11   = texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, int2( 1,  1 ) );
+    float4 pixel21   = texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, int2( 2,  1 ) );
+    float4 pixel02   = texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, int2( 0,  2 ) );
+    float4 pixel12   = texelFetchOffset(g_screenTexture, screenPosI.xy, screenPosI.z, int2( 1,  2 ) );
 
     float storeFlagPixel00 = 0;
     float storeFlagPixel10 = 0;
@@ -79,9 +79,10 @@ void main()
         storeFlagPixel12 += et.y;
     }
 
-    gl_FragDepth = (any(outEdges) != 0)?(1.0):(0.0);
+//    gl_FragDepth = (any(outEdges) != 0)?(1.0):(0.0);
+    gl_FragDepth = any(bvec4(outEdges))?(1.0):(0.0);
 
-    if( outDepth != 0 )
+    if( gl_FragDepth != 0.0 )
     {
         if( storeFlagPixel00 != 0 )
 //            g_resultTextureFlt4Slot1[ screenPosI.xy + int2( 0, 0 ) ] = pixel00.rgba;

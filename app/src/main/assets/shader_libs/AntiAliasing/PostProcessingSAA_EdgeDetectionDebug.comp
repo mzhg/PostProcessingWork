@@ -12,7 +12,7 @@
 // assume any responsibility for any errors which may appear in this software nor any
 // responsibility to update it.
 
-#include "PostProcessingSAA_Shared.hlsl"
+#include "PostProcessingSAA_Shared.glsl"
 
 //-----------------------------------------------------------------------------
 // Globals
@@ -29,13 +29,14 @@ layout(rgba8, binding = 2) uniform image2D Result;
 
 /*[numthreads(1, 1, 1)]
 void CSMain( uint3 Coords : SV_GroupID)*/
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
     uint3 Coords = gl_WorkGroupID;
 	float4 Color = float4(0.f, 0.f, 0.f, 0.f);
 
-	uint HFlags = imageLoad(EdgeHBitArray, ( (Coords.x >> 5) + (Coords.y * ColorBufferTileCount.x) ) /*<< 2*/).x;
-	uint VFlags = imageLoad(EdgeVBitArray, ( (Coords.y >> 5) + (Coords.x * ColorBufferTileCount.y) ) /*<< 2*/).x;
+	uint HFlags = imageLoad(EdgeHBitArray, int( (Coords.x >> 5) + (Coords.y * ColorBufferTileCount.x) ) /*<< 2*/).x;
+	uint VFlags = imageLoad(EdgeVBitArray, int( (Coords.y >> 5) + (Coords.x * ColorBufferTileCount.y) ) /*<< 2*/).x;
 
 	uint PixelHFlag = (HFlags >> (31u - (Coords.x % 32u))) & 1u;
 	uint PixelVFlag = (VFlags >> (31u - (Coords.y % 32u))) & 1u;

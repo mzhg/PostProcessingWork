@@ -87,7 +87,12 @@ final class SMAAEffect implements Disposeable{
     private RenderTargets m_renderTargets;
     private boolean m_prinOnce = false;
 
-    void OnCreate(/*ID3D11Device* pD3dDevice, ID3D11DeviceContext* pContext, IDXGISwapChain* pSwapChain*/){
+    void OnCreate(int width, int height){
+        final Macro[] macros = {
+                new Macro("SMAA_RT_METRICS", "float4(1.0 / " + width + ", 1.0 / " + height + ", " + width + ", " + height + ")"),
+                new Macro("SMAA_PRESET_HIGH", 1),
+//                new Macro("SMAA_PREDICATION", 1)
+        };
 //        HRESULT hr = S_OK;
 //        CPUTResult result;
 //        cString FullPath, FinalPath;
@@ -122,7 +127,7 @@ final class SMAAEffect implements Disposeable{
             ASSERT( CPUTSUCCESS(result), _L("Error compiling Vertex shader:\n\n") );
             UNREFERENCED_PARAMETER(result);
             hr = pD3DDevice->CreateVertexShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(),NULL, &m_SMAAEdgeDetectionVS);*/
-            m_SMAAEdgeDetectionProgram = createProgram("EdgeDetection");
+            m_SMAAEdgeDetectionProgram = createProgram("EdgeDetection", macros);
             /*m_quad = new SMAAEffect_Quad( pD3DDevice, pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize() );
             SAFE_RELEASE( pPSBlob );*/
             m_quad = ModelGenerator.genRect(-1,-1,+1,+1, true).genVAO();
@@ -132,14 +137,14 @@ final class SMAAEffect implements Disposeable{
             UNREFERENCED_PARAMETER(result);
             hr = pD3DDevice->CreateVertexShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(),NULL, &m_SMAABlendingWeightCalculationVS);
             SAFE_RELEASE( pPSBlob );*/
-            m_SMAABlendingWeightCalculationProgram = createProgram("BlendingWeightCalculation");
+            m_SMAABlendingWeightCalculationProgram = createProgram("BlendingWeightCalculation", macros);
 
             /*result = pAssetLibrary->CompileShaderFromFile(FinalPath, L"DX11_SMAANeighborhoodBlendingVS", L"vs_5_0", &pPSBlob, NULL );
             ASSERT( CPUTSUCCESS(result), _L("Error compiling Vertex shader:\n\n") );
             UNREFERENCED_PARAMETER(result);
             hr = pD3DDevice->CreateVertexShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(),NULL, &m_SMAANeighborhoodBlendingVS);
             SAFE_RELEASE( pPSBlob );*/
-            m_SMAANeighborhoodBlendingProgram = createProgram("NeighborhoodBlending");
+            m_SMAANeighborhoodBlendingProgram = createProgram("NeighborhoodBlending", macros);
         }
 
         // pixel shaders
@@ -182,7 +187,7 @@ final class SMAAEffect implements Disposeable{
     private static GLSLProgram createProgram(String shaderName, Macro... macros){
         try {
             GLSLProgram program =  GLSLProgram.createFromFiles(
-                    String.format("shader_libs/AntiAliasing/PostProcessingSMAA_%sVS.frag", shaderName),
+                    String.format("shader_libs/AntiAliasing/PostProcessingSMAA_%sVS.vert", shaderName),
                     String.format("shader_libs/AntiAliasing/PostProcessingSMAA_%sPS.frag", shaderName),
                     macros);
             program.setName(shaderName);

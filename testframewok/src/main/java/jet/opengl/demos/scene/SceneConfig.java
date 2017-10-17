@@ -9,7 +9,7 @@ import jet.opengl.postprocessing.common.GLenum;
 public class SceneConfig {
     public int downsampleScale = 1;
     public int colorFormat = GLenum.GL_RGBA8;
-    public int depthStencilFormat = GLenum.GL_DEPTH24_STENCIL8;
+    public int depthStencilFormat = GLenum.GL_DEPTH_COMPONENT16;
     public int sampleCount = 1;
     public boolean noFBO = false;
 

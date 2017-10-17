@@ -23,7 +23,9 @@ const float4 c_edgeDebugColours[5] = float4[5]( float4( 0.5, 0.5, 0.5, 1 ), floa
 // Expecting values of 1 and 0 only!
 uint PackEdge( uint4 edges )
 {
-   return dot( edges, uint4( 1, 2, 4, 8 ) );
+//   return dot( edges, uint4( 1, 2, 4, 8 ) );
+    uint result = edges.x + edges.y * 2 + edges.z * 4 + edges.w * 8;
+    return result;
 }
 
 // how .rgba channels from the edge texture maps to pixel edges:
@@ -50,10 +52,10 @@ uint PackEdge( uint4 edges )
 uint4 UnpackEdge( uint value )
 {
    uint4 ret;
-   ret.x = (value & 0x01u) != 0u;
-   ret.y = (value & 0x02u) != 0u;
-   ret.z = (value & 0x04u) != 0u;
-   ret.w = (value & 0x08u) != 0u;
+   ret.x = uint((value & 0x01u) != 0);
+   ret.y = uint((value & 0x02u) != 0);
+   ret.z = uint((value & 0x04u) != 0);
+   ret.w = uint((value & 0x08u) != 0);
    return ret;
 }
 
@@ -224,8 +226,8 @@ layout(binding = 0) uniform CMAAGlobals
     CMAAConstants g_CMAA;
 };
 
-layout(r32f, binding = 0) uniform sampler2D g_resultTexture;
-layout(rgba8, binding = 1) uniform sampler2D g_resultTextureFlt4Slot1;
+layout(r32f, binding = 0) uniform image2D g_resultTexture;
+layout(rgba8, binding = 1) uniform image2D g_resultTextureFlt4Slot1;
 layout(r32f, binding = 2) uniform image2D g_resultTextureSlot2;
 
 layout(binding = 0) uniform sampler2D g_screenTexture;
@@ -274,7 +276,7 @@ bool EdgeDetectColor( float3 colorA, float3 colorB )
 
 float PackBlurAAInfo( uint2 pixelPos, uint shapeType )
 {
-    uint packedEdges = g_src0TextureFlt.Load( int3( pixelPos.xy, 0 ) ).r * 255.5;
+    uint packedEdges = uint(texelFetch(g_src0TextureFlt, int2(pixelPos.xy), 0 ).r * 255.5);
 
     uint retval = packedEdges + (shapeType << 4);
 
@@ -345,8 +347,8 @@ void FindLineLength( out uint lineLengthLeft, out uint lineLengthRight, int2 scr
 //   [loop]
    for( ; i < c_maxLineLength; i++ )
    {
-      uint edgeLeft  = g_src0TextureFlt.Load( int3( screenPos.xy - stepRight * i,       0 ) ).r * 255.5;
-      uint edgeRight = g_src0TextureFlt.Load( int3( screenPos.xy + stepRight * (i+1),   0 ) ).r * 255.5;
+      uint edgeLeft  = uint(texelFetch(g_src0TextureFlt, int2( screenPos.xy - stepRight * int(i)),       0).r * 255.5);
+      uint edgeRight = uint(texelFetch(g_src0TextureFlt, int2( screenPos.xy + stepRight * int(i+1)),   0  ).r * 255.5);
 
       // stop on encountering 'stopping' edge (as defined by masks)
       //bool stopLeft  = ( (edgeLeft & maskStopLeft) != 0   ) || ( (edgeLeft & maskTraceLeft) == 0 );
@@ -374,11 +376,14 @@ void ProcessDetectedZ( int2 screenPos, bool horizontal, bool invertedZShape )
    FindLineLength( lineLengthLeft, lineLengthRight, screenPos, horizontal, invertedZShape, stepRight );
 
    int width, height;
-   g_screenTexture.GetDimensions( width, height );
+//   g_screenTexture.GetDimensions( width, height );
+    int2 tex_size = textureSize(g_screenTexture, 0);
+    width = tex_size.x;
+    height = tex_size.y;
    float2 pixelSize = float2( 1.0 / float(width), 1.0 / float(height) );
 
-   float leftOdd  = 0.15 * (lineLengthLeft % 2);
-   float rightOdd = 0.15 * (lineLengthRight % 2);
+   float leftOdd  = 0.15 * float(lineLengthLeft % 2);
+   float rightOdd = 0.15 * float(lineLengthRight % 2);
 
    int loopFrom = -int((lineLengthLeft+1)/2)+1;
    int loopTo   = int((lineLengthRight+1)/2);

@@ -14,7 +14,7 @@ final class ArenaSettings {
     boolean	Scene=true;
     boolean	Lines=false;
 
-    float   AnimationSpeed=15.0f;
+    float   AnimationSpeed=10.0f;
     boolean	Glow=true;
     final Vector3f BlurSigma = new Vector3f();
 

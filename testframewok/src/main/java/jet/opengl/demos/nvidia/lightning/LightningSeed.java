@@ -91,7 +91,6 @@ abstract class LightningSeed {
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, LightningRenderer.UNIFORM_LIGHT_STRUCTURE, m_constants_lightning_structure.getBuffer());
 
         SetChildConstants();
-
     }
 
     static void bindFeedback(int programid){

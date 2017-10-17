@@ -1,4 +1,7 @@
 #define SMAA_GLSL_4 1
+#define SMAA_INCLUDE_VS 1
+#define SMAA_INCLUDE_PS 0
+
 #include "PostProcessingSMAA.glsl"
 
 

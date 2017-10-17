@@ -254,8 +254,8 @@ final class LightningRenderer {
 
             BuildDownSampleBuffers(width, height);
 
-            m_scene_depth_stencil_view = render_target_view;
-            m_scene_render_target_view = depth_stencil_view;
+            m_scene_depth_stencil_view = depth_stencil_view;
+            m_scene_render_target_view = render_target_view;
 
 //            m_buffer_texel_size =  D3DXVECTOR2(1.0f /width, 1.0f /height);
         }
@@ -312,13 +312,12 @@ final class LightningRenderer {
 //        m_device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_POINTLIST);
 
         GLSLProgram program;
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
         if(as_lines) {
             program = m_tech_lines_out;
-            gl.glEnable(GLenum.GL_DEPTH_TEST);
             gl.glDisable(GLenum.GL_BLEND);
         }else {
             program = m_tech_bolt_out;
-            gl.glEnable(GLenum.GL_DEPTH_TEST);
             gl.glEnable(GLenum.GL_BLEND);
             gl.glBlendFuncSeparate(GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ZERO);
         }
@@ -371,8 +370,21 @@ final class LightningRenderer {
             ResizeViewport(last.x,last.y);
             RenderTargetPingPong ping_pong = new RenderTargetPingPong(m_small_lightning_buffer0, m_small_lightning_buffer1, null, m_RenderTarget);
 
+            int blurSigmaIdx =  m_tech_blur_buffer_horizontal.getUniformLocation("BlurSigma");
+            int bufferTexelSizeIdx =  m_tech_blur_buffer_horizontal.getUniformLocation("buffer_texel_size");
+            int horizontalIdx =  m_tech_blur_buffer_horizontal.getUniformLocation("horizontal");
+
+            gl.glProgramUniform3f(m_tech_blur_buffer_horizontal.getProgram(), blurSigmaIdx, blur_sigma.x, blur_sigma.y, blur_sigma.z);
+            gl.glProgramUniform2f(m_tech_blur_buffer_horizontal.getProgram(),bufferTexelSizeIdx, 1.0f/m_lightning_buffer0.getWidth(), 1.0f/m_lightning_buffer0.getHeight());
+            gl.glProgramUniform1i(m_tech_blur_buffer_horizontal.getProgram(),horizontalIdx, 1);
             ping_pong.Apply(m_tech_blur_buffer_horizontal);
+
+            gl.glProgramUniform1i(m_tech_blur_buffer_horizontal.getProgram(),horizontalIdx, 0);
             ping_pong.Apply(m_tech_blur_buffer_vertical);
+
+            if(LightningDemo.canPrintLog()){
+                m_tech_blur_buffer_vertical.printPrograminfo();
+            }
 
             RestoreViewports();
             GLCheck.checkError();

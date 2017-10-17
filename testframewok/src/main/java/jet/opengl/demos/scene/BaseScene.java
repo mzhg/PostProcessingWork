@@ -1,6 +1,7 @@
 package jet.opengl.demos.scene;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.ui.NvTweakBar;
 
 import java.nio.IntBuffer;
 
@@ -38,8 +39,9 @@ public abstract class BaseScene implements Disposeable{
         onCreate(null);
     }
 
-    public abstract void onCreate(Object prevSavedData);
-    public void onCreateUI(){}
+    public void onCreateUI(NvTweakBar tweakBar){}
+
+    protected abstract void onCreate(Object prevSavedData);
 
     public void onResize(int width, int height){
         if(width <=0 || height <=0)
@@ -60,6 +62,10 @@ public abstract class BaseScene implements Disposeable{
             m_bConfigDirty = true;
             mConfigs.set(configs);
         }
+    }
+
+    public void getConfigs(SceneConfig out){
+        out.set(mConfigs);
     }
 
     public final void draw(boolean renderToFBO, boolean clearFBO){
@@ -88,6 +94,7 @@ public abstract class BaseScene implements Disposeable{
             gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, mFramebuffer);
         }
 
+        update(mNVApp.getFrameDeltaTime());
         onRender(clearFBO);
 
         if(renderToFBO && !mConfigs.noFBO) {
@@ -201,6 +208,10 @@ public abstract class BaseScene implements Disposeable{
         if(mConfigs.sampleCount < 1 || mConfigs.sampleCount > 8){
             throw new IllegalArgumentException("The sampleCount is " + mConfigs.sampleCount + " that is out of the range[1,8].");
         }
+    }
+
+    public void resoveMultisampleTexture(){
+        resoveMultisampleTexture(GLenum.GL_COLOR_BUFFER_BIT);
     }
 
     public void resoveMultisampleTexture(int mask){

@@ -1,4 +1,7 @@
 #define SMAA_GLSL_4 1
+#define SMAA_INCLUDE_VS 0
+#define SMAA_INCLUDE_PS 1
+
 #include "PostProcessingSMAA.glsl"
 
 
@@ -10,7 +13,7 @@
     SMAAEdgeDetectionVS(position, svPosition, texcoord, offset);
 }*/
 
-layout(location = 0) out float4 OutColor;
+layout(location = 0) out float2 OutColor;
 
 in float4 offset[3];
 in float2 texcoord;

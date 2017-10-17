@@ -12,7 +12,6 @@ import jet.opengl.demos.amdfx.common.AMD_Mesh;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.texture.Texture2D;
 
 /**
  * Created by mazhen'gui on 2017/8/31.
@@ -21,13 +20,6 @@ import jet.opengl.postprocessing.texture.Texture2D;
 public final class LightningDemo extends NvSampleApp {
     Arena	g_arena = null;
     final LightningAppearance g_beam_parameters = new LightningAppearance();
-
-    boolean	g_render_scene =  true;
-
-    int		g_Frame = 0;
-
-    boolean	g_screen_capture = false;
-    boolean	g_single_frame = false;
     private GLFuncProvider gl;
     private static boolean g_printLog;
 
@@ -51,11 +43,8 @@ public final class LightningDemo extends NvSampleApp {
             new Vector3f(.5f,.5f,.5f),
     };
 
-    final int num_colors = g_colors.length;
-
     final Matrix4f m_proj = new Matrix4f();
     final Matrix4f m_view = new Matrix4f();
-    Texture2D g_pResolvedBuffer;
     float m_total_time;
 
     static void loadOrcXMesh(){
@@ -94,6 +83,7 @@ public final class LightningDemo extends NvSampleApp {
         m_transformer.setRotationVec(new Vector3f(0.7f, -2.2f, -1.0f));
 
         g_arena = new Arena(1);
+        getGLContext().setSwapInterval(0);
     }
 
     @Override
@@ -147,14 +137,11 @@ public final class LightningDemo extends NvSampleApp {
 //                g_SampleUI.GetSlider(IDC_BLUR_SIGMA_B)->GetValue() / 100.0f
 //        );
         g_arena.settings.BlurSigma.set(.9f,.9f,.9f);
-
-
-
         g_arena.settings.Beam.set(g_beam_parameters);
         g_arena.settings.AnimationSpeed =  15; //float(g_SampleUI.GetSlider(IDC_ANIMATION_SPEED)->GetValue());
 
         g_arena.Matrices(m_view, m_proj);
-        g_arena.Time(0,dt);
+        g_arena.Time(t,dt);
         g_arena.Render();
         m_total_time += dt;
 
