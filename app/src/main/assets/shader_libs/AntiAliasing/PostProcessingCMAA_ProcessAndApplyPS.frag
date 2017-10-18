@@ -1,6 +1,5 @@
 #include "PostProcessingCMAA_Common.glsl"
 
-layout(location = 0) out uint4 outEdges;
 layout(early_fragment_tests) in;
 
 void main()
@@ -107,7 +106,7 @@ void main()
 
         // 2.) U-like shape (surrounded with edges from 3 sides)
 //        [flatten]
-        if( numberOfEdges > 2 )
+        if( numberOfEdges > 2.0 )
         {
             // with value of 0.13, the pixel will retain approx 72% of its colour and the remaining 28% will
             // be picked from its 3 neighbours (which are unlikely to be blurred too but could be)
@@ -116,7 +115,7 @@ void main()
 
         // 3.) Completely surrounded with edges from all 4 sides
 //        [flatten]
-        if( numberOfEdges > 3 )
+        if( numberOfEdges > 3.0 )
         {
             // with value of 0.07, the pixel will retain 78% of its colour and the remaining 22% will
             // come from its 4 neighbours (which are unlikely to be blurred)
@@ -188,7 +187,7 @@ void main()
 //        g_resultTextureFlt4Slot1[ screenPosI.xy ] = float4( _output.rgb, pixelC.a );
         imageStore(g_resultTextureFlt4Slot1, screenPosI.xy, float4( _output.rgb, pixelC.a ));
 
-        if( numberOfEdges == 2 )
+        if( numberOfEdges == 2.0 )
         {
 
             uint packedEdgesL    = packedEdgesArray[0+_x][1+_y];
@@ -197,13 +196,13 @@ void main()
             uint packedEdgesB    = packedEdgesArray[1+_x][2+_y];
 
             //bool isNotHorizontal =
-            bool isHorizontalA = ( ( packedEdgesC ) == (0x01 | 0x02) ) && ( (packedEdgesR & (0x01 | 0x08) ) == (0x08) );
-            bool isHorizontalB = ( ( packedEdgesC ) == (0x01 | 0x08) ) && ( (packedEdgesR & (0x01 | 0x02) ) == (0x02) );
+            bool isHorizontalA = ( ( packedEdgesC ) == (0x01u | 0x02u) ) && ( (packedEdgesR & (0x01u | 0x08u) ) == (0x08u) );
+            bool isHorizontalB = ( ( packedEdgesC ) == (0x01u | 0x08u) ) && ( (packedEdgesR & (0x01u | 0x02u) ) == (0x02u) );
 
             bool isHCandidate = isHorizontalA || isHorizontalB;
 
-            bool isVerticalA = ( ( packedEdgesC ) == (0x08 | 0x01) ) && ( (packedEdgesT & (0x08 | 0x04) ) == (0x04) );
-            bool isVerticalB = ( ( packedEdgesC ) == (0x08 | 0x04) ) && ( (packedEdgesT & (0x08 | 0x01) ) == (0x01) );
+            bool isVerticalA = ( ( packedEdgesC ) == (0x08u | 0x01u) ) && ( (packedEdgesT & (0x08u | 0x04u) ) == (0x04u) );
+            bool isVerticalB = ( ( packedEdgesC ) == (0x08u | 0x04u) ) && ( (packedEdgesT & (0x08u | 0x01u) ) == (0x01u) );
             bool isVCandidate = isVerticalA || isVerticalB;
 
             bool isCandidate = isHCandidate || isVCandidate;
@@ -215,7 +214,7 @@ void main()
 
             // what if both are candidates? do additional pruning (still not 100% but gets rid of worst case errors)
             if( isHCandidate && isVCandidate )
-                horizontal = ( isHorizontalA && ( ( packedEdgesL & 0x02 ) == 0x02 ) ) || ( isHorizontalB && ( ( packedEdgesL & 0x08 ) == 0x08 ) );
+                horizontal = ( isHorizontalA && ( ( packedEdgesL & 0x02u ) == 0x02u ) ) || ( isHorizontalB && ( ( packedEdgesL & 0x08u ) == 0x08u ) );
 
             int2 offsetC;
             uint packedEdgesM1P0;

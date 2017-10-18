@@ -45,24 +45,13 @@ final class CMAAEffect implements Disposeable{
     private BufferGL m_constantsBuffer;
 
     private Texture2D m_depthStencilTex;
-    private Texture2D            m_depthStencilTexDSV;
-    private Texture2D            m_depthStencilTexReadOnlyDSV;
-    private Texture2D          m_depthStencilTexSRV;
 
     private Texture2D                   m_edgesTexture;
-    private Texture2D          m_edgesTextureSRV;
-    private Texture2D         m_edgesTextureUAV;
     private Texture2D                   m_edgesTexture2;
-    private Texture2D          m_edgesTexture2SRV;
-    private Texture2D         m_edgesTexture2UAV;
 
     private Texture2D                   m_mini4edgeTexture;
-    private Texture2D            m_mini4edgeTextureUintRTV;
-    private Texture2D          m_mini4edgeTextureUintSRV;
 
     private Texture2D                   m_workingColorTexture;
-    private Texture2D          m_workingColorTextureSRV;
-    private Texture2D         m_workingColorTextureUAV;
 
     private Runnable m_renderAlwaysDSS;
     private Runnable           m_renderCreateMaskDSS;
@@ -89,7 +78,7 @@ final class CMAAEffect implements Disposeable{
 
     private static GLSLProgram createProgram(String fragShaderName, Macro[] macros){
         try {
-            GLSLProgram program =  GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert",
+            GLSLProgram program =  GLSLProgram.createFromFiles("shader_libs/AntiAliasing/PostProcessingCMAA_CommonVS.vert",
                     String.format("shader_libs/AntiAliasing/PostProcessingCMAA_%s.frag", fragShaderName), macros);
             program.setName(fragShaderName);
             return program;
@@ -103,9 +92,12 @@ final class CMAAEffect implements Disposeable{
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_renderTargets = new RenderTargets();
         SamplerDesc desc = new SamplerDesc();
+        m_linearSampler = SamplerUtils.createSampler(desc);
         desc.minFilter = GLenum.GL_NEAREST;
         desc.magFilter = GLenum.GL_NEAREST;
         m_pointSampler = SamplerUtils.createSampler(desc);
+
+
 
 //        HRESULT hr = S_OK;
 //        ID3DBlob* pShaderBlob;
@@ -231,7 +223,6 @@ final class CMAAEffect implements Disposeable{
             m_renderCreateMaskDSS = ()->
             {
                 gl.glEnable(GLenum.GL_DEPTH_TEST);
-                gl.glDisable(GLenum.GL_STENCIL_TEST);
                 gl.glDepthMask(true);
                 gl.glDepthFunc(GLenum.GL_ALWAYS);
             };
@@ -253,7 +244,6 @@ final class CMAAEffect implements Disposeable{
             m_renderUseMaskDSS = ()->
             {
                 gl.glEnable(GLenum.GL_DEPTH_TEST);
-                gl.glDisable(GLenum.GL_STENCIL_TEST);
                 gl.glDepthMask(false);
                 gl.glDepthFunc(GLenum.GL_LESS);
             };
@@ -264,10 +254,6 @@ final class CMAAEffect implements Disposeable{
         ReleaseTextures();
 
         CommonUtil.safeRelease( m_constantsBuffer );
-//        CommonUtil.safeRelease( m_renderAlwaysDSS );
-//        CommonUtil.safeRelease( m_renderCreateMaskDSS );
-//        CommonUtil.safeRelease( m_renderUseMaskDSS );
-
         CommonUtil.safeRelease( m_edges0PS );
         CommonUtil.safeRelease( m_edges1PS );
         CommonUtil.safeRelease( m_edgesCombinePS );
@@ -276,6 +262,13 @@ final class CMAAEffect implements Disposeable{
         CommonUtil.safeRelease( m_dbgProcessAndApplyPS );
         CommonUtil.safeRelease( m_dbgDisplayEdgesPS  );
         CommonUtil.safeRelease( m_renderTargets);
+    }
+
+    private void setDepthValue(GLSLProgram program, float depth){
+        int idx = program.getUniformLocation("fZValue");
+        if(idx >=0){
+            gl.glProgramUniform1f(program.getProgram(), idx, 2 * depth - 1);
+        }
     }
 
     void				OnSize(/*ID3D11Device* pD3DDevice,*/ int width, int height){
@@ -311,8 +304,8 @@ final class CMAAEffect implements Disposeable{
             }*/
 
             Texture2DDesc td = new Texture2DDesc(width, height, GLenum.GL_R8);
-            m_edgesTextureUAV = m_edgesTextureSRV = m_edgesTexture = TextureUtils.createTexture2D(td, null);
-            m_edgesTexture2UAV = m_edgesTexture2SRV = m_edgesTexture2 = TextureUtils.createTexture2D(td, null);
+            m_edgesTexture = TextureUtils.createTexture2D(td, null);
+            m_edgesTexture2 = TextureUtils.createTexture2D(td, null);
 
         }
 
@@ -339,7 +332,7 @@ final class CMAAEffect implements Disposeable{
                 hr = pD3DDevice->CreateRenderTargetView( m_mini4edgeTexture, &dsvDescUint, &m_mini4edgeTextureUintRTV );
             }*/
             Texture2DDesc td = new Texture2DDesc((width+1)/2, (height+1)/2, GLenum.GL_RGBA8UI);
-            m_mini4edgeTextureUintSRV = m_mini4edgeTextureUintRTV = m_mini4edgeTexture = TextureUtils.createTexture2D(td, null);
+            m_mini4edgeTexture = TextureUtils.createTexture2D(td, null);
         }
 
         // Color working texture
@@ -368,7 +361,7 @@ final class CMAAEffect implements Disposeable{
                 hr = pD3DDevice->CreateUnorderedAccessView( m_workingColorTexture, &uavDesc, &m_workingColorTextureUAV );
             }*/
             Texture2DDesc td = new Texture2DDesc(width, height, GLenum.GL_RGBA8);
-            m_workingColorTextureSRV = m_workingColorTextureUAV = m_workingColorTexture = TextureUtils.createTexture2D(td, null);
+            m_workingColorTexture = TextureUtils.createTexture2D(td, null);
         }
 
         // Mask depth stencil (1/2 x 1/2) texture
@@ -395,30 +388,20 @@ final class CMAAEffect implements Disposeable{
             CD3D11_SHADER_RESOURCE_VIEW_DESC srvd( m_depthStencilTex, D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R16_UNORM );
             hr = pD3DDevice->CreateShaderResourceView( m_depthStencilTex, &srvd, &m_depthStencilTexSRV );*/
             Texture2DDesc td = new Texture2DDesc((width+1)/2, (height+1)/2, GLenum.GL_DEPTH_COMPONENT32);
-            m_depthStencilTexReadOnlyDSV = m_depthStencilTexSRV = m_depthStencilTexDSV = m_depthStencilTex = TextureUtils.createTexture2D(td, null);
+            m_depthStencilTex = TextureUtils.createTexture2D(td, null);
         }
     }
-    void			ReleaseTextures(){
+
+    private void			ReleaseTextures(){
         CommonUtil.safeRelease( m_edgesTexture );
-        CommonUtil.safeRelease( m_edgesTextureSRV );
-        CommonUtil.safeRelease( m_edgesTextureUAV );
 
         CommonUtil.safeRelease( m_edgesTexture2 );
-        CommonUtil.safeRelease( m_edgesTexture2SRV );
-        CommonUtil.safeRelease( m_edgesTexture2UAV );
 
         CommonUtil.safeRelease( m_mini4edgeTexture );
-        CommonUtil.safeRelease( m_mini4edgeTextureUintRTV );
-        CommonUtil.safeRelease( m_mini4edgeTextureUintSRV );
 
         CommonUtil.safeRelease( m_workingColorTexture      );
-        CommonUtil.safeRelease( m_workingColorTextureSRV   );
-        CommonUtil.safeRelease( m_workingColorTextureUAV   );
 
         CommonUtil.safeRelease( m_depthStencilTex );
-        CommonUtil.safeRelease( m_depthStencilTexDSV );
-        CommonUtil.safeRelease( m_depthStencilTexReadOnlyDSV );
-        CommonUtil.safeRelease( m_depthStencilTexSRV );
     }
 
     private boolean DoFirstTime = true;
@@ -438,8 +421,8 @@ final class CMAAEffect implements Disposeable{
             // the algorithm self-clears them later
 //            context->ClearUnorderedAccessViewUint( m_edgesTextureUAV, u4zero );
 //            context->ClearUnorderedAccessViewUint( m_edgesTexture2UAV, u4zero );
-            gl.glClearTexImage(m_edgesTextureUAV.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_UNSIGNED_BYTE, null);
-            gl.glClearTexImage(m_edgesTexture2UAV.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_UNSIGNED_BYTE, null);
+            gl.glClearTexImage(m_edgesTexture.getTexture(), 0, GLenum.GL_RED, GLenum.GL_UNSIGNED_BYTE, null);
+            gl.glClearTexImage(m_edgesTexture2.getTexture(), 0, GLenum.GL_RED, GLenum.GL_UNSIGNED_BYTE, null);
         }
 
 /*#ifdef _DEBUG
@@ -478,30 +461,18 @@ final class CMAAEffect implements Disposeable{
 
         m_frameID++;
 
-        Texture2D edgesTextureA_SRV;
-        Texture2D edgesTextureA_UAV;
         Texture2D edgesTextureA;
-        Texture2D edgesTextureB_SRV;
-        Texture2D edgesTextureB_UAV;
         Texture2D edgesTextureB;
         // flip flop - one pass clears the texture that needs clearing for the other one (actually it's only important that it clears the highest bit)
         if( (m_frameID % 2) == 0 )
         {
             edgesTextureA       = m_edgesTexture;
-            edgesTextureA_SRV   = m_edgesTextureSRV;
-            edgesTextureA_UAV   = m_edgesTextureUAV;
             edgesTextureB       = m_edgesTexture2;
-            edgesTextureB_SRV   = m_edgesTexture2SRV;
-            edgesTextureB_UAV   = m_edgesTexture2UAV;
         }
         else
         {
             edgesTextureA       = m_edgesTexture2;
-            edgesTextureA_SRV   = m_edgesTexture2SRV;
-            edgesTextureA_UAV   = m_edgesTexture2UAV;
             edgesTextureB       = m_edgesTexture;
-            edgesTextureB_SRV   = m_edgesTextureSRV;
-            edgesTextureB_UAV   = m_edgesTextureUAV;
         }
 
         /*D3D11_VIEWPORT viewport, viewportHalfHalf;
@@ -546,8 +517,8 @@ final class CMAAEffect implements Disposeable{
 
             consts.OneOverScreenSize[0]         = 1.0f / m_Width;
             consts.OneOverScreenSize[1]         = 1.0f / m_Height;
-            consts.ScreenWidth                  = (int)m_Width;
-            consts.ScreenHeight                 = (int)m_Height;
+            consts.ScreenWidth                  = m_Width;
+            consts.ScreenHeight                 = m_Height;
 
             consts.DebugZoomTool[0]             = 0.0f;
             consts.DebugZoomTool[1]             = 0.0f;
@@ -560,7 +531,7 @@ final class CMAAEffect implements Disposeable{
             ByteBuffer bytes = CacheBuffer.getCachedByteBuffer(CMAAConstants.SIZE);
             consts.store(bytes).flip();
             m_constantsBuffer.update(0, bytes);
-            gl.glBindBufferBase(m_constantsBuffer.getTarget(), 0, m_constantsBuffer.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_constantsBuffer.getBuffer());
             GLCheck.checkError();
         }
 
@@ -576,6 +547,7 @@ final class CMAAEffect implements Disposeable{
         gl.glViewport(0,0, Numeric.divideAndRoundUp((int)m_Width, 2), Numeric.divideAndRoundUp((int)m_Height, 2));
         gl.glDisable(GLenum.GL_BLEND);
         gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glBindVertexArray(0);
 
 //        UINT UAVInitialCounts[] = { (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1 };
 
@@ -589,13 +561,17 @@ final class CMAAEffect implements Disposeable{
             //context->OMSetRenderTargets( 1, &m_mini4edgeTextureUintRTV, m_depthStencilTexDSV );
 //            ID3D11UnorderedAccessView * UAVs[] = { m_workingColorTextureUAV };
 //            context->OMSetRenderTargetsAndUnorderedAccessViews( 1, &m_mini4edgeTextureUintRTV, m_depthStencilTexDSV, 1, _countof(UAVs), UAVs, UAVInitialCounts );
-            TextureGL[] RTVs = {m_mini4edgeTextureUintRTV, m_depthStencilTexDSV};
+            TextureGL[] RTVs = {m_mini4edgeTexture, m_depthStencilTex};
             m_renderTargets.setRenderTextures(RTVs, null);
-            gl.glBindImageTexture(1, m_workingColorTextureUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, m_workingColorTextureUAV.getFormat());
+            gl.glClearDepthf(1.0f);
+            gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
+
+            gl.glBindImageTexture(1, m_workingColorTexture.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, /*m_workingColorTexture.getFormat()*/ GLenum.GL_RGBA8);
 
             /*context->PSSetShaderResources( 0, 1, &sourceColorSRV_UNORM );
             MySample::FullscreenPassDraw( context, m_edges0PS, NULL, MySample::GetBS_Opaque(), m_renderCreateMaskDSS, 0, 1.0f );
             context->PSSetShaderResources( 0, 1, nullSRVs );*/
+            setDepthValue(m_edges0PS, 1.0f);
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
             if(sourceColorSRV_UNORM.getTarget() != GLenum.GL_TEXTURE_2D){
                 throw new IllegalArgumentException();
@@ -617,15 +593,15 @@ final class CMAAEffect implements Disposeable{
             /*ID3D11UnorderedAccessView * UAVs[] = { edgesTextureB_UAV };
             context->OMSetRenderTargetsAndUnorderedAccessViews( 0, NULL, m_depthStencilTexReadOnlyDSV, 0, _countof(UAVs), UAVs, UAVInitialCounts );
             context->PSSetShaderResources( 3, 1, &m_mini4edgeTextureUintSRV );*/
-            m_renderTargets.setRenderTexture(m_depthStencilTexReadOnlyDSV, null);
-            gl.glDrawBuffers(GLenum.GL_NONE);
-            gl.glBindImageTexture(0, edgesTextureB_UAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, edgesTextureB_UAV.getFormat());
+            m_renderTargets.setRenderTexture(m_depthStencilTex, null);
+            gl.glBindImageTexture(0, edgesTextureB.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, edgesTextureB.getFormat());
             gl.glActiveTexture(GLenum.GL_TEXTURE2);
-            gl.glBindTexture(m_mini4edgeTextureUintSRV.getTarget(), m_mini4edgeTextureUintSRV.getTexture());
+            gl.glBindTexture(m_mini4edgeTexture.getTarget(), m_mini4edgeTexture.getTexture());
 
             /*MySample::FullscreenPassDraw( context, m_edges1PS, NULL, MySample::GetBS_Opaque(), m_renderUseMaskDSS, 0, 0.0f );
             context->PSSetShaderResources( 3, 1, nullSRVs );
             context->PSSetShaderResources( 0, 1, nullSRVs );*/
+            setDepthValue(m_edges1PS, 0.0f);
             m_renderUseMaskDSS.run();
             m_edges1PS.enable();
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
@@ -645,20 +621,23 @@ final class CMAAEffect implements Disposeable{
             // AND also copy source color data but only on edge pixels
             /*ID3D11UnorderedAccessView * UAVs[] = { destColorUAV, edgesTextureA_UAV };
             context->OMSetRenderTargetsAndUnorderedAccessViews( 0, NULL, m_depthStencilTexDSV, 1, _countof(UAVs), UAVs, UAVInitialCounts );*/
-            m_renderTargets.setRenderTexture(m_depthStencilTexDSV, null);
+            m_renderTargets.setRenderTexture(m_depthStencilTex, null);
 //            gl.glBindImageTexture(2, destColorUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, destColorUAV.getFormat());
-            gl.glBindImageTexture(2, edgesTextureA_UAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, edgesTextureA_UAV.getFormat());
+            gl.glBindImageTexture(2, edgesTextureA.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, edgesTextureA.getFormat());
 
             /*context->PSSetShaderResources( 0, 1, &m_workingColorTextureSRV );
             context->PSSetShaderResources( 3, 1, &edgesTextureB_SRV );
             MySample::FullscreenPassDraw( context, m_edgesCombinePS, NULL, MySample::GetBS_Opaque(), m_renderCreateMaskDSS, 0, 1.0f );
             context->PSSetShaderResources( 0, 1, nullSRVs );
             context->PSSetShaderResources( 3, 1, nullSRVs );*/
+            setDepthValue(m_edgesCombinePS, 1.0f);
+            gl.glActiveTexture(GLenum.GL_TEXTURE0);
+            gl.glBindSampler(0, m_linearSampler);
+            gl.glBindTexture(m_workingColorTexture.getTarget(), m_workingColorTexture.getTexture());
+
             gl.glActiveTexture(GLenum.GL_TEXTURE3);
-            gl.glBindTexture(edgesTextureB_SRV.getTarget(), edgesTextureB_SRV.getTexture());
+            gl.glBindTexture(edgesTextureB.getTarget(), edgesTextureB.getTexture());
             gl.glBindSampler(3, m_pointSampler);
-//            gl.glActiveTexture(GLenum.GL_TEXTURE1);
-//            gl.glBindTexture(edgesTextureB_SRV.getTarget(), edgesTextureB_SRV.getTexture());
             m_renderCreateMaskDSS.run();
             m_edgesCombinePS.enable();
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
@@ -681,13 +660,13 @@ final class CMAAEffect implements Disposeable{
                 gl.glCopyImageSubData(edgesTextureA.getTexture(), edgesTextureA.getTarget(), 0, 0,0,0,
                         edgesTextureB.getTexture(), edgesTextureB.getTarget(), 0,0,0,0,
                         edgesTextureA.getWidth(), edgesTextureA.getHeight(), 1);
-                Texture2D[] UAVs = {destColorUAV, edgesTextureA_UAV};
+                Texture2D[] UAVs = {destColorUAV, edgesTextureA};
                 // 2 seconds show blur, 2 seconds not
                 if( timeElapsed % 4.0 > 2.0 )
                     UAVs[0] = null;
 
 //                context->OMSetRenderTargetsAndUnorderedAccessViews( 0, NULL, m_depthStencilTexReadOnlyDSV, 1, _countof(UAVs), UAVs, UAVInitialCounts );
-                m_renderTargets.setRenderTexture(m_depthStencilTexReadOnlyDSV, null);
+                m_renderTargets.setRenderTexture(m_depthStencilTex, null);
                 for(int i = 0; i < UAVs.length; i++){
                     if(UAVs[i] != null){
                         gl.glBindImageTexture(i, UAVs[i].getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, UAVs[i].getFormat());
@@ -700,7 +679,7 @@ final class CMAAEffect implements Disposeable{
             {
                 /*ID3D11UnorderedAccessView * UAVs[] = { destColorUAV }; //m_blurmapTextureUAV };
                 context->OMSetRenderTargetsAndUnorderedAccessViews( 0, NULL, m_depthStencilTexReadOnlyDSV, 1, _countof(UAVs), UAVs, UAVInitialCounts );*/
-                m_renderTargets.setRenderTexture(m_depthStencilTexReadOnlyDSV, null);
+                m_renderTargets.setRenderTexture(m_depthStencilTex, null);
                 gl.glBindImageTexture(1, destColorUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, destColorUAV.getFormat());
             }
 
@@ -708,13 +687,16 @@ final class CMAAEffect implements Disposeable{
             context->PSSetShaderResources( 3, 1, &edgesTextureA_SRV );
             context->PSSetShaderResources( 4, 1, &m_depthStencilTexSRV );*/
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
-            gl.glBindTexture(m_workingColorTextureSRV.getTarget(), m_workingColorTextureSRV.getTexture());
+            gl.glBindTexture(m_workingColorTexture.getTarget(), m_workingColorTexture.getTexture());
+            gl.glBindSampler(0, m_linearSampler);
             gl.glActiveTexture(GLenum.GL_TEXTURE3);
-            gl.glBindTexture(edgesTextureA_SRV.getTarget(), edgesTextureA_SRV.getTexture());
+            gl.glBindTexture(edgesTextureA.getTarget(), edgesTextureA.getTexture());
+            gl.glBindSampler(3, m_pointSampler);
 
 //            MySample::FullscreenPassDraw( context, (dbgExportAAInfo)?(m_dbgProcessAndApplyPS):(m_processAndApplyPS), NULL, MySample::GetBS_Opaque(), m_renderUseMaskDSS, 0, 0.0f );
             GLSLProgram program = (dbgExportAAInfo)?(m_dbgProcessAndApplyPS):(m_processAndApplyPS);
             program.enable();
+            setDepthValue(program, 0.0f);
             m_renderUseMaskDSS.run();
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 
@@ -775,15 +757,16 @@ final class CMAAEffect implements Disposeable{
             /*context->PSSetShaderResources( 0, 1, &m_workingColorTextureSRV );
             context->PSSetShaderResources( 3, 1, &edgesTextureB_SRV );*/
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
-            gl.glBindTexture(m_workingColorTextureSRV.getTarget(), m_workingColorTextureSRV.getTexture());
+            gl.glBindTexture(m_workingColorTexture.getTarget(), m_workingColorTexture.getTexture());
             gl.glActiveTexture(GLenum.GL_TEXTURE1);
-            gl.glBindTexture(edgesTextureB_SRV.getTarget(), edgesTextureB_SRV.getTexture());
+            gl.glBindTexture(edgesTextureB.getTarget(), edgesTextureB.getTexture());
 
             // Debug display edges!
             if( displayType == DT_ShowEdges )
             {
 //                MySample::FullscreenPassDraw( context, m_dbgDisplayEdgesPS, NULL, MySample::GetBS_AlphaBlend(), m_renderAlwaysDSS, 0, 0.0f );
                 m_dbgDisplayEdgesPS.enable();
+                setDepthValue(m_dbgDisplayEdgesPS, 0.0f);
                 m_renderAlwaysDSS.run();
                 // TODO BS_AlphaBlend()
                 gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
@@ -795,6 +778,7 @@ final class CMAAEffect implements Disposeable{
 
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, old_fbo);
         gl.glBindSampler(3, 0);
+        gl.glBindSampler(0, 0);
         gl.glActiveTexture(GLenum.GL_TEXTURE3);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
         gl.glActiveTexture(GLenum.GL_TEXTURE2);
@@ -807,6 +791,9 @@ final class CMAAEffect implements Disposeable{
         gl.glBindImageTexture(2, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
         gl.glBindImageTexture(1, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
+        gl.glDepthMask(true);
+        gl.glDepthFunc(GLenum.GL_LESS);
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
         m_prinOnce = true;
     }
 
@@ -827,8 +814,8 @@ final class CMAAEffect implements Disposeable{
         float           Dummy0;
 
         final float[]           OneOverScreenSize = new float[2];
-        int             ScreenWidth;
-        int             ScreenHeight;
+        float             ScreenWidth;
+        float             ScreenHeight;
 
         final float[]           DebugZoomTool  = new float[4];
 

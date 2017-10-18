@@ -150,7 +150,7 @@ float3 D3DX_SRGB_to_FLOAT3(float3 val)
     return outVal;
 }
 
-#if /*__VERSION__ >= 300*/0
+#if 0
 
 #define R8G8B8A8_UNORM_to_float4(x) unpackUnorm4x8(x)
 #define float4_to_R8G8B8A8_UNORM(x) packUnorm4x8(x)
@@ -198,8 +198,8 @@ struct CMAAConstants
    float    Dummy0;
 
    float2   OneOverScreenSize;
-   int      ScreenWidth;
-   int      ScreenHeight;
+   float    ScreenWidth;
+   float    ScreenHeight;
 
    float4   DebugZoomTool;
 };
@@ -226,9 +226,9 @@ layout(binding = 0) uniform CMAAGlobals
     CMAAConstants g_CMAA;
 };
 
-layout(r32f, binding = 0) uniform image2D g_resultTexture;
+layout(r8, binding = 0) uniform image2D g_resultTexture;
 layout(rgba8, binding = 1) uniform image2D g_resultTextureFlt4Slot1;
-layout(r32f, binding = 2) uniform image2D g_resultTextureSlot2;
+layout(r8, binding = 2) uniform image2D g_resultTextureSlot2;
 
 layout(binding = 0) uniform sampler2D g_screenTexture;
 layout(binding = 1) uniform sampler2D g_depthTexture;

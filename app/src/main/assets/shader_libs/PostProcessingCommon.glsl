@@ -61,3 +61,16 @@
 
 #endif
 
+#ifndef ENABLE_VERTEX_ID
+#define ENABLE_VERTEX_ID 0
+#endif
+
+#ifndef ENABLE_IN_OUT_FEATURE
+#define ENABLE_IN_OUT_FEATURE 0
+#endif
+
+#ifndef ENABLE_POS_TRANSFORM
+#define ENABLE_POS_TRANSFORM 0
+#endif
+
+

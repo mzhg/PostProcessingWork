@@ -85,7 +85,7 @@ final class Lwjgl3ImageLoader implements NativeAPI {
     public void saveImageFile(int width, int height, boolean hasAlpha, int[] pixels, String img_filename) throws IOException{
         BufferedImage image = new BufferedImage(width, height, hasAlpha ? BufferedImage.TYPE_4BYTE_ABGR : BufferedImage.TYPE_3BYTE_BGR);
 
-        for(int i = 0; i < height; i++){
+        for(int i = 0; i < height ; i++){
             for(int j = 0; j < width; j++){
                 int idx = j + i * width;
                 int value = pixels[idx];
@@ -100,6 +100,8 @@ final class Lwjgl3ImageLoader implements NativeAPI {
         }else{
             img_filename = img_filename + '.' + ext;
         }
-        ImageIO.write(image, ext, new File(img_filename));
+        File _imageFile = new File(img_filename);
+        _imageFile.getParentFile().mkdirs();
+        ImageIO.write(image, ext, _imageFile);
     }
 }

@@ -44,6 +44,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.NativeAPI;
+import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
 
 /**
@@ -219,6 +220,55 @@ public final class DebugTools {
         _saveTexelsAsText(pixels, internalFormat, width, writer);
         writer.flush();
         writer.close();
+    }
+
+    public static void saveTextureAsImageFile(Texture2D texture, String outputfile) throws IOException {
+        NativeAPI nativeAPI = GLFuncProviderFactory.getGLFuncProvider().getNativeAPI();
+        if(nativeAPI == null)
+            return;
+
+        ByteBuffer pixels = TextureUtils.getTextureData(texture.getTarget(), texture.getTexture(), 0, false);
+        int width = texture.getWidth();
+        int height = texture.getHeight();
+
+        int[] out_pixels = new int[width * height];
+        for(int i = height - 1; i >= 0 ; i--){  // flipping
+            for(int j = 0; j < width; j++){
+                int idx = j + i * width;
+                out_pixels[idx] = getPixel(pixels, texture.getFormat());
+            }
+        }
+
+        nativeAPI.saveImageFile(width, height, true, out_pixels, outputfile);
+    }
+
+    private static int getPixel(ByteBuffer src, int internalFormat){
+        switch (internalFormat){
+            case GLenum.GL_RGBA8:
+            case GLenum.GL_RGBA:
+            {
+                int r = Numeric.unsignedByte(src.get()),   // red
+                    g = Numeric.unsignedByte(src.get()),   // green
+                    b = Numeric.unsignedByte(src.get()),   // blue
+                    a = Numeric.unsignedByte(src.get());    // alpha
+                return Numeric.makeRGBA(
+                        b,g,r,a
+                );
+            }
+            case GLenum.GL_RGB8:
+            case GLenum.GL_RGB:
+            {
+                return Numeric.makeRGBA(
+                        Numeric.unsignedByte(src.get()),   // red
+                        Numeric.unsignedByte(src.get()),   // green
+                        Numeric.unsignedByte(src.get()),   // blue
+                        255                                // alpha
+                );
+            }
+
+            default:
+                throw new RuntimeException("Unsupport format: " + TextureUtils.getFormatName(internalFormat));
+        }
     }
 
     public static Object newInstance(Class<?> clazz)  {

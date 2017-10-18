@@ -1531,7 +1531,7 @@ public interface GLFuncProvider {
     void glPrimitiveRestartIndex(int restartIndex);
 
     int glCreateShaderProgramv(int target, CharSequence source);
-    void glProgramUniform1f(int program, int index, float radius);
+    void glProgramUniform1f(int program, int index, float x);
     void glProgramUniform2f(int program, int index, float x, float y);
     void glProgramUniform4f(int program, int index, float x, float y, float z, float w);
     void glProgramUniformMatrix4fv(int program, int index, boolean transpose, FloatBuffer data);

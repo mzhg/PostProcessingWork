@@ -57,7 +57,6 @@ import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
 import com.nvidia.developer.opengl.utils.NvImage;
 import com.nvidia.developer.opengl.utils.NvStopWatch;
 
-import java.awt.Dimension;
 import java.util.HashMap;
 
 import jet.opengl.postprocessing.common.GLCheck;
@@ -576,7 +575,7 @@ public class NvSampleApp extends NvAppBase {
 		return false;
 	}
 
-	/**
+	/*
 	 * Window size request.
 	 * <p>
 	 * Allows the app to change the default window size.
@@ -592,16 +591,16 @@ public class NvSampleApp extends NvAppBase {
 	 * <p>
 	 * Most apps should be resolution-agnostic and be able to run at a given
 	 * resolution
-	 * 
+	 *
 	 * @param size
 	 *            the default size is passed in. If the application wishes to
 	 *            reuqest it be changed, it should change the value before
 	 *            returning true
 	 * @return whether the value has been changed. true if changed, false if not
 	 */
-	public boolean getRequestedWindowSize(Dimension size) {
-		return false;
-	}
+//	public boolean getRequestedWindowSize(Dimension size) {
+//		return false;
+//	}
 
 	protected int handleReaction(NvUIReaction react) {
 		return NvUIEventResponse.nvuiEventNotHandled;

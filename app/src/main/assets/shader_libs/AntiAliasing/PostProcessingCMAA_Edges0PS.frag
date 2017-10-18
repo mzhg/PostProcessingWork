@@ -84,28 +84,28 @@ void main()
 
     if( gl_FragDepth != 0.0 )
     {
-        if( storeFlagPixel00 != 0 )
+        if( storeFlagPixel00 != 0.0 )
 //            g_resultTextureFlt4Slot1[ screenPosI.xy + int2( 0, 0 ) ] = pixel00.rgba;
             imageStore(g_resultTextureFlt4Slot1, screenPosI.xy + int2( 0, 0 ), pixel00.rgba);
-        if( storeFlagPixel10 != 0 )
+        if( storeFlagPixel10 != 0.0 )
 //            g_resultTextureFlt4Slot1[ screenPosI.xy + int2( 1, 0 ) ] = pixel10.rgba;
             imageStore(g_resultTextureFlt4Slot1, screenPosI.xy + int2( 1, 0 ), pixel10.rgba);
-        if( storeFlagPixel20 != 0 )
+        if( storeFlagPixel20 != 0.0 )
 //            g_resultTextureFlt4Slot1[ screenPosI.xy + int2( 2, 0 ) ] = pixel20.rgba;
             imageStore(g_resultTextureFlt4Slot1, screenPosI.xy + int2( 2, 0 ), pixel20.rgba);
-        if( storeFlagPixel01 != 0 )
+        if( storeFlagPixel01 != 0.0 )
 //            g_resultTextureFlt4Slot1[ screenPosI.xy + int2( 0, 1 ) ] = pixel01.rgba;
             imageStore(g_resultTextureFlt4Slot1, screenPosI.xy + int2( 0, 1 ), pixel01.rgba);
-        if( storeFlagPixel02 != 0 )
+        if( storeFlagPixel02 != 0.0 )
 //            g_resultTextureFlt4Slot1[ screenPosI.xy + int2( 0, 2 ) ] = pixel02.rgba;
             imageStore(g_resultTextureFlt4Slot1, screenPosI.xy + int2( 0, 2 ), pixel02.rgba);
-        if( storeFlagPixel11 != 0 )
+        if( storeFlagPixel11 != 0.0 )
 //            g_resultTextureFlt4Slot1[ screenPosI.xy + int2( 1, 1 ) ] = pixel11.rgba;
             imageStore(g_resultTextureFlt4Slot1, screenPosI.xy + int2( 1, 1 ), pixel11.rgba);
-        if( storeFlagPixel21 != 0 )
+        if( storeFlagPixel21 != 0.0 )
 //            g_resultTextureFlt4Slot1[ screenPosI.xy + int2( 2, 1 ) ] = pixel21.rgba;
             imageStore(g_resultTextureFlt4Slot1, screenPosI.xy + int2( 2, 1 ), pixel21.rgba);
-        if( storeFlagPixel12 != 0 )
+        if( storeFlagPixel12 != 0.0 )
 //            g_resultTextureFlt4Slot1[ screenPosI.xy + int2( 1, 2 ) ] = pixel12.rgba;
             imageStore(g_resultTextureFlt4Slot1, screenPosI.xy + int2( 1, 2 ), pixel12.rgba);
     }
