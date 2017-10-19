@@ -39,10 +39,10 @@ final class SAAPostProcessGPU {
     private BufferGL				m_pEdgeDetectConstants;
     private BufferGL               m_pEdgeXBitArray;
     private BufferGL               m_pEdgeYBitArray;
-    private BufferGL m_pEdgeXBitArrayUAV;
-    private BufferGL  m_pEdgeYBitArrayUAV;
-    private BufferGL   m_pEdgeXBitArraySRV;
-    private BufferGL   m_pEdgeYBitArraySRV;
+    private int m_pEdgeXBitArrayUAV;   // Texture buffer
+    private int  m_pEdgeYBitArrayUAV;
+    private int   m_pEdgeXBitArraySRV;
+    private int   m_pEdgeYBitArraySRV;
 //    ID3D11SamplerState*         m_pSamplerState;
     private Texture2D            m_pWorkingColorTexture;
     private Texture2D   m_pWorkingColorTextureSRV;
@@ -53,6 +53,8 @@ final class SAAPostProcessGPU {
     private boolean m_prinOnce = false;
 
     void OnCreate(/*ID3D11Device* pD3dDevice, ID3D11DeviceContext* pContext, IDXGISwapChain* pSwapChain*/){
+        gl = GLFuncProviderFactory.getGLFuncProvider();
+
         /*HRESULT hr = S_OK;
         CPUTResult result;
         cString FullPath, FinalPath;
@@ -147,10 +149,10 @@ final class SAAPostProcessGPU {
 
         CommonUtil.safeRelease(m_pEdgeXBitArray);
         CommonUtil.safeRelease(m_pEdgeYBitArray);
-        CommonUtil.safeRelease(m_pEdgeXBitArrayUAV);
-        CommonUtil.safeRelease(m_pEdgeYBitArrayUAV);
-        CommonUtil.safeRelease(m_pEdgeXBitArraySRV);
-        CommonUtil.safeRelease(m_pEdgeYBitArraySRV);
+//        CommonUtil.safeRelease(m_pEdgeXBitArrayUAV);
+//        CommonUtil.safeRelease(m_pEdgeYBitArrayUAV);
+//        CommonUtil.safeRelease(m_pEdgeXBitArraySRV);
+//        CommonUtil.safeRelease(m_pEdgeYBitArraySRV);
 
         CommonUtil.safeRelease(m_pWorkingColorTexture);
         CommonUtil.safeRelease(m_pWorkingColorTextureSRV);
@@ -165,9 +167,9 @@ final class SAAPostProcessGPU {
         hr =(pD3DDevice->CreateBuffer(&DescBuffer, NULL, &m_pEdgeXBitArray));
         hr =(pD3DDevice->CreateBuffer(&DescBuffer, NULL, &m_pEdgeYBitArray));*/
         m_pEdgeXBitArray = new BufferGL();
-        m_pEdgeXBitArray.initlize(GLenum.GL_SHADER_STORAGE_BUFFER, ((int) Math.ceil(m_ScreenWidth/32.f)) * m_ScreenHeight * 4, null, GLenum.GL_DYNAMIC_COPY);
+        m_pEdgeXBitArray.initlize(GLenum.GL_TEXTURE_BUFFER, ((int) Math.ceil(m_ScreenWidth/32.f)) * m_ScreenHeight * 4, null, GLenum.GL_DYNAMIC_COPY);
         m_pEdgeYBitArray = new BufferGL();
-        m_pEdgeYBitArray.initlize(GLenum.GL_SHADER_STORAGE_BUFFER, ((int) Math.ceil(m_ScreenWidth/32.f)) * m_ScreenHeight * 4, null, GLenum.GL_DYNAMIC_COPY);
+        m_pEdgeYBitArray.initlize(GLenum.GL_TEXTURE_BUFFER, ((int) Math.ceil(m_ScreenWidth/32.f)) * m_ScreenHeight * 4, null, GLenum.GL_DYNAMIC_COPY);
 
         /*D3D11_UNORDERED_ACCESS_VIEW_DESC DescUAV;
         ZeroMemory(&DescUAV, sizeof(D3D11_UNORDERED_ACCESS_VIEW_DESC));
@@ -178,8 +180,15 @@ final class SAAPostProcessGPU {
         DescUAV.Buffer.Flags        = D3D11_BUFFER_UAV_FLAG_RAW;
         hr =(pD3DDevice->CreateUnorderedAccessView(m_pEdgeXBitArray, &DescUAV, &m_pEdgeXBitArrayUAV));
         hr =(pD3DDevice->CreateUnorderedAccessView(m_pEdgeYBitArray, &DescUAV, &m_pEdgeYBitArrayUAV));*/
-        m_pEdgeXBitArrayUAV = m_pEdgeXBitArray;
-        m_pEdgeYBitArrayUAV = m_pEdgeYBitArray;
+        m_pEdgeXBitArrayUAV = gl.glGenTexture();
+        gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_pEdgeXBitArrayUAV);
+        gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_R32UI, m_pEdgeXBitArray.getBuffer());
+        gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
+
+        m_pEdgeYBitArrayUAV = gl.glGenTexture();
+        gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_pEdgeYBitArrayUAV);
+        gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_R32UI, m_pEdgeYBitArray.getBuffer());
+        gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
 
         /*D3D11_SHADER_RESOURCE_VIEW_DESC DescSRV;
         ZeroMemory(&DescSRV, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
@@ -190,8 +199,8 @@ final class SAAPostProcessGPU {
         DescSRV.BufferEx.NumElements  = ((UINT) ceil(m_ScreenWidth/32.f)) * (UINT)m_ScreenHeight;
         hr =(pD3DDevice->CreateShaderResourceView(m_pEdgeXBitArray, &DescSRV, &m_pEdgeXBitArraySRV));
         hr =(pD3DDevice->CreateShaderResourceView(m_pEdgeYBitArray, &DescSRV, &m_pEdgeYBitArraySRV));*/
-        m_pEdgeXBitArraySRV = m_pEdgeXBitArray;
-        m_pEdgeYBitArraySRV = m_pEdgeYBitArray;
+        m_pEdgeXBitArraySRV = m_pEdgeXBitArrayUAV;
+        m_pEdgeYBitArraySRV = m_pEdgeYBitArrayUAV;
 
         /*ZeroMemory(&DescSRV, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
         DescSRV.Format                    = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -249,10 +258,10 @@ final class SAAPostProcessGPU {
 
         CommonUtil.safeRelease(m_pEdgeXBitArray);
         CommonUtil.safeRelease(m_pEdgeYBitArray);
-        CommonUtil.safeRelease(m_pEdgeXBitArrayUAV);
-        CommonUtil.safeRelease(m_pEdgeYBitArrayUAV);
-        CommonUtil.safeRelease(m_pEdgeXBitArraySRV);
-        CommonUtil.safeRelease(m_pEdgeYBitArraySRV);
+//        CommonUtil.safeRelease(m_pEdgeXBitArrayUAV);
+//        CommonUtil.safeRelease(m_pEdgeYBitArrayUAV);
+//        CommonUtil.safeRelease(m_pEdgeXBitArraySRV);
+//        CommonUtil.safeRelease(m_pEdgeYBitArraySRV);
 
         CommonUtil.safeRelease(m_pWorkingColorTexture);
         CommonUtil.safeRelease(m_pWorkingColorTextureSRV);
@@ -268,21 +277,27 @@ final class SAAPostProcessGPU {
             gl = GLFuncProviderFactory.getGLFuncProvider();
         }
 
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+
         // Copy contents of the color buffer to the working texture
         /*ID3D11Resource*         pRT = NULL;
         //DXUTGetD3D11RenderTargetView()->GetResource( &sourceColorSRV );
         sourceColorSRV->GetResource( &pRT );
         pContext->CopyResource( m_pWorkingColorTexture, pRT );
         pRT->Release();*/
+        if(!m_prinOnce){
+            System.out.println("sourceColorSRV: " + sourceColorSRV);
+            System.out.println("WorkingColor: " + m_pWorkingColorTexture);
+        }
         gl.glCopyImageSubData(sourceColorSRV.getTexture(), sourceColorSRV.getTarget(), 0,0,0,0,
-                m_pWorkingColorTexture.getTexture(), m_pWorkingColorTexture.getTarget(), 0,0,0,0,
+                      m_pWorkingColorTexture.getTexture(), m_pWorkingColorTexture.getTarget(), 0,0,0,0,
                 sourceColorSRV.getWidth(), sourceColorSRV.getHeight(), 1);
 
         // Need to clear this as we write it using InterlockedAdd...
         /*UINT Zeroes[4] = { 0, 0, 0, 0 };
         pContext->ClearUnorderedAccessViewUint(m_pEdgeXBitArrayUAV, Zeroes);*/
-        m_pEdgeXBitArrayUAV.bind();
-        gl.glClearBufferData(m_pEdgeXBitArrayUAV.getTarget(), GLenum.GL_R32F, GLenum.GL_RED, GLenum.GL_FLOAT, null);
+        m_pEdgeXBitArray.bind();
+        gl.glClearBufferData(m_pEdgeXBitArray.getTarget(), GLenum.GL_R32UI, GLenum.GL_RED, GLenum.GL_UNSIGNED_INT, null);
 
         // Unbind RT from output so we can use it as input for the edge detection shader
 //        ID3D11RenderTargetView* NullRT = NULL;
@@ -304,6 +319,7 @@ final class SAAPostProcessGPU {
             ByteBuffer bytes = CacheBuffer.getCachedByteBuffer(CSConstants.SIZE);
             pCB.store(bytes).flip();
             m_pConstantBuffer.update(0, bytes);
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_pConstantBuffer.getBuffer());
         }
 
         {
@@ -327,23 +343,26 @@ final class SAAPostProcessGPU {
             pConsts.store(bytes).flip();
             m_pEdgeDetectConstants.update(0, bytes);
 //            pContext->CSSetConstantBuffers( 7, 1, &m_pEdgeDetectConstants );
-            gl.glBindBufferBase(m_pEdgeDetectConstants.getTarget(), 1, m_pEdgeDetectConstants.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, m_pEdgeDetectConstants.getBuffer());
         }
 
         // First run edge detection shader
         /*ID3D11UnorderedAccessView* EdgeBitArrayUAVs[2] = { m_pEdgeXBitArrayUAV, m_pEdgeYBitArrayUAV };*/
-        gl.glBindBufferBase(m_pEdgeXBitArrayUAV.getTarget(), 2, m_pEdgeXBitArrayUAV.getBuffer());
-        gl.glBindBufferBase(m_pEdgeYBitArrayUAV.getTarget(), 3, m_pEdgeYBitArrayUAV.getBuffer());
+        gl.glBindImageTexture(0, m_pEdgeXBitArrayUAV, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_R32UI);
+        gl.glBindImageTexture(1, m_pEdgeYBitArrayUAV, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_R32UI);
         /*pContext->CSSetShader(m_pEdgeDetectionShader, NULL, 0);*/
         m_pEdgeDetectionShader.enable();
         /*pContext->CSSetShaderResources(0, 1, &m_pWorkingColorTextureSRV);*/
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(m_pWorkingColorTextureSRV.getTarget(), m_pWorkingColorTextureSRV.getTexture());
         /*pContext->CSSetConstantBuffers(0, 1, &m_pConstantBuffer);*/
-        gl.glBindBufferBase(m_pConstantBuffer.getTarget(), 0, m_pConstantBuffer.getBuffer());
 //        pContext->CSSetUnorderedAccessViews(0, 2, EdgeBitArrayUAVs, NULL);
         /*pContext->Dispatch(m_ThreadGroupCountX, m_ThreadGroupCountY, 1);*/
         gl.glDispatchCompute(m_ThreadGroupCountX, m_ThreadGroupCountY, 1);
+        gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        if(m_prinOnce == false){
+            m_pEdgeDetectionShader.printPrograminfo();
+        }
 
         // Unbind the edge bit arrays from CS output so we can bind them as inputs of next passes
         /*ID3D11UnorderedAccessView* NullUAVs[2] = { NULL, NULL };
@@ -356,8 +375,11 @@ final class SAAPostProcessGPU {
             pContext->CSSetUnorderedAccessViews(0, 1, &destColorUAV, NULL);
             pContext->Dispatch(m_DebugThreadGroupCountX, m_DebugThreadGroupCountY, 1);*/
             m_pEdgeDetectionDebugShader.enable();
-            gl.glBindImageTexture(0, destColorUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, destColorUAV.getFormat());
+            gl.glBindImageTexture(0, m_pEdgeXBitArrayUAV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+            gl.glBindImageTexture(1, m_pEdgeYBitArrayUAV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+            gl.glBindImageTexture(2, destColorUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, destColorUAV.getFormat());
             gl.glDispatchCompute(m_DebugThreadGroupCountX, m_DebugThreadGroupCountY, 1);
+            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
             if(!m_prinOnce){
                 m_pEdgeDetectionDebugShader.printPrograminfo();
             }
@@ -374,8 +396,10 @@ final class SAAPostProcessGPU {
             m_pHorizontalBlendingShader.enable();
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
             gl.glBindTexture(m_pWorkingColorTextureSRV.getTarget(), m_pWorkingColorTextureSRV.getTexture());
-            gl.glBindImageTexture(0, destColorUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, destColorUAV.getFormat());
+            gl.glBindImageTexture(0, m_pEdgeXBitArraySRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
+            gl.glBindImageTexture(1, destColorUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, destColorUAV.getFormat());
             gl.glDispatchCompute(m_ThreadGroupCountX, m_ThreadGroupCountY, 1);
+            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
             if(!m_prinOnce){
                 m_pHorizontalBlendingShader.printPrograminfo();
             }
@@ -385,6 +409,7 @@ final class SAAPostProcessGPU {
             pContext->CSSetShader(m_pVerticalBlendingShader, NULL, 0);
             pContext->CSSetShaderResources(0, 2, SRVs);
             pContext->Dispatch(m_ThreadGroupCountY, m_ThreadGroupCountX, 1);*/
+            gl.glBindImageTexture(0, m_pEdgeYBitArraySRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
             m_pVerticalBlendingShader.enable();
             gl.glDispatchCompute(m_ThreadGroupCountX, m_ThreadGroupCountY, 1);
             if(!m_prinOnce){
@@ -403,11 +428,12 @@ final class SAAPostProcessGPU {
         for( int i = 0; i < _countof(oldRenderTargetViews); i++ )
             SAFE_RELEASE( oldRenderTargetViews[i] );
         SAFE_RELEASE( oldDepthStencilView );*/
-        gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
+        gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_R32UI);
+        gl.glBindImageTexture(1, 0, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_R32UI);
+        gl.glBindImageTexture(2, 0, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_R32UI);
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, 0);
-        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
-        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
         m_prinOnce = true;
     }
 
@@ -429,10 +455,11 @@ final class SAAPostProcessGPU {
         @Override
         public ByteBuffer store(ByteBuffer buf) {
             CacheBuffer.put(buf, param);
+            buf.putInt(0);
+            buf.putInt(0);
+
             CacheBuffer.put(buf, pXY);
             buf.putFloat(PPAADEMO_gEdgeDetectionThreshold);
-            buf.putInt(0);
-            buf.putInt(0);
             buf.putInt(0);
             return buf;
         }

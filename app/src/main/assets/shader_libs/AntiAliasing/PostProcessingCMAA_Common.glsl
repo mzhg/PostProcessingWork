@@ -227,7 +227,7 @@ layout(binding = 0) uniform CMAAGlobals
 };
 
 layout(r8, binding = 0) uniform image2D g_resultTexture;
-layout(rgba8, binding = 1) uniform image2D g_resultTextureFlt4Slot1;
+layout(rgba16f, binding = 1) uniform image2D g_resultTextureFlt4Slot1;
 layout(r8, binding = 2) uniform image2D g_resultTextureSlot2;
 
 layout(binding = 0) uniform sampler2D g_screenTexture;

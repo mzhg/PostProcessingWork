@@ -17,6 +17,7 @@
 layout(binding = 0) uniform cbCS
 {
     uint2    ColorBufferTileCount;   // How many 32x32 tiles in the color buffer (rounded up)
+    uint2    Padding2;
     float2   InvColorBufferDims;     // (1/w, 1/h), where w and h are the dimensions of the color buffer
 
     float    PPAADEMO_gEdgeDetectionThreshold;

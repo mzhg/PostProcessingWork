@@ -50,7 +50,18 @@ layout(rgba8, binding = 1) uniform image2D Result;
 /*[numthreads(1,32,1)]
 void CSMain( uint3 TileCoords      : SV_GroupID,
              uint3 RowCoords       : SV_DispatchThreadID)*/
-layout (local_size_y = 32) in;
+layout (local_size_x= 1,local_size_y = 32) in;
+
+uint3 Load3(int offset)
+{
+    uint3 result;
+    result.x = imageLoad(EdgeHBitArray, offset).x;
+    result.y = imageLoad(EdgeHBitArray, offset+1).x;
+    result.z = imageLoad(EdgeHBitArray, offset+2).x;
+
+    return result;
+}
+
 void main()
 {
     uint3 TileCoords = gl_WorkGroupID;
@@ -65,16 +76,19 @@ void main()
 	// We retrieve the edge flags for this row of 32 pixels, as well as the rows on the left and right
 	// (The << 2 converts the offset to byte units)
 	uint3 current = /*EdgeHBitArray.Load3( (FlagsOffset - 1) << 2)*/
-	                imageLoad(EdgeHBitArray, int(FlagsOffset - 1)).xyz;  // TODO
+//	                imageLoad(EdgeHBitArray, int(FlagsOffset - 1)).xyz;
+	                Load3(int(FlagsOffset - 1));
 	uint BgMask = current.y;	// This is the edge bit mask for this row (Bg stands for "blending group")
 
 
 	if(BgMask != 0)
 	{	// There is at least one horizontal discontinuity flagged in this group of 32 pixels...
 		uint3 downLine = /*EdgeHBitArray.Load3( (FlagsDownOffset - 1) << 2 )*/
-		                imageLoad(EdgeHBitArray, int(FlagsDownOffset - 1)).xyz;  // TODO
+//		                imageLoad(EdgeHBitArray, int(FlagsDownOffset - 1)).xyz;  // TODO
+		                Load3(int(FlagsDownOffset - 1));
 		uint3 upLine   = /*EdgeHBitArray.Load3( (FlagsUpOffset -  1)  << 2 )*/
-		                imageLoad(EdgeHBitArray, int(FlagsUpOffset - 1)).xyz;  // TODO
+//		                imageLoad(EdgeHBitArray, int(FlagsUpOffset - 1)).xyz;  // TODO
+                        Load3(int(FlagsUpOffset - 1));
 
 		uint left = current.x, right = current.z;
 		uint downLeft = downLine.x, down = downLine.y, downRight = downLine.z;

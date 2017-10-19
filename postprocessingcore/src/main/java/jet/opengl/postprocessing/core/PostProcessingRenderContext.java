@@ -257,7 +257,8 @@ public final class PostProcessingRenderContext {
 //        gl.glBindTexture(GLenum.GL_TEXTURE_2D, src.getTexture());
 //        gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
 
-        GLCheck.checkError("renderTo: end");
+        if(GLCheck.CHECK)
+            GLCheck.checkError("renderTo: end");
     }
 
     private final Texture2DDesc outputDesc = new Texture2DDesc();

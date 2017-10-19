@@ -59,19 +59,9 @@ final class SMAAEffect implements Disposeable{
     private BufferGL            m_constantsBuffer;
 
     private Texture2D m_depthStencilTex;
-    private Texture2D    m_depthStencilTexDSV;
-
     private Texture2D            m_workingColorTexture;
-    private Texture2D     m_workingColorTextureRTV;
-    private Texture2D   m_workingColorTextureSRV;
-
     private Texture2D           m_edgesTex;
-    private Texture2D    m_edgesTexRTV;
-    private Texture2D   m_edgesTexSRV;
-
     private Texture2D            m_blendTex;
-    private Texture2D     m_blendTexRTV;
-    private Texture2D   m_blendTexSRV;
 
     //ID3D11Texture2D*            m_areaTex;
     private Texture2D   m_areaTexSRV;
@@ -203,16 +193,9 @@ final class SMAAEffect implements Disposeable{
         m_ScreenWidth = (float)width;
 
         CommonUtil.safeRelease( m_workingColorTexture );
-        CommonUtil.safeRelease( m_workingColorTextureSRV );
-        CommonUtil.safeRelease( m_workingColorTextureRTV );
         CommonUtil.safeRelease( m_edgesTex );
-        CommonUtil.safeRelease( m_edgesTexSRV );
-        CommonUtil.safeRelease( m_edgesTexRTV );
         CommonUtil.safeRelease( m_blendTex );
-        CommonUtil.safeRelease( m_blendTexSRV );
-        CommonUtil.safeRelease( m_blendTexRTV );
         CommonUtil.safeRelease( m_depthStencilTex    );
-        CommonUtil.safeRelease( m_depthStencilTexDSV );
 
         // Create working textures
         /*D3D11_TEXTURE2D_DESC td;
@@ -232,7 +215,7 @@ final class SMAAEffect implements Disposeable{
         assert( td.SampleDesc.Count == 1 ); // other not supported yet
         td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
         hr = pD3DDevice->CreateTexture2D( &td, NULL, &m_workingColorTexture ) ;*/
-        m_workingColorTextureRTV = m_workingColorTextureSRV = m_workingColorTexture =
+        m_workingColorTexture =
                 TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_RGBA8), null);
 
         /*{
@@ -250,8 +233,7 @@ final class SMAAEffect implements Disposeable{
             hr = ( pD3DDevice->CreateShaderResourceView( m_edgesTex, &srvd, &m_edgesTexSRV ) );
             hr = ( pD3DDevice->CreateRenderTargetView( m_edgesTex, &dsvDesc, &m_edgesTexRTV ) );
         }*/
-        m_edgesTexSRV = m_edgesTexRTV = m_edgesTex =
-                TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_RGBA8), null);
+        m_edgesTex = TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_RG8), null);
         /*hr = ( pD3DDevice->CreateTexture2D( &td, NULL, &m_blendTex ) );
         {
             CD3D11_SHADER_RESOURCE_VIEW_DESC srvd( m_blendTex, D3D11_SRV_DIMENSION_TEXTURE2D, td.Format );
@@ -259,8 +241,7 @@ final class SMAAEffect implements Disposeable{
             hr = ( pD3DDevice->CreateShaderResourceView( m_blendTex, &srvd, &m_blendTexSRV ) );
             hr = ( pD3DDevice->CreateRenderTargetView( m_blendTex, &dsvDesc, &m_blendTexRTV ) );
         }*/
-        m_blendTexSRV = m_blendTexRTV = m_blendTex =
-                TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_RGBA8), null);
+        m_blendTex = TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_RGBA8), null);
 
         /*td.Format       = DXGI_FORMAT_D24_UNORM_S8_UINT;
         td.BindFlags    = D3D11_BIND_DEPTH_STENCIL;
@@ -269,8 +250,7 @@ final class SMAAEffect implements Disposeable{
             CD3D11_DEPTH_STENCIL_VIEW_DESC dsvd( m_depthStencilTex, D3D11_DSV_DIMENSION_TEXTURE2D, td.Format );
             hr = ( pD3DDevice->CreateDepthStencilView( m_depthStencilTex, &dsvd, &m_depthStencilTexDSV ) );
         }*/
-        m_depthStencilTexDSV = m_depthStencilTex =
-                TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH24_STENCIL8), null);
+        m_depthStencilTex = TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH24_STENCIL8), null);
     }
 
     void    Draw(/*ID3D11DeviceContext* pD3DImmediateContext,*/ float PPAADEMO_gEdgeDetectionThreshold, Texture2D sourceColorSRV_SRGB,
@@ -280,7 +260,7 @@ final class SMAAEffect implements Disposeable{
         ID3D11RenderTargetView * oldRenderTargetViews[4] = { NULL };
         ID3D11DepthStencilView * oldDepthStencilView = NULL;
         context->OMGetRenderTargets( _countof(oldRenderTargetViews), oldRenderTargetViews, &oldDepthStencilView );*/
-        int oldRenderTarget = gl.glGetInteger(GLenum.GL_FRAMEBUFFER_BINDING);
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 
         // update consts
         {
@@ -291,8 +271,8 @@ final class SMAAEffect implements Disposeable{
             SMAAConstants *pCB = (SMAAConstants *) MappedResource.pData;*/
 
             SMAAConstants pCB = m_constants;
-            pCB.c_PixelSize[ 0 ]   = 1.0f / (float)m_ScreenWidth;
-            pCB.c_PixelSize[ 1 ]   = 1.0f / (float)m_ScreenHeight;
+            pCB.c_PixelSize[ 0 ]   = 1.0f / m_ScreenWidth;
+            pCB.c_PixelSize[ 1 ]   = 1.0f / m_ScreenHeight;
 
             pCB.c_Dummy[0]             = 0;
             pCB.c_Dummy[1]             = 0;
@@ -310,6 +290,7 @@ final class SMAAEffect implements Disposeable{
             ByteBuffer bytes = CacheBuffer.getCachedByteBuffer(SMAAConstants.SIZE);
             pCB.store(bytes).flip();
             m_constantsBuffer.update(0, bytes);
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_constantsBuffer.getBuffer());
         }
 
         {
@@ -330,10 +311,10 @@ final class SMAAEffect implements Disposeable{
         context->ClearRenderTargetView( m_edgesTexRTV, f4zero );
         context->ClearRenderTargetView( m_blendTexRTV, f4zero );
         context->ClearDepthStencilView( m_depthStencilTexDSV, D3D11_CLEAR_STENCIL, 0.0f, 0 );*/
-        gl.glClearTexImage(m_edgesTexRTV.getTexture(), 0, TextureUtils.measureFormat(m_edgesTexRTV.getFormat()), TextureUtils.measureDataType(m_edgesTexRTV.getFormat()), null);
-        gl.glClearTexImage(m_blendTexRTV.getTexture(), 0, TextureUtils.measureFormat(m_blendTexRTV.getFormat()), TextureUtils.measureDataType(m_blendTexRTV.getFormat()), null);
-        gl.glClearTexImage(m_depthStencilTexDSV.getTexture(), 0, TextureUtils.measureFormat(m_depthStencilTexDSV.getFormat()), TextureUtils.measureDataType(m_depthStencilTexDSV.getFormat()), null);
-
+        gl.glClearTexImage(m_edgesTex.getTexture(), 0, TextureUtils.measureFormat(m_edgesTex.getFormat()), TextureUtils.measureDataType(m_edgesTex.getFormat()), null);
+        gl.glClearTexImage(m_blendTex.getTexture(), 0, TextureUtils.measureFormat(m_blendTex.getFormat()), TextureUtils.measureDataType(m_blendTex.getFormat()), null);
+        gl.glDisable(GLenum.GL_BLEND);
+        gl.glDisable(GLenum.GL_CULL_FACE);
 //        m_quad->setInputLayout( context );
 
         // common textures
@@ -352,7 +333,8 @@ final class SMAAEffect implements Disposeable{
 
             /*context->OMSetRenderTargets( 1, &m_edgesTexRTV, m_depthStencilTexDSV );*/
             m_renderTargets.bind();
-            m_renderTargets.setRenderTextures(new TextureGL[]{m_edgesTexRTV, m_depthStencilTexDSV}, null);
+            m_renderTargets.setRenderTextures(new TextureGL[]{m_edgesTex, m_depthStencilTex}, null);
+            gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.0f, 0);
             /*context->PSSetShaderResources( 0, 1, &sourceColorSRV_SRGB );
             context->PSSetShaderResources( 1, 1, &sourceColorSRV_UNORM );*/
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
@@ -360,13 +342,15 @@ final class SMAAEffect implements Disposeable{
             gl.glActiveTexture(GLenum.GL_TEXTURE1);
             gl.glBindTexture(sourceColorSRV_UNORM.getTarget(), sourceColorSRV_UNORM.getTexture());
 
-            /*context->OMSetDepthStencilState( MySample::GetDSS_DepthDisabled_ReplaceStencil(), 1 );  TODO
+            /*context->OMSetDepthStencilState( MySample::GetDSS_DepthDisabled_ReplaceStencil(), 1 );
             context->OMSetBlendState( MySample::GetBS_Opaque(), f4zero, 0xFFFFFFFF );*/
+            gl.glDisable(GLenum.GL_DEPTH_TEST);
+            gl.glEnable(GLenum.GL_STENCIL_TEST);
+            gl.glStencilOp(GLenum.GL_KEEP, GLenum.GL_KEEP, GLenum.GL_REPLACE);
+            gl.glStencilFunc(GLenum.GL_ALWAYS, 1, 1);
 
 //            m_quad->draw( context );
-            m_quad.bind();
-            m_quad.draw(GLenum.GL_TRIANGLE_STRIP);
-            m_quad.unbind();
+            drawQuad();
 
             // this doesn't work unfortunately, there's some kind of mismatch - please don't change without confirming that before/after screen shots are pixel identical
             //MySample::FullscreenPassDraw( context, m_SMAAEdgeDetectionPS, m_SMAAEdgeDetectionVS, MySample::GetBS_Opaque(), MySample::GetDSS_DepthDisabled_ReplaceStencil(), 1, 0.0f );
@@ -389,17 +373,23 @@ final class SMAAEffect implements Disposeable{
             m_SMAABlendingWeightCalculationProgram.enable();
             /*context->OMSetRenderTargets( 1, &m_blendTexRTV, m_depthStencilTexDSV );
             context->PSSetShaderResources( 2, 1, &m_edgesTexSRV );*/
-            m_renderTargets.setRenderTextures(new TextureGL[]{m_blendTexRTV, m_depthStencilTexDSV}, null);
+            m_renderTargets.setRenderTextures(new TextureGL[]{m_blendTex, m_depthStencilTex}, null);
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
-            gl.glBindTexture(m_edgesTexSRV.getTarget(), m_edgesTexSRV.getTexture());
+            gl.glBindTexture(m_edgesTex.getTarget(), m_edgesTex.getTexture());
+            gl.glActiveTexture(GLenum.GL_TEXTURE1);
+            gl.glBindTexture(m_areaTexSRV.getTarget(), m_areaTexSRV.getTexture());
+            gl.glActiveTexture(GLenum.GL_TEXTURE2);
+            gl.glBindTexture(m_searchTexSRV.getTarget(), m_searchTexSRV.getTexture());
 
             /*context->OMSetDepthStencilState( MySample::GetDSS_DepthDisabled_UseStencil(), 1 );  TODO
             context->OMSetBlendState( MySample::GetBS_Opaque(), f4zero, 0xFFFFFFFF );*/
+            gl.glDisable(GLenum.GL_DEPTH_TEST);
+            gl.glEnable(GLenum.GL_STENCIL_TEST);
+            gl.glStencilOp(GLenum.GL_KEEP, GLenum.GL_KEEP, GLenum.GL_REPLACE);
+            gl.glStencilFunc(GLenum.GL_EQUAL, 1, 1);
 
 //            m_quad->draw( context );
-            m_quad.bind();
-            m_quad.draw(GLenum.GL_TRIANGLE_STRIP);
-            m_quad.unbind();
+            drawQuad();
 
             if(!m_prinOnce){
                 m_SMAABlendingWeightCalculationProgram.printPrograminfo();
@@ -419,21 +409,22 @@ final class SMAAEffect implements Disposeable{
             context->PSSetShaderResources( 0, 1, &sourceColorSRV_SRGB );
             context->PSSetShaderResources( 1, 1, &sourceColorSRV_UNORM );
             context->PSSetShaderResources( 3, 1, &m_blendTexSRV );*/
-            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, oldRenderTarget);
+            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
             gl.glActiveTexture(GLenum.GL_TEXTURE0);
-            gl.glBindTexture(sourceColorSRV_SRGB.getTarget(), sourceColorSRV_SRGB.getTexture());
-            gl.glActiveTexture(GLenum.GL_TEXTURE1);
             gl.glBindTexture(sourceColorSRV_UNORM.getTarget(), sourceColorSRV_UNORM.getTexture());
-            gl.glActiveTexture(GLenum.GL_TEXTURE2);
-            gl.glBindTexture(m_blendTexSRV.getTarget(), m_blendTexSRV.getTexture());
+            gl.glActiveTexture(GLenum.GL_TEXTURE1);
+            gl.glBindTexture(m_blendTex.getTarget(), m_blendTex.getTexture());
 
             /*context->OMSetDepthStencilState( MySample::GetDSS_DepthDisabled_NoDepthWrite(), 1 );  TODO
             context->OMSetBlendState( MySample::GetBS_Opaque(), f4zero, 0xFFFFFFFF );*/
+            gl.glDisable(GLenum.GL_DEPTH_TEST);
+            gl.glDisable(GLenum.GL_STENCIL_TEST);
+            gl.glDepthMask(false);
 
 //            m_quad->draw( context );
-            m_quad.bind();
-            m_quad.draw(GLenum.GL_TRIANGLE_STRIP);
-            m_quad.unbind();
+            drawQuad();
+            gl.glDepthMask(true);
+
             if(!m_prinOnce){
                 m_SMAANeighborhoodBlendingProgram.printPrograminfo();
             }
@@ -449,7 +440,8 @@ final class SMAAEffect implements Disposeable{
         gl.glActiveTexture(GLenum.GL_TEXTURE1);
         gl.glBindTexture(sourceColorSRV_UNORM.getTarget(), 0);
         gl.glActiveTexture(GLenum.GL_TEXTURE2);
-        gl.glBindTexture(m_blendTexSRV.getTarget(), 0);
+        gl.glBindTexture(m_blendTex.getTarget(), 0);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0,0);
 
         // Restore old stencil/depth
         /*context->OMSetRenderTargets( _countof(oldRenderTargetViews), oldRenderTargetViews, oldDepthStencilView );
@@ -457,6 +449,14 @@ final class SMAAEffect implements Disposeable{
             SAFE_RELEASE( oldRenderTargetViews[i] );
         SAFE_RELEASE( oldDepthStencilView );*/
         m_prinOnce = true;
+    }
+
+    private void drawQuad(){
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+//        m_quad.bind();
+//        m_quad.draw(GLenum.GL_TRIANGLE_STRIP);
+//        m_quad.unbind();
     }
 
     @Override
@@ -472,16 +472,9 @@ final class SMAAEffect implements Disposeable{
         CommonUtil.safeRelease( m_searchTexSRV    );
 
         CommonUtil.safeRelease( m_workingColorTexture );
-        CommonUtil.safeRelease( m_workingColorTextureSRV );
-        CommonUtil.safeRelease( m_workingColorTextureRTV );
         CommonUtil.safeRelease( m_edgesTex );
-        CommonUtil.safeRelease( m_edgesTexSRV );
-        CommonUtil.safeRelease( m_edgesTexRTV );
         CommonUtil.safeRelease( m_blendTex );
-        CommonUtil.safeRelease( m_blendTexSRV );
-        CommonUtil.safeRelease( m_blendTexRTV );
         CommonUtil.safeRelease( m_depthStencilTex    );
-        CommonUtil.safeRelease( m_depthStencilTexDSV );
     }
 
     public static class SMAAConstants implements Readable{

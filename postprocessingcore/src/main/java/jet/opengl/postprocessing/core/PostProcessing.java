@@ -94,6 +94,10 @@ public class PostProcessing implements Disposeable{
     private RecycledPool<LightScatteringInitAttribs> m_LightScatteringInitAttribsPool;
     private RecycledPool<OutdoorLightScatteringInitAttribs> m_OutdoorLightScatteringInitAttribsPool;
 
+    private PostProcessingRenderPassInput m_ColorInput;
+    private PostProcessingRenderPassInput m_DepthInput;
+    private PostProcessingRenderPassInput m_ShadowInput;
+
     public PostProcessing(){
         m_Parameters = new PostProcessingParameters(this);
         registerEffect(new PostProcessingRadialBlurEffect());
@@ -244,23 +248,28 @@ public class PostProcessing implements Disposeable{
             return;
         }
 
+        if(m_ColorInput == null){
+            m_ColorInput = new PostProcessingRenderPassInput("SceneColor", frameAttribs.sceneColorTexture);
+            m_DepthInput = new PostProcessingRenderPassInput("SceneDepth", frameAttribs.sceneDepthTexture);
+            m_ShadowInput = new PostProcessingRenderPassInput("ShadowMap", frameAttribs.shadowMapTexture);
+        }else{
+            m_ColorInput.setInputTextureInternal(frameAttribs.sceneColorTexture);
+            m_DepthInput.setInputTextureInternal(frameAttribs.sceneDepthTexture);
+            m_ShadowInput.setInputTextureInternal(frameAttribs.shadowMapTexture);
+        }
+
+
         m_CurrentEffects.sort(null);
         if(m_CurrentEffects.size() != m_PrevEffects.size() || !m_CurrentEffects.equals(m_PrevEffects)){
             m_AddedRenderPasses.clear();
             m_LastAddedPass = null;
 
-            PostProcessingRenderPassInput colorInputPass = new PostProcessingRenderPassInput("SceneColor", frameAttribs.sceneColorTexture);
-            PostProcessingRenderPassInput depthInputPass = new PostProcessingRenderPassInput("SceneDepth", frameAttribs.sceneDepthTexture);
-            PostProcessingRenderPassInput shadowMapInput = new PostProcessingRenderPassInput("shadowMap", frameAttribs.shadowMapTexture);
-
             PostProcessingCommonData commonData = new PostProcessingCommonData();
             commonData.frameAttribs = frameAttribs;
-            commonData.sceneColorTexture = colorInputPass;
-            commonData.sceneDepthTexture = depthInputPass;
-            commonData.shadowMapTexture = shadowMapInput;
+            commonData.sceneColorTexture = m_ColorInput;
+            commonData.sceneDepthTexture = m_DepthInput;
+            commonData.shadowMapTexture = m_ShadowInput;
 
-//            m_AddedRenderPasses.put("SceneColor", colorInputPass);  TODO maybe cause problems
-//            m_AddedRenderPasses.put("SceneDepth", depthInputPass);
             EffectTag lastTag = null;
             if(m_CurrentEffects.size() > 0)
                 lastTag = m_CurrentEffects.get(m_CurrentEffects.size() - 1);

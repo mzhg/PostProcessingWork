@@ -13,7 +13,7 @@
     SMAAEdgeDetectionVS(position, svPosition, texcoord, offset);
 }*/
 
-layout(location = 0) out float2 OutColor;
+layout(location = 0) out float4 OutColor;
 
 in float4 offset[3];
 in float2 texcoord;
@@ -24,8 +24,10 @@ layout(binding = 1) uniform sampler2D depthTex;
 void main()
 {
     #if SMAA_PREDICATION == 1
-    OutColor = SMAAColorEdgeDetectionPS(texcoord, offset, colorTex_UNORM, depthTex);
+    OutColor.xy = SMAAColorEdgeDetectionPS(texcoord, offset, colorTex_UNORM, depthTex);
     #else
-    OutColor = SMAAColorEdgeDetectionPS(texcoord, offset, colorTex_UNORM);
+    OutColor.xy = SMAAColorEdgeDetectionPS(texcoord, offset, colorTex_UNORM);
     #endif
+
+    OutColor.zw = float2(0);
 }

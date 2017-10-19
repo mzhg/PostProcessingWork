@@ -566,7 +566,7 @@ final class CMAAEffect implements Disposeable{
             gl.glClearDepthf(1.0f);
             gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
 
-            gl.glBindImageTexture(1, m_workingColorTexture.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, /*m_workingColorTexture.getFormat()*/ GLenum.GL_RGBA8);
+            gl.glBindImageTexture(1, m_workingColorTexture.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, m_workingColorTexture.getFormat());
 
             /*context->PSSetShaderResources( 0, 1, &sourceColorSRV_UNORM );
             MySample::FullscreenPassDraw( context, m_edges0PS, NULL, MySample::GetBS_Opaque(), m_renderCreateMaskDSS, 0, 1.0f );

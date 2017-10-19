@@ -13,15 +13,15 @@
     SMAAEdgeDetectionVS(position, svPosition, texcoord, offset);
 }*/
 
-layout(location = 0) in float4 In_Position;
-layout(location = 1) in float2 In_Texcoord;
-
 out float4 offset[3];
 out float2 texcoord;
 
 void main()
 {
-    SMAAEdgeDetectionVS(In_Texcoord, offset);
-    gl_Position = In_Position;
-    texcoord = In_Texcoord;
+    int idx = gl_VertexID % 3;  // allows rendering multiple fullscreen triangles
+    float2 m_f4UVAndScreenPos = float2((idx << 1) & 2, idx & 2);
+    gl_Position = vec4(m_f4UVAndScreenPos.xy * 2.0 - 1.0, 0, 1);
+
+    SMAAEdgeDetectionVS(m_f4UVAndScreenPos, offset);
+    texcoord = m_f4UVAndScreenPos;
 }

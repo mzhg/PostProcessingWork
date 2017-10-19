@@ -13,15 +13,15 @@
     SMAAEdgeDetectionVS(position, svPosition, texcoord, offset);
 }*/
 
-layout(location = 0) in float4 In_Position;
-layout(location = 1) in float2 In_Texcoord;
-
 out float4 offset;
 out float2 texcoord;
 
 void main()
 {
-    gl_Position = In_Position;
+    int idx = gl_VertexID % 3;
+    float2 In_Texcoord = float2((idx << 1) & 2, idx & 2);
+    gl_Position = vec4(In_Texcoord.xy * 2.0 - 1.0, 0, 1);
+
     SMAANeighborhoodBlendingVS(In_Texcoord, offset);
     texcoord = In_Texcoord;
 }

@@ -1,7 +1,10 @@
 package jet.opengl.postprocessing.core;
 
+import java.util.List;
+
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
 
 /**
  * Created by mazhen'gui on 2017/4/17.
@@ -47,11 +50,13 @@ public class PostProcessingRenderPassInput extends  PostProcessingRenderPass {
         return 0;
     }
 
-    boolean resolveDependencies(int depentSlot) {
-        return false;
+    void setInputTextureInternal(Texture2D texture){
+        m_inputTexture = texture;
     }
 
-    void setInputTextures(Texture2D[] _inputTextures) {}
+    void resolveDependencies() {}
+
+    void setInputTextures(List<TextureGL> _inputTextures) {}
 
     void setOutputRenderTexture(int slot, Texture2D texture) {}
 
