@@ -277,7 +277,7 @@ public class GLSLProgram implements OpenGLProgram{
 	 * shader types such as geometry and tessellation shaders (if supported)
 	 * @return true on success and false on failure
 	 */
-	protected boolean setSourceFromStrings(ShaderSourceItem... srcs){
+	public boolean setSourceFromStrings(ShaderSourceItem... srcs){
 		if(m_program != 0){
 			gl.glDeleteProgram(m_program);
 			m_program = 0;

@@ -298,6 +298,7 @@ final class SAAPostProcessGPU {
         pContext->ClearUnorderedAccessViewUint(m_pEdgeXBitArrayUAV, Zeroes);*/
         m_pEdgeXBitArray.bind();
         gl.glClearBufferData(m_pEdgeXBitArray.getTarget(), GLenum.GL_R32UI, GLenum.GL_RED, GLenum.GL_UNSIGNED_INT, null);
+        m_pEdgeXBitArray.unbind();
 
         // Unbind RT from output so we can use it as input for the edge detection shader
 //        ID3D11RenderTargetView* NullRT = NULL;
@@ -411,7 +412,8 @@ final class SAAPostProcessGPU {
             pContext->Dispatch(m_ThreadGroupCountY, m_ThreadGroupCountX, 1);*/
             gl.glBindImageTexture(0, m_pEdgeYBitArraySRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
             m_pVerticalBlendingShader.enable();
-            gl.glDispatchCompute(m_ThreadGroupCountX, m_ThreadGroupCountY, 1);
+            gl.glDispatchCompute(m_ThreadGroupCountY, m_ThreadGroupCountX, 1);
+            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
             if(!m_prinOnce){
                 m_pVerticalBlendingShader.printPrograminfo();
             }

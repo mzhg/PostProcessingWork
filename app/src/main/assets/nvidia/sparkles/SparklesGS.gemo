@@ -1,0 +1,235 @@
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+struct Sparkles_VSOut
+{
+    vec4 position;
+    vec3 normal;
+};
+
+//in Sparkles_VSOut _input[];
+
+in Sparkles_VS
+{
+    vec4 position;
+    vec3 normal;
+    flat int instanceID;
+}_input[];
+
+layout(binding = 0) uniform FrameData
+{
+    mat4 worldViewProj;
+    mat4 viewProj;
+    mat4 world;
+    mat4 worldIT;
+    vec3 eyePos;
+    float Shininess;
+
+    float minSZ;
+    float maxSZ;
+    float LODScale;
+    float near_far_scrratio;
+    vec3 lightPos;
+};
+
+layout(binding = 1) uniform random_barycentrics
+{
+   vec3 BCCoords[256];
+};
+
+layout(binding = 0) uniform sampler2D texture_depth;
+
+const int     g_maxSprites = 5;
+#define MINSZ minSZ
+#define MAXSZ maxSZ
+#define RATIOXY near_far_scrratio
+#define EPSILONZ 0.1
+#define SLICES 30
+
+const vec2 CSTable[] = vec2[30]
+(
+vec2(1.000000,0.000000),vec2(1.000000,0.000000),vec2(0.642788,0.766044),
+vec2(0.500000,0.866025),vec2(0.642788,0.766044),vec2(0.766044,0.642788),vec2(0.374607,0.927184),vec2(0.766044,0.642788),
+vec2(1.000000,0.000000),vec2(0.999848,0.017452),vec2(0.996195,0.087156),vec2(0.567844,0.823136),vec2(0.996195,0.087156),
+vec2(0.999848,0.017452),vec2(0.939693,0.342020),vec2(0.766044,0.642788),vec2(0.866025,0.500000),vec2(0.999391,0.034899),
+vec2(1.000000,0.000000),vec2(1.000000,0.000000),vec2(0.939693,0.342020),vec2(1.000000,0.000000),vec2(0.984808,0.173648),
+vec2(0.939693,0.342020),vec2(0.984808,0.173648),vec2(0.996195,0.087156),vec2(0.939693,0.342020),vec2(0.996195,0.087156),
+vec2(1.000000,0.000000),vec2(1.000000,0.000000)
+);
+
+//////////////////////////////////////////////////////////////////////////////////
+// MISC FUNCTIONS USED IN GS
+//////////////////////////////////////////////////////////////////////////////////
+Sparkles_VSOut barycentricWeights(const Sparkles_VSOut a, const Sparkles_VSOut b, const Sparkles_VSOut c, vec3 nw)
+{
+    Sparkles_VSOut V;
+    V.position = (nw.x * a.position + nw.y * b.position + nw.z * c.position );
+    V.normal = normalize((nw.x * a.normal + nw.y * b.normal + nw.z * c.normal));
+    return V;
+}
+
+vec4 computeSpriteCorner(vec2 dir2d, vec4 position, float scale, vec4 offset)
+{
+    vec2 s;
+    vec4 P;
+    // we want the sparkles be 2d scaled. Size not changed by perspective.
+    // But you can try with perspective bNoPersp=false (and increasing maxSZ parameter to ~2.5)
+    const bool bNoPersp = false;
+    if(bNoPersp)
+    {
+        position /= position.w;
+    }
+    s = vec2(1,RATIOXY)*((scale * offset.y) + offset.x);
+    P.xy = dir2d*s + position.xy;
+    s = vec2(1,RATIOXY)*((scale * offset.w) + offset.z);
+    P.x = ( dir2d.y * s.x) + P.x;
+    P.y = (-dir2d.x * s.y) + P.y;
+    P.zw = position.zw;
+    return P;
+}
+float OcclusionTest(vec2 P2D, vec4 P)
+{
+    vec2 DepthRTSz = vec2(textureSize(texture_depth, 0));
+    ivec3 iPos = ivec3(DepthRTSz*(P2D* 0.5 + 0.5), 0);   // TODO
+    float d;
+    d = texelFetch(texture_depth, iPos.xy, 0).x;
+    return (P.z-EPSILONZ) <= d ? 1.0 : 0.0;
+}
+
+out vec2 m_texcoord;
+
+void drawSprite(/*inout TriangleStream<Sparkles_GSOut> Stream, */Sparkles_VSOut V, vec3 Lwv/*, float alpha*/)
+{
+    /*Sparkles_GSOut output;
+    if(alpha == 0.0)
+      return;*/
+    vec4 Po = V.position;
+    vec4 Pw = world * Po;
+//    vec3 Nw = normalize(mul(vec4(V.normal,0), worldIT).xyz);
+    vec3 Nw = normalize((worldIT * vec4(V.normal,0)).xyz);
+
+    vec3 lightDir = normalize(Lwv - Pw.xyz);
+    vec3 eyeDir = normalize(/*viewI[3]*/eyePos.xyz - Pw.xyz);   // TODO
+    //
+    // get the second point
+    //
+    vec4 P2wv;
+    P2wv.xyz = cross(lightDir, Nw) + Pw.xyz;
+    P2wv.w = 0;
+    //
+    // specular vector
+    //
+    vec3 HalfV = normalize(lightDir + eyeDir);
+    //
+    // compute the crystal reflection
+    //
+    vec2 NLCosSin;
+    int index;
+    float NDotL;
+    float NDotH;
+
+    // Note : we don't use diffuse part...
+    /*NLCosSin.x =    dot(Nw, lightDir);
+    NLCosSin.y =    sqrt(1-(NLCosSin.x * NLCosSin.x));
+    index =         max(NLCosSin.x * SLICES, 4);
+    NLCosSin =      NLCosSin * CSTable[index];
+    NDotL =         NLCosSin.x + NLCosSin.y;*/
+
+    NLCosSin.x =    max(dot(Nw, HalfV), 0.0);
+    NLCosSin.y =    sqrt(1.0-(NLCosSin.x * NLCosSin.x));
+    index =         max(int(NLCosSin.x * SLICES), 4);
+    NLCosSin =      NLCosSin * CSTable[index];
+    NDotH =         NLCosSin.x + NLCosSin.y;
+    float scale =   pow(max(NDotH, 0.0), Shininess);
+    //float scale =   lit(0.0/*NDotL*/, NDotH, Shininess).z; // y = diffuse, z = specular
+    //
+    // Projections
+    //
+    vec4 projpos1 = viewProj * Pw;
+    vec4 projpos2 = viewProj * P2wv;
+    vec2 pos2d1 = projpos1.xy / projpos1.ww;
+    vec2 pos2d2 = projpos2.xy / projpos2.ww;
+    
+    scale *= OcclusionTest(pos2d1, projpos1);
+    
+    if(scale > 0.0)
+    {
+        vec2 dir2d  = normalize(pos2d2 - pos2d1);
+
+//        output.alpha = alpha;
+        gl_Position = computeSpriteCorner(dir2d, projpos1, scale, vec4(-MINSZ, -MAXSZ, MINSZ, MAXSZ));
+        m_texcoord = vec2(0,1);
+//        Stream.Append(output);
+        EmitVertex();
+
+        vec4 P11 = computeSpriteCorner(dir2d, projpos1, scale, vec4(MINSZ, MAXSZ, MINSZ, MAXSZ)); //P - vec4(Sz.x, Sz.y, 0, 0);
+        gl_Position = P11;
+        m_texcoord = vec2(1,1);
+//        Stream.Append(output);
+        EmitVertex();
+
+        vec4 P00 = computeSpriteCorner(dir2d, projpos1, scale, vec4(-MINSZ, -MAXSZ, -MINSZ, -MAXSZ)); //P - vec4(Sz.z, Sz.w, 0, 0);
+        gl_Position = P00;
+        m_texcoord = vec2(0,0);
+//        Stream.Append(output);
+        EmitVertex();
+
+        gl_Position = computeSpriteCorner(dir2d, projpos1, scale, vec4(MINSZ, MAXSZ, -MINSZ, -MAXSZ)); //P - vec4(Sz.x, Sz.w, 0, 0);
+        m_texcoord = vec2(1,0);
+//        Stream.Append(output);
+//        Stream.RestartStrip();
+        EmitVertex();
+        EndPrimitive();
+    }
+}
+
+Sparkles_VSOut wrapData(int idx)
+{
+    Sparkles_VSOut _out;
+    _out.normal = _input[idx].normal;
+    _out.position = _input[idx].position;
+    return _out;
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+// GEOM. SHADERS GEOM. SHADERS GEOM. SHADERS GEOM. SHADERS GEOM. SHADERS
+// A Sprite (quad) will have 4 x (4+3) = 28 floats
+// Let's set the Max amount of sprites to 2. You can ask for more but beware that this has a cost (!)
+void main()
+{
+    float instanceID = _input[0].instanceID; // take one vertex for instanceID...
+    vec4 projP[3];
+    vec2 pos2d[3];
+    for(int i=0; i<3; i++)
+    {
+        projP[i] = worldViewProj * _input[i].position;
+        pos2d[i] = projP[i].xy / projP[i].ww;
+    }
+    vec2 v1 = (pos2d[2]-pos2d[0]);
+    vec2 v2 = (pos2d[1]-pos2d[0]);
+    float projSurf = (v1.x*v2.y - v2.x*v1.y) * LODScale;
+
+    float nsprites = min(projSurf, g_maxSprites);
+
+    if(instanceID > nsprites) // This instance has nothering to do here
+        return;
+    int primID = gl_PrimitiveIDIn;
+    // use primID to add some 'noise' on the way to fetch barycentric coords
+    int offset = primID % (256 - g_maxSprites);
+
+    Sparkles_VSOut _input0 = wrapData(0);
+    Sparkles_VSOut _input1 = wrapData(1);
+    Sparkles_VSOut _input2 = wrapData(2);
+
+    if(nsprites >= 1.0)
+    {
+        nsprites = instanceID + offset;
+        Sparkles_VSOut Vtx = barycentricWeights(_input0, _input1, _input2, BCCoords[int(nsprites)]);
+        drawSprite(Vtx, lightPos/*, 1.0*/);
+    }
+    else if(0 == (primID % int(round(1.0/projSurf))))// here when we want to bypass some of the triangles
+    {
+        Sparkles_VSOut Vtx = barycentricWeights(_input0, _input1, _input2, BCCoords[offset]);
+        drawSprite(Vtx, lightPos/*, 1.0*/);
+    }
+}
