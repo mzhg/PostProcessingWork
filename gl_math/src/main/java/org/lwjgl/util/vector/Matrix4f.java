@@ -2178,6 +2178,20 @@ public class Matrix4f extends Matrix implements Serializable {
 		
 		return dest;
 	}
+
+	/** Extract the normal matrix from the modelview matrix.<p>
+	 *  More details in the book <p><i>Mathematics for 3D.Game Programming and Computer Graphics Lengyel,.3ed,.Course,.2012</i></p> on the pages 78-80. */
+	public static Matrix4f getNormalMatrix(Matrix4f modelView, Matrix4f dest){
+		if(dest == null)
+			dest = new Matrix4f();
+
+		dest.load(modelView);
+		dest.m30 = dest.m31 = dest.m32 = 0;
+		dest.invert();
+		dest.transpose();
+
+		return dest;
+	}
 	
 	/**
 	 * Convert a rotation matrix back into a unit rotation vector <i>axis</i> and a rotation angle.

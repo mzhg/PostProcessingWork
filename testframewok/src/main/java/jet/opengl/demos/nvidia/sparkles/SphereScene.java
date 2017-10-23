@@ -5,8 +5,11 @@ import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.models.QuadricBuilder;
 import com.nvidia.developer.opengl.models.QuadricMesh;
 import com.nvidia.developer.opengl.models.QuadricSphere;
+import com.nvidia.developer.opengl.ui.NvTweakBar;
+import com.nvidia.developer.opengl.utils.FieldControl;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -38,6 +41,7 @@ final class SphereScene extends BaseScene {
     private final float shinefact = 50;
     private float alpha;
     private float beta;
+    private boolean mAnimation = true;
 
     private GLVAO m_sphere;
 
@@ -73,9 +77,16 @@ final class SphereScene extends BaseScene {
     }
 
     @Override
+    public void onCreateUI(NvTweakBar tweakBar) {
+        tweakBar.addValue("Animation", new FieldControl(this, "mAnimation"));
+    }
+
+    @Override
     protected void update(float dt) {
-        alpha += (0.6 * dt);
-        beta += (0.2234 * dt);
+        if(mAnimation) {
+            alpha += (0.6 * dt);
+            beta += (0.2234 * dt);
+        }
     }
 
     private void updateTransform(){
@@ -96,6 +107,7 @@ final class SphereScene extends BaseScene {
     }
 
     public GLVAO getSphere() {return m_sphere;}
+    public ReadableVector3f getLightPos() { return light_pos;}
 
     @Override
     protected void onRender(boolean clearFBO) {

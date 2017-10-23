@@ -1,6 +1,7 @@
 package jet.opengl.demos.nvidia.sparkles;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Readable;
@@ -15,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.util.StringTokenizer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -22,13 +24,14 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
+import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileUtils;
 
 /**
  * Created by mazhen'gui on 2017/10/21.
  */
-
 public class SparklesDemo extends NvSampleApp {
     private GLSLProgram sparklesRenderProgram;
     private SphereScene mScene;
@@ -38,6 +41,7 @@ public class SparklesDemo extends NvSampleApp {
 
     private GLFuncProvider gl;
     private final FrameData frameData = new FrameData();
+    private Texture2D m_star_tex;
 
     @Override
     protected void initRendering() {
@@ -51,28 +55,86 @@ public class SparklesDemo extends NvSampleApp {
         frame_buffer.initlize(GLenum.GL_UNIFORM_BUFFER, FrameData.SIZE, null, GLenum.GL_DYNAMIC_READ);
         frame_buffer.unbind();
 
+        try {
+            int star_tex = NvImage.uploadTextureFromDDSFile("nvidia/sparkles/star.dds");
+            m_star_tex = TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, star_tex);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         sparklesRenderProgram = createSparklesRenderProgram();
         sparklesRenderProgram.printPrograminfo();
 
         mScene = new SphereScene();
         mScene.setNVApp(this);
         mScene.initScene();
+
+        getGLContext().setSwapInterval(0);
+    }
+
+    @Override
+    public void initUI() {
+        mScene.onCreateUI(mTweakBar);
     }
 
     @Override
     public void display() {
         mScene.draw(true, true);
-        mScene.resoveMultisampleTexture();
+        GLCheck.checkError();
+
+        mScene.resoveMultisampleTexture(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
+        GLCheck.checkError();
 
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, ramdom_data.getBuffer());
 
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(mScene.getSceneDepthTex().getTarget(), mScene.getSceneDepthTex().getTexture());
+        gl.glActiveTexture(GLenum.GL_TEXTURE1);
+        gl.glBindTexture(m_star_tex.getTarget(), m_star_tex.getTexture());
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glDepthMask(false);
+        gl.glEnable(GLenum.GL_BLEND);
+        gl.glBlendFuncSeparate(GLenum.GL_SRC_COLOR, GLenum.GL_ONE, GLenum.GL_ZERO, GLenum.GL_ONE);
+        sparklesRenderProgram.enable();
+        frameData.lightPos.set(mScene.getLightPos());
+
+        // Two sphere need render
+
+        mScene.getViews(frameData.world, true);
+        frameData.viewProj.load(mScene.getSceneData().getViewProjMatrix());
+        Matrix4f.getNormalMatrix(frameData.world, frameData.worldIT);
+        Matrix4f.mul(frameData.viewProj, frameData.world, frameData.worldViewProj);
         ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(FrameData.SIZE);
         frameData.store(buffer).flip();
         frame_buffer.update(0, buffer);
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, frame_buffer.getBuffer());
+        mScene.getSphere().bind();
+        mScene.getSphere().draw(GLenum.GL_TRIANGLES, 5);
+        mScene.getSphere().unbind();
 
-        // TODO
+        mScene.getViews(frameData.world, false);
+        frameData.viewProj.load(mScene.getSceneData().getViewProjMatrix());
+        Matrix4f.getNormalMatrix(frameData.world, frameData.worldIT);
+        Matrix4f.mul(frameData.viewProj, frameData.world, frameData.worldViewProj);
+        buffer = CacheBuffer.getCachedByteBuffer(FrameData.SIZE);
+        frameData.store(buffer).flip();
+        frame_buffer.update(0, buffer);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, frame_buffer.getBuffer());
+        mScene.getSphere().bind();
+        mScene.getSphere().draw(GLenum.GL_TRIANGLES, 5);
+        mScene.getSphere().unbind();
+
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(mScene.getSceneDepthTex().getTarget(),0);
+        gl.glDepthMask(true);
+        gl.glDisable(GLenum.GL_BLEND);
+
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, 0);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
+
+        GLCheck.checkError();
     }
 
     @Override
@@ -159,7 +221,8 @@ public class SparklesDemo extends NvSampleApp {
         float LODScale = 30.0f;
         float near_far_scrratio;
 
-        final Vector3f lightPos = new Vector3f(20.0f, 4, -10.0f);
+//        final Vector3f lightPos = new Vector3f(20.0f, 4, -10.0f);
+        final Vector3f lightPos = new Vector3f(5,5,10);
 
         @Override
         public ByteBuffer store(ByteBuffer buf) {

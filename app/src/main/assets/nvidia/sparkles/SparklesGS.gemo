@@ -43,7 +43,7 @@ const int     g_maxSprites = 5;
 #define MINSZ minSZ
 #define MAXSZ maxSZ
 #define RATIOXY near_far_scrratio
-#define EPSILONZ 0.1
+#define EPSILONZ 0.01
 #define SLICES 30
 
 const vec2 CSTable[] = vec2[30]
@@ -74,7 +74,7 @@ vec4 computeSpriteCorner(vec2 dir2d, vec4 position, float scale, vec4 offset)
     vec4 P;
     // we want the sparkles be 2d scaled. Size not changed by perspective.
     // But you can try with perspective bNoPersp=false (and increasing maxSZ parameter to ~2.5)
-    const bool bNoPersp = false;
+    const bool bNoPersp = true;
     if(bNoPersp)
     {
         position /= position.w;
@@ -87,13 +87,15 @@ vec4 computeSpriteCorner(vec2 dir2d, vec4 position, float scale, vec4 offset)
     P.zw = position.zw;
     return P;
 }
+
 float OcclusionTest(vec2 P2D, vec4 P)
 {
     vec2 DepthRTSz = vec2(textureSize(texture_depth, 0));
-    ivec3 iPos = ivec3(DepthRTSz*(P2D* 0.5 + 0.5), 0);   // TODO
+    ivec3 iPos = ivec3(DepthRTSz*(P2D* 0.5 + 0.5), 0);
     float d;
     d = texelFetch(texture_depth, iPos.xy, 0).x;
-    return (P.z-EPSILONZ) <= d ? 1.0 : 0.0;
+    float zValue = 0.5 * P.z/P.w + 0.5; // remap [-1, 1] to [0, 1]
+    return (zValue-EPSILONZ) <= d ? 1.0 : 0.0;
 }
 
 out vec2 m_texcoord;
@@ -109,7 +111,7 @@ void drawSprite(/*inout TriangleStream<Sparkles_GSOut> Stream, */Sparkles_VSOut 
     vec3 Nw = normalize((worldIT * vec4(V.normal,0)).xyz);
 
     vec3 lightDir = normalize(Lwv - Pw.xyz);
-    vec3 eyeDir = normalize(/*viewI[3]*/eyePos.xyz - Pw.xyz);   // TODO
+    vec3 eyeDir = normalize(/*viewI[3]*/eyePos.xyz - Pw.xyz);
     //
     // get the second point
     //
@@ -147,8 +149,8 @@ void drawSprite(/*inout TriangleStream<Sparkles_GSOut> Stream, */Sparkles_VSOut 
     //
     vec4 projpos1 = viewProj * Pw;
     vec4 projpos2 = viewProj * P2wv;
-    vec2 pos2d1 = projpos1.xy / projpos1.ww;
-    vec2 pos2d2 = projpos2.xy / projpos2.ww;
+    vec2 pos2d1 = projpos1.xy / projpos1.w;
+    vec2 pos2d2 = projpos2.xy / projpos2.w;
     
     scale *= OcclusionTest(pos2d1, projpos1);
     
