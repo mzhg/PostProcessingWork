@@ -92,11 +92,11 @@ struct VolumeVertex
 
 void Simplex3D( const in float3 P, out float3 simplex[4] )
 {
-    float3 T = P.xzy >= P.yxz;
-    simplex[0] = 0;
-    simplex[1] = T.xzy > T.yxz;
-    simplex[2] = T.yxz <= T.xzy;
-    simplex[3] = 1;
+    float3 T = float3(greaterThanEqual(P.xzy, P.yxz));
+    simplex[0] = float3(0);
+    simplex[1] = float3(greaterThan(T.xzy, T.yxz));
+    simplex[2] = float3(lessThanEqual(T.yxz, T.xzy));
+    simplex[3] = float3(1);
 }
 
 void Simplex4D( const in float4 P, out float4 simplex[5] )
@@ -105,23 +105,23 @@ void Simplex4D( const in float4 P, out float4 simplex[5] )
 
     float3 isX = step( P.yzw, P.xxx );        // See comments in 3D simplex function
     offset0.x = dot( isX, float3(1, 1, 1) );
-    offset0.yzw = 1 - isX;
+    offset0.yzw = 1.0 - isX;
 
     float2 isY = step( P.zw, P.yy );
     offset0.y += dot( isY, float2(1, 1) );
-    offset0.zw += 1 - isY;
+    offset0.zw += 1.0 - isY;
 
     float isZ = step( P.w, P.z );
     offset0.z += isZ;
-    offset0.w += 1 - isZ;
+    offset0.w += 1.0 - isZ;
 
     // offset0 now contains the unique values 0,1,2,3 in each channel
 
-    simplex[4] = 1;
+    simplex[4] = float4(1);
     simplex[3] = saturate (   offset0);
     simplex[2] = saturate (-- offset0);
     simplex[1] = saturate (-- offset0);
-    simplex[0] = 0;
+    simplex[0] = float4(0);
 }
 
 // Hashing functions
@@ -131,7 +131,7 @@ int Hash( float3 P )
     //P /= 256;   // normalize texture coordinate
     //return PermTexture.SampleLevel( SamplerRepeat, P.xy, 0 ).r ^ PermTexture.SampleLevel( SamplerRepeat, float2( P.z, 0 ), 0 ).r;
 //	return PermTexture.Load( int3(P.xy, 0) ).r ^ PermTexture.Load( int3( P.z, 0, 0 ) ).r;
-    return texelFetch(PermTexture, int2(P.xy), 0).r ^ texelFetch(PermTexture, int2(P.z, 0), 0).r;
+    return int(texelFetch(PermTexture, int2(P.xy), 0).r ^ texelFetch(PermTexture, int2(P.z, 0), 0).r);
 }
 
 int Hash( float4 P )
@@ -139,7 +139,7 @@ int Hash( float4 P )
     //P /= 256;   // normalize texture coordinate
     //return PermTexture.SampleLevel( SamplerRepeat, P.xy, 0 ).r ^ PermTexture.SampleLevel( SamplerRepeat, P.zw, 0 ).r;
 //	return PermTexture.Load( int3(P.xy, 0) ).r ^ PermTexture.Load( int3(P.zw, 0) ).r;
-    return texelFetch(PermTexture, int2(P.xy), 0).r ^ texelFetch(PermTexture, int2(P.zw), 0).r;
+    return int(texelFetch(PermTexture, int2(P.xy), 0).r ^ texelFetch(PermTexture, int2(P.zw), 0).r);
 
     //return PermTexture.SampleLevel( SamplerRepeat,
     //    float2(PermTexture.SampleLevel( SamplerRepeat, P.xy, 0 ).r, P.z) + P.w, 0 ).r;
@@ -229,9 +229,9 @@ float Snoise3D( float3 P )
 {
     // Skew the (x,y,z) space to determine which cell of 6 simplices we're in
 
-    float s = dot( P, F3 );
+    float s = dot( P, float3(F3) );
     float3 Pi = floor( P + s );
-    float t = dot( Pi, G3 );
+    float t = dot( Pi, float3(G3) );
 
     float3 P0 = Pi - t;               // Unskew the cell origin back to (x,y,z) space
     float3 Pf0 = P - P0;            // The x,y,z distances from the cell origin
@@ -243,7 +243,7 @@ float Snoise3D( float3 P )
     float3 simplex[4];
     Simplex3D( Pf0, simplex );
 
-    float n = 0;
+    float n = 0.0;
 
 //    [unroll]
     for (int i = 0; i<4; i++)
@@ -265,9 +265,9 @@ float Snoise3DFlow( float4 P )
 {
     // Skew the (x,y,z) space to determine which cell of 6 simplices we're in
 
-    float s = dot( P.xyz, F3 );
+    float s = dot( P.xyz, float3(F3) );
     float3 Pi = floor( P.xyz + s );
-    float t = dot( Pi, G3 );
+    float t = dot( Pi, float3(G3) );
 
     float3 P0 = Pi - t;               // Unskew the cell origin back to (x,y,z) space
     float3 Pf0 = P.xyz - P0;         // The x,y,z distances from the cell origin
@@ -307,9 +307,9 @@ float Snoise4D( float4 P )
 {
     // Skew the (x,y,z) space to determine which cell of 6 simplices we're in
 
-    float s = dot( P, F4 );
+    float s = dot( P, float4(F4) );
     float4 Pi = floor( P + s );
-    float t = dot( Pi, G4 );
+    float t = dot( Pi, float4(G4) );
 
     float4 P0 = Pi - t;
     float4 Pf0 = P - P0;

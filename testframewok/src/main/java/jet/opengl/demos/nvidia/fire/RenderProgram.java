@@ -25,7 +25,7 @@ final class RenderProgram extends GLSLProgram{
     private int g_piCubeMapFace = -1;
 
     public RenderProgram(String vert, String frag){
-        final String path = "nvidia/fire/shaders/";
+        final String path = "nvidia/PerlinFire/shaders/";
         try {
             setSourceFromFiles(path + vert, path + frag);
         } catch (IOException e) {
@@ -36,7 +36,7 @@ final class RenderProgram extends GLSLProgram{
     }
 
     public RenderProgram(String vert){
-        final String path = "nvidia/fire/shaders/";
+        final String path = "nvidia/PerlinFire/shaders/";
         try {
             setSourceFromFiles(path + vert, "Scenes/Cube16/shaders/Dummy_PS.frag");
         } catch (IOException e) {

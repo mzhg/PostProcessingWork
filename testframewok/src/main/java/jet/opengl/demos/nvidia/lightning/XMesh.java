@@ -1,11 +1,17 @@
 package jet.opengl.demos.nvidia.lightning;
 
+import com.nvidia.developer.opengl.utils.NvImage;
+
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import jet.opengl.postprocessing.buffer.AttribDesc;
@@ -25,13 +31,13 @@ import jet.opengl.postprocessing.util.FileUtils;
 /**
  * Created by mazhen'gui on 2017/8/31.
  */
-
-final class XMesh implements Disposeable{
+public final class XMesh implements Disposeable{
     private MeshSlice[] m_mesh_slices;
     private Texture2D[] m_textures;
     private GLFuncProvider gl;
+    private HashMap<String, Texture2D> texCache = new HashMap<>();
 
-    XMesh(String token, int count, String[] textureNames){
+    public XMesh(String token, int count, String[] textureNames){
         m_mesh_slices = new MeshSlice[count];
         m_textures = new Texture2D[count];
         gl = GLFuncProviderFactory.getGLFuncProvider();
@@ -47,6 +53,91 @@ final class XMesh implements Disposeable{
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+
+        texCache = null;  // clear the cache
+    }
+
+    public XMesh(String token, int count){
+        m_mesh_slices = new MeshSlice[count];
+        m_textures = new Texture2D[count];
+        gl = GLFuncProviderFactory.getGLFuncProvider();
+
+        String[] textureNames = null;
+        int textureNameIdx = 0;
+        int[] textureIndices = null;
+        int textureIdx = 0;
+
+        String materialFileName = token + "_Materials.txt";
+        if(FileUtils.g_IntenalFileLoader.exists(materialFileName)){
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(FileUtils.open(materialFileName)))){
+                String line;
+                while ((line = in.readLine()) != null){
+                    int dot = line.indexOf(':');
+                    String key = line.substring(0, dot).trim();
+                    String value = line.substring(dot+1).trim();
+
+                    if(key.equals("MeshCount")){
+                        int ivalue = Integer.parseInt(value);
+                        textureIndices = new int[ivalue];
+                    }else if(key.equals("materialIdx")){
+                        textureIndices[textureIdx++] = Integer.parseInt(value);
+                    }else if(key.equals("TextureCount")){
+                        textureNames = new String[Integer.parseInt(value)];
+                    }else if(key.equals("Texture")){
+                        textureNames[textureNameIdx++] = value;
+                    }
+                }
+
+                if(textureIdx != textureIndices.length)
+                    throw  new IllegalArgumentException();
+                if(textureNameIdx != textureNames.length)
+                    throw  new IllegalArgumentException();
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        String parent = FileUtils.getParent(token) + "/";
+        for(int i = 0; i < count; i++){
+            String pattern = token + i + "_%s.dat";
+            m_mesh_slices[i] = new MeshSlice();
+            try {
+                m_mesh_slices[i].initlize(pattern);
+                int texIdx;
+                if(textureIndices != null){
+                    texIdx = textureIndices[i];
+                }else{
+                    texIdx = i;
+                }
+
+                if(textureNames != null && textureNames[texIdx] != null){
+                    m_textures[i] = loadTexture2D(parent + textureNames[texIdx], true, true);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        texCache = null;
+    }
+
+    private Texture2D loadTexture2D(String filename, boolean flip, boolean genmipmap) throws IOException {
+        Texture2D tex = texCache.get(filename);
+        if(tex != null){
+            return tex;
+        }else{
+            if(filename.endsWith("DDS") || filename.endsWith("dds")){
+                int tex_id = NvImage.uploadTextureFromDDSFile(filename);
+                tex = TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, tex_id);
+            }else{
+                tex = TextureUtils.createTexture2DFromFile(filename, flip, genmipmap);
+            }
+            texCache.put(filename, tex);
+            return tex;
         }
     }
 

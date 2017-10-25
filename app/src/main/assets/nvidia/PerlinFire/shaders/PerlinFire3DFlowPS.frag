@@ -19,7 +19,7 @@ void main()
     float3 Pos = In.Pos + Dir * Offset;
 
     float3 resultColor = float3(0);
-    float SceneZ = texelFetch(ScreenDepth, int2(gl_FragCoord.xy), 0 );
+    float SceneZ = texelFetch(ScreenDepth, int2(gl_FragCoord.xy), 0 ).x;
 
     while ( true )
     {
@@ -43,7 +43,7 @@ void main()
         tc.x = length( Pos.xz ) * 2;
         tc.y = 0.5 - Pos.y - Roughness * Turbulence * pow( ( 0.5 + Pos.y ), 0.5 );
 
-        resultColor += StepSize * 12 * textureLod( FireShape, tc, 0.0 );  // SamplerClamp
+        resultColor += StepSize * 12 * textureLod( FireShape, tc, 0.0 ).rgb;  // SamplerClamp
 
         Pos += Dir;
     }

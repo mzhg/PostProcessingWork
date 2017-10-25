@@ -4,6 +4,8 @@ import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.models.ModelGenerator;
+import com.nvidia.developer.opengl.ui.NvTweakEnumi;
+import com.nvidia.developer.opengl.ui.NvTweakVarBase;
 import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
@@ -12,15 +14,15 @@ import org.lwjgl.util.vector.Vector3f;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import jet.opengl.demos.amdfx.common.AMD_Mesh;
+import jet.opengl.demos.nvidia.lightning.XMesh;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.texture.FramebufferGL;
+import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
+import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
-import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -61,8 +63,7 @@ public final class PerlinFire extends NvSampleApp {
 // Textures and views for shadow mapping
 
     int g_pCubeMapDepth = 0;
-    int g_pCubeMapDepthViewArray[] = { 0, 0, 0, 0, 0, 0 };
-    int g_pCubeMapTextureRV = 0;
+    Texture2D g_pCubeMapDepthViewArray[] = new Texture2D[6];
 
 
 // Effect techniques
@@ -73,22 +74,26 @@ public final class PerlinFire extends NvSampleApp {
     RenderProgram g_pGeometryTechniqueZOnly = null;
     RenderProgram g_pGeometryTechniqueP0 = null;
     RenderProgram g_pGeometryTechniqueAux = null;
+    final RenderProgram[] m_PerlinTechniques = new RenderProgram[3];
+    VisualDepthTextureProgram m_DepthTextureProgram;
 
     final UniformData m_uniformData = new UniformData();
     int nSamplingRate = DEFAULT_SAMPLING_RATE;
     float g_fSpeed = DEFAULT_SPEED;
     float g_fShapeSize = DEFAULT_SHAPE_SIZE;
     int g_CubeMapSize = 800;
-    AMD_Mesh g_OutsideWorldMesh;
+    XMesh g_OutsideWorldMesh;
     GLVAO g_pBoxMesh;
     private GLFuncProvider gl;
-    private FramebufferGL m_SceneFBO;
-    private Texture2D m_SceneColor;
-    private Texture2D m_SceneDepth;
     private float m_total_time;
     private final Matrix4f m_temp = new Matrix4f();
+    private RenderTargets m_renderTarget;
+    private boolean m_printOnce;
+    private int m_shadowMapSlice;
+    private int m_technique = 2;
+    private int m_debugTexture = 0;
 
-    PerlinFire(){
+    public PerlinFire(){
         m_uniformData.bJitter = DEFAULT_JITTER;
 
         m_uniformData.fNoiseScale = DEFAULT_NOISE_SCALE;
@@ -104,27 +109,45 @@ public final class PerlinFire extends NvSampleApp {
     @Override
     protected void initRendering() {
         gl = GLFuncProviderFactory.getGLFuncProvider();
+        m_renderTarget= new RenderTargets();
         // Obtain techniques
         g_pPerlinFire3D = new RenderProgram("PerlinFireVS.vert", "PerlinFire3DPS.frag");
+        g_pPerlinFire3D.setName("PerlinFire3D");
         g_pPerlinFire3DFlow = new RenderProgram("PerlinFireVS.vert", "PerlinFire3DFlowPS.frag");
+        g_pPerlinFire3DFlow.setName("PerlinFire3DFlow");
         g_pPerlinFire4D = new RenderProgram("PerlinFireVS.vert", "PerlinFire4DPS.frag");
+        g_pPerlinFire4D.setName("PerlinFire4D");
+
+        m_PerlinTechniques[0] = g_pPerlinFire3D;
+        m_PerlinTechniques[1] = g_pPerlinFire3DFlow;
+        m_PerlinTechniques[2] = g_pPerlinFire4D;
 
         g_pGeometryTechniqueZOnly = new RenderProgram("SimpleVS.vert");
         g_pGeometryTechniqueAux = new RenderProgram("ShadowVS.vert");
         g_pGeometryTechniqueP0 = new RenderProgram("SimpleVS.vert", "SimplePS.frag");
 
+        try {
+            m_DepthTextureProgram = new VisualDepthTextureProgram(false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         g_pCurrentTechnique = g_pPerlinFire4D;
 
 //        g_OutsideWorldMesh.Create();
+        g_OutsideWorldMesh = new XMesh("nvidia/PerlinFire/models/bonfire_wOrcs", 185);
 
-        g_pBoxMesh = ModelGenerator.genCube(1, true, true,false).genVAO();
+        g_pBoxMesh = ModelGenerator.genCube(1.0f, false, false,false).genVAO();
         String root = "nvidia\\PerlinFire\\models\\";
         try {
+            NvImage.upperLeftOrigin(false);
             int fireTexture = NvImage.uploadTextureFromDDSFile(root + "Firetex.dds");
             g_pFireTextureSRV = g_pFireTexture = TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, fireTexture);
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        GLCheck.checkError();
 
         // Create noise texture
         // Fill the texture with random numbers from 0 to 256
@@ -139,14 +162,43 @@ public final class PerlinFire extends NvSampleApp {
         TextureDataDesc data_desc = new TextureDataDesc(GLenum.GL_RED, GLenum.GL_UNSIGNED_BYTE, data);
         g_pNoiseTexture = TextureUtils.createTexture2D(tex_desc, data_desc);
         g_pJitterTextureSRV = g_pNoiseTexture;
-        g_pPermTextureSRV = g_pNoiseTexture;
+
+        tex_desc.format = GLenum.GL_R8UI;
+        data_desc.format = GLenum.GL_RED_INTEGER;
+        g_pPermTextureSRV = TextureUtils.createTexture2D(tex_desc, data_desc);
+        GLCheck.checkError();
 
         m_transformer.setTranslation(0.0f, -15.0f, 30.0f);
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 
         // Setup cubemap
-
+        GLCheck.checkError();
         PrepareCubeMap( );
+        getGLContext().setSwapInterval(0);
+    }
+
+    @Override
+    public void initUI() {
+        mTweakBar.addValue("ShapeSize", createControl("g_fShapeSize"), 0.5f, 10.0f);
+        mTweakBar.addValue("SamplingRate", createControl("nSamplingRate"), 8, 64);
+//        mTweakBar.addValue("Show Depth Texture", createControl("m_showDepthTexture"));
+//        mTweakBar.addValue("Show Shadow Map", createControl("m_showShadowMap"));
+//        mTweakBar.addValue("Shadow Map Slice", createControl("m_shadowMapSlice"), 0, 5);
+
+        mTweakBar.addEnum("Technique", createControl("m_technique"), new NvTweakEnumi[]{
+              new NvTweakEnumi("PerlinFire3D", 0),
+              new NvTweakEnumi("PerlinFire3DFlow", 1),
+              new NvTweakEnumi("PerlinFire4D", 2),
+        }, 0);
+
+        NvTweakVarBase var = mTweakBar.addEnum("Debug Texture", createControl("m_debugTexture"), new NvTweakEnumi[]{
+                new NvTweakEnumi("None", 0),
+                new NvTweakEnumi("Depth Texture", 1),
+                new NvTweakEnumi("ShadowMap", 2)},0);
+        mTweakBar.subgroupSwitchStart(var);
+        mTweakBar.subgroupSwitchCase(2);  // shadow map
+        mTweakBar.addValue("Shadow Map Slice", createControl("m_shadowMapSlice"), 0, 5);
+        mTweakBar.subgroupSwitchEnd();
     }
 
     @Override
@@ -158,11 +210,12 @@ public final class PerlinFire extends NvSampleApp {
 //        float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 //        pd3dDevice->ClearRenderTargetView( pBackBufferRTV, ClearColor );
 //        pd3dDevice->ClearDepthStencilView( pBackBufferDSV, D3D10_CLEAR_DEPTH, 1.0, 0 );
-        m_SceneFBO.bind();
-        m_SceneFBO.setViewPort();
-        gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0,0,0,0f));
-        gl.glClearBufferfv(GLenum.GL_DEPTH, 1, CacheBuffer.wrap(1f));
+        m_renderTarget.bind();
+//        gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0,0,0,0f));
+//        gl.glClearBufferfv(GLenum.GL_DEPTH, 1, CacheBuffer.wrap(1f));
         gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glDepthFunc(GLenum.GL_LESS);
+        gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
 
         // Set matrices
 //        D3DXMATRIX mWorld = *g_Camera.GetWorldMatrix();
@@ -176,11 +229,6 @@ public final class PerlinFire extends NvSampleApp {
         Matrix4f.mul(m_uniformData.mProj, m_uniformData.mWorldViewProj, m_uniformData.mWorldViewProj);
 
 //        g_pmWorldViewProj -> SetMatrix ((float *) & mWorldViewProj );
-
-        float rnd = Numeric.random() * 0.5f + 0.5f;
-        m_uniformData.vLightPos.set( 0.25f * (rnd - 0.5f), 5.7f, 1.0f * (rnd - 0.5f));
-
-        InitCubeMatrices( m_uniformData.vLightPos );
 
 //        g_pvLightPos->SetFloatVector( lightPos );
 
@@ -196,13 +244,36 @@ public final class PerlinFire extends NvSampleApp {
 //        g_pGeometryTechnique->GetPassByIndex(0)->Apply(0);
 //        pd3dDevice->IASetInputLayout( g_pGeometryVertexLayout );
 //        g_OutsideWorldMesh.Render( pd3dDevice );
-        g_pGeometryTechniqueAux.enable();
-        g_pGeometryTechniqueAux.setUniforms(m_uniformData);
-        // TODO render the mesh to depth buffer.
+        m_renderTarget.setRenderTexture(g_pDepthBufferDSV, null);
+        gl.glViewport(0,0, g_pDepthBuffer.getWidth(), g_pDepthBuffer.getHeight());
+        gl.glClearDepthf(1.0f);
+        gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
+        g_pGeometryTechniqueZOnly.enable();
+        g_pGeometryTechniqueZOnly.setUniforms(m_uniformData);
+//        gl.glColorMask(false,false, false, false);
+        g_OutsideWorldMesh.draw();
+
+        if(!m_printOnce){
+            g_pGeometryTechniqueZOnly.setName("Render Depth Buffer");
+            g_pGeometryTechniqueZOnly.printPrograminfo();
+        }
+
+        if(m_debugTexture == 1){
+            m_DepthTextureProgram.enable();
+            m_DepthTextureProgram.setUniforms(0.1f, 1000.0f, 0, 1);
+            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+            gl.glDisable(GLenum.GL_DEPTH_TEST);
+            gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
+
+            gl.glActiveTexture(GLenum.GL_TEXTURE0);
+            gl.glBindTexture(g_pDepthBufferDSV.getTarget(), g_pDepthBufferDSV.getTexture());
+            gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+            return;
+        }
 
         // Second, render the whole scene to a shadowmap
         // Set a new viewport for rendering to cube map
-
 //        D3D10_VIEWPORT SMVP, prevSMVP;
 //        unsigned int prevViewpotrNum = 1;
 //
@@ -229,6 +300,38 @@ public final class PerlinFire extends NvSampleApp {
 //            g_OutsideWorldMesh.Render( pd3dDevice );
 //        }
 
+        float rnd = Numeric.random() * 0.5f + 0.5f;
+        m_uniformData.vLightPos.set( 0.25f * (rnd - 0.5f), 5.7f, 1.0f * (rnd - 0.5f));
+        InitCubeMatricesGL( m_uniformData.vLightPos );
+        gl.glViewport(0,0, g_CubeMapSize, g_CubeMapSize);
+        g_pGeometryTechniqueAux.enable();
+        for( int i = 0; i < 6; i ++ ){
+            m_renderTarget.setRenderTexture(g_pCubeMapDepthViewArray[i], null);
+            gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
+            m_uniformData.iCubeMapFace = i;
+            g_pGeometryTechniqueAux.setUniforms(m_uniformData);
+            g_OutsideWorldMesh.draw();
+        }
+
+        if(!m_printOnce){
+            g_pGeometryTechniqueAux.setName("Render Cube Shadowmap");
+            g_pGeometryTechniqueAux.printPrograminfo();
+        }
+
+        if(m_debugTexture == 2){
+            m_DepthTextureProgram.enable();
+            m_DepthTextureProgram.setUniforms(0.2f, 200.0f, 0, 1);
+            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+            gl.glDisable(GLenum.GL_DEPTH_TEST);
+            gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
+
+            gl.glActiveTexture(GLenum.GL_TEXTURE0);
+            gl.glBindTexture(g_pCubeMapDepthViewArray[m_shadowMapSlice].getTarget(), g_pCubeMapDepthViewArray[m_shadowMapSlice].getTexture());
+            gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+            return;
+        }
+
         // Switch back to main RTs
 
 //        pd3dDevice->RSSetViewports( 1, &prevSMVP );  TODO
@@ -241,15 +344,32 @@ public final class PerlinFire extends NvSampleApp {
 //        g_pfTime->SetFloat( (float)fTime * g_fSpeed );
 //        g_pfStepSize->SetFloat( (float)1.0f / g_nSamplingRate );
 //        g_pbJitter->SetBool( g_bJitter );
+
+        gl.glColorMask(true, true, true, true);
+        gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
+        m_renderTarget.unbind();
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
+
         m_uniformData.fTime = m_total_time * g_fSpeed;
-        m_uniformData.fStepSize = 1.0f/DEFAULT_SAMPLING_RATE;
+        m_uniformData.fStepSize = 1.0f/nSamplingRate;
 
 //        g_pGeometryTechnique->GetPassByIndex(1)->Apply(0);  TODO
 //        pd3dDevice->IASetInputLayout( g_pGeometryVertexLayout );
 //        g_OutsideWorldMesh.Render( pd3dDevice );
+        g_pGeometryTechniqueP0.enable();
+        g_pGeometryTechniqueP0.setUniforms(m_uniformData);
+        gl.glActiveTexture(GLenum.GL_TEXTURE4);
+        gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, g_pCubeMapDepth);
+
+        g_OutsideWorldMesh.draw();
+
+        if(!m_printOnce){
+            g_pGeometryTechniqueP0.setName("Render Scene");
+            g_pGeometryTechniqueP0.printPrograminfo();
+        }
+        gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, 0);
 
         // Render fire volume
-
 //        D3DXMATRIX mTranslate, mScale, mWorldViewInv;
 //        D3DXMatrixTranslation( &mTranslate, 0, 0.5f, 0 );
 //        D3DXMatrixScaling( &mScale, 4.0f * g_fShapeSize, 8.0f * g_fShapeSize, 4.0f * g_fShapeSize);
@@ -258,6 +378,7 @@ public final class PerlinFire extends NvSampleApp {
 //        D3DXMatrixInverse( &mWorldViewInv, NULL, &mWorldView );
         Matrix4f mWorldView = m_uniformData.mWorldViewProj;
         m_transformer.getModelViewMat(mWorldView);
+
         mWorldView.scale(4.0f * g_fShapeSize, 8.0f * g_fShapeSize, 4.0f * g_fShapeSize);
         mWorldView.translate(0, 0.5f, 0);
         Matrix4f mWorldViewInv = Matrix4f.invert(mWorldView, m_temp);
@@ -277,12 +398,47 @@ public final class PerlinFire extends NvSampleApp {
 
 //        g_pCurrentTechnique->GetPassByIndex(0)->Apply(0);
 //        g_pBoxMesh->DrawSubset( 0 );
+        g_pCurrentTechnique = m_PerlinTechniques[m_technique];
         g_pCurrentTechnique.enable();
         g_pCurrentTechnique.setUniforms(m_uniformData);
+        gl.glActiveTexture(GLenum.GL_TEXTURE1);
+        gl.glBindTexture(g_pDepthBuffer.getTarget(), g_pDepthBuffer.getTexture());
+        gl.glActiveTexture(GLenum.GL_TEXTURE2);
+        gl.glBindTexture(g_pFireTextureSRV.getTarget(), g_pFireTextureSRV.getTexture());
+        gl.glActiveTexture(GLenum.GL_TEXTURE3);
+        gl.glBindTexture(g_pJitterTextureSRV.getTarget(), g_pJitterTextureSRV.getTexture());
+        gl.glTexParameteri(g_pJitterTextureSRV.getTarget(), GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
+        gl.glTexParameteri(g_pJitterTextureSRV.getTarget(), GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_REPEAT);
+        gl.glTexParameteri(g_pJitterTextureSRV.getTarget(), GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_REPEAT);
+        gl.glActiveTexture(GLenum.GL_TEXTURE5);
+        gl.glBindTexture(g_pPermTextureSRV.getTarget(), g_pPermTextureSRV.getTexture());
+
+        gl.glEnable(GLenum.GL_BLEND);
+        gl.glBlendFuncSeparate(GLenum.GL_ONE_MINUS_DST_COLOR, GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ONE);
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glDepthMask(false);
+        gl.glDisable(GLenum.GL_CULL_FACE);
+
+//        gl.glEnable(GLenum.GL_CULL_FACE);
+//        gl.glCullFace(GLenum.GL_BACK);
+//        gl.glFrontFace(GLenum.GL_CCW);
+
         g_pBoxMesh.bind();
         g_pBoxMesh.draw(GLenum.GL_TRIANGLES);
         g_pBoxMesh.unbind();
+        if(!m_printOnce){
+            g_pCurrentTechnique.printPrograminfo();
+        }
 
+        gl.glDisable(GLenum.GL_BLEND);
+        gl.glDepthMask(true);
+
+        for(int i = 5; i>=0; i--){
+            gl.glActiveTexture(GLenum.GL_TEXTURE0+i);
+            gl.glBindTexture(g_pPermTextureSRV.getTarget(),0);
+        }
+
+        m_printOnce = true;
 
 //        RenderText();
 
@@ -294,6 +450,8 @@ public final class PerlinFire extends NvSampleApp {
 //        g_SampleUI.OnRender( fElapsedTime );
 //        g_SliderBar.OnRender( fElapsedTime );
 //        DXUT_EndPerfEvent();
+
+        m_total_time+= getFrameDeltaTime();
     }
 
     @Override
@@ -302,34 +460,14 @@ public final class PerlinFire extends NvSampleApp {
             return;
         }
 
-        if(m_SceneFBO == null){
-            Texture2DDesc tex_desc = new Texture2DDesc(width, height, GLenum.GL_RGBA8);
-            m_SceneColor = TextureUtils.createTexture2D(tex_desc, null);
-            tex_desc.format = GLenum.GL_DEPTH_COMPONENT16;
-            m_SceneDepth = TextureUtils.createTexture2D(tex_desc, null);
+        if(g_pDepthBuffer == null || g_pDepthBuffer.getWidth() != width || g_pDepthBuffer.getHeight() != height){
+            CommonUtil.safeRelease(g_pDepthBuffer);
 
-            TextureAttachDesc attachDesc = new TextureAttachDesc();
-            m_SceneFBO= new FramebufferGL();
-            m_SceneFBO.bind();
-            m_SceneFBO.addTextures(CommonUtil.toArray(m_SceneColor, m_SceneDepth),
-                                   CommonUtil.toArray(attachDesc, attachDesc));
-            m_SceneFBO.unbind();
+            Texture2DDesc tex_desc = new Texture2DDesc(width, height, GLenum.GL_DEPTH_COMPONENT24);
+            g_pDepthBuffer = TextureUtils.createTexture2D(tex_desc, null);
+            g_pDepthBufferDSV = g_pDepthBufferSRV = g_pDepthBuffer;
         }
-
         Matrix4f.perspective(60, (float)width/height, 0.1f, 1000.0f, m_uniformData.mProj);
-    }
-
-    private void bindTextures(){
-//        layout(binding =0) uniform sampler2D   SceneTexture;
-//        layout(binding =1) uniform sampler2D   ScreenDepth;
-//        layout(binding =2) uniform sampler2D   FireShape;
-//        layout(binding =3) uniform sampler2D   JitterTexture;
-//
-////Texture2DArray ShadowMap;
-//        layout(binding =4) uniform samplerCube ShadowMap;
-//
-//        layout(binding =5) uniform usampler2D   PermTexture;   // permutation texture
-
     }
 
     // Prepare cube map texture array
@@ -357,11 +495,14 @@ public final class PerlinFire extends NvSampleApp {
         }*/
         g_pCubeMapDepth =gl.glGenTexture();
         gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, g_pCubeMapDepth);
-        for(int i = 0;i < 6;i++){
-            gl.glTexImage2D(GLenum.GL_TEXTURE_CUBE_MAP_NEGATIVE_X + i,0, GLenum.GL_DEPTH24_STENCIL8, g_CubeMapSize, g_CubeMapSize);
-        }
+        gl.glTexStorage2D(GLenum.GL_TEXTURE_CUBE_MAP,1, GLenum.GL_DEPTH24_STENCIL8, g_CubeMapSize, g_CubeMapSize);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_NEAREST);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_NEAREST);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
         gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, 0);
-
+        GLCheck.checkError();
 
         // Create the depth stencil view for the entire cube
 
@@ -381,8 +522,9 @@ public final class PerlinFire extends NvSampleApp {
                 return false;
             }*/
 
-            g_pCubeMapDepthViewArray[i] = gl.glGenTexture();
-            gl.glTextureView(g_pCubeMapDepthViewArray[i], GLenum.GL_TEXTURE_2D, g_pCubeMapDepth, GLenum.GL_DEPTH24_STENCIL8, 0,1, i, 1);
+            int cubeMapSlice = gl.glGenTexture();
+            gl.glTextureView(cubeMapSlice, GLenum.GL_TEXTURE_2D, g_pCubeMapDepth, GLenum.GL_DEPTH24_STENCIL8, 0,1, i, 1);
+            g_pCubeMapDepthViewArray[i] = TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, cubeMapSlice);
             GLCheck.checkError();
         }
 
@@ -402,13 +544,12 @@ public final class PerlinFire extends NvSampleApp {
             return false;
         }
         return true;*/
-        g_pCubeMapTextureRV = g_pCubeMapDepth;
         return true;
     }
 
 // Set matrices for cube mapping
 
-    void InitCubeMatrices( Vector3f cubeCenter )
+    void InitCubeMatricesGL( Vector3f cubeCenter )
     {
         final Vector3f vLookDir = new Vector3f();
         final Vector3f vUpDir = new Vector3f();
@@ -418,42 +559,95 @@ public final class PerlinFire extends NvSampleApp {
 //        vLookDir = D3DXVECTOR3( 1.0f, 0.0f, 0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f, 1.0f, 0.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[0], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.add(cubeCenter, Vector3f.X_AXIS, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.X_AXIS_NEG, vLookDir);
         vUpDir.set(0.0f, 1.0f, 0.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[0]);
 
 //        vLookDir = D3DXVECTOR3( -1.0f, 0.0f, 0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f, 1.0f, 0.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[1], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.add(cubeCenter, Vector3f.X_AXIS_NEG, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.X_AXIS, vLookDir);
         vUpDir.set(0.0f, 1.0f, 0.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[1]);
 
 //        vLookDir = D3DXVECTOR3( 0.0f, 1.0f,  0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f, 0.0f, -1.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[2], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.add(cubeCenter, Vector3f.Y_AXIS, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.Y_AXIS_NEG, vLookDir);
         vUpDir.set(0.0f, 0.0f, -1.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[2]);
 
 //        vLookDir = D3DXVECTOR3( 0.0f, -1.0f, 0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f,  0.0f, 1.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[3], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.add(cubeCenter, Vector3f.Y_AXIS_NEG, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.Y_AXIS, vLookDir);
         vUpDir.set(0.0f, 0.0f, 1.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[3]);
 
 //        vLookDir = D3DXVECTOR3( 0.0f, 0.0f, 1.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f, 1.0f, 0.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[4], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.add(cubeCenter, Vector3f.Z_AXIS, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.Z_AXIS_NEG, vLookDir);
         vUpDir.set(0.0f, 1.0f, 0.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[4]);
 
 //        vLookDir = D3DXVECTOR3( 0.0f, 0.0f, -1.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f, 1.0f,  0.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[5], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.add(cubeCenter, Vector3f.Z_AXIS_NEG, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.Z_AXIS, vLookDir);
+        vUpDir.set(0.0f, 1.0f, 0.0f);
+        Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[5]);
+
+//        D3DXMatrixPerspectiveFovLH( &cubeProjMatrix, (float)D3DX_PI * 0.5f, 1.0f, 0.2f, 200.0f );
+        Matrix4f.perspective(90, 1.0f, 0.2f, 200.0f, cubeProjMatrix);
+
+//        g_pmCubeViewMatrixVariable->SetMatrixArray( (float *)cubeViewMatrices, 0, 6 );
+//        g_pmCubeProjMatrixVariable->SetMatrix( cubeProjMatrix );
+    }
+
+    void InitCubeMatrices( Vector3f cubeCenter )
+    {
+        final Vector3f vLookDir = new Vector3f();
+        final Vector3f vUpDir = new Vector3f();
+        final Matrix4f[] cubeViewMatrices = m_uniformData.mCubeViewMatrixs;
+        final Matrix4f cubeProjMatrix = m_uniformData.mCubeProjMatrix;
+
+        Vector3f.sub(cubeCenter, Vector3f.X_AXIS, vLookDir);
+        vUpDir.set(0.0f, 1.0f, 0.0f);
+        Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[0]);
+
+//        vLookDir = D3DXVECTOR3( -1.0f, 0.0f, 0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
+//        vUpDir = D3DXVECTOR3( 0.0f, 1.0f, 0.0f );
+//        D3DXMatrixLookAtLH( &cubeViewMatrices[1], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
+        Vector3f.sub(cubeCenter, Vector3f.X_AXIS_NEG, vLookDir);
+        vUpDir.set(0.0f, 1.0f, 0.0f);
+        Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[1]);
+
+//        vLookDir = D3DXVECTOR3( 0.0f, 1.0f,  0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
+//        vUpDir = D3DXVECTOR3( 0.0f, 0.0f, -1.0f );
+//        D3DXMatrixLookAtLH( &cubeViewMatrices[2], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
+        Vector3f.sub(cubeCenter, Vector3f.Y_AXIS, vLookDir);
+        vUpDir.set(0.0f, 0.0f, -1.0f);
+        Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[2]);
+
+//        vLookDir = D3DXVECTOR3( 0.0f, -1.0f, 0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
+//        vUpDir = D3DXVECTOR3( 0.0f,  0.0f, 1.0f );
+//        D3DXMatrixLookAtLH( &cubeViewMatrices[3], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
+        Vector3f.sub(cubeCenter, Vector3f.Y_AXIS_NEG, vLookDir);
+        vUpDir.set(0.0f, 0.0f, 1.0f);
+        Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[3]);
+
+//        vLookDir = D3DXVECTOR3( 0.0f, 0.0f, 1.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
+//        vUpDir = D3DXVECTOR3( 0.0f, 1.0f, 0.0f );
+//        D3DXMatrixLookAtLH( &cubeViewMatrices[4], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
+        Vector3f.sub(cubeCenter, Vector3f.Z_AXIS, vLookDir);
+        vUpDir.set(0.0f, 1.0f, 0.0f);
+        Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[4]);
+
+//        vLookDir = D3DXVECTOR3( 0.0f, 0.0f, -1.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
+//        vUpDir = D3DXVECTOR3( 0.0f, 1.0f,  0.0f );
+//        D3DXMatrixLookAtLH( &cubeViewMatrices[5], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
+        Vector3f.sub(cubeCenter, Vector3f.Z_AXIS_NEG, vLookDir);
         vUpDir.set(0.0f, 1.0f, 0.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[5]);
 

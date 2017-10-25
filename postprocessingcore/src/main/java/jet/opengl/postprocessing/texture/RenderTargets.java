@@ -165,16 +165,37 @@ public class RenderTargets implements Disposeable{
             {
                 case GLenum.GL_DEPTH_COMPONENT:
                     assert(!depthHandled);
+
+                    if (m_DepthStencilAttach.attached) {
+                        deAttachTexture(GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_DepthStencilAttach.type);
+                        m_DepthStencilAttach.attached = false;
+                    }
+
                     handleTextureAttachment(pTex, GLenum.GL_DEPTH_ATTACHMENT, desc, m_DepthAttach);
                     depthHandled = true;
                     break;
                 case GLenum.GL_DEPTH_STENCIL:
                     assert(!depthStencilHandled);
+                    if (m_StencilAttach.attached) {
+                        deAttachTexture(GLenum.GL_STENCIL_ATTACHMENT, m_StencilAttach.type);
+                        m_StencilAttach.attached = false;
+                    }
+
+                    if (m_DepthAttach.attached) {
+                        deAttachTexture(GLenum.GL_DEPTH_ATTACHMENT, m_DepthAttach.type);
+                        m_DepthAttach.attached = false;
+                    }
+
                     handleTextureAttachment(pTex, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, desc, m_DepthStencilAttach);
                     depthStencilHandled = true;
                     break;
                 case GLenum.GL_STENCIL:
                     assert(!stencilHandled);
+                    if (m_DepthStencilAttach.attached) {
+                        deAttachTexture(GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_DepthStencilAttach.type);
+                        m_DepthStencilAttach.attached = false;
+                    }
+
                     handleTextureAttachment(pTex, GLenum.GL_STENCIL_ATTACHMENT, desc, m_StencilAttach);
                     stencilHandled = true;
                     break;
@@ -198,6 +219,7 @@ public class RenderTargets implements Disposeable{
             GLFuncProviderFactory.getGLFuncProvider().glDrawBuffers(GLenum.GL_NONE);
         }
 
+        /*final boolean needDettachDepthStencil = (depthHandled || depthStencilHandled || stencilHandled);
         // unbind the previouse textures attchment.
         if (!depthHandled && m_DepthAttach.attached)
         {
@@ -205,17 +227,19 @@ public class RenderTargets implements Disposeable{
             m_DepthAttach.attached = false;
         }
 
-        if (!depthStencilHandled && m_DepthStencilAttach.attached)
-        {
-            deAttachTexture(GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_DepthStencilAttach.type);
-            m_DepthStencilAttach.attached = false;
-        }
-
         if (!stencilHandled && m_StencilAttach.attached)
         {
             deAttachTexture(GLenum.GL_STENCIL_ATTACHMENT, m_StencilAttach.type);
             m_StencilAttach.attached = false;
         }
+
+        if (!depthStencilHandled && m_DepthStencilAttach.attached)
+        {
+            deAttachTexture(GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_DepthStencilAttach.type);
+            m_DepthStencilAttach.attached = false;
+        }*/
+
+
 
         for (int i = 0; i < 8; i++)
         {

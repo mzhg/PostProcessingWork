@@ -32,7 +32,7 @@ import jet.opengl.postprocessing.util.FileUtils;
 /**
  * Created by mazhen'gui on 2017/10/21.
  */
-public class SparklesDemo extends NvSampleApp {
+public final class SparklesDemo extends NvSampleApp {
     private GLSLProgram sparklesRenderProgram;
     private SphereScene mScene;
 
@@ -92,7 +92,7 @@ public class SparklesDemo extends NvSampleApp {
         gl.glBindTexture(mScene.getSceneDepthTex().getTarget(), mScene.getSceneDepthTex().getTexture());
         gl.glActiveTexture(GLenum.GL_TEXTURE1);
         gl.glBindTexture(m_star_tex.getTarget(), m_star_tex.getTexture());
-        gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_DEPTH_TEST);  // Can't enable the depth test that can generate artifacts.
         gl.glDepthMask(false);
         gl.glEnable(GLenum.GL_BLEND);
         gl.glBlendFuncSeparate(GLenum.GL_SRC_COLOR, GLenum.GL_ONE, GLenum.GL_ZERO, GLenum.GL_ONE);

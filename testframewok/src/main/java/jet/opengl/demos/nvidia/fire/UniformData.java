@@ -15,11 +15,19 @@ final class UniformData {
     final Vector3f vEyePos = new Vector3f();
     final Vector3f vLightPos = new Vector3f();
     float fLightIntensity;
-    float fStepSize;
+    float fStepSize = 3.0f;
     float fTime;
-    float fNoiseScale;
-    float fRoughness;
-    final float[] fFrequencyWeights = new float[5];
-    boolean bJitter;
+    float fNoiseScale = 1.35f;
+    float fRoughness = 3.2f;
+    final float[] fFrequencyWeights = {
+            1.0f, 0.5f, 0.25f, 0.125f, 0.0525f
+    };
+    boolean bJitter = true;
     int iCubeMapFace;
+
+    UniformData(){
+        for(int i = 0; i < mCubeViewMatrixs.length; i++){
+            mCubeViewMatrixs[i] = new Matrix4f();
+        }
+    }
 }

@@ -11,7 +11,9 @@ import org.lwjgl.assimp.AIVector3D;
 import org.lwjgl.assimp.Assimp;
 import org.lwjgl.system.MemoryUtil;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -90,12 +92,25 @@ public class MeshLoader {
             PointerBuffer meshesBuffer  =  scene.mMeshes();
 
             final String output = root + token;
+
+            StringBuilder materialIdxStr = new StringBuilder(256);
+            materialIdxStr.append("MeshCount: ").append(numMesh).append('\n');
             for(int j = 0; j < numMesh; j++){
-                saveMeshData(AIMesh.create(meshesBuffer.get(j)), j, output, token);
+                AIMesh mesh = AIMesh.create(meshesBuffer.get(j));
+                saveMeshData(mesh, j, output, token);
+                int materialIdx = mesh.mMaterialIndex();
+                materialIdxStr.append("materialIdx: ").append(materialIdx).append('\n');
                 System.out.println();
             }
 
-            printMaterials(scene);
+            printMaterials(scene, materialIdxStr);
+
+            try (BufferedWriter out = new BufferedWriter(new FileWriter(output + "_Materials.txt"))){
+                out.write(materialIdxStr.toString());
+                out.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             try {
                 Assimp.aiReleaseImport(scene);
@@ -105,9 +120,10 @@ public class MeshLoader {
         }
     }
 
-    static void printMaterials(AIScene scene){
+    static void printMaterials(AIScene scene, StringBuilder textureStr){
         int numMaterials = scene.mNumMaterials();
         PointerBuffer materialsBuffer = scene.mMaterials();
+        textureStr.append("TextureCount: ").append(numMaterials).append('\n');
         for(int j = 0; j < numMaterials; j++){
             AIMaterial material = AIMaterial.create(materialsBuffer.get(j));
             int numProperties = material.mNumProperties();
@@ -154,12 +170,20 @@ public class MeshLoader {
                 }else if(type == Assimp.aiPTI_Buffer){
                     type_str = "Binary";
                 }else if(type == Assimp.aiPTI_String){
-                    type_str = MemoryUtil.memUTF8(value);
+                    type_str = MemoryUtil.memUTF8(value).trim();
+                    int dot = type_str.lastIndexOf('\n');
+                    if(dot > 0){
+                        type_str = type_str.substring(0, dot);
+                    }
                 }else{
                     throw new IllegalArgumentException("Unkown type");
                 }
 
                 System.out.println("Material: " + j + ", property: "+ k +" ,key = " + key.dataString() + ", value = " + type_str);
+
+                if(key.dataString().equals("$tex.file")){
+                    textureStr.append("Texture: ").append(type_str).append('\n');
+                }
             }
         }
     }
