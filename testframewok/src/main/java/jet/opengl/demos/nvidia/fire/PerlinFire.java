@@ -302,14 +302,18 @@ public final class PerlinFire extends NvSampleApp {
 
         float rnd = Numeric.random() * 0.5f + 0.5f;
         m_uniformData.vLightPos.set( 0.25f * (rnd - 0.5f), 5.7f, 1.0f * (rnd - 0.5f));
-        InitCubeMatricesGL( m_uniformData.vLightPos );
+        InitCubeMatrices( m_uniformData.vLightPos );
         gl.glViewport(0,0, g_CubeMapSize, g_CubeMapSize);
         g_pGeometryTechniqueAux.enable();
+        g_pGeometryTechniqueAux.setUniforms(m_uniformData);
+
+//        Matrix4f.perspective()
+
         for( int i = 0; i < 6; i ++ ){
             m_renderTarget.setRenderTexture(g_pCubeMapDepthViewArray[i], null);
             gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
             m_uniformData.iCubeMapFace = i;
-            g_pGeometryTechniqueAux.setUniforms(m_uniformData);
+            g_pGeometryTechniqueAux.setCubeFace(i);
             g_OutsideWorldMesh.draw();
         }
 
@@ -498,9 +502,10 @@ public final class PerlinFire extends NvSampleApp {
         gl.glTexStorage2D(GLenum.GL_TEXTURE_CUBE_MAP,1, GLenum.GL_DEPTH24_STENCIL8, g_CubeMapSize, g_CubeMapSize);
         gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_NEAREST);
         gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_NEAREST);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_BORDER);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_BORDER);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_BORDER);
+        gl.glTexParameterfv(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_BORDER_COLOR, CacheBuffer.wrap(1.0f, 1.0f, 1.0f,1.0f));
         gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, 0);
         GLCheck.checkError();
 
@@ -612,28 +617,28 @@ public final class PerlinFire extends NvSampleApp {
         final Matrix4f[] cubeViewMatrices = m_uniformData.mCubeViewMatrixs;
         final Matrix4f cubeProjMatrix = m_uniformData.mCubeProjMatrix;
 
-        Vector3f.sub(cubeCenter, Vector3f.X_AXIS, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.X_AXIS, vLookDir);
         vUpDir.set(0.0f, 1.0f, 0.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[0]);
 
 //        vLookDir = D3DXVECTOR3( -1.0f, 0.0f, 0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f, 1.0f, 0.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[1], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.sub(cubeCenter, Vector3f.X_AXIS_NEG, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.X_AXIS_NEG, vLookDir);
         vUpDir.set(0.0f, 1.0f, 0.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[1]);
 
 //        vLookDir = D3DXVECTOR3( 0.0f, 1.0f,  0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f, 0.0f, -1.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[2], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.sub(cubeCenter, Vector3f.Y_AXIS, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.Y_AXIS, vLookDir);
         vUpDir.set(0.0f, 0.0f, -1.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[2]);
 
 //        vLookDir = D3DXVECTOR3( 0.0f, -1.0f, 0.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f,  0.0f, 1.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[3], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.sub(cubeCenter, Vector3f.Y_AXIS_NEG, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.Y_AXIS_NEG, vLookDir);
         vUpDir.set(0.0f, 0.0f, 1.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[3]);
 
@@ -647,7 +652,7 @@ public final class PerlinFire extends NvSampleApp {
 //        vLookDir = D3DXVECTOR3( 0.0f, 0.0f, -1.0f ) + (* (D3DXVECTOR3 *) cubeCenter);
 //        vUpDir = D3DXVECTOR3( 0.0f, 1.0f,  0.0f );
 //        D3DXMatrixLookAtLH( &cubeViewMatrices[5], (D3DXVECTOR3 *) cubeCenter, &vLookDir, &vUpDir );
-        Vector3f.sub(cubeCenter, Vector3f.Z_AXIS_NEG, vLookDir);
+        Vector3f.add(cubeCenter, Vector3f.Z_AXIS_NEG, vLookDir);
         vUpDir.set(0.0f, 1.0f, 0.0f);
         Matrix4f.lookAt(cubeCenter, vLookDir, vUpDir, cubeViewMatrices[5]);
 

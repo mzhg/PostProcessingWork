@@ -19,7 +19,7 @@ float ShadowCalculation()
     float mZNear = 0.2;
     float fCamSpaceZ = mZFar*mZNear/(mZFar-depthInMap*(mZFar-mZNear));
 
-    return length - 0.05 > fCamSpaceZ ? 1.0 : 0.0;
+    return length - 0.001 > fCamSpaceZ ? 1.0 : 0.0;
 }
 
 void main()
@@ -33,16 +33,19 @@ void main()
     float4 realPosLight = float4( In.Pos - LightPos, 1.0f );
     float maxCoord = max( abs( realPosLight.x ), max( abs( realPosLight.y ), abs( realPosLight.z ) ) );
     // the math is: -1.0f / maxCoord * (Zn * Zf / (Zf - Zn) + Zf / (Zf - Zn) (should match the shadow projection matrix)
-    float projectedDepth = -(1.0f / maxCoord) * (200.0 * 0.2 / (200.0 - 0.2)) + (200.0 / (200.0 - 0.2));
+//    float projectedDepth = -(1.0f / maxCoord) * (200.0 * 0.2 / (200.0 - 0.2)) + (200.0 / (200.0 - 0.2));
+    float m22 = -(200.0+0.2)/ (200.0 - 0.2);
+    float m32 = -200.0 * 0.2 * 2.0/ (200.0 - 0.2);
+    float projectedDepth = 0.5 * (-m22 + m32/maxCoord) + 0.5;
 
-    float shadow = projectedDepth - 0.001f > texture(ShadowMap , In.Pos - LightPos ).r ? 1 : 0;  // SamplerClamp
+    float shadow = projectedDepth - 0.001f > texture(ShadowMap , realPosLight.xyz ).r ? 1 : 0;  // SamplerClamp
 #else
     float shadow = ShadowCalculation();
 #endif
 
     // Compute the final color
 
-    shadeColor -= float4( float3( 0.6f, 0.6f, 0.6f ), 1.0f ) * shadow;
+    shadeColor -= float4(0.6f, 0.6f, 0.6f, 1.0f ) * shadow;
 
     Out_Color = (diffuseColor * float4( lightCol,lightCol,lightCol, 1.0f ) * shadeColor * LightIntensity * pow( saturate( 150.0f / length( LightPos - In.Pos ) ), 3.0f ));
 }

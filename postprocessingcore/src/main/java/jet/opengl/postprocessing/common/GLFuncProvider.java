@@ -51,8 +51,12 @@ public interface GLFuncProvider {
 
     public void glCullFace (int mode);
 
+    @Deprecated
     public void glDeleteTextures (int...textures);
+    @Deprecated
     public void glDeleteTextures (int[]textures, int offset, int length);
+
+    void glDeleteTextures(IntBuffer textures);
 
     static void defaultImplemented(String msg){
         throw new RuntimeException("Unsupport the func: " + msg);
@@ -83,6 +87,7 @@ public interface GLFuncProvider {
     public void glFrontFace (int mode);
 
     public int glGenTexture ();
+    void glGenTextures (IntBuffer textures);
 
     public int glGetError ();
 
@@ -166,10 +171,12 @@ public interface GLFuncProvider {
     public void glDeleteBuffers (IntBuffer buffers);
 
     public void glDeleteFramebuffer (int framebuffer);
+    public void glDeleteFramebuffers (IntBuffer framebuffer);
 
     public void glDeleteProgram (int program);
 
     public void glDeleteRenderbuffer (int renderbuffer);
+    void glDeleteRenderbuffers(IntBuffer renderbuffers);
 
     public void glDeleteShader (int shader);
 
@@ -191,8 +198,10 @@ public interface GLFuncProvider {
     public void glGenerateMipmap (int target);
 
     public int glGenFramebuffer ();
+    void glGenFramebuffers (IntBuffer framebuffers);
 
     public int glGenRenderbuffer ();
+    void glGenRenderbuffer(IntBuffer renderbuffers);
 
     // deviates
     public String glGetActiveAttrib (int program, int index, int maxLength, IntBuffer size, IntBuffer type);

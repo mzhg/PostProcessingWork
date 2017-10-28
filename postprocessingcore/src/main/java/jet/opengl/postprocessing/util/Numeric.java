@@ -73,6 +73,16 @@ public final class Numeric {
 		}
 	}
 
+	public static void toInts(byte[] src, int srcOffset, int[] dst, int dstOffset, int length){
+		if(length < 0)
+			throw new IllegalArgumentException("length must be >= 0, length = " + length);
+
+		for(int i = dstOffset; i < dstOffset + length; i++){
+			dst[i] = getInt(src, srcOffset);
+			srcOffset += 4;
+		}
+	}
+
 	public static boolean isClose(float a, float b, float percent){
 		if(a == b){
 			return true;

@@ -112,8 +112,12 @@ final class RenderProgram extends GLSLProgram{
             gl.glUniform1i(g_pbJitter, data.bJitter?1:0);
         }
 
+        setCubeFace(data.iCubeMapFace);
+    }
+
+    public void setCubeFace(int face){
         if(g_piCubeMapFace>=0){
-            gl.glUniform1i(g_piCubeMapFace, data.iCubeMapFace);
+            gl.glUniform1i(g_piCubeMapFace, face);
         }
     }
 }
