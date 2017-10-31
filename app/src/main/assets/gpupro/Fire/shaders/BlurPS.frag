@@ -8,7 +8,7 @@ layout(binding = 0) uniform sampler2DRect blur_input;
 
 void main()
 {
-    Out_f4Color = ( 2.5*texture( blur_input , IN.tex1.rb )
+    Out_f4Color = ( 2.5*texture( blur_input , m_tex1.rb )
 
     			+ texture( blur_input , m_tex3.gb )
     			+ texture( blur_input , m_tex3.rb )

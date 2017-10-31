@@ -44,5 +44,7 @@ public abstract class AttribArray extends Attribute{
 	
 	/** Increase the value of the {@link #modified} by 1. Sub-class should call this method when the attribute data has changed. */
 	protected final void touch() { modified ++;}
+
+	public abstract Object getArray();
 	
 }

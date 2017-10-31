@@ -28,6 +28,7 @@ final class EffectIter {
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         gl.glDrawArrays(GLenum.GL_POINTS,d_seq.d_skip_vert[d_counter],
             d_seq.d_no_of_vert[d_counter]);
+
     }
 
     void incr(){

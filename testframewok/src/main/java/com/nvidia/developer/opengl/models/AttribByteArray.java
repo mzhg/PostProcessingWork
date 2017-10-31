@@ -8,7 +8,7 @@ import java.util.Arrays;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.Numeric;
 
-public class AttribByteArray extends AttribArray{
+public class AttribByteArray extends AttribArray implements IndicesAttrib{
 	byte[] data;
 	
 	public AttribByteArray(int cmpSize) {
@@ -48,6 +48,11 @@ public class AttribByteArray extends AttribArray{
 		if(cmpSize > 2) data[index++] = z;
 		if(cmpSize > 3) data[index++] = w;
 	}
+
+	@Override
+	public void add(int indice) { add((byte)indice, (byte)0, (byte)0, (byte)1);}
+	@Override
+	public void set(int index, int indice) { set(index, (byte)indice, (byte)0, (byte)0, (byte)1);}
 	
 	private void checkCapacity(int capacity){
 		if(data.length - size < capacity){

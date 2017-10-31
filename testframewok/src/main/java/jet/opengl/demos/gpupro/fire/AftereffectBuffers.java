@@ -47,7 +47,7 @@ final class AftereffectBuffers {
         textures.get(d_textures);
 
         IntBuffer depthbuffer = CacheBuffer.getCachedIntBuffer(2);
-        gl.glGenRenderbuffer(depthbuffer);
+        gl.glGenRenderbuffers(depthbuffer);
         depthbuffer.get(d_depthbuffer);
 
         /**************************************************************************************************************/

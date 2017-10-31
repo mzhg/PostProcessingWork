@@ -2,9 +2,11 @@ package jet.opengl.demos.gpupro.fire;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.StringTokenizer;
+
+import jet.opengl.postprocessing.util.FileUtils;
 
 /**
  * Created by mazhen'gui on 2017/10/28.
@@ -36,7 +38,7 @@ final class Configuration {
 
     boolean load(String filename){
         try {
-            BufferedReader in = new BufferedReader(new FileReader(filename));
+            BufferedReader in = new BufferedReader(new InputStreamReader(FileUtils.open(filename)));
             StringTokenizer token = new StringTokenizer(in.readLine());
             mainTimetick = Float.parseFloat(token.nextToken());
 

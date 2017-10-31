@@ -1,3 +1,5 @@
+#include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
+
 layout(location = 0) in float3 In_Position;
 layout(location = 1) in float4 In_Color;
 

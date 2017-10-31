@@ -180,6 +180,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glDeleteTextures(IntBuffer textures) {
+        GL11.glDeleteTextures(textures);
+    }
+
+    @Override
     public void glDeleteTexture(int texture) {
         GL11.glDeleteTextures(texture);
     }
@@ -237,6 +242,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public int glGenTexture() {
         return GL11.glGenTextures();
+    }
+
+    @Override
+    public void glGenTextures(IntBuffer textures) {
+        GL11.glGenTextures(textures);
     }
 
     @Override
@@ -451,6 +461,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glDeleteFramebuffers(IntBuffer framebuffers) {
+        GL30.glDeleteFramebuffers(framebuffers);
+    }
+
+    @Override
     public void glDeleteProgram(int program) {
         GL20.glDeleteProgram(program);
     }
@@ -458,6 +473,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glDeleteRenderbuffer(int renderbuffer) {
         GL30.glDeleteRenderbuffers(renderbuffer);
+    }
+
+    @Override
+    public void glDeleteRenderbuffers(IntBuffer renderbuffers) {
+        GL30.glDeleteRenderbuffers(renderbuffers);
     }
 
     @Override
@@ -516,8 +536,18 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glGenFramebuffers(IntBuffer framebuffers) {
+        GL30.glGenFramebuffers(framebuffers);
+    }
+
+    @Override
     public int glGenRenderbuffer() {
         return GL30.glGenRenderbuffers();
+    }
+
+    @Override
+    public void glGenRenderbuffers(IntBuffer renderbuffers) {
+        GL30.glGenRenderbuffers(renderbuffers);
     }
 
     @Override

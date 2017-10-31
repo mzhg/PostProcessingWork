@@ -1,5 +1,6 @@
 package jet.opengl.demos.gpupro.fire;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.util.ArrayDeque;
@@ -29,7 +30,7 @@ class HeatHaze {
     float d_lifetimeInit;				// initial lifetime for single heat cloud
     float d_lifetimeAmpl;				// rate of change for lifetime
     boolean d_visible;						// indicates if the volume object is in front of the camera
-    float[] d_CloudFacePerpVisDirRot = new float[16];
+    final Matrix4f d_CloudFacePerpVisDirRot = new Matrix4f();
 
     final Vector3f d_HeatHazeLocation = new Vector3f();
 
@@ -49,11 +50,11 @@ class HeatHaze {
         d_lifetimeAmpl=lifetimeAmpl;
 
         d_lifetimeInit = 1.0f;
-        for(int i=0;i<16;i++){
-            if(( i%5 )!=0)
-                d_CloudFacePerpVisDirRot[i] = 0.0f;
-            else d_CloudFacePerpVisDirRot[i] = 1.0f;
-        }
+//        for(int i=0;i<16;i++){
+//            if(( i%5 )!=0)
+//                d_CloudFacePerpVisDirRot[i] = 0.0f;
+//            else d_CloudFacePerpVisDirRot[i] = 1.0f;
+//        }
         update(r_f, r_c, d_c, u_c);
         return true;
     }
@@ -81,23 +82,22 @@ class HeatHaze {
             v_X.y/=temp;
             v_X.z/=temp;
 
-            d_CloudFacePerpVisDirRot[ 0] = v_X.x;
-            d_CloudFacePerpVisDirRot[ 1] = v_X.y;
-            d_CloudFacePerpVisDirRot[ 2] = v_X.z;
+            d_CloudFacePerpVisDirRot.m00 = v_X.x;
+            d_CloudFacePerpVisDirRot.m01 = v_X.y;
+            d_CloudFacePerpVisDirRot.m02 = v_X.z;
 
-            d_CloudFacePerpVisDirRot[ 4] = v_Z.y * v_X.z - v_Z.z * v_X.y;
-            d_CloudFacePerpVisDirRot[ 5] = v_Z.z * v_X.x - v_Z.x * v_X.z;
-            d_CloudFacePerpVisDirRot[ 6] = v_Z.x * v_X.y - v_Z.y * v_X.x;
+            d_CloudFacePerpVisDirRot.m10 = v_Z.y * v_X.z - v_Z.z * v_X.y;
+            d_CloudFacePerpVisDirRot.m11 = v_Z.z * v_X.x - v_Z.x * v_X.z;
+            d_CloudFacePerpVisDirRot.m12 = v_Z.x * v_X.y - v_Z.y * v_X.x;
 
-            d_CloudFacePerpVisDirRot[ 8] = v_Z.x;
-            d_CloudFacePerpVisDirRot[ 9] = v_Z.y;
-            d_CloudFacePerpVisDirRot[10] = v_Z.z;
+            d_CloudFacePerpVisDirRot.m20 = v_Z.x;
+            d_CloudFacePerpVisDirRot.m21 = v_Z.y;
+            d_CloudFacePerpVisDirRot.m22 = v_Z.z;
         }
     }
 
     void proceed(float time){
         time*=d_timeScale;
-
 
 //			d_cloudsIter = d_clouds_p.begin();
         Iterator<Cloud> it = d_clouds_p.iterator();

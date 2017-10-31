@@ -173,7 +173,7 @@ final class HeatHazeOGL extends HeatHaze{
 
     void placeHeatHaze(){
 //        GL11.glTranslatef(d_HeatHazeLocation.x, d_HeatHazeLocation.y, d_HeatHazeLocation.z);
-        model.translate(d_HeatHazeLocation.x, d_HeatHazeLocation.y, d_HeatHazeLocation.z);
+//        model.setTranslate(d_HeatHazeLocation.x, d_HeatHazeLocation.y, d_HeatHazeLocation.z);
     }
 
     void makeHeatHazeDistTex(Matrix4f rotationMatrix, Matrix4f viewPoj){
@@ -195,6 +195,8 @@ final class HeatHazeOGL extends HeatHaze{
         gl.glEnableVertexAttribArray(1);
         gl.glEnableVertexAttribArray(0);
 
+        int location = d_fProgHeatHazeDist.getUniformLocation("g_ModelViewProj");
+
         Iterator<Cloud> it = d_clouds_p.iterator();
         while(it.hasNext()){
             Cloud cloud = it.next();
@@ -203,12 +205,14 @@ final class HeatHazeOGL extends HeatHaze{
             GL13.glMultTransposeMatrix(wrap16(rotationMatrix));
             GL11.glMultMatrix(wrap16(d_CloudFacePerpVisDirRot));
             GL11.glRotatef(cloud.d_rotation,0,0,1);*/
-            model.setTranslate(cloud.d_position[0], cloud.d_position[1], cloud.d_position[2]);
-            Matrix4f.mul(model, rotationMatrix, model);   // TODO rotationMatrix = rotationMatrix * d_CloudFacePerpVisDirRot
+            model.setTranslate(cloud.d_position[0] + d_HeatHazeLocation.x,
+                            cloud.d_position[1] + d_HeatHazeLocation.y,
+                            cloud.d_position[2] + d_HeatHazeLocation.z);
+            Matrix4f.mul(model, rotationMatrix, model);
+            Matrix4f.mul(model, d_CloudFacePerpVisDirRot, model);
             model.rotate(cloud.d_rotation,0,0,1);
             Matrix4f.mul(viewPoj, model, model);
 
-            int location = d_fProgHeatHazeDist.getUniformLocation("g_ModelViewProj");
             gl.glUniformMatrix4fv(location, false, CacheBuffer.wrap(model));
 
             /*GL11.glBegin(GL11.GL_QUADS);
@@ -249,9 +253,9 @@ final class HeatHazeOGL extends HeatHaze{
             arrayBuffer.put(-cloud.d_halfSize).put(cloud.d_halfSize);
             arrayBuffer.flip();
 
-            gl.glVertexAttribPointer(1, 3, GLenum.GL_FLOAT, false, 5 * 4, arrayBuffer);
+            gl.glVertexAttribPointer(1, 3, GLenum.GL_FLOAT, false, 5 * 4, arrayBuffer);  // texcoord
             arrayBuffer.position(3);
-            gl.glVertexAttribPointer(0, 2, GLenum.GL_FLOAT, false, 5 * 4, arrayBuffer);
+            gl.glVertexAttribPointer(0, 2, GLenum.GL_FLOAT, false, 5 * 4, arrayBuffer);  // position
 
             gl.glDrawArrays(GLenum.GL_TRIANGLE_FAN, 0, 4);
         }

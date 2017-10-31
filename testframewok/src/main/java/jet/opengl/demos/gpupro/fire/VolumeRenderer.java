@@ -1,5 +1,6 @@
 package jet.opengl.demos.gpupro.fire;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
@@ -58,10 +59,11 @@ final class VolumeRenderer implements Disposeable{
     // variables for vertex and fragment programs
     private int d_vProfile, d_fProfile;
     private GLSLProgram d_vProgram, d_fProgram;
+    private GLSLProgram m_rectTexProgram;
 //    CGcontext d_cgContext;
     private int d_dim, d_Proj, d_Model, d_blurInput;
 
-    private final float[] d_VolRendTrickyRotation   = new float[16];	// corresponds to M (see VFA document)
+    private final Matrix4f d_VolRendTrickyRotation  = new Matrix4f();	// corresponds to M (see VFA document)
     private final float[] d_VolRendTrickyProjection = new float[16];  // corresponds to P (see VFA document)
     private float d_invFluidR;	// reversed d_radius
     private float d_fluidR2;	// square of d_radius
@@ -124,7 +126,7 @@ final class VolumeRenderer implements Disposeable{
 
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER_EXT,d_framebuffers[2]);
         gl.glBindTexture(GLenum.GL_TEXTURE_RECTANGLE_ARB,d_textures[2]);
-        gl.glTexImage2D(GLenum.GL_TEXTURE_RECTANGLE_ARB,0,GLenum.GL_RGBA,d_blur3dEffectX,d_blur3dEffectY,0,GLenum.GL_RGBA,GLenum.GL_UNSIGNED_BYTE,null);
+        gl.glTexImage2D(GLenum.GL_TEXTURE_RECTANGLE_ARB,0,GLenum.GL_RGBA8,d_blur3dEffectX,d_blur3dEffectY,0,GLenum.GL_RGBA,GLenum.GL_UNSIGNED_BYTE,null);
         gl.glTexParameteri(GLenum.GL_TEXTURE_RECTANGLE_ARB,GLenum.GL_TEXTURE_MAG_FILTER,GLenum.GL_LINEAR);
 //        gl.glTexEnvf(GL11.GL_TEXTURE_ENV,GL11.GL_TEXTURE_ENV_MODE,GL11.GL_REPLACE);
         gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER_EXT,GLenum.GL_COLOR_ATTACHMENT0_EXT, GLenum.GL_TEXTURE_RECTANGLE_ARB,d_textures[2],0);
@@ -139,8 +141,9 @@ final class VolumeRenderer implements Disposeable{
         /*d_vProgram = CgGL.cgCreateProgramFromFile(d_cgContext, CgGL.CG_SOURCE, file_dir + "v_flat3Dgen.cg", d_vProfile, "v_flat3Dgen", null);
         d_fProgram = CgGL.cgCreateProgramFromFile(d_cgContext, CgGL.CG_SOURCE, file_dir + "f_blur.cg", d_fProfile, "f_blur", null);*/
         try {
-            d_vProgram = GLSLProgram.createFromFiles("gpupro/Fire/shaders/Flat3DgenVS.vert", "");
-            d_fProgram = GLSLProgram.createFromFiles("gpupro/Fire/shaders/Flat3DgenVS.vert", "gpupro/Fire/shaders/BlurPS.frag");
+            d_vProgram = GLSLProgram.createFromFiles("gpupro/Fire/shaders/Flat3DgenVS.vert", "gpupro/Fire/shaders/Flat3DgenPS.frag");
+            d_fProgram = GLSLProgram.createFromFiles("gpupro/Fire/shaders/BlurVS.vert", "gpupro/Fire/shaders/BlurPS.frag");
+            m_rectTexProgram =GLSLProgram.createFromFiles("gpupro/Fire/shaders/SimpleRectTextureVS.vert", "gpupro/Fire/shaders/SimpleRectTexturePS.frag");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -197,9 +200,9 @@ final class VolumeRenderer implements Disposeable{
         d_factor = (float) (1.0 / Math.tan( 0.5*d_fovy*3.1415/180.0 ));
 
         for(int i=0;i<16;i++){
-            if( i%5 != 0)
-                d_VolRendTrickyRotation[i] = 0.0f;
-            else d_VolRendTrickyRotation[i] = 1.0f;
+//            if( i%5 != 0)
+//                d_VolRendTrickyRotation[i] = 0.0f;
+//            else d_VolRendTrickyRotation[i] = 1.0f;
 
             d_VolRendTrickyProjection[i] = 0.0f;
         }
@@ -241,17 +244,17 @@ final class VolumeRenderer implements Disposeable{
                 v_X.y/=temp;
                 v_X.z/=temp;
             }
-            d_VolRendTrickyRotation[ 0] = v_X.x;
-            d_VolRendTrickyRotation[ 1] = v_X.y;
-            d_VolRendTrickyRotation[ 2] = v_X.z;
+            d_VolRendTrickyRotation.m00 = v_X.x;
+            d_VolRendTrickyRotation.m01 = v_X.y;
+            d_VolRendTrickyRotation.m02 = v_X.z;
 
-            d_VolRendTrickyRotation[ 4] = v_Z.y * v_X.z - v_Z.z * v_X.y;
-            d_VolRendTrickyRotation[ 5] = v_Z.z * v_X.x - v_Z.x * v_X.z;
-            d_VolRendTrickyRotation[ 6] = v_Z.x * v_X.y - v_Z.y * v_X.x;
+            d_VolRendTrickyRotation.m10 = v_Z.y * v_X.z - v_Z.z * v_X.y;
+            d_VolRendTrickyRotation.m11 = v_Z.z * v_X.x - v_Z.x * v_X.z;
+            d_VolRendTrickyRotation.m12 = v_Z.x * v_X.y - v_Z.y * v_X.x;
 
-            d_VolRendTrickyRotation[ 8] = v_Z.x;
-            d_VolRendTrickyRotation[ 9] = v_Z.y;
-            d_VolRendTrickyRotation[10] = v_Z.z;
+            d_VolRendTrickyRotation.m20 = v_Z.x;
+            d_VolRendTrickyRotation.m21 = v_Z.y;
+            d_VolRendTrickyRotation.m22 = v_Z.z;
 
             /********************************************************************************************************/
             float factor2 = len_r_cf2 - d_fluidR2;
@@ -361,7 +364,7 @@ final class VolumeRenderer implements Disposeable{
         return 1;
     }
 
-    void beginEffectData(){
+    void beginEffectData(Matrix4f proj){
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER_EXT,d_framebuffers[0]);
         gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0_EXT);
         gl.glViewport(0,0,d_flat3dTexX,d_flat3dTexY);
@@ -377,6 +380,24 @@ final class VolumeRenderer implements Disposeable{
 
         CgGL.cgGLEnableProfile(d_vProfile);
         CgGL.cgGLBindProgram(d_vProgram);*/
+
+        Matrix4f.ortho(0,d_flat3dTexX,-0.5f,d_flat3dTexY-0.5f,-1,1, proj);
+    }
+
+    void applyEffectData(Matrix4f proj, Matrix4f modelView){
+        int projLoc = d_vProgram.getUniformLocation("Proj");
+        if(projLoc < 0){
+            throw new IllegalArgumentException();
+        }
+
+        gl.glUniformMatrix4fv(projLoc, false, CacheBuffer.wrap(proj));
+
+        int modelViewLoc = d_vProgram.getUniformLocation("Model");
+        if(modelViewLoc < 0){
+            throw new IllegalArgumentException();
+        }
+
+        gl.glUniformMatrix4fv(modelViewLoc, false, CacheBuffer.wrap(modelView));
     }
 
     void endEffectData(){
@@ -384,7 +405,7 @@ final class VolumeRenderer implements Disposeable{
         d_vProgram.disable();
     }
 
-    void beginObstacles(){
+    void beginObstacles(Matrix4f proj){
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER_EXT,d_framebuffers[1]);
         gl.glDrawBuffers( GLenum.GL_COLOR_ATTACHMENT0_EXT );
 
@@ -393,12 +414,13 @@ final class VolumeRenderer implements Disposeable{
         /*GL11.glMatrixMode(GL11.GL_PROJECTION);
         GL11.glLoadMatrix( wrap16(d_VolRendTrickyProjection) );   TODO
         GL11.glMatrixMode(GL11.GL_MODELVIEW);*/
+        proj.load(d_VolRendTrickyProjection, 0);
         gl.glEnable(GLenum.GL_DEPTH_TEST);
         gl.glClearColor(0,0,0,0);
-        gl.glClear( GLenum.GL_DEPTH_BUFFER_BIT );
+        gl.glClear( GLenum.GL_DEPTH_BUFFER_BIT|GLenum.GL_COLOR_BUFFER_BIT );
     }
 
-    void endObstacles(){
+    void endObstacles(ModelViewStack mat, Matrix4f temp){
         gl.glClear( GLenum.GL_COLOR_BUFFER_BIT );
 //        GL11.glEnable(GLenum.GL_TEXTURE_RECTANGLE_ARB);
         gl.glBindTexture(GLenum.GL_TEXTURE_RECTANGLE_ARB,d_textures[0]);
@@ -410,7 +432,16 @@ final class VolumeRenderer implements Disposeable{
             GL11.glCallList(d_rendGeometry);
         }
         GL11.glPopMatrix();*/
-        // TODO Enable the program
+        mat.loadIdentity();
+        mat.translate(0.0f,0.0f,-len_r_cf);
+        temp.load(d_VolRendTrickyProjection, 0);
+        Matrix4f modelView = mat.getTotalMatrix();
+        Matrix4f.mul(temp, modelView, temp);
+
+        m_rectTexProgram.enable();
+        int mvpLoc = m_rectTexProgram.getUniformLocation("g_MVP");
+        gl.glUniformMatrix4fv(mvpLoc, false, CacheBuffer.wrap(temp));
+
         d_rendGeometry.run();
 
 //        gl.glDisable(ARBTextureRectangle.GL_TEXTURE_RECTANGLE_ARB);
@@ -487,7 +518,7 @@ final class VolumeRenderer implements Disposeable{
             vertex_buffer.put(gora_x+1).put(gora_x-1).put(dol_y);
             vertex_buffer.put(1).put(-1).put(0.f);
 
-            vertex_buffer.put(gora_x).put(gora_y+1).put(gora_y).put(gora_y-1);
+            vertex_buffer.put(gora_x).  put(gora_y+1).put(gora_y).put(gora_y-1);
             vertex_buffer.put(gora_x+1).put(gora_y+1).put(gora_x-1).put(gora_y-1);
             vertex_buffer.put(gora_x+1).put(gora_x-1).put(gora_y);
             vertex_buffer.put(1).put(1).put(0.f);
@@ -536,7 +567,7 @@ final class VolumeRenderer implements Disposeable{
         gl.glStencilFunc(GLenum.GL_NOTEQUAL,1,1);
     }
 
-    void blendInEffectBillboard(){
+    void blendInEffectBillboard(Matrix4f viewProj){
         gl.glBlendEquation(GLenum.GL_FUNC_ADD);
         gl.glBlendFuncSeparate(GLenum.GL_ONE,GLenum.GL_ONE_MINUS_SRC_ALPHA,GLenum.GL_ZERO,GLenum.GL_ONE);
 
@@ -573,18 +604,24 @@ final class VolumeRenderer implements Disposeable{
         }
         GL11.glPopMatrix();*/
 
+        viewProj.translate(d_rf.x, d_rf.y, d_rf.z);
+        Matrix4f.mul(viewProj, d_VolRendTrickyRotation, viewProj);
+        m_rectTexProgram.enable();
+        int mvpLoc = m_rectTexProgram.getUniformLocation("g_MVP");
+        gl.glUniformMatrix4fv(mvpLoc, false, CacheBuffer.wrap(viewProj));
+
         FloatBuffer vertex_buffer = CacheBuffer.getCachedFloatBuffer(5 * 4);
         vertex_buffer.put(dol_x).put(dol_y);
-        vertex_buffer.put(-fluid_base).put(-fluid_base).put(fluid_base);
+        vertex_buffer.put(-fluid_base).put(-fluid_base).put(fluid_radius);
 
         vertex_buffer.put(gora_x).put(dol_y);
-        vertex_buffer.put(fluid_base).put(-fluid_base).put(fluid_base);
+        vertex_buffer.put(fluid_base).put(-fluid_base).put(fluid_radius);
 
         vertex_buffer.put(gora_x).put(gora_y);
-        vertex_buffer.put(fluid_base).put(fluid_base).put(fluid_base);
+        vertex_buffer.put(fluid_base).put(fluid_base).put(fluid_radius);
 
         vertex_buffer.put(dol_x).put(gora_y);
-        vertex_buffer.put(-fluid_base).put(fluid_base).put(fluid_base);
+        vertex_buffer.put(-fluid_base).put(fluid_base).put(fluid_radius);
         vertex_buffer.flip();
 
         final int stride = 5 * 4;
@@ -605,17 +642,22 @@ final class VolumeRenderer implements Disposeable{
         gl.glDisable(GLenum.GL_BLEND);
     }
 
-    void placeEffectData(){
+    void placeEffectData(ModelViewStack stack){
 //        GL13.glLoadTransposeMatrix(wrap16(d_VolRendTrickyRotation));  TODO
+        stack.loadTransposeMatrix(d_VolRendTrickyRotation);
     }
 
-    void placeObstaclesMask(){
+    void placeObstaclesMask(ModelViewStack mvp){
        /* GL11.glLoadIdentity();TODO
         GL11.glTranslatef(0.0f,0.0f,-len_r_cf);
         GL13.glMultTransposeMatrix(wrap16(d_VolRendTrickyRotation));*/
+        mvp.loadIdentity();
+       mvp.translate(0.0f,0.0f,-len_r_cf);
+        mvp.multTransposeMatrix(d_VolRendTrickyRotation);
     }
 
-    void placeObstacles(){
-//        GL11.glTranslatef( d_rf.x, d_rf.y, d_rf.z);TODO
+    void placeObstacles(ModelViewStack mvp){
+//        GL11.glTranslatef( d_rf.x, d_rf.y, d_rf.z);
+        mvp.translate(d_rf.x, d_rf.y, d_rf.z);
     }
 }

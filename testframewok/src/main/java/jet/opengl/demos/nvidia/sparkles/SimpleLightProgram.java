@@ -1,11 +1,14 @@
 package jet.opengl.demos.nvidia.sparkles;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
 
+import jet.opengl.postprocessing.shader.AttribBinder;
+import jet.opengl.postprocessing.shader.AttribBindingTask;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.ProgramLinkTask;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -31,11 +34,30 @@ public class SimpleLightProgram extends GLSLProgram {
     private int m_g_ModelLoc = -1;
     private int m_g_MaterialDiffuseLoc = -1;
     private int m_g_MaterialAmbientLoc = -1;
+    private int m_EnableLightingLoc = -1;
 
     private int normalAttribLoc;
     private int colorAttribLoc;
     private int posLoc;
     private int texLoc;
+
+    /**
+     * The default construct for the <code>SimpleLightProgram</code> and make the attributes in the following behaviors:<ul>
+     *     <li> Binding the <b>position</b> to the location of 0.
+     *     <li> Binding the <b>texture</b> to the location of 1.
+     *     <li> Binding the <b>normal</b> to the location of 2.
+     *     <li> Binding the <b>color</b> to the location of 3.</ul>
+     *
+     * @param uniform true means using the uniform color to instead of the attrib color.
+     * @throws IOException
+     */
+    public SimpleLightProgram(boolean uniform) throws IOException{
+        this(uniform, new AttribBindingTask(
+                new AttribBinder(POSITION_ATTRIB_NAME, 0),
+                new AttribBinder(TEXTURE_ATTRIB_NAME, 1),
+                new AttribBinder(NORMAL_ATTRIB_NAME, 2),
+                new AttribBinder(COLOR_ATTRIB_NAME, 3)));
+    }
 
     public SimpleLightProgram(boolean uniform, ProgramLinkTask task) throws IOException {
         addLinkTask(task);
@@ -57,11 +79,13 @@ public class SimpleLightProgram extends GLSLProgram {
         m_g_ModelLoc = gl.glGetUniformLocation(m_program, "g_Model");
         m_g_MaterialDiffuseLoc = gl.glGetUniformLocation(m_program, "g_MaterialDiffuse");
         m_g_MaterialAmbientLoc = gl.glGetUniformLocation(m_program, "g_MaterialAmbient");
+        m_EnableLightingLoc = gl.glGetUniformLocation(m_program, "g_EnableLighting");
 
         findAttrib();
 
         enable();
         setTextureUniform("g_InputTex", 0);
+        setEnableLighting(true);
         disable();
     }
 
@@ -88,8 +112,9 @@ public class SimpleLightProgram extends GLSLProgram {
     public void setLightPos(Vector4f v) { if(m_g_LightPosLoc >=0)gl.glUniform4f(m_g_LightPosLoc, v.x, v.y, v.z, v.w);}
     public void setLightDiffuse(Vector3f v) { if(m_g_LightDiffuseLoc >=0)gl.glUniform3f(m_g_LightDiffuseLoc, v.x, v.y, v.z);}
     public void setModel(Matrix4f mat) { if(m_g_ModelLoc >=0)gl.glUniformMatrix4fv(m_g_ModelLoc, false, CacheBuffer.wrap(mat));}
-    public void setMaterialDiffuse(Vector3f v) { if(m_g_MaterialDiffuseLoc >=0)gl.glUniform3f(m_g_MaterialDiffuseLoc, v.x, v.y, v.z);}
-    public void setMaterialAmbient(Vector3f v) { if(m_g_MaterialAmbientLoc >=0)gl.glUniform3f(m_g_MaterialAmbientLoc, v.x, v.y, v.z);}
+    public void setMaterialDiffuse(ReadableVector3f v) { if(m_g_MaterialDiffuseLoc >=0)gl.glUniform3f(m_g_MaterialDiffuseLoc, v.getX(), v.getY(), v.getZ());}
+    public void setMaterialAmbient(ReadableVector3f v) { if(m_g_MaterialAmbientLoc >=0)gl.glUniform3f(m_g_MaterialAmbientLoc, v.getX(), v.getY(), v.getZ());}
+    public void setEnableLighting(boolean state) { if(m_EnableLightingLoc >=0) gl.glUniform1i(m_EnableLightingLoc, state?1:0);}
 
     public void setLightParams(LightParams params){
         setModel(params.model);
@@ -105,6 +130,7 @@ public class SimpleLightProgram extends GLSLProgram {
         setMaterialSpecular(params.materialSpecular);
         setEyePos(params.eyePos);
         setColor(params.color);
+        setEnableLighting(params.enableLighting);
     }
 
     public static class LightParams{
@@ -121,5 +147,6 @@ public class SimpleLightProgram extends GLSLProgram {
         public final Vector4f materialSpecular = new Vector4f();   // ks
         public final Vector3f eyePos = new Vector3f();
         public final Vector4f color = new Vector4f();
+        public boolean enableLighting = true;
     }
 }

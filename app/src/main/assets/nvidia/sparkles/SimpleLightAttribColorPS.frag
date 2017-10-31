@@ -21,16 +21,12 @@ uniform vec3 g_MaterialAmbient;   // ka
 uniform vec3 g_MaterialDiffuse;   // kb
 uniform vec3 g_MaterialSpecular;   // ks
 uniform vec3 g_EyePos;
+uniform bool g_EnableLighting /*= true*/;
 
-vec4 lit(float n_l, float r_v)
+vec4 lit(float n_l, float r_v, vec4 C)
 {
-    vec4 C;
-    vec4 texColor = texture2D(g_InputTex, m_Texcoord);
-    C.rgb = (m_Color.rgb + texColor.rgb);
-    C.a = max(m_Color.a, texColor.a);
-
     vec3 color = g_LightAmbient * g_MaterialAmbient  // ambient term
-                +g_LightDiffuse * C.rgb * g_LightDiffuse * max(n_l, 0.0)
+                +g_LightDiffuse * C.rgb * g_MaterialDiffuse * max(n_l, 0.0)
                 +g_MaterialSpecular * g_LightSpecular.rgb * pow(max(r_v, 0.0), g_LightSpecular.a);
 
     return vec4(color, C.a);
@@ -38,22 +34,34 @@ vec4 lit(float n_l, float r_v)
 
 void main()
 {
-    vec3 L;  // light direction
-    if(g_LightPos.w == 0.0)
+    vec4 C;
+    vec4 texColor = texture2D(g_InputTex, m_Texcoord);
+    C.rgb = (m_Color.rgb + texColor.rgb);
+    C.a = max(m_Color.a, texColor.a);
+
+    if(!g_EnableLighting)
     {
-        L = g_LightPos.xyz;
+        gl_FragColor = C;
     }
     else
     {
-        L = normalize(g_LightPos.xyz-m_PositionWS);
+       vec3 L;  // light direction
+       if(g_LightPos.w == 0.0)
+       {
+           L = g_LightPos.xyz;
+       }
+       else
+       {
+           L = normalize(g_LightPos.xyz-m_PositionWS);
+       }
+
+       vec3 N = normalize(m_NormalWS);
+       vec3 R = reflect(-L, N);
+       vec3 V = normalize(g_EyePos - m_PositionWS);
+
+       float n_l = dot(N,  L);
+       float r_v = dot(R,  V);
+
+       gl_FragColor = lit(n_l, r_v, C);
     }
-
-    vec3 N = normalize(m_NormalWS);
-    vec3 R = reflect(-L, N);
-    vec3 V = normalize(g_EyePos - m_PositionWS);
-
-    float n_l = dot(N,  L);
-    float r_v = dot(R,  V);
-
-    gl_FragColor = lit(n_l, r_v);
 }

@@ -59,7 +59,7 @@ final class PolygonTrianguler {
 
         i = 0;
         final boolean use32Bit = indices_count > Numeric.MAX_USHORT;
-        ByteBuffer indices = CacheBuffer.getCachedByteBuffer( use32Bit ? (4 * indices_count) : (2 * indices_count));
+        ByteBuffer indices = CacheBuffer.getCachedByteBuffer( use32Bit ? (4 * indices_count * 3) : (2 * indices_count * 3));
         for(int start_index : indices_offset){
             PolygonTrianguler polygon = buffers[i++];
             for(int j = 2; j < polygon.mOffset/5; j++){
@@ -80,8 +80,8 @@ final class PolygonTrianguler {
 
         VertexArrayObject vao = new VertexArrayObject();
         vao.initlize(new BufferBinding[]{
-                new BufferBinding(array, new AttribDesc(0, 3, GLenum.GL_FLOAT, false, 20, 0),
-                                        new AttribDesc(1, 2, GLenum.GL_FLOAT, false, 20, 12)),
+                new BufferBinding(array, new AttribDesc(FireDemo.POSITION_LOC, 3, GLenum.GL_FLOAT, false, 20, 0),
+                                        new AttribDesc(FireDemo.TEXTURE_LOC, 2, GLenum.GL_FLOAT, false, 20, 12)),
         }, indicesBuffer);
 
         vao.unbind();

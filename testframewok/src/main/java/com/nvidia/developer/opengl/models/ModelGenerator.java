@@ -1,5 +1,7 @@
 package com.nvidia.developer.opengl.models;
 
+import jet.opengl.postprocessing.util.Numeric;
+
 /** Utility class to generate the common shapes. */
 public final class ModelGenerator {
 
@@ -216,5 +218,62 @@ public final class ModelGenerator {
 		indices.add((byte)3);
 		model.setElements(indices);
 		return model;
+	}
+
+	/**
+	 * renders a disk on the z = 0  plane.  The disk has a radius of
+	 * outerRadius, and contains a concentric circular hole with a radius of
+	 * innerRadius. If innerRadius is 0, then no hole is generated. The disk is
+	 * subdivided around the z axis into slices (like pizza slices), and also
+	 * about the z axis into rings (as specified by slices and loops,
+	 * respectively).
+	 *
+	 * With respect to orientation, the +z side of the disk is considered to be
+	 * "outside" (see glu.quadricOrientation).  This means that if the orientation
+	 * is set to GLU.OUTSIDE, then any normals generated point along the +z axis.
+	 * Otherwise, they point along the -z axis.
+	 *
+	 * If texturing is turned on (with hasTexCoord is true), texture coordinates are
+	 * generated linearly such that where r=outerRadius, the value at (r, 0, 0) is
+	 * (1, 0.5), at (0, r, 0) it is (0.5, 1), at (-r, 0, 0) it is (0, 0.5), and at
+	 * (0, -r, 0) it is (0.5, 0).
+	 */
+	static Model genDisk(float innerRadius, float outerRadius, int slices, int loops, boolean hasNormal, boolean hasTexCoord){
+		if(innerRadius < 0.0f){
+			throw new IllegalArgumentException("The 'innerRadius' can't be less than 0. innerRadius = " + innerRadius);
+		}
+
+		if(outerRadius < 0.0f){
+			throw new IllegalArgumentException("The 'outerRadius' can't be less than 0. outerRadius = " + outerRadius);
+		}
+
+		if(outerRadius < innerRadius){
+			throw new IllegalArgumentException("The 'outerRadius' can't be less than the 'innerRadius'.");
+		}
+
+		if(slices < 3){
+			throw new IllegalArgumentException("The 'slices' can't be less than 3. slices = " + slices);
+		}
+
+		Model model = new Model();
+		int vertexCount = (2+Math.max(loops, 0)) * slices;
+		AttribFloatArray positions = new AttribFloatArray(3, vertexCount);
+		AttribFloatArray textures = null;
+		AttribFloatArray normals = null;
+		IndicesAttrib indices = null;
+
+		if(hasNormal){
+			normals = new AttribFloatArray(3, vertexCount);
+		}
+
+		if(hasTexCoord){
+			textures = new AttribFloatArray(2, vertexCount);
+		}
+
+		if(vertexCount < Numeric.MAX_UBYTE){
+//			indices = new AttribByteArray(1, )
+		}
+
+		return null;
 	}
 }

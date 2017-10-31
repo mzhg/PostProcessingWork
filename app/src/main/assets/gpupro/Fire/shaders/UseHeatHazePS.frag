@@ -1,7 +1,6 @@
 layout(location = 0) out vec4 Out_f4Color;
 
 in vec2 m_tex0;
-in float m_tex1;
 
 layout(binding = 0) uniform sampler2D inputToDist;
 layout(binding = 1) uniform sampler2D blurredInputToDist;

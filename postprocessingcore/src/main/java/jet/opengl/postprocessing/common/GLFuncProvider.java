@@ -201,7 +201,7 @@ public interface GLFuncProvider {
     void glGenFramebuffers (IntBuffer framebuffers);
 
     public int glGenRenderbuffer ();
-    void glGenRenderbuffer(IntBuffer renderbuffers);
+    void glGenRenderbuffers(IntBuffer renderbuffers);
 
     // deviates
     public String glGetActiveAttrib (int program, int index, int maxLength, IntBuffer size, IntBuffer type);

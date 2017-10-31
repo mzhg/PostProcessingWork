@@ -43,8 +43,8 @@ final class ObjectRotation {
 
     void rotate(int x, int y, boolean rotate, boolean control , Vector3f d_x, Vector3f d_y)
     {
-        rot_vec[1] = (float)(x-origx);
-        rot_vec[0] = (float)(y-origy);
+        rot_vec[1] = (x-origx);
+        rot_vec[0] = (y-origy);
         origx = x;
         origy = y;
 
