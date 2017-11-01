@@ -1,4 +1,4 @@
-package intel.avsm;
+package jet.opengl.demos.intel.avsm;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;

@@ -1,4 +1,4 @@
-package intel.avsm;
+package jet.opengl.demos.intel.avsm;
 
 /**
  * The Particle structure contains per-particle state required to simulate the behavior<p></p>

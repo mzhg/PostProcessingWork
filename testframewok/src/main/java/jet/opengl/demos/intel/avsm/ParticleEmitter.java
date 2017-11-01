@@ -1,4 +1,4 @@
-package intel.avsm;
+package jet.opengl.demos.intel.avsm;
 
 /**
  * Created by mazhen'gui on 2017/9/29.
