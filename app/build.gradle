@@ -32,5 +32,4 @@ dependencies {
     compile project(':android_impl')
     sourceCompatibility = '1.8'
     targetCompatibility = '1.8'
-    compile 'com.google.guava:guava:20.0'
 }

@@ -16,7 +16,7 @@
 // 2016-09-07: filip.strugar@intel.com: first commit
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "<std-class>hlsl_compatiable.glsl"
+#include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
 
 // progressive poisson-like pattern; x, y are in [-1, 1] range, .z is length( float2(x,y) ), .w is log2( z )
 #define INTELSSAO_MAIN_DISK_SAMPLE_COUNT (32)

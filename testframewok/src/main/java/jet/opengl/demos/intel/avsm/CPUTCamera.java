@@ -27,9 +27,12 @@ final class CPUTCamera {
     public float GetNearPlaneDistance() { return near;}
     public float GetFarPlaneDistance() { return far;}
     public ReadableVector3f GetPosition() { return position;}
-    public ReadableVector3f GetLookAt() { return lookAt;}
+    public ReadableVector3f GetLook() { return lookAt;}
     public ReadableVector3f GetUp() { return up;}
     public ReadableVector3f GetRight() { return right;}
+    public Matrix4f GetProjectionMatrix() { return projection;}
+    public Matrix4f GetViewMatrix() { return world;}
+
 
     public Matrix4f GetWorldMatrix() { return world;}
     public void SetPositionAndOrientation(float fov, float aspectRatio, float nearClipDistance, float farClipDistance,

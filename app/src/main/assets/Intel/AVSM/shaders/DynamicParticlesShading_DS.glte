@@ -1,0 +1,74 @@
+#include "Common.glsl"
+#include "GBuffer.glsl"
+
+in HS_CONTROL_POINT_OUTPUT TrianglePatch[];
+patch in vec3 DebugColor;
+
+layout(triangles, fractional_odd_spacing, cw) in;
+
+out DynamicParticlePSIn _output;
+
+void main()
+{
+    vec3 BarycentricCoordinates = gl_TessCoord.xyz;
+
+    // Interpolate world space position with barycentric coordinates
+    float4 inPosition = BarycentricCoordinates.x * TrianglePatch[0].vWorldPos +
+                       BarycentricCoordinates.y * TrianglePatch[1].vWorldPos +
+                       BarycentricCoordinates.z * TrianglePatch[2].vWorldPos;
+
+
+    // Interpolate other inputs with barycentric coordinates
+    float3 inUV = BarycentricCoordinates.x * TrianglePatch[0].texCoord +
+                      BarycentricCoordinates.y * TrianglePatch[1].texCoord +
+                      BarycentricCoordinates.z * TrianglePatch[2].texCoord;
+
+    // Interpolate other inputs with barycentric coordinates
+    float inOpacity = BarycentricCoordinates.x * TrianglePatch[0].inOpacity +
+                      BarycentricCoordinates.y * TrianglePatch[1].inOpacity +
+                      BarycentricCoordinates.z * TrianglePatch[2].inOpacity;
+
+
+    float size		= inUV.z * mParticleSize;
+
+    // Make screen-facing
+    float4 position;
+    float2 offset	= inUV.xy - 0.5f.xx;
+    position.xyz	= inPosition.xyz + size * (offset.xxx * mEyeRight.xyz + offset.yyy * mEyeUp.xyz);
+    position.w		= 1.0;
+
+    float4 projectedPosition = mul( position, mParticleWorldViewProj );
+
+    gl_Position    = projectedPosition;
+
+    _output.ObjPos		= position.xyz;
+    _output.ViewPos 		= mul( position, mParticleWorldView ).xyz;
+    _output.ViewCenter	= mul( float4(inPosition.xyz, 1.0f), mParticleWorldView).xyz;
+    _output.UVS			= float3(inUV.xy, size);
+    _output.Opacity		= inOpacity;
+    _output.color        = float4(DebugColor.xyz, 1 );
+
+    _output.ShadowInfo = float2( 1, 1 );
+    if( mUI.vertexShaderShadowLookup ) //#ifdef CALCULATE_AVSM_IN_VS
+    {
+       DynamicParticlePSIn	vsShadowIn = _output;
+       //vsShadowIn.UVS.z *= 1.6;
+
+       float3 entry, exit;
+       float  shadowTerm = 1.0f;
+       float  segmentTransmittance = 1.0f;
+//       [flatten]
+       if( IntersectDynamicParticle( vsShadowIn, entry, exit, segmentTransmittance, true ) )
+       {
+          float2 lightTexCoord = ProjectIntoLightTexCoord(entry);
+
+          SurfaceData LitSurface = ConstructSurfaceData(entry, 0.0f.xxx);
+          if (mUI.enableVolumeShadowLookup)
+          {
+             shadowTerm = ShadowContrib(LitSurface, vsShadowIn);
+          }
+          //output.ShadowInfo = LitSurface.positionView.xy;
+       }
+       _output.ShadowInfo = float2( shadowTerm, 0.0 );
+    } //#endif
+}

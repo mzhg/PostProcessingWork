@@ -145,6 +145,24 @@ public class GLSLProgram implements OpenGLProgram{
 			100, 300, 310, 320
 	};
 
+	public static ShaderProgram createShaderProgramFromFile(String filename, ShaderType type, Macro... macros)throws IOException{
+		return createShaderProgramFromFile(filename, type, null, macros);
+	}
+
+	public static ShaderProgram createShaderProgramFromFile(String filename, ShaderType type, ShaderProgram result, Macro... macros) throws IOException{
+		ShaderSourceItem item = new ShaderSourceItem();
+		item.macros = macros;
+		item.source = ShaderLoader.loadShaderFile(filename, false);
+		item.type =  type;
+
+		if(result == null)
+			result = new ShaderProgram();
+
+		createFromString(item, result, "ShaderProgram");
+
+		return result;
+	}
+
 	public static void createFromString(ShaderSourceItem item, ShaderProgram program, String debugName){
 		CharSequence source = constructSourceImpl(item);
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();

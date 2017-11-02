@@ -48,6 +48,8 @@
 #define atan2(y,x)  atan(y,x)
 #define reversebits(x) bitfieldReverse(x)
 #define countbits(x)   bitCount(x)
+#define asuint(x) floatBitsToUint(x)
+
 // #define mul(M, V) M * V
 
 #define isfinite(x) !(isnan(x) || isinf(x))
@@ -89,4 +91,14 @@ void sincos(float2 angle, out float2 _sin, out float2 _cos)
 {
     _sin = sin(angle);
     _cos = cos(angle);
+}
+
+float asfloat(uint i)
+{
+    return uintBitsToFloat(i);
+}
+
+float asfloat(int i)
+{
+    return intBitsToFloat(i);
 }

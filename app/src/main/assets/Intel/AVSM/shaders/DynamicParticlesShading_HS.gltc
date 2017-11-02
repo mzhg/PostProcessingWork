@@ -1,0 +1,75 @@
+#include "Common.glsl"
+#include "GBuffer.glsl"
+
+layout (vertices = 3) out;
+
+in VS_OUTPUT
+{
+    float4 worldspace_position;
+}_inputs[];
+
+out HS_CONTROL_POINT_OUTPUT _output[];
+patch out vec3 DebugColor;
+
+void main()
+{
+    // Copy inputs to outputs
+    _output[gl_InvocationID].vWorldPos = inputPatch[gl_InvocationID].vWorldPos;
+    _output[gl_InvocationID].vScreenPos = inputPatch[gl_InvocationID].vScreenPos;
+    _output[gl_InvocationID].texCoord =  inputPatch[gl_InvocationID].texCoord;
+    _output[gl_InvocationID].inOpacity =  inputPatch[gl_InvocationID].inOpacity;
+
+    int PatchID = gl_PrimitiveID;
+
+    float4 vEdgeTessellationFactors = float4( 0, 0, 0,0 );
+
+    DebugColor = float3( 0, 0, 0 );
+
+    float size		= inputPatch[0].texCoord.z * mParticleSize;
+
+    // Make screen-facing
+    float3 position;
+    float2 offset	= inputPatch[0].texCoord.xy - 0.5f.xx;
+    position.xyz	= inputPatch[0].vWorldPos.xyz + size * (offset.xxx * mEyeRight.xyz + offset.yyy * mEyeUp.xyz);
+
+    // Get the screen space position of each control point
+    float2 f2EdgeScreenPosition0 =
+        GetScreenSpacePosition( position.xyz, mParticleWorldViewProj, mScreenResolution.x, mScreenResolution.y );
+
+    size	= inputPatch[1].texCoord.z * mParticleSize;
+    offset	= inputPatch[1].texCoord.xy - 0.5f.xx;
+    position.xyz	= inputPatch[1].vWorldPos.xyz + size * (offset.xxx * mEyeRight.xyz + offset.yyy * mEyeUp.xyz);
+
+    float2 f2EdgeScreenPosition1 =
+        GetScreenSpacePosition( position.xyz, mParticleWorldViewProj, mScreenResolution.x, mScreenResolution.y );
+
+    size	= inputPatch[2].texCoord.z * mParticleSize;
+    offset	= inputPatch[2].texCoord.xy - 0.5f.xx;
+    position.xyz	= inputPatch[2].vWorldPos.xyz + size * (offset.xxx * mEyeRight.xyz + offset.yyy * mEyeUp.xyz);
+
+    float2 f2EdgeScreenPosition2 =
+        GetScreenSpacePosition( position.xyz, mParticleWorldViewProj, mScreenResolution.x, mScreenResolution.y );
+
+    // Calculate edge tessellation factors based on desired screen space tessellation value
+    vEdgeTessellationFactors.x = mUI.TessellatioDensity * distance(f2EdgeScreenPosition2, f2EdgeScreenPosition1);
+    vEdgeTessellationFactors.y = mUI.TessellatioDensity * distance(f2EdgeScreenPosition2, f2EdgeScreenPosition0);
+    vEdgeTessellationFactors.z = mUI.TessellatioDensity * distance(f2EdgeScreenPosition0, f2EdgeScreenPosition1);
+    float finalTessFactor = 0.33 * ( vEdgeTessellationFactors.x + vEdgeTessellationFactors.y + vEdgeTessellationFactors.z );
+
+    vEdgeTessellationFactors.w =  max( 2.5, finalTessFactor );                      // Always use at least some tessellation
+    vEdgeTessellationFactors.w *= saturate( finalTessFactor * 3.0 - 0.5 ) + 0.01;   // But fade away for really small particles
+
+    // Assign tessellation levels
+    gl_TessLevelOuter[0] = vEdgeTessellationFactors.w;
+    gl_TessLevelOuter[1] = vEdgeTessellationFactors.w;
+    gl_TessLevelOuter[2] = vEdgeTessellationFactors.w;
+    gl_TessLevelInner[0]   = vEdgeTessellationFactors.w;
+
+    DebugColor = float3( (vEdgeTessellationFactors.w-1.0) / 10.0, 0, 0 );
+
+//    gl_TessLevelOuter[0] = GFSDK_WaveWorks_GetEdgeTessellationFactor(_inputs[1].worldspace_position,_inputs[2].worldspace_position);
+//    gl_TessLevelOuter[1] = GFSDK_WaveWorks_GetEdgeTessellationFactor(_inputs[2].worldspace_position,_inputs[0].worldspace_position);
+//    gl_TessLevelOuter[2] = GFSDK_WaveWorks_GetEdgeTessellationFactor(_inputs[0].worldspace_position,_inputs[1].worldspace_position);
+//    gl_TessLevelInner[0] = (gl_TessLevelOuter[0] + gl_TessLevelOuter[1] + gl_TessLevelOuter[2])/3.0f;
+//    gl_TessLevelInner[1] = -1.0;
+}
