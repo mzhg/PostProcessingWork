@@ -8,15 +8,21 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.Numeric;
-
 
 final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 
@@ -94,23 +100,25 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
     private boolean                         m_requiresClear;
     private int 							m_viewportWidth, m_viewportHeight;
     private boolean 					    m_printProgramOnce = false;
+
+    private GLFuncProvider gl;
     
     ASSAOGL( ){
     	
     }
 
     void InitializeGL( ){
-    	
+        gl = GLFuncProviderFactory.getGLFuncProvider();
     	{// constant buffer
-	    	m_constantsBuffer = GL15.glGenBuffers();
-	    	GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, m_constantsBuffer);
-	    	GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, ASSAOConstants.SIZE, GL15.GL_DYNAMIC_DRAW);
-	    	GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
+	    	m_constantsBuffer = gl.glGenBuffer();
+            gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, m_constantsBuffer);
+            gl.glBufferData(GLenum.GL_UNIFORM_BUFFER, ASSAOConstants.SIZE, GLenum.GL_DYNAMIC_DRAW);
+            gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, 0);
     	}
     	
     	{ // fullscreen vertex buffer
-    		m_dummyVAO = GL30.glGenVertexArrays();
-    		m_framebuffer = GL30.glGenFramebuffers();
+    		m_dummyVAO = gl.glGenVertexArray();
+    		m_framebuffer = gl.glGenFramebuffer();
     	}
     	
     	{ // samplers
@@ -120,15 +128,15 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 //            desc.AddressU = desc.AddressV = desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 //            hr = m_device->CreateSamplerState( &desc, &m_samplerStatePointClamp );
 //            if( FAILED( hr ) ) { assert( false ); CleanupDX(); return false; }
-    		desc.minFilter = GL11.GL_NEAREST_MIPMAP_NEAREST;
-    		desc.magFilter = GL11.GL_NEAREST;
+    		desc.minFilter = GLenum.GL_NEAREST_MIPMAP_NEAREST;
+    		desc.magFilter = GLenum.GL_NEAREST;
     		// defualt is clamp
     		m_samplerStatePointClamp = SamplerUtils.createSampler(desc);
 
 //            desc.AddressU = desc.AddressV = desc.AddressW = D3D11_TEXTURE_ADDRESS_MIRROR;
 //            hr = m_device->CreateSamplerState( &desc, &m_samplerStatePointMirror );
 //            if( FAILED( hr ) ) { assert( false ); CleanupDX(); return false; }
-    		desc.wrapR = desc.wrapS = desc.wrapT = GL14.GL_MIRRORED_REPEAT;  // TODO ???
+    		desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_MIRRORED_REPEAT;  // TODO ???
     		m_samplerStatePointMirror = SamplerUtils.createSampler(desc);
     		
 
@@ -136,9 +144,9 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 //            desc.AddressU = desc.AddressV = desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 //            hr = m_device->CreateSamplerState( &desc, &m_samplerStateLinearClamp );
 //            if( FAILED( hr ) ) { assert( false ); CleanupDX(); return false; }
-    		desc.minFilter = GL11.GL_LINEAR_MIPMAP_LINEAR;
-    		desc.magFilter = GL11.GL_LINEAR;
-    		desc.wrapR = desc.wrapS = desc.wrapT = GL12.GL_CLAMP_TO_EDGE;
+    		desc.minFilter = GLenum.GL_LINEAR_MIPMAP_LINEAR;
+    		desc.magFilter = GLenum.GL_LINEAR;
+    		desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_CLAMP_TO_EDGE;
     		m_samplerStateLinearClamp = SamplerUtils.createSampler(desc);
 
 //            desc = CD3D11_SAMPLER_DESC( CD3D11_DEFAULT( ) );
@@ -146,8 +154,8 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 //            desc.AddressU = desc.AddressV = desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 //            hr = m_device->CreateSamplerState( &desc, &m_samplerStateViewspaceDepthTap );
 //            if( FAILED( hr ) ) { assert( false ); CleanupDX(); return false; }
-    		desc.minFilter = GL11.GL_NEAREST_MIPMAP_NEAREST;
-    		desc.magFilter = GL11.GL_NEAREST;
+    		desc.minFilter = GLenum.GL_NEAREST_MIPMAP_NEAREST;
+    		desc.magFilter = GLenum.GL_NEAREST;
     		m_samplerStateViewspaceDepthTap = SamplerUtils.createSampler(desc);
     	}
     	
@@ -163,14 +171,14 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 //    	            
 //    	            { NULL, NULL }
 //    	        };
-    		GLSLProgram.Macro[] shaderMacros =
+    		Macro[] shaderMacros =
 			{
-				GLSLProgram.newMacro("SSAO_MAX_TAPS", SSAO_MAX_TAPS),	
-				GLSLProgram.newMacro("SSAO_MAX_REF_TAPS", SSAO_MAX_REF_TAPS),	
-				GLSLProgram.newMacro("SSAO_ADAPTIVE_TAP_BASE_COUNT", SSAO_ADAPTIVE_TAP_BASE_COUNT),	
-				GLSLProgram.newMacro("SSAO_ADAPTIVE_TAP_FLEXIBLE_COUNT", SSAO_ADAPTIVE_TAP_FLEXIBLE_COUNT),	
-				GLSLProgram.newMacro("SSAO_DEPTH_MIP_LEVELS", SSAO_DEPTH_MIP_LEVELS),	
-				GLSLProgram.newMacro("SSAO_ENABLE_NORMAL_WORLD_TO_VIEW_CONVERSION", SSAO_ENABLE_NORMAL_WORLD_TO_VIEW_CONVERSION),	
+				new Macro("SSAO_MAX_TAPS", SSAO_MAX_TAPS),
+                new Macro("SSAO_MAX_REF_TAPS", SSAO_MAX_REF_TAPS),
+                new Macro("SSAO_ADAPTIVE_TAP_BASE_COUNT", SSAO_ADAPTIVE_TAP_BASE_COUNT),
+                new Macro("SSAO_ADAPTIVE_TAP_FLEXIBLE_COUNT", SSAO_ADAPTIVE_TAP_FLEXIBLE_COUNT),
+                new Macro("SSAO_DEPTH_MIP_LEVELS", SSAO_DEPTH_MIP_LEVELS),
+                new Macro("SSAO_ENABLE_NORMAL_WORLD_TO_VIEW_CONVERSION", SSAO_ENABLE_NORMAL_WORLD_TO_VIEW_CONVERSION),
 			};
     		
     		m_pixelShaderPrepareDepths = new RenderTechnique("PrepareDepthsPS.frag", shaderMacros);
@@ -179,14 +187,14 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
     		m_pixelShaderPrepareDepthsAndNormalsHalf = new RenderTechnique("PrepareDepthsAndNormalsHalfPS.frag", shaderMacros);
     		for(int i = 0; i < 3; i++){
     			int length = shaderMacros.length;
-    			GLSLProgram.Macro[] newMacros = Arrays.copyOf(shaderMacros, length+1);
-    			newMacros[length] = GLSLProgram.newMacro("MIP_LEVEL", i);
+    			Macro[] newMacros = Arrays.copyOf(shaderMacros, length+1);
+    			newMacros[length] = new Macro("MIP_LEVEL", i);
     			m_pixelShaderPrepareDepthMip[i] = new RenderTechnique("PrepareDepthMipPS.frag", newMacros);
     		}
     		
     		for(int i = 0; i < 5; i++){
     			int length = shaderMacros.length;
-    			GLSLProgram.Macro[] newMacros = Arrays.copyOf(shaderMacros, length+2);
+    			Macro[] newMacros = Arrays.copyOf(shaderMacros, length+2);
     			
     			int qualityLevel;
     			int adapativeBase;
@@ -198,8 +206,8 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
     				qualityLevel = 3;
     				adapativeBase = 1;
     			}
-    			newMacros[length + 0] = GLSLProgram.newMacro("QUALITY_LEVEL", qualityLevel);
-    			newMacros[length + 1] = GLSLProgram.newMacro("ADPATIVE_BASE", adapativeBase);
+    			newMacros[length + 0] = new Macro("QUALITY_LEVEL", qualityLevel);
+    			newMacros[length + 1] = new Macro("ADPATIVE_BASE", adapativeBase);
     			m_pixelShaderGenerate[i] = new RenderTechnique("GenerateQPS.frag", newMacros);
     		}
     		
@@ -217,26 +225,26 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
     	
     	// load counter stuff, only needed for adaptive quality (quality level 3)
     	{
-    		m_loadCounter = GL11.glGenTextures();
-    		GL11.glBindTexture(GL11.GL_TEXTURE_1D, m_loadCounter);
-    		GL11.glTexImage1D(GL11.GL_TEXTURE_1D, 0, GL30.GL_R32UI, 1, 0, GL30.GL_RED_INTEGER, GL11.GL_UNSIGNED_INT, (ByteBuffer)null);
-    		GL11.glBindTexture(GL11.GL_TEXTURE_1D, 0);
+    		m_loadCounter = gl.glGenTexture();
+            gl.glBindTexture(GLenum.GL_TEXTURE_1D, m_loadCounter);
+            gl.glTexImage1D(GLenum.GL_TEXTURE_1D, 0, GLenum.GL_R32UI, 1, 0, GLenum.GL_RED_INTEGER, GLenum.GL_UNSIGNED_INT, (ByteBuffer)null);
+            gl.glBindTexture(GLenum.GL_TEXTURE_1D, 0);
     	}
     }
     
     private void blendStateMultiply(){
-    	GL11.glEnable(GL11.GL_BLEND);
-    	GL14.glBlendFuncSeparate(GL11.GL_ZERO, GL11.GL_SRC_COLOR, GL11.GL_ZERO, GL11.GL_SRC_ALPHA);
+        gl.glEnable(GLenum.GL_BLEND);
+        gl.glBlendFuncSeparate(GLenum.GL_ZERO, GLenum.GL_SRC_COLOR, GLenum.GL_ZERO, GLenum.GL_SRC_ALPHA);
     }
     
     private void depthStencilState(){
-    	GL11.glDisable(GL11.GL_DEPTH_TEST);
-    	GL11.glDisable(GL11.GL_STENCIL_TEST);
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_STENCIL_TEST);
     }
     
     private void rasterizerState(){
-    	GL11.glDisable(GL11.GL_CULL_FACE);
-    	GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
+        gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
     }
     
     void CleanupDX( ){
@@ -261,12 +269,12 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
     }
     
     private static Texture2D ReCreateMIPViewIfNeeded(Texture2D source, int mipLevel){
-    	return TextureUtils.createTextureView(source, GL11.GL_TEXTURE_2D, mipLevel, 1, 0, 1);
+    	return TextureUtils.createTextureView(source, GLenum.GL_TEXTURE_2D, mipLevel, 1, 0, 1);
     	
     }
     
     private static Texture2D ReCreateArrayViewIfNeeded(Texture2D source, int slice){
-    	return TextureUtils.createTextureView(source, GL11.GL_TEXTURE_2D, 0, 1, slice, 1);
+    	return TextureUtils.createTextureView(source, GLenum.GL_TEXTURE_2D, 0, 1, slice, 1);
     }
     
     void UpdateTextures( ASSAO_InputsOpenGL inputs ){
@@ -522,9 +530,9 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
     void FullscreenPassDraw(RenderTechnique pixelShader, int width, int height, Runnable blendState ){
     	pixelShader.enable();
     	pixelShader.setUnfiorms(m_ConstantsUniform);
-    	GL30.glBindVertexArray(m_dummyVAO);
+        gl.glBindVertexArray(m_dummyVAO);
     	if(m_viewportWidth != width || m_viewportHeight != height){
-    		GL11.glViewport(0, 0, width, height);
+            gl.glViewport(0, 0, width, height);
     		m_viewportWidth = width;
     		m_viewportHeight = height;
     	}
@@ -532,32 +540,32 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
     	if(blendState != null)
     		blendState.run();
     	else{
-    		GL11.glDisable(GL11.GL_BLEND);
+            gl.glDisable(GLenum.GL_BLEND);
     	}
-    	
-    	GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
-    	GL30.glBindVertexArray(0);
+
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        gl.glBindVertexArray(0);
     	
     	if(!m_printProgramOnce){
-    		GLError.checkError();
+    		GLCheck.checkError();
     		pixelShader.printPrograminfo();
     	}
     }
     
     private void setRenderTargets(Texture2D...textures){
-    	GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, m_framebuffer);
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_framebuffer);
     	
     	int[] drawbuffers = new int[textures.length];
     	for(int i = 0; i < textures.length; i++){
-    		GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + i, textures[i].getTarget(), textures[i].getTexture(), 0);
-    		drawbuffers[i] = GL30.GL_COLOR_ATTACHMENT0 + i;
+            gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0 + i, textures[i].getTarget(), textures[i].getTexture(), 0);
+    		drawbuffers[i] = GLenum.GL_COLOR_ATTACHMENT0 + i;
     	}
-    	GL20.glDrawBuffers(drawbuffers);
+        gl.glDrawBuffers(CacheBuffer.wrap(drawbuffers));
     }
     
     private void unbindRenderTargets(int count){
     	for(int i = 1; i < count; i++){
-    		GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + i, GL11.GL_TEXTURE_2D, 0, 0);
+            gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0 + i, GLenum.GL_TEXTURE_2D, 0, 0);
     	}
     }
     
@@ -567,7 +575,7 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 //        ID3D11DeviceContext * dx11Context = inputs->DeviceContext;
 
 //        dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT0, 1, &inputs->DepthSRV );
-    	inputs.DepthSRV.bind(RenderTechnique.TEX2D_DEPTH_BUFFER, m_samplerStatePointClamp);
+    	bind(inputs.DepthSRV, RenderTechnique.TEX2D_DEPTH_BUFFER, m_samplerStatePointClamp);
     	
 
 //        {
@@ -611,23 +619,23 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
             {
 //                dx11Context->OMSetRenderTargetsAndUnorderedAccessViews( _countof(twoDepths), twoDepths, NULL, SSAO_NORMALMAP_OUT_UAV_SLOT, 1, UAVs, NULL );
             	setRenderTargets(twoDepths);
-            	GL42.glBindImageTexture(0, m_normals.getTexture(), 0, false, 0, GL15.GL_WRITE_ONLY, GL11.GL_RGBA8);
+                gl.glBindImageTexture(0, m_normals.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
             	
                 FullscreenPassDraw(m_pixelShaderPrepareDepthsAndNormalsHalf, viewportWidth, viewportHeight, null);
                 
                 unbindRenderTargets(twoDepths.length);
-                GL42.glBindImageTexture(0, 0, 0, false, 0, GL15.GL_WRITE_ONLY, GL11.GL_RGBA8);
+                gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
             }
             else
             {
 //                dx11Context->OMSetRenderTargetsAndUnorderedAccessViews( _countof(fourDepths), fourDepths, NULL, SSAO_NORMALMAP_OUT_UAV_SLOT, 1, UAVs, NULL );
                 setRenderTargets(fourDepths);
-            	GL42.glBindImageTexture(0, m_normals.getTexture(), 0, false, 0, GL15.GL_WRITE_ONLY, GL11.GL_RGBA8);
+                gl.glBindImageTexture(0, m_normals.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
                 
                 FullscreenPassDraw(m_pixelShaderPrepareDepthsAndNormals, viewportWidth, viewportHeight, null );
                 
                 unbindRenderTargets(fourDepths.length);
-                GL42.glBindImageTexture(0, 0, 0, false, 0, GL15.GL_WRITE_ONLY, GL11.GL_RGBA8);
+                gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
                 
                 if(!m_printProgramOnce){
                 	saveTextureAsText("HalfDepth%d.txt", fourDepths);
@@ -657,7 +665,7 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
                 
                 setRenderTargets(fourDepthMips);  // setup rendering targets
                 for(int id = 0; id < fourSRVs.length; id++){  // binding texture resources.
-                	fourSRVs[id].bind(RenderTechnique.TEX2D_VIEW_DEPTH + id);
+                	bind(fourSRVs[id], RenderTechnique.TEX2D_VIEW_DEPTH + id, 0);
                 }
                 
                 FullscreenPassDraw(m_pixelShaderPrepareDepthMip[i - 1], viewportWidth, viewportHeight, null  );
@@ -674,7 +682,7 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
     
     static void saveTextureAsText(TextureGL texture, String filename){
     	try {
-			TextureUtils.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, "E:/textures/ASSAOGL/" + filename);
+            DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, "E:/textures/ASSAOGL/" + filename);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -693,8 +701,8 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 //            CD3D11_RECT rect = CD3D11_RECT( m_halfResOutScissorRect.x, m_halfResOutScissorRect.y, m_halfResOutScissorRect.z, m_halfResOutScissorRect.w );
 //            dx11Context->RSSetViewports( 1, &viewport );
 //            dx11Context->RSSetScissorRects( 1, &rect );
-        	GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        	GL11.glScissor(m_halfResOutScissorRect.x, m_halfResOutScissorRect.y, m_halfResOutScissorRect.z, m_halfResOutScissorRect.w);
+            gl.glEnable(GLenum.GL_SCISSOR_TEST);
+            gl.glScissor(m_halfResOutScissorRect.x, m_halfResOutScissorRect.y, m_halfResOutScissorRect.z, m_halfResOutScissorRect.w);
         }
         
         int viewportWidth = m_halfSize.x;
@@ -800,13 +808,12 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 
 //                    ID3D11ShaderResourceView * SRVs[] = { pPingRT->SRV };
 //                    dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT2, _countof(SRVs), SRVs );
-                    pPingRT.bind(RenderTechnique.TEX2D_BLUR_INPUT, m_samplerStatePointMirror);
+                    bind(pPingRT, RenderTechnique.TEX2D_BLUR_INPUT, m_samplerStatePointMirror);
 
                     if( settings.QualityLevel > 0 )
                     {
                         if( wideBlursRemaining > 0 )
                         {
-                        	
                             FullscreenPassDraw(m_pixelShaderSmartBlurWide, viewportWidth, viewportHeight, null );
                             wideBlursRemaining--;
                         }
@@ -820,7 +827,8 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
                         FullscreenPassDraw(m_pixelShaderNonSmartBlur, viewportWidth, viewportHeight, null ); // just for quality level 0 (and -1)
                     }
 
-                    pPingRT.unbind();
+//                    pPingRT.unbind();
+                    bind(null, RenderTechnique.TEX2D_BLUR_INPUT, 0);
                     
 //                    Swap( pPingRT, pPongRT );
                     Texture2D tmp = pPingRT;
@@ -833,8 +841,8 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
             // remove textures to avoid API complaints
 //            dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT0, _countof(zeroSRVs), zeroSRVs );
         }
-        
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
+        gl.glDisable(GLenum.GL_SCISSOR_TEST);
     }
 
 	@Override
@@ -855,6 +863,17 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 	public int GetAllocatedVideoMemory() {
 		return m_allocatedVRAM;
 	}
+
+	private void bind(TextureGL tex, int unit, int sampler){
+        gl.glActiveTexture(GLenum.GL_TEXTURE0 + unit);
+        if(tex != null){
+            gl.glBindTexture(tex.getTarget(), tex.getTexture());
+        }else{
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+        }
+
+        gl.glBindSampler(unit, sampler);
+    }
 
 	@Override
 	public void Draw(ASSAO_Settings settings, ASSAO_Inputs _inputs) {
@@ -893,25 +912,25 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 //	            dx11Context->ClearRenderTargetView( m_importanceMap.RTV, fourZeroes );
 //	            dx11Context->ClearRenderTargetView( m_importanceMapPong.RTV, fourZeroes );
 //	#endif
-	        	GL44.glClearTexImage(m_halfDepths[0].getTexture(), 0, GL11.GL_RED, GL11.GL_FLOAT, (ByteBuffer)null);
-	        	GL44.glClearTexImage(m_halfDepths[1].getTexture(), 0, GL11.GL_RED, GL11.GL_FLOAT, (ByteBuffer)null);
-	        	GL44.glClearTexImage(m_halfDepths[2].getTexture(), 0, GL11.GL_RED, GL11.GL_FLOAT, (ByteBuffer)null);
-	        	GL44.glClearTexImage(m_halfDepths[3].getTexture(), 0, GL11.GL_RED, GL11.GL_FLOAT, (ByteBuffer)null);
-	        	GL44.glClearTexImage(m_pingPongHalfResultB.getTexture(), 0, GL30.GL_RG, GL11.GL_UNSIGNED_BYTE, (ByteBuffer)null);
-	        	GL44.glClearTexImage(m_normals.getTexture(), 0, TextureUtils.measureFormat(m_normals.getFormat()), TextureUtils.measureDataType(m_normals.getFormat()), (ByteBuffer)null);
-	        	
-	        	GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, m_framebuffer);
-	        	GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, m_pingPongHalfResultA.getTarget(), m_pingPongHalfResultA.getTexture(), 0);
-	        	GL11.glDrawBuffer(GL30.GL_COLOR_ATTACHMENT0);
-	        	GL30.glClearBufferfv(GL11.GL_COLOR, 0, fourOnes);
+                gl.glClearTexImage(m_halfDepths[0].getTexture(), 0, GLenum.GL_RED, GLenum.GL_FLOAT, (ByteBuffer)null);
+                gl.glClearTexImage(m_halfDepths[1].getTexture(), 0, GLenum.GL_RED, GLenum.GL_FLOAT, (ByteBuffer)null);
+                gl.glClearTexImage(m_halfDepths[2].getTexture(), 0, GLenum.GL_RED, GLenum.GL_FLOAT, (ByteBuffer)null);
+                gl.glClearTexImage(m_halfDepths[3].getTexture(), 0, GLenum.GL_RED, GLenum.GL_FLOAT, (ByteBuffer)null);
+                gl.glClearTexImage(m_pingPongHalfResultB.getTexture(), 0, GLenum.GL_RG, GLenum.GL_UNSIGNED_BYTE, (ByteBuffer)null);
+                gl.glClearTexImage(m_normals.getTexture(), 0, TextureUtils.measureFormat(m_normals.getFormat()), TextureUtils.measureDataType(m_normals.getFormat()), (ByteBuffer)null);
+
+                gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_framebuffer);
+                gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, m_pingPongHalfResultA.getTarget(), m_pingPongHalfResultA.getTexture(), 0);
+                gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
+                gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(fourOnes));
 	        	
 	        	for(int i = 0; i < 4; i++){
-	        		GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, m_finalResultsArrayViews[i].getTarget(), m_finalResultsArrayViews[i].getTexture(), 0);
-	        		GL30.glClearBufferfv(GL11.GL_COLOR, 0, fourOnes);
+                    gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, m_finalResultsArrayViews[i].getTarget(), m_finalResultsArrayViews[i].getTexture(), 0);
+                    gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(fourOnes));
 	        	}
 	        	
 	            m_requiresClear = false;
-	            GLError.checkError();
+	            GLCheck.checkError();
 	        }
 
 	        // Set effect samplers
@@ -956,18 +975,18 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 
 	                // select 4 deinterleaved AO textures (texture array)
 //	                dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT4, 1, &m_finalResults.SRV );
-	            	m_finalResults.bind(RenderTechnique.TEX2D_FINAL_SSAO, m_samplerStatePointClamp);
+	            	bind(m_finalResults, RenderTechnique.TEX2D_FINAL_SSAO, m_samplerStatePointClamp);
 	                FullscreenPassDraw(m_pixelShaderGenerateImportanceMap, viewportWidth, viewportHeight, null );
-	                m_finalResults.unbind();
+//	                m_finalResults.unbind();
 	            
 	                // postprocess A
 //	                dx11Context->OMSetRenderTargets( 1, &m_importanceMapPong.RTV, NULL );
 	                setRenderTargets(m_importanceMapPong);
 //	                dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT3, 1, &m_importanceMap.SRV );
-	                m_importanceMap.bind(RenderTechnique.TEX2D_IMPORTANCE_MAP, m_samplerStateLinearClamp);
+	                bind(m_importanceMap, RenderTechnique.TEX2D_IMPORTANCE_MAP, m_samplerStateLinearClamp);
 	                FullscreenPassDraw(m_pixelShaderPostprocessImportanceMapA, viewportWidth, viewportHeight, null );
 //	                dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT3, 1, zeroSRVs );
-	                m_importanceMap.unbind();
+//	                m_importanceMap.unbind();
 
 	                // postprocess B
 //	                UINT fourZeroes[4] = { 0, 0, 0, 0 };
@@ -975,14 +994,14 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 //	                GL44.glClearTexImage(texture, level, format, type, data);  TODO clear the m_loadCounter
 //	                dx11Context->OMSetRenderTargetsAndUnorderedAccessViews( 1, &m_importanceMap.RTV, NULL, SSAO_LOAD_COUNTER_UAV_SLOT, 1, &m_loadCounterUAV, NULL );
 	                setRenderTargets(m_importanceMap);
-	                GL42.glBindImageTexture(0, m_loadCounter, 0, false, 0, GL15.GL_READ_WRITE, GL30.GL_R32UI);
+	                gl.glBindImageTexture(0, m_loadCounter, 0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_R32UI);
 	                
 	                // select previous pass input importance map
 //	                dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT3, 1, &m_importanceMapPong.SRV );
-	                m_importanceMapPong.bind(RenderTechnique.TEX2D_IMPORTANCE_MAP, m_samplerStateLinearClamp);
+	                bind(m_importanceMapPong, RenderTechnique.TEX2D_IMPORTANCE_MAP, m_samplerStateLinearClamp);
 	                FullscreenPassDraw(m_pixelShaderPostprocessImportanceMapB, viewportWidth, viewportHeight, null );
 //	                dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT3, 1, zeroSRVs );
-	                m_importanceMapPong.unbind();
+//	                m_importanceMapPong.unbind();
 	            }
 	        }
 //	#endif
@@ -999,8 +1018,8 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 	        {
 	            // restore previous RTs
 //	            d3d11StatesBackup.RestoreRTs( );
-	        	GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
-	        	GL11.glDisable(GL11.GL_DEPTH_TEST);
+                gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+                gl.glDisable(GLenum.GL_DEPTH_TEST);
 //	        	GL11.glClearColor(0, 0, 0, 1);
 //	        	GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 	        }
@@ -1009,7 +1028,10 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 	        {
 	            // select 4 deinterleaved AO textures (texture array)
 //	            dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT4, 1, &m_finalResults.SRV );
-	        	m_finalResults.bind(RenderTechnique.TEX2D_FINAL_SSAO, m_samplerStateLinearClamp);
+//	        	m_finalResults.bind(RenderTechnique.TEX2D_FINAL_SSAO, m_samplerStateLinearClamp);
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + RenderTechnique.TEX2D_FINAL_SSAO);
+                gl.glBindTexture(m_finalResults.getTarget(), m_finalResults.getTexture());
+                gl.glBindSampler(RenderTechnique.TEX2D_FINAL_SSAO, m_samplerStateLinearClamp);
 
 //	            CD3D11_VIEWPORT viewport = CD3D11_VIEWPORT( 0.0f, 0.0f, (float)m_size.x, (float)m_size.y );
 //	            CD3D11_RECT rect = CD3D11_RECT( m_fullResOutScissorRect.x, m_fullResOutScissorRect.y, m_fullResOutScissorRect.z, m_fullResOutScissorRect.w );
@@ -1018,9 +1040,9 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 	            
 	            final int viewportWidth = m_size.x;
             	final int viewportHeight = m_size.y;
-            	
-            	GL11.glEnable(GL11.GL_SCISSOR_TEST);
-            	GL11.glScissor(m_halfResOutScissorRect.x, m_halfResOutScissorRect.y, m_halfResOutScissorRect.z, m_halfResOutScissorRect.w);
+
+                gl.glEnable(GLenum.GL_SCISSOR_TEST);
+                gl.glScissor(m_halfResOutScissorRect.x, m_halfResOutScissorRect.y, m_halfResOutScissorRect.z, m_halfResOutScissorRect.w);
 
 //	            ID3D11BlendState * blendState = ( inputs->DrawOpaque ) ? ( m_blendStateOpaque ) : ( m_blendStateMultiply );
             	Runnable blendState = (inputs.DrawOpaque) ? null : ()->blendStateMultiply();
@@ -1031,8 +1053,8 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 	                FullscreenPassDraw( m_pixelShaderNonSmartApply, viewportWidth, viewportHeight, blendState );
 	            else
 	                FullscreenPassDraw( m_pixelShaderApply, viewportWidth, viewportHeight, blendState );
-	            
-	            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
+                gl.glDisable(GLenum.GL_SCISSOR_TEST);
 	        }
 
 	        // restore previous RTs again (because of the viewport hack)
@@ -1053,10 +1075,10 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 
         BufferFormats( )
         {
-            DepthBufferViewspaceLinear  = GL30.GL_R16F;        // increase this to DXGI_FORMAT_R32_FLOAT if using very low FOVs (for a scope effect) or similar, or in case you suspect artifacts caused by lack of precision; performance will degrade
-            Normals                     = GL11.GL_RGBA8;
-            AOResult                    = GL30.GL_RG8;
-            ImportanceMap               = GL30.GL_R8;
+            DepthBufferViewspaceLinear  = GLenum.GL_R16F;        // increase this to DXGI_FORMAT_R32_FLOAT if using very low FOVs (for a scope effect) or similar, or in case you suspect artifacts caused by lack of precision; performance will degrade
+            Normals                     = GLenum.GL_RGBA8;
+            AOResult                    = GLenum.GL_RG8;
+            ImportanceMap               = GLenum.GL_R8;
         }
 	}
 

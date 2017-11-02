@@ -4,7 +4,6 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile project(':gl_math')
     compile project(':postprocessingcore')
-    compile 'com.google.guava:guava:23.2-jre'
 }
 
 sourceCompatibility = "1.7"

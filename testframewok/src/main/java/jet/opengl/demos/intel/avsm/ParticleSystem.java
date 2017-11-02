@@ -225,7 +225,7 @@ final class ParticleSystem implements Disposeable{
                 nearClip,
                 farClip,
                 /**(( D3DXVECTOR3* )&viewWorld._41)*/  pViewCamera.GetPosition(),  // position
-        /**(( D3DXVECTOR3* )&viewWorld._31)*/ pViewCamera.GetLookAt(),  // look direction
+        /**(( D3DXVECTOR3* )&viewWorld._31)*/ pViewCamera.GetLook(),  // look direction
         /**(( D3DXVECTOR3* )&viewWorld._21)*/ pViewCamera.GetUp()   // UP
         );
 
@@ -245,7 +245,7 @@ final class ParticleSystem implements Disposeable{
         mLightLook  = *(( D3DXVECTOR3* )&lightWorld._31);*/
         mLightRight.set(pLightCamera.GetRight());
         mLightUp.set(pLightCamera.GetUp());
-        mLightLook.set(pLightCamera.GetLookAt());
+        mLightLook.set(pLightCamera.GetLook());
 
         UpdateLightViewProjection();
 
