@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.gpupro.fire.FireDemo;
+import jet.opengl.demos.nvidia.waves.samples.OceanWaveDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -79,7 +79,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new FireDemo());
+        run(new OceanWaveDemo());
 
 //        testRectVertex();
     }

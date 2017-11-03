@@ -29,6 +29,7 @@ public abstract class BaseScene implements Disposeable{
     private Texture2D m_SceneDepthTex;
     private int m_SceneWidth, m_SceneHeight;
     protected GLFuncProvider gl;
+    protected Object m_UserData;
 
     public void setNVApp(NvSampleApp app) {mNVApp = app;}
 
@@ -188,7 +189,7 @@ public abstract class BaseScene implements Disposeable{
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, old_fbo);
     }
 
-    private static void checkConfigs(SceneConfig mConfigs){
+    private void checkConfigs(SceneConfig mConfigs){
         if(mConfigs.colorFormat != GLenum.GL_NONE && !TextureUtils.isColorFormat(mConfigs.colorFormat)){
             throw new IllegalArgumentException("invalid colorFormat: " + Integer.toHexString(mConfigs.colorFormat));
         }
@@ -205,7 +206,8 @@ public abstract class BaseScene implements Disposeable{
             throw new IllegalArgumentException("The downsampleScale is " + mConfigs.downsampleScale + " that is out of the range[1,4].");
         }
 
-        if(mConfigs.sampleCount < 1 || mConfigs.sampleCount > 8){
+        int maxSampleCount = gl.glGetInteger(GLenum.GL_MAX_COLOR_TEXTURE_SAMPLES);
+        if(mConfigs.sampleCount < 1 || mConfigs.sampleCount > maxSampleCount){
             throw new IllegalArgumentException("The sampleCount is " + mConfigs.sampleCount + " that is out of the range[1,8].");
         }
     }
@@ -232,4 +234,7 @@ public abstract class BaseScene implements Disposeable{
     public int getSampleCount() { return mConfigs.sampleCount;}
     public Texture2D getSceneColorTex() { return m_SceneColorTex;}
     public Texture2D getSceneDepthTex() { return m_SceneDepthTex;}
+
+    public void setUserData(Object userData) {m_UserData = userData;}
+    public Object getUserData()   { return m_UserData;}
 }
