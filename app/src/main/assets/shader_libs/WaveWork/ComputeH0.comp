@@ -41,7 +41,7 @@ void main()
         }
 
         int index = int(rowIdx * m_resolution_plus_one + columnIdx);
-        float2 h0 = amplitude * g_gauss_input[index - rowIdx];
+        float2 h0 = amplitude * g_gauss_input[index - int(rowIdx)];
         g_h0_output[index] = h0;
 
         // mirror first row/column, CPU and CUDA paths don't do that

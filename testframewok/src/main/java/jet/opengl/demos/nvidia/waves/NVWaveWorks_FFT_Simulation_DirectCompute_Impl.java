@@ -23,7 +23,6 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
-import jet.opengl.postprocessing.util.Numeric;
 
 import static jet.opengl.demos.nvidia.waves.HRESULT.S_OK;
 import static jet.opengl.demos.nvidia.waves.Simulation_Util.gauss_map_resolution;
@@ -310,8 +309,8 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
         if(	params.wave_amplitude != m_params.wave_amplitude ||
                 params.wind_speed != m_params.wind_speed ||
-                params.wind_dir.x != m_params.wind_dir.y ||
-                params.wind_dir.x != m_params.wind_dir.y ||
+                params.wind_dir.x != m_params.wind_dir.x ||
+                params.wind_dir.y != m_params.wind_dir.y ||
                 params.wind_dependency != m_params.wind_dependency ||
                 params.small_wave_fraction != m_params.small_wave_fraction ||
                 params.window_in != m_params.window_in ||
@@ -866,6 +865,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
         {
             GLCheck.checkError();
             hr = initGaussAndOmega();
+//            hr=initGaussAndOmegaLoadData();
             GLCheck.checkError();
             if(hr != HRESULT.S_OK)
                 return hr;

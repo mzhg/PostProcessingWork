@@ -166,7 +166,7 @@ public class NvInputTransformer {
 	 *         {@link #getModelViewMat(Matrix4f)} X ModelView
 	 */
 	public Matrix4f getModelViewMat( Matrix4f out) {
-		return getModelViewMat(NvCameraXformType.MAIN.ordinal(), out);
+		return getModelViewMat(NvCameraXformType.MAIN, out);
 	}
 	
 	private static float nv_clamp_scale(float s){
@@ -195,7 +195,7 @@ public class NvInputTransformer {
 	 *         instead use {@link #getModelViewMat(int,Matrix4f)}
 	 */
 	public Matrix4f getRotationMat() {
-		return m_xforms[NvCameraXformType.MAIN.ordinal()].m_rotateMat;
+		return m_xforms[NvCameraXformType.MAIN].m_rotateMat;
 	}
 
 	/**
@@ -217,7 +217,7 @@ public class NvInputTransformer {
 	 * Get the main translate matrices.
 	 */
 	public Matrix4f getTranslationMat() {
-		return m_xforms[NvCameraXformType.MAIN.ordinal()].m_translateMat;
+		return m_xforms[NvCameraXformType.MAIN].m_translateMat;
 	}
 	
 	/**
@@ -236,7 +236,7 @@ public class NvInputTransformer {
 	
 	/** Get the main scale matrices. */
 	public Matrix4f getScaleMat() {
-		return m_xforms[NvCameraXformType.MAIN.ordinal()].m_scaleMat;
+		return m_xforms[NvCameraXformType.MAIN].m_scaleMat;
 	}
 
 
@@ -263,7 +263,7 @@ public class NvInputTransformer {
 	 * @see #getRotationVec(int)
 	 */
 	public Vector3f getRotationVec() {
-		return m_xforms[NvCameraXformType.MAIN.ordinal()].m_rotate;
+		return m_xforms[NvCameraXformType.MAIN].m_rotate;
 	}
 
 	/**
@@ -295,7 +295,7 @@ public class NvInputTransformer {
 	 * @see #setRotationVec(Vector3f, int)
 	 */
 	public void setRotationVec(Vector3f vec) {
-		m_xforms[NvCameraXformType.MAIN.ordinal()].m_rotate.set(vec);
+		m_xforms[NvCameraXformType.MAIN].m_rotate.set(vec);
 	}
 
 	/**
@@ -317,7 +317,7 @@ public class NvInputTransformer {
 	 * @return the vector used to create the translation component matrix
 	 */
 	public Vector3f getTranslationVec() {
-		return m_xforms[NvCameraXformType.MAIN.ordinal()].m_translate;
+		return m_xforms[NvCameraXformType.MAIN].m_translate;
 	}
 
 	/**
@@ -347,7 +347,7 @@ public class NvInputTransformer {
 	 * @see #setTranslationVec(Vector3f, int)
 	 */
 	public void setTranslationVec(Vector3f vec) {
-		m_xforms[NvCameraXformType.MAIN.ordinal()].m_translate.set(vec);
+		m_xforms[NvCameraXformType.MAIN].m_translate.set(vec);
 	}
 	
 	/**
@@ -359,7 +359,7 @@ public class NvInputTransformer {
 	 * @see #setTranslationVec(Vector3f, int)
 	 */
 	public void setTranslation(float x, float y,float z) {
-		m_xforms[NvCameraXformType.MAIN.ordinal()].m_translate.set(x, y, z);
+		m_xforms[NvCameraXformType.MAIN].m_translate.set(x, y, z);
 	}
 
 	/**
@@ -428,7 +428,7 @@ public class NvInputTransformer {
 	 * @see #setRotationVel(Vector3f, int)
 	 **/
 	public void setRotationVel(Vector3f vec) {
-		m_xforms[NvCameraXformType.MAIN.ordinal()].m_rotateVel.set(vec);
+		m_xforms[NvCameraXformType.MAIN].m_rotateVel.set(vec);
 	}
 
 	/**
@@ -459,7 +459,7 @@ public class NvInputTransformer {
 	 * @see #setRotationVel(Vector3f, int)
 	 **/
 	public void setRotationVel(float x, float y, float z) {
-		m_xforms[NvCameraXformType.MAIN.ordinal()].m_rotateVel.set(x,y,z);
+		m_xforms[NvCameraXformType.MAIN].m_rotateVel.set(x,y,z);
 	}
 
 	/**
@@ -557,7 +557,7 @@ public class NvInputTransformer {
 	 *            when the
 	 */
 	public void setMaxTranslationVel(float maxVel) {
-		m_xforms[NvCameraXformType.MAIN.ordinal()].m_maxTranslationVel = maxVel;
+		m_xforms[NvCameraXformType.MAIN].m_maxTranslationVel = maxVel;
 	}
 
 	/**
@@ -570,8 +570,8 @@ public class NvInputTransformer {
 	 */
 	public void update(float deltaTime) {
 		if (m_motionMode == NvCameraMotionType.DUAL_ORBITAL) {
-	        Transform xfm = m_xforms[NvCameraXformType.MAIN.ordinal()];
-	        Transform xfs = m_xforms[NvCameraXformType.SECONDARY.ordinal()];
+	        Transform xfm = m_xforms[NvCameraXformType.MAIN];
+	        Transform xfs = m_xforms[NvCameraXformType.SECONDARY];
 //	        xfm.m_rotate += xfm.m_rotateVel*deltaTime;
 	        Vector3f.linear(xfm.m_rotate, xfm.m_rotateVel, deltaTime, xfm.m_rotate);
 //	        xfs.m_rotate += xfs.m_rotateVel*deltaTime;
@@ -579,10 +579,10 @@ public class NvInputTransformer {
 //	        xfm.m_translate += xfm.m_translateVel * deltaTime;
 	        Vector3f.linear(xfm.m_translate, xfm.m_translateVel, deltaTime, xfm.m_translate);
 
-	        updateMats(NvCameraXformType.MAIN.ordinal());
-	        updateMats(NvCameraXformType.SECONDARY.ordinal());
+	        updateMats(NvCameraXformType.MAIN);
+	        updateMats(NvCameraXformType.SECONDARY);
 	    } else {
-	        Transform xf = m_xforms[NvCameraXformType.MAIN.ordinal()];
+	        Transform xf = m_xforms[NvCameraXformType.MAIN];
 //	        xf.m_rotate += xf.m_rotateVel*deltaTime;
 	        Vector3f.linear(xf.m_rotate, xf.m_rotateVel, deltaTime, xf.m_rotate);
 	        Vector3f transVel;
@@ -602,7 +602,7 @@ public class NvInputTransformer {
 
 //	        xf.m_translate += transVel * deltaTime;
 	        Vector3f.linear(xf.m_translate, transVel, deltaTime, xf.m_translate);
-	        updateMats(NvCameraXformType.MAIN.ordinal());
+	        updateMats(NvCameraXformType.MAIN);
 	    }
 	}
 	
@@ -636,8 +636,8 @@ public class NvInputTransformer {
 	 */
 	public boolean processPointer(NvInputDeviceType device, int action, int modifiers,
 			int count, NvPointerEvent[] points) {
-		Transform xfm = m_xforms[NvCameraXformType.MAIN.ordinal()];
-	    Transform xfs = m_xforms[NvCameraXformType.SECONDARY.ordinal()];
+		Transform xfm = m_xforms[NvCameraXformType.MAIN];
+	    Transform xfs = m_xforms[NvCameraXformType.SECONDARY];
 	    float x = points[0].m_x;
 	    float y = points[0].m_y;
 	    int button = points[0].m_id;
@@ -787,9 +787,9 @@ public class NvInputTransformer {
 	    }
 
 	    if (needsUpdate) {
-	        updateMats(NvCameraXformType.MAIN.ordinal());
+	        updateMats(NvCameraXformType.MAIN);
 	        if (m_motionMode == NvCameraMotionType.DUAL_ORBITAL)
-	            updateMats(NvCameraXformType.SECONDARY.ordinal());
+	            updateMats(NvCameraXformType.SECONDARY);
 	    }
 
 	    return true;

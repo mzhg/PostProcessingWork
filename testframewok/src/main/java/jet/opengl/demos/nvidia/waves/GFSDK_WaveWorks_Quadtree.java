@@ -22,6 +22,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
 /**
@@ -31,6 +32,7 @@ import jet.opengl.postprocessing.util.Numeric;
 public class GFSDK_WaveWorks_Quadtree implements Disposeable{
     static final int nvrm_unused = -1;
     private final GFSDK_WaveWorks_Quadtree_Params m_params = new GFSDK_WaveWorks_Quadtree_Params();
+    private static int g_QuadNodeAllocateCount = 0;
 
     private NVWaveWorks_Mesh m_pMesh;
 
@@ -66,7 +68,11 @@ public class GFSDK_WaveWorks_Quadtree implements Disposeable{
     private final Vector4f[] m_bbox_verts = new Vector4f[8];
     private final Matrix4f m_tempMat = new Matrix4f();
     private final QuadCoord[] m_sub_quad_coords = new QuadCoord[4];
-    private final Pool<QuadNode> g_QuadNodePool = new Pool<>(()->new QuadNode());
+    private final Pool<QuadNode> g_QuadNodePool = new Pool<>(()->
+    {
+        LogUtil.i(LogUtil.LogType.DEFAULT, "The number of the allocated node is: " + (g_QuadNodeAllocateCount++));
+        return new QuadNode();
+    });
     private final vs_cbuffer m_vs_cbuffer = new vs_cbuffer();
     private final hs_cbuffer m_hs_cbuffer = new hs_cbuffer();
 

@@ -36,8 +36,7 @@ public class FramebufferGL implements Disposeable {
             GLenum.GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GLenum.GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
     };
 
-    static int measureTextureAttachment(TextureGL pTex, int index)
-    {
+    public static int measureTextureAttachment(TextureGL pTex, int index) {
 //        assert(pTex);
 //        assert(index < 8u);
 

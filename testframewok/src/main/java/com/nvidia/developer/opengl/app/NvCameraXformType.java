@@ -4,12 +4,12 @@ package com.nvidia.developer.opengl.app;
  * Camera transform mode.
  * @author Nvidia 2014-9-13 12:42
  */
-public enum NvCameraXformType {
+public interface NvCameraXformType {
 
 	/** Default transform */
-	MAIN,
+	int MAIN = 0,
 	/** Secondary transform */
-	SECONDARY;
+	SECONDARY = 1;
 	/** Number of transforms */
 	public static final int COUNT = 2;
 }

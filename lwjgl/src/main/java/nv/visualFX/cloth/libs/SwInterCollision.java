@@ -349,7 +349,7 @@ public class SwInterCollision {
                 PxTransform.transform(aToLocal, bBounds, bBounds);   // TODO need valid
 
 //                BoundingBox iBounds = intersectBounds(aBounds, bBounds);
-                aBounds.intersect(bBounds, iBounds);
+                BoundingBox.intersect(bBounds, aBounds, iBounds);
                         // setup bounding box w to make point containment test cheaper
 //                T4f floatMax = gSimd4fFloatMax & static_cast<T4f>(sMaskW);
 //                iBounds.mLower = (iBounds.mLower & sMaskXYZ) | -floatMax;

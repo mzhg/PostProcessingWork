@@ -61,12 +61,10 @@ public class BoundingBox {
     }
 
     /** Sets the bounding box extents. */
-    public void set(Vector3f min,Vector3f max)
-    {
+    public void set(Vector3f min,Vector3f max) {
         _min.set(min);
         _max.set(max);
     }
-
 
     public float xMin() { return _min.x; }
 
@@ -161,13 +159,20 @@ public class BoundingBox {
     }
 
     /** Returns the intersection of this bounding box and the specified bounding box. */
-    public BoundingBox intersect(BoundingBox bb, BoundingBox dest)
-    {   if(dest == null)
+    public static BoundingBox intersect(BoundingBox a, BoundingBox b, BoundingBox dest)
+    {   /*if(dest == null)
         dest =  new BoundingBox(Math.min(xMin(),bb.xMin()),Math.min(yMin(),bb.yMin()),Math.min(zMin(),bb.zMin()),
                 Math.max(xMax(),bb.xMax()),Math.max(yMax(),bb.yMax()),Math.max(zMax(),bb.zMax()));
     else
         dest.set(Math.min(xMin(),bb.xMin()),Math.min(yMin(),bb.yMin()),Math.min(zMin(),bb.zMin()),
                 Math.max(xMax(),bb.xMax()),Math.max(yMax(),bb.yMax()),Math.max(zMax(),bb.zMax()));
+        return dest;*/
+
+        if(dest == null)
+            dest = new BoundingBox();
+
+        Vector3f.max(a._min, b._min, dest._min);
+        Vector3f.min(a._max, b._max, dest._max);
         return dest;
     }
 
