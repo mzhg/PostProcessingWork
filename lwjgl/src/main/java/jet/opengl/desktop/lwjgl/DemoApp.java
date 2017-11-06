@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
+import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -79,7 +79,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new TestD3D11());
+        run(new SoftShadowDemo());
 
 //        testRectVertex();
     }

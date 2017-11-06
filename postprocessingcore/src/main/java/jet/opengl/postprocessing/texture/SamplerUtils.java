@@ -98,6 +98,7 @@ public final class SamplerUtils {
 			FloatBuffer buf = CacheBuffer.getCachedFloatBuffer(4);
 			buf.put(r).put(g).put(b).put(a).flip();
 			gl.glSamplerParameterfv(obj, GLenum.GL_TEXTURE_BORDER_COLOR, buf);
+//			LogUtil.i(LogUtil.LogType.DEFAULT, "Border Color =(" + r + ", " + g + ", " + b + ", " + a + ")");
 		}
 		
 		if(sampler.anisotropic > 0 && !gl.getGLAPIVersion().ES){

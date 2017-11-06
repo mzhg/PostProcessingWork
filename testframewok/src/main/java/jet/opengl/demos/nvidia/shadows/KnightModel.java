@@ -2,9 +2,11 @@ package jet.opengl.demos.nvidia.shadows;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.StringTokenizer;
+
+import jet.opengl.postprocessing.util.FileUtils;
 
 final class KnightModel {
 
@@ -37,7 +39,7 @@ final class KnightModel {
 		indices = new short[numIndices];
 		
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader("advance/SoftShadowsDemo/models/KnightModel.cpp"));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(FileUtils.open("nvidia/ShadowWorks/models/KnightModel.cpp")));
 			final int none = 0;
 			final int data = 1;
 			final int indices = 2;

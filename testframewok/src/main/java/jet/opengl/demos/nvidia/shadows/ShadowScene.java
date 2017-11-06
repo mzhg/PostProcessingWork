@@ -4,6 +4,7 @@ import com.nvidia.developer.opengl.utils.BoundingBox;
 import com.nvidia.developer.opengl.utils.ShadowmapGenerateProgram;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -16,6 +17,7 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.LogUtil;
 
 /**
  * Created by mazhen'gui on 2017/11/3.
@@ -47,7 +49,10 @@ import jet.opengl.postprocessing.util.CacheBuffer;
     protected final void onRender(boolean clearFBO) {
 //        getShadowCasterBoundingBox(mCurrentShadowCasterBoudingBox);
 
-        prepareShadowMap();
+        if(shadowConfig.shadowType != ShadowType.NONE) {
+            prepareShadowMap();
+        }
+
         onSceneRender(clearFBO);
     }
 
@@ -108,6 +113,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
         final int attachment = FramebufferGL.measureTextureAttachment(m_ShadowMap, 0);
         mShadowmapGenerateProgram.enable();
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_ShadowFBO);
+        gl.glViewport(0,0, m_ShadowMap.getWidth(), m_ShadowMap.getHeight());
         gl.glEnable(GLenum.GL_DEPTH_TEST);
         gl.glDepthFunc(GLenum.GL_LESS);
         gl.glDepthMask(true);
@@ -120,7 +126,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
             }
 
             gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
-            if(mOnlyClearShadowMap)
+//            if(mOnlyClearShadowMap)
                 onShadowRender(m_ShadowMapParams, mShadowmapGenerateProgram, i);
         }
 
@@ -129,7 +135,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
         gl.glViewport(vx, vy, vw, vh);
 
         //4, Resovle the multi-samples
-        if(mCascadeCount > 1){
+        if(m_ShadowMap.getSampleCount() > 1){
             gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, m_ShadowFBO);
             // dettach the previouse binding
             gl.glFramebufferTextureLayer(GLenum.GL_READ_FRAMEBUFFER, attachment, 0, 0, 0);
@@ -175,6 +181,65 @@ import jet.opengl.postprocessing.util.CacheBuffer;
         }
     }
 
+    private void setShadowFrame(ReadableVector3f lightPos, ReadableVector3f target, ReadableVector3f up,
+            float fov, float near, float far){
+        final float aspect = 1.0f;
+        Matrix4f.perspective(fov, aspect, near, far, m_ShadowMapParams.m_LightProj);
+        Matrix4f.lookAt(lightPos, target, up, m_ShadowMapParams.m_LightView);
+        Matrix4f.mul(m_ShadowMapParams.m_LightProj, m_ShadowMapParams.m_LightView, m_ShadowMapParams.m_LightViewProj);
+
+        m_ShadowMapParams.m_LightFar = far;
+        m_ShadowMapParams.m_LightNear = near;
+        m_ShadowMapParams.m_perspective = true;
+        m_ShadowMapParams.m_LightFov = fov;
+        m_ShadowMapParams.m_LightRatio = aspect;
+    }
+
+    private void setShadowFrame(ReadableVector3f lightPos, ReadableVector3f target, ReadableVector3f up,
+                                float fov, BoundingBox shadowCaster){
+        final float aspect = 1.0f;
+
+        Matrix4f.lookAt(lightPos, target, up, m_ShadowMapParams.m_LightView);
+        BoundingBox.transform(m_ShadowMapParams.m_LightView, shadowCaster, shadowCaster);
+
+        float near = -shadowCaster._max.z;
+        float far = Math.max(-shadowCaster._min.z, shadowConfig.lightFar);
+
+        Matrix4f.perspective(fov, aspect, near, far, m_ShadowMapParams.m_LightProj);
+        Matrix4f.mul(m_ShadowMapParams.m_LightProj, m_ShadowMapParams.m_LightView, m_ShadowMapParams.m_LightViewProj);
+
+        m_ShadowMapParams.m_LightFar = far;
+        m_ShadowMapParams.m_LightNear = near;
+        m_ShadowMapParams.m_perspective = true;
+        m_ShadowMapParams.m_LightFov = fov;
+        m_ShadowMapParams.m_LightRatio = aspect;
+    }
+
+    private void setShadowFrame(ReadableVector3f lightDir,ReadableVector3f up,BoundingBox shadowCaster){
+        Matrix4f.lookAt(Vector3f.ZERO, lightDir, up, m_ShadowMapParams.m_LightView);
+        BoundingBox.transform(m_ShadowMapParams.m_LightView, shadowCaster, shadowCaster);
+        float near = Math.min(-shadowCaster._max.z, shadowConfig.lightNear);
+        float far = Math.max(-shadowCaster._min.z, shadowConfig.lightFar);
+
+        float left = shadowCaster._min.x;
+        float right = shadowCaster._max.x;
+        float bottom = shadowCaster._min.y;
+        float top = shadowCaster._max.y;
+
+        Matrix4f.ortho(left, right, bottom, top,
+                near, far, m_ShadowMapParams.m_LightProj);
+
+        Matrix4f.mul(m_ShadowMapParams.m_LightProj, m_ShadowMapParams.m_LightView, m_ShadowMapParams.m_LightViewProj);
+
+        m_ShadowMapParams.m_LightFar = /*shadowConfig.lightFar*/far;
+        m_ShadowMapParams.m_LightNear = /*shadowConfig.lightNear*/near;
+        m_ShadowMapParams.m_lightLeft = left;
+        m_ShadowMapParams.m_lightRight = right;
+        m_ShadowMapParams.m_lightBottom = bottom;
+        m_ShadowMapParams.m_LightTop = top;
+        m_ShadowMapParams.m_perspective = false;
+    }
+
     private void buildShadowMapFrame(){
         if(shadowConfig.lightType == LightType.SPOT){
             buildSpotLightShadowMapFrame();
@@ -187,17 +252,19 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 
     private void  buildSpotLightShadowMapFrame(){
         if(shadowConfig.shadowMapSplitting == ShadowMapSplitting.NONE){
-            Matrix4f.perspective(shadowConfig.spotHalfAngle * 2, 1.0f, shadowConfig.lightNear, shadowConfig.lightFar, m_ShadowMapParams.m_LightProj);
-            Vector3f lightTarget = Vector3f.sub(shadowConfig.lightPos, shadowConfig.lightDir, null);
-            Matrix4f.lookAt(shadowConfig.lightPos, lightTarget, Vector3f.Y_AXIS, m_ShadowMapParams.m_LightView);  // TODO
-            Matrix4f.mul(m_ShadowMapParams.m_LightProj, m_ShadowMapParams.m_LightView, m_ShadowMapParams.m_LightViewProj);
+            mPreviousShadowCasterBoudingBox.init();
+            int count = getShadowCasterCount();
+            for(int i = 0; i < count; i++){
+                addShadowCasterBoundingBox(i, mPreviousShadowCasterBoudingBox);
+            }
 
-            m_ShadowMapParams.m_LightFar = shadowConfig.lightFar;
-            m_ShadowMapParams.m_LightNear = shadowConfig.lightNear;
+            Vector3f lightTarget = Vector3f.add(shadowConfig.lightPos, shadowConfig.lightDir, null);
+//            setShadowFrame(shadowConfig.lightPos, lightTarget, Vector3f.Y_AXIS, shadowConfig.spotHalfAngle * 2, shadowConfig.lightNear, shadowConfig.lightFar);
+            setShadowFrame(shadowConfig.lightPos, lightTarget, Vector3f.Y_AXIS, shadowConfig.spotHalfAngle * 2, mPreviousShadowCasterBoudingBox);
 
+            mOnlyClearShadowMap = !checkCameraFrustumeVisible(m_ShadowMapParams.m_LightViewProj);
             mCascadeCount = 1;
             mCubeShadowMap = false;
-            mOnlyClearShadowMap = !checkCameraFrustumeVisible(m_ShadowMapParams.m_LightViewProj);
         }
     }
 
@@ -210,30 +277,17 @@ import jet.opengl.postprocessing.util.CacheBuffer;
                 addShadowCasterBoundingBox(i, mPreviousShadowCasterBoudingBox);
             }
 
+            mCascadeCount = 1;
+            mCubeShadowMap = false;
             BoundingBox.intersect(mPreviousShadowCasterBoudingBox, mCurrentShadowCasterBoudingBox, mCurrentShadowCasterBoudingBox);
             mOnlyClearShadowMap = !mCurrentShadowCasterBoudingBox.valid();
             if(mOnlyClearShadowMap){
+                LogUtil.i(LogUtil.LogType.DEFAULT, "Direction Light Bounding box is invalid!");
                 return;
             }
 
-            Matrix4f.lookAt(Vector3f.ZERO, shadowConfig.lightDir, Vector3f.Y_AXIS, m_ShadowMapParams.m_LightView);  // TODO
-            // construct the projection matrix.
-            calculateLightViewBoundingBox(mCurrentShadowCasterBoudingBox, m_ShadowMapParams.m_LightView, mCurrentShadowCasterBoudingBox);
-
-            float near = Math.min(-mCurrentShadowCasterBoudingBox._max.z, shadowConfig.lightNear);
-            float far = Math.max(-mCurrentShadowCasterBoudingBox._min.z, shadowConfig.lightFar);
-            Matrix4f.ortho(mCurrentShadowCasterBoudingBox._min.x, mCurrentShadowCasterBoudingBox._max.x,
-                    mCurrentShadowCasterBoudingBox._min.y, mCurrentShadowCasterBoudingBox._max.y,
-                    near, far, m_ShadowMapParams.m_LightProj);
-
-            Matrix4f.mul(m_ShadowMapParams.m_LightProj, m_ShadowMapParams.m_LightView, m_ShadowMapParams.m_LightViewProj);
-
-            m_ShadowMapParams.m_LightFar = /*shadowConfig.lightFar*/far;
-            m_ShadowMapParams.m_LightNear = /*shadowConfig.lightNear*/near;
-
-            mCascadeCount = 1;
-            mCubeShadowMap = false;
-
+//            calculateLightViewBoundingBox(mCurrentShadowCasterBoudingBox, m_ShadowMapParams.m_LightView, mCurrentShadowCasterBoudingBox);
+            setShadowFrame(shadowConfig.lightDir, Vector3f.Y_AXIS, mCurrentShadowCasterBoudingBox);
         }
     }
 
@@ -246,6 +300,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 
             m_ShadowMapParams.m_LightFar = shadowConfig.lightFar;
             m_ShadowMapParams.m_LightNear = shadowConfig.lightNear;
+            m_ShadowMapParams.m_perspective = true;
 
             mCascadeCount = 1;
             mCubeShadowMap = false;
@@ -456,6 +511,12 @@ import jet.opengl.postprocessing.util.CacheBuffer;
     protected abstract void addShadowCasterBoundingBox(int index, BoundingBox boundingBox);
     protected abstract int getShadowCasterCount();
 
+    /**
+     * Read-only value.
+     * @return
+     */
+    public ShadowMapParams getShadowMapParams() {return m_ShadowMapParams;}
+
     public enum LightType{
         POINT,
         SPOT,
@@ -484,14 +545,22 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 
     public enum ShadowMapFiltering{
         NONE,
+        PCSS,  // Percentage Closer   TODO Soft Shadows
         PCF,   // Percentage Closer Filtering  TODO Smoothing
         ESM,   // Exponential
         CSM,   // Convolution
         VSM,   // Variance
         SAVSM, // Summed Area Variance
         SMSR,  // Shadow Map Silhouette Revectorization
-        PCSS,  // Percentage Closer   TODO Soft Shadows
         SSSS,  // Screen space soft shadows  TODO Soft Shadows
         FIV,   // Fullsphere Irradiance Vector
+    }
+
+    public enum ShadowMapPattern{
+        POISSON_25_25,
+        POISSON_32_64,
+        POISSON_100_100,
+        POISSON_64_128,
+        REGULAR_49_225
     }
 }

@@ -10,7 +10,7 @@ import jet.opengl.postprocessing.common.GLenum;
 
 public class ShadowConfig {
     public int shadowMapFormat = GLenum.GL_DEPTH_COMPONENT16;
-    public int shadowMapSize = 1024; // a Square
+    public int shadowMapSize = 1024; // The shadow map must be a suqre.
     public int shadowMapSampleCount = 1;
     public ShadowScene.LightType lightType = ShadowScene.LightType.DIRECTION;
     public final Vector3f lightPos = new Vector3f();
@@ -20,6 +20,7 @@ public class ShadowConfig {
     public ShadowScene.ShadowMapSplitting shadowMapSplitting = ShadowScene.ShadowMapSplitting.NONE;
     public ShadowScene.ShadowMapWarping shadowMapWarping = ShadowScene.ShadowMapWarping.NONE;
     public ShadowScene.ShadowMapFiltering shadowMapFiltering = ShadowScene.ShadowMapFiltering.NONE;
+    public ShadowScene.ShadowMapPattern shadowMapPattern = ShadowScene.ShadowMapPattern.POISSON_25_25;
     public int cascadCount = 1;
     /** The angle in degrees. */
     public float spotHalfAngle;
@@ -35,6 +36,7 @@ public class ShadowConfig {
         shadowMapSplitting = ohs.shadowMapSplitting;
         shadowMapWarping = ohs.shadowMapWarping;
         shadowMapFiltering = ohs.shadowMapFiltering;
+        shadowMapPattern = ohs.shadowMapPattern;
         cascadCount = ohs.cascadCount;
         spotHalfAngle = ohs.spotHalfAngle;
         lightNear = ohs.lightNear;
@@ -64,6 +66,7 @@ public class ShadowConfig {
         if (shadowType != that.shadowType) return false;
         if (shadowMapSplitting != that.shadowMapSplitting) return false;
         if (shadowMapWarping != that.shadowMapWarping) return false;
+        if (shadowMapPattern != that.shadowMapPattern) return false;
         if (spotHalfAngle != that.spotHalfAngle) return false;
         if (lightNear != that.lightNear) return false;
         if (lightFar != that.lightFar) return false;
@@ -83,6 +86,7 @@ public class ShadowConfig {
         result = 31 * result + (shadowMapSplitting != null ? shadowMapSplitting.hashCode() : 0);
         result = 31 * result + (shadowMapWarping != null ? shadowMapWarping.hashCode() : 0);
         result = 31 * result + (shadowMapFiltering != null ? shadowMapFiltering.hashCode() : 0);
+        result = 31 * result + (shadowMapPattern != null ? shadowMapPattern.hashCode() : 0);
         result = 31 * result + cascadCount;
         result = 31 * result + Float.hashCode(spotHalfAngle);
         result = 31 * result + Float.hashCode(lightNear);

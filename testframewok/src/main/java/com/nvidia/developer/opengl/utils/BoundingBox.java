@@ -83,8 +83,103 @@ public class BoundingBox {
             dest = new BoundingBox();
         }
 
-        Matrix4f.transformVector(left, right._min, dest._min);
-        Matrix4f.transformVector(left, right._max, dest._max);
+        float maxx = MIN, maxy = MIN,maxz = MIN;
+        float minx = MAX, miny = MAX,minz = MAX;
+
+        final float omaxx = right._max.x,omaxy = right._max.y,omaxz = right._max.z;
+        final float ominx = right._min.x,ominy = right._min.y,ominz = right._min.z;
+
+        Vector3f temp = dest._max;
+        {
+            temp.set(ominx, ominy, ominz);
+            Matrix4f.transformVector(left, temp, temp);
+            if(minx > temp.x) minx = temp.x;
+            if(miny > temp.y) miny = temp.y;
+            if(minz > temp.z) minz = temp.z;
+            if(maxx < temp.x) maxx = temp.x;
+            if(maxy < temp.y) maxy = temp.y;
+            if(maxz < temp.z) maxz = temp.z;
+        }
+
+        {
+            temp.set(omaxx, ominy, ominz);
+            Matrix4f.transformVector(left, temp, temp);
+            if(minx > temp.x) minx = temp.x;
+            if(miny > temp.y) miny = temp.y;
+            if(minz > temp.z) minz = temp.z;
+            if(maxx < temp.x) maxx = temp.x;
+            if(maxy < temp.y) maxy = temp.y;
+            if(maxz < temp.z) maxz = temp.z;
+        }
+
+        {
+            temp.set(omaxx, omaxy, ominz);
+            Matrix4f.transformVector(left, temp, temp);
+            if(minx > temp.x) minx = temp.x;
+            if(miny > temp.y) miny = temp.y;
+            if(minz > temp.z) minz = temp.z;
+            if(maxx < temp.x) maxx = temp.x;
+            if(maxy < temp.y) maxy = temp.y;
+            if(maxz < temp.z) maxz = temp.z;
+        }
+
+        {
+            temp.set(ominx, omaxy, ominz);
+            Matrix4f.transformVector(left, temp, temp);
+            if(minx > temp.x) minx = temp.x;
+            if(miny > temp.y) miny = temp.y;
+            if(minz > temp.z) minz = temp.z;
+            if(maxx < temp.x) maxx = temp.x;
+            if(maxy < temp.y) maxy = temp.y;
+            if(maxz < temp.z) maxz = temp.z;
+        }
+
+        {
+            temp.set(ominx, ominy, omaxz);
+            Matrix4f.transformVector(left, temp, temp);
+            if(minx > temp.x) minx = temp.x;
+            if(miny > temp.y) miny = temp.y;
+            if(minz > temp.z) minz = temp.z;
+            if(maxx < temp.x) maxx = temp.x;
+            if(maxy < temp.y) maxy = temp.y;
+            if(maxz < temp.z) maxz = temp.z;
+        }
+
+        {
+            temp.set(omaxx, ominy, omaxz);
+            Matrix4f.transformVector(left, temp, temp);
+            if(minx > temp.x) minx = temp.x;
+            if(miny > temp.y) miny = temp.y;
+            if(minz > temp.z) minz = temp.z;
+            if(maxx < temp.x) maxx = temp.x;
+            if(maxy < temp.y) maxy = temp.y;
+            if(maxz < temp.z) maxz = temp.z;
+        }
+
+        {
+            temp.set(omaxx, omaxy, omaxz);
+            Matrix4f.transformVector(left, temp, temp);
+            if(minx > temp.x) minx = temp.x;
+            if(miny > temp.y) miny = temp.y;
+            if(minz > temp.z) minz = temp.z;
+            if(maxx < temp.x) maxx = temp.x;
+            if(maxy < temp.y) maxy = temp.y;
+            if(maxz < temp.z) maxz = temp.z;
+        }
+
+        {
+            temp.set(ominx, omaxy, omaxz);
+            Matrix4f.transformVector(left, temp, temp);
+            if(minx > temp.x) minx = temp.x;
+            if(miny > temp.y) miny = temp.y;
+            if(minz > temp.z) minz = temp.z;
+            if(maxx < temp.x) maxx = temp.x;
+            if(maxy < temp.y) maxy = temp.y;
+            if(maxz < temp.z) maxz = temp.z;
+        }
+
+        dest._min.set(minx, miny, minz);
+        dest._max.set(maxx, maxy, maxz);
         return dest;
     }
 
@@ -182,6 +277,11 @@ public class BoundingBox {
             Math.min(yMin(),bb.yMin()) <= Math.max(yMax(),bb.yMax()) &&
             Math.min(zMin(),bb.zMin()) <= Math.max(zMax(),bb.zMax());
 
+    }
+
+    public void setFromExtent(ReadableVector3f center, ReadableVector3f extent){
+        Vector3f.sub(center, extent, _min);
+        Vector3f.add(center, extent, _max);
     }
 
     /** Returns true if this bounding box contains the specified coordinate. */

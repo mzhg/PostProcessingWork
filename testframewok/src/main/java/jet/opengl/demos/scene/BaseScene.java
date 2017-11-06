@@ -9,6 +9,7 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.FramebufferGL;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
@@ -168,7 +169,8 @@ public abstract class BaseScene implements Disposeable{
             if(m_SceneColorTex != null)
                 gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0,  m_SceneColorTex.getTarget(),m_SceneColorTex.getTexture(), 0);
             if(m_SceneDepthTex != null){
-                int format_conponemt = TextureUtils.measureFormat(m_SceneDepthTex.getFormat());
+                gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, FramebufferGL.measureTextureAttachment(m_SceneDepthTex, 0), m_SceneDepthTex.getTarget(),m_SceneDepthTex.getTexture(), 0);
+                /*int format_conponemt = TextureUtils.measureFormat(m_SceneDepthTex.getFormat());
                 switch (format_conponemt)
                 {
                     case GLenum.GL_DEPTH_COMPONENT:
@@ -182,7 +184,7 @@ public abstract class BaseScene implements Disposeable{
                         break;
                     default:
                         throw new Error("Innel err!!!");
-                }
+                }*/
             }
         }
 
