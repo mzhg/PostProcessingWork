@@ -118,6 +118,8 @@ import jet.opengl.postprocessing.util.LogUtil;
         gl.glDepthFunc(GLenum.GL_LESS);
         gl.glDepthMask(true);
         gl.glClearDepthf(1.0f);
+        gl.glEnable(GLenum.GL_POLYGON_OFFSET_FILL);
+        gl.glPolygonOffset(4.0f, 32.0f);
         for(int i =0; i < mCascadeCount; i++){
             if(mCascadeCount == 1) {
                 gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, attachment, m_ShadowMap.getTarget(), m_ShadowMap.getTexture(), 0);
@@ -126,13 +128,14 @@ import jet.opengl.postprocessing.util.LogUtil;
             }
 
             gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
-//            if(mOnlyClearShadowMap)
+            if(!mOnlyClearShadowMap)
                 onShadowRender(m_ShadowMapParams, mShadowmapGenerateProgram, i);
         }
 
         // 3, Store the framebuffer and viewport
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, old_fbo);
         gl.glViewport(vx, vy, vw, vh);
+        gl.glDisable(GLenum.GL_POLYGON_OFFSET_FILL);
 
         //4, Resovle the multi-samples
         if(m_ShadowMap.getSampleCount() > 1){
@@ -226,17 +229,23 @@ import jet.opengl.postprocessing.util.LogUtil;
         float bottom = shadowCaster._min.y;
         float top = shadowCaster._max.y;
 
-        Matrix4f.ortho(left, right, bottom, top,
-                near, far, m_ShadowMapParams.m_LightProj);
+        m_tempMat0.setTranslate(-(left + right)/2, -(top + bottom)/2, -(near + far)/2 + 0.1f);
+        Matrix4f.mul(m_tempMat0, m_ShadowMapParams.m_LightView, m_ShadowMapParams.m_LightView);  // shift the lightview matrix
+
+        float width = (right - left);
+        float height = (top - bottom);
+
+        Matrix4f.ortho(-width/2, width/2, -height/2, height/2,
+                0.1f, far-near + 0.1f, m_ShadowMapParams.m_LightProj);
 
         Matrix4f.mul(m_ShadowMapParams.m_LightProj, m_ShadowMapParams.m_LightView, m_ShadowMapParams.m_LightViewProj);
 
-        m_ShadowMapParams.m_LightFar = /*shadowConfig.lightFar*/far;
-        m_ShadowMapParams.m_LightNear = /*shadowConfig.lightNear*/near;
-        m_ShadowMapParams.m_lightLeft = left;
-        m_ShadowMapParams.m_lightRight = right;
-        m_ShadowMapParams.m_lightBottom = bottom;
-        m_ShadowMapParams.m_LightTop = top;
+        m_ShadowMapParams.m_LightFar = /*shadowConfig.lightFar*/far-near+ 0.1f;
+        m_ShadowMapParams.m_LightNear = /*shadowConfig.lightNear*/+ 0.1f;
+        m_ShadowMapParams.m_lightLeft = -width/2;
+        m_ShadowMapParams.m_lightRight = width/2;
+        m_ShadowMapParams.m_lightBottom = -height/2;
+        m_ShadowMapParams.m_LightTop = height/2;
         m_ShadowMapParams.m_perspective = false;
     }
 
@@ -344,6 +353,7 @@ import jet.opengl.postprocessing.util.LogUtil;
         }
     }
 
+    @Deprecated
     protected final void calculateLightViewBoundingBox(BoundingBox worldPos, Matrix4f lightView, BoundingBox out){
         if(m_corners[0] == null){
             for(int i = 0; i < m_corners.length; i++){

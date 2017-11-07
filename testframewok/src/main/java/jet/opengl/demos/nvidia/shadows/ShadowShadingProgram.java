@@ -26,6 +26,7 @@ public abstract class ShadowShadingProgram extends GLSLProgram {
     private int m_lightZFar;
     private int m_lightView;
     private int m_lightProj;
+    private int m_perspective;
 
     /**
      * Subclass must call this method to initlize the resources.
@@ -38,6 +39,7 @@ public abstract class ShadowShadingProgram extends GLSLProgram {
         m_lightZFar = getUniformLocation("g_lightZFar");
         m_lightView = getUniformLocation("g_lightView");
         m_lightProj = getUniformLocation("g_lightProj");
+        m_perspective = getUniformLocation("g_perspective");
     }
 
     public void setShadowUniforms(ShadowConfig data, ShadowMapParams params){
@@ -50,6 +52,7 @@ public abstract class ShadowShadingProgram extends GLSLProgram {
         setLightProj(params.m_LightProj);
         setLightView(params.m_LightView);
         setLightRange(params.m_LightNear, params.m_LightFar);
+        setPerspective(params.m_perspective);
 
         // Calculate the LightRadius UV
         float width, height;
@@ -77,6 +80,12 @@ public abstract class ShadowShadingProgram extends GLSLProgram {
     private void setSamplePattern(int pattern){
         if(m_samplePattern >= 0){
             gl.glUniform1i(m_samplePattern, pattern);
+        }
+    }
+
+    private void setPerspective(boolean flag){
+        if(m_perspective >= 0){
+            gl.glUniform1i(m_perspective, flag?1:0);
         }
     }
 

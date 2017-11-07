@@ -110,7 +110,7 @@ public class FrustumeRender implements Disposeable {
 			return;
 		
 //		GLError.checkError();
-//		m_VAO = GL30.glGenVertexArrays();
+//		m_VAO = gl.glGenVertexArrays();
 //		GL30.glBindVertexArray(0);
 //		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
 //		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);

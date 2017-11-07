@@ -7,6 +7,7 @@ uniform float g_lightZNear;
 uniform float g_lightZFar;
 uniform mat4 g_lightView;
 uniform mat4 g_lightProj;
+uniform bool g_perspective = true;
 
 #define POISSON_25_25   0
 #define POISSON_32_64   1
@@ -381,19 +382,40 @@ const vec2 Poisson128[128] = vec2[](
 // Using similar triangles from the surface point to the area light
 vec2 searchRegionRadiusUV(float zWorld)
 {
-    return g_lightRadiusUV * (zWorld - g_lightZNear) / zWorld;
+//    if(!g_perspective)
+//    {
+//        return g_lightRadiusUV;
+//    }
+//    else
+    {
+        return g_lightRadiusUV * (zWorld - g_lightZNear) / zWorld;
+    }
 }
 
 // Using similar triangles between the area light, the blocking plane and the surface point
 vec2 penumbraRadiusUV(float zReceiver, float zBlocker)
 {
-    return g_lightRadiusUV * (zReceiver - zBlocker) / zBlocker;
+//    if(!g_perspective)
+//    {
+//        return g_lightRadiusUV * zBlocker;
+//    }
+//    else
+    {
+        return g_lightRadiusUV * (zReceiver - zBlocker) / zBlocker;
+    }
 }
 
 // Project UV size to the near plane of the light
 vec2 projectToLightUV(vec2 sizeUV, float zWorld)
 {
-    return sizeUV * g_lightZNear / zWorld;
+//    if(!g_perspective)
+//    {
+//        return sizeUV;
+//    }
+//    else
+    {
+        return sizeUV * g_lightZNear / zWorld;
+    }
 }
 
 // Derivatives of light-space depth with respect to texture2D coordinates
@@ -423,7 +445,14 @@ float biasedZ(float z0, vec2 dz_duv, vec2 offset)
 
 float zClipToEye(float z)
 {
-    return g_lightZFar * g_lightZNear / (g_lightZFar - z * (g_lightZFar - g_lightZNear));
+    if(!g_perspective)
+    {
+        return ((2.0 * z - 1.0) * (g_lightZFar - g_lightZNear) + g_lightZFar + g_lightZNear)/2.0;
+    }
+    else
+    {
+        return g_lightZFar * g_lightZNear / (g_lightZFar - z * (g_lightZFar - g_lightZNear));
+    }
 }
 
 // Returns average blocker depth in the search region, as well as the number of found blockers.
@@ -659,6 +688,16 @@ float CaculateShadows(vec3 worldPosition, sampler2DShadow g_shadowMapPcf, sample
     vec4 lightProjPos = g_lightProj * lightViewPos;
 
     vec3 lightProjTexPos = (lightProjPos.xyz / lightProjPos.w) * 0.5 + 0.5;
+
+    if(any(greaterThan(abs(lightProjTexPos.xy), vec2(1))))
+    {
+        return 1.0;
+    }
+
+    if(abs(lightProjTexPos.z) > 1.0)
+    {
+        return texture(g_shadowMapDepth, lightProjTexPos.xy) == 1.0 ? 1.0 : 0.0;
+    }
 
 //    vec2 uv = lightPosition.xy / lightPosition.w;
 //    float z = lightPosition.z / lightPosition.w;

@@ -107,7 +107,7 @@ final class SoftShadowScene extends ShadowScene {
         m_SceneRenderProgram = new SoftShadowSceneRenderProgram();
 
         GLCheck.checkError();
-        m_ShadowConfig.shadowMapFiltering = ShadowMapFiltering.NONE;
+        m_ShadowConfig.shadowMapFiltering = ShadowMapFiltering.PCSS;
         m_ShadowConfig.shadowType = ShadowType.SHADOW_MAPPING;
         m_ShadowConfig.lightType = LightType.DIRECTION;
         m_ShadowConfig.spotHalfAngle = 10;
@@ -115,7 +115,7 @@ final class SoftShadowScene extends ShadowScene {
         m_ShadowConfig.checkCameraFrustumeVisible = false;
         m_ShadowConfig.lightNear = 0.1f;
         m_ShadowConfig.lightFar = 32.0f;
-        m_ShadowConfig.shadowMapFormat = GLenum.GL_DEPTH_COMPONENT32F;
+        m_ShadowConfig.shadowMapFormat = GLenum.GL_DEPTH_COMPONENT16;
         m_ShadowConfig.shadowMapSampleCount = 1;
         m_ShadowConfig.shadowMapSize = 1024;
         m_ShadowConfig.shadowMapPattern = ShadowMapPattern.POISSON_100_100;
@@ -336,7 +336,6 @@ final class SoftShadowScene extends ShadowScene {
 
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(m_RockDiffuseTex.getTarget(), 0);
-
 
         m_printOnce = true;
     }
