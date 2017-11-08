@@ -83,6 +83,10 @@ public final class Numeric {
 		}
 	}
 
+	public static boolean almostZero(float f){
+		return Math.abs(f) < EPSILON;
+	}
+
 	public static boolean isClose(float a, float b, float percent){
 		if(a == b){
 			return true;

@@ -10,7 +10,10 @@ import org.lwjgl.util.vector.Vector4f;
 
 import java.nio.IntBuffer;
 
-import jet.opengl.demos.scene.BaseScene;
+import jet.opengl.demos.scene.CameraData;
+import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.FramebufferGL;
 import jet.opengl.postprocessing.texture.Texture2D;
@@ -22,7 +25,7 @@ import jet.opengl.postprocessing.util.LogUtil;
 /**
  * Created by mazhen'gui on 2017/11/3.
  */
- public abstract class ShadowScene extends BaseScene{
+ public class ShadowGenerator implements Disposeable{
     private static final int DIRTY_SHADOWMAP_TEXTURE = 1;   // It means that we need reconstruct the shadow map texture.
     private static final int DIRTY_SHADOW_CONSTRUCTION = 2;  // It means the shadow frame needs reconstructing which caused by the light animation or shadow casters animation.
     private static final int DIRTY_LIGHT_TYPE = 4;
@@ -44,16 +47,25 @@ import jet.opengl.postprocessing.util.LogUtil;
     private int mCascadeCount;
     private boolean mCubeShadowMap;
     private final Matrix4f m_tempMat0 = new Matrix4f();
+    private GLFuncProvider gl;
+    private ShadowSceneController m_Scene;
+    private CameraData m_SceneData;
 
-    @Override
-    protected final void onRender(boolean clearFBO) {
+    public void setShadowScene(ShadowSceneController scene) {m_Scene = scene;}
+    public ShadowSceneController getShadowScene() { return m_Scene;}
+
+    public final void generateShadow(CameraData sceneData) {
+        m_SceneData = sceneData;
+        if(gl == null)
+            gl = GLFuncProviderFactory.getGLFuncProvider();
+
 //        getShadowCasterBoundingBox(mCurrentShadowCasterBoudingBox);
 
         if(shadowConfig.shadowType != ShadowType.NONE) {
             prepareShadowMap();
         }
 
-        onSceneRender(clearFBO);
+//        onSceneRender(clearFBO);
     }
 
     private void prepareShadowMap(){
@@ -129,7 +141,7 @@ import jet.opengl.postprocessing.util.LogUtil;
 
             gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
             if(!mOnlyClearShadowMap)
-                onShadowRender(m_ShadowMapParams, mShadowmapGenerateProgram, i);
+                m_Scene.onShadowRender(m_ShadowMapParams, mShadowmapGenerateProgram, i);
         }
 
         // 3, Store the framebuffer and viewport
@@ -262,9 +274,9 @@ import jet.opengl.postprocessing.util.LogUtil;
     private void  buildSpotLightShadowMapFrame(){
         if(shadowConfig.shadowMapSplitting == ShadowMapSplitting.NONE){
             mPreviousShadowCasterBoudingBox.init();
-            int count = getShadowCasterCount();
+            int count = m_Scene.getShadowCasterCount();
             for(int i = 0; i < count; i++){
-                addShadowCasterBoundingBox(i, mPreviousShadowCasterBoudingBox);
+                m_Scene.addShadowCasterBoundingBox(i, mPreviousShadowCasterBoudingBox);
             }
 
             Vector3f lightTarget = Vector3f.add(shadowConfig.lightPos, shadowConfig.lightDir, null);
@@ -281,9 +293,9 @@ import jet.opengl.postprocessing.util.LogUtil;
         if(shadowConfig.shadowMapSplitting == ShadowMapSplitting.NONE){
             calculateCameraViewBoundingBox(mCurrentShadowCasterBoudingBox);
             mPreviousShadowCasterBoudingBox.init();
-            int count = getShadowCasterCount();
+            int count = m_Scene.getShadowCasterCount();
             for(int i = 0; i < count; i++){
-                addShadowCasterBoundingBox(i, mPreviousShadowCasterBoudingBox);
+                m_Scene.addShadowCasterBoundingBox(i, mPreviousShadowCasterBoudingBox);
             }
 
             mCascadeCount = 1;
@@ -327,7 +339,7 @@ import jet.opengl.postprocessing.util.LogUtil;
      */
     protected boolean checkCameraFrustumeVisible(Matrix4f lightViewProj){
         if(shadowConfig.checkCameraFrustumeVisible){
-            Matrix4f.invert(getSceneData().getViewProjMatrix(), m_tempMat0);
+            Matrix4f.invert(m_SceneData.getViewProjMatrix(), m_tempMat0);
             return checkFrustumeCollisions(m_tempMat0, lightViewProj);
         }
 
@@ -338,7 +350,7 @@ import jet.opengl.postprocessing.util.LogUtil;
         out.init();
 
         Vector3f f3PlaneCornerProjSpace = new Vector3f();
-        Matrix4f cameraProjToWorld = Matrix4f.invert(getSceneData().getViewProjMatrix(), m_tempMat0);
+        Matrix4f cameraProjToWorld = Matrix4f.invert(m_SceneData.getViewProjMatrix(), m_tempMat0);
 
         for(int iClipPlaneCorner=0; iClipPlaneCorner < 8; ++iClipPlaneCorner) {
             f3PlaneCornerProjSpace.set((iClipPlaneCorner & 0x01) != 0 ? +1.f : -1.f,
@@ -494,14 +506,12 @@ import jet.opengl.postprocessing.util.LogUtil;
         return aValue == bValue;
     }
 
-    protected abstract void onShadowRender(ShadowMapParams shadowMapParams, ShadowmapGenerateProgram program, int cascade);
-    protected abstract void onSceneRender(boolean clearFBO);
     public Texture2D getShadowMap(){
         return m_ShadowMap.getSampleCount() > 1 ? m_ResolvedShadowMap : m_ShadowMap;
     }
 
     @Override
-    protected void onDestroy() {
+    public void dispose() {
         releaseShadowMapResources();
     }
 
@@ -516,10 +526,6 @@ import jet.opengl.postprocessing.util.LogUtil;
             m_ShadowMap = null;
         }
     }
-
-    /*protected abstract void getShadowCasterBoundingBox( BoundingBox boundingBox);*/
-    protected abstract void addShadowCasterBoundingBox(int index, BoundingBox boundingBox);
-    protected abstract int getShadowCasterCount();
 
     /**
      * Read-only value.
@@ -550,6 +556,7 @@ import jet.opengl.postprocessing.util.LogUtil;
         LiSPSM, // Light Space Perspective
         TSM,    // Trapezoid
         PSM,    // Perspective
+        ORTHO,  // ortho
         CSSM,   // Camera Space
     }
 

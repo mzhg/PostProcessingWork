@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import jet.opengl.demos.scene.BaseScene;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.SamplerDesc;
@@ -27,7 +28,7 @@ import jet.opengl.postprocessing.util.LogUtil;
 /**
  * Created by mazhen'gui on 2017/11/4.
  */
-final class SoftShadowScene extends ShadowScene {
+final class SoftShadowScene extends BaseScene implements ShadowSceneController{
     public static final int POS_ATTRIB_LOC = 0;
     public static final int NOR_ATTRIB_LOC = 1;
     private static final float GROUND_PLANE_RADIUS = 8.0f;
@@ -63,8 +64,15 @@ final class SoftShadowScene extends ShadowScene {
     private int m_SamplerDepthTex;
     private int m_SamplerShadowTex;
 
+    private ShadowGenerator m_ShadowGen;
+
+    public SoftShadowScene(ShadowGenerator shadowGenerator){
+        m_ShadowGen = shadowGenerator;
+    }
+
     @Override
     protected void onCreate(Object prevSavedData) {
+        m_ShadowGen.setShadowScene(this);
         KnightModel.loadData();
         // Build the scene
         RigidMesh knightMesh = new RigidMesh(
@@ -107,18 +115,18 @@ final class SoftShadowScene extends ShadowScene {
         m_SceneRenderProgram = new SoftShadowSceneRenderProgram();
 
         GLCheck.checkError();
-        m_ShadowConfig.shadowMapFiltering = ShadowMapFiltering.PCSS;
-        m_ShadowConfig.shadowType = ShadowType.SHADOW_MAPPING;
-        m_ShadowConfig.lightType = LightType.DIRECTION;
+        m_ShadowConfig.shadowMapFiltering = ShadowGenerator.ShadowMapFiltering.PCSS;
+        m_ShadowConfig.shadowType = ShadowGenerator.ShadowType.SHADOW_MAPPING;
+        m_ShadowConfig.lightType = ShadowGenerator.LightType.DIRECTION;
         m_ShadowConfig.spotHalfAngle = 10;
-        m_ShadowConfig.shadowMapSplitting = ShadowMapSplitting.NONE;
+        m_ShadowConfig.shadowMapSplitting = ShadowGenerator.ShadowMapSplitting.NONE;
         m_ShadowConfig.checkCameraFrustumeVisible = false;
         m_ShadowConfig.lightNear = 0.1f;
         m_ShadowConfig.lightFar = 32.0f;
         m_ShadowConfig.shadowMapFormat = GLenum.GL_DEPTH_COMPONENT16;
         m_ShadowConfig.shadowMapSampleCount = 1;
         m_ShadowConfig.shadowMapSize = 1024;
-        m_ShadowConfig.shadowMapPattern = ShadowMapPattern.POISSON_100_100;
+        m_ShadowConfig.shadowMapPattern = ShadowGenerator.ShadowMapPattern.POISSON_100_100;
 
         SamplerDesc desc = new SamplerDesc();
         desc.minFilter = GLenum.GL_NEAREST;
@@ -141,7 +149,7 @@ final class SoftShadowScene extends ShadowScene {
         updateCamera();
         updateLightCamera();
 
-        setShadowConfig(m_ShadowConfig);
+        m_ShadowGen.setShadowConfig(m_ShadowConfig);
     }
 
     private void updateCamera(){
@@ -266,7 +274,7 @@ final class SoftShadowScene extends ShadowScene {
     }
 
     @Override
-    protected void onShadowRender(ShadowMapParams shadowMapParams, ShadowmapGenerateProgram program, int cascade) {
+    public void onShadowRender(ShadowMapParams shadowMapParams, ShadowmapGenerateProgram program, int cascade) {
         drawMeshesShadow(program, shadowMapParams.m_LightViewProj);
 
         if(!m_printOnce){
@@ -275,7 +283,9 @@ final class SoftShadowScene extends ShadowScene {
     }
 
     @Override
-    protected void onSceneRender(boolean clearFBO) {
+    protected void onRender(boolean clearFBO) {
+        m_ShadowGen.generateShadow(getSceneData());
+
         if(clearFBO){
             gl.glClearColor(0,0,0,0);
             gl.glClearDepthf(1.0f);
@@ -294,7 +304,7 @@ final class SoftShadowScene extends ShadowScene {
         gl.glBindTexture(m_GroundNormalTex.getTarget(), m_GroundNormalTex.getTexture());
 
         gl.glActiveTexture(GLenum.GL_TEXTURE3);
-        Texture2D shadowMap = getShadowMap();
+        Texture2D shadowMap =m_ShadowGen.getShadowMap();
         gl.glBindTexture(shadowMap.getTarget(), shadowMap.getTexture());
         gl.glBindSampler(3, m_SamplerDepthTex);
         gl.glActiveTexture(GLenum.GL_TEXTURE4);
@@ -308,7 +318,7 @@ final class SoftShadowScene extends ShadowScene {
         m_SceneRenderProgram.setViewProj(mSceneData.getViewProjMatrix());
         m_SceneRenderProgram.setLightPos(m_ShadowConfig.lightPos);
         m_SceneRenderProgram.setPodiumCenterWorldPos(m_podiumMesh.getCenter());
-        m_SceneRenderProgram.setShadowUniforms(m_ShadowConfig, getShadowMapParams());
+        m_SceneRenderProgram.setShadowUniforms(m_ShadowConfig, m_ShadowGen.getShadowMapParams());
         drawMeshes(m_SceneRenderProgram);
 
         if(!m_printOnce){
@@ -341,6 +351,11 @@ final class SoftShadowScene extends ShadowScene {
     }
 
     @Override
+    protected void onDestroy() {
+        m_ShadowGen.dispose();
+    }
+
+    @Override
     public void onResize(int width, int height) {
         super.onResize(width, height);
 
@@ -348,12 +363,12 @@ final class SoftShadowScene extends ShadowScene {
     }
 
     @Override
-    protected void addShadowCasterBoundingBox(int index, BoundingBox boundingBox) {
+    public void addShadowCasterBoundingBox(int index, BoundingBox boundingBox) {
         boundingBox.expandBy(m_meshInstances.get(index).getBounds());
     }
 
     @Override
-    protected int getShadowCasterCount() {
+    public int getShadowCasterCount() {
         return m_meshInstances.size();
     }
 

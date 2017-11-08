@@ -326,6 +326,31 @@ public class Vector4f extends Vector implements Serializable, ReadableVector4f, 
 	}
 
 	/**
+	 * Computes the dot product of a plane and a 3D vector. The w parameter of the vector is assumed to be 1.<p></p>
+	 * Given a plane (a, b, c, d) and a 3D vector (x, y, z) the return value of this function is a*x + b*y + c*z + d*1.
+	 * This method is useful for determining the plane's relationship with a coordinate in 3D space.
+	 * @param plane
+	 * @param vector
+	 * @return The dot product of the plane and 3D vector.
+	 */
+	public static float planeDotCoord(ReadableVector4f plane, ReadableVector3f vector){
+		return plane.getX() * vector.getX() + plane.getY() * vector.getY()
+				+plane.getZ() * vector.getZ() + plane.getW();
+	}
+
+	/**
+	 * Computes the dot product of a plane and a 3D vector. The w parameter of the vector is assumed to be 0.<p></p>
+	 * Given a plane (a, b, c, d) and a 3D vector (x, y, z) the return value of this function is a*x + b*y + c*z + d*0.
+	 * This method is useful for calculating the angle between the normal of the plane, and another normal.
+	 * @param plane
+	 * @param vector
+	 * @return The dot product of the plane and 3D vector.
+	 */
+	public static float planeDotNormal(ReadableVector4f plane, ReadableVector3f vector){
+		return plane.getX() * vector.getX() + plane.getY() * vector.getY() + plane.getZ() * vector.getZ();
+	}
+
+	/**
 	 * Calculate the angle between two vectors, in radians
 	 * @param a A vector
 	 * @param b The other vector

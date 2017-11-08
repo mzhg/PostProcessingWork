@@ -3,6 +3,9 @@ package com.nvidia.developer.opengl.utils;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
+
+import jet.opengl.postprocessing.util.Numeric;
 
 /** General purpose axis-aligned bounding box class for enclosing objects/vertices.
  * Bounds leaf objects in a scene such as osg::Drawable objects. Used for frustum
@@ -186,8 +189,7 @@ public class BoundingBox {
     /** Calculates and returns the bounding box center. */
     public Vector3f center(Vector3f center)
     {
-        center = Vector3f.mix(_min, _max, 0.5f, center);
-        return center;
+        return Vector3f.mix(_min, _max, 0.5f, center);
     }
 
     /** Calculates and returns the bounding box radius. */
@@ -277,6 +279,48 @@ public class BoundingBox {
             Math.min(yMin(),bb.yMin()) <= Math.max(yMax(),bb.yMax()) &&
             Math.min(zMin(),bb.zMin()) <= Math.max(zMax(),bb.zMax());
 
+    }
+
+    public boolean intersect(float[] hitDist, ReadableVector3f origPt, ReadableVector3f dir){
+        Vector4f sides[] = {
+                new Vector4f( 1, 0, 0,-_min.x), new Vector4f(-1, 0, 0, _max.x),
+                new Vector4f( 0, 1, 0,-_min.y), new Vector4f( 0,-1, 0, _max.y),
+                new Vector4f( 0, 0, 1,-_min.z), new Vector4f( 0, 0,-1, _max.z) };
+
+        hitDist[0] = 0.f;  // safe initial value
+        Vector3f hitPt = new Vector3f(origPt);
+
+        boolean inside = false;
+
+        for ( int i=0; (i<6) && !inside; i++ )
+        {
+            float cosTheta = Vector4f.planeDotNormal( sides[i], dir );
+            float dist = Vector4f.planeDotCoord ( sides[i], origPt );
+
+            //  if we're nearly intersecting, just punt and call it an intersection
+            if ( Numeric.almostZero(dist) ) return true;
+            //  skip nearly (&actually) parallel rays
+            if ( Numeric.almostZero(cosTheta) ) continue;
+            //  only interested in intersections along the ray, not before it.
+            hitDist[0] = -dist / cosTheta;
+            if ( hitDist[0] < 0.f ) continue;
+
+//            hitPt = (*hitDist)*(*dir) + (*origPt);
+            Vector3f.linear(origPt, dir, hitDist[0], hitPt);
+
+            inside = true;
+
+            for ( int j=0; (j<6) && inside; j++ )
+            {
+                if ( j==i )
+                    continue;
+                float d = Vector4f.planeDotCoord( sides[j], hitPt );
+
+                inside = ((d + 0.00015) >= 0.f);
+            }
+        }
+
+        return inside;
     }
 
     public void setFromExtent(ReadableVector3f center, ReadableVector3f extent){

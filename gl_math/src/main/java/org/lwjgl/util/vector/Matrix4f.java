@@ -1801,7 +1801,16 @@ public class Matrix4f extends Matrix implements Serializable {
 
 		return out;
 	}
-	
+
+	/**
+	 * Builds a left-handed perspective projection matrix
+	 * @param width  Width of the view volume at the near view-plane.
+	 * @param height Height of the view volume at the near view-plane.
+	 * @param znear Z-value of the near view-plane.
+	 * @param zfar Z-value of the far view-plane.
+	 * @param out The result of this operation.
+	 * @return
+	 */
 	public static final Matrix4f frustum(float width, float height, float znear,float zfar, Matrix4f out){
 		float ymax = height / 2.0f;
 	    float ymin = -ymax;

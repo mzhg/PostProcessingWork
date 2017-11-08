@@ -4,7 +4,6 @@ import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.ui.NvUIReaction;
 
 import jet.opengl.postprocessing.common.GLCheck;
-import jet.opengl.postprocessing.common.GLenum;
 
 /**
  * Created by mazhen'gui on 2017/11/6.
@@ -20,11 +19,10 @@ public final class SoftShadowDemo extends NvSampleApp {
 
     @Override
     protected void initRendering() {
-        mShadowConfig.shadowType = ShadowScene.ShadowType.NONE;
-        mScene = new SoftShadowScene();
+        mShadowConfig.shadowType = ShadowGenerator.ShadowType.NONE;
+        mScene = new SoftShadowScene(new ShadowGenerator());
         mScene.setNVApp(this);
         mScene.initScene();
-        mScene.setShadowConfig(mShadowConfig);
 
         getGLContext().setSwapInterval(0);
         GLCheck.checkError();
@@ -32,8 +30,8 @@ public final class SoftShadowDemo extends NvSampleApp {
 
     @Override
     public void display() {
-        mScene.draw(true, true);
-        mScene.resoveMultisampleTexture(GLenum.GL_COLOR_BUFFER_BIT);
+        mScene.draw(false, true);
+//        mScene.resoveMultisampleTexture(GLenum.GL_COLOR_BUFFER_BIT);
         GLCheck.checkError();
     }
 
