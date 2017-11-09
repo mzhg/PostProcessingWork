@@ -25,7 +25,7 @@ import jet.opengl.postprocessing.util.LogUtil;
 /**
  * Created by mazhen'gui on 2017/11/3.
  */
- public class ShadowGenerator implements Disposeable{
+ public class ShadowMapGenerator implements Disposeable{
     private static final int DIRTY_SHADOWMAP_TEXTURE = 1;   // It means that we need reconstruct the shadow map texture.
     private static final int DIRTY_SHADOW_CONSTRUCTION = 2;  // It means the shadow frame needs reconstructing which caused by the light animation or shadow casters animation.
     private static final int DIRTY_LIGHT_TYPE = 4;
@@ -144,12 +144,7 @@ import jet.opengl.postprocessing.util.LogUtil;
                 m_Scene.onShadowRender(m_ShadowMapParams, mShadowmapGenerateProgram, i);
         }
 
-        // 3, Store the framebuffer and viewport
-        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, old_fbo);
-        gl.glViewport(vx, vy, vw, vh);
-        gl.glDisable(GLenum.GL_POLYGON_OFFSET_FILL);
-
-        //4, Resovle the multi-samples
+        //3, Resovle the multi-samples
         if(m_ShadowMap.getSampleCount() > 1){
             gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, m_ShadowFBO);
             // dettach the previouse binding
@@ -166,6 +161,11 @@ import jet.opengl.postprocessing.util.LogUtil;
             gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, 0);
             gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, 0);
         }
+
+        // 4, Restore the framebuffer and viewport
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, old_fbo);
+        gl.glViewport(vx, vy, vw, vh);
+        gl.glDisable(GLenum.GL_POLYGON_OFFSET_FILL);
 
     }
 

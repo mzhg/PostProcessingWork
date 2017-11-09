@@ -2,19 +2,18 @@ package jet.opengl.demos.nvidia.shadows;
 
 import com.nvidia.developer.opengl.utils.BoundingBox;
 
-import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import javax.management.ObjectInstance;
-
 import jet.opengl.demos.scene.CameraData;
-import jet.opengl.demos.scene.SceneConfig;
+import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackInt;
 
 /**
@@ -72,10 +71,11 @@ final class PracticalPSM {
     float m_fLSPSM_NoptWeight;
     float m_zFar;
     float m_zNear;
+    float m_fTSM_Delta;
 
     //bit depth of shadow map
     int m_bitDepth;
-    private ShadowSceneController m_Scenes;
+    private ShdowSceneWrapController m_Scenes;
 
     void GetTerrainBoundingBox( List<BoundingBox> shadowReceivers, Matrix4f modelView, Frustum sceneFrustum )
     {
@@ -88,8 +88,8 @@ final class PracticalPSM {
             float kx = (k&0x3);
             float ky = ((k>>2)&0x3);
             BoundingBox hugeBox = new BoundingBox();
-            /*hugeBox.minPt = smq_start + (kx/4.f)*smq_width + (ky/4.f)*smq_height;
-            hugeBox.maxPt = smq_start + ((kx+1.f)/4.f)*smq_width + ((ky+1.f)/4.f)*smq_height;*/
+            /*hugeBox._min = smq_start + (kx/4.f)*smq_width + (ky/4.f)*smq_height;
+            hugeBox._max = smq_start + ((kx+1.f)/4.f)*smq_width + ((ky+1.f)/4.f)*smq_height;*/
             Vector3f.linear(smq_width, kx/4.f, smq_height, ky/4.f, hugeBox._min);   Vector3f.add(hugeBox._min,smq_start, hugeBox._min);
             Vector3f.linear(smq_width, (kx+1.f)/4.f, smq_height, (ky+1.f)/4.f, hugeBox._max);   Vector3f.add(hugeBox._max,smq_start, hugeBox._max);
 
@@ -111,8 +111,8 @@ final class PracticalPSM {
                 float jx = kx*4.f + (j&0x3);
                 float jy = ky*4.f + ((j>>2)&0x3);
                 BoundingBox bigBox = new BoundingBox();
-                /*bigBox.minPt = smq_start + (jx/16.f)*smq_width + (jy/16.f)*smq_height;
-                bigBox.maxPt = smq_start + ((jx+1.f)/16.f)*smq_width + ((jy+1.f)/16.f)*smq_height;*/
+                /*bigBox._min = smq_start + (jx/16.f)*smq_width + (jy/16.f)*smq_height;
+                bigBox._max = smq_start + ((jx+1.f)/16.f)*smq_width + ((jy+1.f)/16.f)*smq_height;*/
                 Vector3f.linear(smq_width, jx/16.f, smq_height, jy/16.f, bigBox._min);   Vector3f.add(bigBox._min,smq_start, bigBox._min);
                 Vector3f.linear(smq_width, (jx+1.f)/16.f, smq_height, (jy+1.f)/16.f, bigBox._max);   Vector3f.add(bigBox._max,smq_start, bigBox._max);
                 int bigResult = sceneFrustum.TestBox(bigBox);
@@ -136,8 +136,8 @@ final class PracticalPSM {
                     {
                         float ix = jx*4.f + (r);
                         BoundingBox smallBox = new BoundingBox();
-                        /*smallBox.minPt = smq_start + (ix/64.f)*smq_width + (iy/64.f)*smq_height;
-                        smallBox.maxPt = smq_start + ((ix+1.f)/64.f)*smq_width + ((iy+1.f)/64.f)*smq_height;*/
+                        /*smallBox._min = smq_start + (ix/64.f)*smq_width + (iy/64.f)*smq_height;
+                        smallBox._max = smq_start + ((ix+1.f)/64.f)*smq_width + ((iy+1.f)/64.f)*smq_height;*/
                         Vector3f.linear(smq_width, ix/64.f, smq_height, iy/64.f, smallBox._min);   Vector3f.add(smallBox._min,smq_start, smallBox._min);
                         Vector3f.linear(smq_width, (ix+1.f)/64.f, smq_height, (iy+1.f)/64.f, smallBox._max);   Vector3f.add(smallBox._max,smq_start, smallBox._max);
                         if (sceneFrustum.TestBox(smallBox) != 0)
@@ -170,8 +170,8 @@ final class PracticalPSM {
                         lastX  += jx*4.f;
 
                         BoundingBox coalescedBox = new BoundingBox();
-                        /*coalescedBox.minPt = smq_start + (firstX/64.f)*smq_width + (iy/64.f)*smq_height;
-                        coalescedBox.maxPt = smq_start + ((lastX+1.f)/64.f)*smq_width + ((iy+1.f)/64.f)*smq_height;*/
+                        /*coalescedBox._min = smq_start + (firstX/64.f)*smq_width + (iy/64.f)*smq_height;
+                        coalescedBox._max = smq_start + ((lastX+1.f)/64.f)*smq_width + ((iy+1.f)/64.f)*smq_height;*/
                         Vector3f.linear(smq_width, firstX/64.f, smq_height, iy/64.f, coalescedBox._min);   Vector3f.add(coalescedBox._min,smq_start, coalescedBox._min);
                         Vector3f.linear(smq_width, (lastX+1.f)/64.f, smq_height, (iy+1.f)/64.f, coalescedBox._max);   Vector3f.add(coalescedBox._max,smq_start, coalescedBox._max);
 //                        XFormBoundingBox(&coalescedBox, &coalescedBox, modelView);
@@ -221,8 +221,8 @@ final class PracticalPSM {
         {
             /*const ObjectInstance* instance = m_Scenes[i];
             BoundingBox instanceBox = *instance->aabb;
-            instanceBox.minPt += instance->translation;
-            instanceBox.maxPt += instance->translation;*/
+            instanceBox._min += instance->translation;
+            instanceBox._max += instance->translation;*/
             int instance = i;
             BoundingBox instanceBox = new BoundingBox();
             List<BoundingBox> boxen = m_Scenes.getObjectBoundingBox(i, instanceBox);
@@ -265,8 +265,8 @@ final class PracticalPSM {
                     for (int box=0; boxen != null && box<boxen.size(); box++)
                     {
                         BoundingBox smallBox = new BoundingBox(boxen.get(box));
-                        /*smallBox.minPt += instance->translation;
-                        smallBox.maxPt += instance->translation;*/
+                        /*smallBox._min += instance->translation;
+                        smallBox._max += instance->translation;*/
                         if (sceneFrustum.TestBox(smallBox)!=0)  // at least part of small box is in frustum
                         {
                             hit = true;
@@ -314,7 +314,7 @@ final class PracticalPSM {
         }
     }
 
-    void RenderShadowMap(CameraData sceneData, ShadowGenerator.ShadowMapWarping warping){
+    void RenderShadowMap(CameraData sceneData, ShadowMapGenerator.ShadowMapWarping warping){
         switch (warping){
             case PSM:
                 BuildPSMProjectionMatrix(sceneData);
@@ -429,7 +429,7 @@ final class PracticalPSM {
             Vector3f ppLightDirection = new Vector3f(ppLight.x, ppLight.y, ppLight.z);
             ppLightDirection.normalise();
 
-            /*BoundingBox ppUnitBox; ppUnitBox.maxPt = D3DXVECTOR3(1, 1, 1); ppUnitBox.minPt = D3DXVECTOR3(-1, -1, 0);
+            /*BoundingBox ppUnitBox; ppUnitBox._max = D3DXVECTOR3(1, 1, 1); ppUnitBox._min = D3DXVECTOR3(-1, -1, 0);
             D3DXVECTOR3 cubeCenter; ppUnitBox.Centroid( &cubeCenter );*/
             BoundingBox ppUnitBox = new BoundingBox(-1,-1, 0, 1,1,1);
             Vector3f cubeCenter = ppUnitBox.center(null);
@@ -447,7 +447,7 @@ final class PracticalPSM {
 
             /*D3DXMatrixLookAtLH(&lightView, &lightPos, &cubeCenter, &axis);
             XFormBoundingBox(&ppUnitBox, &ppUnitBox, &lightView);
-            D3DXMatrixOrthoOffCenterLH(&lightProj, ppUnitBox.minPt.x, ppUnitBox.maxPt.x, ppUnitBox.minPt.y, ppUnitBox.maxPt.y, ppUnitBox.minPt.z, ppUnitBox.maxPt.z);*/
+            D3DXMatrixOrthoOffCenterLH(&lightProj, ppUnitBox._min.x, ppUnitBox._max.x, ppUnitBox._min.y, ppUnitBox._max.y, ppUnitBox._min.z, ppUnitBox._max.z);*/
             Matrix4f.lookAt(lightPos, cubeCenter, axis, lightView);
             BoundingBox.transform(lightView, ppUnitBox, ppUnitBox);
             Matrix4f.ortho(ppUnitBox._min.x, ppUnitBox._max.x, ppUnitBox._min.y, ppUnitBox._max.y, -ppUnitBox._max.z, -ppUnitBox._min.z, lightProj);
@@ -477,8 +477,8 @@ final class PracticalPSM {
                     //  project the entire unit cube into the shadow map
                     ArrayList<BoundingBox> justOneBox = new ArrayList<>();
                     BoundingBox unitCube = new BoundingBox(-1.f, -1.f, 0.f,1.f, 1.f, 1.f );  // TODO Note the zmin value
-                    /*unitCube.minPt = D3DXVECTOR3(-1.f, -1.f, 0.f);
-                    unitCube.maxPt = D3DXVECTOR3( 1.f, 1.f, 1.f );*/
+                    /*unitCube._min = D3DXVECTOR3(-1.f, -1.f, 0.f);
+                    unitCube._max = D3DXVECTOR3( 1.f, 1.f, 1.f );*/
                     justOneBox.add(unitCube);
 //                    D3DXMATRIX tmpIdentity;
 //                    D3DXMatrixIdentity(&tmpIdentity);
@@ -574,6 +574,33 @@ final class PracticalPSM {
         return result;
     }
 
+    static BoundingBox wrapBoxes(List<BoundingBox> points){
+        BoundingBox result = new BoundingBox();
+        for(BoundingBox v : points){
+            result.expandBy(v);
+        }
+
+        return result;
+    }
+
+    Matrix4f initLightSpaceBasis(Matrix4f m_View){
+        Vector3f leftVector = new Vector3f();
+        Vector3f upVector = new Vector3f();
+        Vector3f viewVector = new Vector3f();
+        ReadableVector3f eyeVector = Vector3f.Z_AXIS_NEG;
+        Matrix4f.transformNormal(m_View, m_lightDir, upVector);
+        Vector3f.cross(upVector, eyeVector, leftVector);  leftVector.normalise();
+        Vector3f.cross(upVector, leftVector, viewVector);
+        Matrix4f lightSpaceBasis = new Matrix4f();
+        lightSpaceBasis.m00 = leftVector.x; lightSpaceBasis.m10 = upVector.x; lightSpaceBasis.m20 = -viewVector.x; lightSpaceBasis.m30 = 0.f;
+        lightSpaceBasis.m01 = leftVector.y; lightSpaceBasis.m11 = upVector.y; lightSpaceBasis.m21 = -viewVector.y; lightSpaceBasis.m31 = 0.f;
+        lightSpaceBasis.m02 = leftVector.z; lightSpaceBasis.m12 = upVector.z; lightSpaceBasis.m22 = -viewVector.z; lightSpaceBasis.m32 = 0.f;
+        lightSpaceBasis.m03 = 0.f;          lightSpaceBasis.m13 = 0.f;        lightSpaceBasis.m23 = 0.f;           lightSpaceBasis.m33 = 1.f;
+        // TODO Above Code tranpose the lightSpaceBasis or nagative the viewVector.
+
+        return lightSpaceBasis;
+    }
+
     //-----------------------------------------------------------------------------
     // Name: BuildLiSPSMProjectionMatrix
     // Desc: Builds a light-space perspective shadow map projection matrix
@@ -585,7 +612,7 @@ final class PracticalPSM {
         Matrix4f m_View = sceneData.getViewMatrix();
         if ( Math.abs(m_fCosGamma) >= 0.999f )  // degenerates to uniform shadow map
         {
-            BuildOrthoShadowProjectionMatrix();
+            BuildOrthoShadowProjectionMatrix(sceneData);
         }
         else
         {
@@ -622,19 +649,7 @@ final class PracticalPSM {
             lightSpaceBasis._21 = leftVector.y; lightSpaceBasis._22 = upVector.y; lightSpaceBasis._23 = viewVector.y; lightSpaceBasis._24 = 0.f;
             lightSpaceBasis._31 = leftVector.z; lightSpaceBasis._32 = upVector.z; lightSpaceBasis._33 = viewVector.z; lightSpaceBasis._34 = 0.f;
             lightSpaceBasis._41 = 0.f;          lightSpaceBasis._42 = 0.f;        lightSpaceBasis._43 = 0.f;          lightSpaceBasis._44 = 1.f;*/
-            Vector3f leftVector = new Vector3f();
-            Vector3f upVector = new Vector3f();
-            Vector3f viewVector = new Vector3f();
-            ReadableVector3f eyeVector = Vector3f.Z_AXIS_NEG;
-            Matrix4f.transformNormal(m_View, m_lightDir, upVector);
-            Vector3f.cross(upVector, eyeVector, leftVector);  leftVector.normalise();
-            Vector3f.cross(upVector, leftVector, viewVector);
-            Matrix4f lightSpaceBasis = new Matrix4f();
-            lightSpaceBasis.m00 = leftVector.x; lightSpaceBasis.m10 = upVector.x; lightSpaceBasis.m20 = -viewVector.x; lightSpaceBasis.m30 = 0.f;
-            lightSpaceBasis.m01 = leftVector.y; lightSpaceBasis.m11 = upVector.y; lightSpaceBasis.m21 = -viewVector.y; lightSpaceBasis.m31 = 0.f;
-            lightSpaceBasis.m02 = leftVector.z; lightSpaceBasis.m12 = upVector.z; lightSpaceBasis.m22 = -viewVector.z; lightSpaceBasis.m32 = 0.f;
-            lightSpaceBasis.m03 = 0.f;          lightSpaceBasis.m13 = 0.f;        lightSpaceBasis.m23 = 0.f;           lightSpaceBasis.m33 = 1.f;
-            // TODO Above Code tranpose the lightSpaceBasis or nagative the viewVector.
+            Matrix4f lightSpaceBasis = initLightSpaceBasis(m_View);
 
             //  rotate all points into this new basis
 //            D3DXVec3TransformCoordArray( &bodyB[0], sizeof(D3DXVECTOR3), &bodyB[0], sizeof(D3DXVECTOR3), &lightSpaceBasis, (UINT)bodyB.size() );
@@ -678,64 +693,76 @@ final class PracticalPSM {
                 maxz = Math.max(maxz, tmpz);
             }
 
-            float fovy = atanf(maxy);
-            float fovx = atanf(maxx);
+            float fovy = (float) Math.atan(maxy);
+            float fovx = (float) Math.atan(maxx);
 
-            D3DXMATRIX lsTranslate, lsPerspective;
-
+            /*D3DXMATRIX lsTranslate, lsPerspective;
             D3DXMatrixTranslation(&lsTranslate, -lightSpaceOrigin.x, -lightSpaceOrigin.y, -lightSpaceOrigin.z);
             D3DXMatrixPerspectiveLH( &lsPerspective, 2.f*maxx*Nopt, 2.f*maxy*Nopt, Nopt, maxz );
-
             D3DXMatrixMultiply( &lightSpaceBasis, &lightSpaceBasis, &lsTranslate );
-            D3DXMatrixMultiply( &lightSpaceBasis, &lightSpaceBasis, &lsPerspective );
+            D3DXMatrixMultiply( &lightSpaceBasis, &lightSpaceBasis, &lsPerspective );*/
+            Matrix4f lsPerspective = Matrix4f.frustum(2.f*maxx*Nopt, 2.f*maxy*Nopt, Nopt, maxz, null); // TODO Notice the znear and zfar
+            lsPerspective.translate(-lightSpaceOrigin.x, -lightSpaceOrigin.y, -lightSpaceOrigin.z);
+            Matrix4f.mul(lsPerspective, lightSpaceBasis,lightSpaceBasis);
 
             //  now rotate the entire post-projective cube, so that the shadow map is looking down the Y-axis
-            D3DXMATRIX lsPermute, lsOrtho;
+            Matrix4f lsPermute = new Matrix4f();
+            Matrix4f lsOrtho = new Matrix4f();
+            lsPermute.m00 = 1.f; lsPermute.m01 = 0.f; lsPermute.m02 = 0.f; lsPermute.m03 = 0.f;
+            lsPermute.m10 = 0.f; lsPermute.m11 = 0.f; lsPermute.m12 =-1.f; lsPermute.m13 = 0.f;
+            lsPermute.m20 = 0.f; lsPermute.m21 = 1.f; lsPermute.m22 = 0.f; lsPermute.m23 = 0.f;
+            lsPermute.m30 = 0.f; lsPermute.m31 = -0.5f; lsPermute.m32 = 1.5f; lsPermute.m33 = 1.f;
 
-            lsPermute._11 = 1.f; lsPermute._12 = 0.f; lsPermute._13 = 0.f; lsPermute._14 = 0.f;
-            lsPermute._21 = 0.f; lsPermute._22 = 0.f; lsPermute._23 =-1.f; lsPermute._24 = 0.f;
-            lsPermute._31 = 0.f; lsPermute._32 = 1.f; lsPermute._33 = 0.f; lsPermute._34 = 0.f;
-            lsPermute._41 = 0.f; lsPermute._42 = -0.5f; lsPermute._43 = 1.5f; lsPermute._44 = 1.f;
-
-            D3DXMatrixOrthoLH( &lsOrtho, 2.f, 1.f, 0.5f, 2.5f );
-            D3DXMatrixMultiply( &lsPermute, &lsPermute, &lsOrtho );
-            D3DXMatrixMultiply( &lightSpaceBasis, &lightSpaceBasis, &lsPermute );
+            Matrix4f.ortho(2.f, 1.f, 0.5f, 2.5f,lsOrtho );
+            /*D3DXMatrixMultiply( &lsPermute, &lsPermute, &lsOrtho );
+            D3DXMatrixMultiply( &lightSpaceBasis, &lightSpaceBasis, &lsPermute );*/
+            // lightSpaceBasis = lightSpaceBasis * lsPermute * lsOrtho  in Directx form
+            Matrix4f.mul(lsOrtho, lsPermute, lsPermute);
+            Matrix4f.mul(lsPermute, lightSpaceBasis, lightSpaceBasis);
 
             if ( m_bUnitCubeClip )
             {
-                std::vector<D3DXVECTOR3> receiverPts;
+                /*std::vector<D3DXVECTOR3> receiverPts;
                 std::vector<BoundingBox>::iterator rcvrIt = m_ShadowReceiverPoints.begin();
-                receiverPts.reserve(m_ShadowReceiverPoints.size() * 8);
-                while ( rcvrIt++ != m_ShadowReceiverPoints.end() )
+                receiverPts.reserve(m_ShadowReceiverPoints.size() * 8);*/
+                final List<Vector3f> receiverPts = new ArrayList<>(m_ShadowReceiverPoints.size() * 8);
+//                while ( rcvrIt++ != m_ShadowReceiverPoints.end
+                for (BoundingBox rcvrIt : m_ShadowReceiverPoints)
                 {
                     for ( int i=0; i<8; i++ )
-                        receiverPts.push_back( rcvrIt->Point(i) );
+                        receiverPts.add( rcvrIt.corner(i, null) );
                 }
 
-                D3DXVec3TransformCoordArray( &receiverPts[0], sizeof(D3DXVECTOR3), &receiverPts[0], sizeof(D3DXVECTOR3), &lightSpaceBasis, (UINT)receiverPts.size() );
+//                D3DXVec3TransformCoordArray( &receiverPts[0], sizeof(D3DXVECTOR3), &receiverPts[0], sizeof(D3DXVECTOR3), &lightSpaceBasis, (UINT)receiverPts.size() );
+                for(Vector3f v : receiverPts){
+                    Matrix4f.transformCoord(lightSpaceBasis, v, v);
+                }
 
-                BoundingBox receiverBox( &receiverPts );
-                receiverBox.maxPt.x = min( 1.f, receiverBox.maxPt.x );
-                receiverBox.minPt.x = max(-1.f, receiverBox.minPt.x );
-                receiverBox.maxPt.y = min( 1.f, receiverBox.maxPt.y );
-                receiverBox.minPt.y = max(-1.f, receiverBox.minPt.y );
-                float boxWidth = receiverBox.maxPt.x - receiverBox.minPt.x;
-                float boxHeight = receiverBox.maxPt.y - receiverBox.minPt.y;
+                BoundingBox receiverBox = wrap(receiverPts);
+                receiverBox._max.x = Math.min( 1.f, receiverBox._max.x );
+                receiverBox._min.x = Math.max(-1.f, receiverBox._min.x );
+                receiverBox._max.y = Math.min( 1.f, receiverBox._max.y );
+                receiverBox._min.y = Math.max(-1.f, receiverBox._min.y );
+                float boxWidth = receiverBox._max.x - receiverBox._min.x;
+                float boxHeight = receiverBox._max.y - receiverBox._min.y;
 
-                if ( !ALMOST_ZERO(boxWidth) && !ALMOST_ZERO(boxHeight) )
+                if ( !Numeric.almostZero(boxWidth) && !Numeric.almostZero(boxHeight) )
                 {
-                    float boxX = ( receiverBox.maxPt.x + receiverBox.minPt.x ) * 0.5f;
-                    float boxY = ( receiverBox.maxPt.y + receiverBox.minPt.y ) * 0.5f;
+                    float boxX = ( receiverBox._max.x + receiverBox._min.x ) * 0.5f;
+                    float boxY = ( receiverBox._max.y + receiverBox._min.y ) * 0.5f;
 
-                    D3DXMATRIX clipMatrix( 2.f/boxWidth,  0.f, 0.f, 0.f,
+                    Matrix4f clipMatrix = new Matrix4f(   // TODO ortho  (left,right, bottom, top) = receiverBox, (near, far) = (-1, 1)
+                        2.f/boxWidth,  0.f, 0.f, 0.f,
                         0.f, 2.f/boxHeight, 0.f, 0.f,
-                        0.f,           0.f, 1.f, 0.f,
+                        0.f,           0.f, -1.f, 0.f,   // TODO The origin value of m22 is 1.f
                         -2.f*boxX/boxWidth, -2.f*boxY/boxHeight, 0.f, 1.f );
-                    D3DXMatrixMultiply( &lightSpaceBasis, &lightSpaceBasis, &clipMatrix );
+//                    D3DXMatrixMultiply( &lightSpaceBasis, &lightSpaceBasis, &clipMatrix );
+                    Matrix4f.mul(clipMatrix, lightSpaceBasis, clipMatrix);
                 }
             }
 
-            D3DXMatrixMultiply( &m_LightViewProj, &m_View, &lightSpaceBasis );
+//            D3DXMatrixMultiply( &m_LightViewProj, &m_View, &lightSpaceBasis );
+            Matrix4f.mul(lightSpaceBasis, m_View, m_LightViewProj);
         }
     }
 
@@ -744,28 +771,30 @@ final class PracticalPSM {
 // Desc: Builds a trapezoidal shadow transformation matrix
 //-----------------------------------------------------------------------------
 
-    void BuildTSMProjectionMatrix()
+    void BuildTSMProjectionMatrix(CameraData sceneData)
     {
+        Matrix4f m_Projection = sceneData.projection;
+        Matrix4f m_View = sceneData.getViewMatrix();
         //  this isn't strictly necessary for TSMs; however, my 'light space' matrix has a
         //  degeneracy when view==light, so this avoids the problem.
-        if ( fabsf(m_fCosGamma) >= 0.999f )
+        if ( Math.abs(m_fCosGamma) >= 0.999f )
         {
-            BuildOrthoShadowProjectionMatrix();
+            BuildOrthoShadowProjectionMatrix(sceneData);
         }
         else
         {
             //  update list of shadow casters/receivers
-            ComputeVirtualCameraParameters();
+            ComputeVirtualCameraParameters(sceneData);
 
             //  get the near and the far plane (points) in eye space.
-            D3DXVECTOR3 frustumPnts[8];
+            Vector3f[] frustumPnts = new Vector3f[8];
 
-            Frustum eyeFrustum( &m_Projection );  // autocomputes all the extrema points
+            Frustum eyeFrustum = new Frustum(m_Projection);  // autocomputes all the extrema points
 
             for ( int i=0; i<4; i++ )
             {
-                frustumPnts[i]   = eyeFrustum.pntList[(i<<1)];       // far plane
-                frustumPnts[i+4] = eyeFrustum.pntList[(i<<1) | 0x1]; // near plane
+                frustumPnts[i]   = new Vector3f(eyeFrustum.pntList[(i<<1)]);       // far plane
+                frustumPnts[i+4] = new Vector3f(eyeFrustum.pntList[(i<<1) | 0x1]); // near plane
             }
 
             //   we need to transform the eye into the light's post-projective space.
@@ -773,63 +802,83 @@ final class PracticalPSM {
             //   rotate/translate matrix, before constructing an ortho projection.
             //   this matrix is a variant of "light space" from LSPSMs, with the Y and Z axes permuted
 
-            D3DXVECTOR3 leftVector, upVector, viewVector;
-            const D3DXVECTOR3 eyeVector( 0.f, 0.f, -1.f );  //  eye is always -Z in eye space
-
+            /*D3DXVECTOR3 leftVector, upVector, viewVector;
+            ReadableVector3f eyeVector = Vector3f.Z_AXIS_NEG;  //  eye is always -Z in eye space
             //  code copied straight from BuildLSPSMProjectionMatrix
             D3DXVec3TransformNormal( &upVector, &m_lightDir, &m_View );  // lightDir is defined in eye space, so xform it
             D3DXVec3Cross( &leftVector, &upVector, &eyeVector );
             D3DXVec3Normalize( &leftVector, &leftVector );
             D3DXVec3Cross( &viewVector, &upVector, &leftVector );
-
             D3DXMATRIX lightSpaceBasis;
             lightSpaceBasis._11 = leftVector.x; lightSpaceBasis._12 = viewVector.x; lightSpaceBasis._13 = -upVector.x; lightSpaceBasis._14 = 0.f;
             lightSpaceBasis._21 = leftVector.y; lightSpaceBasis._22 = viewVector.y; lightSpaceBasis._23 = -upVector.y; lightSpaceBasis._24 = 0.f;
             lightSpaceBasis._31 = leftVector.z; lightSpaceBasis._32 = viewVector.z; lightSpaceBasis._33 = -upVector.z; lightSpaceBasis._34 = 0.f;
-            lightSpaceBasis._41 = 0.f;          lightSpaceBasis._42 = 0.f;          lightSpaceBasis._43 = 0.f;        lightSpaceBasis._44 = 1.f;
+            lightSpaceBasis._41 = 0.f;          lightSpaceBasis._42 = 0.f;          lightSpaceBasis._43 = 0.f;        lightSpaceBasis._44 = 1.f;*/
+            Matrix4f lightSpaceBasis = initLightSpaceBasis(m_View);
 
             //  rotate the view frustum into light space
-            D3DXVec3TransformCoordArray( frustumPnts, sizeof(D3DXVECTOR3), frustumPnts, sizeof(D3DXVECTOR3), &lightSpaceBasis, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+//            D3DXVec3TransformCoordArray( frustumPnts, sizeof(D3DXVECTOR3), frustumPnts, sizeof(D3DXVECTOR3), &lightSpaceBasis, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+            for(Vector3f v : frustumPnts){
+                Matrix4f.transformCoord(lightSpaceBasis, v, v);
+            }
 
             //  build an off-center ortho projection that translates and scales the eye frustum's 3D AABB to the unit cube
-            BoundingBox frustumBox( frustumPnts, sizeof(frustumPnts) / sizeof(D3DXVECTOR3) );
+            BoundingBox frustumBox //( frustumPnts, sizeof(frustumPnts) / sizeof(D3DXVECTOR3) );
+                                    = wrap(Arrays.asList(frustumPnts));
 
             //  also - transform the shadow caster bounding boxes into light projective space.  we want to translate along the Z axis so that
             //  all shadow casters are in front of the near plane.
 
-            D3DXVECTOR3* shadowCasterPnts = NULL;
-            shadowCasterPnts = new D3DXVECTOR3[8*m_ShadowCasterPoints.size()];
+            Vector3f shadowCasterPnts[] = null;
+            shadowCasterPnts = new Vector3f[8*m_ShadowCasterPoints.size()];
             for ( int i=0; i<m_ShadowCasterPoints.size(); i++ )
             {
-                for ( int j=0; j<8; j++ ) shadowCasterPnts[i*8+j] = m_ShadowCasterPoints[i].Point(j);
+                for ( int j=0; j<8; j++ ) shadowCasterPnts[i*8+j] = m_ShadowCasterPoints.get(i).corner(j, null);
             }
 
-            D3DXVec3TransformCoordArray( shadowCasterPnts, sizeof(D3DXVECTOR3), shadowCasterPnts, sizeof(D3DXVECTOR3), &lightSpaceBasis, m_ShadowCasterPoints.size()*8 );
-            BoundingBox casterBox( shadowCasterPnts, m_ShadowCasterPoints.size()*8 );
-            delete [] shadowCasterPnts;
+//            D3DXVec3TransformCoordArray( shadowCasterPnts, sizeof(D3DXVECTOR3), shadowCasterPnts, sizeof(D3DXVECTOR3), &lightSpaceBasis, m_ShadowCasterPoints.size()*8 );
+            for(Vector3f v : shadowCasterPnts){
+                Matrix4f.transformCoord(lightSpaceBasis, v, v);
+            }
 
-            float min_z = min( casterBox.minPt.z, frustumBox.minPt.z );
-            float max_z = max( casterBox.maxPt.z, frustumBox.maxPt.z );
+            BoundingBox casterBox //( shadowCasterPnts, m_ShadowCasterPoints.size()*8 );
+                                = wrap(Arrays.asList(shadowCasterPnts));
+//            delete [] shadowCasterPnts;
 
+            float min_z = Math.min( casterBox._min.z, frustumBox._min.z );
+            float max_z = Math.max( casterBox._max.z, frustumBox._max.z );
+
+            Matrix4f lightSpaceTranslate = new Matrix4f();
             if ( min_z <= 0.f )
             {
-                D3DXMATRIX lightSpaceTranslate;
-                D3DXMatrixTranslation( &lightSpaceTranslate, 0.f, 0.f, -min_z + 1.f );
+//                D3DXMatrixTranslation( &lightSpaceTranslate, 0.f, 0.f, -min_z + 1.f );
+                lightSpaceTranslate.m32 = -min_z + 1.f;
                 max_z = -min_z + max_z + 1.f;
                 min_z = 1.f;
-                D3DXMatrixMultiply ( &lightSpaceBasis, &lightSpaceBasis, &lightSpaceTranslate );
-                D3DXVec3TransformCoordArray( frustumPnts, sizeof(D3DXVECTOR3), frustumPnts, sizeof(D3DXVECTOR3), &lightSpaceTranslate, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
-                frustumBox = BoundingBox( frustumPnts, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+//                D3DXMatrixMultiply ( &lightSpaceBasis, &lightSpaceBasis, &lightSpaceTranslate );
+                Matrix4f.mul(lightSpaceTranslate, lightSpaceBasis, lightSpaceBasis);
+
+//                D3DXVec3TransformCoordArray( frustumPnts, sizeof(D3DXVECTOR3), frustumPnts, sizeof(D3DXVECTOR3), &lightSpaceTranslate, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+                for(Vector3f v : frustumPnts){
+                    v.z += -min_z + 1.f;
+                }
+
+                frustumBox = //BoundingBox( frustumPnts, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+                            wrap(Arrays.asList(frustumPnts));
             }
 
-            D3DXMATRIX lightSpaceOrtho;
-            D3DXMatrixOrthoOffCenterLH( &lightSpaceOrtho, frustumBox.minPt.x, frustumBox.maxPt.x, frustumBox.minPt.y, frustumBox.maxPt.y, min_z, max_z );
+            /*D3DXMATRIX lightSpaceOrtho;
+            D3DXMatrixOrthoOffCenterLH( &lightSpaceOrtho, frustumBox._min.x, frustumBox._max.x, frustumBox._min.y, frustumBox._max.y, min_z, max_z );*/
+            Matrix4f lightSpaceOrtho = Matrix4f.ortho(frustumBox._min.x, frustumBox._max.x, frustumBox._min.y, frustumBox._max.y, min_z, max_z, null);
 
             //  transform the view frustum by the new matrix
-            D3DXVec3TransformCoordArray( frustumPnts, sizeof(D3DXVECTOR3), frustumPnts, sizeof(D3DXVECTOR3), &lightSpaceOrtho, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+//            D3DXVec3TransformCoordArray( frustumPnts, sizeof(D3DXVECTOR3), frustumPnts, sizeof(D3DXVECTOR3), &lightSpaceOrtho, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+            for(Vector3f v : frustumPnts){
+                Matrix4f.transformCoord(lightSpaceOrtho, v, v);
+            }
 
 
-            D3DXVECTOR2 centerPts[2];
+            Vector2f[] centerPts = {new Vector2f(), new Vector2f()};
             //  near plane
             centerPts[0].x = 0.25f * (frustumPnts[4].x + frustumPnts[5].x + frustumPnts[6].x + frustumPnts[7].x);
             centerPts[0].y = 0.25f * (frustumPnts[4].y + frustumPnts[5].y + frustumPnts[6].y + frustumPnts[7].y);
@@ -837,23 +886,25 @@ final class PracticalPSM {
             centerPts[1].x = 0.25f * (frustumPnts[0].x + frustumPnts[1].x + frustumPnts[2].x + frustumPnts[3].x);
             centerPts[1].y = 0.25f * (frustumPnts[0].y + frustumPnts[1].y + frustumPnts[2].y + frustumPnts[3].y);
 
-            D3DXVECTOR2 centerOrig = (centerPts[0] + centerPts[1])*0.5f;
+//            D3DXVECTOR2 centerOrig = (centerPts[0] + centerPts[1])*0.5f;
+            Vector2f centerOrig = Vector2f.mix(centerPts[0], centerPts[1], 0.5f, centerPts[0]);
 
-            D3DXMATRIX trapezoid_space;
+            Matrix4f trapezoid_space = new Matrix4f();
 
-            D3DXMATRIX xlate_center(           1.f,           0.f, 0.f, 0.f,
+            Matrix4f xlate_center = new Matrix4f(           1.f,           0.f, 0.f, 0.f,
                 0.f,           1.f, 0.f, 0.f,
                 0.f,           0.f, 1.f, 0.f,
                 -centerOrig.x, -centerOrig.y, 0.f, 1.f );
 
-            float half_center_len = D3DXVec2Length( &D3DXVECTOR2(centerPts[1] - centerOrig) );
+//            float half_center_len = D3DXVec2Length( &D3DXVECTOR2(centerPts[1] - centerOrig) );
+            float half_center_len = Vector2f.distance(centerPts[1], centerOrig);
             float x_len = centerPts[1].x - centerOrig.x;
             float y_len = centerPts[1].y - centerOrig.y;
 
             float cos_theta = x_len / half_center_len;
             float sin_theta = y_len / half_center_len;
 
-            D3DXMATRIX rot_center( cos_theta, -sin_theta, 0.f, 0.f,
+            Matrix4f rot_center = new Matrix4f( cos_theta, -sin_theta, 0.f, 0.f,   // TODO Need transpose??
                 sin_theta,  cos_theta, 0.f, 0.f,
                 0.f,        0.f, 1.f, 0.f,
                 0.f,        0.f, 0.f, 1.f );
@@ -862,198 +913,227 @@ final class PracticalPSM {
             //  since Top and Base are orthogonal to Center, we can skip computing the convex hull, and instead
             //  just find the view frustum X-axis extrema.  The most negative is Top, the most positive is Base
             //  Point Q (trapezoid projection point) will be a point on the y=0 line.
-            D3DXMatrixMultiply( &trapezoid_space, &xlate_center, &rot_center );
-            D3DXVec3TransformCoordArray( frustumPnts, sizeof(D3DXVECTOR3), frustumPnts, sizeof(D3DXVECTOR3), &trapezoid_space, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+//            D3DXMatrixMultiply( &trapezoid_space, &xlate_center, &rot_center );
+            Matrix4f.mul(rot_center, xlate_center, trapezoid_space);
+//            D3DXVec3TransformCoordArray( frustumPnts, sizeof(D3DXVECTOR3), frustumPnts, sizeof(D3DXVECTOR3), &trapezoid_space, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+            for(Vector3f v : frustumPnts){
+                Matrix4f.transformCoord(trapezoid_space, v, v);
+            }
 
-            BoundingBox frustumAABB2D( frustumPnts, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+            BoundingBox frustumAABB2D //( frustumPnts, sizeof(frustumPnts)/sizeof(D3DXVECTOR3) );
+                                        = wrap(Arrays.asList(frustumPnts));
 
-            float x_scale = max( fabsf(frustumAABB2D.maxPt.x), fabsf(frustumAABB2D.minPt.x) );
-            float y_scale = max( fabsf(frustumAABB2D.maxPt.y), fabsf(frustumAABB2D.minPt.y) );
+            float x_scale = Math.max( Math.abs(frustumAABB2D._max.x), Math.abs(frustumAABB2D._min.x) );
+            float y_scale = Math.max( Math.abs(frustumAABB2D._max.y), Math.abs(frustumAABB2D._min.y) );
             x_scale = 1.f/x_scale;
             y_scale = 1.f/y_scale;
 
             //  maximize the area occupied by the bounding box
-            D3DXMATRIX scale_center( x_scale, 0.f, 0.f, 0.f,
+            Matrix4f scale_center = new Matrix4f( x_scale, 0.f, 0.f, 0.f,
                 0.f, y_scale, 0.f, 0.f,
                 0.f,     0.f, 1.f, 0.f,
                 0.f,     0.f, 0.f, 1.f );
 
-            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &scale_center );
+//            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &scale_center );
+            Matrix4f.mul(scale_center, trapezoid_space, trapezoid_space);
 
             //  scale the frustum AABB up by these amounts (keep all values in the same space)
-            frustumAABB2D.minPt.x *= x_scale;
-            frustumAABB2D.maxPt.x *= x_scale;
-            frustumAABB2D.minPt.y *= y_scale;
-            frustumAABB2D.maxPt.y *= y_scale;
+            frustumAABB2D._min.x *= x_scale;
+            frustumAABB2D._max.x *= x_scale;
+            frustumAABB2D._min.y *= y_scale;
+            frustumAABB2D._max.y *= y_scale;
 
             //  compute eta.
-            float lambda = frustumAABB2D.maxPt.x - frustumAABB2D.minPt.x;
-            float delta_proj = m_fTSM_Delta * lambda; //focusPt.x - frustumAABB2D.minPt.x;
+            float lambda = frustumAABB2D._max.x - frustumAABB2D._min.x;
+            float delta_proj = m_fTSM_Delta * lambda; //focusPt.x - frustumAABB2D._min.x;
 
-        const float xi = -0.6f;  // 80% line
+            final float xi = -0.6f;  // 80% line
 
             float eta = (lambda*delta_proj*(1.f+xi)) / (lambda*(1.f-xi)-2.f*delta_proj);
 
             //  compute the projection point a distance eta from the top line.  this point is on the center line, y=0
-            D3DXVECTOR2 projectionPtQ( frustumAABB2D.maxPt.x + eta, 0.f );
+            Vector2f projectionPtQ = new Vector2f( frustumAABB2D._max.x + eta, 0.f );
 
             //  find the maximum slope from the projection point to any point in the frustum.  this will be the
             //  projection field-of-view
             float max_slope = -1e32f;
             float min_slope =  1e32f;
 
-            for ( int i=0; i < sizeof(frustumPnts)/sizeof(D3DXVECTOR3); i++ )
+            for ( int i=0; i < /*sizeof(frustumPnts)/sizeof(D3DXVECTOR3)*/frustumPnts.length; i++ )
             {
-                D3DXVECTOR2 tmp( frustumPnts[i].x*x_scale, frustumPnts[i].y*y_scale );
+                Vector2f tmp = new Vector2f( frustumPnts[i].x*x_scale, frustumPnts[i].y*y_scale );
                 float x_dist = tmp.x - projectionPtQ.x;
-                if ( !(ALMOST_ZERO(tmp.y) || ALMOST_ZERO(x_dist)))
+                if ( !(Numeric.almostZero(tmp.y) || Numeric.almostZero(x_dist)))
                 {
-                    max_slope = max(max_slope, tmp.y/x_dist);
-                    min_slope = min(min_slope, tmp.y/x_dist);
+                    max_slope = Math.max(max_slope, tmp.y/x_dist);
+                    min_slope = Math.min(min_slope, tmp.y/x_dist);
                 }
             }
 
             float xn = eta;
             float xf = lambda + eta;
 
-            D3DXMATRIX ptQ_xlate(-1.f, 0.f, 0.f, 0.f,
+            Matrix4f ptQ_xlate = new Matrix4f(-1.f, 0.f, 0.f, 0.f,
                 0.f, 1.f, 0.f, 0.f,
                 0.f, 0.f, 1.f, 0.f,
                 projectionPtQ.x, 0.f, 0.f, 1.f );
-            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &ptQ_xlate );
+//            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &ptQ_xlate );
+            Matrix4f.mul(ptQ_xlate, trapezoid_space, trapezoid_space);
 
             //  this shear balances the "trapezoid" around the y=0 axis (no change to the projection pt position)
             //  since we are redistributing the trapezoid, this affects the projection field of view (shear_amt)
-            float shear_amt = (max_slope + fabsf(min_slope))*0.5f - max_slope;
+            float shear_amt = (max_slope + Math.abs(min_slope))*0.5f - max_slope;
             max_slope = max_slope + shear_amt;
 
-            D3DXMATRIX trapezoid_shear( 1.f, shear_amt, 0.f, 0.f,
+            Matrix4f trapezoid_shear = new Matrix4f( 1.f, shear_amt, 0.f, 0.f,
                 0.f,       1.f, 0.f, 0.f,
                 0.f,       0.f, 1.f, 0.f,
                 0.f,       0.f, 0.f, 1.f );
 
-            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &trapezoid_shear );
+//            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &trapezoid_shear );
+            Matrix4f.mul(trapezoid_shear, trapezoid_space, trapezoid_space);
 
 
-            float z_aspect = (frustumBox.maxPt.z-frustumBox.minPt.z) / (frustumAABB2D.maxPt.y-frustumAABB2D.minPt.y);
+            float z_aspect = (frustumBox._max.z-frustumBox._min.z) / (frustumAABB2D._max.y-frustumAABB2D._min.y);
 
             //  perform a 2DH projection to 'unsqueeze' the top line.
-            D3DXMATRIX trapezoid_projection(  xf/(xf-xn),          0.f, 0.f, 1.f,
+            Matrix4f trapezoid_projection = new Matrix4f(  // TODO This is may not matching with OpenGL
+                xf/(xf-xn),          0.f, 0.f, 1.f,
                 0.f, 1.f/max_slope, 0.f, 0.f,
                 0.f,           0.f, 1.f/(z_aspect*max_slope), 0.f,
                 -xn*xf/(xf-xn),           0.f, 0.f, 0.f );
 
-            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &trapezoid_projection );
+//            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &trapezoid_projection );
+            Matrix4f.mul(trapezoid_projection, trapezoid_space, trapezoid_space);
 
             //  the x axis is compressed to [0..1] as a result of the projection, so expand it to [-1,1]
-            D3DXMATRIX biasedScaleX( 2.f, 0.f, 0.f, 0.f,
+            final Matrix4f biasedScaleX = new Matrix4f( 2.f, 0.f, 0.f, 0.f,
                 0.f, 1.f, 0.f, 0.f,
                 0.f, 0.f, 1.f, 0.f,
                 -1.f, 0.f, 0.f, 1.f );
-            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &biasedScaleX );
+//            D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &biasedScaleX );
+            Matrix4f.mul(biasedScaleX, trapezoid_space, trapezoid_space);
 
-            D3DXMatrixMultiply( &trapezoid_space, &lightSpaceOrtho, &trapezoid_space );
-            D3DXMatrixMultiply( &trapezoid_space, &lightSpaceBasis, &trapezoid_space );
+//            D3DXMatrixMultiply( &trapezoid_space, &lightSpaceOrtho, &trapezoid_space );
+//            D3DXMatrixMultiply( &trapezoid_space, &lightSpaceBasis, &trapezoid_space );
+
+            Matrix4f.mul(trapezoid_space, lightSpaceOrtho, trapezoid_space);
+            Matrix4f.mul(trapezoid_space, lightSpaceBasis, trapezoid_space);
 
             // now, focus on shadow receivers.
             if ( m_bUnitCubeClip )
             {
-                D3DXVECTOR3* shadowReceiverPnts = NULL;
-                shadowReceiverPnts = new D3DXVECTOR3[8*m_ShadowReceiverPoints.size()];
-                for ( UINT i=0; i<m_ShadowReceiverPoints.size(); i++ )
+                Vector3f shadowReceiverPnts[] = null;
+                shadowReceiverPnts = new Vector3f[8*m_ShadowReceiverPoints.size()];
+                for ( int i=0; i<m_ShadowReceiverPoints.size(); i++ )
                 {
-                    for ( int j=0; j<8; j++ ) shadowReceiverPnts[i*8+j] = m_ShadowReceiverPoints[i].Point(j);
+                    for ( int j=0; j<8; j++ ) shadowReceiverPnts[i*8+j] = m_ShadowReceiverPoints.get(i).corner(j, null);
                 }
 
-                D3DXVec3TransformCoordArray( shadowReceiverPnts, sizeof(D3DXVECTOR3), shadowReceiverPnts, sizeof(D3DXVECTOR3), &trapezoid_space, m_ShadowReceiverPoints.size()*8 );
-                BoundingBox rcvrBox( shadowReceiverPnts, m_ShadowReceiverPoints.size()*8 );
-                delete [] shadowReceiverPnts;
+//                D3DXVec3TransformCoordArray( shadowReceiverPnts, sizeof(D3DXVECTOR3), shadowReceiverPnts, sizeof(D3DXVECTOR3), &trapezoid_space, m_ShadowReceiverPoints.size()*8 );
+                for(Vector3f v : shadowReceiverPnts){
+                    Matrix4f.transformCoord(trapezoid_space, v, v);
+                }
+                BoundingBox rcvrBox  //( shadowReceiverPnts, m_ShadowReceiverPoints.size()*8 );
+                                    = wrap(Arrays.asList(shadowReceiverPnts));
+//                delete [] shadowReceiverPnts;
                 //  never shrink the box, only expand it.
-                rcvrBox.maxPt.x = min( 1.f, rcvrBox.maxPt.x );
-                rcvrBox.minPt.x = max(-1.f, rcvrBox.minPt.x );
-                rcvrBox.maxPt.y = min( 1.f, rcvrBox.maxPt.y );
-                rcvrBox.minPt.y = max(-1.f, rcvrBox.minPt.y );
-                float boxWidth  = rcvrBox.maxPt.x - rcvrBox.minPt.x;
-                float boxHeight = rcvrBox.maxPt.y - rcvrBox.minPt.y;
+                rcvrBox._max.x = Math.min( 1.f, rcvrBox._max.x );
+                rcvrBox._min.x = Math.max(-1.f, rcvrBox._min.x );
+                rcvrBox._max.y = Math.min( 1.f, rcvrBox._max.y );
+                rcvrBox._min.y = Math.max(-1.f, rcvrBox._min.y );
+                float boxWidth  = rcvrBox._max.x - rcvrBox._min.x;
+                float boxHeight = rcvrBox._max.y - rcvrBox._min.y;
 
                 //  the receiver box is degenerate, this will generate specials (and there shouldn't be any shadows, anyway).
-                if ( !(ALMOST_ZERO(boxWidth) || ALMOST_ZERO(boxHeight)) )
+                if ( !(Numeric.almostZero(boxWidth) || Numeric.almostZero(boxHeight)) )
                 {
                     //  the divide by two's cancel out in the translation, but included for clarity
-                    float boxX = (rcvrBox.maxPt.x+rcvrBox.minPt.x) / 2.f;
-                    float boxY = (rcvrBox.maxPt.y+rcvrBox.minPt.y) / 2.f;
-                    D3DXMATRIX trapezoidUnitCube( 2.f/boxWidth,                 0.f, 0.f, 0.f,
+                    float boxX = (rcvrBox._max.x+rcvrBox._min.x) / 2.f;
+                    float boxY = (rcvrBox._max.y+rcvrBox._min.y) / 2.f;
+                    Matrix4f trapezoidUnitCube = new Matrix4f( 2.f/boxWidth,                 0.f, 0.f, 0.f,
                         0.f,       2.f/boxHeight, 0.f, 0.f,
                         0.f,                 0.f, 1.f, 0.f,
                         -2.f*boxX/boxWidth, -2.f*boxY/boxHeight, 0.f, 1.f );
-                    D3DXMatrixMultiply( &trapezoid_space, &trapezoid_space, &trapezoidUnitCube );
+                    D3DXMatrixMultiply( trapezoid_space, trapezoid_space, trapezoidUnitCube );
                 }
             }
 
-            D3DXMatrixMultiply( &m_LightViewProj, &m_View, &trapezoid_space );
-
+            D3DXMatrixMultiply( m_LightViewProj, m_View, trapezoid_space );
         }
     }
 
+    private static final void D3DXMatrixMultiply(Matrix4f a, Matrix4f b, Matrix4f c ){
+        Matrix4f.mul(c,b,a);
+    }
 
-//-----------------------------------------------------------------------------
-// Name: BuildOrthoShadowProjectionMatrix
-// Desc: Builds an orthographic shadow transformation matrix
-//-----------------------------------------------------------------------------
 
-    void PracticalPSM::BuildOrthoShadowProjectionMatrix()
+    //-----------------------------------------------------------------------------
+    // Name: BuildOrthoShadowProjectionMatrix
+    // Desc: Builds an orthographic shadow transformation matrix
+    //-----------------------------------------------------------------------------
+    void BuildOrthoShadowProjectionMatrix(CameraData sceneData)
     {
+        Matrix4f m_Projection = sceneData.projection;
+        Matrix4f m_View = sceneData.getViewMatrix();
+        float m_fAspect = sceneData.aspect;
+
         //  update the list of shadow casters and receivers.
-        ComputeVirtualCameraParameters();
+        ComputeVirtualCameraParameters(sceneData);
 
-        D3DXMATRIX lightView, lightProj;
-    const D3DXVECTOR3 zAxis(0.f, 0.f, 1.f);
-    const D3DXVECTOR3 yAxis(0.f, 1.f, 0.f);
-        D3DXVECTOR3 eyeLightDir;
+        Matrix4f lightView = new Matrix4f();
+        Matrix4f lightProj = new Matrix4f();
+        ReadableVector3f zAxis = Vector3f.Z_AXIS;
+        ReadableVector3f yAxis = Vector3f.Y_AXIS;
+        /*D3DXVECTOR3 eyeLightDir;
+        D3DXVec3TransformNormal(&eyeLightDir, &m_lightDir, &m_View);*/
+        Vector3f eyeLightDir = Matrix4f.transformNormal(m_View, m_lightDir, null);
 
-        D3DXVec3TransformNormal(&eyeLightDir, &m_lightDir, &m_View);
-
-        float fHeight = D3DXToRadian(60.f);
+        float fHeight = (float) Math.toRadians(60.f);
         float fWidth = m_fAspect * fHeight;
 
         BoundingBox frustumAABB;
         if ( m_bUnitCubeClip )
         {
-            frustumAABB = BoundingBox( &m_ShadowReceiverPoints );
+            frustumAABB = wrapBoxes( m_ShadowReceiverPoints );
         }
         else
         {
-            frustumAABB.minPt = D3DXVECTOR3(-fWidth*ZFAR_MAX, -fHeight*ZFAR_MAX, ZNEAR_MIN);
-            frustumAABB.maxPt = D3DXVECTOR3( fWidth*ZFAR_MAX,  fHeight*ZFAR_MAX, ZFAR_MAX);
+//            frustumAABB._min = D3DXVECTOR3(-fWidth*ZFAR_MAX, -fHeight*ZFAR_MAX, ZNEAR_MIN);
+//            frustumAABB._max = D3DXVECTOR3( fWidth*ZFAR_MAX,  fHeight*ZFAR_MAX, ZFAR_MAX);
+            frustumAABB = new BoundingBox(-fWidth*ZFAR_MAX, -fHeight*ZFAR_MAX, ZNEAR_MIN,
+                    fWidth*ZFAR_MAX,  fHeight*ZFAR_MAX, ZFAR_MAX );
         }
 
         //  light pt is "infinitely" far away from the view frustum.
         //  however, all that's really needed is to place it just outside of all shadow casters
 
-        BoundingBox casterAABB( &m_ShadowCasterPoints );
-        D3DXVECTOR3 frustumCenter; frustumAABB.Centroid( &frustumCenter );
-        float t;
-        casterAABB.Intersect( &t, &frustumCenter, &eyeLightDir );
+        BoundingBox casterAABB = wrapBoxes(m_ShadowCasterPoints);
+        Vector3f frustumCenter = new Vector3f(); frustumAABB.center(frustumCenter );
+        float[] t={-1};
+        casterAABB.intersect(t, frustumCenter, eyeLightDir );
 
-        D3DXVECTOR3 lightPt = frustumCenter + 2.f*t*eyeLightDir;
-        D3DXVECTOR3 axis;
+//        D3DXVECTOR3 lightPt = frustumCenter + 2.f*t*eyeLightDir;
+        Vector3f lightPt = Vector3f.linear(frustumCenter, eyeLightDir, 2.f * t[0], null);
+        ReadableVector3f axis;
 
-        if ( fabsf(D3DXVec3Dot(&eyeLightDir, &yAxis))>0.99f )
-        axis = zAxis;
-    else
-        axis = yAxis;
+        if ( Math.abs(Vector3f.dot(eyeLightDir, yAxis))>0.99f )
+            axis = zAxis;
+        else
+            axis = yAxis;
 
-        D3DXMatrixLookAtLH( &lightView, &lightPt, &frustumCenter, &axis );
+//        D3DXMatrixLookAtLH( &lightView, &lightPt, &frustumCenter, &axis );
+        Matrix4f.lookAt(lightPt, frustumCenter, axis, lightView);
 
-        XFormBoundingBox( &frustumAABB, &frustumAABB, &lightView );
-        XFormBoundingBox( &casterAABB,  &casterAABB,  &lightView );
+        /*XFormBoundingBox( &frustumAABB, &frustumAABB, &lightView );
+        XFormBoundingBox( &casterAABB,  &casterAABB,  &lightView );*/
 
         //  use a small fudge factor for the near plane, to avoid some minor clipping artifacts
-        D3DXMatrixOrthoOffCenterLH( &lightProj, frustumAABB.minPt.x, frustumAABB.maxPt.x,
-                frustumAABB.minPt.y, frustumAABB.maxPt.y,
-                casterAABB.minPt.z, frustumAABB.maxPt.z );
+        Matrix4f.ortho( frustumAABB._min.x, frustumAABB._max.x,
+                frustumAABB._min.y, frustumAABB._max.y,
+                casterAABB._min.z, frustumAABB._max.z,lightProj );
 
-        D3DXMatrixMultiply( &lightView, &m_View, &lightView );
-        D3DXMatrixMultiply( &m_LightViewProj, &lightView, &lightProj );
+        D3DXMatrixMultiply( lightView, m_View, lightView );
+        D3DXMatrixMultiply( m_LightViewProj, lightView, lightProj );
     }
 }

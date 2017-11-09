@@ -4,6 +4,8 @@ import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.ui.NvTweakBar;
 
 import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -31,6 +33,7 @@ public abstract class BaseScene implements Disposeable{
     private int m_SceneWidth, m_SceneHeight;
     protected GLFuncProvider gl;
     protected Object m_UserData;
+    private final List<Disposeable> m_DisposeableResources = new ArrayList<>();
 
     public void setNVApp(NvSampleApp app) {mNVApp = app;}
 
@@ -44,6 +47,13 @@ public abstract class BaseScene implements Disposeable{
     public void onCreateUI(NvTweakBar tweakBar){}
 
     protected abstract void onCreate(Object prevSavedData);
+
+    public synchronized final <T extends Disposeable> T addAutoRelease(T resource){
+        if(resource != null){
+            m_DisposeableResources.add(resource);
+        }
+        return resource;
+    }
 
     public void onResize(int width, int height){
         if(width <=0 || height <=0)
@@ -109,6 +119,11 @@ public abstract class BaseScene implements Disposeable{
     public final void dispose() {
         releaseResources();
         onDestroy();
+
+        for(Disposeable res : m_DisposeableResources){
+            res.dispose();
+        }
+        m_DisposeableResources.clear();
     }
 
     private void releaseResources(){

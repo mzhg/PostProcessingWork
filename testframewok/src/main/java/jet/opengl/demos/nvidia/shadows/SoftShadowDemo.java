@@ -3,13 +3,14 @@ package jet.opengl.demos.nvidia.shadows;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.ui.NvUIReaction;
 
+import jet.opengl.demos.scene.BaseScene;
 import jet.opengl.postprocessing.common.GLCheck;
 
 /**
  * Created by mazhen'gui on 2017/11/6.
  */
 public final class SoftShadowDemo extends NvSampleApp {
-    private SoftShadowScene mScene;
+    private BaseScene mScene;
     private ShadowConfig mShadowConfig = new ShadowConfig();
 
     @Override
@@ -19,8 +20,9 @@ public final class SoftShadowDemo extends NvSampleApp {
 
     @Override
     protected void initRendering() {
-        mShadowConfig.shadowType = ShadowGenerator.ShadowType.NONE;
-        mScene = new SoftShadowScene(new ShadowGenerator());
+        mShadowConfig.shadowType = ShadowMapGenerator.ShadowType.NONE;
+//        mScene = new SoftShadowScene(new ShadowMapGenerator());
+        mScene = new VarianceShadowScene();
         mScene.setNVApp(this);
         mScene.initScene();
 

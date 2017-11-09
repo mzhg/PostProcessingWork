@@ -1780,6 +1780,10 @@ public class Matrix4f extends Matrix implements Serializable {
 		xmax = ymax * aspect;
 		return frustum(xmin, xmax, ymin, ymax, zNear, zFar, out);
 	}
+
+	public static final Matrix4f ortho(float width, float height, float near, float far, Matrix4f out) {
+		return ortho(-width*0.5f, width*0.5f, -height*0.5f, height*0.5f, near, far, out);
+	}
 	
 	public static final Matrix4f ortho(float left, float right, float bottom,
 			float top, float near, float far, Matrix4f out) {

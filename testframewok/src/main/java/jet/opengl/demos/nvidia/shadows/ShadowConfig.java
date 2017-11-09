@@ -12,15 +12,15 @@ public class ShadowConfig {
     public int shadowMapFormat = GLenum.GL_DEPTH_COMPONENT16;
     public int shadowMapSize = 1024; // The shadow map must be a suqre.
     public int shadowMapSampleCount = 1;
-    public ShadowGenerator.LightType lightType = ShadowGenerator.LightType.DIRECTION;
+    public ShadowMapGenerator.LightType lightType = ShadowMapGenerator.LightType.DIRECTION;
     public final Vector3f lightPos = new Vector3f();
     /** The direction is from light source to target. */
     public final Vector3f lightDir = new Vector3f();
-    public ShadowGenerator.ShadowType shadowType = ShadowGenerator.ShadowType.SHADOW_MAPPING;
-    public ShadowGenerator.ShadowMapSplitting shadowMapSplitting = ShadowGenerator.ShadowMapSplitting.NONE;
-    public ShadowGenerator.ShadowMapWarping shadowMapWarping = ShadowGenerator.ShadowMapWarping.NONE;
-    public ShadowGenerator.ShadowMapFiltering shadowMapFiltering = ShadowGenerator.ShadowMapFiltering.NONE;
-    public ShadowGenerator.ShadowMapPattern shadowMapPattern = ShadowGenerator.ShadowMapPattern.POISSON_25_25;
+    public ShadowMapGenerator.ShadowType shadowType = ShadowMapGenerator.ShadowType.SHADOW_MAPPING;
+    public ShadowMapGenerator.ShadowMapSplitting shadowMapSplitting = ShadowMapGenerator.ShadowMapSplitting.NONE;
+    public ShadowMapGenerator.ShadowMapWarping shadowMapWarping = ShadowMapGenerator.ShadowMapWarping.NONE;
+    public ShadowMapGenerator.ShadowMapFiltering shadowMapFiltering = ShadowMapGenerator.ShadowMapFiltering.NONE;
+    public ShadowMapGenerator.ShadowMapPattern shadowMapPattern = ShadowMapGenerator.ShadowMapPattern.POISSON_25_25;
     public int cascadCount = 1;
     /** The angle in degrees. */
     public float spotHalfAngle;
