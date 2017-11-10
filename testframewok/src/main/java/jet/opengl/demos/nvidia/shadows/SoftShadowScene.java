@@ -390,7 +390,7 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
 
         // Decompose the look matrix to get the yaw and pitch.
         float pitch = (float) Math.atan2(-look.m21, /*_32*/ look.m22/*_33*/);
-        float yaw = (float) Math.atan2(look.m20/*_31*/, new Vector2f(-look.m21/*_32*/, look.m22/*_33*/).length());
+        float yaw = (float) Math.atan2(look.m20/*_31*/, Vector2f.length(-look.m21/*_32*/, look.m22/*_33*/));
 
         // Initialize the camera view.
         NvInputTransformer m_camera = mNVApp.getInputTransformer();

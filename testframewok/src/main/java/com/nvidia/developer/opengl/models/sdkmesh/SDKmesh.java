@@ -673,7 +673,7 @@ public class SDKmesh {
 
 //            D3DXVECTOR3 half = upper - lower;
 //            half *=0.5f;
-            Vector3f half = ((Vector3f)Vector3f.sub(upper, lower, pt)).scale(0.5f);
+            Vector3f half = (Vector3f.sub(upper, lower, pt)).scale(0.5f);
 
 //            currentMesh->BoundingBoxCenter = lower + half;
 //            currentMesh->BoundingBoxExtents = half;
@@ -1258,19 +1258,19 @@ public class SDKmesh {
 //IDirect3DIndexBuffer9* GetIB9( int iMesh );
 
 //Helpers (general)
-	String getMeshPath() { return m_strPath;}
-	int  getNumMeshes(){ return m_pMeshHeader != null ? m_pMeshHeader.numMeshes : 0;}
-	int  getNumMaterials() { return m_pMeshHeader != null ? m_pMeshHeader.numMaterials: 0;}
-	int  getNumVBs(){ return m_pMeshHeader != null ? m_pMeshHeader.numVertexBuffers: 0;}
-	int  getNumIBs() {return m_pMeshHeader != null ? m_pMeshHeader.numIndexBuffers: 0;}
+public String getMeshPath() { return m_strPath;}
+	public int  getNumMeshes(){ return m_pMeshHeader != null ? m_pMeshHeader.numMeshes : 0;}
+    public int  getNumMaterials() { return m_pMeshHeader != null ? m_pMeshHeader.numMaterials: 0;}
+    public int  getNumVBs(){ return m_pMeshHeader != null ? m_pMeshHeader.numVertexBuffers: 0;}
+    public int  getNumIBs() {return m_pMeshHeader != null ? m_pMeshHeader.numIndexBuffers: 0;}
 //IDirect3DVertexBuffer9* GetVB9At( int iVB );
 //IDirect3DIndexBuffer9* GetIB9At( int iIB );
-	int  getVB10At( int iVB ) { return m_pVertexBufferArray[ iVB ].buffer;}
-	int getIB10At( int iIB ) {return m_pIndexBufferArray[ iIB ].buffer;}
+    public int  getVB10At( int iVB ) { return m_pVertexBufferArray[ iVB ].buffer;}
+    public int getIB10At( int iIB ) {return m_pIndexBufferArray[ iIB ].buffer;}
 //	byte[] getRawVerticesAt( int iVB ){ return null;}
 //	byte[] getRawIndicesAt( int iIB ) { return null;}
-	SDKmeshMaterial getMaterial( int iMaterial ) {return m_pMaterialArray[ iMaterial ];}
-	SDKMeshMesh getMesh( int iMesh ){
+    public SDKmeshMaterial getMaterial( int iMaterial ) {return m_pMaterialArray[ iMaterial ];}
+    public SDKMeshMesh getMesh( int iMesh ){
 		return m_pMeshArray[ iMesh ];
 	}
 	

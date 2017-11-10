@@ -12,6 +12,7 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.CommonUtil;
 
 /**
  * Created by mazhen'gui on 2017/11/9.
@@ -121,6 +122,8 @@ final class VarianceShadowMapGenerator implements Disposeable{
         else
             gl.glDisable(GLenum.GL_DEPTH_TEST);
         gl.glDisable(GLenum.GL_POLYGON_OFFSET_FILL);
+
+        m_printOnce = true;
     }
 
     public Texture2D getVarianceShadowMap() { return m_VarianceShadowMap;}
@@ -128,6 +131,12 @@ final class VarianceShadowMapGenerator implements Disposeable{
 
     @Override
     public void dispose() {
+        CommonUtil.safeRelease(m_renderTarget);
+        CommonUtil.safeRelease(m_VarianceShadowMap);
+        CommonUtil.safeRelease(m_ShadowMap);
+        CommonUtil.safeRelease(m_BlurTex);
 
+        CommonUtil.safeRelease(m_ShadowGenerateProgram);
+        CommonUtil.safeRelease(m_BlurProgram);
     }
 }
