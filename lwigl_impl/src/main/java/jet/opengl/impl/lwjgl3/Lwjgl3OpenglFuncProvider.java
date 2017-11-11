@@ -1930,4 +1930,24 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
         GL41.glProgramUniform3f(program, index, x, y, z);
     }
 
+    @Override
+    public void glScissorIndexed(int index, int x, int y, int width, int height) {
+        GL41.glScissorIndexed(index, x, y, width, height);
+    }
+
+    @Override
+    public void glViewportIndexedf(int index, float x, float y, float width, float height) {
+        GL41.glViewportIndexedf(index, x, y, width, height);
+    }
+
+    @Override
+    public void glBindImageTextures(int unit, IntBuffer images) {
+        GL44.glBindImageTextures(unit, images);
+    }
+
+    @Override
+    public void glViewportArrayv(int index, FloatBuffer viewports) {
+        GL41.glViewportArrayv(index, viewports);
+    }
+
 }

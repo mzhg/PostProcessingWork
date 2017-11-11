@@ -60,7 +60,7 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
 	 * @return true on success and false on failure
 	 */
-	protected void setSourceFromClassFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
+	public void setSourceFromClassFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
 		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, true);
 		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, true);
 		setSourceFromStrings(vertSrc, fragSrc, macros);
@@ -71,7 +71,7 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param binary the binary data used to initlize the program.
 	 */
 	@CachaRes
-	protected void setSourceFromBinary(byte[] binary){
+	public void setSourceFromBinary(byte[] binary){
 		dispose();
 
 		int formats = gl.glGetInteger(GL_NUM_PROGRAM_BINARY_FORMATS);
@@ -103,7 +103,7 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param fragFilename the filename and partial path to the text file containing the fragment shader source
 	 * @return true on success and false on failure
 	 */
-	protected void setSourceFromFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
+	public void setSourceFromFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
 		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, false);
 		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, false);
 		setSourceFromStrings(vertSrc, fragSrc, macros);

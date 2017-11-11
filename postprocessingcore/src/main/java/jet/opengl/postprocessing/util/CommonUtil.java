@@ -26,6 +26,10 @@ public final class CommonUtil {
         return args;
     }
 
+    public static int[] toInts(int...args){
+        return args;
+    }
+
     public static void safeRelease(Disposeable res){
         if(res != null){
             res.dispose();

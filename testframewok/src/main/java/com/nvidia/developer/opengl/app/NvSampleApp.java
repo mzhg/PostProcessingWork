@@ -100,6 +100,7 @@ public class NvSampleApp extends NvAppBase {
 	protected final HashMap<Integer, NvTweakBind> mButtonBinds = new HashMap<Integer, NvTweakBind>();
 	
 	private float totalTime;
+	private int mFrameCount;
 
 	protected FieldControl createControl(String varName){
 		return new FieldControl(this, varName, FieldControl.CALL_FIELD);
@@ -134,6 +135,8 @@ public class NvSampleApp extends NvAppBase {
 	
 	public void setInputHandler(NvInputHandler inputHandler) { m_inputHandler = inputHandler; }
 	public NvInputHandler getInputHandler() { return m_inputHandler; }
+	public final float getTotalTime() { return totalTime;}
+	public final int getFrameCount() { return mFrameCount;}
 	
 	@Override
 	public final void draw() {
@@ -178,6 +181,7 @@ public class NvSampleApp extends NvAppBase {
             }
         }
 
+		mFrameCount++;
 	}
 
 	private void baseInitUI(){

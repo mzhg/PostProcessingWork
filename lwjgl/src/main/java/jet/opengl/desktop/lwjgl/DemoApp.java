@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
+import jet.opengl.demos.gpupro.noise.ShaderNoise;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -79,7 +79,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new SoftShadowDemo());
+        run(new ShaderNoise());
 
 //        testRectVertex();
     }

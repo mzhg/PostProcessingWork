@@ -77,5 +77,5 @@ layout(binding = 0) uniform cb0
     bool bTextured;
 };
 
-const float g_fResRev[N_LEVELS] = float[10]( 1./1024, 1./512, 1./256, 1./128, 1./64, 1./32, 1./16, 1./8, 1./4, 1./2 );
+const float g_fResRev[N_LEVELS] = float[10]( 1./1024., 1./512., 1./256., 1./128., 1./64., 1./32., 1./16., 1./8., 1./4., 1./2. );
 #endif

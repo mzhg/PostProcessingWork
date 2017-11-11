@@ -29,7 +29,7 @@ import jet.opengl.postprocessing.util.DebugTools;
 public class MeshLoader {
     public static void main(String[] args) {
 //        loadLightningXMesh();
-        loadOrcXMesh();
+        loadMDL();
     }
 
     static void loadLightningXMesh(){
@@ -69,6 +69,55 @@ public class MeshLoader {
             }
         }
 
+    }
+
+    static void loadMDL(){
+        String root = "E:\\SDK\\avsm\\Media\\Asset\\";
+        String[] tokens = {"roofTop"};
+        String[] exts = {".set"};
+
+        for(int i = 0; i < tokens.length; i++){
+            String token =tokens[i];
+            String ext = exts[i];
+            File file = new File(root + token + ext);
+            if(file.exists() == false)
+                throw new IllegalArgumentException();
+
+
+            AIScene scene = Assimp.aiImportFile(file.getAbsolutePath(), 0);
+            if (scene == null) {
+                throw new IllegalStateException(Assimp.aiGetErrorString());
+            }
+            int numMesh = scene.mNumMeshes();
+            PointerBuffer meshesBuffer  =  scene.mMeshes();
+
+            final String output = root + token;
+
+            StringBuilder materialIdxStr = new StringBuilder(256);
+            materialIdxStr.append("MeshCount: ").append(numMesh).append('\n');
+            for(int j = 0; j < numMesh; j++){
+                AIMesh mesh = AIMesh.create(meshesBuffer.get(j));
+                saveMeshData(mesh, j, output, token);
+                int materialIdx = mesh.mMaterialIndex();
+                materialIdxStr.append("materialIdx: ").append(materialIdx).append('\n');
+                System.out.println();
+            }
+
+            printMaterials(scene, materialIdxStr);
+
+            try (BufferedWriter out = new BufferedWriter(new FileWriter(output + "_Materials.txt"))){
+                out.write(materialIdxStr.toString());
+                out.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                Assimp.aiReleaseImport(scene);
+            } catch (Exception e) {
+//                e.printStackTrace();
+            }
+        }
     }
 
     static void loadOrcXMesh(){

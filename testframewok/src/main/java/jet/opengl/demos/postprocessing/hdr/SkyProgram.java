@@ -11,7 +11,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
  * Created by mazhen'gui on 2017/3/16.
  */
 
-final class SkyProgram extends GLSLProgram{
+public final class SkyProgram extends GLSLProgram{
     private int viewMatIndex;
     private int projMatIndex;
     private int attribPos;

@@ -2452,6 +2452,10 @@ public class Matrix4f extends Matrix implements Serializable {
 			}
 		}
 	}
+
+	public void setColumn(int index, float[] v, int offset){
+		setColumn(index, v[offset+0], v[offset+1], v[offset+2], v[offset+3]);
+	}
 	
 	public void setColumn(int index, ReadableVector4f v){
 		setColumn(index, v.getX(), v.getY(), v.getZ(), v.getW());
@@ -2481,6 +2485,10 @@ public class Matrix4f extends Matrix implements Serializable {
 		}
 		
 		return dest;
+	}
+
+	public void setRow(int index, float[] v, int offset){
+		setRow(index, v[offset+0], v[offset+1], v[offset+2], v[offset+3]);
 	}
 	
 	public void setRow(int index, ReadableVector4f v){

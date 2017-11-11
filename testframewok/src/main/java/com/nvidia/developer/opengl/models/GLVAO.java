@@ -27,7 +27,7 @@ public class GLVAO implements Disposeable{
 	int elementID;
 	int elementModified;
 	
-	boolean programed = true;
+	private boolean programed = true;
 	boolean prepared;
 	
 	/*public */GLVAO(Model parent) {

@@ -1466,7 +1466,7 @@ public interface GLFuncProvider {
     int glCreateTextures(int target);
     void glTextureStorage3D(int textureID, int mipLevels, int format, int width, int height, int depth);
 
-    void glTexStorage3D(int glTexture2dArray, int mipLevels, int format, int width, int height, int depth);
+    void glTexStorage3D(int target, int mipLevels, int format, int width, int height, int depth);
 
     void glTextureStorage2DMultisample(int textureID, int sampleCount, int format, int width, int height, boolean fixedsamplelocations);
     void glTextureStorage3DMultisample(int textureID, int sampleCount, int format, int width, int height, int arraySize, boolean fixedsamplelocations);
@@ -1650,4 +1650,10 @@ public interface GLFuncProvider {
     void glDeleteSync(long sync);
 
     void glProgramUniform3f(int program, int index, float x, float y, float z);
+
+    void glScissorIndexed(int index, int x, int y, int width, int height);
+    void glViewportIndexedf(int index, float x, float y, float width, float height);
+
+    void glBindImageTextures(int unit, IntBuffer images);
+    void glViewportArrayv(int index, FloatBuffer viewports);
 }
