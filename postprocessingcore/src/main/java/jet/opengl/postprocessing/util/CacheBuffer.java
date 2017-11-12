@@ -256,6 +256,19 @@ public class CacheBuffer {
 		wrap(data);
 		return getCachedByteBuffer(data.length << 3);
 	}
+
+	public static ByteBuffer wrap(int eleSize, Readable[] data){
+		return wrap(eleSize, data, 0, data.length);
+	}
+
+	public static ByteBuffer wrap(int eleSize, Readable[] data, int offset, int length){
+		ByteBuffer buffer = getCachedByteBuffer(eleSize * length);
+		for(int i = offset; i < offset + length; i++){
+			data[i].store(buffer);
+		}
+		buffer.flip();
+		return buffer;
+	}
 	
 	public static ByteBuffer wrap(byte[] data, int offset, int length){
 		ByteBuffer buffer = getCachedByteBuffer(length);

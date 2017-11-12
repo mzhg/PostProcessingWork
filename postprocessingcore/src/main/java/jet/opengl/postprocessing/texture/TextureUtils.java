@@ -1439,6 +1439,51 @@ public final class TextureUtils {
 		}
 	}
 
+	public static int getFormatChannels(int internalFormat){
+//		private static final int RED = GLenum.GL_RED;
+//		private static final int RG  = GLenum.GL_RG;
+//		private static final int RGB = GLenum.GL_RGB;
+//		private static final int RGBA= GLenum.GL_RGBA;
+//
+//		private static final int RED_INTEGER = GLenum.GL_RED_INTEGER;
+//		private static final int RG_INTEGER = GLenum.GL_RG_INTEGER;
+//		private static final int RGB_INTEGER = GLenum.GL_RGB_INTEGER;
+//		private static final int RGBA_INTEGER = GLenum.GL_RGBA_INTEGER;
+		int format = measureFormat(internalFormat);
+		switch (format){
+			case RED:
+			case RED_INTEGER:
+			case GLenum.GL_DEPTH_COMPONENT:
+			case GLenum.GL_STENCIL:
+				return 1;
+			case RG:
+			case RG_INTEGER:
+			case GLenum.GL_DEPTH_STENCIL:
+				return 2;
+			case RGB:
+			case RGB_INTEGER:
+				return 3;
+			case RGBA:
+			case RGBA_INTEGER:
+				return 4;
+			case GLenum.GL_NONE:
+			default:
+			{
+				switch (internalFormat)
+				{
+					case GLenum.GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+						return 3;
+					case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+					case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+					case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+						return 4;
+					default:
+						throw new IllegalArgumentException("Unkown internalFormat: " + internalFormat);
+				}
+			}
+		}
+	}
+
 	public static boolean isDepthFormat(int internalFormat){
 		switch (internalFormat) {
 			case GLenum.GL_DEPTH_COMPONENT16:
