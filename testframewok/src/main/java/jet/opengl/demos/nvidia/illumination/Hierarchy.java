@@ -186,7 +186,7 @@ class Hierarchy implements Disposeable, Defines{
 
     //go from a coarser (lowerRes) to a finer (higherRes) grid by copying data from one cell to a 2x2x2 (in 3D) or 2x2 (in 2D) region.
     void Upsample(/*ID3D11DeviceContext* pd3dContext,*/ SimpleRT finer, SimpleRT coarser, int op, int sampleType,
-                  TextureGL srvAccumulate, int RTindex)
+                  TextureGL srvAccumulate, int RTindex/*=0*/)
     {
 //        float ClearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
         for(int i=0;i<finer.getNumRTs();i++) {
