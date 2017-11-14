@@ -4,17 +4,17 @@ import java.util.Arrays;
 
 import jet.opengl.postprocessing.util.Numeric;
 
-final class SDKMeshVertexBufferHeader {
+public final class SDKMeshVertexBufferHeader {
 
 	static final int SIZE = 288;
 	
 	long numVertices;  // 8
 	long sizeBytes;    // 16
-	long strideBytes;  // 24
-	final VertexElement9[] decl = new VertexElement9[SDKmesh.MAX_VERTEX_ELEMENTS]; // 24 + 32 * 8 = 280
+	public long strideBytes;  // 24
+	public final VertexElement9[] decl = new VertexElement9[SDKmesh.MAX_VERTEX_ELEMENTS]; // 24 + 32 * 8 = 280
 	
 	long dataOffset; //(This also forces the union to 64bits) 288
-	int buffer;  // 292
+	public int buffer;  // 292
 				 // 296
 	
 	public SDKMeshVertexBufferHeader() {

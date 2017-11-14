@@ -2,17 +2,17 @@ package com.nvidia.developer.opengl.models.sdkmesh;
 
 import jet.opengl.postprocessing.util.Numeric;
 
-final class VertexElement9 {
+public final class VertexElement9 {
 	
 	static final int SIZE = 8;
 
-	 short    stream;     // Stream index
-	 short    offset;     // Offset in the stream in bytes
-	 byte     type;       // Data type
-	 byte     method;     // Processing method
-	 byte     usage;      // Semantics
-	 byte     usageIndex; // Semantic index
-	 byte     size;       // The element count
+	public short    stream;     // Stream index
+	public short    offset;     // Offset in the stream in bytes
+	public byte     type;       // Data type
+	public byte     method;     // Processing method
+	public byte     usage;      // Semantics
+	public byte     usageIndex; // Semantic index
+	public byte     size;       // The element count
 	 
 	 int load(byte[] data, int offset){
 		 stream = Numeric.getShort(data, offset); offset +=2;

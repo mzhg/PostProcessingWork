@@ -6,15 +6,15 @@ import java.util.Arrays;
 
 import jet.opengl.postprocessing.util.Numeric;
 
-final class SDKMeshMesh {
+public final class SDKMeshMesh {
 	
 	static final int SIZE = 104 + 16 * 4 + 4 * (3 + 6) + 4 + 2*8;
 
 	String  name;  		// char name[MAX_MESH_NAME];  100
-    byte numVertexBuffers;  					   // 104
-    final int[] vertexBuffers = new int[SDKmesh.MAX_VERTEX_STREAMS];  // 168
-    int indexBuffer;							   // 172
-    int numSubsets;								   // 176
+    public byte numVertexBuffers;  					   // 104
+    public final int[] vertexBuffers = new int[SDKmesh.MAX_VERTEX_STREAMS];  // 168
+    public int indexBuffer;							   // 172
+	public int numSubsets;								   // 176
     int numFrameInfluences; //aka bones            // 180
 
     final Vector3f boundingBoxCenter = new Vector3f();  // 192
@@ -23,7 +23,7 @@ final class SDKMeshMesh {
     // union{
     long subsetOffset;  // Offset to list of subsets (This also forces the union to 64bits) 216
 //    int[] pSubsets;     // /Pointer to list of subsets
-    int[] pSubsets;
+	public int[] pSubsets;
     //};
     
     // union{

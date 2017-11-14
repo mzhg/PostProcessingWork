@@ -2,24 +2,24 @@ package com.nvidia.developer.opengl.models.sdkmesh;
 
 import jet.opengl.postprocessing.util.Numeric;
 
-final class SDKmeshHeader {
+public final class SDKmeshHeader {
 	
 	static final int SIZE = 104;
 
 	//Basic Info and sizes
-    int version;		                    // 4
-    boolean isBigEndian;					// 8
-    long headerSize;						// 16
-    long nonBufferDataSize;					// 24
-    long bufferDataSize;					// 32
+    public int version;		                    // 4
+	public boolean isBigEndian;					// 8
+	public long headerSize;						// 16
+	public long nonBufferDataSize;					// 24
+	public long bufferDataSize;					// 32
 
     //Stats
-    int numVertexBuffers;					// 36
-    int numIndexBuffers;				    // 40
-    int numMeshes;							// 44
-    int numTotalSubsets;					// 48
-    int numFrames;							// 52
-    int numMaterials;						// 56
+	public int numVertexBuffers;					// 36
+	public int numIndexBuffers;				    // 40
+	public int numMeshes;							// 44
+	public int numTotalSubsets;					// 48
+	public int numFrames;							// 52
+	public int numMaterials;						// 56
 
     //Offsets to Data
     long vertexStreamHeadersOffset;			// 64

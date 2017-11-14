@@ -58,18 +58,18 @@ public class SDKmesh {
 							INVALID_ANIMATION_DATA =-1,
 							ERROR_RESOURCE_VALUE =1,
 							INVALID_SAMPLER_SLOT =-1;
-	
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_UNDEFINED = 0;
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_POINTLIST = 1;
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_LINELIST = 2;
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_LINESTRIP = 3;
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST = 4;
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP = 5;
-	
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_LINELIST_ADJ= 10;
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ = 11;
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ  = 12;
-	private static final int D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ   = 13;
+
+    protected static final int D3D10_PRIMITIVE_TOPOLOGY_UNDEFINED = 0;
+    protected static final int D3D10_PRIMITIVE_TOPOLOGY_POINTLIST = 1;
+    protected static final int D3D10_PRIMITIVE_TOPOLOGY_LINELIST = 2;
+    protected static final int D3D10_PRIMITIVE_TOPOLOGY_LINESTRIP = 3;
+	protected static final int D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST = 4;
+    protected static final int D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP = 5;
+
+    protected static final int D3D10_PRIMITIVE_TOPOLOGY_LINELIST_ADJ= 10;
+    protected static final int D3D10_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ = 11;
+    protected static final int D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ  = 12;
+    protected static final int D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ   = 13;
 	
 	public static int convertDXDrawCMDToGL(int primType){
 		switch (primType) {
@@ -90,7 +90,7 @@ public class SDKmesh {
 	}
 	
 	// Should query dynamic.
-	private static final int MAX_D3D10_VERTEX_STREAMS = 16;
+	protected static final int MAX_D3D10_VERTEX_STREAMS = 16;
 	
 	//--------------------------------------------------------------------------------------
 	// Enumerated Types.  These will have mirrors in both D3D9 and D3D10
@@ -153,7 +153,7 @@ public class SDKmesh {
 	protected SDKMeshSubset[] m_pSubsetArray;
 	protected SDKMeshFrame[] m_pFrameArray;
 	protected SDKmeshMaterial[] m_pMaterialArray;
-    private GLFuncProvider gl;
+    protected GLFuncProvider gl;
 
     // Adjacency information (not part of the m_pStaticMeshData, so it must be created and destroyed separately )
 	protected SDKMeshIndexBufferHeader[] m_pAdjacencyIndexBufferArray;
@@ -266,7 +266,9 @@ public class SDKmesh {
                 	strPath = m_strPath + "/" + pMaterials[m].diffuseTexture;
                     if(FileUtils.g_IntenalFileLoader.exists(strPath))
                         pMaterials[m].pDiffuseTexture11 = NvImage.uploadTextureFromDDSFile(strPath);
-                	textureCount ++;
+                    else
+                        pMaterials[m].pDiffuseTexture11 =0;
+                                textureCount ++;
                 }
                 if( !StringUtils.isEmpty(pMaterials[m].normalTexture) )
                 {
@@ -896,7 +898,7 @@ public class SDKmesh {
                     }
                 }
 
-                break;
+                break;  //TODO
             }
 
             // unbind buffers
@@ -1304,7 +1306,7 @@ public String getMeshPath() { return m_strPath;}
 	public Vector3f getMeshBBoxCenter( int iMesh ) {return m_pMeshArray[iMesh].boundingBoxCenter;}
 	public Vector3f getMeshBBoxExtents( int iMesh ) { return m_pMeshArray[iMesh].boundingBoxExtents;}
 	int getOutstandingResources() { return 0;}
-	int getOutstandingBufferResources(){
+	public int getOutstandingBufferResources(){
 		int outstandingResources = 0;
 	    if( m_pMeshHeader == null)
 	        return 1;

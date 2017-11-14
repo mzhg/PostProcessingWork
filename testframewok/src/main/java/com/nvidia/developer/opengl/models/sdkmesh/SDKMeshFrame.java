@@ -4,16 +4,16 @@ import org.lwjgl.util.vector.Matrix4f;
 
 import jet.opengl.postprocessing.util.Numeric;
 
-final class SDKMeshFrame {
+public final class SDKMeshFrame {
 	
 	static final int SIZE = 184;
 
 //	char Name[MAX_FRAME_NAME];
 	String name;       // 100
-    int mesh;          // 104
+    public int mesh;          // 104
     int parentFrame;   // 108
-    int childFrame;    // 112
-    int siblingFrame;  // 116
+    public int childFrame;    // 112
+	public int siblingFrame;  // 116
     final Matrix4f matrix = new Matrix4f();  // 180
     int animationDataIndex;		// 184 Used to index which set of keyframes transforms this frame
 

@@ -4,7 +4,7 @@ import org.lwjgl.util.vector.Vector4f;
 
 import jet.opengl.postprocessing.util.Numeric;
 
-final class SDKmeshMaterial {
+public final class SDKmeshMaterial {
 	
 	public static final int SIZE = 1256;
 
@@ -19,22 +19,23 @@ final class SDKmeshMaterial {
 //    char    DiffuseTexture[MAX_TEXTURE_NAME];
 //    char    NormalTexture[MAX_TEXTURE_NAME];
 //    char    SpecularTexture[MAX_TEXTURE_NAME];
-	String diffuseTexture;  // 260
-	String normalTexture;   // 260
-	String specularTexture; // 260
+	public String diffuseTexture;  // 260
+	public String normalTexture;   // 260
+	public String specularTexture; // 260
 	
     final Vector4f diffuse = new Vector4f();
     final Vector4f ambient = new Vector4f();
     final Vector4f specular = new Vector4f();
     final Vector4f emissive = new Vector4f();
     float power;
-    
-    int pDiffuseTexture11;  // aligin 8
-    int pNormalTexture11;
-    int pSpecularTexture11;
-    int pDiffuseRV11;
-    int pNormalRV11;
-    int pSpecularRV11;
+
+	public int pDiffuseTexture11;  // aligin 8
+	public int pNormalTexture11;
+	public int pSpecularTexture11;
+
+	public int pDiffuseRV11;
+    public int pNormalRV11;
+	public int pSpecularRV11;
 
 	public void toString(StringBuilder out, int index){
 		out.append("SDKmeshMaterial").append(index).append(":------------------------------\n");
