@@ -43,6 +43,7 @@ public class NvImage {
     protected int _type = GL_UNSIGNED_BYTE;
     protected int _elementSize;
     protected boolean _cubeMap;
+    protected boolean _onlyReadFormat;
 
     protected static boolean upperLeftOrigin = true;
     protected static boolean m_expandDXT = false;
@@ -50,6 +51,15 @@ public class NvImage {
     protected static FormatInfo[] formatTable = new FormatInfo[]{new FormatInfo("dds", new ReadDDS(), null)};
 
     protected List<byte[]> _data = new ArrayList<byte[]>();
+
+    public NvImage(){}
+
+    public NvImage(boolean onlyReadFormat){
+        _onlyReadFormat = onlyReadFormat;
+    }
+
+    public void setOnlyReadFormat(boolean flag) {_onlyReadFormat = false; }
+    public boolean isOnlyReadFormat() { return _onlyReadFormat;}
 
     /** Static elements used to dispatch to proper sub-readers */
     private static final class FormatInfo{
@@ -1106,522 +1116,518 @@ public class NvImage {
 
         @Override
         public boolean invoke(String filename, NvImage i) throws IOException{
-            return invoke(new BufferedInputStream(FileUtils.open(filename)), i);
+            try(BufferedInputStream in = new BufferedInputStream(FileUtils.open(filename))){
+                return invoke(in, i);
+            }
         }
 
         @Override
-        public boolean invoke(InputStream in, NvImage i) throws IOException{
-            DataInputStream fp = new DataInputStream(in);
+        public boolean invoke(InputStream fp, NvImage i) throws IOException{
+            // read in file marker, make sure its a DDS file
+            byte[] filecode = new byte[4];
+            fp.read(filecode);
+            if (!new String(filecode).equals("DDS ")) {
+                fp.close();
+                System.err.println("This is not a DDS file!");
+                return false;
+            }
 
-            try {
-                // read in file marker, make sure its a DDS file
-                byte[] filecode = new byte[4];
-                fp.read(filecode);
-                if (!new String(filecode).equals("DDS ")) {
-                    fp.close();
-                    System.err.println("This is not a DDS file!");
-                    return false;
-                }
+            // read in DDS header
+            DDS_HEADER ddsh = new DDS_HEADER();
+            DDS_HEADER_10 ddsh10 = new DDS_HEADER_10();
 
-                // read in DDS header
-                DDS_HEADER ddsh = new DDS_HEADER();
-                DDS_HEADER_10 ddsh10 = new DDS_HEADER_10();
+            ddsh.read(fp);
 
-                ddsh.read(fp);
+            // check if image is a volume texture
+            if(((ddsh.dwCaps2 & DDSF_VOLUME)!=0) && (ddsh.dwDepth > 0))
+                i._depth = ddsh.dwDepth;
+            else
+                i._depth = 0;
 
-                // check if image is a volume texture
-                if(((ddsh.dwCaps2 & DDSF_VOLUME)!=0) && (ddsh.dwDepth > 0))
-                    i._depth = ddsh.dwDepth;
-                else
-                    i._depth = 0;
-
-                if (((ddsh.ddspf.dwFlags & DDSF_FOURCC)!=0) && (ddsh.ddspf.dwFourCC == FOURCC_DX10)) {
-                    //This DDS file uses the DX10 header extension
-                    //fread(&ddsh10, sizeof(DDS_HEADER_10), 1, fp);
+            if (((ddsh.ddspf.dwFlags & DDSF_FOURCC)!=0) && (ddsh.ddspf.dwFourCC == FOURCC_DX10)) {
+                //This DDS file uses the DX10 header extension
+                //fread(&ddsh10, sizeof(DDS_HEADER_10), 1, fp);
 //			        fp.Read( sizeof(DDS_HEADER_10), &ddsh10);
-                    ddsh10.read(fp);
-                }
+                ddsh10.read(fp);
+            }
 
-                // There are flags that are supposed to mark these fields as valid, but some dds files don't set them properly
-                i._width = ddsh.dwWidth;
-                i._height = ddsh.dwHeight;
+            // There are flags that are supposed to mark these fields as valid, but some dds files don't set them properly
+            i._width = ddsh.dwWidth;
+            i._height = ddsh.dwHeight;
 
-                if ((ddsh.dwFlags & DDSF_MIPMAPCOUNT)!=0) {
-                    i._levelCount = ddsh.dwMipMapCount;
-                }
-                else
-                    i._levelCount = 1;
+            if ((ddsh.dwFlags & DDSF_MIPMAPCOUNT)!=0) {
+                i._levelCount = ddsh.dwMipMapCount;
+            }
+            else
+                i._levelCount = 1;
 
-                //check cube-map faces, the DX10 parser will override this
-                if ( (ddsh.dwCaps2 & DDSF_CUBEMAP)!=0 && !((ddsh.ddspf.dwFlags & DDSF_FOURCC) != 0&& ddsh.ddspf.dwFourCC == FOURCC_DX10)) {
-                    //this is a cubemap, count the faces
-                    i._layers = 0;
-                    i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_POSITIVEX) != 0 ? 1 : 0;
-                    i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_NEGATIVEX) != 0 ? 1 : 0;
-                    i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_POSITIVEY) != 0 ? 1 : 0;
-                    i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_NEGATIVEY) != 0 ? 1 : 0;
-                    i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_POSITIVEZ) != 0 ? 1 : 0;
-                    i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_NEGATIVEZ) != 0 ? 1 : 0;
+            //check cube-map faces, the DX10 parser will override this
+            if ( (ddsh.dwCaps2 & DDSF_CUBEMAP)!=0 && !((ddsh.ddspf.dwFlags & DDSF_FOURCC) != 0&& ddsh.ddspf.dwFourCC == FOURCC_DX10)) {
+                //this is a cubemap, count the faces
+                i._layers = 0;
+                i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_POSITIVEX) != 0 ? 1 : 0;
+                i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_NEGATIVEX) != 0 ? 1 : 0;
+                i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_POSITIVEY) != 0 ? 1 : 0;
+                i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_NEGATIVEY) != 0 ? 1 : 0;
+                i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_POSITIVEZ) != 0 ? 1 : 0;
+                i._layers += (ddsh.dwCaps2 & DDSF_CUBEMAP_NEGATIVEZ) != 0 ? 1 : 0;
 
-                    //check for a complete cubemap
-                    if ( (i._layers != 6) || (i._width != i._height) ) {
-                        //fclose(fp);
-                        fp.close();
-                        return false;
-                    }
-
-                    i._cubeMap = true;
-                }
-                else {
-                    //not a cubemap
-                    i._layers = 1;
-                    i._cubeMap = false;
-                }
-
-                boolean btcCompressed = false;
-                int bytesPerElement = 0;
-
-                // figure out what the image format is
-                if ((ddsh.ddspf.dwFlags & DDSF_FOURCC) !=0 )
-                {
-                    switch(ddsh.ddspf.dwFourCC)
-                    {
-                        case FOURCC_DXT1:
-                            i._format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-                            i._internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-                            i._type = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-                            bytesPerElement = 8;
-                            btcCompressed = true;
-                            break;
-
-                        case FOURCC_DXT2:
-                        case FOURCC_DXT3:
-                            i._format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-                            i._internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-                            i._type = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-                            bytesPerElement = 16;
-                            btcCompressed = true;
-                            break;
-
-                        case FOURCC_DXT4:
-                        case FOURCC_DXT5:
-                            i._format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-                            i._internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-                            i._type = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-                            bytesPerElement = 16;
-                            btcCompressed = true;
-                            break;
-
-                        case FOURCC_ATI1:
-                            i._format = GL_COMPRESSED_RED_RGTC1;
-                            i._internalFormat = GL_COMPRESSED_RED_RGTC1;
-                            i._type = GL_COMPRESSED_RED_RGTC1;
-                            bytesPerElement = 8;
-                            btcCompressed = true;
-                            break;
-
-                        case FOURCC_BC4U:
-                            i._format = GL_COMPRESSED_RED_RGTC1;
-                            i._internalFormat = GL_COMPRESSED_RED_RGTC1;
-                            i._type = GL_COMPRESSED_RED_RGTC1;
-                            bytesPerElement = 8;
-                            btcCompressed = true;
-                            break;
-
-                        case FOURCC_BC4S:
-                            i._format = GL_COMPRESSED_SIGNED_RED_RGTC1;
-                            i._internalFormat = GL_COMPRESSED_SIGNED_RED_RGTC1;
-                            i._type = GL_COMPRESSED_SIGNED_RED_RGTC1;
-                            bytesPerElement = 8;
-                            btcCompressed = true;
-                            break;
-
-                        case FOURCC_ATI2:
-                            i._format = GL_COMPRESSED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
-                            i._internalFormat = GL_COMPRESSED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
-                            i._type = GL_COMPRESSED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
-                            bytesPerElement = 16;
-                            btcCompressed = true;
-                            break;
-
-                        case FOURCC_BC5S:
-                            i._format = GL_COMPRESSED_SIGNED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
-                            i._internalFormat = GL_COMPRESSED_SIGNED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
-                            i._type = GL_COMPRESSED_SIGNED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
-                            bytesPerElement = 16;
-                            btcCompressed = true;
-                            break;
-
-                        case FOURCC_R8G8B8:
-                            i._format = GL_BGR;
-                            i._internalFormat = GL_RGB8;
-                            i._type = GL_UNSIGNED_BYTE;
-                            bytesPerElement = 3;
-                            break;
-
-                        case FOURCC_A8R8G8B8:
-                            i._format = GL_BGRA;
-                            i._internalFormat = GL_RGBA8;
-                            i._type = GL_UNSIGNED_BYTE;
-                            bytesPerElement = 4;
-                            break;
-
-                        case FOURCC_X8R8G8B8:
-                            i._format = GL_BGRA;
-                            i._internalFormat = GL_RGB8;
-                            i._type = GL_UNSIGNED_INT_8_8_8_8;
-                            bytesPerElement = 4;
-                            break;
-
-                        case FOURCC_R5G6B5:
-                            i._format = GL_BGR;
-                            i._internalFormat = GL_RGB5;
-                            i._type = GL_UNSIGNED_SHORT_5_6_5;
-                            bytesPerElement = 2;
-                            break;
-                        case FOURCC_A8:
-                            i._format = GL_ALPHA;
-                            i._internalFormat = GL_ALPHA8;
-                            i._type = GL_UNSIGNED_BYTE;
-                            bytesPerElement = 1;
-                            break;
-
-                        case FOURCC_A2B10G10R10:
-                            i._format = GL_RGBA;
-                            i._internalFormat = GL_RGB10_A2;
-                            i._type = GL_UNSIGNED_INT_10_10_10_2;
-                            bytesPerElement = 4;
-                            break;
-
-                        case FOURCC_A8B8G8R8:
-                            i._format = GL_RGBA;
-                            i._internalFormat = GL_RGBA8;
-                            i._type = GL_UNSIGNED_BYTE;
-                            bytesPerElement = 4;
-                            break;
-
-                        case FOURCC_X8B8G8R8:
-                            i._format = GL_RGBA;
-                            i._internalFormat = GL_RGB8;
-                            i._type = GL_UNSIGNED_INT_8_8_8_8;
-                            bytesPerElement = 4;
-                            break;
-
-                        case FOURCC_A2R10G10B10:
-                            i._format = GL_BGRA;
-                            i._internalFormat = GL_RGB10_A2;
-                            i._type = GL_UNSIGNED_INT_10_10_10_2;
-                            bytesPerElement = 4;
-                            break;
-
-                        case FOURCC_G16R16:
-                            i._format = GL_RG;
-                            i._internalFormat = GL_RG16;
-                            i._type = GL_UNSIGNED_SHORT;
-                            bytesPerElement = 4;
-                            break;
-
-                        case FOURCC_A16B16G16R16:
-                            i._format = GL_RGBA;
-                            i._internalFormat = GL_RGBA16;
-                            i._type = GL_UNSIGNED_SHORT;
-                            bytesPerElement = 8;
-                            break;
-
-                        case FOURCC_L8:
-                            i._format = GL_LUMINANCE;
-                            i._internalFormat = GL_LUMINANCE8;
-                            i._type = GL_UNSIGNED_BYTE;
-                            bytesPerElement = 1;
-                            break;
-
-                        case FOURCC_A8L8:
-                            i._format = GL_LUMINANCE_ALPHA;
-                            i._internalFormat = GL_LUMINANCE8_ALPHA8;
-                            i._type = GL_UNSIGNED_BYTE;
-                            bytesPerElement = 2;
-                            break;
-
-                        case FOURCC_L16:
-                            i._format = GL_LUMINANCE;
-                            i._internalFormat = GL_LUMINANCE16;
-                            i._type = GL_UNSIGNED_SHORT;
-                            bytesPerElement = 2;
-                            break;
-
-                        case FOURCC_Q16W16V16U16:
-                            i._format = GL_RGBA;
-                            i._internalFormat = GL_RGBA16_SNORM;
-                            i._type = GL_SHORT;
-                            bytesPerElement = 8;
-                            break;
-
-                        case FOURCC_R16F:
-                            i._format = GL_RED;
-                            i._internalFormat = GL_R16F;
-                            i._type = GL_HALF_FLOAT_ARB;
-                            bytesPerElement = 2;
-                            break;
-
-                        case FOURCC_G16R16F:
-                            i._format = GL_RG;
-                            i._internalFormat = GL_RG16F;
-                            i._type = GL_HALF_FLOAT_ARB;
-                            bytesPerElement = 4;
-                            break;
-
-                        case FOURCC_A16B16G16R16F:
-                            i._format = GL_RGBA;
-                            i._internalFormat = GL_RGBA16F;
-                            i._type = GL_HALF_FLOAT_ARB;
-                            bytesPerElement = 8;
-                            break;
-
-                        case FOURCC_R32F:
-                            i._format = GL_RED;
-                            i._internalFormat = GL_R32F;
-                            i._type = GL_FLOAT;
-                            bytesPerElement = 4;
-                            break;
-
-                        case FOURCC_G32R32F:
-                            i._format = GL_RG;
-                            i._internalFormat = GL_RG32F;
-                            i._type = GL_FLOAT;
-                            bytesPerElement = 8;
-                            break;
-
-                        case FOURCC_A32B32G32R32F:
-                            i._format = GL_RGBA;
-                            i._internalFormat = GL_RGBA32F;
-                            i._type = GL_FLOAT;
-                            bytesPerElement = 16;
-                            break;
-
-                        case FOURCC_DX10:
-                            TempData p = new TempData();
-                            if (!translateDX10Format(ddsh10, i, p)) {
-                                //fclose(fp);
-                                fp.close();
-                                return false; //translation from DX10 failed
-                            }
-
-                            bytesPerElement = p.bytesPerElement;
-                            btcCompressed = p.btcCompressed;
-                            break;
-
-                        case FOURCC_UNKNOWN:
-                        case FOURCC_X1R5G5B5:
-                        case FOURCC_A1R5G5B5:
-                        case FOURCC_A4R4G4B4:
-                        case FOURCC_R3G3B2:
-                        case FOURCC_A8R3G3B2:
-                        case FOURCC_X4R4G4B4:
-                        case FOURCC_A4L4:
-                        case FOURCC_D16_LOCKABLE:
-                        case FOURCC_D32:
-                        case FOURCC_D24X8:
-                        case FOURCC_D16:
-                        case FOURCC_D32F_LOCKABLE:
-                            //these are unsupported for now
-                        default:
-                            //fclose(fp);
-                            fp.close();
-                            return false;
-                    }
-                }
-                else if (ddsh.ddspf.dwFlags == DDSF_RGBA && ddsh.ddspf.dwRGBBitCount == 32)
-                {
-                    if ( ddsh.ddspf.dwRBitMask == 0xff && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff0000 && ddsh.ddspf.dwABitMask == 0xff000000 ) {
-                        //RGBA8 order
-                        i._format = GL_RGBA;
-                        i._internalFormat = GL_RGBA8;
-                        i._type = GL_UNSIGNED_BYTE;
-                    }
-                    else if ( ddsh.ddspf.dwRBitMask == 0xff0000 && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff && ddsh.ddspf.dwABitMask == 0xff000000 ) {
-                        //BGRA8 order
-                        i._format = GL_BGRA;
-                        i._internalFormat = GL_RGBA8;
-                        i._type = GL_UNSIGNED_BYTE;
-                    }
-                    else if ( ddsh.ddspf.dwRBitMask == 0x3ff00000 && ddsh.ddspf.dwGBitMask == 0xffc00 && ddsh.ddspf.dwBBitMask == 0x3ff && ddsh.ddspf.dwABitMask == 0xc0000000 ) {
-                        //BGR10_A2 order
-                        i._format = GL_RGBA;
-                        i._internalFormat = GL_RGB10_A2;
-                        i._type = GL_UNSIGNED_INT_2_10_10_10_REV; //GL_UNSIGNED_INT_10_10_10_2;
-                    }
-                    else if ( ddsh.ddspf.dwRBitMask == 0x3ff && ddsh.ddspf.dwGBitMask == 0xffc00 && ddsh.ddspf.dwBBitMask == 0x3ff00000 && ddsh.ddspf.dwABitMask == 0xc0000000 ) {
-                        //RGB10_A2 order
-                        i._format = GL_RGBA;
-                        i._internalFormat = GL_RGB10_A2;
-                        i._type = GL_UNSIGNED_INT_10_10_10_2;
-                    }
-                    else {
-                        //we'll just guess BGRA8, because that is the common legacy format for improperly labeled files
-                        i._format = GL_BGRA;
-                        i._internalFormat = GL_RGBA8;
-                        i._type = GL_UNSIGNED_BYTE;
-                    }
-                    bytesPerElement = 4;
-                }
-                else if (ddsh.ddspf.dwFlags == DDSF_RGB  && ddsh.ddspf.dwRGBBitCount == 32)
-                {
-                    if ( ddsh.ddspf.dwRBitMask == 0xffff && ddsh.ddspf.dwGBitMask == 0xffff0000 && ddsh.ddspf.dwBBitMask == 0x00 && ddsh.ddspf.dwABitMask == 0x00 ) {
-                        i._format = GL_RG;
-                        i._internalFormat = GL_RG16;
-                        i._type = GL_UNSIGNED_SHORT;
-                    }
-                    else if ( ddsh.ddspf.dwRBitMask == 0xff && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff0000 && ddsh.ddspf.dwABitMask == 0x00 ) {
-                        i._format = GL_RGBA;  // TODO GL_RGB ??
-                        i._internalFormat = GL_RGBA8;
-                        i._type = GL_UNSIGNED_INT_8_8_8_8;
-                    }
-                    else if ( ddsh.ddspf.dwRBitMask == 0xff0000 && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff && ddsh.ddspf.dwABitMask == 0x00 ) {
-                        i._format = GL_BGRA;  // TODO GL_GBR ??
-                        i._internalFormat = GL_RGBA8;
-                        i._type = GL_UNSIGNED_INT_8_8_8_8;
-                    }
-                    else {
-                        // probably a poorly labeled file with BGRX semantics
-                        i._format = GL_BGRA;   // TODO GL_BGR
-                        i._internalFormat = GL_RGBA8;
-                        i._type = GL_UNSIGNED_INT_8_8_8_8;
-                    }
-                    bytesPerElement = 4;
-                }
-                else if (ddsh.ddspf.dwFlags == DDSF_RGB  && ddsh.ddspf.dwRGBBitCount == 24)
-                {
-                    i._format = GL_BGR;
-                    i._internalFormat = GL_RGB8;
-                    i._type = GL_UNSIGNED_BYTE;
-                    bytesPerElement = 3;
-                }
-                // these cases revived from NVHHDDS...
-                else if ((ddsh.ddspf.dwRGBBitCount == 16) &&
-                        (ddsh.ddspf.dwRBitMask == 0x0000F800) &&
-                        (ddsh.ddspf.dwGBitMask == 0x000007E0) &&
-                        (ddsh.ddspf.dwBBitMask == 0x0000001F) &&
-                        (ddsh.ddspf.dwABitMask == 0x00000000))
-                {
-                    // We support D3D's R5G6B5, which is actually RGB in linear
-                    // memory.  It is equivalent to GL's GL_UNSIGNED_SHORT_5_6_5
-                    i._format = GL_BGR;
-                    i._internalFormat = GL_RGB5;
-                    i._type = GL_UNSIGNED_SHORT_5_6_5;
-                    bytesPerElement = 2;
-                }
-                else if ((ddsh.ddspf.dwRGBBitCount == 8) &&
-                        (ddsh.ddspf.dwRBitMask == 0x00000000) &&
-                        (ddsh.ddspf.dwGBitMask == 0x00000000) &&
-                        (ddsh.ddspf.dwBBitMask == 0x00000000) &&
-                        (ddsh.ddspf.dwABitMask == 0x000000FF))
-                {
-                    // We support D3D's A8
-                    i._format = GL_ALPHA;
-                    i._internalFormat = GL_ALPHA8;
-                    i._type = GL_UNSIGNED_BYTE;
-                    bytesPerElement = 1;
-                }
-                else if ((ddsh.ddspf.dwRGBBitCount == 8) &&
-                        (ddsh.ddspf.dwRBitMask == 0x000000FF) &&
-                        (ddsh.ddspf.dwGBitMask == 0x00000000) &&
-                        (ddsh.ddspf.dwBBitMask == 0x00000000) &&
-                        (ddsh.ddspf.dwABitMask == 0x00000000))
-                {
-                    // We support D3D's L8 (flagged as 8 bits of red only)
-                    i._format = GL_LUMINANCE;
-                    i._internalFormat = GL_LUMINANCE8;
-                    i._type = GL_UNSIGNED_BYTE;
-                    bytesPerElement = 1;
-                }
-                else if ((ddsh.ddspf.dwRGBBitCount == 16) &&
-                        (((ddsh.ddspf.dwRBitMask == 0x000000FF) &&
-                                (ddsh.ddspf.dwGBitMask == 0x00000000) &&
-                                (ddsh.ddspf.dwBBitMask == 0x00000000) &&
-                                (ddsh.ddspf.dwABitMask == 0x0000FF00)) ||
-                                ((ddsh.ddspf.dwRBitMask == 0x000000FF) && // GIMP header for L8A8
-                                        (ddsh.ddspf.dwGBitMask == 0x000000FF) &&  // Ugh
-                                        (ddsh.ddspf.dwBBitMask == 0x000000FF) &&
-                                        (ddsh.ddspf.dwABitMask == 0x0000FF00)))
-                        )
-                {
-                    // We support D3D's A8L8 (flagged as 8 bits of red and 8 bits of alpha)
-                    i._format = GL_LUMINANCE_ALPHA;
-                    i._internalFormat = GL_LUMINANCE8_ALPHA8;
-                    i._type = GL_UNSIGNED_BYTE;
-                    bytesPerElement = 2;
-                }
-                // else fall back to L8 generic handling if capable.
-                else if (ddsh.ddspf.dwRGBBitCount == 8)
-                {
-                    i._format = GL_LUMINANCE;
-                    i._internalFormat = GL_LUMINANCE8;
-                    i._type = GL_UNSIGNED_BYTE;
-                    bytesPerElement = 1;
-                }
-                // else, we can't decode this file... :-(
-                else
-                {
-                    LogUtil.i(LogUtil.LogType.NV_FRAMEWROK, "! Error decoding DDS file.");
+                //check for a complete cubemap
+                if ( (i._layers != 6) || (i._width != i._height) ) {
                     //fclose(fp);
                     fp.close();
                     return false;
                 }
 
-                i._elementSize = bytesPerElement;
+                i._cubeMap = true;
+            }
+            else {
+                //not a cubemap
+                i._layers = 1;
+                i._cubeMap = false;
+            }
 
-                i._data.clear();
+            boolean btcCompressed = false;
+            int bytesPerElement = 0;
 
-                final NvGfxAPIVersion api = getAPIVersion();
+            // figure out what the image format is
+            if ((ddsh.ddspf.dwFlags & DDSF_FOURCC) !=0 )
+            {
+                switch(ddsh.ddspf.dwFourCC)
+                {
+                    case FOURCC_DXT1:
+                        i._format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+                        i._internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+                        i._type = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+                        bytesPerElement = 8;
+                        btcCompressed = true;
+                        break;
 
-                boolean isES = (api == NvGfxAPIVersion.GLES2 || api ==NvGfxAPIVersion.GLES3_0 || api == NvGfxAPIVersion.GLES3_1);
-                boolean mustExpandDXT = m_expandDXT &&
-                        ((i._format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ||
-                                (i._format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT) ||
-                                (i._format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT));
+                    case FOURCC_DXT2:
+                    case FOURCC_DXT3:
+                        i._format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+                        i._internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+                        i._type = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+                        bytesPerElement = 16;
+                        btcCompressed = true;
+                        break;
 
-                for (int face = 0; face < i._layers; face++) {
-                    int w = i._width, h = i._height, d = (i._depth > 0) ? i._depth : 1;
-                    for (int level = 0; level < i._levelCount; level++) {
-                        int bw = (btcCompressed) ? (w+3)/4 : w;
-                        int bh = (btcCompressed) ? (h+3)/4 : h;
-                        int size = bw*bh*d*bytesPerElement;
+                    case FOURCC_DXT4:
+                    case FOURCC_DXT5:
+                        i._format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+                        i._internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+                        i._type = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+                        bytesPerElement = 16;
+                        btcCompressed = true;
+                        break;
 
-                        byte[] pixels = new byte[size];
+                    case FOURCC_ATI1:
+                        i._format = GL_COMPRESSED_RED_RGTC1;
+                        i._internalFormat = GL_COMPRESSED_RED_RGTC1;
+                        i._type = GL_COMPRESSED_RED_RGTC1;
+                        bytesPerElement = 8;
+                        btcCompressed = true;
+                        break;
 
-                        //fread( data, size, 1, fp);
-                        fp.read(pixels);
+                    case FOURCC_BC4U:
+                        i._format = GL_COMPRESSED_RED_RGTC1;
+                        i._internalFormat = GL_COMPRESSED_RED_RGTC1;
+                        i._type = GL_COMPRESSED_RED_RGTC1;
+                        bytesPerElement = 8;
+                        btcCompressed = true;
+                        break;
 
-                        if (upperLeftOrigin && !i._cubeMap)
-                            i.flipSurface( pixels, w, h, d);
+                    case FOURCC_BC4S:
+                        i._format = GL_COMPRESSED_SIGNED_RED_RGTC1;
+                        i._internalFormat = GL_COMPRESSED_SIGNED_RED_RGTC1;
+                        i._type = GL_COMPRESSED_SIGNED_RED_RGTC1;
+                        bytesPerElement = 8;
+                        btcCompressed = true;
+                        break;
 
-                        if (isES)
-                            i.componentSwapSurface(pixels, w, h, d);
+                    case FOURCC_ATI2:
+                        i._format = GL_COMPRESSED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
+                        i._internalFormat = GL_COMPRESSED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
+                        i._type = GL_COMPRESSED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
+                        bytesPerElement = 16;
+                        btcCompressed = true;
+                        break;
 
-                        // do we need to expand DXT?
-                        if (mustExpandDXT) {
-                            byte[] expandedPixels = i.expandDXT(pixels, w, h, d);
-                            pixels = expandedPixels;
+                    case FOURCC_BC5S:
+                        i._format = GL_COMPRESSED_SIGNED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
+                        i._internalFormat = GL_COMPRESSED_SIGNED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
+                        i._type = GL_COMPRESSED_SIGNED_RG_RGTC2; //GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
+                        bytesPerElement = 16;
+                        btcCompressed = true;
+                        break;
+
+                    case FOURCC_R8G8B8:
+                        i._format = GL_BGR;
+                        i._internalFormat = GL_RGB8;
+                        i._type = GL_UNSIGNED_BYTE;
+                        bytesPerElement = 3;
+                        break;
+
+                    case FOURCC_A8R8G8B8:
+                        i._format = GL_BGRA;
+                        i._internalFormat = GL_RGBA8;
+                        i._type = GL_UNSIGNED_BYTE;
+                        bytesPerElement = 4;
+                        break;
+
+                    case FOURCC_X8R8G8B8:
+                        i._format = GL_BGRA;
+                        i._internalFormat = GL_RGB8;
+                        i._type = GL_UNSIGNED_INT_8_8_8_8;
+                        bytesPerElement = 4;
+                        break;
+
+                    case FOURCC_R5G6B5:
+                        i._format = GL_BGR;
+                        i._internalFormat = GL_RGB5;
+                        i._type = GL_UNSIGNED_SHORT_5_6_5;
+                        bytesPerElement = 2;
+                        break;
+                    case FOURCC_A8:
+                        i._format = GL_ALPHA;
+                        i._internalFormat = GL_ALPHA8;
+                        i._type = GL_UNSIGNED_BYTE;
+                        bytesPerElement = 1;
+                        break;
+
+                    case FOURCC_A2B10G10R10:
+                        i._format = GL_RGBA;
+                        i._internalFormat = GL_RGB10_A2;
+                        i._type = GL_UNSIGNED_INT_10_10_10_2;
+                        bytesPerElement = 4;
+                        break;
+
+                    case FOURCC_A8B8G8R8:
+                        i._format = GL_RGBA;
+                        i._internalFormat = GL_RGBA8;
+                        i._type = GL_UNSIGNED_BYTE;
+                        bytesPerElement = 4;
+                        break;
+
+                    case FOURCC_X8B8G8R8:
+                        i._format = GL_RGBA;
+                        i._internalFormat = GL_RGB8;
+                        i._type = GL_UNSIGNED_INT_8_8_8_8;
+                        bytesPerElement = 4;
+                        break;
+
+                    case FOURCC_A2R10G10B10:
+                        i._format = GL_BGRA;
+                        i._internalFormat = GL_RGB10_A2;
+                        i._type = GL_UNSIGNED_INT_10_10_10_2;
+                        bytesPerElement = 4;
+                        break;
+
+                    case FOURCC_G16R16:
+                        i._format = GL_RG;
+                        i._internalFormat = GL_RG16;
+                        i._type = GL_UNSIGNED_SHORT;
+                        bytesPerElement = 4;
+                        break;
+
+                    case FOURCC_A16B16G16R16:
+                        i._format = GL_RGBA;
+                        i._internalFormat = GL_RGBA16;
+                        i._type = GL_UNSIGNED_SHORT;
+                        bytesPerElement = 8;
+                        break;
+
+                    case FOURCC_L8:
+                        i._format = GL_LUMINANCE;
+                        i._internalFormat = GL_LUMINANCE8;
+                        i._type = GL_UNSIGNED_BYTE;
+                        bytesPerElement = 1;
+                        break;
+
+                    case FOURCC_A8L8:
+                        i._format = GL_LUMINANCE_ALPHA;
+                        i._internalFormat = GL_LUMINANCE8_ALPHA8;
+                        i._type = GL_UNSIGNED_BYTE;
+                        bytesPerElement = 2;
+                        break;
+
+                    case FOURCC_L16:
+                        i._format = GL_LUMINANCE;
+                        i._internalFormat = GL_LUMINANCE16;
+                        i._type = GL_UNSIGNED_SHORT;
+                        bytesPerElement = 2;
+                        break;
+
+                    case FOURCC_Q16W16V16U16:
+                        i._format = GL_RGBA;
+                        i._internalFormat = GL_RGBA16_SNORM;
+                        i._type = GL_SHORT;
+                        bytesPerElement = 8;
+                        break;
+
+                    case FOURCC_R16F:
+                        i._format = GL_RED;
+                        i._internalFormat = GL_R16F;
+                        i._type = GL_HALF_FLOAT_ARB;
+                        bytesPerElement = 2;
+                        break;
+
+                    case FOURCC_G16R16F:
+                        i._format = GL_RG;
+                        i._internalFormat = GL_RG16F;
+                        i._type = GL_HALF_FLOAT_ARB;
+                        bytesPerElement = 4;
+                        break;
+
+                    case FOURCC_A16B16G16R16F:
+                        i._format = GL_RGBA;
+                        i._internalFormat = GL_RGBA16F;
+                        i._type = GL_HALF_FLOAT_ARB;
+                        bytesPerElement = 8;
+                        break;
+
+                    case FOURCC_R32F:
+                        i._format = GL_RED;
+                        i._internalFormat = GL_R32F;
+                        i._type = GL_FLOAT;
+                        bytesPerElement = 4;
+                        break;
+
+                    case FOURCC_G32R32F:
+                        i._format = GL_RG;
+                        i._internalFormat = GL_RG32F;
+                        i._type = GL_FLOAT;
+                        bytesPerElement = 8;
+                        break;
+
+                    case FOURCC_A32B32G32R32F:
+                        i._format = GL_RGBA;
+                        i._internalFormat = GL_RGBA32F;
+                        i._type = GL_FLOAT;
+                        bytesPerElement = 16;
+                        break;
+
+                    case FOURCC_DX10:
+                        TempData p = new TempData();
+                        if (!translateDX10Format(ddsh10, i, p)) {
+                            //fclose(fp);
+                            fp.close();
+                            return false; //translation from DX10 failed
                         }
 
-                        i._data.add(pixels);
+                        bytesPerElement = p.bytesPerElement;
+                        btcCompressed = p.btcCompressed;
+                        break;
 
-                        //reduce mip sizes
-                        w = ( w > 1) ? w >> 1 : 1;
-                        h = ( h > 1) ? h >> 1 : 1;
-                        d = ( d > 1) ? d >> 1 : 1;
-                    }
+                    case FOURCC_UNKNOWN:
+                    case FOURCC_X1R5G5B5:
+                    case FOURCC_A1R5G5B5:
+                    case FOURCC_A4R4G4B4:
+                    case FOURCC_R3G3B2:
+                    case FOURCC_A8R3G3B2:
+                    case FOURCC_X4R4G4B4:
+                    case FOURCC_A4L4:
+                    case FOURCC_D16_LOCKABLE:
+                    case FOURCC_D32:
+                    case FOURCC_D24X8:
+                    case FOURCC_D16:
+                    case FOURCC_D32F_LOCKABLE:
+                        //these are unsupported for now
+                    default:
+                        //fclose(fp);
+                        fp.close();
+                        return false;
                 }
-
-                if (mustExpandDXT) {
+            }
+            else if (ddsh.ddspf.dwFlags == DDSF_RGBA && ddsh.ddspf.dwRGBBitCount == 32)
+            {
+                if ( ddsh.ddspf.dwRBitMask == 0xff && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff0000 && ddsh.ddspf.dwABitMask == 0xff000000 ) {
+                    //RGBA8 order
                     i._format = GL_RGBA;
+                    i._internalFormat = GL_RGBA8;
                     i._type = GL_UNSIGNED_BYTE;
                 }
-                fp.close();
-                return true;
-            } catch (IOException e) {
-                throw e;
+                else if ( ddsh.ddspf.dwRBitMask == 0xff0000 && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff && ddsh.ddspf.dwABitMask == 0xff000000 ) {
+                    //BGRA8 order
+                    i._format = GL_BGRA;
+                    i._internalFormat = GL_RGBA8;
+                    i._type = GL_UNSIGNED_BYTE;
+                }
+                else if ( ddsh.ddspf.dwRBitMask == 0x3ff00000 && ddsh.ddspf.dwGBitMask == 0xffc00 && ddsh.ddspf.dwBBitMask == 0x3ff && ddsh.ddspf.dwABitMask == 0xc0000000 ) {
+                    //BGR10_A2 order
+                    i._format = GL_RGBA;
+                    i._internalFormat = GL_RGB10_A2;
+                    i._type = GL_UNSIGNED_INT_2_10_10_10_REV; //GL_UNSIGNED_INT_10_10_10_2;
+                }
+                else if ( ddsh.ddspf.dwRBitMask == 0x3ff && ddsh.ddspf.dwGBitMask == 0xffc00 && ddsh.ddspf.dwBBitMask == 0x3ff00000 && ddsh.ddspf.dwABitMask == 0xc0000000 ) {
+                    //RGB10_A2 order
+                    i._format = GL_RGBA;
+                    i._internalFormat = GL_RGB10_A2;
+                    i._type = GL_UNSIGNED_INT_10_10_10_2;
+                }
+                else {
+                    //we'll just guess BGRA8, because that is the common legacy format for improperly labeled files
+                    i._format = GL_BGRA;
+                    i._internalFormat = GL_RGBA8;
+                    i._type = GL_UNSIGNED_BYTE;
+                }
+                bytesPerElement = 4;
             }
+            else if (ddsh.ddspf.dwFlags == DDSF_RGB  && ddsh.ddspf.dwRGBBitCount == 32)
+            {
+                if ( ddsh.ddspf.dwRBitMask == 0xffff && ddsh.ddspf.dwGBitMask == 0xffff0000 && ddsh.ddspf.dwBBitMask == 0x00 && ddsh.ddspf.dwABitMask == 0x00 ) {
+                    i._format = GL_RG;
+                    i._internalFormat = GL_RG16;
+                    i._type = GL_UNSIGNED_SHORT;
+                }
+                else if ( ddsh.ddspf.dwRBitMask == 0xff && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff0000 && ddsh.ddspf.dwABitMask == 0x00 ) {
+                    i._format = GL_RGBA;  // TODO GL_RGB ??
+                    i._internalFormat = GL_RGBA8;
+                    i._type = GL_UNSIGNED_INT_8_8_8_8;
+                }
+                else if ( ddsh.ddspf.dwRBitMask == 0xff0000 && ddsh.ddspf.dwGBitMask == 0xff00 && ddsh.ddspf.dwBBitMask == 0xff && ddsh.ddspf.dwABitMask == 0x00 ) {
+                    i._format = GL_BGRA;  // TODO GL_GBR ??
+                    i._internalFormat = GL_RGBA8;
+                    i._type = GL_UNSIGNED_INT_8_8_8_8;
+                }
+                else {
+                    // probably a poorly labeled file with BGRX semantics
+                    i._format = GL_BGRA;   // TODO GL_BGR
+                    i._internalFormat = GL_RGBA8;
+                    i._type = GL_UNSIGNED_INT_8_8_8_8;
+                }
+                bytesPerElement = 4;
+            }
+            else if (ddsh.ddspf.dwFlags == DDSF_RGB  && ddsh.ddspf.dwRGBBitCount == 24)
+            {
+                i._format = GL_BGR;
+                i._internalFormat = GL_RGB8;
+                i._type = GL_UNSIGNED_BYTE;
+                bytesPerElement = 3;
+            }
+            // these cases revived from NVHHDDS...
+            else if ((ddsh.ddspf.dwRGBBitCount == 16) &&
+                    (ddsh.ddspf.dwRBitMask == 0x0000F800) &&
+                    (ddsh.ddspf.dwGBitMask == 0x000007E0) &&
+                    (ddsh.ddspf.dwBBitMask == 0x0000001F) &&
+                    (ddsh.ddspf.dwABitMask == 0x00000000))
+            {
+                // We support D3D's R5G6B5, which is actually RGB in linear
+                // memory.  It is equivalent to GL's GL_UNSIGNED_SHORT_5_6_5
+                i._format = GL_BGR;
+                i._internalFormat = GL_RGB5;
+                i._type = GL_UNSIGNED_SHORT_5_6_5;
+                bytesPerElement = 2;
+            }
+            else if ((ddsh.ddspf.dwRGBBitCount == 8) &&
+                    (ddsh.ddspf.dwRBitMask == 0x00000000) &&
+                    (ddsh.ddspf.dwGBitMask == 0x00000000) &&
+                    (ddsh.ddspf.dwBBitMask == 0x00000000) &&
+                    (ddsh.ddspf.dwABitMask == 0x000000FF))
+            {
+                // We support D3D's A8
+                i._format = GL_ALPHA;
+                i._internalFormat = GL_ALPHA8;
+                i._type = GL_UNSIGNED_BYTE;
+                bytesPerElement = 1;
+            }
+            else if ((ddsh.ddspf.dwRGBBitCount == 8) &&
+                    (ddsh.ddspf.dwRBitMask == 0x000000FF) &&
+                    (ddsh.ddspf.dwGBitMask == 0x00000000) &&
+                    (ddsh.ddspf.dwBBitMask == 0x00000000) &&
+                    (ddsh.ddspf.dwABitMask == 0x00000000))
+            {
+                // We support D3D's L8 (flagged as 8 bits of red only)
+                i._format = GL_LUMINANCE;
+                i._internalFormat = GL_LUMINANCE8;
+                i._type = GL_UNSIGNED_BYTE;
+                bytesPerElement = 1;
+            }
+            else if ((ddsh.ddspf.dwRGBBitCount == 16) &&
+                    (((ddsh.ddspf.dwRBitMask == 0x000000FF) &&
+                            (ddsh.ddspf.dwGBitMask == 0x00000000) &&
+                            (ddsh.ddspf.dwBBitMask == 0x00000000) &&
+                            (ddsh.ddspf.dwABitMask == 0x0000FF00)) ||
+                            ((ddsh.ddspf.dwRBitMask == 0x000000FF) && // GIMP header for L8A8
+                                    (ddsh.ddspf.dwGBitMask == 0x000000FF) &&  // Ugh
+                                    (ddsh.ddspf.dwBBitMask == 0x000000FF) &&
+                                    (ddsh.ddspf.dwABitMask == 0x0000FF00)))
+                    )
+            {
+                // We support D3D's A8L8 (flagged as 8 bits of red and 8 bits of alpha)
+                i._format = GL_LUMINANCE_ALPHA;
+                i._internalFormat = GL_LUMINANCE8_ALPHA8;
+                i._type = GL_UNSIGNED_BYTE;
+                bytesPerElement = 2;
+            }
+            // else fall back to L8 generic handling if capable.
+            else if (ddsh.ddspf.dwRGBBitCount == 8)
+            {
+                i._format = GL_LUMINANCE;
+                i._internalFormat = GL_LUMINANCE8;
+                i._type = GL_UNSIGNED_BYTE;
+                bytesPerElement = 1;
+            }
+            // else, we can't decode this file... :-(
+            else
+            {
+                LogUtil.i(LogUtil.LogType.NV_FRAMEWROK, "! Error decoding DDS file.");
+                //fclose(fp);
+                fp.close();
+                return false;
+            }
+
+            i._elementSize = bytesPerElement;
+
+            i._data.clear();
+            if(i._onlyReadFormat) return true;
+
+            final NvGfxAPIVersion api = getAPIVersion();
+
+            boolean isES = (api == NvGfxAPIVersion.GLES2 || api ==NvGfxAPIVersion.GLES3_0 || api == NvGfxAPIVersion.GLES3_1);
+            boolean mustExpandDXT = m_expandDXT &&
+                    ((i._format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ||
+                            (i._format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT) ||
+                            (i._format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT));
+
+            for (int face = 0; face < i._layers; face++) {
+                int w = i._width, h = i._height, d = (i._depth > 0) ? i._depth : 1;
+                for (int level = 0; level < i._levelCount; level++) {
+                    int bw = (btcCompressed) ? (w+3)/4 : w;
+                    int bh = (btcCompressed) ? (h+3)/4 : h;
+                    int size = bw*bh*d*bytesPerElement;
+
+                    byte[] pixels = new byte[size];
+
+                    //fread( data, size, 1, fp);
+                    fp.read(pixels);
+
+                    if (upperLeftOrigin && !i._cubeMap)
+                        i.flipSurface( pixels, w, h, d);
+
+                    if (isES)
+                        i.componentSwapSurface(pixels, w, h, d);
+
+                    // do we need to expand DXT?
+                    if (mustExpandDXT) {
+                        byte[] expandedPixels = i.expandDXT(pixels, w, h, d);
+                        pixels = expandedPixels;
+                    }
+
+                    i._data.add(pixels);
+
+                    //reduce mip sizes
+                    w = ( w > 1) ? w >> 1 : 1;
+                    h = ( h > 1) ? h >> 1 : 1;
+                    d = ( d > 1) ? d >> 1 : 1;
+                }
+            }
+
+            if (mustExpandDXT) {
+                i._format = GL_RGBA;
+                i._type = GL_UNSIGNED_BYTE;
+            }
+            return true;
         }
 
     }
@@ -2551,6 +2557,17 @@ public class NvImage {
             return 32; // 8 * 4
         }
 
+        void read(InputStream in) throws IOException{
+            dwSize = Numeric.getInt(in);
+            dwFlags = Numeric.getInt(in);
+            dwFourCC = Numeric.getInt(in);
+            dwRGBBitCount = Numeric.getInt(in);
+            dwRBitMask = Numeric.getInt(in);
+            dwGBitMask = Numeric.getInt(in);
+            dwBBitMask = Numeric.getInt(in);
+            dwABitMask = Numeric.getInt(in);
+        }
+
         void read(DataInputStream in) throws IOException{
             dwSize = in.readInt();
             dwFlags = in.readInt();
@@ -2638,6 +2655,25 @@ public class NvImage {
             }
         }
 
+        void read(InputStream in) throws IOException{
+            dwSize = Numeric.getInt(in);
+            dwFlags = Numeric.getInt(in);
+            dwHeight = Numeric.getInt(in);
+            dwWidth = Numeric.getInt(in);
+            dwPitchOrLinearSize = Numeric.getInt(in);
+            dwDepth = Numeric.getInt(in);
+            dwMipMapCount = Numeric.getInt(in);
+            for(int i = 0; i < dwReserved1.length;i++){
+                dwReserved1[i] = Numeric.getInt(in);
+            }
+            ddspf.read(in);
+            dwCaps1 = Numeric.getInt(in);
+            dwCaps2 = Numeric.getInt(in);
+            for(int i = 0; i < dwReserved2.length;i++){
+                dwReserved2[i] = Numeric.getInt(in);
+            }
+        }
+
         void write(DataOutputStream fp) throws IOException {
             fp.writeInt(dwSize);
             fp.writeInt(dwFlags);
@@ -2669,6 +2705,14 @@ public class NvImage {
             miscFlag = Integer.reverseBytes(fp.readInt());
             arraySize = Integer.reverseBytes(fp.readInt());
             reserved = Integer.reverseBytes(fp.readInt());
+        }
+
+        public void read(InputStream fp) throws IOException {
+            dxgiFormat = Numeric.getInt(fp);
+            resourceDimension = Numeric.getInt(fp);
+            miscFlag = Numeric.getInt(fp);
+            arraySize = Numeric.getInt(fp);
+            reserved = Numeric.getInt(fp);
         }
     }
 

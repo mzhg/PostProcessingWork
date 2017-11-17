@@ -775,4 +775,14 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 		z = buf.getFloat();
 		return this;
 	}
+
+	/**
+	 * Set the <code>min</code> to the minimum float values. Set the <code>max</code> to the maximum float values.
+	 * @param min The variable which will be set to the minimum float values. Can be null.
+	 * @param max The variable which will be set to the maximum float values. Can be null.
+	 */
+	public static void initAsMinMax(WritableVector3f min, WritableVector3f max){
+		if(min!=null) min.set(-Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE);
+		if(max!=null) max.set(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
+	}
 }

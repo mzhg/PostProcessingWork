@@ -8,6 +8,7 @@ import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.Random;
 
+import jet.opengl.demos.intel.cput.CPUTCamera;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -84,7 +85,7 @@ final class ParticleSystem implements Disposeable{
     private final Vector3f   mCameraLookAt = new Vector3f();
 
 
-    CPUTCamera        mpCamera;
+    Camera mpCamera;
     private boolean          mEnableSizeUpdate;
     private boolean          mEnableOpacityUpdate;
 
@@ -219,14 +220,22 @@ final class ParticleSystem implements Disposeable{
         Matrix4f viewWorld    = pViewCamera.GetWorldMatrix();
         Matrix4f lightWorld   = pLightCamera.GetWorldMatrix();
 
+        Vector3f position = new Vector3f();
+        Vector3f lookat = new Vector3f();
+        Vector3f up = new Vector3f();
+
+        pViewCamera.GetPosition(position);
+        pViewCamera.GetLook(lookat);
+        pViewCamera.GetUp(up);
+
         mpCamera.SetPositionAndOrientation(
                 fov,
                 aspect,
                 nearClip,
                 farClip,
-                /**(( D3DXVECTOR3* )&viewWorld._41)*/  pViewCamera.GetPosition(),  // position
-        /**(( D3DXVECTOR3* )&viewWorld._31)*/ pViewCamera.GetLook(),  // look direction
-        /**(( D3DXVECTOR3* )&viewWorld._21)*/ pViewCamera.GetUp()   // UP
+                /**(( D3DXVECTOR3* )&viewWorld._41)*/   position,
+        /**(( D3DXVECTOR3* )&viewWorld._31)*/  lookat,
+        /**(( D3DXVECTOR3* )&viewWorld._21)*/ up
         );
 
         ResetBBox();
@@ -243,9 +252,10 @@ final class ParticleSystem implements Disposeable{
         /*mLightRight = *(( D3DXVECTOR3* )&lightWorld._11);
         mLightUp    = *(( D3DXVECTOR3* )&lightWorld._21);
         mLightLook  = *(( D3DXVECTOR3* )&lightWorld._31);*/
-        mLightRight.set(pLightCamera.GetRight());
-        mLightUp.set(pLightCamera.GetUp());
-        mLightLook.set(pLightCamera.GetLook());
+
+        pLightCamera.GetRight(mLightRight);
+        pLightCamera.GetUp(mLightUp);
+        pLightCamera.GetLook(mLightLook);
 
         UpdateLightViewProjection();
 
@@ -642,7 +652,7 @@ final class ParticleSystem implements Disposeable{
                 i0,
                 i1,
                 i2 );*/
-        mpCamera = new CPUTCamera();
+        mpCamera = new Camera();
         mpCamera.SetPositionAndOrientation((float)Math.toDegrees(1.0f), 1.0f,
                 1.0f, 1000.0f,
                 Vector3f.ZERO, Vector3f.X_AXIS, Vector3f.Z_AXIS);  // TODO

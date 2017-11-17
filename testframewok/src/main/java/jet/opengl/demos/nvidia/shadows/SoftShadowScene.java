@@ -382,23 +382,6 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         m_meshInstances.remove(instance);
     }
 
-    void initCamera(int index, Vector3f eye, Vector3f at) {
-        // Construct the look matrix
-//	    	    Matrix4f look;
-//	    	    lookAt(look, eye, at, nv.vec3f(0.0f, 1.0f, 0.0f));
-        Matrix4f look = Matrix4f.lookAt(eye, at, Vector3f.Y_AXIS, null);
-
-        // Decompose the look matrix to get the yaw and pitch.
-        float pitch = (float) Math.atan2(-look.m21, /*_32*/ look.m22/*_33*/);
-        float yaw = (float) Math.atan2(look.m20/*_31*/, Vector2f.length(-look.m21/*_32*/, look.m22/*_33*/));
-
-        // Initialize the camera view.
-        NvInputTransformer m_camera = mNVApp.getInputTransformer();
-        m_camera.setRotationVec(new Vector3f(pitch, yaw, 0.0f), index);
-        m_camera.setTranslationVec(new Vector3f(look.m30/*_41*/, look.m31/*_42*/, look.m32/*_43*/), index);
-        m_camera.update(0.0f);
-    }
-
     void createGeometry()
     {
         m_groundIndexBuffer = gl.glGenBuffer();

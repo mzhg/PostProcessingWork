@@ -1,4 +1,4 @@
-package com.nvidia.developer.opengl.models.mdl;
+package jet.opengl.demos.intel.cput;
 
 import jet.opengl.postprocessing.texture.Texture2D;
 

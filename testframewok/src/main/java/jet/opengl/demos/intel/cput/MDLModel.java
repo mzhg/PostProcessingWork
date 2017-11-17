@@ -1,4 +1,4 @@
-package com.nvidia.developer.opengl.models.mdl;
+package jet.opengl.demos.intel.cput;
 
 import java.io.BufferedReader;
 import java.io.IOException;

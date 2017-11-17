@@ -163,6 +163,17 @@ public class GLSLProgram implements OpenGLProgram{
 		return result;
 	}
 
+	public static ShaderProgram createShaderProgramFromString(CharSequence source, ShaderType type, Macro... macros){
+		ShaderSourceItem item = new ShaderSourceItem();
+		item.macros = macros;
+		item.source = source;
+		item.type =  type;
+
+		ShaderProgram shader = new ShaderProgram();
+		createFromString(item, shader, "ShaderProgram");
+		return shader;
+	}
+
 	public static void createFromString(ShaderSourceItem item, ShaderProgram program, String debugName){
 		CharSequence source = constructSourceImpl(item);
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();

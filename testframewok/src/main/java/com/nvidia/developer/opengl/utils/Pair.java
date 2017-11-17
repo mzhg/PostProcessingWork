@@ -1,5 +1,7 @@
 package com.nvidia.developer.opengl.utils;
 
+import jet.opengl.postprocessing.util.CommonUtil;
+
 /**
  * Created by mazhen'gui on 2017/9/7.
  */
@@ -40,19 +42,8 @@ public class Pair<K, V> {
         if (getClass() != obj.getClass())
             return false;
 
-        @SuppressWarnings("rawtypes")
-        Pair other = (Pair) obj;
-        if (first == null) {
-            if (other.first != null)
-                return false;
-        } else if (!first.equals(other.first))
-            return false;
-        if (second == null) {
-            if (other.second != null)
-                return false;
-        } else if (!second.equals(other.second))
-            return false;
-        return true;
+        Pair<?,?> other = (Pair<?,?>) obj;
+        return CommonUtil.equals(first, other.first) && CommonUtil.equals(second, other.second);
     }
 
 }

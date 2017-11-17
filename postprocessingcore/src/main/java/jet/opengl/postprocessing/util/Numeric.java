@@ -4,6 +4,9 @@ import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.WritableVector3f;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 public final class Numeric {
 
 	// -15 stored using a single precision bias of 127
@@ -123,6 +126,24 @@ public final class Numeric {
 	
 	public static final float random(float low, float high){
 		return (float) (Math.random() * (high - low) + low);
+	}
+
+	public static final int getInt(InputStream in) throws IOException{
+		int a = in.read();
+		int b = in.read();
+		int c = in.read();
+		int d = in.read();
+
+		return makeRGBA(a,b,c,d);
+	}
+
+	public static final int getIntBE(InputStream in) throws IOException{
+		int a = in.read();
+		int b = in.read();
+		int c = in.read();
+		int d = in.read();
+
+		return makeRGBA(d, c, b, a);
 	}
 	
 	public static final int getInt(byte[] data, int position) {

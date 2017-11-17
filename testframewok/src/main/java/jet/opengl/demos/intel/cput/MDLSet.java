@@ -1,4 +1,4 @@
-package com.nvidia.developer.opengl.models.mdl;
+package jet.opengl.demos.intel.cput;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -10,7 +10,6 @@ import java.util.Properties;
 /**
  * Created by mazhen'gui on 2017/11/11.
  */
-
 final class MDLSet {
     int node;
     String type;
@@ -22,7 +21,6 @@ final class MDLSet {
     int meshcount;
     final List<String> materialNames = new ArrayList<>();
     final List<Properties> materials = new ArrayList<>();
-
 
     @Override
     public String toString() {

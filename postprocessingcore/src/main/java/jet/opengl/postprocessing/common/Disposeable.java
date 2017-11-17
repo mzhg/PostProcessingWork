@@ -13,4 +13,14 @@ public interface Disposeable {
     default void SAFE_RELEASE(Disposeable res){
         CommonUtil.safeRelease(res);
     }
+
+    default void SAFE_DELETE_ARRAY(Disposeable[] reses){
+        if(reses != null){
+            for(int i = 0; i < reses.length; i++){
+                Disposeable res = reses[i];
+                CommonUtil.safeRelease(res);
+                reses[i] = null;
+            }
+        }
+    }
 }

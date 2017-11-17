@@ -7,7 +7,7 @@ import org.lwjgl.util.vector.Vector3f;
 /**
  * Created by mazhen'gui on 2017/9/29.
  */
-final class CPUTCamera {
+final class Camera {
     private float fov;
     private float aspect;
     private float near;

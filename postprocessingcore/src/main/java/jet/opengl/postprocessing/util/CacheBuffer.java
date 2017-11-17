@@ -8,6 +8,7 @@ import org.lwjgl.util.vector.ReadableVector4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
+import org.lwjgl.util.vector.Vector4i;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.Buffer;
@@ -146,6 +147,10 @@ public class CacheBuffer {
 
 	public static FloatBuffer wrap(ReadableVector4f v){
 		return wrap(v.getX(), v.getY(), v.getZ(), v.getW());
+	}
+
+	public static IntBuffer wrap(Vector4i v){
+		return wrap(v.x, v.y, v.z, v.w);
 	}
 	
 	public static FloatBuffer wrap(float x, float y, float z, float w){

@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import jet.opengl.demos.intel.cput.CPUTCamera;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -288,8 +289,8 @@ final class AVSMTechnique implements Disposeable{
         mRenderTargets = new RenderTargets();
     }
 
-    void InitializeFrameContext( FrameContext outContext, Options options, /*ID3D11DeviceContext* d3dDeviceContext,*/ ParticleSystem  particleSystem,
-                                    Matrix4f worldMatrix, CPUTCamera viewerCamera, CPUTCamera lightCamera, Vector4i viewport ){
+    void InitializeFrameContext(FrameContext outContext, Options options, /*ID3D11DeviceContext* d3dDeviceContext,*/ ParticleSystem  particleSystem,
+                                Matrix4f worldMatrix, CPUTCamera viewerCamera, CPUTCamera lightCamera, Vector4i viewport ){
         outContext.DepthBufferSRV   = null;
 //        outContext.D3dDeviceContext = d3dDeviceContext;
         outContext.Options          .set(options);
@@ -442,8 +443,8 @@ final class AVSMTechnique implements Disposeable{
     private final ParticlePerFrameConstants m_particlePerFrameConstants = new ParticlePerFrameConstants();
     void UpdateParticles( FrameContext frameContext ){
         Options options                         = frameContext.Options;
-        CPUTCamera  viewerCamera                = frameContext.ViewerCamera;
-        CPUTCamera  lightCamera                 = frameContext.LightCamera;
+        CPUTCamera viewerCamera                = frameContext.ViewerCamera;
+        CPUTCamera lightCamera                 = frameContext.LightCamera;
         ParticleSystem   particleSystem         = frameContext.ParticleSystem;
 //        ID3D11DeviceContext * d3dDeviceContext  = frameContext.D3dDeviceContext;
         FrameMatrices   frameMatx               = frameContext.Matrices;
@@ -489,14 +490,15 @@ final class AVSMTechnique implements Disposeable{
         Options  options                        = frameContext.Options;
 //        ID3D11DeviceContext * d3dDeviceContext  = frameContext.D3dDeviceContext;
         ParticleSystem  particleSystem         = frameContext.ParticleSystem;
-        CPUTCamera  viewerCamera               = frameContext.ViewerCamera;
-        CPUTCamera  lightCamera                = frameContext.LightCamera;
+        CPUTCamera viewerCamera               = frameContext.ViewerCamera;
+        CPUTCamera lightCamera                = frameContext.LightCamera;
         Vector4i viewport                      = frameContext.Viewport;
         UIConstants  ui                        = frameContext.GPUUIConstants;
         FrameStats  frameStats                 = frameContext.Stats;
         FrameMatrices  frameMatx               = frameContext.Matrices;
 //        D3DXVECTOR4 cameraPos  = D3DXVECTOR4( DXUTFromCPUT( viewerCamera->GetPosition() ), 1.0f );
-        ReadableVector3f cameraPos             = viewerCamera.GetPosition();
+        Vector3f cameraPos             = new Vector3f();
+        viewerCamera.GetPosition(cameraPos);
 
         // no lookup not supported at the moment
         assert( ui.enableVolumeShadowLookup!=0 );
@@ -538,14 +540,15 @@ final class AVSMTechnique implements Disposeable{
         Options  options                        = frameContext.Options;
 //        ID3D11DeviceContext * d3dDeviceContext  = frameContext.D3dDeviceContext;
         ParticleSystem  particleSystem         = frameContext.ParticleSystem;
-        CPUTCamera  viewerCamera               = frameContext.ViewerCamera;
-        CPUTCamera  lightCamera                = frameContext.LightCamera;
+        CPUTCamera viewerCamera               = frameContext.ViewerCamera;
+        CPUTCamera lightCamera                = frameContext.LightCamera;
         Vector4i    viewport                   = frameContext.Viewport;
         UIConstants  ui                        = frameContext.GPUUIConstants;
         FrameStats  frameStats                 = frameContext.Stats;
         FrameMatrices  frameMatx               = frameContext.Matrices;
 //        D3DXVECTOR4 cameraPos  = D3DXVECTOR4( DXUTFromCPUT( viewerCamera->GetPosition() ), 1.0f );
-        ReadableVector3f cameraPos             = viewerCamera.GetPosition();
+        Vector3f cameraPos             = new Vector3f();
+        viewerCamera.GetPosition(cameraPos);
 
         // lookup not supported
         assert( ui.enableVolumeShadowLookup !=0);
@@ -579,7 +582,7 @@ final class AVSMTechnique implements Disposeable{
         ParticleSystem  particleSystem         = frameContext.ParticleSystem;
         Vector4i viewport                      = frameContext.Viewport;
         UIConstants  ui                        = frameContext.GPUUIConstants;
-        CPUTCamera  viewerCamera               = frameContext.ViewerCamera;
+        CPUTCamera viewerCamera                = frameContext.ViewerCamera;
         FrameMatrices  frameMatx               = frameContext.Matrices;
 
         FillParticleRendererConstants(/*d3dDeviceContext,*/ viewerCamera, frameMatx.cameraView, frameMatx.cameraViewProj);
@@ -1763,7 +1766,8 @@ final class AVSMTechnique implements Disposeable{
                               float ScreenWidth, float ScreenHeight,
                               UIConstants ui){
         // Compute light direction in view space
-        ReadableVector3f lightPosWorld = lightCamera.GetPosition();
+        Vector3f lightPosWorld = new Vector3f();
+        lightCamera.GetPosition(lightPosWorld);
         /*ReadableVector3f lightTargetWorld = DXUTFromCPUT( lightCamera->GetPosition() + lightCamera->GetLook() );
         Vector3f lightPosView;
         D3DXVec3TransformCoord(&lightPosView, &lightPosWorld, &m.cameraView);
@@ -1775,7 +1779,12 @@ final class AVSMTechnique implements Disposeable{
         Matrix4f.transformVector(m.cameraView, lightPosWorld, lightPosView);
 
         Vector3f lightTargetView  = new Vector3f();
-        Vector3f.add(lightCamera.GetPosition(), lightCamera.GetLook(), lightTargetView);
+        Vector3f lightPositon  = new Vector3f();
+        Vector3f lightLookAt  = new Vector3f();
+
+        lightCamera.GetPosition(lightPositon);
+        lightCamera.GetLook(lightLookAt);
+        Vector3f.add(lightPositon, lightLookAt, lightTargetView);
         Matrix4f.transformVector(m.cameraView, lightTargetView, lightTargetView);
 
         /*D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -1824,7 +1833,7 @@ final class AVSMTechnique implements Disposeable{
     private final ParticlePerPassConstants m_particlePerPassConstants = new ParticlePerPassConstants();
 
     private void FillParticleRendererConstants(//ID3D11DeviceContext* d3dDeviceContext,
-                                       CPUTCamera lightCamera,
+                                               CPUTCamera lightCamera,
                                        Matrix4f cameraView,
                                        Matrix4f cameraViewProj){
         // Particle renderer constants
@@ -2072,8 +2081,8 @@ final class AVSMTechnique implements Disposeable{
 //        ID3D11DeviceContext*        D3dDeviceContext;
         final Options                     Options = new Options();
         ParticleSystem             ParticleSystem;
-        CPUTCamera                 ViewerCamera;
-        CPUTCamera                 LightCamera;
+        CPUTCamera ViewerCamera;
+        CPUTCamera LightCamera;
         final Vector4i Viewport = new Vector4i();
         final UIConstants                 GPUUIConstants = new UIConstants();
         float					    mScreenWidth;

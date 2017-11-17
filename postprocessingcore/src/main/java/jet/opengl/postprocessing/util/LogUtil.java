@@ -47,6 +47,17 @@ public class LogUtil {
         }
     }
 
+    public static void w(LogType type,  String msg){
+        switch (type) {
+            case DEFAULT:
+                g_DefaultLogger.warning(msg);
+                break;
+            case NV_FRAMEWROK:
+                g_NV_FRAMWORK_Logger.warning(msg);
+                break;
+        }
+    }
+
     public interface GetMessage{
         String get();
     }
@@ -58,6 +69,17 @@ public class LogUtil {
                 break;
             case NV_FRAMEWROK:
                 g_NV_FRAMWORK_Logger.info(msg.get());
+                break;
+        }
+    }
+
+    public static void w(LogType type,  GetMessage msg){
+        switch (type) {
+            case DEFAULT:
+                g_DefaultLogger.warning(msg.get());
+                break;
+            case NV_FRAMEWROK:
+                g_NV_FRAMWORK_Logger.warning(msg.get());
                 break;
         }
     }
