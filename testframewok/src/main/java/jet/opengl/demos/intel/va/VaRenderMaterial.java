@@ -1,6 +1,6 @@
 package jet.opengl.demos.intel.va;
 
-import com.nvidia.developer.opengl.utils.Pair;
+import jet.opengl.postprocessing.util.Pair;
 
 import org.lwjgl.util.vector.Vector4f;
 

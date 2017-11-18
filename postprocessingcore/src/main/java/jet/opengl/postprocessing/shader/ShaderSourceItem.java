@@ -18,6 +18,8 @@ public class ShaderSourceItem {
     public int compileVersion;
     /** Attrib binders, only valid for Vertex Shader. */
     public AttribBinder[] attribs;
+    /** True indicates the source is in binary format. */
+    public boolean isBinary;
 
     public ShaderSourceItem(){}
 

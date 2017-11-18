@@ -40,6 +40,7 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -581,6 +582,9 @@ public final class DebugTools {
     }
 
     public static void saveErrorShaderSource(CharSequence source){
+        if(GLFuncProviderFactory.getGLFuncProvider().getHostAPI() == GLAPI.ANDROID)
+            return;
+
         final String filename = "error_shader.txt";
         File file = new File(filename);
 //        File parent = file.getParentFile();

@@ -8,7 +8,6 @@ import com.nvidia.developer.opengl.app.NvPointerActionType;
 import com.nvidia.developer.opengl.app.NvPointerEvent;
 import com.nvidia.developer.opengl.app.TouchEventListener;
 import com.nvidia.developer.opengl.app.WindowEventListener;
-import com.nvidia.developer.opengl.utils.Pool;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -21,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.Pool;
 
 /**
  * Created by mazhen'gui on 2017/10/12.

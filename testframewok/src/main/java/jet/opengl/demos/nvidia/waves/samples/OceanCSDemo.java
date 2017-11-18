@@ -2,7 +2,6 @@ package jet.opengl.demos.nvidia.waves.samples;
 
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
-import com.nvidia.developer.opengl.utils.Pool;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -14,6 +13,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.Pool;
 
 public class OceanCSDemo extends NvSampleApp{
 	

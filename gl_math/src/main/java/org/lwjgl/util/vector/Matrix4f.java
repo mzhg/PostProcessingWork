@@ -42,7 +42,7 @@ import java.nio.FloatBuffer;
  */
 public class Matrix4f extends Matrix implements Serializable {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 20171118110230L;
 	
 	public static final Matrix4f IDENTITY = new Matrix4f();
 	
@@ -2519,6 +2519,41 @@ public class Matrix4f extends Matrix implements Serializable {
 		}
 		
 		return dest;
+	}
+
+	public static Vector3f  decomposeRotationYawPitchRoll(Matrix4f mat, /*float & yaw, float & pitch, float & roll*/ Vector3f ypr )
+	{
+		//pitch = (float)vaMath::ASin( -m[2][1] ); 
+		float pitch = (float)Math.asin( -/*m[0][2]*/mat.m20 );
+		float roll, yaw;
+		float threshold = 0.001f;
+
+		float test = (float)Math.cos( pitch );
+		
+		if( test > threshold )
+		{
+
+			//roll = (float)Math.atan2( m[0][1], m[1][1] ); 
+			roll = (float)Math.atan2( /*m[1][2], m[2][2]*/mat.m21, mat.m22 );
+
+			//yaw = (float)Math.atan2( m[2][0], m[2][2] );
+			yaw = (float)Math.atan2( /*m[0][1], m[0][0]*/mat.m10, mat.m00 );
+
+		}
+		else
+		{
+			//roll = (float)Math.atan2( -m[1][0], m[0][0] ); 
+			roll = (float)Math.atan2( /*-m[2][1], m[1][1]*/-mat.m12, mat.m11 );
+			yaw = 0.0f;
+		}
+
+		if(ypr != null){
+			ypr.set(yaw, pitch, roll);
+		}else{
+			ypr = new Vector3f(yaw, pitch, roll);
+		}
+
+		return ypr;
 	}
 	
 	/**

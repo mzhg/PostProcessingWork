@@ -5,4 +5,6 @@ package jet.opengl.demos.intel.va;
  */
 
 public interface VaStream {
+
+    long ReadLong();
 }

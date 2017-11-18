@@ -450,6 +450,18 @@ public class Quaternion extends Vector implements ReadableVector4f, WritableVect
 	public final void setFromAxisAngle(ReadableVector4f a1) {
 		setFromAxisAngle(a1.getX(), a1.getY(), a1.getZ(), a1.getW());
 	}
+
+	public static<T extends WritableVector3f> T getAxisY(Quaternion src, T dest){
+		if(dest == null)
+			dest = (T) new Vector3f();
+
+		float x = 2.0f * ( src.x * src.y - src.z * src.w );
+		float y = 1.0f - 2.0f * ( src.x * src.x + src.z * src.z );
+		float z = 2.0f * ( src.y *src.z + src.x *src.w );
+
+		src.set(x,y,z);
+		return dest;
+	}
 	
 	/**
 	 * Sets the value of this quaternion to the equivalent rotation of the

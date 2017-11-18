@@ -1,6 +1,6 @@
 package com.nvidia.developer.opengl.models.obj;
 
-import com.nvidia.developer.opengl.utils.Pair;
+import jet.opengl.postprocessing.util.Pair;
 
 import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector2f;

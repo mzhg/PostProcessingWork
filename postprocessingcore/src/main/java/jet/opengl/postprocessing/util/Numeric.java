@@ -895,4 +895,9 @@ public final class Numeric {
 		double t2 = c * g_c + 1;
 		return (float) (0.5 * (g_c * g_c)/ (gc * gc) * (1 + (t1 * t1)/ (t2 * t2)));
 	}
+
+	public static float smoothstep( float t )
+	{
+		return t * t * ( 3 - 2 * t );
+	}
 }

@@ -1,4 +1,4 @@
-package com.nvidia.developer.opengl.utils;
+package jet.opengl.postprocessing.util;
 
 import java.util.ArrayList;
 import java.util.List;

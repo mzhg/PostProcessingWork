@@ -10,8 +10,8 @@ public abstract class VaAsset extends VaImguiHierarchyObject implements Disposea
     /*private:
     friend class vaAssetPack;*/
     private VaAssetResource m_resourceBasePtr;
-    private String                                              m_name;                     // warning, never change this except by using Rename
-    private VaAssetPack m_parentPack;
+    String                                              m_name;                     // warning, never change this except by using Rename
+    VaAssetPack m_parentPack;
     int                                                 m_parentPackStorageIndex;   // referring to vaAssetPack::m_assetList
 
     protected VaAsset(VaAssetPack pack, VaAssetType type, String name, VaAssetResource resourceBasePtr ) //: m_parentPack( pack ), Type( type ), m_name( name ), m_resourceBasePtr( resourceBasePtr ), m_parentPackStorageIndex( -1 )
@@ -39,8 +39,8 @@ public abstract class VaAsset extends VaImguiHierarchyObject implements Disposea
 
     void                                                ReconnectDependencies( )            { m_resourceBasePtr.ReconnectDependencies(); }
 
-    public String                                      IHO_GetInstanceInfo( )        { return /*vaStringTools::Format( "%s", m_name.c_str() )*/m_name; }
-    public void                                        IHO_Draw( ){}
+    protected String                                      IHO_GetInstanceInfo( )        { return /*vaStringTools::Format( "%s", m_name.c_str() )*/m_name; }
+    protected void                                        IHO_Draw( ){}
 
     @Override
     public void dispose() {

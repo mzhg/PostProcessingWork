@@ -5,11 +5,13 @@
       <module fileurl="file://$PROJECT_DIR$/PostProcessingWork.iml" filepath="$PROJECT_DIR$/PostProcessingWork.iml" />
       <module fileurl="file://$PROJECT_DIR$/android_impl/android_impl.iml" filepath="$PROJECT_DIR$/android_impl/android_impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/assimp/assimp.iml" filepath="$PROJECT_DIR$/assimp/assimp.iml" />
       <module fileurl="file://$PROJECT_DIR$/gl_math/gl_math.iml" filepath="$PROJECT_DIR$/gl_math/gl_math.iml" />
       <module fileurl="file://$PROJECT_DIR$/jogl/jogl.iml" filepath="$PROJECT_DIR$/jogl/jogl.iml" />
       <module fileurl="file://$PROJECT_DIR$/jogl_impl/jogl_impl.iml" filepath="$PROJECT_DIR$/jogl_impl/jogl_impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/lwigl_impl/lwigl_impl.iml" filepath="$PROJECT_DIR$/lwigl_impl/lwigl_impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/lwjgl/lwjgl.iml" filepath="$PROJECT_DIR$/lwjgl/lwjgl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/particledynamic/particledynamic.iml" filepath="$PROJECT_DIR$/particledynamic/particledynamic.iml" />
       <module fileurl="file://$PROJECT_DIR$/postprocessingcore/postprocessingcore.iml" filepath="$PROJECT_DIR$/postprocessingcore/postprocessingcore.iml" />
       <module fileurl="file://$PROJECT_DIR$/testframewok/testframewok.iml" filepath="$PROJECT_DIR$/testframewok/testframewok.iml" />
     </modules>

@@ -3,6 +3,7 @@ package jet.opengl.postprocessing.util;
 import org.lwjgl.util.vector.Matrix2f;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.ReadableVector4f;
 import org.lwjgl.util.vector.Vector2f;
@@ -33,10 +34,68 @@ public class CacheBuffer {
 	private static FloatBuffer floatBuffer;
 	private static DoubleBuffer doubleBuffer;
 	private static LongBuffer longBuffer;
-	
+
+	private static int g_MatCount = 0;
+	private static int g_Vec4Count = 0;
+	private static int g_Vec3Count = 0;
+
+	public static final ThreadLocal<Pool<Matrix4f>> g_MatPool = new ThreadLocal<Pool<Matrix4f>>(){
+		@Override
+		protected Pool<Matrix4f> initialValue() {
+			return new Pool<Matrix4f>(new Pool.PoolObjectCreator<Matrix4f>() {
+				@Override
+				public Matrix4f newObject() {
+					g_MatCount ++;
+					return new Matrix4f();
+				}
+			});
+		}
+	};
+
+	public static final ThreadLocal<Pool<Vector4f>> g_Vec4Pool = new ThreadLocal<Pool<Vector4f>>(){
+		@Override
+		protected Pool<Vector4f> initialValue() {
+			return new Pool<Vector4f>(new Pool.PoolObjectCreator<Vector4f>() {
+				@Override
+				public Vector4f newObject() {
+					g_Vec4Count ++;
+					return new Vector4f();
+				}
+			});
+		}
+	};
+
+	public static final ThreadLocal<Pool<Vector3f>> g_Vec3Pool = new ThreadLocal<Pool<Vector3f>>(){
+		@Override
+		protected Pool<Vector3f> initialValue() {
+			return new Pool<Vector3f>(new Pool.PoolObjectCreator<Vector3f>() {
+				@Override
+				public Vector3f newObject() {
+					g_Vec3Count++;
+					return new Vector3f();
+				}
+			});
+		}
+	};
+
+	public static final ThreadLocal<Pool<Quaternion>> g_QuatPool = new ThreadLocal<Pool<Quaternion>>(){
+		@Override
+		protected Pool<Quaternion> initialValue() {
+			return new Pool<Quaternion>(new Pool.PoolObjectCreator<Quaternion>() {
+				@Override
+				public Quaternion newObject() {
+//					g_Vec3Count++;
+					return new Quaternion();
+				}
+			});
+		}
+	};
+
 	static{
 		remolloc(INIT_CAPACITY);
 	}
+
+
 	
 	private static void remolloc(int size){
 		if(nativeBuffer == null || nativeBuffer.capacity() < size){
@@ -58,6 +117,70 @@ public class CacheBuffer {
 		
 		nativeBuffer.position(0).limit(size);
 		return nativeBuffer;
+	}
+
+	/**
+	 * Get a matrix instance from the matrix pool. The returned matrix must be <i>released</i> by the method {@link #free(Matrix4f)} when it is unused.
+	 * @return
+	 */
+	public static Matrix4f getCachedMatrix(){
+		return g_MatPool.get().obtain();
+	}
+
+	/**
+	 * Recycle a mat into the pool.
+	 * @param mat
+	 */
+	public static void free(Matrix4f mat){
+		g_MatPool.get().free(mat);
+	}
+
+	/**
+	 * Get a vector3f instance from the matrix pool. The returned matrix must be <i>released</i> by the method {@link #free(Vector3f)} when it is unused.
+	 * @return
+	 */
+	public static Vector3f getCachedVec3(){
+		return g_Vec3Pool.get().obtain();
+	}
+
+	/**
+	 * Recycle a vector into the pool.
+	 * @param v
+	 */
+	public static void free(Vector3f v){
+		g_Vec3Pool.get().free(v);
+	}
+
+	/**
+	 * Get a Vector4f instance from the matrix pool. The returned matrix must be <i>released</i> by the method {@link #free(Vector4f)} when it is unused.
+	 * @return
+	 */
+	public static Vector4f getCachedVec4(){
+		return g_Vec4Pool.get().obtain();
+	}
+
+	/**
+	 * Recycle a vector into the pool.
+	 * @param v
+	 */
+	public static void free(Vector4f v){
+		g_Vec4Pool.get().free(v);
+	}
+
+	/**
+	 * Get a Quaternion instance from the matrix pool. The returned matrix must be <i>released</i> by the method {@link #free(Quaternion)} when it is unused.
+	 * @return
+	 */
+	public static Quaternion getCachedQuat(){
+		return g_QuatPool.get().obtain();
+	}
+
+	/**
+	 * Recycle a vector into the pool.
+	 * @param v
+	 */
+	public static void free(Quaternion v){
+		g_QuatPool.get().free(v);
 	}
 	
 	public static ByteBuffer[] getCachedByteBuffer(int[] bufSize){

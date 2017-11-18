@@ -1,6 +1,4 @@
-package com.nvidia.developer.opengl.utils;
-
-import jet.opengl.postprocessing.util.CommonUtil;
+package jet.opengl.postprocessing.util;
 
 /**
  * Created by mazhen'gui on 2017/9/7.

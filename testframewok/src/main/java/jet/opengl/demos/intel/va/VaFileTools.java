@@ -11,13 +11,14 @@ public class VaFileTools {
     public final class EmbeddedFileData{
         public String                             Name = null;
         public VaMemoryStream     MemStream;
-//        int64                               TimeStamp;
+        public long                               TimeStamp;
 
         public EmbeddedFileData() /*: Name(L""), MemStream(NULL), TimeStamp(0)*/  { }
-        public EmbeddedFileData( String name, VaMemoryStream memStream/*, const int64 & timeStamp*/ )/*
+        public EmbeddedFileData( String name, VaMemoryStream memStream, long timeStamp )/*
                                                 : Name(name), MemStream(memStream), TimeStamp(timeStamp) */ {
                                                     Name = name;
                                                     MemStream = memStream;
+                                                    TimeStamp = timeStamp;
         }
 
         public  boolean                                HasContents( )                      { return MemStream != null; }

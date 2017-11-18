@@ -1,7 +1,7 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
 import com.nvidia.developer.opengl.utils.NvImage;
-import com.nvidia.developer.opengl.utils.Pool;
+import jet.opengl.postprocessing.util.Pool;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;

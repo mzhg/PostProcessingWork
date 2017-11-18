@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.WeakHashMap;
 
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -74,7 +74,7 @@ public class ShaderLoader {
 	@Deprecated
 	public static CharSequence loadShaderFile(String filepath, boolean classFile, boolean includeDefaultHeader)throws IOException{
 		IncludeFile file = new IncludeFile(filepath, classFile, false);
-		Set<String> processing = new HashSet<String>();
+		Map<String, LoaderParameters.FileDesc> processing = new HashMap<>();
 		if(DEBUG)
 			System.out.println("start loading file: " + filepath);
 		CharSequence result = internalLoadShaderFile(file, processing, new LoaderParameters());
@@ -100,7 +100,8 @@ public class ShaderLoader {
 	
 	public static CharSequence loadShaderFile(LoaderParameters params)throws IOException{
 		IncludeFile file = new IncludeFile(params.filepath, params.classFile, false);
-		Set<String> processing = new HashSet<String>();
+//		Set<String> processing = new HashSet<String>();
+		Map<String, LoaderParameters.FileDesc> processing = new HashMap<>();
 		if(DEBUG)
 			System.out.println("start loading file: " + params.filepath);
 		CharSequence result = internalLoadShaderFile(file, processing, params);
@@ -117,17 +118,21 @@ public class ShaderLoader {
 				return sb;
 			}
 		}
+
+		if(params.includeFiles != null){
+			params.includeFiles.addAll(processing.values());
+		}
 		
 		return result;
 	}
 	
-	private static CharSequence internalLoadShaderFile(IncludeFile file, Set<String> processing, LoaderParameters params)throws IOException{
+	private static CharSequence internalLoadShaderFile(IncludeFile file, Map<String, LoaderParameters.FileDesc> processing, LoaderParameters params)throws IOException{
 		InputStream in = null;
 		FileLoader loader = params.fileLoader != null ? params.fileLoader : FileUtils.g_IntenalFileLoader;
 
 		String parent;
 		String key = file.getKey();
-		if(key != null && processing.contains(key)){
+		if(key != null && processing.containsKey(key)){
 			if(DEBUG)
 				System.out.println("The include file " + file.filepath + " has included into the cache!");
 			return "";
@@ -171,7 +176,7 @@ public class ShaderLoader {
 				key = "<file>"+loader.getCanonicalPath(file.filepath);
 		}
 		
-		if(processing.contains(key)){
+		if(processing.containsKey(key)){
 			in.close();
 			if(DEBUG)
 				System.out.println("The include file " + file.filepath + " has included into the cache!");
@@ -180,7 +185,7 @@ public class ShaderLoader {
 		
 		file.key = key; // assign the key value to this file.
 		
-		processing.add(key);
+		processing.put(key, new LoaderParameters.FileDesc(file.filepath, file.isClassFile));
 		if(DEBUG)
 			System.out.println("Add " + key);
 		

@@ -1,6 +1,6 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
-import com.nvidia.developer.opengl.utils.Pool;
+import jet.opengl.postprocessing.util.Pool;
 
 import java.util.Arrays;
 
