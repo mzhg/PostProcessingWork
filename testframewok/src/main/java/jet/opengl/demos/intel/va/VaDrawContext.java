@@ -14,10 +14,10 @@ public class VaDrawContext {
 //    vaRenderDeviceContext &         APIContext;
     public VaCameraBase             Camera;             // Currently selected camera
     public VaRenderingGlobals            Globals;            // Used to set global shader constants, track current frame index, provide some debugging tools, etc.
-    public vaLighting Lighting;
-    void * const                    UserContext;
+    public VaLighting Lighting;
+    public Object                    UserContext;
 
     // can be changed at runtime
-    vaRenderPassType                PassType;
-    class vaSimpleShadowMap *       SimpleShadowMap;
+    public VaRenderPassType                PassType;
+    public VaSimpleShadowMap       SimpleShadowMap;
 }

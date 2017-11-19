@@ -45,7 +45,7 @@ public final class VaDirectXShaderManager implements Disposeable{
         m_cacheFileDir = /*VaCore.GetExecutableDirectory( ) +*/ "cache\\";
     }
 
-    public byte[]          FindInCache( VaShaderCacheKey key, boolean[] foundButModified ){
+    public ID3DBlob          FindInCache( VaShaderCacheKey key, boolean[] foundButModified ){
         boolean _foundButModified = false;
 
         if( !m_cacheLoaded )
@@ -82,7 +82,7 @@ public final class VaDirectXShaderManager implements Disposeable{
         }
     }
 
-    public void                AddToCache( VaShaderCacheKey key, /*ID3DBlob **/byte[] shaderBlob, List<VaShaderCacheEntry.FileDependencyInfo> dependencies ){
+    public void                AddToCache( VaShaderCacheKey key, ID3DBlob shaderBlob, List<VaShaderCacheEntry.FileDependencyInfo> dependencies ){
         /*std::map<vaShaderCacheKey, vaShaderCacheEntry *>::iterator it = m_cache.find( key );
 
         if( it != m_cache.end( ) )

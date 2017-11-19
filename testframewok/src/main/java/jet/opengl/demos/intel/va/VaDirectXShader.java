@@ -1,11 +1,13 @@
 package jet.opengl.demos.intel.va;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -13,7 +15,7 @@ import jet.opengl.postprocessing.util.LogUtil;
  */
 
 public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposeable{
-    protected Disposeable m_shader;
+    protected ShaderProgram m_shader;
 
     protected String                     m_entryPoint;
     protected String                     m_shaderModel;
@@ -187,7 +189,29 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         outKey.StringPart = key.toString();
     }
     //
-    protected abstract void                            StoreMacros(Macro[] macroDefines );
+    protected void                            StoreMacros(Macro[] macroDefines ){
+        m_macros.clear( );
+
+        if( macroDefines == null )
+            return;
+
+        /*CONST D3D_SHADER_MACRO* pNext = macroDefines;
+        while( pNext->Name != NULL && pNext->Definition != NULL )*/
+        for(Macro macro : macroDefines)
+        {
+            if(macro != null) {
+//                m_macros.push_back(pair < string, string > (pNext -> Name, pNext -> Definition) );
+                m_macros.add(macro);
+            }
+//            pNext++;
+
+            if( m_macros.size( ) > c_maxMacros - 1 )
+            {
+                assert( false ); // no more than c_maxMacros-1 supported, increase c_maxMacros
+                break;
+            }
+        }
+    }
     // returns NULL if macro count == 0
     protected final Macro[]        GetStoredMacros() { return GetStoredMacros(null);}
     protected Macro[]        GetStoredMacros( /*D3D_SHADER_MACRO * buffer, int bufferElementCount*/ Macro[] buffer ){
@@ -244,15 +268,44 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         DestroyShader( );
     }
     //
-    protected abstract void           CreateShader( );
+    protected void CreateShader(){
+//        HRESULT hr;
+        boolean[] loadedFromCache = new boolean[1];
+        ID3DBlob shaderBlob = null;
+        try {
+            shaderBlob = CreateShaderBase( loadedFromCache );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if( shaderBlob == null )
+        {
+            return;
+        }
+        m_lastLoadedFromCache = loadedFromCache[0];
+
+        /*ID3D11PixelShader * shader = NULL;
+        hr = vaDirectXCore::GetDevice( )->CreatePixelShader( shaderBlob->GetBufferPointer( ), shaderBlob->GetBufferSize( ), NULL, &shader );
+        assert( SUCCEEDED( hr ) );
+        if( SUCCEEDED( hr ) )
+        {
+            V( shader->QueryInterface( IID_IUnknown, (void**)&m_shader ) );
+            shader->Release( );
+            vaDirectXCore::NameObject( shader, "vaDirectXPixelShader shader object" );
+        }
+
+        SAFE_RELEASE( shaderBlob );*/
+        throw new UnsupportedOperationException();
+    }
+
     protected void                    DestroyShader( )            { DestroyShaderBase( ); }
     protected void                            DestroyShaderBase( ){
         m_lastLoadedFromCache = false;
         SAFE_RELEASE( m_shader );
     }
 
-    protected static void CompileShaderFromFile(String szFileName, Macro[] pDefines, String szEntryPoint,
-                                                String szShaderModel, byte[] ppBlobOut, List<VaShaderCacheEntry.FileDependencyInfo> outDependencies ) throws IOException
+    protected static ID3DBlob CompileShaderFromFile(String szFileName, Macro[] pDefines, String szEntryPoint,
+                                                String szShaderModel, /*byte[] ppBlobOut,*/ List<VaShaderCacheEntry.FileDependencyInfo> outDependencies ) throws IOException
     {
 //        HRESULT hr = S_OK;
 
@@ -273,7 +326,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         // find the file
         String fullFileName = VaDirectXShaderManager.GetInstance( ).FindShaderFile( szFileName );
 
-        if( fullFileName != "" )
+        if( fullFileName /*!= ""*/.isEmpty() == false )
         {
             boolean attemptReload;
 
@@ -284,7 +337,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
 //                vaShaderIncludeHelper includeHelper( outDependencies );
 
                 attemptReload = false;
-                /*ID3DBlob* pErrorBlob;
+                /*ID3DBlob* pErrorBlob;  TODO
                 hr = D3DCompileFromFile( fullFileName.c_str( ), pDefines, (ID3DInclude*)&includeHelper,
                         szEntryPoint, szShaderModel, dwShaderFlags, 0, ppBlobOut, &pErrorBlob );
                 if( FAILED( hr ) )
@@ -318,22 +371,23 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         else
         {
             // ...then try embedded storage
-            vaFileTools::EmbeddedFileData embeddedData = vaFileTools::EmbeddedFilesFind( wstring( L"shaders:\\" ) + wstring( szFileName ) );
+            VaFileTools.EmbeddedFileData embeddedData = VaFileTools.EmbeddedFilesFind( "shaders:\\" +szFileName );
 
-            if( !embeddedData.HasContents( ) )
+            if( /*!embeddedData.HasContents( )*/ embeddedData == null )
             {
-                VA_ERROR( L"Error trying to find shader file '%s'!", szFileName );
-                return E_FAIL;
+//                VA_ERROR( L"Error trying to find shader file '%s'!", szFileName );
+                LogUtil.e(LogUtil.LogType.DEFAULT, "Error trying to find shader file " + szFileName);
+                return /*E_FAIL*/ null;
             }
 
-            vaShaderCacheEntry::FileDependencyInfo fileDependencyInfo = vaShaderCacheEntry::FileDependencyInfo( szFileName, embeddedData.TimeStamp );
+            VaShaderCacheEntry.FileDependencyInfo fileDependencyInfo = new VaShaderCacheEntry.FileDependencyInfo( szFileName, embeddedData.TimeStamp );
 
             outDependencies.clear( );
-            outDependencies.push_back( fileDependencyInfo );
-            vaShaderIncludeHelper includeHelper( outDependencies );
+            outDependencies.add( fileDependencyInfo );
+//            vaShaderIncludeHelper includeHelper( outDependencies );
 
-            ID3DBlob* pErrorBlob;
-            string ansiName = vaStringTools::SimpleNarrow( embeddedData.Name );
+            String ansiName = /*vaStringTools::SimpleNarrow*/( embeddedData.Name );
+            /*ID3DBlob* pErrorBlob;
             hr = D3DCompile( (LPCSTR)embeddedData.MemStream->GetBuffer( ), (SIZE_T)embeddedData.MemStream->GetLength( ), ansiName.c_str( ), pDefines, (ID3DInclude*)&includeHelper,
                 szEntryPoint, szShaderModel, dwShaderFlags, 0, ppBlobOut, &pErrorBlob );
             if( FAILED( hr ) )
@@ -354,16 +408,54 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
                 SAFE_RELEASE( pErrorBlob );
                 return hr;
             }
-            SAFE_RELEASE( pErrorBlob );
+            SAFE_RELEASE( pErrorBlob );*/
+            throw new UnsupportedOperationException();
         }
 
-        return S_OK;
+        return null;
+    }
+
+    protected static ID3DBlob CompileShaderFromBuffer( CharSequence shaderCode, Macro[] pDefines, String szEntryPoint,
+                                                               String szShaderModel/*, ID3DBlob** ppBlobOut*/ )
+    {
+//        HRESULT hr = S_OK;
+
+        /*DWORD dwShaderFlags = D3D10_SHADER_ENABLE_STRICTNESS;
+#if defined( DEBUG ) || defined( _DEBUG )
+        // Set the D3D10_SHADER_DEBUG flag to embed debug information in the shaders.
+        // Setting this flag improves the shader debugging experience, but still allows
+        // the shaders to be optimized and to run exactly the way they will run in
+        // the release configuration of this program.
+        dwShaderFlags |= D3D10_SHADER_DEBUG;
+#endif*/
+
+        /*ID3DBlob* pErrorBlob;  TODO
+        hr = D3DCompile( shaderCode.c_str( ), shaderCode.size( ) + 1, NULL, pDefines, NULL, szEntryPoint, szShaderModel,
+                dwShaderFlags, 0, ppBlobOut, &pErrorBlob );
+        if( FAILED( hr ) )
+        {
+            if( pErrorBlob != NULL )
+            {
+                OutputDebugStringA( CorrectErrorIfNotFullPath( (char*)pErrorBlob->GetBufferPointer( ) ).c_str() );
+#if 1 || defined( _DEBUG ) // display always for now
+                wstring errorMsg = vaStringTools::SimpleWiden( (char*)pErrorBlob->GetBufferPointer( ) );
+                wstring fullMessage = vaStringTools::Format( L"Error while compiling '%s' shader, SM: '%s', EntryPoint: '%s'. \n\n---\n%s\n---",
+                    L"<from_buffer>", szShaderModel, szEntryPoint, errorMsg.c_str( ) );
+                MessageBox( NULL, fullMessage.c_str( ), L"Shader compile error", MB_OK | MB_SETFOREGROUND );
+#endif
+            }
+            SAFE_RELEASE( pErrorBlob );
+            return hr;
+        }
+        SAFE_RELEASE( pErrorBlob );
+        return S_OK;*/
+
+        throw new UnsupportedOperationException();
     }
 
     //
-    protected byte[]                  CreateShaderBase( boolean[] loadedFromCache ){
-//        ID3DBlob * shaderBlob = NULL;
-        byte[] shaderBlob = null;
+    protected ID3DBlob                  CreateShaderBase( boolean[] loadedFromCache ) throws IOException{
+        ID3DBlob shaderBlob = null;
         loadedFromCache[0] = false;
 
         /*ID3D11Device * device = vaDirectXCore::GetDevice( );
@@ -406,7 +498,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
 
             if( shaderBlob == null )
             {
-//                vector<vaShaderCacheEntry::FileDependencyInfo> dependencies;
+//                vector<VaShaderCacheEntry.FileDependencyInfo> dependencies;
                 ArrayList<VaShaderCacheEntry.FileDependencyInfo> dependencies = new ArrayList<>();
 
 //                D3D_SHADER_MACRO macrosBuffer[ c_maxMacros ];
@@ -421,8 +513,8 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         }
         else if( m_shaderCode.length( ) != 0 )
         {
-            D3D_SHADER_MACRO macrosBuffer[c_maxMacros];
-            CompileShaderFromBuffer( m_shaderCode, GetStoredMacros( macrosBuffer, c_maxMacros ), m_entryPoint, m_shaderModel, &shaderBlob );
+//            D3D_SHADER_MACRO macrosBuffer[c_maxMacros];
+            shaderBlob = CompileShaderFromBuffer( m_shaderCode, GetStoredMacros( /*macrosBuffer, c_maxMacros*/ ), m_entryPoint, m_shaderModel );
         }
         else
         {
@@ -431,7 +523,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
 
 
 //#ifdef VA_HOLD_SHADER_DISASM
-        {
+        /*{
             ID3DBlob * disasmBlob = NULL;
 
             HRESULT hr = D3DDisassemble( shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), 0, nullptr, &disasmBlob );
@@ -451,7 +543,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
                     vaCRC64 crc;
                     crc.AddString( cacheKey.StringPart );
 
-                    fileName += L"shaderdump_" + vaStringTools::SimpleWiden( m_entryPoint ) + L"_" + vaStringTools::SimpleWiden( m_shaderModel ) /*+ L"_" + vaStringTools::SimpleWiden( vaStringTools::Format( "0x%" PRIx64, crc.GetCurrent() ) )*/ + L".shaderasm";
+                    fileName += L"shaderdump_" + vaStringTools::SimpleWiden( m_entryPoint ) + L"_" + vaStringTools::SimpleWiden( m_shaderModel ) *//*+ L"_" + vaStringTools::SimpleWiden( vaStringTools::Format( "0x%" PRIx64, crc.GetCurrent() ) )*//* + L".shaderasm";
 
                     vaStringTools::WriteTextFile( fileName, m_disasm );
                 }
@@ -459,7 +551,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
             }
 
             SAFE_RELEASE( disasmBlob );
-        }
+        }*/
 //#endif
 
         return shaderBlob;

@@ -12,10 +12,10 @@ import jet.opengl.postprocessing.util.LogUtil;
 
 public class VaShaderCacheEntry {
 
-    private byte[]  m_compiledShader;
+    private ID3DBlob  m_compiledShader;
     private final List<FileDependencyInfo> m_dependencies;
 
-    public VaShaderCacheEntry( byte[]  compiledShader, List<FileDependencyInfo> dependencies ){
+    public VaShaderCacheEntry(ID3DBlob  compiledShader, List<FileDependencyInfo> dependencies ){
         m_compiledShader = compiledShader;
 //        m_compiledShader->AddRef( );
 
@@ -33,7 +33,7 @@ public class VaShaderCacheEntry {
         }
         return false;
     }
-    public byte[]                 GetCompiledShader( )                       { /*m_compiledShader->AddRef( );*/ return m_compiledShader; }
+    public ID3DBlob GetCompiledShader( )                       { /*m_compiledShader->AddRef( );*/ return m_compiledShader; }
 
     public void                       Save( VaStream outStream ) { throw  new UnsupportedOperationException();}
     public void                       Load( VaStream inStream ) { throw  new UnsupportedOperationException();}

@@ -1,5 +1,8 @@
 package jet.opengl.demos.intel.va;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import jet.opengl.postprocessing.util.FileUtils;
 
 /**
@@ -7,6 +10,8 @@ import jet.opengl.postprocessing.util.FileUtils;
  */
 
 public class VaFileTools {
+
+    private static final Map<String, EmbeddedFileData> s_EmbeddedFiles = new HashMap<>() ;
 
     public final class EmbeddedFileData{
         public String                             Name = null;
@@ -71,5 +76,19 @@ public class VaFileTools {
 
     public static  boolean FileExists(String filename){
         return FileUtils.g_IntenalFileLoader.exists(filename);
+    }
+
+    public static EmbeddedFileData EmbeddedFilesFind(String filepath){
+        // case insensitive
+//        wstring pathName = vaStringTools::ToLower( _pathName );
+        String pathName = filepath.toLowerCase();
+
+        /*std::map<wstring, EmbeddedFileData>::iterator it = s_EmbeddedFiles.find( pathName );
+
+        if( it != s_EmbeddedFiles.end() )
+            return it->second;
+
+        return EmbeddedFileData();*/
+        return s_EmbeddedFiles.get(pathName);
     }
 }

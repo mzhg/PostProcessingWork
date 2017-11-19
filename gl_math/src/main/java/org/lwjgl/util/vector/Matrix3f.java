@@ -429,6 +429,37 @@ public class Matrix3f extends Matrix implements Serializable {
 	}
 
 	/**
+	 * Transpose the source matrix and place the result into the destination matrix
+	 * @param src The source matrix to be transposed
+	 * @param dest The destination matrix or null if a new matrix is to be created
+	 * @return the transposed matrix
+	 */
+	public static Matrix4f transpose(Matrix3f src, Matrix4f dest) {
+		if (dest == null)
+			dest = new Matrix4f();
+		float m00 = src.m00;
+		float m01 = src.m10;
+		float m02 = src.m20;
+		float m10 = src.m01;
+		float m11 = src.m11;
+		float m12 = src.m21;
+		float m20 = src.m02;
+		float m21 = src.m12;
+		float m22 = src.m22;
+
+		dest.m00 = m00;
+		dest.m01 = m01;
+		dest.m02 = m02;
+		dest.m10 = m10;
+		dest.m11 = m11;
+		dest.m12 = m12;
+		dest.m20 = m20;
+		dest.m21 = m21;
+		dest.m22 = m22;
+		return dest;
+	}
+
+	/**
 	 * @return the determinant of the matrix
 	 */
 	public float determinant() {

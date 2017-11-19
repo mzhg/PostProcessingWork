@@ -730,6 +730,54 @@ public class Matrix4f extends Matrix implements Serializable {
 	}
 
 	/**
+	 * Multiply the right matrix by the left and place the result in a third matrix.
+	 * @param left The left source matrix
+	 * @param right The right source matrix
+	 * @param dest The destination matrix, or null if a new one is to be created
+	 * @return the destination matrix
+	 */
+	public static Matrix3f mul(Matrix4f left, Matrix3f right, Matrix3f dest) {
+		if (dest == null)
+			dest = new Matrix3f();
+
+		float m00 = left.m00 * right.m00 + left.m10 * right.m01 + left.m20 * right.m02;
+		float m01 = left.m01 * right.m00 + left.m11 * right.m01 + left.m21 * right.m02;
+		float m02 = left.m02 * right.m00 + left.m12 * right.m01 + left.m22 * right.m02;
+//		float m03 = left.m03 * right.m00 + left.m13 * right.m01 + left.m23 * right.m02;
+		float m10 = left.m00 * right.m10 + left.m10 * right.m11 + left.m20 * right.m12;
+		float m11 = left.m01 * right.m10 + left.m11 * right.m11 + left.m21 * right.m12;
+		float m12 = left.m02 * right.m10 + left.m12 * right.m11 + left.m22 * right.m12;
+//		float m13 = left.m03 * right.m10 + left.m13 * right.m11 + left.m23 * right.m12;
+		float m20 = left.m00 * right.m20 + left.m10 * right.m21 + left.m20 * right.m22;
+		float m21 = left.m01 * right.m20 + left.m11 * right.m21 + left.m21 * right.m22;
+		float m22 = left.m02 * right.m20 + left.m12 * right.m21 + left.m22 * right.m22;
+//		float m23 = left.m03 * right.m20 + left.m13 * right.m21 + left.m23 * right.m22;
+//		float m30 = left.m30;
+//		float m31 = left.m31;
+//		float m32 = left.m32;
+//		float m33 = left.m33;
+
+		dest.m00 = m00;
+		dest.m01 = m01;
+		dest.m02 = m02;
+//		dest.m03 = m03;
+		dest.m10 = m10;
+		dest.m11 = m11;
+		dest.m12 = m12;
+//		dest.m13 = m13;
+		dest.m20 = m20;
+		dest.m21 = m21;
+		dest.m22 = m22;
+//		dest.m23 = m23;
+//		dest.m30 = m30;
+//		dest.m31 = m31;
+//		dest.m32 = m32;
+//		dest.m33 = m33;
+
+		return dest;
+	}
+
+	/**
 	 * Transform a Vector by a matrix and return the result in a destination
 	 * vector.
 	 * @param left The left matrix
