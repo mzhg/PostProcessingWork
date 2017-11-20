@@ -30,5 +30,9 @@ public final class VaShaderDefine {
     public static final int RENDERMESH_TEXTURE_SLOT4 = 4;
     public static final int RENDERMESH_TEXTURE_SLOT5 = 5;
 
+    public static final int LIGHTING_SLOT0 = 0;
+    public static final int LIGHTING_SLOT1 = 1;
+    public static final int LIGHTING_SLOT2 = 2;
 
+    public static final int GBUFFER_SLOT0 = 0;
 }

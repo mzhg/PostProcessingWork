@@ -122,6 +122,11 @@ public class StackByte {
 		}
 	}
 
+	public void trimToSize(){
+		if(size < items.length)
+			items = Arrays.copyOf(items, size);
+	}
+
 	public byte peer() {
 		if (isEmpty())
 			throw new NullPointerException("stack is empty!");

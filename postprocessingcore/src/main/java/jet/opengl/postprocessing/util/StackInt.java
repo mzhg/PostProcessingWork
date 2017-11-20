@@ -73,6 +73,11 @@ public class StackInt {
 		return tmp;
 	}
 
+	public void trimToSize(){
+		if(size < items.length)
+			items = Arrays.copyOf(items, size);
+	}
+
 	public int get(int index) {
 		if(index >= size)
 			throw new IndexOutOfBoundsException("size is " + size + ", and the index is " + index);

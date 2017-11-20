@@ -10,8 +10,7 @@ import jet.opengl.postprocessing.util.StackInt;
  * Created by mazhen'gui on 2017/11/17.
  */
 
-public class VaTriangleMesh implements VaRenderingModule{
-    private String                              m_renderingModuleTypeName;
+public class VaTriangleMesh extends VaRenderingModuleImpl{
 
     public StackByte Vertices;
     public StackInt Indices;
@@ -70,16 +69,6 @@ public class VaTriangleMesh implements VaRenderingModule{
     }
 
     public void                        SetDataDirty( ){}
-
-    @Override
-    public String GetRenderingModuleTypeName() {
-        return m_renderingModuleTypeName;
-    }
-
-    @Override
-    public void InternalRenderingModuleSetTypeName(String name) {
-        m_renderingModuleTypeName = name;
-    }
 
     private static void AddTriangle( StackInt outIndices, int a, int b, int c )
     {

@@ -76,9 +76,13 @@ public final class VaTextureDX11 extends VaTexture{
 
     }
 
+    private static int cast(TextureGL tex){
+        return tex != null ? tex.getTexture() : 0;
+    }
+
     @Override
     public void ClearRTV(Vector4f clearValue) {
-        int rtv = GetSRV(); if(rtv == 0) return;
+        int rtv = cast(GetSRV()); if(rtv == 0) return;
 
         gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(GetResourceFormat()),
                 TextureUtils.measureDataType(GetResourceFormat()), clearValue != null ? CacheBuffer.wrap(clearValue) : null);
@@ -86,7 +90,7 @@ public final class VaTextureDX11 extends VaTexture{
 
     @Override
     public void ClearUAV(Vector4i clearValue) {
-        int rtv = GetUAV(); if(rtv == 0) return;
+        int rtv = cast(GetUAV()); if(rtv == 0) return;
 
         gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(GetResourceFormat()),
                 TextureUtils.measureDataType(GetResourceFormat()), clearValue != null ? CacheBuffer.wrap(clearValue) : null);
@@ -94,7 +98,7 @@ public final class VaTextureDX11 extends VaTexture{
 
     @Override
     public void ClearUAV(Vector4f clearValue) {
-        int rtv = GetUAV(); if(rtv == 0) return;
+        int rtv = cast(GetUAV()); if(rtv == 0) return;
 
         gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(GetResourceFormat()),
                 TextureUtils.measureDataType(GetResourceFormat()), clearValue != null ? CacheBuffer.wrap(clearValue) : null);
@@ -102,7 +106,7 @@ public final class VaTextureDX11 extends VaTexture{
 
     @Override
     public void ClearDSV(boolean clearDepth, float depthValue, boolean clearStencil, int stencilValue) {
-        int rtv = GetDSV(); if(rtv == 0) return;
+        int rtv = cast(GetDSV()); if(rtv == 0) return;
 
         /*gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(GetResourceFormat()),
                 TextureUtils.measureDataType(GetResourceFormat()), clearValue != null ? CacheBuffer.wrap(clearValue) : null);*/
@@ -124,10 +128,10 @@ public final class VaTextureDX11 extends VaTexture{
     public int               GetTexture1D( )         { return m_texture1D; }
     public int               GetTexture2D( )         { return m_texture2D; }
     public int               GetTexture3D( )         { return m_texture3D; }
-    public int      GetSRV( )               { return (GetBindSupportFlags() & BSF_ShaderResource) != 0 ? (m_resource != null ? m_resource.getTexture() : 0) : 0; }
-    public int         GetRTV( )            { return (GetBindSupportFlags() & BSF_RenderTarget) != 0 ? (m_resource != null ? m_resource.getTexture() : 0) : 0; }
-    public int         GetDSV( )            { return (GetBindSupportFlags() & BSF_DepthStencil) != 0 ? (m_resource != null ? m_resource.getTexture() : 0) : 0; }
-    public int      GetUAV( )               { return (GetBindSupportFlags() & BSF_UnorderedAccess) != 0 ? (m_resource != null ? m_resource.getTexture() : 0) : 0; }
+    public TextureGL         GetSRV( )               { return (GetBindSupportFlags() & BSF_ShaderResource) != 0 ? m_resource : null; }
+    public TextureGL         GetRTV( )            { return (GetBindSupportFlags() & BSF_RenderTarget) != 0 ? m_resource : null; }
+    public TextureGL         GetDSV( )            { return (GetBindSupportFlags() & BSF_DepthStencil) != 0 ? m_resource : null; }
+    public TextureGL         GetUAV( )               { return (GetBindSupportFlags() & BSF_UnorderedAccess) != 0 ? m_resource : null; }
 
     public static   VaTexture CreateWrap(TextureGL resource
             /*, int srvFormat = vaTextureFormat::Unknown, vaTextureFormat rtvFormat = vaTextureFormat::Unknown, vaTextureFormat dsvFormat = vaTextureFormat::Unknown, vaTextureFormat uavFormat = vaTextureFormat::Unknown*/ ){

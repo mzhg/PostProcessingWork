@@ -5,4 +5,8 @@ package jet.opengl.demos.intel.va;
  */
 
 public class VaMemoryStream implements VaStream {
+    @Override
+    public long ReadLong() {
+        return 0;
+    }
 }

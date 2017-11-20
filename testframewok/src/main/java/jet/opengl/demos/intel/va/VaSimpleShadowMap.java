@@ -10,6 +10,7 @@ import jet.opengl.postprocessing.util.Numeric;
  */
 
 public abstract class VaSimpleShadowMap extends VaRenderingModuleImpl implements VaSimpleShadowMapAPIInternalCallbacks {
+
     private int                             m_resolution;
     private final VaOrientedBoundingBox           m_volume = new VaOrientedBoundingBox();
 
@@ -22,9 +23,7 @@ public abstract class VaSimpleShadowMap extends VaRenderingModuleImpl implements
 
     private VaSimpleVolumeShadowMapPlugin m_volumeShadowMapPlugin;
 
-    protected VaSimpleShadowMap(){
-
-    }
+    protected VaSimpleShadowMap(){}
 
     public void Initialize( int resolution ){
         SetResolution(resolution);

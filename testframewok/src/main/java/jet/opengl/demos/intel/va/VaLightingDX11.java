@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.TextureGL;
 
 /**
  * Created by mazhen'gui on 2017/11/18.
@@ -61,36 +63,36 @@ final class VaLightingDX11 extends VaLighting implements VaDirectXNotifyTarget {
         UpdateResourcesIfNeeded( drawContext );
         assert( !m_shadersDirty );                              if( m_shadersDirty ) return;
 
-        VaDirectXPixelShader   pixelShader = &m_applyDirectionalAmbientPS;
+        VaDirectXPixelShader   pixelShader = m_applyDirectionalAmbientPS;
 
         // Shadows?
-        vaSimpleShadowMapDX11 * simpleShadowMapDX11 = NULL;
-        if( drawContext.SimpleShadowMap != NULL )
+        VaSimpleShadowMapDX11  simpleShadowMapDX11 = null;
+        if( drawContext.SimpleShadowMap != null )
         {
-            simpleShadowMapDX11 = vaSaferStaticCast<vaSimpleShadowMapDX11*>( drawContext.SimpleShadowMap );
-            pixelShader = &m_applyDirectionalAmbientShadowedPS;
+            simpleShadowMapDX11 = (VaSimpleShadowMapDX11) ( drawContext.SimpleShadowMap );
+            pixelShader = m_applyDirectionalAmbientShadowedPS;
         }
 
-        vaRenderDeviceContextDX11 * apiContext = drawContext.APIContext.SafeCast<vaRenderDeviceContextDX11*>( );
-        ID3D11DeviceContext * dx11Context = apiContext->GetDXImmediateContext( );
+        VaRenderDeviceContextDX11 apiContext = (VaRenderDeviceContextDX11)drawContext.APIContext;
+//        ID3D11DeviceContext * dx11Context = apiContext->GetDXImmediateContext( );
 
         // make sure we're not overwriting someone's stuff
-        vaDirectXTools::AssertSetToD3DContextAllShaderTypes( dx11Context, ( ID3D11ShaderResourceView* )nullptr, LIGHTING_SLOT0 );
-        vaDirectXTools::AssertSetToD3DContextAllShaderTypes( dx11Context, ( ID3D11ShaderResourceView* )nullptr, LIGHTING_SLOT1 );
-        vaDirectXTools::AssertSetToD3DContextAllShaderTypes( dx11Context, ( ID3D11ShaderResourceView* )nullptr, LIGHTING_SLOT2 );
+        VaDirectXTools.AssertSetToD3DContextAllShaderTypes( /*dx11Context,*/ ( TextureGL )null, VaShaderDefine.LIGHTING_SLOT0 );
+        VaDirectXTools.AssertSetToD3DContextAllShaderTypes( /*dx11Context,*/ ( TextureGL )null, VaShaderDefine.LIGHTING_SLOT1 );
+        VaDirectXTools.AssertSetToD3DContextAllShaderTypes( /*dx11Context,*/ ( TextureGL )null, VaShaderDefine.LIGHTING_SLOT2 );
 
         // gbuffer stuff
-        vaDirectXTools::SetToD3DContextAllShaderTypes( dx11Context, GBuffer.GetDepthBufferViewspaceLinear( )->SafeCast<vaTextureDX11*>( )->GetSRV( ),   LIGHTING_SLOT0 );
-        vaDirectXTools::SetToD3DContextAllShaderTypes( dx11Context, GBuffer.GetAlbedo( )->SafeCast<vaTextureDX11*>( )->GetSRV( ),                       LIGHTING_SLOT1 );
-        vaDirectXTools::SetToD3DContextAllShaderTypes( dx11Context, GBuffer.GetNormalMap( )->SafeCast<vaTextureDX11*>( )->GetSRV( ),                    LIGHTING_SLOT2 );
+        VaDirectXTools.SetToD3DContextAllShaderTypes( /*dx11Context,*/ ((VaTextureDX11)GBuffer.GetDepthBufferViewspaceLinear( )).GetSRV( ),   VaShaderDefine.LIGHTING_SLOT0 );
+        VaDirectXTools.SetToD3DContextAllShaderTypes( /*dx11Context,*/ ((VaTextureDX11)GBuffer.GetAlbedo( )).GetSRV( ),                       VaShaderDefine.LIGHTING_SLOT1 );
+        VaDirectXTools.SetToD3DContextAllShaderTypes( /*dx11Context,*/ ((VaTextureDX11)GBuffer.GetNormalMap( )).GetSRV( ),                    VaShaderDefine.LIGHTING_SLOT2 );
 
         // draw but only on things that are already in the zbuffer
-        apiContext->FullscreenPassDraw( dx11Context, pixelShader->GetShader(), vaDirectXTools::GetBS_Additive(), vaDirectXTools::GetDSS_DepthEnabledG_NoDepthWrite(), 0, nullptr, 1.0f );
+        apiContext.FullscreenPassDraw(/* dx11Context,*/ pixelShader.GetShader(), VaDirectXTools.GetBS_Additive(), VaDirectXTools.GetDSS_DepthEnabledG_NoDepthWrite(), 0, null, 1.0f );
 
         //    Reset, leave stuff clean
-        vaDirectXTools::SetToD3DContextAllShaderTypes( dx11Context, (ID3D11ShaderResourceView*) nullptr,  LIGHTING_SLOT0 );
-        vaDirectXTools::SetToD3DContextAllShaderTypes( dx11Context, (ID3D11ShaderResourceView*) nullptr,  LIGHTING_SLOT1 );
-        vaDirectXTools::SetToD3DContextAllShaderTypes( dx11Context, (ID3D11ShaderResourceView*) nullptr,  LIGHTING_SLOT2 );
+        VaDirectXTools.SetToD3DContextAllShaderTypes( /*dx11Context,*/ (Texture2D) null,  VaShaderDefine.LIGHTING_SLOT0 );
+        VaDirectXTools.SetToD3DContextAllShaderTypes( /*dx11Context,*/ (Texture2D) null,  VaShaderDefine.LIGHTING_SLOT1 );
+        VaDirectXTools.SetToD3DContextAllShaderTypes( /*dx11Context,*/ (Texture2D) null,  VaShaderDefine.LIGHTING_SLOT2 );
     }
 
     @Override

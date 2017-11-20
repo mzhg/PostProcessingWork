@@ -1,7 +1,6 @@
 package jet.opengl.demos.intel.va;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -560,4 +559,6 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
     protected void                    AddBuiltInMacros( ){
         m_macros.add( new Macro( "VA_COMPILED_AS_SHADER_CODE", "" ) );
     }
+
+    public ShaderProgram GetShader(){ return m_shader;}
 }

@@ -596,4 +596,130 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     public void InternalRenderingModuleSetTypeName(String name){
         m_renderingModuleTypeName = name;
     }
+
+    public final static int GetPixelSizeInBytes( int val )
+    {
+        switch( val )
+        {
+            case Unknown:                    return 0;
+            case R32G32B32A32_TYPELESS:      return 4*4;
+            case R32G32B32A32_FLOAT:         return 4*4;
+            case R32G32B32A32_UINT:          return 4*4;
+            case R32G32B32A32_SINT:          return 4*4;
+            case R32G32B32_TYPELESS:         return 3*4;
+            case R32G32B32_FLOAT:            return 3*4;
+            case R32G32B32_UINT:             return 3*4;
+            case R32G32B32_SINT:             return 3*4;
+            case R16G16B16A16_TYPELESS:      return 4*2;
+            case R16G16B16A16_FLOAT:         return 4*2;
+            case R16G16B16A16_UNORM:         return 4*2;
+            case R16G16B16A16_UINT:          return 4*2;
+            case R16G16B16A16_SNORM:         return 4*2;
+            case R16G16B16A16_SINT:          return 4*2;
+            case R32G32_TYPELESS:            return 2*4;
+            case R32G32_FLOAT:               return 2*4;
+            case R32G32_UINT:                return 2*4;
+            case R32G32_SINT:                return 2*4;
+            case R32G8X24_TYPELESS:          return 4+1;
+            case D32_FLOAT_S8X24_UINT:       return 4+1;
+            case R32_FLOAT_X8X24_TYPELESS:   return 4+1;
+            case X32_TYPELESS_G8X24_UINT:    return 4+1;
+            case R10G10B10A2_TYPELESS:       return 4;
+            case R10G10B10A2_UNORM:          return 4;
+            case R10G10B10A2_UINT:           return 4;
+            case R11G11B10_FLOAT:            return 4;
+            case R8G8B8A8_TYPELESS:          return 4;
+            case R8G8B8A8_UNORM:             return 4;
+            case R8G8B8A8_UNORM_SRGB:        return 4;
+            case R8G8B8A8_UINT:              return 4;
+            case R8G8B8A8_SNORM:             return 4;
+            case R8G8B8A8_SINT:              return 4;
+            case R16G16_TYPELESS:            return 4;
+            case R16G16_FLOAT:               return 4;
+            case R16G16_UNORM:               return 4;
+            case R16G16_UINT:                return 4;
+            case R16G16_SNORM:               return 4;
+            case R16G16_SINT:                return 4;
+            case R32_TYPELESS:               return 4;
+            case D32_FLOAT:                  return 4;
+            case R32_FLOAT:                  return 4;
+            case R32_UINT:                   return 4;
+            case R32_SINT:                   return 4;
+            case R24G8_TYPELESS:             return 4;
+            case D24_UNORM_S8_UINT:          return 4;
+            case R24_UNORM_X8_TYPELESS:      return 4;
+            case X24_TYPELESS_G8_UINT:       return 4;
+            case R8G8_TYPELESS:              return 2;
+            case R8G8_UNORM:                 return 2;
+            case R8G8_UINT:                  return 2;
+            case R8G8_SNORM:                 return 2;
+            case R8G8_SINT:                  return 2;
+            case R16_TYPELESS:               return 2;
+            case R16_FLOAT:                  return 2;
+            case D16_UNORM:                  return 2;
+            case R16_UNORM:                  return 2;
+            case R16_UINT:                   return 2;
+            case R16_SNORM:                  return 2;
+            case R16_SINT:                   return 2;
+            case R8_TYPELESS:                return 1;
+            case R8_UNORM:                   return 1;
+            case R8_UINT:                    return 1;
+            case R8_SNORM:                   return 1;
+            case R8_SINT:                    return 1;
+            case A8_UNORM:                   return 1;
+            case R1_UNORM:                   return 1;
+            case R9G9B9E5_SHAREDEXP:         return 4;
+            case R8G8_B8G8_UNORM:            return 4;
+            case G8R8_G8B8_UNORM:            return 4;
+            case BC1_TYPELESS:               assert( false ); return 0; // not supported for compressed formats
+            case BC1_UNORM:                  assert( false ); return 0; // not supported for compressed formats
+            case BC1_UNORM_SRGB:             assert( false ); return 0; // not supported for compressed formats
+            case BC2_TYPELESS:               assert( false ); return 0; // not supported for compressed formats
+            case BC2_UNORM:                  assert( false ); return 0; // not supported for compressed formats
+            case BC2_UNORM_SRGB:             assert( false ); return 0; // not supported for compressed formats
+            case BC3_TYPELESS:               assert( false ); return 0; // not supported for compressed formats
+            case BC3_UNORM:                  assert( false ); return 0; // not supported for compressed formats
+            case BC3_UNORM_SRGB:             assert( false ); return 0; // not supported for compressed formats
+            case BC4_TYPELESS:               assert( false ); return 0; // not supported for compressed formats
+            case BC4_UNORM:                  assert( false ); return 0; // not supported for compressed formats
+            case BC4_SNORM:                  assert( false ); return 0; // not supported for compressed formats
+            case BC5_TYPELESS:               assert( false ); return 0; // not supported for compressed formats
+            case BC5_UNORM:                  assert( false ); return 0; // not supported for compressed formats
+            case BC5_SNORM:                  assert( false ); return 0; // not supported for compressed formats
+            case B5G6R5_UNORM:               return 2;
+            case B5G5R5A1_UNORM:             return 2;
+            case B8G8R8A8_UNORM:             return 4;
+            case B8G8R8X8_UNORM:             return 4;
+            case R10G10B10_XR_BIAS_A2_UNORM: return 4;
+            case B8G8R8A8_TYPELESS:          return 4;
+            case B8G8R8A8_UNORM_SRGB:        return 4;
+            case B8G8R8X8_TYPELESS:          return 4;
+            case B8G8R8X8_UNORM_SRGB:        return 4;
+            case BC6H_TYPELESS:              assert( false ); return 0; // not supported for compressed formats
+            case BC6H_UF16:                  assert( false ); return 0; // not supported for compressed formats
+            case BC6H_SF16:                  assert( false ); return 0; // not supported for compressed formats
+            case BC7_TYPELESS:               assert( false ); return 0; // not supported for compressed formats
+            case BC7_UNORM:                  assert( false ); return 0; // not supported for compressed formats
+            case BC7_UNORM_SRGB:             assert( false ); return 0; // not supported for compressed formats
+            case AYUV:                       assert( false ); return 0; // not yet implemented
+            case Y410:                       assert( false ); return 0; // not yet implemented
+            case Y416:                       assert( false ); return 0; // not yet implemented
+            case NV12:                       assert( false ); return 0; // not yet implemented
+            case P010:                       assert( false ); return 0; // not yet implemented
+            case P016:                       assert( false ); return 0; // not yet implemented
+            case F420_OPAQUE:                assert( false ); return 0; // not yet implemented
+            case YUY2:                       assert( false ); return 0; // not yet implemented
+            case Y210:                       assert( false ); return 0; // not yet implemented
+            case Y216:                       assert( false ); return 0; // not yet implemented
+            case NV11:                       assert( false ); return 0; // not yet implemented
+            case AI44:                       assert( false ); return 0; // not yet implemented
+            case IA44:                       assert( false ); return 0; // not yet implemented
+            case P8:                         return 1;
+            case A8P8:                       return 2;
+            case B4G4R4A4_UNORM:             return 2;
+            default: break;
+        }
+        assert( false );
+        return 0;
+    }
 }

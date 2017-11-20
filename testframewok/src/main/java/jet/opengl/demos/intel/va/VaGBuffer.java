@@ -1,5 +1,7 @@
 package jet.opengl.demos.intel.va;
 
+import com.nvidia.developer.opengl.utils.Holder;
+
 import org.lwjgl.util.vector.Vector2i;
 
 /**
@@ -15,12 +17,12 @@ public abstract class VaGBuffer extends VaImguiHierarchyObject implements VaRend
 
     protected final BufferFormats                   m_formats = new BufferFormats();
 
-    protected VaTexture                             m_depthBuffer;                      // just a regular depth buffer
-    protected VaTexture                             m_depthBufferViewspaceLinear;       // regular depth buffer converted to viewspace
-    protected VaTexture                             m_normalMap;                        // screen space normal map
-    protected VaTexture                             m_albedo;                           // material color plus whatever else
-    protected VaTexture                             m_radiance;                         // a.k.a. light accumulation, a.k.a. screen color - final lighting output goes here as well as emissive materials
-    protected VaTexture                             m_outputColor;                      // final output color
+    protected final Holder<VaTexture>               m_depthBuffer = new Holder<>();                      // just a regular depth buffer
+    protected final Holder<VaTexture>               m_depthBufferViewspaceLinear = new Holder<>();       // regular depth buffer converted to viewspace
+    protected final Holder<VaTexture>               m_normalMap = new Holder<>();                        // screen space normal map
+    protected final Holder<VaTexture>               m_albedo = new Holder<>();                           // material color plus whatever else
+    protected final Holder<VaTexture>               m_radiance = new Holder<>();                         // a.k.a. light accumulation, a.k.a. screen color - final lighting output goes here as well as emissive materials
+    protected final Holder<VaTexture>               m_outputColor = new Holder<>();                      // final output color
 
     // Light Pre-Pass
     // protected VaTexture                             m_diffuseIrradiance;        // placeholder for Light Pre-Pass
@@ -43,12 +45,12 @@ public abstract class VaGBuffer extends VaImguiHierarchyObject implements VaRend
     }
     public BufferFormats                                GetFormats( )                      { return m_formats; }
 
-    public VaTexture GetDepthBuffer( )                  { return m_depthBuffer;              }
-    public VaTexture GetDepthBufferViewspaceLinear( )   { return m_depthBufferViewspaceLinear;}
-    public VaTexture GetNormalMap( )                    { return m_normalMap;                }
-    public VaTexture GetAlbedo( )                       { return m_albedo;                   }
-    public VaTexture GetRadiance( )                     { return m_radiance;                 }
-    public VaTexture GetOutputColor( )                  { return m_outputColor;              }
+    public VaTexture GetDepthBuffer( )                  { return m_depthBuffer.get();              }
+    public VaTexture GetDepthBufferViewspaceLinear( )   { return m_depthBufferViewspaceLinear.get();}
+    public VaTexture GetNormalMap( )                    { return m_normalMap.get();                }
+    public VaTexture GetAlbedo( )                       { return m_albedo.get();                   }
+    public VaTexture GetRadiance( )                     { return m_radiance.get();                 }
+    public VaTexture GetOutputColor( )                  { return m_outputColor.get();              }
     public Vector2i  GetResolution( )                   { return m_resolution; }
 
     /**
