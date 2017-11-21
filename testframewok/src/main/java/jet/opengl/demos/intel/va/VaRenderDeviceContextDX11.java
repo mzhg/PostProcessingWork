@@ -117,6 +117,14 @@ public class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements 
         return canvas;
     }
 
+    public void VSSetShader(ShaderProgram shader){
+        m_program.setVS(shader);
+    }
+
+    public void PSSetShader(ShaderProgram shader){
+        m_program.setPS(shader);
+    }
+
 //    ID3D11DeviceContext *       GetDXImmediateContext( ) const                               { return m_deviceImmediateContext; }
 
     public final void FullscreenPassDraw( /*ID3D11DeviceContext * context,*/ ShaderProgram pixelShader){
@@ -208,6 +216,15 @@ public class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements 
         SAFE_RELEASE(m_fullscreenVS);  m_fullscreenVS = null;
         SAFE_RELEASE(m_renderTarget);  m_renderTarget = null;
         SAFE_RELEASE(m_program);  m_program = null;
+    }
+
+    public void ClearShaders(){
+        m_program.setVS(null);
+        m_program.setPS(null);
+        m_program.setGS(null);
+        m_program.setTC(null);
+        m_program.setTE(null);
+        m_program.setCS(null);
     }
 
     /*private:

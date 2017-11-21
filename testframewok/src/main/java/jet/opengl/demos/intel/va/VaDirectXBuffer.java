@@ -79,10 +79,6 @@ public class VaDirectXBuffer implements Disposeable {
         throw new UnsupportedOperationException();
     }
 
-    public void Destroy( ){
-        dispose();
-    }
-
     public int                          GetElementCount( )            { return m_elementCount; }
     public int                          GetSizeInBytes( )             { return m_elementCount * /*sizeof(ElementType)*/m_elementSize; }
     public BufferGL                     GetBuffer()                   { return m_buffer; }

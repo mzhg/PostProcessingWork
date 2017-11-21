@@ -97,7 +97,7 @@ final class VaSimpleShadowMapDX11 extends VaSimpleShadowMap implements VaDirectX
 
     @Override
     public void OnDeviceDestroyed() {
-        m_constantsBuffer.Destroy( );
+        m_constantsBuffer.dispose( );
 
         assert( m_prevCanvasRT == null );
         assert( m_prevCanvasDS == null );

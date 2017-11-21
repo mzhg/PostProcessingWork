@@ -5,13 +5,13 @@ package jet.opengl.demos.intel.cput;
  */
 
 public final class D3D11_INPUT_ELEMENT_DESC {
-    String SemanticName;
-    int SemanticIndex;
-    int Format;
-    int InputSlot;
-    int AlignedByteOffset;
-    int InputSlotClass;
-    int InstanceDataStepRate;
+    public String SemanticName;
+    public int SemanticIndex;
+    public int Format;
+    public int InputSlot;
+    public int AlignedByteOffset;
+    public int InputSlotClass;
+    public int InstanceDataStepRate;
 
     public void zeros(){
         SemanticName = null;

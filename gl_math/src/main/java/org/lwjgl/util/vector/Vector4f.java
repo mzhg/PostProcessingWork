@@ -46,6 +46,9 @@ import java.nio.FloatBuffer;
 
 public class Vector4f extends Vector implements Serializable, ReadableVector4f, WritableVector4f {
 
+	public static final ReadableVector4f ONE = new Vector4f(1,1,1,1);
+	public static final ReadableVector4f ZERO = new Vector4f();
+
 	private static final long serialVersionUID = 1L;
 
 	public float x, y, z, w;

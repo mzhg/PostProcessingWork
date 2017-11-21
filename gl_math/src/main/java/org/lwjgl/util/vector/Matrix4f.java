@@ -2656,4 +2656,63 @@ public class Matrix4f extends Matrix implements Serializable {
 		
 		return result;
 	}
+
+	public static boolean decompose(Matrix4f transform, WritableVector3f outScale, WritableVector4f outRotation, WritableVector3f outTranslation ){
+		// Translation
+		/*outTranslation.x = this->m[3][0];
+		outTranslation.y = this->m[3][1];
+		outTranslation.z = this->m[3][2];*/
+		if(outTranslation != null)
+			outTranslation.set(transform.m30, transform.m31, transform.m32);
+
+		// Scaling
+		float x = transform.m00;
+		float y = transform.m01;
+		float z = transform.m02;
+//		outScale.x = vec.Length( );
+		float scaleX = Vector3f.length(x,y,z);
+		if(scaleX == 0.0f) return false;
+		if(outScale != null) outScale.setX(scaleX);
+
+		x = transform.m10;
+		y = transform.m11;
+		z = transform.m12;
+//		outScale.y = vec.Length( );
+		float scaleY = Vector3f.length(x,y,z);
+		if(scaleY == 0.0f) return false;
+		if(outScale != null) outScale.setY(scaleY);
+
+		x = transform.m20;
+		y = transform.m21;
+		z = transform.m22;
+//		outScale.z = vec.Length( );
+		float scaleZ = Vector3f.length(x,y,z);
+		if(scaleZ == 0.0f) return false;
+		if(outScale != null) outScale.setZ(scaleZ);
+
+		/*normalized.m[0][1] = this->m[0][1] / outScale.x;
+		normalized.m[0][2] = this->m[0][2] / outScale.x;
+		normalized.m[1][0] = this->m[1][0] / outScale.y;
+		normalized.m[1][1] = this->m[1][1] / outScale.y;
+		normalized.m[1][2] = this->m[1][2] / outScale.y;
+		normalized.m[2][0] = this->m[2][0] / outScale.z;
+		normalized.m[2][1] = this->m[2][1] / outScale.z;
+		normalized.m[2][2] = this->m[2][2] / outScale.z;*/
+
+		if(outRotation != null) {
+			float m00 = transform.m00 / scaleX;
+			float m01 = transform.m01 / scaleX;
+			float m02 = transform.m02 / scaleX;
+			float m10 = transform.m10 / scaleY;
+			float m11 = transform.m11 / scaleY;
+			float m12 = transform.m12 / scaleY;
+			float m20 = transform.m20 / scaleZ;
+			float m21 = transform.m21 / scaleZ;
+			float m22 = transform.m22 / scaleZ;
+
+			Quaternion.fromRotationMat(m00, m01, m02, m10, m11, m12, m20, m21, m22, outRotation);
+		}
+
+		return true;
+	}
 }

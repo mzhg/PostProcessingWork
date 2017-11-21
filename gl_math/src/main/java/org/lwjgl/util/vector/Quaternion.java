@@ -609,6 +609,68 @@ public class Quaternion extends Vector implements ReadableVector4f, WritableVect
 	private Quaternion setFromMat(float m00, float m01, float m02, float m10,
 			float m11, float m12, float m20, float m21, float m22) {
 
+		/*float s;
+		float tr = m00 + m11 + m22;
+		if (tr >= 0.0) {
+			s = (float) Math.sqrt(tr + 1.0);
+			w = s * 0.5f;
+			s = 0.5f / s;
+			x = (m21 - m12) * s;
+			y = (m02 - m20) * s;
+			z = (m10 - m01) * s;
+		} else {
+			float max = Math.max(Math.max(m00, m11), m22);
+			if (max == m00) {
+				s = (float) Math.sqrt(m00 - (m11 + m22) + 1.0);
+				x = s * 0.5f;
+				s = 0.5f / s;
+				y = (m01 + m10) * s;
+				z = (m20 + m02) * s;
+				w = (m21 - m12) * s;
+			} else if (max == m11) {
+				s = (float) Math.sqrt(m11 - (m22 + m00) + 1.0);
+				y = s * 0.5f;
+				s = 0.5f / s;
+				z = (m12 + m21) * s;
+				x = (m01 + m10) * s;
+				w = (m02 - m20) * s;
+			} else {
+				s = (float) Math.sqrt(m22 - (m00 + m11) + 1.0);
+				z = s * 0.5f;
+				s = 0.5f / s;
+				x = (m20 + m02) * s;
+				y = (m12 + m21) * s;
+				w = (m10 - m01) * s;
+			}
+		}
+		return this;*/
+
+		fromRotationMat(m00, m01, m02, m10, m11, m12, m20, m21, m22, this);
+		return this;
+	}
+
+	public static<T extends WritableVector4f> T fromRotationMat(Matrix3f mat,
+																WritableVector4f out){
+		final Matrix3f m = mat;
+		return fromRotationMat(m.m00, m.m01, m.m02, m.m10, m.m11, m.m12, m.m20,
+				m.m21, m.m22, out);
+	}
+
+	public static<T extends WritableVector4f> T fromRotationMat(Matrix4f mat,
+																WritableVector4f out){
+		final Matrix4f m = mat;
+		return fromRotationMat(m.m00, m.m01, m.m02, m.m10, m.m11, m.m12, m.m20,
+				m.m21, m.m22, out);
+	}
+
+	public static<T extends WritableVector4f> T fromRotationMat(float m00, float m01, float m02, float m10,
+																float m11, float m12, float m20, float m21, float m22,
+																WritableVector4f out){
+		if(out == null){
+			out = new Quaternion();
+		}
+
+		float x,y,z,w;
 		float s;
 		float tr = m00 + m11 + m22;
 		if (tr >= 0.0) {
@@ -643,7 +705,9 @@ public class Quaternion extends Vector implements ReadableVector4f, WritableVect
 				w = (m10 - m01) * s;
 			}
 		}
-		return this;
+
+		out.set(x,y,z,w);
+		return (T)out;
 	}
 	
 	/**

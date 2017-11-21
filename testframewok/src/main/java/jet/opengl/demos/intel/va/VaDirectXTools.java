@@ -2,6 +2,7 @@ package jet.opengl.demos.intel.va;
 
 import java.nio.ByteBuffer;
 
+import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.BlendState;
 import jet.opengl.postprocessing.common.DepthStencilState;
@@ -464,8 +465,29 @@ public final class VaDirectXTools {
         }
     }
 
-    public static BlendState GetBS_Additive(){
+    public static BlendState GetBS_Opaque( )
+    {
+        return g_BS_Opaque;
+    }
+
+    public static BlendState GetBS_Additive( )
+    {
         return g_BS_Additive;
+    }
+
+    public static BlendState GetBS_AlphaBlend( )
+    {
+        return g_BS_AlphaBlend;
+    }
+
+    public static BlendState GetBS_PremultAlphaBlend( )
+    {
+        return g_BS_PremultAlphaBlend;
+    }
+
+    public static BlendState GetBS_Mult( )
+    {
+        return g_BS_Mult;
     }
 
     public static RasterizerState GetRS_CullNone_Fill( )
@@ -568,4 +590,16 @@ public final class VaDirectXTools {
     public static int GetSamplerStatePtrAnisotropicClamp( ) { return g_samplerStateAnisotropicClamp; }
     public static int GetSamplerStatePtrAnisotropicWrap( ) { return g_samplerStateAnisotropicWrap; }
 
+    public static D3D11_INPUT_ELEMENT_DESC CD3D11_INPUT_ELEMENT_DESC(String semanticName, int semanticIndex, int format, int inputSlot,
+                                                                     int alignedByteOffset, int inputSlotClass, int instanceDataStepRate){
+        D3D11_INPUT_ELEMENT_DESC desc = new D3D11_INPUT_ELEMENT_DESC();
+        desc.SemanticName = semanticName;
+        desc.SemanticIndex = semanticIndex;
+        desc.Format = format;
+        desc.InputSlot = inputSlot;
+        desc.AlignedByteOffset = alignedByteOffset;
+        desc.InputSlotClass = inputSlotClass;
+        desc.InstanceDataStepRate = instanceDataStepRate;
+        return desc;
+    }
 }

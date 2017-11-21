@@ -1,7 +1,5 @@
 package jet.opengl.demos.intel.va;
 
-import jet.opengl.postprocessing.util.Pair;
-
 import org.lwjgl.util.vector.Vector4f;
 
 import java.util.ArrayList;
@@ -9,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.shader.Macro;
 
 /**
  * Created by mazhen'gui on 2017/11/17.
@@ -45,7 +44,7 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
     protected String                                          m_shaderEntryPS_Forward;
     protected String                                          m_shaderEntryPS_Deferred;
 
-    protected final ArrayList<Pair<String, String>> m_shaderMacros = new ArrayList<>(16);
+    protected final ArrayList<Macro> m_shaderMacros = new ArrayList<>(16);
     protected boolean                                            m_shaderMacrosDirty;
     protected boolean                                             m_shadersDirty;
 
@@ -131,22 +130,22 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
             return;
 
 //        vector< pair< string, string > > prevShaderMacros = m_shaderMacros;
-        List<Pair<String, String>> prevShaderMacros = new ArrayList<>(m_shaderMacros);
+        List<Macro> prevShaderMacros = new ArrayList<>(m_shaderMacros);
 
         assert( m_shaderMacrosDirty );
         m_shaderMacros.clear();
 
-        m_shaderMacros.add( new Pair<>( "VA_RMM_TRANSPARENT",        ( ( m_settings.Transparent       ) ? ( "1" ) : ( "0" ) ) ) );
-        m_shaderMacros.add( new Pair<>( "VA_RMM_ALPHATEST",          ( ( m_settings.AlphaTest         ) ? ( "1" ) : ( "0" ) ) ) );
-        m_shaderMacros.add( new Pair<>( "VA_RMM_ACCEPTSHADOWS",      ( ( m_settings.ReceiveShadows    ) ? ( "1" ) : ( "0" ) ) ) );
-        m_shaderMacros.add( new Pair<>( "VA_RMM_WIREFRAME",          ( ( m_settings.Wireframe         ) ? ( "1" ) : ( "0" ) ) ) );
+        m_shaderMacros.add( new Macro( "VA_RMM_TRANSPARENT",        ( ( m_settings.Transparent       ) ? ( "1" ) : ( "0" ) ) ) );
+        m_shaderMacros.add( new Macro( "VA_RMM_ALPHATEST",          ( ( m_settings.AlphaTest         ) ? ( "1" ) : ( "0" ) ) ) );
+        m_shaderMacros.add( new Macro( "VA_RMM_ACCEPTSHADOWS",      ( ( m_settings.ReceiveShadows    ) ? ( "1" ) : ( "0" ) ) ) );
+        m_shaderMacros.add( new Macro( "VA_RMM_WIREFRAME",          ( ( m_settings.Wireframe         ) ? ( "1" ) : ( "0" ) ) ) );
 
         boolean texturingEnabled = !m_renderMaterialManager.GetTexturingDisabled();
 
-        m_shaderMacros.add( new Pair<>( "VA_RMM_HASALBEDOTEXTURE",   ( ( texturingEnabled & (m_textureAlbedo != null    ) ) ? ( "1" ) : ( "0" ) ) ) );
-        m_shaderMacros.add( new Pair<>( "VA_RMM_HASNORMALMAPTEXTURE",( ( texturingEnabled & (m_textureNormalmap != null ) ) ? ( "1" ) : ( "0" ) ) ) );
-        m_shaderMacros.add( new Pair<>( "VA_RMM_HASSPECULARTEXTURE", ( ( texturingEnabled & (m_textureSpecular != null  ) ) ? ( "1" ) : ( "0" ) ) ) );
-        m_shaderMacros.add( new Pair<>( "VA_RMM_HASEMISSIVETEXTURE", ( ( texturingEnabled & (m_textureEmissive != null  ) ) ? ( "1" ) : ( "0" ) ) ) );
+        m_shaderMacros.add( new Macro( "VA_RMM_HASALBEDOTEXTURE",   ( ( texturingEnabled & (m_textureAlbedo != null    ) ) ? ( "1" ) : ( "0" ) ) ) );
+        m_shaderMacros.add( new Macro( "VA_RMM_HASNORMALMAPTEXTURE",( ( texturingEnabled & (m_textureNormalmap != null ) ) ? ( "1" ) : ( "0" ) ) ) );
+        m_shaderMacros.add( new Macro( "VA_RMM_HASSPECULARTEXTURE", ( ( texturingEnabled & (m_textureSpecular != null  ) ) ? ( "1" ) : ( "0" ) ) ) );
+        m_shaderMacros.add( new Macro( "VA_RMM_HASEMISSIVETEXTURE", ( ( texturingEnabled & (m_textureEmissive != null  ) ) ? ( "1" ) : ( "0" ) ) ) );
 
         m_shaderMacrosDirty = false;
         m_shadersDirty = (!prevShaderMacros.equals(m_shaderMacros));

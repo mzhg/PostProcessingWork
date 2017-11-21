@@ -5,7 +5,6 @@ import jet.opengl.postprocessing.common.GLenum;
 /**
  * Created by mazhen'gui on 2017/11/20.
  */
-
 public class VaTriangleMeshDX11 extends VaTriangleMesh implements VaDirectXNotifyTarget {
     private boolean                                m_dirty = true;
 
@@ -23,8 +22,8 @@ public class VaTriangleMeshDX11 extends VaTriangleMesh implements VaDirectXNotif
     void UpdateAndSetToD3DContext(/* ID3D11DeviceContext * context*/ ){
         if( m_dirty )
         {
-            m_indexBuffer.Destroy( );
-            m_vertexBuffer.Destroy( );
+            m_indexBuffer.dispose( );
+            m_vertexBuffer.dispose( );
 
             if( Indices.size( ) > 0 )
             {
@@ -55,15 +54,15 @@ public class VaTriangleMeshDX11 extends VaTriangleMesh implements VaDirectXNotif
 
     public void                                    OnDeviceDestroyed( )
     {
-        m_indexBuffer.Destroy( );
-        m_vertexBuffer.Destroy( );
+        m_indexBuffer.dispose( );
+        m_vertexBuffer.dispose( );
         m_dirty = true;
     }
 
     public void                                    SetDataDirty( )
     {
-        m_indexBuffer.Destroy( );
-        m_vertexBuffer.Destroy( );
+        m_indexBuffer.dispose( );
+        m_vertexBuffer.dispose( );
         m_dirty = true;
     }
 }
