@@ -17,5 +17,5 @@ public class VaUIDObject {
     }
 
     public UUID                               UIDObject_GetUID( )                { return m_uid; }
-    public boolean                                         UIDObject_IsCorrectlyTracked( )    { return m_correctlyTracked; }
+    public boolean                            UIDObject_IsCorrectlyTracked( )    { return m_correctlyTracked; }
 }

@@ -26,9 +26,15 @@ public interface FileLoader {
         public boolean exists(String file) {
             return new File(file).exists();
         }
+
+        @Override
+        public String resolvePath(String file) {
+            return file;
+        }
     };
 
     public InputStream open(String file) throws IOException;
     public String getCanonicalPath(String file) throws IOException;
     public boolean exists(String file);
+    public String resolvePath(String file);
 }

@@ -76,6 +76,14 @@ public class DemoApp {
 
                 return new File(path + file).exists();
             }
+
+            @Override
+            public String resolvePath(String file) {
+                if(file.contains(path)){
+                    return file;
+                }
+                return path + file;
+            }
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);

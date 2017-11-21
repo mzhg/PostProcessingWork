@@ -16,7 +16,7 @@ public class VaDrawContext {
     public VaRenderPassType                PassType;
     public VaSimpleShadowMap       SimpleShadowMap;
 
-    private boolean renderingGlobalsUpdated;
+    boolean renderingGlobalsUpdated;
 
     public boolean  GetRenderingGlobalsUpdated( )             { return renderingGlobalsUpdated; }
 }

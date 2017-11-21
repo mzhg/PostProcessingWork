@@ -1,5 +1,6 @@
 package jet.opengl.demos.intel.va;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.util.Numeric;
@@ -8,15 +9,14 @@ import jet.opengl.postprocessing.util.Numeric;
  * Created by mazhen'gui on 2017/11/16.
  */
 
-public abstract class VaStream {
+public abstract class VaStream implements Closeable{
 
     public abstract boolean      IsOpen( );
-    public abstract void         Close( ) throws IOException;
-    public abstract int          GetLength( );
+    public abstract int          GetLength( ) throws IOException;
     public abstract int          GetPosition( );
     public abstract boolean      CanSeek( );
     public abstract void         Seek( int position ) throws IOException;
-    public abstract void         Truncate( );     // truncate everything behind current
+    public abstract void         Truncate( )throws IOException;     // truncate everything behind current
 
     public abstract int          Read( byte[] buffer, int offset, int count /*int64 * outCountRead = NULL*/ ) throws IOException;
     public abstract int          Write(byte[] buffer, int offset, int count/*, int64 * outCountWritten = NULL*/ ) throws IOException;
