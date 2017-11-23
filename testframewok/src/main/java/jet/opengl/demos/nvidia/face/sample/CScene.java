@@ -44,6 +44,11 @@ interface CScene {
         public boolean exists(String file) {
             return new File(file).exists();
         }
+
+        @Override
+        public String resolvePath(String file) {
+            return file;
+        }
     };
 
     void Init();

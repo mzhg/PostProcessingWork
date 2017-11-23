@@ -83,8 +83,8 @@ public abstract class VaSimpleShadowMap extends VaRenderingModuleImpl implements
             m_resolution = resolution;
 
             m_shadowMap = VaTexture.Create2D( VaTexture.R16_TYPELESS, resolution, resolution, 1, 1, 1, 
-                           VaTexture.BSF_DepthStencil | VaTexture.BSF_ShaderResource, /*vaTextureAccessFlags::None*/0, null/*,
-                            0, VaTexture.R16_UNORM, VaTexture.Unknown, VaTexture.D16_UNORM*/);
+                           VaTexture.BSF_DepthStencil | VaTexture.BSF_ShaderResource, /*vaTextureAccessFlags::None*/0, null,
+                            0, VaTexture.R16_UNORM, VaTexture.Unknown, VaTexture.D16_UNORM, VaTexture.Unknown, 0);
 
             InternalResolutionOrTexelWorldSizeChanged( );
         }

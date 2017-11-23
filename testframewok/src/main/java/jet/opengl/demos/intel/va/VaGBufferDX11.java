@@ -92,7 +92,7 @@ final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
                     (_inoutTex.GetResourceFormat()==resourceFormat) && (_inoutTex.GetSRVFormat()==srvFormat) && (_inoutTex.GetRTVFormat()==rtvFormat) && (_inoutTex.GetDSVFormat()==dsvFormat) && (_inoutTex.GetUAVFormat()==uavFormat) )
                 return inoutTotalSizeSum;
 
-            inoutTex.set(VaTexture.Create2D( resourceFormat, width, height, 1, 1, 1, bindFlags, /*vaTextureAccessFlags::None, nullptr, 0, srvFormat, rtvFormat, dsvFormat, uavFormat*/0, null ));
+            inoutTex.set(VaTexture.Create2D( resourceFormat, width, height, 1, 1, 1, bindFlags, /*vaTextureAccessFlags::None*/0, null, 0, srvFormat, rtvFormat, dsvFormat, uavFormat,0 ));
         }
 
         return inoutTotalSizeSum;

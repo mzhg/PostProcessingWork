@@ -3,27 +3,38 @@ package jet.opengl.demos.nvidia.illumination;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
 
+import org.lwjgl.util.vector.Matrix;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Vector4i;
 
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.demos.scene.CameraData;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
+import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.Numeric;
 
 /**
  * Created by Administrator on 2017/11/22 0022.
  */
 
 public class DiffuseGlobalIllumination extends NvSampleApp {
+    private final CameraData g_Camera = new CameraData();
     private final CameraData g_LightCamera = new CameraData();
 
     //scene parameters:
@@ -313,6 +324,8 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
     int           g_pDefaultSampler;
     int           g_pComparisonSampler;
 
+    GLSLProgramPipeline g_Program;
+
     GLFuncProvider gl;
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -446,5 +459,288 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
 
     void DrawScene(/*ID3D11Device* pd3dDevice,  ID3D11DeviceContext* pd3dContext*/ ){
         // TODO
+    }
+
+    void resetSettingValues()
+    {
+        setLightAndCamera();
+
+        if(g_propType == PROP_TYPE.HIERARCHY ) bPropTypeChanged = true;
+        g_propType = PROP_TYPE.CASCADE;
+        setLPVScale();
+        setFluxAmplifier();
+        setNumIterations();
+
+        g_selectedAdditionalOption = ADITIONAL_OPTIONS_SELECT.SIMPLE_LIGHT;
+        g_useDiffuseInterreflection = true;
+        g_directLightStrength = 1.0f;
+        g_diffuseInterreflectionScale = 1.5f;
+        g_directLight = 2.22f;
+        g_lightRadius = 150.0f;
+        g_useBilinearInit = false;
+        g_useOcclusion = false;
+        g_useMultipleBounces = false;
+        g_numDepthPeelingPasses = 1;
+        g_reflectedLightAmplifier = 4.8f;
+        g_occlusionAmplifier = 0.8f;
+        g_movableLPV = true;
+        g_resetLPVXform = true;
+        g_bUseSingleLPV = false;
+        g_useRSMCascade = true;
+        g_PropLevel = 0;
+        g_VPLDisplacement = 1.f;
+        g_bVizLPVBB = false;
+        g_bUseSM = true;
+        g_renderMesh = true;
+        g_useTextureForFinalRender = true;
+        g_useTextureForRSMs = true;
+        g_showMovableMesh = false;
+        g_smTaps = 8;
+        g_smFilterSize = 0.8f;
+        g_currVizChoice = VIZ_OPTIONS.RED_LPV;
+        g_bVisualizeSM = false;
+        g_bVisualizeLPV3D = false;
+        if(g_useDirectionalLight)
+            g_depthBiasFromGUI = 0.0021f;
+        else
+            g_depthBiasFromGUI = 0.00001f;
+        g_useDirectionalDerivativeClamping = false;
+        g_directionalDampingAmount = 0.1f;
+    }
+
+    void visualizeMap(RenderTarget RT, /*ID3D11DeviceContext* pd3dContext,*/ int numChannels)
+    {
+        // draw the 2d texture
+        /*UINT stride = sizeof( TexPosVertex );
+        UINT offset = 0;
+        pd3dContext->IASetInputLayout( g_pScreenQuadPosTexIL );
+        pd3dContext->IASetVertexBuffers( 0, 1, &g_pVizQuadVB, &stride, &offset );
+        pd3dContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP );*/
+        gl.glBindBuffer(g_pVizQuadVB.getTarget(), g_pVizQuadVB.getBuffer());
+        g_pScreenQuadPosTexIL.bind();
+
+        int numRTs = RT.getNumRTs();
+        assert(numRTs<=4); //the shaders are not setup for more than this amount of textures
+//        ID3D11ShaderResourceView** ppSRV = new ID3D11ShaderResourceView*[numRTs];
+        for(int i=0; i<numRTs; i++) {
+//            ppSRV[i] = RT -> get_pSRV(i);
+            TextureGL src = RT.get_pSRV(i);
+            gl.glActiveTexture(GLenum.GL_TEXTURE0 + i);
+            gl.glBindTexture(src.getTarget(), src.getTexture());
+        }
+//        pd3dContext->PSSetShaderResources( 5, numRTs, ppSRV );
+
+
+       /* ID3D11SamplerState *states[1] = { g_pDefaultSampler };  TODO
+        pd3dContext->PSSetSamplers( 0, 1, states );*/
+
+//        D3D11_MAPPED_SUBRESOURCE MappedResource;
+
+        if(!RT.is2DTexture())
+        {
+//            pd3dContext->VSSetShader( g_pScreenQuadPosTexVS3D, NULL, 0 );
+            g_Program.setVS(g_pScreenQuadPosTexVS3D);
+            if(numRTs==1)
+//                pd3dContext->PSSetShader( g_pScreenQuadDisplayPS3D, NULL, 0 );
+                g_Program.setPS(g_pScreenQuadDisplayPS3D);
+            else if(numChannels==1)
+//                pd3dContext->PSSetShader( g_pScreenQuadDisplayPS3D_floatTextures, NULL, 0 );\
+                g_Program.setPS(g_pScreenQuadDisplayPS3D_floatTextures);
+
+            /*pd3dContext->Map( g_pcbSlices3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+            CB_DRAW_SLICES_3D* pcbSlices3D = ( CB_DRAW_SLICES_3D* )MappedResource.pData;
+            pcbSlices3D->width3D = (float)RT->m_width3D;
+            pcbSlices3D->height3D = (float)RT->m_height3D;
+            pcbSlices3D->depth3D = (float)RT->m_depth3D;
+            pd3dContext->Unmap( g_pcbSlices3D, 0 );
+            pd3dContext->VSSetConstantBuffers( 0, 1, &g_pcbSlices3D );*/
+            FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(4);
+            buffer.put(RT.getWidth());
+            buffer.put(RT.getHeight());
+            buffer.put(RT.getDepth());
+            buffer.put(0).flip();
+            g_pcbSlices3D.update(0, buffer);
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, g_pcbSlices3D.getBuffer());
+            g_grid.DrawSlicesToScreen();
+        }
+        else
+        {
+//            pd3dContext->VSSetShader( g_pScreenQuadPosTexVS2D, NULL, 0 );
+            g_Program.setVS(g_pScreenQuadPosTexVS2D);
+            if(numRTs==1)
+//                pd3dContext->PSSetShader( g_pScreenQuadDisplayPS2D, NULL, 0 );
+                g_Program.setPS(g_pScreenQuadDisplayPS2D);
+            else  if(numChannels==1)
+//                pd3dContext->PSSetShader( g_pScreenQuadDisplayPS2D_floatTextures, NULL, 0 );
+                g_Program.setPS(g_pScreenQuadDisplayPS2D_floatTextures);
+
+//            pd3dContext->Draw( 4, 0 );
+            gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
+        }
+
+//        ID3D11ShaderResourceView* ppNullSRV[1] = { NULL };
+//        pd3dContext->PSSetShaderResources( 5, 1, ppNullSRV );
+    }
+
+    private final CB_SIMPLE_OBJECTS m_SimpleObjects = new CB_SIMPLE_OBJECTS();
+
+    void VisualizeBB(/*ID3D11DeviceContext* pd3dContext,*/ SimpleRT_RGB LPV, Matrix4f VPMatrix, Vector4f color)
+    {
+        //translate the box to the center and scale it to be 1.0 in size
+        //then transform the box by the transform for the LPV
+        /*D3D11_MAPPED_SUBRESOURCE MappedResource;
+        pd3dContext->Map( g_pcbSimple, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        CB_SIMPLE_OBJECTS* pPSSimple = ( CB_SIMPLE_OBJECTS* )MappedResource.pData;
+        D3DXMATRIX objScale, objXForm, objTranslate;
+        D3DXMatrixScaling(&objScale,0.5f/g_BoXExtents.x,0.5f/g_BoXExtents.y,0.5f/g_BoXExtents.z);
+        D3DXMatrixTranslation(&objTranslate,g_BoxCenter.x,g_BoxCenter.y,g_BoxCenter.z);
+        D3DXMatrixMultiply(&objXForm,&objTranslate,&objScale);
+        D3DXMatrixMultiply(&objXForm,&objXForm,&(LPV->getWorldToLPVBB()));
+        D3DXMatrixMultiply(&objXForm,&objXForm,&VPMatrix);
+        D3DXMatrixTranspose( &pPSSimple->m_WorldViewProj,&objXForm);
+        pPSSimple->m_color = color;
+        pd3dContext->Unmap( g_pcbSimple, 0 );*/
+
+        Matrix4f objXForm = m_SimpleObjects.m_WorldViewProj;
+        objXForm.setIdentity();
+        objXForm.m00 = 0.5f/g_BoXExtents.x;
+        objXForm.m11 = 0.5f/g_BoXExtents.y;
+        objXForm.m22 = 0.5f/g_BoXExtents.z;
+        objXForm.translate(g_BoxCenter.x,g_BoxCenter.y,g_BoxCenter.z);
+        Matrix4f.mul(LPV.getWorldToLPVBB(), objXForm, objXForm);
+        Matrix4f.mul(VPMatrix, objXForm, objXForm);
+        m_SimpleObjects.m_color.set(color);
+        ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(CB_SIMPLE_OBJECTS.SIZE);
+        m_SimpleObjects.store(buffer).flip();
+        g_pcbSimple.update(0, buffer);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, g_pcbSimple.getBuffer());
+
+        /*pd3dContext->PSSetConstantBuffers( 4, 1, &g_pcbSimple );
+        pd3dContext->VSSetConstantBuffers( 4, 1, &g_pcbSimple );
+        pd3dContext->RSSetState(pRasterizerStateWireFrame);
+        pd3dContext->VSSetShader( g_pSimpleVS, NULL, 0 );
+        pd3dContext->PSSetShader( g_pSimplePS, NULL, 0 );*/
+        pRasterizerStateWireFrame.run();
+        g_Program.setVS(g_pSimpleVS);
+        g_Program.setPS(g_pSimplePS);
+
+        g_MeshBox.render(/*pd3dContext,*/ 0, -1, -1);
+    }
+
+    @Override
+    public void display() {
+        DrawScene();
+    }
+
+    void updateProjectionMatrices()
+    {
+        // setup the camera's projection parameters
+        g_fCameraFovy        = 55 /** D3DX_PI / 180*/;
+        float g_fAspectRatio = (float)getGLContext().width() / getGLContext().height();
+        g_cameraNear        = 0.01f;
+        g_cameraFar         = 200.0f;
+
+        g_Camera.setProjection ( g_fCameraFovy, g_fAspectRatio, g_cameraNear, g_cameraFar );
+
+
+        //set the light camera's projection parameters
+        g_lightNear = 0.01f;
+        g_lightFar = Math.max(100.f, g_lightRadius);
+
+        {
+            if(g_useDirectionalLight)
+            {
+                final float RSM_CASCADE_0_SIZE = 15.f;
+                final float RSM_CASCADE_1_SIZE  = 25.f;
+
+//                D3DXMatrixOrthoLH(&g_pSceneShadowMapProj,        20, 20, g_lightNear, g_lightFar);     //matrix for the scene shadow map
+//                D3DXMatrixOrthoLH(&g_pShadowMapProjMatrixSingle, 20, 20, g_lightNear, g_lightFar); //matrix to use if not using cascaded RSMs
+                Matrix4f.ortho(20, 20, g_lightNear, g_lightFar, g_pSceneShadowMapProj);
+                Matrix4f.ortho(20, 20, g_lightNear, g_lightFar, g_pShadowMapProjMatrixSingle);
+                //matrices for the cascaded RSM
+//                D3DXMatrixOrthoLH(&g_pRSMProjMatrices[0], RSM_CASCADE_0_SIZE, RSM_CASCADE_0_SIZE, g_lightNear, g_lightFar); //first level of the cascade
+//                D3DXMatrixOrthoLH(&g_pRSMProjMatrices[1], RSM_CASCADE_1_SIZE, RSM_CASCADE_1_SIZE, g_lightNear, g_lightFar); //second level of the cascade
+                Matrix4f.ortho(RSM_CASCADE_0_SIZE, RSM_CASCADE_0_SIZE, g_lightNear, g_lightFar, g_pRSMProjMatrices[0]);
+                Matrix4f.ortho(RSM_CASCADE_1_SIZE, RSM_CASCADE_1_SIZE, g_lightNear, g_lightFar, g_pRSMProjMatrices[1]);
+
+                final float fCascadeSize[/*SM_PROJ_MATS_SIZE*/] = { RSM_CASCADE_0_SIZE, RSM_CASCADE_1_SIZE };
+                final float fCascadeTexelSizeSnapping[/*SM_PROJ_MATS_SIZE*/] = { RSM_CASCADE_0_SIZE / Defines.RSM_RES * 4.f, RSM_CASCADE_1_SIZE / Defines.RSM_RES * 4.f };
+
+                if(g_movableLPV)
+                {
+                    // Get light rotation matrix
+                    /*D3DXMATRIXA16 mShadowMatrix;
+                    mShadowMatrix = *(g_LightCamera.GetViewMatrix());
+                    mShadowMatrix._41 = 0.f;
+                    mShadowMatrix._42 = 0.f;
+                    mShadowMatrix._43 = 0.f;*/
+                    final Matrix4f mShadowMatrix = g_LightCamera.getViewMatrix();
+
+                    // get camera position and direction
+                    /*const D3DXVECTOR3 vEye = *g_Camera.GetEyePt();
+                    D3DXVECTOR3 vDir = (*g_Camera.GetLookAtPt() - *g_Camera.GetEyePt());
+                    D3DXVec3Normalize(&vDir, &vDir);*/
+                    ReadableVector3f vEye = g_Camera.getPosition();
+                    ReadableVector3f vDir = g_Camera.getLookAt();
+
+                    // Move RSM cascades with camera with 4-texel snapping
+                    Vector3f[] vEyeCascade = new Vector3f[SM_PROJ_MATS_SIZE];
+                    for(int i=0;i<SM_PROJ_MATS_SIZE;++i)
+                    {
+                        Vector3f vEyeOffsetted = vEyeCascade[i] = new Vector3f();
+                        // Shift the center of the RSM for 20% towards the view direction
+                        /*D3DXVECTOR3 vEyeOffsetted = vEye + vDir * fCascadeSize[i] * .2f;
+                        vEyeOffsetted.z = 0;
+                        D3DXVECTOR4 vEye4;
+                        D3DXVec3Transform(&vEye4, &vEyeOffsetted, &mShadowMatrix);*/
+                        Vector3f.linear(vEye, vDir, fCascadeSize[i] * .2f, vEyeOffsetted);
+                        Vector3f vEye4 = Matrix4f.transformNormal(mShadowMatrix, vEyeOffsetted, vEyeOffsetted);
+
+                        // Perform a 4-texels snapping in order to provide coherent movement-independent rasterization
+                        vEyeCascade[i].x = (float) (Math.floor(vEye4.x / fCascadeTexelSizeSnapping[i]) * fCascadeTexelSizeSnapping[i]);
+                        vEyeCascade[i].y = (float) (Math.floor(vEye4.y / fCascadeTexelSizeSnapping[i]) * fCascadeTexelSizeSnapping[i]);
+                        vEyeCascade[i].z = (float) (Math.floor(vEye4.z / fCascadeTexelSizeSnapping[i]) * fCascadeTexelSizeSnapping[i]);
+                    }
+
+                    // Translate the projection matrix of each RSM cascade
+                    final Matrix4f mxTrans = CacheBuffer.getCachedMatrix();
+                    for(int i=0;i<SM_PROJ_MATS_SIZE;++i)
+                    {
+                        /*D3DXMatrixTranslation(&mxTrans, -vEyeCascade[i].x, -vEyeCascade[i].y, -vEyeCascade[i].z);
+                        D3DXMatrixMultiply(&g_pRSMProjMatrices[i], &mxTrans, &g_pRSMProjMatrices[i]);*/
+                        mxTrans.setTranslate(-vEyeCascade[i].x, -vEyeCascade[i].y, -vEyeCascade[i].z);
+                        Matrix4f.mul(g_pRSMProjMatrices[i], mxTrans, g_pRSMProjMatrices[i]);
+                    }
+                }
+            }
+            else
+            {
+                g_fLightFov = (float) Math.toDegrees(Numeric.PI / 1.4f);
+//                D3DXMatrixPerspectiveFovLH( &g_pSceneShadowMapProj, D3DX_PI / 1.4f, 1, g_lightNear, g_lightFar );     //matrix for the scene shadow map
+//                D3DXMatrixPerspectiveFovLH( &g_pShadowMapProjMatrixSingle, D3DX_PI / 1.4f, 1, g_lightNear, g_lightFar ); //matrix to use if not using cascaded RSMs
+                Matrix4f.perspective(g_fLightFov, 1, g_lightNear, g_lightFar, g_pSceneShadowMapProj);
+                Matrix4f.perspective(g_fLightFov, 1, g_lightNear, g_lightFar, g_pShadowMapProjMatrixSingle);
+
+
+                //matrices for the cascaded RSM
+//                D3DXMatrixPerspectiveFovLH( &g_pRSMProjMatrices[0], D3DX_PI / 1.4f, 1, g_lightNear, g_lightFar );//first level of the cascade
+//                D3DXMatrixPerspectiveFovLH( &g_pRSMProjMatrices[1], D3DX_PI / 1.4f, 1, g_lightNear, g_lightFar );//second level of the cascade
+                Matrix4f.perspective(g_fLightFov, 1, g_lightNear, g_lightFar, g_pRSMProjMatrices[0]);
+                g_pRSMProjMatrices[1].load(g_pRSMProjMatrices[0]);
+            }
+        }
+    }
+
+    @Override
+    protected void reshape(int width, int height) {
+        if(width <= 0 || height <= 0)
+            return;
+
+        if(g_pSceneDepth == null || g_pSceneDepth.getWidth() != width || g_pSceneDepth.getHeight() != height){
+            CommonUtil.safeRelease(g_pSceneDepth);
+
+            g_pSceneDepth = TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH_COMPONENT32F), null);
+            g_pSceneDepthRV = g_pSceneDepth;
+        }
     }
 }

@@ -138,7 +138,7 @@ public final class VaTextureDX11 extends VaTexture{
         int resourceFormat = resource.getFormat();
 
         VaTexture newTexture = VaRenderingModuleRegistrar.CreateModuleTyped("vaTexture", null);
-        newTexture.Initialize(0, resourceFormat, -1, -1);
+        newTexture.Initialize(0, resourceFormat);
         ((VaTextureDX11)newTexture).SetResource(resource, false);
         return newTexture;
     }
