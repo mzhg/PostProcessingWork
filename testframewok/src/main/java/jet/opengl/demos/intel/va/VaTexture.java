@@ -6,7 +6,6 @@ import org.lwjgl.util.vector.Vector4i;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.common.Disposeable;
-import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3D;
@@ -165,10 +164,10 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     private int/*vaTextureBindSupportFlags*/           m_bindSupportFlags = BSF_None;
 
     private int                     m_resourceFormat;
-    /*vaTextureFormat                     m_srvFormat;
-    vaTextureFormat                     m_rtvFormat;
-    vaTextureFormat                     m_dsvFormat;
-    vaTextureFormat                     m_uavFormat;*/
+    private int                     m_srvFormat;
+    private int                     m_rtvFormat;
+    private int                     m_dsvFormat;
+    private int                     m_uavFormat;
 
     private int                                 m_sizeX;            // serves as desc.ByteWidth for Buffer
     private int                                 m_sizeY;            // doubles as ArraySize in 1D texture
@@ -184,6 +183,7 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     private int                                 m_viewedSliceSizeZ;
 
     protected VaTexture(  VaConstructorParamsBase  params  ){
+        super(((VaTextureConstructorParams)params).UID);
         m_bindSupportFlags      = /*vaTextureBindSupportFlags::None*/0;
         m_resourceFormat        = /*vaTextureFormat::Unknown*/0;
         /*m_srvFormat             = vaTextureFormat::Unknown;
@@ -211,43 +211,43 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     }
 
     protected final void Initialize(int binds, int resourceFormat){
-        Initialize(binds, resourceFormat,-1,-1);
+        Initialize(binds, resourceFormat,0,0,0,0,0,-1,-1);
     }
 
-    protected void Initialize(int binds, int resourceFormat /*= vaTextureFormat::Unknown,
-                              vaTextureFormat srvFormat = vaTextureFormat::Unknown, vaTextureFormat rtvFormat = vaTextureFormat::Unknown,
-                              vaTextureFormat dsvFormat = vaTextureFormat::Unknown, vaTextureFormat uavFormat = vaTextureFormat::Unknown,
-                              vaTextureFlags flags = vaTextureFlags::None*/, int viewedMipSlice /*= -1*/, int viewedArraySlice /*= -1*/ ){
+    protected void Initialize(int binds, int resourceFormat /*= vaTextureFormat::Unknown*/,
+                              int srvFormat /*= vaTextureFormat::Unknown*/, int rtvFormat /*= vaTextureFormat::Unknown*/,
+                              int dsvFormat /*= vaTextureFormat::Unknown*/, int uavFormat /*= vaTextureFormat::Unknown*/,
+                              int flags /*= vaTextureFlags::None*/, int viewedMipSlice /*= -1*/, int viewedArraySlice /*= -1*/ ){
         m_bindSupportFlags  = binds;
         m_resourceFormat    = resourceFormat;
-        /*m_srvFormat         = srvFormat;
+        m_srvFormat         = srvFormat;
         m_rtvFormat         = rtvFormat;
         m_dsvFormat         = dsvFormat;
-        m_uavFormat         = uavFormat;*/
-        m_flags             = /*flags*/0;
+        m_uavFormat         = uavFormat;
+        m_flags             = flags;
         m_viewedMipSlice    = viewedMipSlice;
         m_viewedArraySlice  = viewedArraySlice;
 
         // no point having format if no bind support - bind flag maybe forgotten?
-        /*if( m_srvFormat != vaTextureFormat::Unknown )
+        if( m_srvFormat != Unknown )
         {
-            assert( ( m_bindSupportFlags & vaTextureBindSupportFlags::ShaderResource ) != 0 );
+            assert( ( m_bindSupportFlags & BSF_ShaderResource ) != 0 );
         }
-        if( m_rtvFormat != vaTextureFormat::Unknown )
+        if( m_rtvFormat != Unknown )
         {
-            assert( ( m_bindSupportFlags & vaTextureBindSupportFlags::RenderTarget ) != 0 );
+            assert( ( m_bindSupportFlags & BSF_RenderTarget ) != 0 );
         }
-        if( m_dsvFormat != vaTextureFormat::Unknown )
+        if( m_dsvFormat != Unknown )
         {
-            assert( ( m_bindSupportFlags & vaTextureBindSupportFlags::DepthStencil ) != 0 );
+            assert( ( m_bindSupportFlags & BSF_DepthStencil ) != 0 );
         }
-        if( m_uavFormat != vaTextureFormat::Unknown )
+        if( m_uavFormat != Unknown )
         {
-            assert( ( m_bindSupportFlags & vaTextureBindSupportFlags::UnorderedAccess ) != 0 );
-        }*/
+            assert( ( m_bindSupportFlags & BSF_UnorderedAccess ) != 0 );
+        }
     }
 
-    protected void                            InternalUpdateFromRenderingCounterpart( boolean notAllBindViewsNeeded /*= false*/ ){
+    protected void InternalUpdateFromRenderingCounterpart( boolean notAllBindViewsNeeded /*= false*/ ){
         VaTextureDX11 dx11Texture = (VaTextureDX11)this;
 
         m_type = VaTextureType.Unknown;
@@ -265,7 +265,7 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
             m_sizeZ             = tex2D.getArraySize();
             if( m_resourceFormat != /*vaTextureFormat::Unknown*/ 0 )
             { assert( m_resourceFormat == /*(vaTextureFormat)desc.Format*/tex2D.getFormat() ); }
-            m_resourceFormat = /*(vaTextureFormat)desc.Format*/tex2D.getFormat();
+            m_resourceFormat = /*(vaTextureFormat)desc.Format*/tex2D.getFormat(); // TODO Need conver the OpenGL format to vaTextureFormat
             m_sampleCount       = tex2D.getSampleCount();
             //                  = desc.SampleDesc.Quality;
 
@@ -297,7 +297,7 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
             m_mipLevels         = tex3D.getMipLevels();
             if( m_resourceFormat != /*vaTextureFormat::Unknown*/tex3D.getFormat() )
             { assert( m_resourceFormat == /*(vaTextureFormat)desc.Format*/tex3D.getFormat() ); }
-            m_resourceFormat = /*(vaTextureFormat)desc.Format*/tex3D.getFormat();
+            m_resourceFormat = /*(vaTextureFormat)desc.Format*/tex3D.getFormat();  // TODO Need conver the OpenGL format to vaTextureFormat
             m_sampleCount       = 1;
             m_type              = VaTextureType.Texture3D;
 
@@ -320,14 +320,16 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
         m_viewedSliceSizeY = Math.max( m_viewedSliceSizeY, 1 );
         m_viewedSliceSizeZ = Math.max( m_viewedSliceSizeZ, 1 );
 
+
+
         /*Usage;
         m_accessFlags = vaTextureAccessFlags::None;
         if( (CPUAccessFlags & D3D11_CPU_ACCESS_WRITE ) != 0 )
             m_accessFlags = m_accessFlags | vaTextureAccessFlags::CPUWrite;
         if( ( CPUAccessFlags & D3D11_CPU_ACCESS_READ ) != 0 )
-            m_accessFlags = m_accessFlags | vaTextureAccessFlags::CPURead;
+            m_accessFlags = m_accessFlags | vaTextureAccessFlags::CPURead;*/
         // make sure bind flags were set up correctly
-        if( !notAllBindViewsNeeded )
+        /*if( !notAllBindViewsNeeded )
         {
             if( (BindFlags & D3D11_BIND_VERTEX_BUFFER       ) != 0 )
                 assert( ( m_bindSupportFlags & vaTextureBindSupportFlags::VertexBuffer ) != 0 );
@@ -343,8 +345,8 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
                 assert( ( m_bindSupportFlags & vaTextureBindSupportFlags::DepthStencil ) != 0 );
             if( (BindFlags & D3D11_BIND_UNORDERED_ACCESS    ) != 0 )
                 assert( ( m_bindSupportFlags & vaTextureBindSupportFlags::UnorderedAccess ) != 0 );
-        }
-        MiscFlags;*/
+        }*/
+//        MiscFlags;
     }
 
     public static VaTexture              Import(String storagePath, boolean assumeSourceIsInSRGB, boolean dontAutogenerateMIPs) throws IOException{
@@ -358,7 +360,7 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
 
         VaTexture texture = //VA_RENDERING_MODULE_CREATE_PARAMS( vaTexture, vaTextureConstructorParams( vaCore::GUIDCreate( ) ) );
                 VaRenderingModuleRegistrar.CreateModuleTyped/*<ModuleTypeName>*/( "vaTexture", null );
-        texture.Initialize( binds ,0,-1,-1);
+        texture.Initialize( binds ,0);
 
         VaTextureDX11 dxTexture = (VaTextureDX11)(texture);
 
@@ -384,13 +386,13 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
         throw new UnsupportedOperationException();
     }
     public static VaTexture Create2D(int format, int width, int height, int mipLevels, int arraySize, int sampleCount, int bindFlags,
-                                     int accessFlags /*= vaTextureAccessFlags::None*/, Object initialData /*= NULL, int initialDataPitch = 0,
-                                     vaTextureFormat srvFormat = vaTextureFormat::Unknown, vaTextureFormat rtvFormat = vaTextureFormat::Unknown,
-                                     vaTextureFormat dsvFormat = vaTextureFormat::Unknown, vaTextureFormat uavFormat = vaTextureFormat::Unknown,
-                                     vaTextureFlags flags = vaTextureFlags::None*/ ){
+                                     int accessFlags /*= vaTextureAccessFlags::None*/, Object initialData /*= NULL*/, int initialDataPitch /*= 0*/,
+                                     int srvFormat /*= vaTextureFormat::Unknown*/, int rtvFormat /*= vaTextureFormat::Unknown*/,
+                                     int dsvFormat /*= vaTextureFormat::Unknown*/, int uavFormat /*= vaTextureFormat::Unknown*/,
+                                     int flags /*= vaTextureFlags::None*/ ){
         VaTexture texture = /*VA_RENDERING_MODULE_CREATE_PARAMS( vaTexture, vaTextureConstructorParams( vaCore::GUIDCreate( ) ) );*/
-                VaRenderingModuleRegistrar.CreateModuleTyped("vaTexture", null);
-        texture.Initialize( bindFlags, format/*, srvFormat, rtvFormat, dsvFormat, uavFormat, flags*/ );
+                VaRenderingModuleRegistrar.CreateModuleTyped("vaTexture", new VaTextureConstructorParams());
+        texture.Initialize( bindFlags, format, srvFormat, rtvFormat, dsvFormat, uavFormat, flags,-1,-1 );
 
         VaTextureDX11 dxTexture = /*vaSaferStaticCast<vaTextureDX11*>*/texture.SafeCast();
 
@@ -408,7 +410,11 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
         UINT miscFlags = 0;
         ID3D11Resource * resource = vaDirectXTools::CreateTexture2D( (DXGI_FORMAT)format, width, height, dxInitDataPtr, arraySize, mipLevels, BindFlagsDXFromVA(bindFlags), usage, CPUAccessFlagsDXFromVA(accessFlags), sampleCount, 0, miscFlags );
         */
-        TextureDataDesc dxInitDataObj = new TextureDataDesc(TextureUtils.measureFormat(format), TextureUtils.measureDataType(format), initialData);
+        TextureDataDesc dxInitDataObj = null;
+        if(initialData != null){
+            dxInitDataObj = new TextureDataDesc(TextureUtils.measureFormat(format), TextureUtils.measureDataType(format), initialData);  // TODO Need convert the format to the other that the Opengl can accept.
+        }
+
         Texture2DDesc texDesc = new Texture2DDesc(width, height, format);
         texDesc.mipLevels = mipLevels;
         Texture2D resource = TextureUtils.createTexture2D(texDesc, dxInitDataObj);
@@ -427,13 +433,14 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
         }
     }
     public static VaTexture Create3D(int format, int width, int height, int depth, int mipLevels, int bindFlags, int accessFlags/* = vaTextureAccessFlags::None*/,
-                                     Object  initialData /*= NULL, int initialDataPitch = 0, int initialDataSlicePitch = 0, vaTextureFormat srvFormat = vaTextureFormat::Unknown,
-                                     vaTextureFormat rtvFormat = vaTextureFormat::Unknown, vaTextureFormat dsvFormat = vaTextureFormat::Unknown,
-                                     vaTextureFormat uavFormat = vaTextureFormat::Unknown, vaTextureFlags flags = vaTextureFlags::None*/ ){
+                                     Object  initialData /*= NULL*/, int initialDataPitch /*= 0*/, int initialDataSlicePitch /*= 0*/,
+                                     int srvFormat /*= vaTextureFormat::Unknown*/,
+                                     int rtvFormat /*= vaTextureFormat::Unknown*/, int dsvFormat /*= vaTextureFormat::Unknown*/,
+                                     int uavFormat /*= vaTextureFormat::Unknown*/, int flags /*= vaTextureFlags::None*/ ){
         VaTexture texture = /*VA_RENDERING_MODULE_CREATE_PARAMS( vaTexture, vaTextureConstructorParams( vaCore::GUIDCreate( ) ) );*/
-                            VaRenderingModuleRegistrar.CreateModuleTyped("vaTexture", null);
+                            VaRenderingModuleRegistrar.CreateModuleTyped("vaTexture", new VaTextureConstructorParams());
 
-        texture.Initialize( bindFlags, format/*, srvFormat, rtvFormat, dsvFormat, uavFormat, flags*/ );
+        texture.Initialize( bindFlags, format, srvFormat, rtvFormat, dsvFormat, uavFormat, flags, -1, -1 );
 
         VaTextureDX11 dxTexture = /*vaSaferStaticCast<vaTextureDX11*>*/(VaTextureDX11) ( texture );
 
@@ -451,7 +458,9 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
         UINT miscFlags = 0;
         ID3D11Resource * resource = vaDirectXTools::CreateTexture3D( (DXGI_FORMAT)format, width, height, depth, dxInitDataPtr, mipLevels, BindFlagsDXFromVA( bindFlags ), usage,
                 CPUAccessFlagsDXFromVA( accessFlags ), miscFlags );*/
-        TextureDataDesc dxInitDataObj = new TextureDataDesc(TextureUtils.measureFormat(format), TextureUtils.measureDataType(format), initialData);
+        TextureDataDesc dxInitDataObj = null;
+        if(initialData != null)
+            dxInitDataObj = new TextureDataDesc(TextureUtils.measureFormat(format), TextureUtils.measureDataType(format), initialData);  // TODO Need convert the format to the other that the Opengl can accept.
         Texture3DDesc texDesc = new Texture3DDesc(width, height, depth, mipLevels, format);
         Texture3D resource = TextureUtils.createTexture3D(texDesc, dxInitDataObj);
 
@@ -471,8 +480,8 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     }
 
     public static VaTexture              Create2DTestCheckerboardTexture( int format, int bindFlags, int accessFlags /*= vaTextureAccessFlags::None*/ ){
-        assert( format == /*vaTextureFormat::R8G8B8A8_UNORM_SRGB*/GLenum.GL_RGBA8);
-        if( format != /*vaTextureFormat::R8G8B8A8_UNORM_SRGB*/GLenum.GL_RGBA8 )
+        assert( format == R8G8B8A8_UNORM_SRGB);
+        if( format != R8G8B8A8_UNORM_SRGB )
             return null;
 
         final int dim = 32;
@@ -518,16 +527,18 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
                         pixel = /*vaVector4::ToRGBA( vaVector4( 0.0f, 0.0f, 0.0f, 1.0f ) )*/0xFF000000;
                     }
                 }
+
+                buffer[dim*y + x] = pixel;
             }
         }
 
-        return Create2D( /*vaTextureFormat::R8G8B8A8_UNORM_SRGB*/ GLenum.GL_RGBA8, dim, dim, 1, 1, 1, BSF_ShaderResource,
-                /*vaTextureAccessFlags::None*/0, buffer/*, bufferPitch*/ );
+        return Create2D( R8G8B8A8_UNORM_SRGB, dim, dim, 1, 1, 1, BSF_ShaderResource,
+                /*vaTextureAccessFlags::None*/0, buffer/*, bufferPitch*/, 0,0,0,0,0,0);
     }
 
-    public static VaTexture CreateView( VaTexture texture, int bindFlags, /*int srvFormat = vaTextureFormat::Unknown,
-                                        vaTextureFormat rtvFormat = vaTextureFormat::Unknown, vaTextureFormat dsvFormat = vaTextureFormat::Unknown,
-                                        vaTextureFormat uavFormat = vaTextureFormat::Unknown,*/ int viewedMipSlice /*= -1*/, int viewedArraySlice /*= -1*/ ){
+    public static VaTexture CreateView( VaTexture texture, int bindFlags, int srvFormat /*= vaTextureFormat::Unknown*/,
+                                        int rtvFormat /*= vaTextureFormat::Unknown*/, int dsvFormat /*= vaTextureFormat::Unknown*/,
+                                        int uavFormat /*= vaTextureFormat::Unknown*/, int viewedMipSlice /*= -1*/, int viewedArraySlice /*= -1*/ ){
         VaTextureDX11 origDX11Texture = /*vaSaferStaticCast<vaTextureDX11*>( texture.get() )*/texture.SafeCast();
 
         TextureGL resource = origDX11Texture.GetResource( );
@@ -544,7 +555,7 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
 
         VaTexture newTexture = /*VA_RENDERING_MODULE_CREATE_PARAMS( vaTexture, vaTextureConstructorParams( vaCore::GUIDCreate( ) ) );*/
                 VaRenderingModuleRegistrar.CreateModuleTyped("vaTexture", null);
-        newTexture.Initialize( bindFlags, texture.GetResourceFormat(), /*srvFormat, rtvFormat, dsvFormat, uavFormat, texture->GetFlags(),*/ viewedMipSlice, viewedArraySlice );
+        newTexture.Initialize( bindFlags, texture.GetResourceFormat(), srvFormat, rtvFormat, dsvFormat, uavFormat, texture.GetFlags(), viewedMipSlice, viewedArraySlice );
 
         // it is debatable whether this is needed since DX resources have reference counting and will stay alive, but it might be useful for DX12 or other API implementations
         // so I'll leave it in
@@ -556,9 +567,9 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
         return newTexture;
     }
 
-    public VaTextureType                   GetType( )                                                { return m_type; }
-    public  int                            GetBindSupportFlags( )                                     { return m_bindSupportFlags; }
-    public  int                            GetFlags( )                                                { return m_flags; }
+    public VaTextureType            GetType( )                                                { return m_type; }
+    public  int                     GetBindSupportFlags( )                                     { return m_bindSupportFlags; }
+    public  int                     GetFlags( )                                                { return m_flags; }
 
 
     public int                      GetResourceFormat( )                                      { return m_resourceFormat; }
@@ -578,12 +589,12 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     public int                             GetViewedSliceSizeY( )                                     { return m_viewedSliceSizeY; }
     public int                             GetViewedSliceSizeZ( )                                     { return m_viewedSliceSizeZ; }
 
-    public abstract void                    ClearRTV( /*vaRenderDeviceContext & context,*/ Vector4f clearValue )                                             ;
-    public abstract void                    ClearUAV( /*vaRenderDeviceContext & context,*/ Vector4i clearValue )                                             ;
-    public abstract void                    ClearUAV( /*vaRenderDeviceContext & context,*/ Vector4f clearValue )                                               ;
-    public abstract void                    ClearDSV( /*vaRenderDeviceContext & context,*/ boolean clearDepth, float depthValue, boolean clearStencil, int stencilValue )  ;
+    public abstract void                    ClearRTV( /*vaRenderDeviceContext & context,*/ Vector4f clearValue );
+    public abstract void                    ClearUAV( /*vaRenderDeviceContext & context,*/ Vector4i clearValue );
+    public abstract void                    ClearUAV( /*vaRenderDeviceContext & context,*/ Vector4f clearValue );
+    public abstract void                    ClearDSV( /*vaRenderDeviceContext & context,*/ boolean clearDepth, float depthValue, boolean clearStencil, int stencilValue );
 
-    public abstract boolean                    Load( VaStream inStream )                                                                                             ;
+    public abstract boolean                    Load( VaStream inStream );
     public  boolean                    Save( VaStream outStream ){
         throw new UnsupportedOperationException();
     }

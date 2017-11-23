@@ -99,10 +99,20 @@ public final class DebugTools {
         File parent = file.getParentFile();
         if(!parent.exists())
             parent.mkdirs();
-        @SuppressWarnings("resource")
-        FileChannel out = new FileOutputStream(file, append).getChannel();
-        out.write(data);
-        out.close();
+
+        try (FileChannel out = new FileOutputStream(file, append).getChannel()){
+            out.write(data);
+            out.close();
+        }
+    }
+
+    public static void write(String data, String filename){
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(filename))){
+            out.write(data);
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static ByteBuffer loadBinary(String filename){
@@ -211,6 +221,30 @@ public final class DebugTools {
         writer.close();
     }
 
+    public final static void saveBinary(ByteBuffer data, String filename){
+        saveBinary(data, filename, false);
+    }
+
+    public final static void saveBinary(ByteBuffer data, String filename, boolean append){
+        File file = new File(filename);
+        saveBinary(data, file, append);
+    }
+
+    public final static void saveBinary(ByteBuffer data, File file, boolean append){
+        File parent = file.getParentFile();
+        if(!parent.exists())
+            parent.mkdirs();
+
+        try (FileChannel out = new FileOutputStream(file, append).getChannel()){
+            out.write(data);
+            out.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void saveTexelsAsText(ByteBuffer pixels, Class<?> internalFormat, int width, String filename) throws IOException, IllegalArgumentException{
         File file = new File(filename);
         File parent = file.getParentFile();
@@ -270,6 +304,64 @@ public final class DebugTools {
             default:
                 throw new RuntimeException("Unsupport format: " + TextureUtils.getFormatName(internalFormat));
         }
+    }
+
+    public static StringBuilder compareObjects(Object a, Object b){
+        try {
+            return _compareObjects(a,b);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private static StringBuilder _compareObjects(Object a, Object b) throws IllegalAccessException {
+        if(a.getClass() != b.getClass())
+            throw new IllegalArgumentException("The types of the given objects doesn't match");
+
+        Class<?> clazz = a.getClass();
+        List<Field> fields = getFields(clazz);
+
+        StringBuilder out = new StringBuilder(256);
+        for(Field field : fields){
+            if(Modifier.isStatic(field.getModifiers()))
+                continue;
+
+            Class<?> type = field.getType();
+            boolean isArray = type.isArray();
+            Class<?> componentType = type.getComponentType();
+            String fieldName = field.getName();
+            Class<?> actualType = isArray ? componentType : type;
+
+            if(actualType.isPrimitive() || ClassType.accept(actualType)){
+                Object aValue = field.get(a);
+                Object bValue = field.get(b);
+
+                if(aValue == null || bValue == null)
+                    continue;
+
+                int arraySize = isArray ? Array.getLength(aValue) : 1;
+                for(int i = 0; i < arraySize; i++){
+                    Object aSubValue = isArray ? Array.get(aValue, i) : aValue;
+                    Object bSubValue = isArray ? Array.get(bValue, i) : bValue;
+
+                    if(aSubValue.equals(bSubValue) == false){
+                        out.append(fieldName);
+                        if(isArray){
+                            out.append('[').append(i).append(']');
+                        }
+                        out.append(": ");
+                        out.append(aSubValue.toString());
+                        out.append("---");
+                        out.append(bSubValue.toString());
+                        out.append('\n');
+                    }
+                }
+            }
+        }
+
+        return out;
     }
 
     public static Object newInstance(Class<?> clazz)  {
@@ -580,6 +672,8 @@ public final class DebugTools {
             }
         }
     }
+
+
 
     public static void saveErrorShaderSource(CharSequence source){
         if(GLFuncProviderFactory.getGLFuncProvider().getHostAPI() == GLAPI.ANDROID)

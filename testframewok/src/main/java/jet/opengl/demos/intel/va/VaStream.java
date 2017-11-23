@@ -13,7 +13,7 @@ public abstract class VaStream implements Closeable{
 
     public abstract boolean      IsOpen( );
     public abstract int          GetLength( ) throws IOException;
-    public abstract int          GetPosition( );
+    public abstract int          GetPosition( ) throws IOException;
     public abstract boolean      CanSeek( );
     public abstract void         Seek( int position ) throws IOException;
     public abstract void         Truncate( )throws IOException;     // truncate everything behind current

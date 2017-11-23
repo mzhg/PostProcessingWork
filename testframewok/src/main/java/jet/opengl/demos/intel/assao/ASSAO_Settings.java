@@ -1,6 +1,12 @@
 package jet.opengl.demos.intel.assao;
 
-final class ASSAO_Settings {
+import org.lwjgl.util.vector.Readable;
+import org.lwjgl.util.vector.Writable;
+
+import java.nio.ByteBuffer;
+
+final class ASSAO_Settings implements Readable, Writable{
+    static final int SIZE = 56;
 
 	float       Radius;                             // [0.0,  ~ ] World (view) space size of the occlusion sphere.
     float       ShadowMultiplier;                   // [0.0, 5.0] Effect strength linear multiplier
@@ -33,5 +39,43 @@ final class ASSAO_Settings {
         TemporalSupersamplingAngleOffset    = 0.0f;
         TemporalSupersamplingRadiusOffset   = 1.0f;
         DetailShadowStrength                = 0.5f;
+    }
+
+    @Override
+    public ByteBuffer store(ByteBuffer buf) {
+        buf.putFloat(Radius);
+        buf.putFloat(ShadowMultiplier);
+        buf.putFloat(ShadowPower);
+        buf.putFloat(ShadowClamp);
+        buf.putFloat(HorizonAngleThreshold);
+        buf.putFloat(FadeOutFrom);
+        buf.putFloat(FadeOutTo);
+        buf.putInt(QualityLevel);
+        buf.putFloat(AdaptiveQualityLimit);
+        buf.putInt(BlurPassCount);
+        buf.putFloat(Sharpness);
+        buf.putFloat(TemporalSupersamplingAngleOffset);
+        buf.putFloat(TemporalSupersamplingRadiusOffset);
+        buf.putFloat(DetailShadowStrength);
+        return buf;
+    }
+
+    @Override
+    public Writable load(ByteBuffer buf) {
+        Radius = buf.getFloat();
+        ShadowMultiplier = buf.getFloat();
+        ShadowPower = buf.getFloat();
+        ShadowClamp = buf.getFloat();
+        HorizonAngleThreshold = buf.getFloat();
+        FadeOutFrom = buf.getFloat();
+        FadeOutTo = buf.getFloat();
+        QualityLevel = buf.getInt();
+        AdaptiveQualityLimit = buf.getFloat();
+        BlurPassCount = buf.getInt();
+        Sharpness = buf.getFloat();
+        TemporalSupersamplingAngleOffset = buf.getFloat();
+        TemporalSupersamplingRadiusOffset = buf.getFloat();
+        DetailShadowStrength = buf.getFloat();
+        return this;
     }
 }

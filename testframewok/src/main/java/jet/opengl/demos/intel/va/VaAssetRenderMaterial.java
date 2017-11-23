@@ -1,5 +1,6 @@
 package jet.opengl.demos.intel.va;
 
+import java.io.IOException;
 import java.util.UUID;
 
 /**
@@ -16,7 +17,7 @@ final class VaAssetRenderMaterial extends VaAsset {
 
     public VaRenderMaterial    GetMaterial( )                       { return Resource; }
 
-    static VaAssetRenderMaterial                  CreateAndLoad( VaAssetPack pack, String name, VaStream inStream ){
+    static VaAssetRenderMaterial                  CreateAndLoad( VaAssetPack pack, String name, VaStream inStream ) throws IOException{
         UUID uid;
 //        VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<vaGUID>( uid ) );
         long mostSigBits = inStream.ReadLong();

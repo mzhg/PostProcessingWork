@@ -1,115 +1,136 @@
 package jet.opengl.demos.intel.assao;
 
-import com.nvidia.developer.opengl.app.NvSampleApp;
+import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2i;
+import org.lwjgl.util.vector.Vector4f;
 
-import jet.opengl.postprocessing.common.GLCheck;
-import jet.opengl.postprocessing.common.GLFuncProvider;
-import jet.opengl.postprocessing.common.GLFuncProviderFactory;
-import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.shader.FullscreenProgram;
-import jet.opengl.postprocessing.texture.Texture2D;
-import jet.opengl.postprocessing.texture.Texture2DDesc;
-import jet.opengl.postprocessing.texture.TextureUtils;
+import java.util.ArrayList;
+import java.util.List;
+
+import jet.opengl.demos.intel.va.VaASSAO;
+import jet.opengl.demos.intel.va.VaAssetPack;
+import jet.opengl.demos.intel.va.VaCameraBase;
+import jet.opengl.demos.intel.va.VaCameraControllerFocusLocationsFlythrough;
+import jet.opengl.demos.intel.va.VaCameraControllerFreeFlight;
+import jet.opengl.demos.intel.va.VaGBuffer;
+import jet.opengl.demos.intel.va.VaLighting;
+import jet.opengl.demos.intel.va.VaPostProcess;
+import jet.opengl.demos.intel.va.VaPostProcessTonemap;
+import jet.opengl.demos.intel.va.VaRenderMesh;
+import jet.opengl.demos.intel.va.VaRenderMeshDrawList;
+import jet.opengl.demos.intel.va.VaRenderingGlobals;
+import jet.opengl.demos.intel.va.VaRenderingModuleImpl;
+import jet.opengl.demos.intel.va.VaShaderDefine;
+import jet.opengl.demos.intel.va.VaSimpleShadowMap;
+import jet.opengl.demos.intel.va.VaSky;
+import jet.opengl.demos.intel.va.VaTexture;
+
+/**
+ * Created by mazhen'gui on 2017/11/22.
+ */
+
+public final class ASSAODemo extends VaRenderingModuleImpl {
+    public static final int
+            Sponza = 0,
+            SponzaAndDragons = 1,
+            Sibenik = 2,
+            SibenikAndDragons = 3,
+            LostEmpire = 4,
+
+            MaxCount = 5;
+
+    private VaCameraBase    m_camera;
+    private VaCameraControllerFreeFlight m_cameraFreeFlightController;
+    private VaCameraControllerFocusLocationsFlythrough m_flythroughCameraControllerSponza;
+    private VaCameraControllerFocusLocationsFlythrough m_flythroughCameraControllerSibenik;
+    private VaCameraControllerFocusLocationsFlythrough m_flythroughCameraControllerLostEmpire;
+
+//    shared_ptr<vaRenderDevice>              m_renderDevice;
+//    shared_ptr<vaApplication>               m_application;
+
+    private VaSky m_sky;
+    private VaRenderingGlobals m_renderingGlobals;
+
+    private VaSimpleShadowMap m_simpleShadowMap;
 
 
-public class ASSAODemo extends NvSampleApp{
-	
-	private int m_Framebuffer;
-	private Texture2D m_SceneColor;
-	private Texture2D m_SceneDepth;
-	private FullscreenProgram m_screenProgram;
-//	private final Matrix4f m_ViewProj = new Matrix4f();
-	private ASSAO_Effect m_Effect;
-	private final ASSAO_InputsOpenGL m_Inputs = new ASSAO_InputsOpenGL();
-	private final ASSAO_Settings     m_Settings = new ASSAO_Settings();
-	private GLFuncProvider gl;
+    private final VaRenderMeshDrawList m_meshDrawList = new VaRenderMeshDrawList();
 
-	@Override
-	protected void initRendering() {
-		getGLContext().setSwapInterval(0);
-		gl = GLFuncProviderFactory.getGLFuncProvider();
-//		m_Scene = new SSAOCubeScene(m_transformer);
-//		m_Scene.onCreate();
-		
-		m_screenProgram = new FullscreenProgram();
-		m_Effect = new ASSAOGL();
-		((ASSAOGL)m_Effect).InitializeGL();
-	}
-	
-	@Override
-	public void display() {
-		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_Framebuffer);
-//		m_Scene.draw();
-		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
-		
-//		m_Scene.getViewProjMatrix(m_ViewProj);
-		m_screenProgram.enable();
-		gl.glDisable(GLenum.GL_DEPTH_TEST);
-		gl.glBindVertexArray(0);
-//		m_SceneColor.bind(0);
-		gl.glBindTexture(m_SceneColor.getTarget(), m_SceneColor.getTexture());
-		gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
-		gl.glBindVertexArray(0);
-		
-		m_Inputs.DepthSRV = m_SceneDepth;
-		m_Inputs.DrawOpaque = false;
-		m_Inputs.MatricesRowMajorOrder = false;
-		m_Inputs.NormalSRV = null;
-//		m_Scene.getProjMatrix(m_Inputs.ProjectionMatrix);
-		m_Inputs.ScissorLeft = 0;
-		m_Inputs.ScissorTop = 0;
-		m_Inputs.ScissorRight = m_SceneDepth.getWidth();
-		m_Inputs.ScissorBottom = m_SceneDepth.getHeight();
-		m_Inputs.ViewportHeight = m_SceneDepth.getHeight();
-		m_Inputs.ViewportWidth = m_SceneDepth.getWidth();
-//		m_Inputs.CameraFar =m_Scene.getCameraFar();
-//		m_Inputs.CameraNear =m_Scene.getCameraNear();
-		
-		m_Effect.Draw(m_Settings, m_Inputs);
-		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
-		gl.glDisable(GLenum.GL_BLEND);
-		gl.glViewport(0, 0, m_SceneColor.getWidth(), m_SceneColor.getHeight());
-	}
+    private VaGBuffer                   m_GBuffer;
+    private VaLighting                  m_lighting;
+    private VaPostProcess               m_postProcess;
+    private VaPostProcessTonemap        m_postProcessTonemap;
+    private List<VaRenderMesh>          m_sceneMeshes;
+    private List<Matrix4f>              m_sceneMeshesTransforms;
 
-	@Override
-	protected void reshape(int width, int height) {
-		if(width ==0 || height == 0)
-			return;
-		
-		gl.glViewport(0, 0, width, height);
-//		m_Scene.onResize(width, height);
-		if(m_Framebuffer == 0){
-			m_Framebuffer = gl.glGenFramebuffer();
-		}
-		
-		if(m_SceneColor != null && (m_SceneColor.getWidth() != width||m_SceneColor.getHeight() != height) ){
-			m_SceneColor.dispose();
-			m_SceneDepth.dispose();
-			
-			m_SceneColor = null;
-			m_SceneDepth = null;
-		}else if(m_SceneColor != null){
-			return;
-		}
-		
-		if(m_SceneColor == null){
-			Texture2DDesc desc = new Texture2DDesc(width, height, GLenum.GL_RGBA8);
-			m_SceneColor = TextureUtils.createTexture2D(desc, null);
-			m_SceneColor.setMagFilter(GLenum.GL_LINEAR);
-			m_SceneColor.setMinFilter(GLenum.GL_LINEAR);
-			
-			desc.format = GLenum.GL_DEPTH_COMPONENT16;
-			m_SceneDepth = TextureUtils.createTexture2D(desc, null);
-			m_SceneDepth.setMagFilter(GLenum.GL_LINEAR);
-			m_SceneDepth.setMinFilter(GLenum.GL_NEAREST);
-		}
+    private VaASSAO                     m_SSAOEffect_DevelopmentVersion;
+    private ASSAOWrapper            	m_SSAOEffect;
+    private ExternalSSAOWrapper         m_SSAOEffect_External;
 
-		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_Framebuffer);
-		{
-			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, m_SceneColor.getTexture(), 0);
-			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, GLenum.GL_TEXTURE_2D, m_SceneDepth.getTexture(), 0);
-		}
-		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
-		GLCheck.checkError();
-	}
+    private int                         m_loadedSceneChoice;
+
+    private float[]                     m_shaderDebugData = new float[VaShaderDefine.SHADERGLOBAL_DEBUG_FLOAT_OUTPUT_COUNT ];
+
+    private VaAssetPack                 m_assetsDragon;
+    private VaAssetPack                 m_assetsSibenik;
+    private VaAssetPack                 m_assetsSponza;
+    private VaAssetPack                 m_assetsLostEmpire;
+
+
+    private boolean                     m_triggerCompareDevNonDev;
+    private VaTexture                   m_comparerReferenceTexture;
+    private VaTexture                   m_comparerCurrentTexture;
+
+    private final List<Vector4f>        m_displaySampleDisk = new ArrayList<>();
+
+
+    private boolean                     m_flythroughCameraEnabled;
+
+    private int                         m_expandedSceneBorder;
+    private final Vector2i              m_expandedSceneResolution = new Vector2i();
+
+    private int                         m_frameIndex;
+
+    private String                      m_screenshotCapturePath;
+
+
+    public static final class SSAODemoSettings
+    {
+        int                      SceneChoice;
+        boolean                  UseDeferred;
+        boolean                  ShowWireframe;
+        boolean                  EnableSSAO;
+        int                      SSAOSelectedVersionIndex;
+        boolean                  DebugShowOpaqueSSAO;
+        boolean                  DisableTexturing;
+        boolean                  ExpandDrawResolution;       // to handle SSAO artifacts around screen borders
+        float                    CameraYFov;
+        boolean                  UseSimpleUI;
+
+        SSAODemoSettings( )
+        {
+            SceneChoice                 = SponzaAndDragons;
+            ShowWireframe               = false;
+            EnableSSAO                  = true;
+            SSAOSelectedVersionIndex    = 1;
+            UseDeferred                 = true;
+            DebugShowOpaqueSSAO         = false;
+            DisableTexturing            = false;
+            ExpandDrawResolution        = false;
+            CameraYFov                  = 90.0f /*/ 360.0f * VA_PIf*/;
+            UseSimpleUI                  = true;
+        }
+
+    };
+
+    public static final class GPUProfilingResults
+    {
+        float                                   TotalTime;
+        float                                   RegularShadowmapCreate;
+        float                                   SceneOpaque;
+        float                                   NonShadowedTransparencies;
+        float                                   ShadowedTransparencies;
+        float                                   MiscDebugCanvas;
+        float                                   MiscImgui;
+    };
 }

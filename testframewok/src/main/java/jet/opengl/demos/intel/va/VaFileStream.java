@@ -1,23 +1,16 @@
 package jet.opengl.demos.intel.va;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.FileAttribute;
-import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.util.BufferUtils;
-import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
 

@@ -4,10 +4,11 @@ import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector2i;
 import org.lwjgl.util.vector.Vector4f;
+import org.lwjgl.util.vector.Writable;
 
 import java.nio.ByteBuffer;
 
-final class ASSAOConstants implements Readable{
+final class ASSAOConstants implements Readable, Writable{
 	
 	static final int SIZE = 240/*Util.sizeof(new ASSAOConstants())*/;
 
@@ -108,5 +109,41 @@ final class ASSAOConstants implements Readable{
 		buf.putFloat(Dummy0);
 		
 		return buf;
+	}
+
+	@Override
+	public Writable load(ByteBuffer buf) {
+		ViewportPixelSize.load(buf);
+		HalfViewportPixelSize.load(buf);
+		DepthUnpackConsts.load(buf);
+		CameraTanHalfFOV.load(buf);
+		NDCToViewMul.load(buf);
+		NDCToViewAdd.load(buf);
+		PerPassFullResCoordOffset.load(buf);
+		PerPassFullResUVOffset.load(buf);
+		Viewport2xPixelSize.load(buf);
+		Viewport2xPixelSize_x_025.load(buf);
+		EffectRadius = buf.getFloat();
+		EffectShadowStrength = buf.getFloat();
+		EffectShadowPow = buf.getFloat();
+		EffectShadowClamp = buf.getFloat();
+		EffectFadeOutMul = buf.getFloat();
+		EffectFadeOutAdd = buf.getFloat();
+		EffectHorizonAngleThreshold = buf.getFloat();
+		EffectSamplingRadiusNearLimitRec = buf.getFloat();
+		DepthPrecisionOffsetMod = buf.getFloat();
+		NegRecEffectRadius = buf.getFloat();
+		LoadCounterAvgDiv = buf.getFloat();
+		AdaptiveSampleCountLimit = buf.getFloat();
+		InvSharpness = buf.getFloat();
+		PassIndex = buf.getInt();
+		QuarterResPixelSize.load(buf);
+		for(int i = 0; i < PatternRotScaleMatrices.length; i++)
+			PatternRotScaleMatrices[i].load(buf);
+		NormalsUnpackMul = buf.getFloat();
+		NormalsUnpackAdd = buf.getFloat();
+		DetailAOStrength = buf.getFloat();
+		Dummy0 = buf.getFloat();
+		return this;
 	}
 }
