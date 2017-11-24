@@ -11,6 +11,7 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Vector4i;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
@@ -742,5 +743,48 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
             g_pSceneDepth = TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH_COMPONENT32F), null);
             g_pSceneDepthRV = g_pSceneDepth;
         }
+    }
+
+    void LoadMainMeshes(/*ID3D11Device* pd3dDevice*/) throws IOException {
+//        HRESULT hr = S_OK;
+
+        g_MainMesh.m_Mesh.create( /*pd3dDevice,*/ "..\\Media\\sponza\\sponzaNoFlag.sdkmesh", true , null);
+        g_MainMeshSimplified.m_Mesh.create("..\\Media\\sponza\\SponzaNoFlag.sdkmesh", true, null ); //can also use SponzaNoFlagSimplified.sdkmesh which is a bit smaller
+
+        g_MainMesh.m_Mesh.LoadNormalmaps(/*pd3dDevice,*/ "diff.dds", "ddn.dds");
+        g_MainMesh.m_Mesh.LoadNormalmaps(/*pd3dDevice,*/ ".dds", "_ddn.dds");
+        g_MainMesh.m_Mesh.LoadNormalmaps(/*pd3dDevice,*/ "dif.dds", "ddn.dds");
+        g_MainMesh.m_Mesh.initializeDefaultNormalmaps(/*pd3dDevice,*/ "defaultNormalTexture.dds");
+        g_MainMesh.m_Mesh.initializeAlphaMaskTextures();
+        g_MainMesh.m_Mesh.LoadAlphaMasks( /*pd3dDevice,*/ ".dds", "_mask.dds" );
+        g_MainMesh.m_Mesh.LoadAlphaMasks( /*pd3dDevice,*/ "_diff.dds", "_mask.dds");
+
+        g_MainMesh.m_UseTexture = true;
+        g_MainMeshSimplified.m_UseTexture = true;
+
+        Vector3f meshExtents;
+        Vector3f meshCenter;
+
+        meshExtents = g_MainMesh.m_Mesh.getMeshBBoxExtents(0);
+        meshCenter = g_MainMesh.m_Mesh.getMeshBBoxCenter(0);
+        g_MainMesh.setWorldMatrix(          0.01f,0.01f,0.01f,0,0,0,-meshCenter.x,-meshCenter.y,-meshCenter.z);
+        meshExtents = g_MainMeshSimplified.m_Mesh.getMeshBBoxExtents(0);
+        meshCenter = g_MainMeshSimplified.m_Mesh.getMeshBBoxCenter(0);
+        g_MainMeshSimplified.setWorldMatrix(0.01f,0.01f,0.01f,0,0,0,-meshCenter.x,-meshCenter.y,-meshCenter.z);
+
+
+        g_MainMovableMesh.m_Mesh.create( "..\\Media\\sponza\\flag.sdkmesh", true, null );
+        meshExtents = g_MainMovableMesh.m_Mesh.getMeshBBoxExtents(0);
+        meshCenter = g_MainMovableMesh.m_Mesh.getMeshBBoxCenter(0);
+        g_MainMovableMesh.setWorldMatrix(0.01f,0.01f,0.01f,0,0,0,-meshCenter.x,-meshCenter.y,-meshCenter.z);
+        g_MainMovableMesh.m_Mesh.initializeDefaultNormalmaps("defaultNormalTexture.dds");
+
+        g_MainMesh.m_Mesh.ComputeSubmeshBoundingVolumes();
+        g_MainMeshSimplified.m_Mesh.ComputeSubmeshBoundingVolumes();
+        g_MainMovableMesh.m_Mesh.ComputeSubmeshBoundingVolumes();
+
+        g_MainMovableMesh.m_UseTexture = false;
+
+//        return hr;
     }
 }
