@@ -23,6 +23,7 @@ public class ASSAODemoDebug extends NvSampleApp{
 
 	@Override
 	protected void initRendering() {
+		ASSAOGL.ASSAO_DEBUG = true;
 		getGLContext().setSwapInterval(0);
 		gl = GLFuncProviderFactory.getGLFuncProvider();
 		m_Scene = new CubeScene(m_transformer);

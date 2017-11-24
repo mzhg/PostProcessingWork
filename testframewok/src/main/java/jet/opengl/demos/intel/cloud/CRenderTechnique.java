@@ -155,7 +155,7 @@ final class CRenderTechnique extends GLSLProgram{
     }
 
     private final void initUniforms(){
-        m_glDownscaledBackBufferWidthLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.uiDownscaledBackBufferWidth");
+        m_glDownscaledBackBufferWidthLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.fDownscaledBackBufferWidth");
         m_glBackBufferHeightLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.uiBackBufferHeight");
         m_glDensityGenerationMethodLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.uiDensityGenerationMethod");
         m_g_GlobalCloudAttribs_mParticleTilingLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.mParticleTiling");
@@ -175,7 +175,7 @@ final class CRenderTechnique extends GLSLProgram{
         m_glDownscaleFactorLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.uiDownscaleFactor");
         m_g_GlobalCloudAttribs_fCloudAltitudeLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.fCloudAltitude");
         m_g_GlobalCloudAttribs_fScatteringCoeffLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.fScatteringCoeff");
-        m_glDownscaledBackBufferHeightLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.uiDownscaledBackBufferHeight");
+        m_glDownscaledBackBufferHeightLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.fDownscaledBackBufferHeight");
         m_g_GlobalCloudAttribs_fCloudDensityThresholdLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.fCloudDensityThreshold");
         m_glRingExtensionLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.uiRingExtension");
         m_g_GlobalCloudAttribs_bVolumetricBlendingLoc = gl.glGetUniformLocation(m_program, "g_GlobalCloudAttribs.bVolumetricBlending");
@@ -198,7 +198,9 @@ final class CRenderTechnique extends GLSLProgram{
         gl.glUseProgram(0);
     }
     
-    private void setDownscaledBackBufferWidth(int i) { if(m_glDownscaledBackBufferWidthLoc >=0)gl.glUniform1ui(m_glDownscaledBackBufferWidthLoc, i);}
+    private void setDownscaledBackBufferWidth(int i) { if(m_glDownscaledBackBufferWidthLoc >=0)gl.glUniform1f(m_glDownscaledBackBufferWidthLoc, i);}
+    private void setDownscaledBackBufferHeight(int i) { if(m_glDownscaledBackBufferHeightLoc >=0)gl.glUniform1f(m_glDownscaledBackBufferHeightLoc, i);}
+
     private void setBackBufferHeight(int i) { if(m_glBackBufferHeightLoc >=0)gl.glUniform1ui(m_glBackBufferHeightLoc, i);}
     private void setDensityGenerationMethod(int i) { if(m_glDensityGenerationMethodLoc >=0)gl.glUniform1ui(m_glDensityGenerationMethodLoc, i);}
     private void setParticleTiling(Matrix4f mat) { if(m_g_GlobalCloudAttribs_mParticleTilingLoc >=0)gl.glUniformMatrix4fv(m_g_GlobalCloudAttribs_mParticleTilingLoc, false, CacheBuffer.wrap(mat));}
@@ -218,7 +220,7 @@ final class CRenderTechnique extends GLSLProgram{
     private void setDownscaleFactor(int i) { if(m_glDownscaleFactorLoc >=0)gl.glUniform1ui(m_glDownscaleFactorLoc, i);}
     private void setCloudAltitude(float f) { if(m_g_GlobalCloudAttribs_fCloudAltitudeLoc >=0)gl.glUniform1f(m_g_GlobalCloudAttribs_fCloudAltitudeLoc, f);}
     private void setScatteringCoeff(float f) { if(m_g_GlobalCloudAttribs_fScatteringCoeffLoc >=0)gl.glUniform1f(m_g_GlobalCloudAttribs_fScatteringCoeffLoc, f);}
-    private void setDownscaledBackBufferHeight(int i) { if(m_glDownscaledBackBufferHeightLoc >=0)gl.glUniform1ui(m_glDownscaledBackBufferHeightLoc, i);}
+
     private void setCloudDensityThreshold(float f) { if(m_g_GlobalCloudAttribs_fCloudDensityThresholdLoc >=0)gl.glUniform1f(m_g_GlobalCloudAttribs_fCloudDensityThresholdLoc, f);}
     private void setRingExtension(int i) { if(m_glRingExtensionLoc >=0)gl.glUniform1ui(m_glRingExtensionLoc, i);}
     private void setVolumetricBlending(boolean b) { if(m_g_GlobalCloudAttribs_bVolumetricBlendingLoc >=0)gl.glUniform1ui(m_g_GlobalCloudAttribs_bVolumetricBlendingLoc, b ? 1 : 0);}

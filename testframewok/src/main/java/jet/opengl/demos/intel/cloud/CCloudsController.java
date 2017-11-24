@@ -188,6 +188,11 @@ final class CCloudsController {
         this();
 
         m_debugStaticScene = debugStaticScene;
+        if(m_debugStaticScene){
+            ByteBuffer bytes = DebugTools.loadBinary("E:/textures/OutdoorCloudResources/SGlobalCloudAttribs.dat");
+            m_CloudAttribs.load(bytes);
+            System.out.println(m_CloudAttribs);
+        }
     }
 
     CCloudsController(){
@@ -688,6 +693,17 @@ final class CCloudsController {
                  int pcbCameraAttribs,
                  int pcbLightAttribs,
                  int pcMediaScatteringParams ){
+        SGlobalCloudAttribs comparedValue = null;
+        if(m_debugStaticScene){
+            if(!m_printOnce){
+                comparedValue = new SGlobalCloudAttribs();
+                ByteBuffer bytes = DebugTools.loadBinary("E:/textures/OutdoorCloudResources/SGlobalCloudAttribs.dat");
+                comparedValue.load(bytes);
+            }else {  // m_printOnce is true
+                return;
+            }
+        }
+
         m_CloudAttribs.fCloudDensityThreshold = NewAttribs.fCloudDensityThreshold;
         m_CloudAttribs.fCloudAltitude         = NewAttribs.fCloudAltitude;
         m_CloudAttribs.fCloudThickness        = NewAttribs.fCloudThickness;
@@ -755,6 +771,10 @@ final class CCloudsController {
         if( m_ProcessCloudGridTech == null )
         {
             m_ProcessCloudGridTech = new CRenderTechnique(null, "ProcessCloudGridCS.comp", DefineMacros());
+        }
+
+        if(comparedValue != null){
+            System.out.println(DebugTools.compareObjects(comparedValue, m_CloudAttribs));
         }
 
 //        UpdateConstantBuffer(pDeviceContext, m_pcbGlobalCloudAttribs, &m_CloudAttribs, sizeof(m_CloudAttribs));
@@ -1509,25 +1529,31 @@ final class CCloudsController {
 //        pDeviceContext->VSSetShaderResources(0, _countof(pSRVs), pSRVs);
 //        pDeviceContext->PSSetShaderResources(0, _countof(pSRVs), pSRVs);
 //
-//        if( !bLightSpacePass && m_CloudAttribs.uiDownscaleFactor > 1 )
-//        {
-//            ID3D11ShaderResourceView *pSRVs2[] =
-//            {
-//                m_ptex2DDownscaledScrCloudTransparencySRV,
-//                        m_ptex2DDownscaledScrDistToCloudSRV,
-//                        m_ptex2DDownscaledScrCloudColorSRV
-//            };
-//            pDeviceContext->PSSetShaderResources(11, _countof(pSRVs2), pSRVs2);
-//        }
+        if( !bLightSpacePass && m_CloudAttribs.uiDownscaleFactor > 1 )
+        {
+           /* ID3D11ShaderResourceView *pSRVs2[] =
+            {
+                m_ptex2DDownscaledScrCloudTransparencySRV,
+                        m_ptex2DDownscaledScrDistToCloudSRV,
+                        m_ptex2DDownscaledScrCloudColorSRV
+            };
+            pDeviceContext->PSSetShaderResources(11, _countof(pSRVs2), pSRVs2);*/
+            bindTexture(15, m_ptex2DDownscaledScrDistToCloudSRV, m_psamLinearClamp);
+            bindTexture(16, m_ptex2DDownscaledScrCloudTransparencySRV, m_psamLinearClamp);
+            bindTexture(17, m_ptex2DDownscaledScrCloudColorSRV, m_psamLinearClamp);
+        }
 
         bindTexture(0, RenderAttribs.pDepthBufferSRV, m_psamLinearClamp);
-        bindTexture(3, m_ptex2DCloudDensitySRV, m_psamLinearWrap);
+        bindTexture(3, m_ptex2DCloudDensitySRV, m_psamLinearClamp);
+        bindTexture(1, RenderAttribs.pPrecomputedNetDensitySRV, m_psamLinearClamp);
         gl.glDisable(GLenum.GL_CULL_FACE);
         gl.glDisable(GLenum.GL_DEPTH_TEST);
 
         RenderFlatCloudsTech.enable();
         RenderFlatCloudsTech.setWorldViewProj(RenderAttribs.ViewProjMatr);
         RenderFlatCloudsTech.setViewProjInv(RenderAttribs.viewProjInv);
+        RenderFlatCloudsTech.setCameraPos(RenderAttribs.f3CameraPos);
+        RenderFlatCloudsTech.setDirOnLight(RenderAttribs.f4DirOnLight);
 
         RenderQuad(/*pDeviceContext,*/ RenderFlatCloudsTech);
 
@@ -1537,6 +1563,11 @@ final class CCloudsController {
 
         bindTexture(0, null, 0);
         bindTexture(3, null, 0);
+        bindTexture(1, null, 0);
+
+        bindTexture(15, null, 0);
+        bindTexture(16, null, 0);
+        bindTexture(17, null, 0);
     }
 
     // Renders all visible particles
@@ -1564,7 +1595,8 @@ final class CCloudsController {
 //            RenderCloudsTech.SetDS( m_pdsDisableDepth /*m_pdsEnableDepth*/ );
 //            RenderCloudsTech.SetRS( m_prsSolidFillCullFront );
 //            RenderCloudsTech.SetBS( m_pbsRT0MulRT1MinRT2Over );
-            RenderCloudsTech = m_RenderCloudsTech[bLightSpacePass ? 1 : 0] = new CRenderTechnique("RenderCloudsVS.vert", "RenderCloudsGS.gemo", "RenderCloudsPS.frag", macros);
+            RenderCloudsTech = m_RenderCloudsTech[bLightSpacePass ? 1 : 0] = new CRenderTechnique("RenderCloudsVS.vert",
+                    "RenderCloudsGS.gemo", "RenderCloudsPS.frag", macros);
         }
 
         if(m_pRenderCloudsInputLayout == 0 )
@@ -1615,6 +1647,11 @@ final class CCloudsController {
 //        pDeviceContext->PSSetShaderResources(0, _countof(pSRVs), pSRVs);
 
         bindTexture(12, m_ptex3DPrecomputedParticleDensitySRV, m_psamLinearWrap);
+        bindTexture(0, RenderAttribs.pDepthBufferSRV, m_psamLinearClamp);
+        bindTexture(14, m_ptex3DMultipleSctrInParticleLUT_SRV, m_psamLinearClamp);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, m_pbufCloudParticlesSRV);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufParticlesLightingSRV);
 //
 //        pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 //        RenderCloudsTech.Apply();
@@ -1629,13 +1666,28 @@ final class CCloudsController {
         RenderCloudsTech.setUniforms(m_CloudAttribs);
         RenderCloudsTech.setViewProjInv(RenderAttribs.viewProjInv);
         RenderCloudsTech.setWorldViewProj(RenderAttribs.ViewProjMatr);
+        RenderCloudsTech.setCameraPos(RenderAttribs.f3CameraPos);
+        RenderCloudsTech.setDirOnLight(RenderAttribs.f4DirOnLight);
 
         gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, m_pbufDrawIndirectArgs);
         gl.glDrawArraysIndirect(GLenum.GL_POINTS, 0);
         gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, 0);
         gl.glBindVertexArray(0);
+
+        gl.glDisablei(GLenum.GL_BLEND, 0);
+        gl.glDisablei(GLenum.GL_BLEND, 1);
+        gl.glDisablei(GLenum.GL_BLEND, 2);
+
+        bindTexture(12, null, 0);
+        bindTexture(14, null, 0);
+        bindTexture(0, RenderAttribs.pDepthBufferSRV, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
+
         if(!m_printOnce){
             RenderCloudsTech.printPrograminfo();
+            System.out.println(m_CloudAttribs);
         }
 
         if( RenderAttribs.bLightSpacePass ==0 && m_bPSOrderingAvailable && m_CloudAttribs.bVolumetricBlending )

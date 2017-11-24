@@ -11,7 +11,7 @@ import jet.opengl.postprocessing.util.Numeric;
 
 public abstract class VaSimpleShadowMap extends VaRenderingModuleImpl implements VaSimpleShadowMapAPIInternalCallbacks {
 
-    private int                             m_resolution;
+    private int                                   m_resolution;
     private final VaOrientedBoundingBox           m_volume = new VaOrientedBoundingBox();
 
     private VaTexture      m_shadowMap;

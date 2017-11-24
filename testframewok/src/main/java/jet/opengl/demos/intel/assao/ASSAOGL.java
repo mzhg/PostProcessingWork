@@ -21,12 +21,13 @@ import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
 final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 
     static boolean ASSAO_DEBUG;
-    static boolean g_PrintOnce = false;
+    private static boolean g_PrintOnce = false;
     static final String DEBUG_FILE_FOLDER = "E:/textures/ASSAODX/";
 
 	private final BufferFormats            	m_formats = new BufferFormats();
@@ -102,7 +103,6 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 
     private boolean                         m_requiresClear;
     private int 							m_viewportWidth, m_viewportHeight;
-    private boolean 					    m_printProgramOnce = false;
 
     private GLFuncProvider gl;
     
@@ -376,7 +376,8 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
             m_normals=ReCreateIfNeeded(m_normals,m_size, m_formats.Normals, /*totalSizeInMB,*/ 1, 1, true );
 
         totalSizeInMB /= 1024 * 1024;
-        //    m_debugInfo = vaStringTools::Format( "SSAO (approx. %.2fMB memory used) ", totalSizeInMB );
+//            m_debugInfo = vaStringTools::Format( "SSAO (approx. %.2fMB memory used) ", totalSizeInMB );
+        LogUtil.i(LogUtil.LogType.DEFAULT, String.format("SSAO (approx. %.2fMB memory used) ", totalSizeInMB));
 
         // trigger a full buffers clear first time; only really required when using scissor rects
         m_requiresClear = true;
@@ -564,7 +565,7 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         gl.glBindVertexArray(0);
     	
-    	if(!m_printProgramOnce){
+    	if(!g_PrintOnce){
     		GLCheck.checkError();
     		pixelShader.printPrograminfo();
     	}
@@ -731,11 +732,6 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
                 
                 unbindRenderTargets(fourDepths.length);
                 gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
-                
-                if(!m_printProgramOnce){
-                	saveTextureAsText("HalfDepth%d.txt", fourDepths);
-                	saveTextureAsText(m_normals, "Normal.txt");
-                }
             }
         }
 
@@ -1208,7 +1204,7 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 
 	    }
 	    
-	    m_printProgramOnce = true;
+	    g_PrintOnce = true;
 	}
 	
 	private static final class BufferFormats{

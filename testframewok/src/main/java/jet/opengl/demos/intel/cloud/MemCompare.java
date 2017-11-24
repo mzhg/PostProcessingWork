@@ -134,6 +134,19 @@ final class MemCompare {
         }
     }
 
+    static void testRenderFlat(){
+        String[] tokens = {"ScrSpaceCloudTransparency","ScrSpaceDistToCloud", "ScreenCloudColor"};
+        for(int i = 0; i < tokens.length; i ++){
+            System.out.println(String.format("test%s: ", tokens[i]));
+            String gl_file = String.format(FILE_PATH + "%sGL.txt", tokens[i]);
+            String dx_file = String.format(FILE_PATH + "%sDX.txt", tokens[i]);
+            String result_file = String.format(FILE_PATH + "%sResult.txt", tokens[i]);
+
+            DebugTools.fileCompare(gl_file, dx_file, result_file);
+            System.out.println();
+        }
+    }
+
     public static void main(String[] args) {
         testLiSpCloudTransparency();
         testLiSpCloudMinMaxDepth();
@@ -147,5 +160,9 @@ final class MemCompare {
         testDispatchArgs(0);
         testEvaluateDensity();
         testSortParticles();
+        testRenderFlat();
+
+        /*DebugTools.genLoadBytebuffer(SGlobalCloudAttribs.class);
+        DebugTools.genStoreBytebuffer(SGlobalCloudAttribs.class);*/
     }
 }

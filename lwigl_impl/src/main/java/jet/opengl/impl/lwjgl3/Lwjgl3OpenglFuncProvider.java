@@ -225,6 +225,9 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glDisablei(int cap, int index) {GL30.glDisablei(cap, index);}
+
+    @Override
     public void glFinish() {
         GL11.glFinish();
     }

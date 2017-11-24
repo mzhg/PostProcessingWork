@@ -79,6 +79,7 @@ public interface GLFuncProvider {
 
     public void glEnable (int cap);
     public void glEnablei (int cap, int index);
+    void glDisablei(int cap, int index);
 
     public void glFinish ();
 

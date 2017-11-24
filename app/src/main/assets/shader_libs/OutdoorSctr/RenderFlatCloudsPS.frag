@@ -93,6 +93,15 @@ void FilterDownscaledCloudBuffers(in float2 f2UV,
 }
 
 
+float2 ProjToUV(float2 uv)
+{
+#if DEBUG_STATIC_SCENE
+    return uv * float2(0.5, 0.5) + 0.5;
+#else
+    return uv * float2(0.5) + 0.5;
+#endif
+}
+
 // This shader renders flat clouds by sampling cloud density at intersection
 // of the view ray with the cloud layer
 // If particles are rendred in lower resolution, it also upscales the
@@ -110,12 +119,12 @@ void main()
     // Load depth from the depth buffer
     float fDepth;
     float3 f3RayStart;
-    float2 f2UV = m_f4UVAndScreenPos.xy; // ProjToUV(In.m_f2PosPS.xy);
+    float2 f2UV = ProjToUV(m_f4UVAndScreenPos.zw);
 
 #if DEBUG_STATIC_SCENE
-    float2 f2ProjUV =  float2(m_f4UVAndScreenPos.z, -m_f4UVAndScreenPos.w);
+    float2 f2ProjUV = float2(m_f4UVAndScreenPos.z, m_f4UVAndScreenPos.w);
 #else
-    float2 f2ProjUV =  m_f4UVAndScreenPos.zw;
+    float2 f2ProjUV = m_f4UVAndScreenPos.zw;
 #endif
 
 #if LIGHT_SPACE_PASS
@@ -133,10 +142,10 @@ void main()
 #else
     f3RayStart = g_f4CameraPos.xyz;
     #if DEBUG_STATIC_SCENE
-    fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0).x;
+        fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0).x;
     #else
-    fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0).x;
-    fDepth = 2.0 * fDepth - 1.0;
+        fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0).x;
+        fDepth = 2.0 * fDepth - 1.0;
     #endif
 #endif
 
@@ -158,11 +167,11 @@ void main()
     // visible there
 #if !LIGHT_SPACE_PASS
     #if DEBUG_STATIC_SCENE
-    if( fDepth < 1e-10 )
+        if( fDepth < 1e-10 )
     #else
-    if( fDepth > 1.0 - (1e-10))
+        if( fDepth > 1.0 - (1e-10))
     #endif
-        fRayLength = + FLT_MAX;
+            fRayLength = + FLT_MAX;
 #endif
 
     // Compute intersection of the view ray with the Earth and the spherical cloud layer
@@ -248,14 +257,14 @@ void main()
     float4 f4LightSpacePosPS = mul( float4(f3CloudLayerIsecPos,1), g_WorldViewProj );
 
     #if DEBUG_STATIC_SCENE
-    Out_f2MinMaxZRange = float2(f4LightSpacePosPS.z / f4LightSpacePosPS.w);
+        Out_f2MinMaxZRange = float2(f4LightSpacePosPS.z / f4LightSpacePosPS.w);
 //    Out_f2MinMaxZRange = float4(f4LightSpacePosPS.z / f4LightSpacePosPS.w, exp(-g_fCloudExtinctionCoeff*fTotalMass),fTotalMass, fDensity);
 //    Out_f2MinMaxZRange = float4(f3CloudLayerIsecPos, fTime);
 //    Out_f2MinMaxZRange = float2(g_fCloudExtinctionCoeff, fTotalMass);
 //    Out_f2MinMaxZRange = float4(float(bIsValid), fTotalMass, 0,0);
     #else
-    Out_f2MinMaxZRange = float2(f4LightSpacePosPS.z / f4LightSpacePosPS.w);
-    Out_f2MinMaxZRange = 2.0 * Out_f2MinMaxZRange - 1.0; // remap[-1,1] to [0,1]
+        Out_f2MinMaxZRange = float2(f4LightSpacePosPS.z / f4LightSpacePosPS.w);
+        Out_f2MinMaxZRange = 2.0 * Out_f2MinMaxZRange - 1.0; // remap[-1,1] to [0,1]
     #endif
 #else
     Out_f4Color = float4(0);

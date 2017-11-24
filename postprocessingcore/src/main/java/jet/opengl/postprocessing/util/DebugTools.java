@@ -325,6 +325,7 @@ public final class DebugTools {
 
         StringBuilder out = new StringBuilder(256);
         for(Field field : fields){
+            field.setAccessible(true);
             if(Modifier.isStatic(field.getModifiers()))
                 continue;
 
@@ -359,6 +360,10 @@ public final class DebugTools {
                     }
                 }
             }
+        }
+
+        if(out.length() == 0){
+            out.append("The two object is same complete.");
         }
 
         return out;
@@ -1310,7 +1315,7 @@ public final class DebugTools {
     }
 
     private static String _To(float f){
-        if(f - Math.ceil(f) == 0.0){
+        if(f - Math.ceil(f) == 0.0 && f < Integer.MAX_VALUE){
             return Integer.toString((int)f);
         }else if(Math.abs(f) < 1e-7){
             return "0";
@@ -1795,7 +1800,7 @@ public final class DebugTools {
                 }else if(cmpClass.isPrimitive()){
                     sb.append("for(int i = 0; i < ").append(name).append(".length; i++)\n");
                     sb.append("\t").append("buf.put").append(upperCase).append('(').append(name).append("[i]);\n");
-                }else if(hasInterFace(cmpClass, Readable.class)){
+                }else if(/*hasInterFace(cmpClass, Readable.class)*/  ClassType.accept(cmpClass)){
                     sb.append("for(int i = 0; i < ").append(name).append(".length; i++)\n");
                     sb.append("\t").append(name).append("[i]").append(".store(buf);\n");
                 }else{
