@@ -13,7 +13,7 @@ void main()
     float fSrcMip = g_GlobalCloudAttribs.f4Parameter.x-1.0;
 //    g_tex2MaxDensityMip.GetDimensions(fSrcMip, f2MipSize.x, f2MipSize.y, fMipLevels);
     fMipLevels = float(textureQueryLevels(g_tex2MaxDensityMip));
-    f2MipSize = float2(textureSize(g_tex2MaxDensityMip, 0));
+    f2MipSize = float2(textureSize(g_tex2MaxDensityMip, int(fSrcMip)));
     // Note that since dst level is 2 times smaller than the src level, we have to
     // align texture coordinates
     //   _____ _____

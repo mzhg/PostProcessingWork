@@ -216,11 +216,10 @@ void GetRaySphereIntersection2(in float3 f3RayOrigin,
     float2 D = B*B - 4.0*A*C;
     // If discriminant is negative, there are no real roots hence the ray misses the
     // sphere
-//    float2 f2RealRootMask = (D.xy >= float2(0));
 	float2 f2RealRootMask = float2(greaterThanEqual(D.xy, float2(0)));
     D = sqrt( max(D,0) );
     f4Intersections =   f2RealRootMask.xxyy * float4(-B - D.x, -B + D.x, -B - D.y, -B + D.y) / (2*A) +
-                      (1-f2RealRootMask.xxyy) * float4(-1,-1,-1,-1);
+                      (1-f2RealRootMask.xxyy) * float4(-1,-2,-1,-2);
 }
 
 float2 ComputeDensityTexLODsFromUV(in float4 fDeltaUV01)

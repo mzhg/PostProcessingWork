@@ -6,9 +6,11 @@ import com.nvidia.developer.opengl.utils.FieldControl;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
+import org.lwjgl.util.vector.Writable;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -66,12 +68,12 @@ public class CloudSkyStaticDemo extends NvSampleApp {
     private int m_uiCloudDensityMapResolution = 512;
     private SRenderAttribs m_RenderAttribs = new SRenderAttribs();
     private SGlobalCloudAttribs m_CloudAttribs = new SGlobalCloudAttribs();
-    private final Matrix4f m_ViewProj = new Matrix4f();
     private final Matrix4f[] m_WorldToLightProjSpaceMatrs = new Matrix4f[4];
     private final Matrix4f[] m_ViewProjInverseMats = new Matrix4f[4];
-    private final Vector3f m_f4DirOnLight = new Vector3f(0.379932f, 0.838250f, -0.391139f);
     private final Vector4f[] m_f4ViewFrustumPlanes = new Vector4f[6];
     private float m_fCloudTime;
+
+    private final _CameraData m_TestData = new _CameraData();
 
     @Override
     public void initUI() {
@@ -119,16 +121,13 @@ public class CloudSkyStaticDemo extends NvSampleApp {
         m_f4ViewFrustumPlanes[4] = new Vector4f(-0.000030f, -0.000047f, -0.000165f, 49.919682f);
         m_f4ViewFrustumPlanes[5] = new Vector4f(0.171579f, 0.271930f, 0.947082f, 460.516937f);
 
-        m_ViewProj.set(1.336244f, 0.000000f, -0.242082f, -532.905945f,
-                       -0.117009f, 2.323271f, -0.645868f, -1617.401978f,
-                        -0.000030f, -0.000047f, -0.000165f, 49.919682f,
-                        0.171549f, 0.271882f, 0.946917f, 510.436615f);
 
         ByteBuffer binary = DebugTools.loadBinary("E:\\textures\\OutdoorCloudResources\\WorldToLightProjSpaceMats.data");
         for(int i = 0; i< m_WorldToLightProjSpaceMatrs.length;i++){
             Matrix4f mat = new Matrix4f();
             mat.load(binary);
             m_WorldToLightProjSpaceMatrs[i] = mat;
+//            m_WorldToLightProjSpaceMatrs[i].transpose();
         }
 
         binary = DebugTools.loadBinary("E:\\textures\\OutdoorCloudResources\\ViewProjInverseMats.data");
@@ -136,7 +135,12 @@ public class CloudSkyStaticDemo extends NvSampleApp {
             Matrix4f mat = new Matrix4f();
             mat.load(binary);
             m_ViewProjInverseMats[i] = mat;
+//            m_ViewProjInverseMats[i].transpose();
         }
+
+        binary = DebugTools.loadBinary("E:\\textures\\OutdoorCloudResources\\RenderScene_CameraData.dat");
+        m_TestData.load(binary);
+        System.out.println(m_TestData);
 
         m_SceneColor = loadTextureFromBinaryFile("E:\\textures\\OutdoorCloudResources\\SceneData\\colorBuffer.data", 1280, 720, GLenum.GL_RGBA16F, 1);
         m_SceneDepth = loadTextureFromBinaryFile("E:\\textures\\OutdoorCloudResources\\SceneData\\depthBuffer.data", 1280, 720, GLenum.GL_DEPTH_COMPONENT32F, 1);
@@ -179,7 +183,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
             int m_pcbCameraAttribs = 0;
             int m_pcbLightAttribs = 0;
             int pcMediaScatteringParams = 0;
-            m_RenderAttribs.f3CameraPos.set(266.100372f, 505.934692f, -732.525452f);
+            m_RenderAttribs.f3CameraPos.set(m_TestData.f4CameraPos);
             m_CloudAttribs.uiNumCascades = 4; //m_TerrainRenderParams.m_iNumShadowCascades;
             m_pCloudsController.Update(m_CloudAttribs, m_RenderAttribs.f3CameraPos, Vector3f.Y_AXIS_NEG, /*mpD3dDevice, mpContext,*/ m_pcbCameraAttribs, m_pcbLightAttribs, pcMediaScatteringParams);
         }
@@ -195,7 +199,8 @@ public class CloudSkyStaticDemo extends NvSampleApp {
         {
 //            m_RenderAttribs.pDevice = mpD3dDevice;
 //            m_RenderAttribs.pDeviceContext = mpContext;
-            m_RenderAttribs.ViewProjMatr = m_ViewProj;
+            m_RenderAttribs.ViewProjMatr = m_TestData.viewProj;
+            m_RenderAttribs.viewProjInv.load(m_TestData.viewProjInvert);
             m_RenderAttribs.pcbCameraAttribs = 0; //m_pcbCameraAttribs;
             m_RenderAttribs.pcbLightAttribs = 0;//m_pcbLightAttribs;
             m_RenderAttribs.pcMediaScatteringParams = 0;//pcMediaScatteringParams;
@@ -205,8 +210,8 @@ public class CloudSkyStaticDemo extends NvSampleApp {
             m_RenderAttribs.pLiSpCloudTransparencySRV = m_pLiSpCloudTransparencyRTVs;
             m_RenderAttribs.pLiSpCloudMinMaxDepthSRV = m_pLiSpCloudMinMaxDepthRTVs;
             m_RenderAttribs.fCurrTime = m_fCloudTime;
-            m_RenderAttribs.f4DirOnLight = m_f4DirOnLight;  // , 0.000000
-            m_RenderAttribs.f4ViewFrustumPlanes = m_f4ViewFrustumPlanes;
+            m_RenderAttribs.f4DirOnLight = m_TestData.f4DirOnLight;  // , 0.000000
+            m_RenderAttribs.f4ViewFrustumPlanes = m_TestData.f4ViewFrustumPlanes;
 //            m_RenderAttribs.f3CameraPos = m_CameraPos;
 //            m_RenderAttribs.f3ViewDir = (D3DXVECTOR3&)mpCamera->GetLook();
 //            m_RenderAttribs.m_pCameraAttribs = &CameraAttribs;
@@ -312,14 +317,6 @@ public class CloudSkyStaticDemo extends NvSampleApp {
             if(m_RenderTarget == null)
                 m_RenderTarget = new RenderTargets();
 
-            m_RenderAttribs.viewProjInv.set(
-                    9472.14648f,-0.00011348f,10581.6162f,-4359.82861f,
-                    -3525.58105f, -3030.95947f, 23346.3652f, -10722.1865f,
-                    1645.08411f, -6495.65186f, -10893.7314f, 7104.19531f,
-                    0.000000f, 0.000000f, 0.000000f, 1.000000f
-            );
-            m_RenderAttribs.viewProjInv.transpose();
-
             gl.glViewport(0,0, m_RenderTexs[0].getWidth(), m_RenderTexs[0].getHeight());
             m_RenderTarget.bind();
             Matrix4f[] WorldToLightProjSpaceMatrs = m_WorldToLightProjSpaceMatrs;
@@ -349,19 +346,18 @@ public class CloudSkyStaticDemo extends NvSampleApp {
                 m_RenderAttribs.fCurrTime = m_fCloudTime;
                 m_RenderAttribs.uiLiSpCloudDensityDim = m_uiCloudDensityMapResolution;
                 m_pCloudsController.RenderLightSpaceDensity(m_RenderAttribs);
-//                    ID3D11Buffer * pcMediaScatteringParams = m_pLightSctrPP -> GetMediaAttribsCB();
-//                    if (bCascadesValid) {
-//
-//                    }
             }
 
-            if(m_pCloudsController.isPrintOnce()){
-                m_pCloudsController.saveTextData("LiSpCloudTransparencyGL.txt", m_RenderTexs[0]);
-                m_pCloudsController.saveTextData("LiSpCloudMinMaxDepthGL.txt", m_RenderTexs[1]);
+            if(m_pLiSpCloudTransparencyRTVs.getMipLevels() > 1){
+                gl.glGenerateTextureMipmap(m_pLiSpCloudTransparencyRTVs.getTexture());
             }
-
 
             m_RenderTarget.unbind();
+        }
+
+        if(m_pCloudsController.isPrintOnce()){
+            m_pCloudsController.saveTextData("LiSpCloudTransparencyGL.txt", m_RenderTexs[0]);
+            m_pCloudsController.saveTextData("LiSpCloudMinMaxDepthGL.txt", m_RenderTexs[1]);
         }
     }
 
@@ -372,7 +368,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
                 (
                         m_uiCloudDensityMapResolution,
                         m_uiCloudDensityMapResolution,
-                        6,
+                        1,
                         4, //m_TerrainRenderParams.m_iNumShadowCascades,
                         GLenum.GL_R8,
                         1
@@ -472,4 +468,47 @@ public class CloudSkyStaticDemo extends NvSampleApp {
         fullscreenProgram.dispose();
         gl.glDeleteVertexArray(m_DummyVAO);
     }
+
+    private static final class _CameraData implements Writable
+    {
+        final Matrix4f viewProj = new Matrix4f();
+        final Matrix4f viewProjInvert = new Matrix4f();
+        final Vector4f f4CameraPos = new Vector4f();
+        final Vector3f f3CameraPos = new Vector3f();
+        final Vector3f f4DirOnLight = new Vector3f();
+        final Vector4f[] f4ViewFrustumPlanes = new Vector4f[6];
+
+        _CameraData(){
+            for(int i = 0; i <6;i++){
+                f4ViewFrustumPlanes[i] = new Vector4f();
+            }
+        }
+
+        @Override
+        public _CameraData load(ByteBuffer buf) {
+            viewProj.load(buf);       viewProj.transpose();
+            viewProjInvert.load(buf); viewProjInvert.transpose();
+            f4CameraPos.load(buf);
+            f3CameraPos.load(buf);
+            f4DirOnLight.load(buf);   buf.getFloat();
+
+            for(int i = 0; i < 6; i++){
+                f4ViewFrustumPlanes[i].load(buf);
+            }
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuffer sb = new StringBuffer("_CameraData{");
+            sb.append("\n viewProj=").append(viewProj);
+            sb.append(",\n viewProjInvert=").append(viewProjInvert);
+            sb.append(",\n f4CameraPos=").append(f4CameraPos);
+            sb.append(",\n f3CameraPos=").append(f3CameraPos);
+            sb.append(",\n f4DirOnLight=").append(f4DirOnLight);
+            sb.append(",\n f4ViewFrustumPlanes=").append(f4ViewFrustumPlanes == null ? "null" : Arrays.asList(f4ViewFrustumPlanes).toString());
+            sb.append('}');
+            return sb.toString();
+        }
+    };
 }

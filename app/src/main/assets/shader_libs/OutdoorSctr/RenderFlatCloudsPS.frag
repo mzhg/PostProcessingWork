@@ -95,10 +95,10 @@ void FilterDownscaledCloudBuffers(in float2 f2UV,
 
 float2 ProjToUV(float2 uv)
 {
-#if DEBUG_STATIC_SCENE
-    return uv * float2(0.5, 0.5) + 0.5;
-#else
+#if /*LIGHT_SPACE_PASS ||*/ !DEBUG_STATIC_SCENE
     return uv * float2(0.5) + 0.5;
+#elif DEBUG_STATIC_SCENE
+    return uv * float2(0.5, -0.5) + 0.5;
 #endif
 }
 
@@ -121,10 +121,10 @@ void main()
     float3 f3RayStart;
     float2 f2UV = ProjToUV(m_f4UVAndScreenPos.zw);
 
-#if DEBUG_STATIC_SCENE
-    float2 f2ProjUV = float2(m_f4UVAndScreenPos.z, m_f4UVAndScreenPos.w);
-#else
+#if /*LIGHT_SPACE_PASS ||*/ !DEBUG_STATIC_SCENE
     float2 f2ProjUV = m_f4UVAndScreenPos.zw;
+#elif DEBUG_STATIC_SCENE
+    float2 f2ProjUV = float2(m_f4UVAndScreenPos.z, -m_f4UVAndScreenPos.w);
 #endif
 
 #if LIGHT_SPACE_PASS

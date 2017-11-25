@@ -69,7 +69,7 @@ final class SGlobalCloudAttribs implements Readable, Writable{
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("SGlobalCloudAttribs{");
-        sb.append("uiInnerRingDim=").append(uiInnerRingDim);
+        sb.append("\n uiInnerRingDim=").append(uiInnerRingDim);
         sb.append("\n uiRingExtension=").append(uiRingExtension);
         sb.append("\n uiRingDimension=").append(uiRingDimension);
         sb.append("\n uiNumRings=").append(uiNumRings);

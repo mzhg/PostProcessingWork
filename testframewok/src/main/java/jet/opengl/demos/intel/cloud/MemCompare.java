@@ -18,6 +18,23 @@ final class MemCompare {
 
     private static final String FILE_PATH = "E:\\textures\\OutdoorCloudResources\\";
 
+    static void testCloudDensity(){
+        for(int i = 0; i < 11; i++){
+            String token = "MaxDensityMipMap" + i;
+
+            System.out.println(String.format("test%s: ", token));
+            String gl_file = String.format(FILE_PATH + "%sGL.txt", token);
+            String dx_file = String.format(FILE_PATH + "%sDX.txt", token);
+            String result_file = String.format(FILE_PATH + "%sResult.txt", token);
+
+            DebugTools.fileCompare(gl_file, dx_file, result_file);
+            System.out.println();
+        }
+
+
+        System.out.println();
+    }
+
     static void testLiSpCloudTransparency(){
         System.out.println("testLiSpCloudTransparency: ");
         DebugTools.fileCompare(FILE_PATH + "LiSpCloudTransparencyGL.txt",
@@ -147,7 +164,21 @@ final class MemCompare {
         }
     }
 
+    static void testDownscaled(){
+        String[] tokens = {"DownscaledScrCloudTransparency","DownscaledScrDistToCloud", "DownscaledScrCloudColor"};
+        for(int i = 0; i < tokens.length; i ++){
+            System.out.println(String.format("test%s: ", tokens[i]));
+            String gl_file = String.format(FILE_PATH + "%sGL.txt", tokens[i]);
+            String dx_file = String.format(FILE_PATH + "%sDX.txt", tokens[i]);
+            String result_file = String.format(FILE_PATH + "%sResult.txt", tokens[i]);
+
+            DebugTools.fileCompare(gl_file, dx_file, result_file);
+            System.out.println();
+        }
+    }
+
     public static void main(String[] args) {
+//        testCloudDensity();
         testLiSpCloudTransparency();
         testLiSpCloudMinMaxDepth();
 
@@ -160,6 +191,7 @@ final class MemCompare {
         testDispatchArgs(0);
         testEvaluateDensity();
         testSortParticles();
+        testDownscaled();
         testRenderFlat();
 
         /*DebugTools.genLoadBytebuffer(SGlobalCloudAttribs.class);

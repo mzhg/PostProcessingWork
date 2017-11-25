@@ -209,25 +209,6 @@ final class CCloudsController {
         m_RenderTarget = new RenderTargets();
         m_DummyVAO = gl.glGenVertexArray();
 
-//        HRESULT hr;
-//
-//        // Detect and report Intel extensions on this system
-//        hr = IGFX::Init( pDevice );
-//        if ( FAILED(hr) )
-//        {
-//            //CPUTOSServices::GetOSServices()->OpenMessageBox( _L("Error"), _L("Failed hardware detection initialization: incorrect vendor or device.\n\n") );
-//        }
-//        // detect the available extensions
-//        IGFX::Extensions extensions = IGFX::getAvailableExtensions( pDevice );
-//
-//        m_bPSOrderingAvailable = extensions.PixelShaderOrdering;
-//
-//        // Disable the AVSM extension method if the hardware/driver does not support Pixel Shader Ordering feature
-//        if ( !extensions.PixelShaderOrdering )
-//        {
-//            CPUTOSServices::GetOSServices()->OpenMessageBox(_L("Pixel Shader Ordering feature not found"), _L("Your hardware or graphics driver does not support the pixel shader ordering feature. Volume-aware blending will be disabled. Please update your driver or run on a system that supports the required feature to see that option."));
-//        }
-
         CreateParticleDataBuffer(/*pDevice*/);
 
         // Create buffer for storing number of valid cells
@@ -515,7 +496,6 @@ final class CCloudsController {
 //        D3DX11CreateShaderResourceViewFromFile(pDevice, L"media\\Noise.png", &LoadInfo, nullptr, &m_ptex2DCloudDensitySRV, nullptr);
         try {
             m_ptex2DCloudDensitySRV = TextureUtils.createTexture2DFromFile(m_strEffectPath + "textures/Noise.png", false, true);
-            TextureUtils.createTexture2D(m_ptex2DCloudDensitySRV.getTarget(), m_ptex2DCloudDensitySRV.getTexture(), m_ptex2DCloudDensitySRV);
             m_ptex2DWhiteNoiseSRV = TextureUtils.createTexture2DFromFile(m_strEffectPath + "textures/WhiteNoise.png", false);
             GLCheck.checkError();
         } catch (IOException e) {
@@ -797,7 +777,7 @@ final class CCloudsController {
         GenerateParticles(RenderAttribs);
 
         GLCheck.checkError();
-        m_CloudAttribs.fTime = RenderAttribs.fCurrTime;
+        m_CloudAttribs.fTime = 3.1415926f; // RenderAttribs.fCurrTime;
         m_CloudAttribs.f4Parameter.x = (float)RenderAttribs.iCascadeIndex;
 //        UpdateConstantBuffer(pDeviceContext, m_pcbGlobalCloudAttribs, &m_CloudAttribs, sizeof(m_CloudAttribs));
 //
@@ -1341,6 +1321,7 @@ final class CCloudsController {
 //        UINT iNumOldViewports = 1;
 //        pDeviceContext->RSGetViewports(&iNumOldViewports, &OrigViewPort);
 
+        gl.glDisable(GLenum.GL_CULL_FACE);
         int uiCurrMipWidth = MaxCloudDensityMipDesc.width;
         int uiCurrMipHeight = MaxCloudDensityMipDesc.height;
         for(int uiMip = 0; uiMip < MaxCloudDensityMipDesc.mipLevels; ++uiMip)
@@ -1386,8 +1367,12 @@ final class CCloudsController {
 
 //            pDeviceContext->CopySubresourceRegion(ptex2DMaxDensityMipMap, uiMip, 0,0,0, ptex2DTmpMaxDensityMipMap, uiMip, nullptr);
             gl.glCopyImageSubData(ptex2DTmpMaxDensityMipMap.getTexture(), ptex2DTmpMaxDensityMipMap.getTarget(), uiMip, 0,0,0,
-                    ptex2DMaxDensityMipMap.getTexture(), ptex2DMaxDensityMipMap.getTarget(), uiMip, 0,0,0,
-                    uiCurrMipWidth,uiCurrMipHeight, 1);
+                                  ptex2DMaxDensityMipMap.getTexture(), ptex2DMaxDensityMipMap.getTarget(), uiMip, 0,0,0,
+                                  uiCurrMipWidth,uiCurrMipHeight, 1);
+
+            if(!m_printOnce){
+                saveTextData(String.format("MaxDensityMipMap%dGL.txt", uiMip), m_ptex2DMaxDensityMipMapSRV, uiMip);
+            }
 
             uiCurrMipWidth /= 2;
             uiCurrMipHeight /= 2;
@@ -1427,13 +1412,18 @@ final class CCloudsController {
         m_printOnce = true;
     }
 
-    final void saveTextData(String filename, TextureGL texture){
+    final void saveTextData(String filename, TextureGL texture, int level) {
         final String filepath = "E:/textures/OutdoorCloudResources/";
         try {
-            DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, filepath + filename);
+            DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), level, filepath + filename);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+
+    final void saveTextData(String filename, TextureGL texture){
+        saveTextData(filename, texture, 0);
     }
 
     final void saveTextData(String filename, int target, int buffer, int internalformat){
@@ -1544,7 +1534,7 @@ final class CCloudsController {
         }
 
         bindTexture(0, RenderAttribs.pDepthBufferSRV, m_psamLinearClamp);
-        bindTexture(3, m_ptex2DCloudDensitySRV, m_psamLinearClamp);
+        bindTexture(3, m_ptex2DCloudDensitySRV, m_psamLinearWrap);
         bindTexture(1, RenderAttribs.pPrecomputedNetDensitySRV, m_psamLinearClamp);
         gl.glDisable(GLenum.GL_CULL_FACE);
         gl.glDisable(GLenum.GL_DEPTH_TEST);
@@ -1572,13 +1562,9 @@ final class CCloudsController {
 
     // Renders all visible particles
     private void RenderParticles(SRenderAttribs RenderAttribs){
-//        ID3D11DeviceContext *pDeviceContext = RenderAttribs.pDeviceContext;
-//        ID3D11Device *pDevice = RenderAttribs.pDevice;
-//
         boolean bLightSpacePass = RenderAttribs.bLightSpacePass !=0;
 //
         CRenderTechnique RenderCloudsTech = m_RenderCloudsTech[bLightSpacePass ? 1 : 0];
-//
         if( RenderCloudsTech == null )
         {
             Macro[] macros = DefineMacros();
@@ -1676,6 +1662,7 @@ final class CCloudsController {
 
         gl.glDisablei(GLenum.GL_BLEND, 0);
         gl.glDisablei(GLenum.GL_BLEND, 1);
+        gl.glBlendEquationi(1, GLenum.GL_FUNC_ADD);
         gl.glDisablei(GLenum.GL_BLEND, 2);
 
         bindTexture(12, null, 0);
@@ -3111,7 +3098,7 @@ final class CCloudsController {
 
         boolean use_static_data = true;
         byte[] NoiseDataR8;
-        if(use_static_data){
+        if(/*m_debugStaticScene*/use_static_data){
             NoiseDataR8 = DebugTools.loadBytes("E:\\textures\\OutdoorCloudResources\\NoiseDataR8.dat");
         }else {
             int DataSize = 0;
