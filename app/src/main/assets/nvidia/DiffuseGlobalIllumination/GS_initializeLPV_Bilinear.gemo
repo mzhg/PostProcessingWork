@@ -1,0 +1,73 @@
+#include "LPV.glsl"
+
+layout (points) in;
+layout (points, max_vertices = 1) out;
+
+in initLPV_VSOUT
+{
+    float4 pos /*: POSITION*/; // 2D slice vertex coordinates in homogenous clip space
+    float3 normal/* : NORMAL*/;
+    float3 color /*: COLOR*/;
+    flat int BiLinearOffset /*: BILINEAROFFSET*/;
+    float fluxWeight /*:FW*/ ;
+}In[];
+
+out initLPV_GSOUT
+{
+//    float4 pos : SV_Position; // 2D slice vertex coordinates in homogenous clip space
+    float3 normal /*: NORMAL*/;
+    float3 color /*: COLOR*/;
+    float fluxWeight /*:FW*/ ;
+//    uint RTIndex : SV_RenderTargetArrayIndex;  // used to choose the destination slice
+}Out;
+
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
+
+out int gl_Layer;
+
+void main()
+{
+    Out.normal       = In[0].normal;
+    float2 pos;
+    float weight;
+
+    if(In[0].pos.x>1.0f) return;
+
+    float3 InPos = float3(In[0].pos.x*LPV3DWidth+0.5f, In[0].pos.y*LPV3DHeight+0.5f, In[0].pos.z*LPV3DDepth);
+
+    int xF = floor(InPos.x);
+    int yF = floor(InPos.y);
+    int zF = floor(InPos.z);
+    int xH = xF+1;
+    int yH = yF+1;
+    int zH = zF+1;
+
+    float wxH = InPos.x - xF;
+    float wyH = InPos.y - yF;
+    float wzH = InPos.z - zF;
+    float wxL = 1.0f - wxH;
+    float wyL = 1.0f - wyH;
+    float wzL = 1.0f - wzH;
+
+    int BiLinearOffset = (In[0].BiLinearOffset);
+    int xHOn = BiLinearOffset&1;
+    int yHOn = (BiLinearOffset&2)>>1;
+    int zHOn = (BiLinearOffset&4)>>2;
+
+    pos = float2(xF*(1-xHOn) + xH*(xHOn),
+                 yF*(1-yHOn) + yH*(yHOn));
+
+    weight =    1.5f*(wxL*(1-xHOn) + wxH*(xHOn))*
+                (wyL*(1-yHOn) + wyH*(yHOn))*
+                (wzL*(1-zHOn) + wzH*(zHOn));
+
+    gl_Layer         = int(zF*(1-zHOn) + zH*(zHOn));
+    gl_Position      = float4((pos.x/LPV3DWidth)*2.0f-1.0f,(1.0f-(pos.y/LPV3DHeight))*2.0f-1.0f,0.0f,1.0f);  // todo
+    Out.color         = In[0].color*weight;
+    Out.fluxWeight   = In[0].fluxWeight;
+    EmitVertex();
+    EndPrimitive();
+}

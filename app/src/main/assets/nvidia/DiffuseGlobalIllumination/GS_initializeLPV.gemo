@@ -1,0 +1,40 @@
+#include "LPV.glsl"
+
+layout (points) in;
+layout (points, max_vertices = 1) out;
+
+in initLPV_VSOUT
+{
+    float4 pos /*: POSITION*/; // 2D slice vertex coordinates in homogenous clip space
+    float3 normal/* : NORMAL*/;
+    float3 color /*: COLOR*/;
+    flat int BiLinearOffset /*: BILINEAROFFSET*/;
+    float fluxWeight /*:FW*/ ;
+}In[];
+
+out initLPV_GSOUT
+{
+//    float4 pos : SV_Position; // 2D slice vertex coordinates in homogenous clip space
+    float3 normal /*: NORMAL*/;
+    float3 color /*: COLOR*/;
+    float fluxWeight /*:FW*/ ;
+//    uint RTIndex : SV_RenderTargetArrayIndex;  // used to choose the destination slice
+}Out;
+
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
+
+out int gl_Layer;
+
+void main()
+{
+    gl_Layer         = int(floor( In[0].pos.z*LPV3DDepth + 0.5));
+    gl_Position      = float4((In[0].pos.x)*2.0f-1.0f,(1.0f-(In[0].pos.y))*2.0f-1.0f,0.0f,1.0f);  // TODO
+    Out.normal         = In[0].normal;
+    Out.color         = In[0].color;
+    Out.fluxWeight     = In[0].fluxWeight;
+    EmitVertex();
+    EndPrimitive();
+}
