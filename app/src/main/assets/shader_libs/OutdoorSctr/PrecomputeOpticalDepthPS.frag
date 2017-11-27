@@ -8,13 +8,21 @@ layout(location = 0) out float4 Out_fColor;
 void main()
 {
     float3 f3NormalizedStartPos, f3RayDir;
-    OpticalDepthLUTCoordsToWorldParams( float4(m_f4UVAndScreenPos.xy/*ProjToUV(In.m_f2PosPS)*/, g_GlobalCloudAttribs.f4Parameter.xy), f3NormalizedStartPos, f3RayDir );
+    float2 f2ScreenUV;
+//#if DEBUG_STATIC_SCENE
+//    f2ScreenUV = float2(m_f4UVAndScreenPos.x, 1.0 - m_f4UVAndScreenPos.y);
+//#else
+    f2ScreenUV = m_f4UVAndScreenPos.xy;
+//#endif
+
+    OpticalDepthLUTCoordsToWorldParams( float4(f2ScreenUV/*ProjToUV(In.m_f2PosPS)*/, g_GlobalCloudAttribs.f4Parameter.xy), f3NormalizedStartPos, f3RayDir );
 
     // Intersect the view ray with the unit sphere:
     float2 f2RayIsecs;
     // f3NormalizedStartPos  is located exactly on the surface; slightly move start pos inside the sphere
     // to avoid precision issues
     GetRaySphereIntersection(f3NormalizedStartPos + f3RayDir*1e-4, f3RayDir, float3(0), 1.f, f2RayIsecs);
+//    Out_fColor = float4(f2RayIsecs,0,0);  return;
 
     if( f2RayIsecs.x > f2RayIsecs.y )
     {
@@ -34,5 +42,5 @@ void main()
         float fDensity = ComputeDensity(f3CurrPos);
         fTotalDensity += fDensity;
     }
-    Out_fColor = float4(fTotalDensity / fNumSteps, 0,0,0);
+    Out_fColor = float4(fTotalDensity / fNumSteps);
 }

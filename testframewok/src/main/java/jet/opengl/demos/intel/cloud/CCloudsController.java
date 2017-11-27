@@ -1779,11 +1779,11 @@ final class CCloudsController {
         gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         if(!m_printOnce){
             m_ProcessCloudGridTech.printPrograminfo();
-            saveTextData("PackedCellLocationsGL.txt", GLenum.GL_TEXTURE_BUFFER, m_pbufPackedCellLocations, GLenum.GL_R32UI);
-            saveTextData("CloudGridGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufCloudGridUAV, SCloudCellAttribs.class);
-            saveTextData("ValidCellsUnorderedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufValidCellsUnorderedList, GLenum.GL_R32UI);
+            saveTextData("PackedCellLocationsGL.txt",       GLenum.GL_TEXTURE_BUFFER,        m_pbufPackedCellLocations, GLenum.GL_R32UI);
+            saveTextData("CloudGridGL.txt",                 GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufCloudGridUAV, SCloudCellAttribs.class);
+            saveTextData("ValidCellsUnorderedListGL.txt",   GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufValidCellsUnorderedList, GLenum.GL_R32UI);
             saveTextData("VisibleCellsUnorderedListGL.txt", GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleCellsUnorderedList, GLenum.GL_R32UI);
-            saveTextData("AtomicCounterGL.txt", GLenum.GL_ATOMIC_COUNTER_BUFFER, m_pbufAtomicCounter, GLenum.GL_R32UI);
+            saveTextData("AtomicCounterGL.txt",             GLenum.GL_ATOMIC_COUNTER_BUFFER, m_pbufAtomicCounter, GLenum.GL_R32UI);
         }
         GLCheck.checkError();
 //        memset(pUAVs, 0, sizeof(pUAVs));
@@ -2587,7 +2587,7 @@ final class CCloudsController {
                         iNumStartPosAzimuthAngles,  //UINT Height;
                         iNumDirectionZenithAngles * iNumDirectionAzimuthAngles,  //UINT Depth;
                         5, //UINT MipLevels;
-                        GLenum.GL_R8//DXGI_FORMAT_R8G8_UNORM,//DXGI_FORMAT Format;
+                        GLenum.GL_R8 //DXGI_FORMAT_R8G8_UNORM,//DXGI_FORMAT Format;
 //                        D3D11_USAGE_DEFAULT, //D3D11_USAGE Usage;
 //                        D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,//UINT BindFlags;
 //                        0,//UINT CPUAccessFlags;
@@ -2679,9 +2679,7 @@ final class CCloudsController {
         saveTextData("PrecomputeOpticalDepthGL.txt", m_ptex3DPrecomputedParticleDensitySRV);
         // TODO: need to use proper filtering for coarser mip levels
 //        pDeviceContext->GenerateMips( m_ptex3DPrecomputedParticleDensitySRV);
-        gl.glBindTexture(m_ptex3DPrecomputedParticleDensitySRV.getTarget(), m_ptex3DPrecomputedParticleDensitySRV.getTexture());
-        gl.glGenerateMipmap(m_ptex3DPrecomputedParticleDensitySRV.getTarget());
-        gl.glBindTexture(m_ptex3DPrecomputedParticleDensitySRV.getTarget(), 0);
+        gl.glGenerateTextureMipmap(m_ptex3DPrecomputedParticleDensitySRV.getTexture());
 
         bindTexture(0, null, 0);
 

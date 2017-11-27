@@ -402,7 +402,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
         {
             Texture2DDesc LiSpCloudMinMaxDepthDesc = LiSpCloudTransparencyMapDesc;
             LiSpCloudMinMaxDepthDesc.mipLevels = 1;
-            LiSpCloudMinMaxDepthDesc.format = GLenum.GL_RG16F;
+            LiSpCloudMinMaxDepthDesc.format = GLenum.GL_RG16;
 //            CComPtr<ID3D11Texture2D> ptex2DCloudMinMaxDepth;
 //            V_RETURN(pd3dDevice->CreateTexture2D(&LiSpCloudMinMaxDepthDesc, NULL, &ptex2DCloudMinMaxDepth));
 //            V_RETURN(pd3dDevice->CreateShaderResourceView(ptex2DCloudMinMaxDepth, nullptr, &m_pLiSpCloudMinMaxDepthSRV));

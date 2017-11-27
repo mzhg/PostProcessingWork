@@ -39,7 +39,7 @@ final class MemCompare {
         System.out.println("testLiSpCloudTransparency: ");
         DebugTools.fileCompare(FILE_PATH + "LiSpCloudTransparencyGL.txt",
                 FILE_PATH + "LiSpCloudTransparencyDX.txt",
-                FILE_PATH + "LiSpCloudTransparencResult.txt");
+                FILE_PATH + "LiSpCloudTransparencResult.txt", 1.0f);
         System.out.println();
     }
 
@@ -47,7 +47,7 @@ final class MemCompare {
         System.out.println("testLiSpCloudMinMaxDepth: ");
         DebugTools.fileCompare(FILE_PATH + "LiSpCloudMinMaxDepthGL.txt",
                 FILE_PATH + "LiSpCloudMinMaxDepthDX.txt",
-                FILE_PATH + "LiSpCloudMinMaxDepthResult.txt");
+                FILE_PATH + "LiSpCloudMinMaxDepthResult.txt", 0.0f);
         System.out.println();
     }
 
@@ -55,7 +55,7 @@ final class MemCompare {
         System.out.println("testPrecomputeOpticalDepth: ");
         DebugTools.fileCompare(FILE_PATH + "PrecomputeOpticalDepthGL.txt",
                 FILE_PATH + "PrecomputeOpticalDepthDX.txt",
-                FILE_PATH + "PrecomputeOpticalDepthResult.txt");
+                FILE_PATH + "PrecomputeOpticalDepthResult.txt", 0.0f);
         System.out.println();
     }
 
@@ -112,14 +112,18 @@ final class MemCompare {
 
     static void testProcessCloudGrid(){
 
-        String[] tokens = {"PackedCellLocations", "CloudGrid", "ValidCellsUnorderedList", "VisibleCellsUnorderedList" };
+        String[] tokens = {/*"PackedCellLocations",*/ "CloudGrid", "ValidCellsUnorderedList", "VisibleCellsUnorderedList" };
         for(int i = 0; i < tokens.length; i ++){
             System.out.println(String.format("test%s: ", tokens[i]));
             String gl_file = String.format(FILE_PATH + "%sGL.txt", tokens[i]);
             String dx_file = String.format(FILE_PATH + "%sDX.txt", tokens[i]);
             String result_file = String.format(FILE_PATH + "%sResult.txt", tokens[i]);
 
-            DebugTools.fileCompare(gl_file, dx_file, result_file);
+            if(i == 0) {
+                DebugTools.fileCompare(gl_file, dx_file, result_file, -1);
+            }else{
+                DebugTools.fileCompareIntegerSets(gl_file, dx_file, result_file);
+            }
             System.out.println();
         }
     }
@@ -182,15 +186,17 @@ final class MemCompare {
         testLiSpCloudTransparency();
         testLiSpCloudMinMaxDepth();
 
-//        testPrecomputeOpticalDepth();
-//        testMultipleSctrInParticleLUT();
-//        testSingleSctrInParticleLUT();
+        /*testPrecomputeOpticalDepth();   TODO Testing pass
+
+        testMultipleSctrInParticleLUT();
+        testSingleSctrInParticleLUT();*/
 
         testProcessCloudGrid();
 
         testDispatchArgs(0);
         testEvaluateDensity();
         testSortParticles();
+        if(true) return;
         testDownscaled();
         testRenderFlat();
 

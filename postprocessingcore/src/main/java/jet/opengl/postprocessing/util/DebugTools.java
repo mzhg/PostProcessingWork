@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -1423,7 +1424,7 @@ public final class DebugTools {
     }
 
     public interface LineCompare{
-        boolean equals(String src, String dst, CompareResult result);
+        boolean equals(String src, String dst, CompareResult result, float igoreValue);
     }
 
     private static final class CompareResult{
@@ -1443,8 +1444,14 @@ public final class DebugTools {
         boolean isEmpty() { return srcMissTokens.isEmpty();}
 
         void add(String srcMissToken, String dstMissToken, int index){
+            if(srcMissToken == null)
+                srcMissToken = "";
             srcMissTokens.add(srcMissToken);
+
+            if(dstMissToken == null)
+                dstMissToken = "";
             dstMissTokens.add(dstMissToken);
+
             missTokenAtIndexs.add(index);
         }
     }
@@ -1454,7 +1461,20 @@ public final class DebugTools {
         for(float v : a){
             s.append(_To(v)).append(',');
         }
-        s.setLength(s.length() - 1);
+
+        if(s.length() > 0)
+            s.setLength(s.length() - 1);
+        return s.toString();
+    }
+
+    private static String mkToken(HashSet<Integer> a){
+        StringBuilder s = new StringBuilder(32);
+        for(int v : a){
+            s.append(_To(v)).append(',');
+        }
+
+        if(s.length() > 0)
+            s.setLength(s.length() - 1);
         return s.toString();
     }
 
@@ -1462,7 +1482,7 @@ public final class DebugTools {
         final List<float[]> srcValues = new ArrayList<float[]>();
         final List<float[]> dstValues = new ArrayList<float[]>();
 
-        public boolean equals(String src, String dst, CompareResult result) {
+        public boolean equals(String src, String dst, CompareResult result, float igoreValue) {
             result.clear();
 
             extractValues(src, srcValues);
@@ -1478,14 +1498,50 @@ public final class DebugTools {
                 float[] fdstValues = dstValues.get(i);
 
                 int length = Math.min(fsrcValues.length, fdstValues.length);
+                int igoreCount = 0;
                 for(int j = 0; j < length; j ++){
                     float ogl_value = fsrcValues[j];
                     float dx_value = fdstValues[j];
-                    if(!Numeric.isClose(ogl_value, dx_value, 0.1f)){
+                    if(!Numeric.isClose(ogl_value, dx_value, 1f)){  // not same
                         result.add(mkToken(fsrcValues), mkToken(fdstValues), i);
                         break;
+                    }else if(ogl_value == igoreValue){
+                        igoreCount ++;
                     }
                 }
+
+                if(igoreCount == length){
+                    result.lineTokens --;
+                }
+            }
+
+            return result.isEmpty();
+        }
+    };
+
+    public static final LineCompare INDICES = new LineCompare() {
+        private final HashSet<Integer> srcValues = new HashSet<>();
+        private final HashSet<Integer> dstValues = new HashSet<>();
+        private final HashSet<Integer> tempValues = new HashSet<>();
+
+        public boolean equals(String src, String dst, CompareResult result, float igoreValue) {
+            result.clear();
+            tempValues.clear();
+
+            extractValues(src, srcValues);
+            extractValues(dst, dstValues);
+            result.lineTokens = Math.max(srcValues.size(), dstValues.size());
+            for(Integer i : srcValues){
+                if(dstValues.contains(i)){
+                    tempValues.add(i);
+                }
+            }
+
+            srcValues.removeAll(tempValues);
+            dstValues.removeAll(tempValues);
+
+            if(!srcValues.isEmpty() || !dstValues.isEmpty()){
+                result.add(mkToken(srcValues), mkToken(dstValues), -1);
             }
 
             return result.isEmpty();
@@ -1499,7 +1555,7 @@ public final class DebugTools {
         private final Vector3f srcVec = new Vector3f();
         private final Vector3f dstVec = new Vector3f();
 
-        public boolean equals(String src, String dst, CompareResult result) {
+        public boolean equals(String src, String dst, CompareResult result, float igoreValue) {
             result.clear();
 
             extractValues(src, srcValues);
@@ -1587,6 +1643,14 @@ public final class DebugTools {
         }
     }
 
+    static void extractValues(String line, HashSet<Integer> values){
+        if(line == null) return;
+        StringTokenizer tokenizer = new StringTokenizer(line, " \t[]");
+        while (tokenizer.hasMoreElements()){
+            values.add(Integer.parseInt(tokenizer.nextToken()));
+        }
+    }
+
     private static float parseFloat(String token){
         if(token.contains(".#QNAN")){
             return Float.NaN;
@@ -1652,11 +1716,73 @@ public final class DebugTools {
         }
     }
 
-    public static void fileCompare(String srcFile, String dstFile, String outputFile){
-        fileCompare(srcFile, dstFile, outputFile, null);
+    public static void fileCompareIntegerSets(String srcFile, String dstFile, String outputFile){
+        try {
+            BufferedReader srcIn = new BufferedReader(new FileReader(srcFile));
+            BufferedReader dstIn = new BufferedReader(new FileReader(dstFile));
+            BufferedWriter resultOut = new BufferedWriter(new FileWriter(outputFile));
+
+            HashSet<Integer> srcValues = new HashSet<>(64);
+            HashSet<Integer> dstValues = new HashSet<>(64);
+            HashSet<Integer> tempValues = new HashSet<>(64);
+
+            while (true){
+                String srcLine = srcIn.readLine();
+                String dstLine = dstIn.readLine();
+
+                if(srcLine == null && dstLine == null){
+                    break;
+                }
+
+                extractValues(srcLine, srcValues);
+                extractValues(dstLine, dstValues);
+            }
+
+            int count = Math.max(srcValues.size(), dstValues.size());
+            for(Integer i : srcValues){
+                if(dstValues.contains(i)){
+                    tempValues.add(i);
+                }
+            }
+
+            srcValues.removeAll(tempValues);
+            dstValues.removeAll(tempValues);
+
+            float percent = 1.f -  Math.max(srcValues.size(), dstValues.size()) / (float)count;
+            System.out.println("");
+
+            System.out.println("tokenMissMachNumber = "+ (count - Math.min(srcValues.size(), dstValues.size())));
+            System.out.println("Correct rate: "+ percent);
+
+            if(percent != 1.f){
+                String token0 = mkToken(srcValues);
+                String token1 = mkToken(dstValues);
+
+                resultOut.append(token0);
+                resultOut.append('\n');
+                resultOut.append(token1).append('\n');
+            }
+
+            srcIn.close();
+            dstIn.close();
+            resultOut.flush();
+            resultOut.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public static void fileCompare(String srcFile, String dstFile, String outputFile, LineCompare compare){
+    public static void fileCompare(String srcFile, String dstFile, String outputFile, float igoreValue){
+        fileCompare(srcFile, dstFile, outputFile, null, igoreValue);
+    }
+
+    public static void fileCompare(String srcFile, String dstFile, String outputFile){
+        fileCompare(srcFile, dstFile, outputFile, null, -1);
+    }
+
+    public static void fileCompare(String srcFile, String dstFile, String outputFile, LineCompare compare, float igoreValue){
         if(compare == null){
             compare = PIXELS_COMPARE;
         }
@@ -1683,7 +1809,7 @@ public final class DebugTools {
                     break;
                 }
 
-                if(!compare.equals(srcLine, dstLine, lineResult)){
+                if(!compare.equals(srcLine, dstLine, lineResult, igoreValue)){
                     tokenMissMachNumber += lineResult.size();
 
                     resultOut.write(String.valueOf(lineNumber));
@@ -1714,6 +1840,8 @@ public final class DebugTools {
                     ymax = Math.max(ymax, lineNumber);
                 }
 
+                if(lineResult.lineTokens < 0)
+                    throw new IllegalArgumentException("Inner Error!");
                 totalTokens += lineResult.lineTokens;
                 lineNumber++;
             }
