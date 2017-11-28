@@ -1,0 +1,27 @@
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
+in VS_PROP_OUTPUT
+{
+ vec3 m_Tex;
+ vec4 m_Pos;
+}In[];
+
+out vec3 tex;
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
+
+out int gl_Layer;
+
+void main()
+{
+    for(int v=0; v<3; v++)
+    {
+        gl_Layer         = In[v].tex.z;
+        gl_Position      = In[v].pos;
+        tex              = In[v].tex;
+        EmitVertex();
+    }
+}
