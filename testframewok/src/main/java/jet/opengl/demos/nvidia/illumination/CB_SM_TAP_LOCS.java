@@ -7,6 +7,7 @@ import org.lwjgl.util.vector.Vector4f;
  */
 
 final class CB_SM_TAP_LOCS {
+    static  final int SIZE = Vector4f.SIZE * (1 + Defines.MAX_P_SAMPLES);
     int numTaps;
     float filterSize;
 //    float padding7;

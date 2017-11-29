@@ -20,8 +20,13 @@ import jet.opengl.demos.scene.CameraData;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderProgram;
+import jet.opengl.postprocessing.shader.ShaderType;
+import jet.opengl.postprocessing.texture.SamplerDesc;
+import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
@@ -29,6 +34,8 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;
+
+import static javafx.scene.input.KeyCode.L;
 
 /**
  * Created by Administrator on 2017/11/22 0022.
@@ -328,6 +335,641 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
     GLSLProgramPipeline g_Program;
 
     GLFuncProvider gl;
+
+    @Override
+    protected void initRendering() {
+        if(g_propType==PROP_TYPE.CASCADE)
+            g_LPVLevelToInitialize = g_PropLevel;
+        else
+            g_LPVLevelToInitialize = Defines.HIERARCHICAL_INIT_LEVEL;
+
+        /*D3D11_SAMPLER_DESC desc[1] = {
+            D3D11_FILTER_MIN_MAG_MIP_POINT,
+                    D3D11_TEXTURE_ADDRESS_CLAMP,
+                    D3D11_TEXTURE_ADDRESS_CLAMP,
+                    D3D11_TEXTURE_ADDRESS_CLAMP,
+                    0.0, 0, D3D11_COMPARISON_NEVER, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f,
+        };
+        pd3dDevice->CreateSamplerState(desc, &g_pDefaultSampler);
+        pd3dDevice->CreateSamplerState(desc, &g_pDepthPeelingTexSampler);*/
+        SamplerDesc desc = new SamplerDesc();
+        desc.minFilter = GLenum.GL_NEAREST_MIPMAP_NEAREST;
+        desc.magFilter = GLenum.GL_NEAREST;
+        g_pDefaultSampler = SamplerUtils.createSampler(desc);
+        g_pDepthPeelingTexSampler = SamplerUtils.createSampler(desc);
+
+
+        /*D3D11_SAMPLER_DESC desc2[1] = {
+            D3D11_FILTER_MIN_MAG_MIP_LINEAR,
+                    D3D11_TEXTURE_ADDRESS_CLAMP,
+                    D3D11_TEXTURE_ADDRESS_CLAMP,
+                    D3D11_TEXTURE_ADDRESS_CLAMP,
+                    0.0, 0, D3D11_COMPARISON_NEVER, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f,
+        };
+        pd3dDevice->CreateSamplerState(desc2, &g_pLinearSampler);*/
+        desc.minFilter = GLenum.GL_LINEAR_MIPMAP_LINEAR;
+        desc.magFilter = GLenum.GL_LINEAR;
+        g_pLinearSampler = SamplerUtils.createSampler(desc);
+
+        /*D3D11_SAMPLER_DESC desc3 =
+                {
+                        D3D11_FILTER_ANISOTROPIC,// D3D11_FILTER Filter;
+                        D3D11_TEXTURE_ADDRESS_WRAP, //D3D11_TEXTURE_ADDRESS_MODE AddressU;
+                        D3D11_TEXTURE_ADDRESS_WRAP, //D3D11_TEXTURE_ADDRESS_MODE AddressV;
+                        D3D11_TEXTURE_ADDRESS_WRAP, //D3D11_TEXTURE_ADDRESS_MODE AddressW;
+                        0,//FLOAT MipLODBias;
+                        D3DSAMP_MAXANISOTROPY,//UINT MaxAnisotropy;
+                        D3D11_COMPARISON_NEVER , //D3D11_COMPARISON_FUNC ComparisonFunc;
+                        0.0,0.0,0.0,0.0,//FLOAT BorderColor[ 4 ];
+                        0,//FLOAT MinLOD;
+                        D3D11_FLOAT32_MAX//FLOAT MaxLOD;
+                };
+        pd3dDevice->CreateSamplerState(&desc3, &g_pAnisoSampler);*/
+        desc.anisotropic = 8;
+        desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_REPEAT;
+        g_pAnisoSampler = SamplerUtils.createSampler(desc);
+
+
+        /*D3D11_SAMPLER_DESC SamDescShad =
+        {
+                D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT,// D3D11_FILTER Filter;
+                D3D11_TEXTURE_ADDRESS_BORDER, //D3D11_TEXTURE_ADDRESS_MODE AddressU;
+                D3D11_TEXTURE_ADDRESS_BORDER, //D3D11_TEXTURE_ADDRESS_MODE AddressV;
+                D3D11_TEXTURE_ADDRESS_BORDER, //D3D11_TEXTURE_ADDRESS_MODE AddressW;
+                0,//FLOAT MipLODBias;
+                0,//UINT MaxAnisotropy;
+                D3D11_COMPARISON_LESS , //D3D11_COMPARISON_FUNC ComparisonFunc;
+                0.0,0.0,0.0,0.0,//FLOAT BorderColor[ 4 ];
+                0,//FLOAT MinLOD;
+                0//FLOAT MaxLOD;
+        };
+        V_RETURN( pd3dDevice->CreateSamplerState( &SamDescShad, &g_pComparisonSampler ) );*/
+
+        desc.anisotropic = 0;
+        desc.minFilter = GLenum.GL_NEAREST_MIPMAP_NEAREST;
+        desc.magFilter = GLenum.GL_NEAREST;
+        desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_CLAMP_TO_BORDER;
+        desc.borderColor = 0;
+        desc.compareFunc = GLenum.GL_LESS;
+        desc.compareMode = GLenum.GL_COMPARE_R_TO_TEXTURE;
+        g_pComparisonSampler = SamplerUtils.createSampler(desc);
+
+        try {
+            loadShaders();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadShaders() throws IOException{
+        final String path = "nvidia/DiffuseGlobalIllumination/shaders/";
+        // create shaders
+        /*V_RETURN( CompileShaderFromFile( L"ScreenQuad.hlsl", "VS", "vs_4_0", &pBlobVS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &g_pScreenQuadVS ) );*/
+        g_pScreenQuadVS = GLSLProgram.createShaderProgramFromFile("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", ShaderType.VERTEX);
+
+        // create the input layout
+        /*D3D11_INPUT_ELEMENT_DESC layout[] =
+                {
+                        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                };
+        UINT numElements = sizeof( layout ) / sizeof( layout[0] );
+        V_RETURN( pd3dDevice->CreateInputLayout( layout, numElements, pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), &g_pScreenQuadIL) );
+        SAFE_RELEASE( pBlobVS );*/
+
+        //vertex shader and input layout for screen quad with position and texture
+
+        /*V_RETURN( CompileShaderFromFile( L"ScreenQuad.hlsl", "DisplayTextureVS", "vs_4_0", &pBlobVS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &g_pScreenQuadPosTexVS3D ) );
+        SAFE_RELEASE( pBlobVS );*/
+        g_pScreenQuadPosTexVS3D = GLSLProgram.createShaderProgramFromFile(path + "DisplayTextureVS.vert", ShaderType.VERTEX);
+
+        /*V_RETURN( CompileShaderFromFile( L"ScreenQuad.hlsl", "VS_POS_TEX", "vs_4_0", &pBlobVS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &g_pScreenQuadPosTexVS2D ) );*/
+        g_pScreenQuadPosTexVS2D = GLSLProgram.createShaderProgramFromFile(path + "VS_Simple.vert", ShaderType.VERTEX);
+
+        /*D3D11_INPUT_ELEMENT_DESC layout2[] =
+                {
+                        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                };
+        numElements = sizeof( layout2 ) / sizeof( layout2[0] );
+        V_RETURN( pd3dDevice->CreateInputLayout( layout2, numElements, pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), &g_pScreenQuadPosTexIL) );
+        SAFE_RELEASE( pBlobVS );*/
+        g_pScreenQuadPosTexIL = new ID3D11InputLayout(){
+            @Override
+            public void bind() {
+                gl.glEnableVertexAttribArray(0);
+                gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 20, 0);
+                gl.glEnableVertexAttribArray(1);
+                gl.glVertexAttribPointer(1, 2, GLenum.GL_FLOAT, false, 20, 12);
+            }
+
+            @Override
+            public void unbind() {
+                gl.glDisableVertexAttribArray(0);
+                gl.glDisableVertexAttribArray(1);
+            }
+        };
+
+        /*V_RETURN( CompileShaderFromFile( L"ScreenQuad.hlsl", "DisplayTexturePS2D", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pScreenQuadDisplayPS2D ) );
+        SAFE_RELEASE( pBlobPS );*/
+        g_pScreenQuadDisplayPS2D = GLSLProgram.createShaderProgramFromFile(path + "DisplayTexturePS2D.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"ScreenQuad.hlsl", "DisplayTexturePS2D_floatTextures", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pScreenQuadDisplayPS2D_floatTextures ) );
+        SAFE_RELEASE( pBlobPS );*/
+        g_pScreenQuadDisplayPS2D_floatTextures = GLSLProgram.createShaderProgramFromFile(path + "DisplayTexturePS2D_floatTextures.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"ScreenQuad.hlsl", "ReconstructPosFromDepth", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pScreenQuadReconstructPosFromDepth ) );
+        SAFE_RELEASE( pBlobPS );*/
+        g_pScreenQuadReconstructPosFromDepth = GLSLProgram.createShaderProgramFromFile(path + "ReconstructPosFromDepth.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"ScreenQuad.hlsl", "DisplayTexturePS3D", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pScreenQuadDisplayPS3D ) );
+        SAFE_RELEASE( pBlobPS );*/
+        g_pScreenQuadDisplayPS3D = GLSLProgram.createShaderProgramFromFile(path + "DisplayTexturePS3D.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"ScreenQuad.hlsl", "DisplayTexturePS3D_floatTextures", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pScreenQuadDisplayPS3D_floatTextures ) );
+        SAFE_RELEASE( pBlobPS );*/
+        g_pScreenQuadDisplayPS3D_floatTextures = GLSLProgram.createShaderProgramFromFile(path + "DisplayTexturePS3D_floatTextures.frag", ShaderType.FRAGMENT);
+
+
+        /*ID3DBlob* pBlob = NULL;
+        V_RETURN( CompileShaderFromFile( L"LPV_Propagate.hlsl", "PropagateLPV", "cs_5_0", &pBlob ) );
+        V_RETURN( pd3dDevice->CreateComputeShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pCSPropagateLPV ) );
+        SAFE_RELEASE( pBlob );*/
+        g_pCSPropagateLPV = GLSLProgram.createShaderProgramFromFile(path + "PropagateLPV.comp", ShaderType.COMPUTE);
+
+        /*V_RETURN( CompileShaderFromFile( L"LPV_Propagate.hlsl", "PropagateLPV_Simple", "cs_5_0", &pBlob ) );
+        V_RETURN( pd3dDevice->CreateComputeShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pCSPropagateLPVSimple ) );
+        SAFE_RELEASE( pBlob );*/
+        g_pCSPropagateLPVSimple = GLSLProgram.createShaderProgramFromFile(path + "PropagateLPV_Simple.comp", ShaderType.COMPUTE);
+
+        /*V_RETURN( CompileShaderFromFile( L"LPV_Propagate.hlsl", "PropagateLPV_VS", "vs_4_0", &pBlob ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pVSPropagateLPV ) );*/
+        g_pVSPropagateLPV = GLSLProgram.createShaderProgramFromFile(path + "PropagateLPV_VS.vert", ShaderType.VERTEX);
+
+        /*D3D11_INPUT_ELEMENT_DESC layout3[] =
+                {
+                        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                        { "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                };
+        numElements = sizeof( layout3 ) / sizeof( layout3[0] );
+        V_RETURN( pd3dDevice->CreateInputLayout( layout3, numElements, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &g_pPos3Tex3IL) );
+        SAFE_RELEASE( pBlob );*/
+        g_pPos3Tex3IL = new ID3D11InputLayout() {
+            @Override
+            public void bind() {
+                gl.glEnableVertexAttribArray(0);
+                gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 24, 0);
+                gl.glEnableVertexAttribArray(1);
+                gl.glVertexAttribPointer(1, 3, GLenum.GL_FLOAT, false, 24, 12);
+            }
+
+            @Override
+            public void unbind() {
+                gl.glDisableVertexAttribArray(0);
+                gl.glDisableVertexAttribArray(1);
+            }
+        };
+
+
+        /*V_RETURN( CompileShaderFromFile( L"LPV_Propagate.hlsl", "PropagateLPV_GS", "gs_4_0", &pBlob ) );
+        V_RETURN( pd3dDevice->CreateGeometryShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pGSPropagateLPV ) );
+        SAFE_RELEASE( pBlob );*/
+        g_pGSPropagateLPV = GLSLProgram.createShaderProgramFromFile(path + "PropagateLPV_GS.gemo", ShaderType.GEOMETRY);
+
+        /*V_RETURN( CompileShaderFromFile( L"LPV_Propagate.hlsl", "PropagateLPV_PS", "ps_4_0", &pBlob ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pPSPropagateLPV ) );
+        SAFE_RELEASE( pBlob );*/
+        g_pPSPropagateLPV = GLSLProgram.createShaderProgramFromFile(path + "PropagateLPV_PS.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"LPV_Propagate.hlsl", "PropagateLPV_PS_Simple", "ps_4_0", &pBlob ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pPSPropagateLPVSimple ) );
+        SAFE_RELEASE( pBlob );*/
+        g_pPSPropagateLPVSimple = GLSLProgram.createShaderProgramFromFile(path + "PropagateLPV_PS_Simple.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"LPV_Accumulate.hlsl", "AccumulateLPV", "cs_5_0", &pBlob ) );
+        V_RETURN( pd3dDevice->CreateComputeShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pCSAccumulateLPV ) );
+        SAFE_RELEASE( pBlob );*/
+        g_pCSAccumulateLPV = GLSLProgram.createShaderProgramFromFile(path + "LPV_Accumulate.glsl", ShaderType.COMPUTE);
+
+
+        /*V_RETURN( CompileShaderFromFile( L"LPV_Accumulate4.hlsl", "AccumulateLPV_singleFloats_8", "cs_5_0", &pBlob ) );
+        V_RETURN( pd3dDevice->CreateComputeShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pCSAccumulateLPV_singleFloats_8 ) );
+        SAFE_RELEASE( pBlob );*/
+        g_pCSAccumulateLPV_singleFloats_8 = GLSLProgram.createShaderProgramFromFile(path + "LPV_Accumulate4.glsl", ShaderType.COMPUTE,
+                new Macro("ACCUMULATELPV_SINGLEFLOATS_8", 1));
+
+        /*V_RETURN( CompileShaderFromFile( L"LPV_Accumulate4.hlsl", "AccumulateLPV_singleFloats_4", "cs_5_0", &pBlob ) );
+        V_RETURN( pd3dDevice->CreateComputeShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pCSAccumulateLPV_singleFloats_4 ) );
+        SAFE_RELEASE( pBlob );*/
+        g_pCSAccumulateLPV_singleFloats_4 = GLSLProgram.createShaderProgramFromFile(path + "LPV_Accumulate4.glsl", ShaderType.COMPUTE,
+                new Macro("ACCUMULATELPV_SINGLEFLOATS_4", 1));
+
+        // create the vertex buffer for a small visualization
+        /*TexPosVertex verticesViz[] =
+                {
+                        TexPosVertex(D3DXVECTOR3( -1.0f, -1.0f, 0.0f ),D3DXVECTOR2( 0.0f, 1.0f)),
+                        TexPosVertex(D3DXVECTOR3( -1.0f, -0.25f, 0.0f ),D3DXVECTOR2( 0.0f, 0.0f)),
+                        TexPosVertex(D3DXVECTOR3( -0.25f, -1.0f, 0.0f ),D3DXVECTOR2( 1.0f, 1.0f)),
+                        TexPosVertex(D3DXVECTOR3( -0.25f,-0.25f, 0.0f ),D3DXVECTOR2( 1.0f, 0.0f)),
+                };
+        bd.Usage = D3D11_USAGE_DEFAULT;
+        bd.ByteWidth = sizeof( TexPosVertex ) * 4;
+        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        bd.CPUAccessFlags = 0;
+        bd.MiscFlags = 0;
+        InitData.pSysMem = verticesViz;
+        V_RETURN(  pd3dDevice->CreateBuffer( &bd, &InitData, &g_pVizQuadVB ) );*/
+        g_pVizQuadVB = new BufferGL();
+
+        FloatBuffer vertices = CacheBuffer.getCachedFloatBuffer(5*4);
+        vertices.put(-1.0f).put(-1.0f).put(0.0f).put(0.0f).put(1.0f);
+        vertices.put(-1.0f).put(-.25f).put(0.0f).put(0.0f).put(0.0f);
+        vertices.put(-.25f).put(-1.0f).put(0.0f).put(1.0f).put(1.0f);
+        vertices.put(-.25f).put(-.25f).put(0.0f).put(1.0f).put(0.0f);
+        vertices.flip();
+        g_pVizQuadVB.initlize(GLenum.GL_ARRAY_BUFFER, vertices.remaining() * 4, vertices, GLenum.GL_STATIC_DRAW);
+        g_pVizQuadVB.unbind();
+
+        //
+        // load mesh and shading effects
+        //
+        /*V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "VS", "vs_4_0", &pBlobVS ) );
+        V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "PS", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &g_pVS ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pPS ) );*/
+        g_pVS = GLSLProgram.createShaderProgramFromFile(path + "SimpleShadingVS.vert", ShaderType.VERTEX);
+        g_pPS = GLSLProgram.createShaderProgramFromFile(path + "SimpleShadingPS.frag", ShaderType.FRAGMENT);
+
+
+        // create the vertex input layout
+        /*const D3D11_INPUT_ELEMENT_DESC meshLayout[] =
+                {
+                        { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                        { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                        { "TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                        { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                };
+
+        V_RETURN( pd3dDevice->CreateInputLayout( meshLayout, ARRAYSIZE( meshLayout ), pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), &g_pMeshLayout ) );*/
+        final int stride = (3+3+2+3) * 4;
+        g_pMeshLayout = new ID3D11InputLayout() {
+            @Override
+            public void bind() {
+                gl.glEnableVertexAttribArray(0);
+                gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, stride, 0);
+                gl.glEnableVertexAttribArray(1);
+                gl.glVertexAttribPointer(1, 3, GLenum.GL_FLOAT, false, stride, 12);
+                gl.glEnableVertexAttribArray(2);
+                gl.glVertexAttribPointer(2, 2, GLenum.GL_FLOAT, false, stride, 24);
+                gl.glEnableVertexAttribArray(3);
+                gl.glVertexAttribPointer(3, 3, GLenum.GL_FLOAT, false, stride, 32);
+            }
+
+            @Override
+            public void unbind() {
+                gl.glDisableVertexAttribArray(0);
+                gl.glDisableVertexAttribArray(1);
+                gl.glDisableVertexAttribArray(2);
+                gl.glDisableVertexAttribArray(3);
+            }
+        };
+
+        /*SAFE_RELEASE( pBlobVS );
+        SAFE_RELEASE( pBlobPS );*/
+
+        /*V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "PS_separateFloatTextures", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pPS_separateFloatTextures ) );*/
+        g_pPS_separateFloatTextures = GLSLProgram.createShaderProgramFromFile(path + "SimpleShadingPS_Float.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "VS_Simple", "vs_4_0", &pBlobVS ) );
+        V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "PS_Simple", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &g_pSimpleVS ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pSimplePS ) );
+        SAFE_RELEASE( pBlobVS );
+        SAFE_RELEASE( pBlobPS );*/
+        g_pSimpleVS = GLSLProgram.createShaderProgramFromFile(path + "VS_Simple.vert", ShaderType.VERTEX);
+        g_pSimplePS = GLSLProgram.createShaderProgramFromFile(path + "PS_Simple.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "VS_RSM", "vs_4_0", &pBlobVS ) );
+        V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "PS_RSM", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &g_pVSRSM ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pPSRSM ) );
+        SAFE_RELEASE( pBlobVS );
+        SAFE_RELEASE( pBlobPS );*/
+        g_pVSRSM = GLSLProgram.createShaderProgramFromFile(path + "VS_RSM.vert", ShaderType.VERTEX);
+        g_pPSRSM = GLSLProgram.createShaderProgramFromFile(path + "PS_RSM.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "VS_ShadowMap", "vs_4_0", &pBlobVS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &g_pVSSM ) );
+        SAFE_RELEASE( pBlobVS );*/
+        g_pVSSM = GLSLProgram.createShaderProgramFromFile(path + "VS_ShadowMap.vert", ShaderType.VERTEX);
+
+        /*V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "VS_RSM_DepthPeeling", "vs_4_0", &pBlobVS ) );
+        V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "PS_RSM_DepthPeeling", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &g_pVSRSMDepthPeeling ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pPSRSMDepthPeel ) );
+        SAFE_RELEASE( pBlobVS );
+        SAFE_RELEASE( pBlobPS );*/
+        g_pVSRSMDepthPeeling = GLSLProgram.createShaderProgramFromFile(path + "VS_RSM_DepthPeeling.vert", ShaderType.VERTEX);
+        g_pPSRSMDepthPeel = GLSLProgram.createShaderProgramFromFile(path + "PS_RSM_DepthPeeling.frag", ShaderType.FRAGMENT);
+
+        /*V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "VS_VizLPV", "vs_4_0", &pBlobVS ) );
+        V_RETURN( CompileShaderFromFile( L"SimpleShading.hlsl", "PS_VizLPV", "ps_4_0", &pBlobPS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &g_pVSVizLPV ) );
+        V_RETURN( pd3dDevice->CreatePixelShader( pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &g_pPSVizLPV ) );
+        SAFE_RELEASE( pBlobVS );
+        SAFE_RELEASE( pBlobPS );*/
+        g_pVSVizLPV = GLSLProgram.createShaderProgramFromFile(path + "VS_VizLPV.vert", ShaderType.VERTEX);
+        g_pPSVizLPV = GLSLProgram.createShaderProgramFromFile(path + "PS_VizLPV.frag", ShaderType.FRAGMENT);
+
+        g_MainMesh = new RenderMesh();
+        g_MainMeshSimplified = new RenderMesh();
+        g_MainMovableMesh = new RenderMesh();
+        g_MovableBoxMesh = new RenderMesh();
+
+        LoadMainMeshes(/*pd3dDevice*/);
+
+        g_MovableBoxMesh.m_Mesh.create( /*pd3dDevice,*/ "..\\Media\\box.sdkmesh", true, null );
+
+        g_LowResMesh.create( "..\\Media\\unitSphere.sdkmesh", true, null );
+        g_MeshArrow.create( "..\\Media\\arrow.sdkmesh", true, null );
+        g_MeshBox.create( "..\\Media\\box.sdkmesh", true, null );
+
+        g_BoXExtents.set(g_MeshBox.getMeshBBoxExtents(0));
+        g_BoxCenter.set(g_MeshBox.getMeshBBoxCenter(0));
+
+        g_MovableBoxMesh.setWorldMatrix(1.0f/g_BoXExtents.x,16.0f/g_BoXExtents.y,16.0f/g_BoXExtents.z,0,0,0,0,0,0);
+        g_MovableBoxMesh.m_UseTexture = false;
+
+        // setup constant buffers
+        /*D3D11_BUFFER_DESC Desc;
+        Desc.Usage = D3D11_USAGE_DYNAMIC;
+        Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        Desc.MiscFlags = 0;
+        Desc.ByteWidth = sizeof( CB_VS_PER_OBJECT );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbVSPerObject ) );*/
+        g_pcbVSPerObject = new BufferGL();
+        g_pcbVSPerObject.initlize(GLenum.GL_UNIFORM_BUFFER, CB_VS_PER_OBJECT.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_VS_GLOBAL );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbVSGlobal ) );*/
+        g_pcbVSGlobal = new BufferGL();
+        g_pcbVSGlobal.initlize(GLenum.GL_UNIFORM_BUFFER, CB_VS_GLOBAL.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_LPV_INITIALIZE );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbLPVinitVS ) );*/
+        g_pcbLPVinitVS = new BufferGL();
+        g_pcbLPVinitVS.initlize(GLenum.GL_UNIFORM_BUFFER, CB_LPV_INITIALIZE.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_LPV_INITIALIZE3 );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbLPVinitialize_LPVDims ) );*/
+        g_pcbLPVinitialize_LPVDims = new BufferGL();
+        g_pcbLPVinitialize_LPVDims.initlize(GLenum.GL_UNIFORM_BUFFER, CB_LPV_INITIALIZE3.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_LPV_PROPAGATE );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbLPVpropagate ) );*/
+        g_pcbLPVpropagate = new BufferGL();
+        g_pcbLPVpropagate.initlize(GLenum.GL_UNIFORM_BUFFER, CB_LPV_PROPAGATE.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_RENDER );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbRender ) );*/
+        g_pcbRender = new BufferGL();
+        g_pcbRender.initlize(GLenum.GL_UNIFORM_BUFFER, CB_RENDER.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_RENDER_LPV );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbRenderLPV ) );*/
+        g_pcbRenderLPV = new BufferGL();
+        g_pcbRenderLPV.initlize(GLenum.GL_UNIFORM_BUFFER, CB_RENDER_LPV.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_SM_TAP_LOCS );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbPSSMTapLocations ) );*/
+        g_pcbPSSMTapLocations = new BufferGL();
+        g_pcbPSSMTapLocations.initlize(GLenum.GL_UNIFORM_BUFFER, CB_SM_TAP_LOCS.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_RENDER_LPV );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbRenderLPV2 ) );*/
+        g_pcbRenderLPV2 = new BufferGL();
+        g_pcbRenderLPV2.initlize(GLenum.GL_UNIFORM_BUFFER, CB_RENDER_LPV.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_LPV_INITIALIZE2 );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbLPVinitVS2 ) );*/
+        g_pcbLPVinitVS2 = new BufferGL();
+        g_pcbLPVinitVS2.initlize(GLenum.GL_UNIFORM_BUFFER, CB_LPV_INITIALIZE2.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_LPV_PROPAGATE_GATHER );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbLPVpropagateGather ) );*/
+        g_pcbLPVpropagateGather = new BufferGL();
+        g_pcbLPVpropagateGather.initlize(GLenum.GL_UNIFORM_BUFFER, CB_LPV_PROPAGATE_GATHER.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_LPV_PROPAGATE_GATHER2 );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbLPVpropagateGather2 ) );*/
+        g_pcbLPVpropagateGather2 = new BufferGL();
+        g_pcbLPVpropagateGather2.initlize(GLenum.GL_UNIFORM_BUFFER, CB_LPV_PROPAGATE_GATHER2.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_GV );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbGV ) );*/
+        g_pcbGV = new BufferGL();
+        g_pcbGV.initlize(GLenum.GL_UNIFORM_BUFFER, CB_GV.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_SIMPLE_OBJECTS );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbSimple ) );*/
+        g_pcbSimple = new BufferGL();
+        g_pcbSimple.initlize(GLenum.GL_UNIFORM_BUFFER, CB_SIMPLE_OBJECTS.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( VIZ_LPV );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbLPVViz ) );*/
+        g_pcbLPVViz = new BufferGL();
+        g_pcbLPVViz.initlize(GLenum.GL_UNIFORM_BUFFER, Vector4f.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_MESH_RENDER_OPTIONS );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbMeshRenderOptions ) );*/
+        g_pcbMeshRenderOptions = new BufferGL();
+        g_pcbMeshRenderOptions.initlize(GLenum.GL_UNIFORM_BUFFER, Vector4f.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_DRAW_SLICES_3D );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbSlices3D ) );*/
+        g_pcbSlices3D = new BufferGL();
+        g_pcbSlices3D.initlize(GLenum.GL_UNIFORM_BUFFER, Vector4f.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( RECONSTRUCT_POS );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_reconPos ) );*/
+        g_reconPos = new BufferGL();
+        g_reconPos.initlize(GLenum.GL_UNIFORM_BUFFER, Vector4f.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+        /*Desc.ByteWidth = sizeof( CB_INVPROJ_MATRIX );
+        V_RETURN( pd3dDevice->CreateBuffer( &Desc, NULL, &g_pcbInvProjMatrix ) );*/
+        g_pcbInvProjMatrix = new BufferGL();
+        g_pcbInvProjMatrix.initlize(GLenum.GL_UNIFORM_BUFFER, Matrix4f.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+
+
+        //shadow map for the scene--------------------------------------------------------------
+
+        /*D3D11_TEXTURE2D_DESC texDesc;
+        texDesc.ArraySize          = 1;
+        texDesc.BindFlags          = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+        texDesc.CPUAccessFlags     = NULL;
+        texDesc.Format             = DXGI_FORMAT_R32_TYPELESS;
+        texDesc.Width              = SM_SIZE;
+        texDesc.Height             = SM_SIZE;
+        texDesc.MipLevels          = 1;
+        texDesc.MiscFlags          = NULL;
+        texDesc.SampleDesc.Count   = 1;
+        texDesc.SampleDesc.Quality = 0;
+        texDesc.Usage              = D3D11_USAGE_DEFAULT;*/
+        Texture2DDesc texDesc = new Texture2DDesc(Defines.SM_SIZE, Defines.SM_SIZE, GLenum.GL_DEPTH_COMPONENT32F);
+
+        g_pSceneShadowMap = new DepthRT( /*pd3dDevice,*/ texDesc );
+
+        //stuff for RSMs and LPVs etc ----------------------------------------------------------
+
+        //initialize the shadow map data
+        initializeReflectiveShadowMaps(/*pd3dDevice*/);
+
+        /*D3D11_RASTERIZER_DESC rasterizerState;
+        rasterizerState.CullMode = D3D11_CULL_BACK;
+        rasterizerState.FillMode = D3D11_FILL_SOLID;
+        rasterizerState.FrontCounterClockwise = false;
+        rasterizerState.DepthBias = 0;
+        rasterizerState.DepthBiasClamp = 0.0f;
+        rasterizerState.SlopeScaledDepthBias = 0.0f;
+        rasterizerState.DepthClipEnable = true;
+        rasterizerState.ScissorEnable = false;
+        rasterizerState.MultisampleEnable = true;
+        rasterizerState.AntialiasedLineEnable = false;
+        pd3dDevice->CreateRasterizerState( &rasterizerState, &g_pRasterizerStateMainRender);
+        rasterizerState.CullMode = D3D11_CULL_NONE;
+        pd3dDevice->CreateRasterizerState( &rasterizerState, &pRasterizerStateCullNone);
+        rasterizerState.CullMode = D3D11_CULL_FRONT;
+        pd3dDevice->CreateRasterizerState( &rasterizerState, &pRasterizerStateCullFront);
+        rasterizerState.FillMode = D3D11_FILL_WIREFRAME;
+        pd3dDevice->CreateRasterizerState( &rasterizerState, &pRasterizerStateWireFrame);*/
+        g_pRasterizerStateMainRender = ()->
+        {
+            gl.glEnable(GLenum.GL_CULL_FACE);
+            gl.glCullFace(GLenum.GL_BACK);
+            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+        };
+
+        pRasterizerStateCullNone = ()->
+        {
+            gl.glDisable(GLenum.GL_CULL_FACE);
+            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+        };
+
+        pRasterizerStateCullFront = ()->
+        {
+            gl.glEnable(GLenum.GL_CULL_FACE);
+            gl.glCullFace(GLenum.GL_FRONT);
+            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+        };
+
+        pRasterizerStateWireFrame = ()->
+        {
+            gl.glEnable(GLenum.GL_CULL_FACE);
+            gl.glCullFace(GLenum.GL_FRONT);
+            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
+        };
+
+        //create the grid used to render to our flat 3D textures (splatted into large 2D textures)
+
+        /*ID3D11VertexShader* pLPV_init_VS = NULL;
+        V_RETURN( CompileShaderFromFile( L"ScreenQuad.hlsl", "DisplayTextureVS", "vs_4_0", &pBlobVS ) );
+        V_RETURN( pd3dDevice->CreateVertexShader( pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &pLPV_init_VS ) );
+        g_grid = new Grid(pd3dDevice,pd3dImmediateContext);
+        g_grid->Initialize(g_LPVWIDTH,g_LPVHEIGHT,g_LPVDEPTH,pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize());
+        SAFE_RELEASE( pBlobVS );
+        SAFE_RELEASE( pLPV_init_VS );*/
+        g_grid = new Grid();
+        g_grid.Initialize(Defines.g_LPVWIDTH,Defines.g_LPVHEIGHT,Defines.g_LPVDEPTH);
+
+        createPropagationAndGeometryVolumes(/*pd3dDevice*/);
+
+        /*g_LPVViewport.MinDepth = 0;
+        g_LPVViewport.MaxDepth = 1;
+        g_LPVViewport.TopLeftX = 0;
+        g_LPVViewport.TopLeftY = 0;
+        g_LPVViewport3D.Width  = g_LPVWIDTH;
+        g_LPVViewport3D.Height = g_LPVHEIGHT;
+        g_LPVViewport3D.MinDepth = 0;
+        g_LPVViewport3D.MaxDepth = 1;
+        g_LPVViewport3D.TopLeftX = 0;
+        g_LPVViewport3D.TopLeftY = 0;*/
+        g_LPVViewport3D.set(0,0, Defines.g_LPVWIDTH,Defines.g_LPVHEIGHT);
+    }
+
+    //initialize all the shadowmap buffers and variables
+    void initializeReflectiveShadowMaps(/*ID3D11Device* pd3dDevice*/)
+    {
+        final int DXGI_FORMAT_R8G8B8A8_UNORM = GLenum.GL_RGBA8;
+        g_pRSMColorRT = new SimpleRT();
+        g_pRSMColorRT.Create2D( /*pd3dDevice,*/ Defines.RSM_RES, Defines.RSM_RES, 1, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM );
+
+        g_pRSMAlbedoRT = new SimpleRT();
+        g_pRSMAlbedoRT.Create2D( /*pd3dDevice,*/ Defines.RSM_RES, Defines.RSM_RES, 1, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM );
+
+        g_pRSMNormalRT = new SimpleRT();
+        g_pRSMNormalRT.Create2D( /*pd3dDevice,*/ Defines.RSM_RES, Defines.RSM_RES, 1, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM );
+
+        /*D3D11_TEXTURE2D_DESC texDesc;
+        texDesc.ArraySize          = 1;
+        texDesc.BindFlags          = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+        texDesc.CPUAccessFlags     = NULL;
+        texDesc.Format             = DXGI_FORMAT_R32_TYPELESS;
+        texDesc.Width              = RSM_RES;
+        texDesc.Height             = RSM_RES;
+        texDesc.MipLevels          = 1;
+        texDesc.MiscFlags          = NULL;
+        texDesc.SampleDesc.Count   = 1;
+        texDesc.SampleDesc.Quality = 0;
+        texDesc.Usage              = D3D11_USAGE_DEFAULT;*/
+        Texture2DDesc texDesc = new Texture2DDesc(Defines.RSM_RES, Defines.RSM_RES,GLenum.GL_DEPTH_COMPONENT32F);
+        g_pShadowMapDS = new DepthRT( /*pd3dDevice,*/ texDesc );
+        g_pDepthPeelingDS[0] = new DepthRT( /*pd3dDevice,*/ texDesc );
+        g_pDepthPeelingDS[1] = new DepthRT( /*pd3dDevice,*/ texDesc );
+    }
+
+    void createPropagationAndGeometryVolumes(/*ID3D11Device* pd3dDevice*/)
+    {
+        if(g_propType == PROP_TYPE.HIERARCHY)
+        {
+            LPV0Propagate = new LPV_RGB_Hierarchy(/*pd3dDevice*/);
+            LPV0Accumulate = new LPV_RGB_Hierarchy(/*pd3dDevice*/);
+            GV0 = new LPV_Hierarchy(/*pd3dDevice*/);
+            GV0Color = new LPV_Hierarchy(/*pd3dDevice*/);
+        }
+        else
+        {
+            LPV0Propagate = new LPV_RGB_Cascade(/*pd3dDevice,*/ g_cascadeScale, g_cascadeTranslate );
+            LPV0Accumulate = new LPV_RGB_Cascade(/*pd3dDevice,*/ g_cascadeScale, g_cascadeTranslate );
+            GV0 = new LPV_Cascade(/*pd3dDevice,*/ g_cascadeScale, g_cascadeTranslate );
+            GV0Color = new LPV_Cascade(/*pd3dDevice,*/ g_cascadeScale, g_cascadeTranslate );
+        }
+
+        final int DXGI_FORMAT_R16G16B16A16_FLOAT = GLenum.GL_RGBA16F;
+        final int DXGI_FORMAT_R8G8B8A8_UNORM = GLenum.GL_RGBA8;
+        LPV0Propagate.Create( g_numHierarchyLevels, /*pd3dDevice,*/ Defines.g_LPVWIDTH, Defines.g_LPVHEIGHT, Defines.g_LPVWIDTH, Defines.g_LPVHEIGHT, Defines.g_LPVDEPTH,
+                DXGI_FORMAT_R16G16B16A16_FLOAT , true, true, false, true,1 );
+
+//#ifndef USE_SINGLE_CHANNELS
+        LPV0Accumulate.Create( g_numHierarchyLevels, /*pd3dDevice,*/ Defines.g_LPVWIDTH, Defines.g_LPVHEIGHT, Defines.g_LPVWIDTH, Defines.g_LPVHEIGHT, Defines.g_LPVDEPTH,
+                DXGI_FORMAT_R16G16B16A16_FLOAT, true, true, false, true, 1);
+/*#else
+        //reading from a float16 uav is not allowed in d3d11!
+        LPV0Accumulate->Create( g_numHierarchyLevels, pd3dDevice, g_LPVWIDTH, g_LPVHEIGHT, g_LPVWIDTH, g_LPVHEIGHT, g_LPVDEPTH, DXGI_FORMAT_R32_FLOAT, true, false, false, true, 4 );
+#endif*/
+
+        GV0.Create2DArray(g_numHierarchyLevels, /*pd3dDevice,*/ Defines.g_LPVWIDTH, Defines.g_LPVHEIGHT, Defines.g_LPVDEPTH, DXGI_FORMAT_R16G16B16A16_FLOAT , true );
+        GV0Color.Create2DArray(g_numHierarchyLevels, /*pd3dDevice,*/ Defines.g_LPVWIDTH, Defines.g_LPVHEIGHT, Defines.g_LPVDEPTH, DXGI_FORMAT_R8G8B8A8_UNORM , true );
+
+    }
 
     ////////////////////////////////////////////////////////////////////////////////
 //! Updating constant buffers

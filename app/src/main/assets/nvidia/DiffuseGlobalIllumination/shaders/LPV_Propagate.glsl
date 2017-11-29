@@ -128,7 +128,7 @@ layout(std430, binding = 3) uniform cbGV //: register( b3 )
     int temp2;
 };
 
-
+#if 0
 struct initLPV_VSOUT
 {
     float4 pos : POSITION; // 2D slice vertex coordinates in homogenous clip space
@@ -143,7 +143,7 @@ struct initLPV_GSOUT
     float3 color : COLOR;
     uint RTIndex : SV_RenderTargetArrayIndex;  // used to choose the destination slice
 };
-
+#endif
 
 
 

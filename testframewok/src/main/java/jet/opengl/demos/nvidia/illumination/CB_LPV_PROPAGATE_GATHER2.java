@@ -5,6 +5,8 @@ package jet.opengl.demos.nvidia.illumination;
  */
 
 final class CB_LPV_PROPAGATE_GATHER2 {
+    static final int SIZE = PropagateConsts2.SIZE * 36;
+
     final PropagateConsts2[] propConsts2 = new PropagateConsts2[36];
 
     CB_LPV_PROPAGATE_GATHER2(){

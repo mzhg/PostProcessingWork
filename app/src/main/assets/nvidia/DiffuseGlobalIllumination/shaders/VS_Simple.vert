@@ -12,4 +12,5 @@ out gl_PerVertex
 void main()
 {
     gl_Position = mul( In_Position, g_WorldViewProjSimple );
+    m_Tex = In_Texcoord;
 }

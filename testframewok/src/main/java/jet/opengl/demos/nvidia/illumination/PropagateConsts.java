@@ -11,6 +11,8 @@ import org.lwjgl.util.vector.Vector4f;
  */
 
 final class PropagateConsts {
+    static final int SIZE = Vector4f.SIZE * 2;
+
     final Vector4f neighborOffset = new Vector4f();
     float solidAngle;
     float x;

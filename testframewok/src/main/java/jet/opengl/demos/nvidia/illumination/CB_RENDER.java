@@ -1,12 +1,14 @@
 package jet.opengl.demos.nvidia.illumination;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector4f;
 
 /**
  * Created by Administrator on 2017/11/13 0013.
  */
 
 final class CB_RENDER {
+    static final int SIZE = Vector4f.SIZE * 3 + Matrix4f.SIZE * 6;
     float diffuseScale;
     int useDiffuseInterreflection;
     float directLight;
