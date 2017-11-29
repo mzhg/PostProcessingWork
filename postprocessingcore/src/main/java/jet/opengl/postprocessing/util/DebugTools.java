@@ -1502,7 +1502,7 @@ public final class DebugTools {
                 for(int j = 0; j < length; j ++){
                     float ogl_value = fsrcValues[j];
                     float dx_value = fdstValues[j];
-                    if(!Numeric.isClose(ogl_value, dx_value, 1f)){  // not same
+                    if(!Numeric.isClose(ogl_value, dx_value, 0.1f)){  // not same
                         result.add(mkToken(fsrcValues), mkToken(fdstValues), i);
                         break;
                     }else if(ogl_value == igoreValue){
@@ -1643,12 +1643,37 @@ public final class DebugTools {
         }
     }
 
-    static void extractValues(String line, HashSet<Integer> values){
+    static void extractValues(String line, Collection<Integer> values){
         if(line == null) return;
         StringTokenizer tokenizer = new StringTokenizer(line, " \t[]");
         while (tokenizer.hasMoreElements()){
             values.add(Integer.parseInt(tokenizer.nextToken()));
         }
+    }
+
+    public static int[] loadIntegerList(String filename){
+        try (BufferedReader in = new BufferedReader(new FileReader(filename))){
+            StackInt ints = new StackInt(1024);
+            String line;
+            List<Integer> lineInts = new ArrayList<>();
+            while ((line = in.readLine()) != null){
+                extractValues(line, lineInts);
+
+                for(int i = 0; i < lineInts.size(); i++){
+                    ints.push(lineInts.get(i));
+                }
+
+                lineInts.clear();
+            }
+
+            return ints.toArray();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     private static float parseFloat(String token){

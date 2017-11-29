@@ -7,7 +7,7 @@ float GetAttenuatingMassNormFactor()
 	return -log(MIN_ATTENUATION_THRESHOLD) / (g_GlobalCloudAttribs.fAttenuationCoeff * 0.1);
 }
 
-layout(r8, binding = 0) uniform image3D g_rwtex3DLightAttenuation;
+layout(rgba16f, binding = 0) uniform image3D g_rwtex3DLightAttenuation;
 
 layout (local_size_x = THREAD_GROUP_SIZE) in;
 
@@ -51,5 +51,5 @@ void main()
     }
 
 //    g_rwtex3DLightAttenuation[ DstCellInd ] = fTotalMass / GetAttenuatingMassNormFactor();
-    imageStore(g_rwtex3DLightAttenuation, int3(DstCellInd), float4(fTotalMass / GetAttenuatingMassNormFactor(), 0,0,0));
+    imageStore(g_rwtex3DLightAttenuation, int3(DstCellInd), float4(fTotalMass / GetAttenuatingMassNormFactor()));
 }

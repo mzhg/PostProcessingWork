@@ -246,28 +246,34 @@ float4 GetCloudDensityUV(in float3 CloudPosition, in float fTime)
 
 float GetCloudDensity(in float4 f4UV01, in float2 f2LODs /*= float2(0,0)*/)
 {
+
+#if DEBUG_STATIC_SCENE
+    return 0.06;
+#else
     float fDensity =
-//        g_tex2DCloudDensity.SampleLevel(samLinearWrap, f4UV01.xy, f2LODs.x) *
-//        g_tex2DCloudDensity.SampleLevel(samLinearWrap, f4UV01.zw, f2LODs.y);
-        textureLod(g_tex2DCloudDensity, f4UV01.xy, f2LODs.x).x *
+        textureLod(g_tex2DCloudDensity, f4UV01.xy, f2LODs.x).x *    // samLinearWrap
         textureLod(g_tex2DCloudDensity, f4UV01.zw, f2LODs.y).x;
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1.0-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
     return fDensity;
+#endif
 }
 
 float GetCloudDensityAutoLOD(in float4 f4UV01)
 {
+#if DEBUG_STATIC_SCENE
+    return 0.08;
+#else
     float fDensity =
-//        g_tex2DCloudDensity.Sample(samLinearWrap, f4UV01.xy) *
-//        g_tex2DCloudDensity.Sample(samLinearWrap, f4UV01.zw);
-        texture(g_tex2DCloudDensity, f4UV01.xy).x *
+        texture(g_tex2DCloudDensity, f4UV01.xy).x *    // samLinearWrap
         texture(g_tex2DCloudDensity, f4UV01.zw).x;
 
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1.0-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
     return fDensity;
+    return 0.08;
+#endif
 }
 
 float GetCloudDensity(in float3 CloudPosition, in float fTime, in float2 f2LODs = float2(0,0))
@@ -278,6 +284,9 @@ float GetCloudDensity(in float3 CloudPosition, in float fTime, in float2 f2LODs 
 
 float GetMaxDensity(in float4 f4UV01, in float2 f2LODs /*= float2(0,0)*/)
 {
+#if DEBUG_STATIC_SCENE
+    return 0.1;
+#else
     float fDensity =
 //        g_tex2MaxDensityMip.SampleLevel(samPointWrap, f4UV01.xy, f2LODs.x) *
 //        g_tex2MaxDensityMip.SampleLevel(samPointWrap, f4UV01.zw, f2LODs.y);
@@ -287,6 +296,7 @@ float GetMaxDensity(in float4 f4UV01, in float2 f2LODs /*= float2(0,0)*/)
     fDensity = saturate((fDensity-g_GlobalCloudAttribs.fCloudDensityThreshold)/(1-g_GlobalCloudAttribs.fCloudDensityThreshold));
 
     return fDensity;
+#endif
 }
 
 float GetMaxDensity(in float3 CloudPosition, in float fTime, in float2 f2LODs /*= float2(0,0)*/)
@@ -431,6 +441,7 @@ float SampleCellAttribs3DTexture(sampler3D tex3DData, in float3 f3WorldPos, in u
     Depth = float(i3Size.z);
 
 	fW = clamp(fW, fW0 + 0.5/Depth, fW1 - 0.5/Depth);
+//	return 1.0/(1.0 + abs(dot(float3(fU, fV, fW), float3(1,1,1))));
 	return bAutoLOD ?
 			texture(tex3DData, float3(fU, fV, fW)).x :    // samLinearClamp
 			textureLod(tex3DData, float3(fU, fV, fW), 0.0).x;

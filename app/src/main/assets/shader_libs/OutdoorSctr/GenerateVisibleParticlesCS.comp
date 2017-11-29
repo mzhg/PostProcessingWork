@@ -51,6 +51,13 @@ void main()
 
         // Apply random displacement to particle pos
         float3 f3Noise = textureLod(g_tex2DWhiteNoise, (f3CloudPos.yx + f3CloudPos.xz)/1500.0+0*fTime*5e-4, 0.0).xyz;   // samLinearWrap
+#if 0
+        float2 f2NoiseUV = (f3CloudPos.yx + f3CloudPos.xz)/1500+0*fTime*5e-4;
+        float3 f3Noise;
+        f3Noise.x = 1.0/ (length(f2NoiseUV) * fTime * 0.1);
+        f3Noise.y = 1.0/ (length(f2NoiseUV) * fTime * 0.2);
+        f3Noise.z = 1.0/ (length(f2NoiseUV) * fTime * 0.3);
+#endif
         float3 f3RandomDisplacement = (f3Noise*2.0-1.0) * f3Size / 2.f * float3(0.3,0.5,0.3);
         f3CloudPos += f3RandomDisplacement.x * CellAttrs.f3Tangent.xyz +
                       f3RandomDisplacement.y * CellAttrs.f3Normal.xyz +

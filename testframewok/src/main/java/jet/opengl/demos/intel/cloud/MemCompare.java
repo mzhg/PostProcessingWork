@@ -137,7 +137,7 @@ final class MemCompare {
             String dx_file = String.format(FILE_PATH + "%sDX.txt", tokens[i]);
             String result_file = String.format(FILE_PATH + "%sResult.txt", tokens[i]);
 
-            DebugTools.fileCompare(gl_file, dx_file, result_file);
+            DebugTools.fileCompare(gl_file, dx_file, result_file, 0);
             System.out.println();
         }
     }

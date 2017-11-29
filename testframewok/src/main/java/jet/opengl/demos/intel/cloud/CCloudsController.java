@@ -120,6 +120,9 @@ final class CCloudsController {
     private int m_pbufValidCellsUnorderedList;
     private int m_pbufVisibleCellsUnorderedList;
 
+    private int m_pbufValidCellsUnorderedListTest;
+    private int m_pbufVisibleCellsUnorderedListTest;
+
     // Buffer containing number of valis cells or particles
     private int m_pbufValidCellsCounter;
     private int m_pbufValidCellsCounterSRV;
@@ -191,6 +194,9 @@ final class CCloudsController {
         if(m_debugStaticScene){
             ByteBuffer bytes = DebugTools.loadBinary("E:/textures/OutdoorCloudResources/SGlobalCloudAttribs.dat");
             m_CloudAttribs.load(bytes);
+            m_CloudAttribs.uiDensityBufferScale = 2;
+            m_CloudAttribs.fAttenuationCoeff = 0.07f;
+            m_CloudAttribs.fScatteringCoeff = 0.07f;
             System.out.println(m_CloudAttribs);
         }
     }
@@ -241,7 +247,7 @@ final class CCloudsController {
 
             m_pbufValidCellsCounterSRV = gl.glGenTexture();
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_pbufValidCellsCounterSRV);
-            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_R32I, m_pbufValidCellsCounter);
+            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_R32UI, m_pbufValidCellsCounter);
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
 
             m_pbufVisibleParticlesCounter = gl.glGenBuffer();
@@ -251,7 +257,7 @@ final class CCloudsController {
 
             m_pbufVisibleParticlesCounterSRV = gl.glGenTexture();
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_pbufVisibleParticlesCounterSRV);
-            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_R32I, m_pbufVisibleParticlesCounter);
+            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, GLenum.GL_R32UI, m_pbufVisibleParticlesCounter);
             gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
         }
 
@@ -537,6 +543,20 @@ final class CCloudsController {
         }
 
         Create3DNoise(/*pDevice*/);
+
+        if(m_debugStaticScene){
+            int[] ints = DebugTools.loadIntegerList("E:/textures/OutdoorCloudResources/ValidCellsUnorderedListDX.txt");
+            m_pbufValidCellsUnorderedListTest = gl.glGenBuffer();
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufValidCellsUnorderedListTest);
+            gl.glBufferData(GLenum.GL_SHADER_STORAGE_BUFFER, CacheBuffer.wrap(ints), GLenum.GL_STATIC_DRAW);
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, 0);
+
+            ints = DebugTools.loadIntegerList("E:/textures/OutdoorCloudResources/VisibleCellsUnorderedListDX.txt");
+            m_pbufVisibleCellsUnorderedListTest = gl.glGenBuffer();
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleCellsUnorderedListTest);
+            gl.glBufferData(GLenum.GL_SHADER_STORAGE_BUFFER, CacheBuffer.wrap(ints), GLenum.GL_STATIC_DRAW);
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, 0);
+        }
     }
 
     void OnDestroyDevice(){
@@ -1790,6 +1810,9 @@ final class CCloudsController {
 //        pDeviceContext->CSSetUnorderedAccessViews(0, _countof(pUAVs), pUAVs, nullptr);
 //        pDeviceContext->CopyStructureCount(m_pbufValidCellsCounter, 0, m_pbufValidCellsUnorderedListUAV);
         CopyStructureCount(m_pbufValidCellsCounter, m_pbufAtomicCounter, 0);
+        if(!m_printOnce){
+            saveTextData("ValidCellsCounterGL.txt",       GLenum.GL_TEXTURE_BUFFER,        m_pbufValidCellsCounter, GLenum.GL_R32UI);
+        }
 
         GLCheck.checkError();
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
@@ -1805,6 +1828,8 @@ final class CCloudsController {
         GLCheck.checkError();
     }
 
+    private boolean m_evaluateDensityPassFirst;
+
     private void EvaluateDensityPass(SRenderAttribs RenderAttribs){
         //        // It is more efficient to clear both UAVs simultaneously using CS
 //        //ClearCellDensityAndAttenuationTextures(RenderAttribs);
@@ -1812,9 +1837,7 @@ final class CCloudsController {
 //        pDeviceContext->ClearUnorderedAccessViewFloat(m_ptex3DCellDensityUAV,Zero);
 //        pDeviceContext->ClearUnorderedAccessViewFloat(m_ptex3DLightAttenuatingMassUAV,Zero);
         gl.glClearTexImage(m_ptex3DCellDensityUAV.getTexture(), 0,
-                TextureUtils.measureFormat(m_ptex3DCellDensityUAV.getFormat()), TextureUtils.measureDataType(m_ptex3DCellDensityUAV.getFormat()), (ByteBuffer)null);
-        gl.glClearTexImage(m_ptex3DLightAttenuatingMassUAV.getTexture(), 0,
-                TextureUtils.measureFormat(m_ptex3DLightAttenuatingMassUAV.getFormat()), TextureUtils.measureDataType(m_ptex3DLightAttenuatingMassUAV.getFormat()), (ByteBuffer)null);
+                TextureUtils.measureFormat(m_ptex3DCellDensityUAV.getFormat()), TextureUtils.measureDataType(m_ptex3DCellDensityUAV.getFormat()),null);
 //
         if( m_EvaluateDensityTech == null )
         {
@@ -1833,10 +1856,15 @@ final class CCloudsController {
 //        pUAVs[0] = m_ptex3DCellDensityUAV;
 //        pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
 
+        int validCellsCounterSRV = m_pbufValidCellsUnorderedList;
+        if(m_debugStaticScene ){
+            validCellsCounterSRV = m_pbufValidCellsUnorderedListTest;
+        }
+
         // shader resource views
         bindTexture(5, m_ptex3DNoiseSRV, m_psamLinearWrap);
         gl.glBindImageTexture(5, m_pbufValidCellsCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufValidCellsUnorderedList);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, validCellsCounterSRV);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
 
         // shader unordered resource views
@@ -1859,15 +1887,14 @@ final class CCloudsController {
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
 //        pUAVs[0] = nullptr;
 //        pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
-//
-//
-//        pDeviceContext->CopyStructureCount(m_pbufValidCellsCounter, 0, m_pbufVisibleCellsUnorderedListUAV);
-        CopyStructureCount(m_pbufValidCellsCounter, m_pbufAtomicCounter, 4);
         GLCheck.checkError();
     }
 
     private void ComputeLightAttenuatingMass(SRenderAttribs RenderAttribs){
+        CopyStructureCount(m_pbufValidCellsCounter, m_pbufAtomicCounter, 4);
         PrepareDispatchArgsBuffer(RenderAttribs, m_pbufValidCellsCounterSRV, 1);
+        gl.glClearTexImage(m_ptex3DLightAttenuatingMassUAV.getTexture(), 0,
+                TextureUtils.measureFormat(m_ptex3DLightAttenuatingMassUAV.getFormat()), TextureUtils.measureDataType(m_ptex3DLightAttenuatingMassUAV.getFormat()), null);
 
         if( m_ComputeLightAttenuatingMass == null )
         {
@@ -1890,9 +1917,14 @@ final class CCloudsController {
 //        pUAVs[0] = m_ptex3DLightAttenuatingMassUAV;
 //        pDeviceContext->CSSetUnorderedAccessViews(0, 1, pUAVs, nullptr);
 
+        int validCellsCounterSRV = m_pbufVisibleCellsUnorderedList;
+        if(m_debugStaticScene ){
+            validCellsCounterSRV = m_pbufVisibleCellsUnorderedListTest;
+        }
+
         bindTexture(8, m_ptex3DCellDensitySRV, m_psamLinearClamp);
         gl.glBindImageTexture(5, m_pbufValidCellsCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
-        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufValidCellsUnorderedList);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, validCellsCounterSRV);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
 
         gl.glBindImageTexture(0, m_ptex3DLightAttenuatingMassUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, m_ptex3DLightAttenuatingMassUAV.getFormat());
@@ -1940,10 +1972,15 @@ final class CCloudsController {
 //        pSRVs[4] = m_ptex3DCellDensitySRV;			 // t4
 //        pDeviceContext->CSSetShaderResources(0, 5, pSRVs);
 
+        int validCellsCounterSRV = m_pbufVisibleCellsUnorderedList;
+        if(m_debugStaticScene ){
+            validCellsCounterSRV = m_pbufVisibleCellsUnorderedListTest;
+        }
+
         // shader resource views
         bindTexture(4, m_ptex2DWhiteNoiseSRV, m_psamLinearWrap);
         bindTexture(8, m_ptex3DCellDensitySRV, m_psamLinearClamp);
-        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_pbufVisibleCellsUnorderedList);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, validCellsCounterSRV);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
         gl.glBindImageTexture(5, m_pbufValidCellsCounterSRV, 0, false, 0, GLenum.GL_READ_ONLY, GLenum.GL_R32UI);
 
@@ -1984,7 +2021,6 @@ final class CCloudsController {
         GLCheck.checkError();
 //
 //        pDeviceContext->CopyStructureCount(m_pbufVisibleParticlesCounter, 0, m_pbufVisibleParticlesUnorderedListUAV);
-        CopyStructureCount(m_pbufVisibleParticlesCounter, m_pbufAtomicCounter, 0);
     }
 
     private void ProcessVisibleParticlesPass(SRenderAttribs RenderAttribs){
@@ -1993,7 +2029,8 @@ final class CCloudsController {
         {
             m_ProcessVisibleParticlesTech = new CRenderTechnique(null, "ProcessVisibleParticlesCS.comp", DefineMacros());
         }
-//
+
+        CopyStructureCount(m_pbufVisibleParticlesCounter, m_pbufAtomicCounter, 0);
         PrepareDispatchArgsBuffer(RenderAttribs, m_pbufVisibleParticlesCounterSRV, 0);
 //            ID3D11UnorderedAccessView *pUAVs[] =
 //            {
@@ -2559,14 +2596,14 @@ final class CCloudsController {
                     );
 
             // Accuracy of R8_UNORM is not sufficient to provide smooth animation
-            Tex3DDesc.format = GLenum.GL_R16F;
+            Tex3DDesc.format = GLenum.GL_RGBA16F;
 //            CComPtr<ID3D11Texture3D> ptex3DCellDensity;
 //            V(pDevice->CreateTexture3D( &Tex3DDesc, nullptr, &ptex3DCellDensity));
 //            V(pDevice->CreateShaderResourceView( ptex3DCellDensity, nullptr, &m_ptex3DCellDensitySRV));
 //            V(pDevice->CreateUnorderedAccessView( ptex3DCellDensity, nullptr, &m_ptex3DCellDensityUAV));
             m_ptex3DCellDensityUAV = m_ptex3DCellDensitySRV = TextureUtils.createTexture3D(Tex3DDesc, null);
 
-            Tex3DDesc.format = GLenum.GL_R8;
+//            Tex3DDesc.format = GLenum.GL_RGBA8;
 //            CComPtr<ID3D11Texture3D> ptex3DLightAttenuatingMass;
 //            V(pDevice->CreateTexture3D( &Tex3DDesc, nullptr, &ptex3DLightAttenuatingMass));
 //            V(pDevice->CreateShaderResourceView( ptex3DLightAttenuatingMass, nullptr, &m_ptex3DLightAttenuatingMassSRV));
