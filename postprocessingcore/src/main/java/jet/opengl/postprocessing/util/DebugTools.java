@@ -514,26 +514,26 @@ public final class DebugTools {
                 if (type.clazz == boolean.class || type.clazz == int.class) {
                     out.append(pixel.getInt()).append(',');
                 } else if (type.clazz == float.class) {
-                    out.append(pixel.getFloat()).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
                 } else if (type.clazz == Vector2f.class) {
-                    out.append(pixel.getFloat()).append(',');
-                    out.append(pixel.getFloat()).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
                 } else if (type.clazz == Vector3f.class) {
-                    out.append(pixel.getFloat()).append(',');
-                    out.append(pixel.getFloat()).append(',');
-                    out.append(pixel.getFloat()).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
                 } else if (type.clazz == Vector4f.class || type.clazz == Matrix2f.class) {
-                    out.append(pixel.getFloat()).append(',');
-                    out.append(pixel.getFloat()).append(',');
-                    out.append(pixel.getFloat()).append(',');
-                    out.append(pixel.getFloat()).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
+                    out.append(_To(pixel.getFloat())).append(',');
                 }else if (type.clazz == Matrix3f.class){
                     for(int j = 0; j < 9; j++){
-                        out.append(pixel.getFloat()).append(',');
+                        out.append(_To(pixel.getFloat())).append(',');
                     }
                 }else if (type.clazz == Matrix4f.class){
                     for(int j = 0; j < 16; j++){
-                        out.append(pixel.getFloat()).append(',');
+                        out.append(_To(pixel.getFloat())).append(',');
                     }
                 }
 

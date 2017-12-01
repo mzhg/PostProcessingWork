@@ -10,13 +10,19 @@ public class Texture3D extends TextureGL{
 	int width;
 	int height;
 	int depth;
-	
-	public Texture3D() {}
+
+	public Texture3D() {
+		super("Texture3D");
+	}
+
+	public Texture3D(String name) {
+		super(name);
+	}
 
 	@Override
-	public int getWidth() {return width;}
-	public int getHeight() { return height;}
-	public int getDepth()  { return depth;}
+	public final int getWidth() {return width;}
+	public final int getHeight() { return height;}
+	public final int getDepth()  { return depth;}
 	
 	/**
      * Sets the wrap parameter for texture coordinate r.<p>
@@ -33,4 +39,19 @@ public class Texture3D extends TextureGL{
 			gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_R, mode);
     	}
     }
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder(80);
+		sb.append(name).append(' ').append('[');
+		sb.append("textureID: ").append(textureID).append(',').append(' ');
+		sb.append("target: ").append(TextureUtils.getTextureTargetName(target)).append(',').append(' ');
+		sb.append("width = ").append(width).append(',').append(' ');
+		sb.append("height = ").append(height).append(',').append(' ');
+		sb.append("depth = ").append(depth).append(',').append(' ');
+		sb.append("format = ").append(TextureUtils.getFormatName(format)).append(',').append(' ');
+		sb.append("mipLevels = ").append(mipLevels).append(',').append(' ');
+
+		return sb.toString();
+	}
 }

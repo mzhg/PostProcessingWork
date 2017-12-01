@@ -9,6 +9,18 @@ layout (triangle_strip, max_vertices = 10+4+4) out;
 #endif
 in flat uint m_uiParticleID[];
 
+/*
+layout(binding = 3) uniform ParticlesRead
+{
+    SParticleAttribs g_ParticlesR[MAX_PARTICLE_COUNT];
+};
+
+layout(binding = 2) uniform CloudCellsRead
+{
+    SCloudCellAttribs g_CloudCellsR[MAX_CELL_COUNT];
+};
+*/
+
 struct PS_Input
 {
     float4 f4Pos; // : SV_Position;
@@ -41,6 +53,7 @@ void main()
     ParticleObjToWorldSpaceMatr[2].xyz = f3Bitangent.xyz;
     // Add translation to particle world position
     ParticleObjToWorldSpaceMatr[3].xyzw = float4(ParticleAttrs.f3Pos,1);
+    ParticleObjToWorldSpaceMatr = transpose(ParticleObjToWorldSpaceMatr);
 
 #if TILING_MODE
     float2 f2MinXY = float2(+1);
@@ -112,10 +125,10 @@ void main()
              gl_Position = Outs[ Side[ i ] ].f4Pos;
              EmitVertex();
         }
+        EndPrimitive();
     }
 
     {
-//        Out.RestartStrip();
         const uint uiBottomCap[] = {2,0,3,1};
         for(int i=0; i<4; ++i)
         {
@@ -124,10 +137,10 @@ void main()
             gl_Position = Outs[ uiBottomCap[ i ] ].f4Pos;
             EmitVertex();
         }
+        EndPrimitive();
     }
 
     {
-//        Out.RestartStrip();
         const uint uiTopCap[] = {4,6,5,7};
         for(int i=0; i<4; ++i)
         {
@@ -136,8 +149,7 @@ void main()
             gl_Position = Outs[ uiTopCap[ i ] ].f4Pos;
             EmitVertex();
         }
+        EndPrimitive();
     }
-
-    EndPrimitive();
 #endif
 }

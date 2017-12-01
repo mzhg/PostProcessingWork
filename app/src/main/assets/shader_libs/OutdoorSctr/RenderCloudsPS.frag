@@ -5,8 +5,18 @@ layout(binding = 0) uniform sampler2D g_tex2DDepthBuffer;
 //StructuredBuffer<SCloudParticleLighting> g_bufParticleLighting : register( t7 );
 layout(binding = 0) buffer StructuredBuffer_SCloudParticleLighting
 {
-SCloudParticleLighting g_bufParticleLighting[];
+    SCloudParticleLighting g_bufParticleLighting[/*MAX_PARTICLE_COUNT*/];
 };
+
+/*layout(binding = 3) uniform ParticlesRead
+{
+    SParticleAttribs g_ParticlesR[MAX_PARTICLE_COUNT];
+};
+
+layout(binding = 2) uniform CloudCellsRead
+{
+    SCloudCellAttribs g_CloudCellsR[MAX_CELL_COUNT];
+};*/
 
 // This helper function computes intersection of the view ray with the particle ellipsoid
 void IntersectRayWithParticle(const in SParticleAttribs ParticleAttrs,
@@ -24,10 +34,18 @@ void IntersectRayWithParticle(const in SParticleAttribs ParticleAttrs,
     float3 f3Normal    = CellAttrs.f3Normal.xyz;
     float3 f3Tangent   = CellAttrs.f3Tangent.xyz;
     float3 f3Bitangent = CellAttrs.f3Bitangent.xyz;
+
+    #if 0
     float3x3 f3x3ObjToWorldSpaceRotation = float3x3(f3Tangent, f3Normal, f3Bitangent);
     // World to obj space is inverse of the obj to world space matrix, which is simply transpose
     // for orthogonal matrix:
-    float3x3 f3x3WorldToObjSpaceRotation = transpose(f3x3ObjToWorldSpaceRotation);
+    float3x3 f3x3WorldToObjSpaceRotation = /*transpose*/(f3x3ObjToWorldSpaceRotation);
+    #else
+    float3x3 f3x3WorldToObjSpaceRotation;
+    f3x3WorldToObjSpaceRotation[0] = f3Tangent;
+    f3x3WorldToObjSpaceRotation[1] = f3Normal;
+    f3x3WorldToObjSpaceRotation[2] = f3Bitangent;
+    #endif
 
     // Compute camera location and view direction in particle's object space:
     float3 f3CamPosObjSpace = f3CameraPos - ParticleAttrs.f3Pos;
@@ -291,10 +309,10 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
 
 	f4Color.rgb = float3(0);
 	const float fSingleScatteringScale = 0.2;
-	f4Color.rgb += f3SingleScattering * fSingleScatteringScale;
-	f4Color.rgb += f3MultipleScattering * PI;
-	f4Color.rgb += f3Ambient;
-	f4Color.rgb *= 2;
+//	f4Color.rgb += f3SingleScattering * fSingleScatteringScale;
+	f4Color.rgb += f4MultipleScatteringLUTCoords.xyz; //f3MultipleScattering * PI;
+//	f4Color.rgb += f3Ambient;
+//	f4Color.rgb *= 2;
 
     f4Color.a = fTransparency;
 #endif
@@ -319,17 +337,28 @@ float GetConservativeScreenDepth(in float2 f2UV)
         f2GatherUV0 -= (BACK_BUFFER_DOWNSCALE_FACTOR/2.f-1.f)/f2DepthBufferSize.xy;
 #   endif
 
+#if DEBUG_STATIC_SCENE
     fDepth = 1;
+#else
+    fDepth = 0.0;
+#endif
 //    [unroll]
     for(int i=0; i < BACK_BUFFER_DOWNSCALE_FACTOR/2; ++i)
 //        [unroll]
         for(int j=0; j < BACK_BUFFER_DOWNSCALE_FACTOR/2; ++j)
         {
             float4 f4Depths = textureGatherOffset(g_tex2DDepthBuffer, f2GatherUV0, 2*int2(i,j) );    // samLinearClamp
+#if DEBUG_STATIC_SCENE
+            fDepth = min(fDepth,f4Depths.x);
+            fDepth = min(fDepth,f4Depths.y);
+            fDepth = min(fDepth,f4Depths.z);
+            fDepth = min(fDepth,f4Depths.w);
+#else
             fDepth = max(fDepth,f4Depths.x);
             fDepth = max(fDepth,f4Depths.y);
             fDepth = max(fDepth,f4Depths.z);
             fDepth = max(fDepth,f4Depths.w);
+#endif
         }
 #endif
 
@@ -340,8 +369,13 @@ float GetConservativeScreenDepth(in float2 f2UV)
 #endif
 }
 
+#if !DEBUG_STATIC_SCENE
 float2 UVToProj(float2 uv) { return 2.0 * uv - 1.0;}
 float2 ProjToUV(float2 proj) { return 0.5 * proj + 0.5;}
+#else
+float2 UVToProj(float2 uv) { return float2(2, -2) * uv - float2(1, -1);}
+float2 ProjToUV(float2 proj) { return float2(0.5, -0.5) * proj + 0.5;}
+#endif
 
 in flat uint ps_uiParticleID;
 layout(location = 0) out float fTransparency;
