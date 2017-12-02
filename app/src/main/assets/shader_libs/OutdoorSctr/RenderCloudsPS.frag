@@ -5,7 +5,7 @@ layout(binding = 0) uniform sampler2D g_tex2DDepthBuffer;
 //StructuredBuffer<SCloudParticleLighting> g_bufParticleLighting : register( t7 );
 layout(binding = 0) buffer StructuredBuffer_SCloudParticleLighting
 {
-    SCloudParticleLighting g_bufParticleLighting[/*MAX_PARTICLE_COUNT*/];
+    SCloudParticleLighting g_bufParticleLighting[];
 };
 
 /*layout(binding = 3) uniform ParticlesRead
@@ -291,7 +291,7 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
 	float PhaseFunc = HGPhaseFunc(fCosTheta, 0.8);
 
 	float2 f2SunLightAttenuation = ParticleLighting.f2SunLightAttenuation;
-	float3 f3SingleScattering =  fTransparency *  ParticleLighting.f4SunLight.rgb * f2SunLightAttenuation.x * PhaseFunc * pow(CellAttrs.fMorphFadeout,2);
+	float3 f3SingleScattering =  fTransparency * ParticleLighting.f4SunLight.rgb * f2SunLightAttenuation.x * PhaseFunc * pow(CellAttrs.fMorphFadeout,2);
 
 	float4 f4MultipleScatteringLUTCoords = WorldParamsToParticleScatteringLUT(f3EntryPointUSSpace, f3ViewRayUSSpace, f3LightDirUSSpace, true);
     float fMultipleScattering =
@@ -309,10 +309,10 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
 
 	f4Color.rgb = float3(0);
 	const float fSingleScatteringScale = 0.2;
-//	f4Color.rgb += f3SingleScattering * fSingleScatteringScale;
-	f4Color.rgb += f4MultipleScatteringLUTCoords.xyz; //f3MultipleScattering * PI;
-//	f4Color.rgb += f3Ambient;
-//	f4Color.rgb *= 2;
+	f4Color.rgb += f3SingleScattering * fSingleScatteringScale;
+	f4Color.rgb += f3MultipleScattering * PI;
+	f4Color.rgb += f3Ambient;
+	f4Color.rgb *= 2;
 
     f4Color.a = fTransparency;
 #endif

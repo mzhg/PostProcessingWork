@@ -17,6 +17,9 @@ void FilterDownscaledCloudBuffers(in float2 f2UV,
                                   out float3 f3CloudsColor,
                                   out float fDistToCloud)
 {
+    #if DEBUG_STATIC_SCENE
+    f2UV.y = 1.0 - f2UV.y;
+    #endif
     fCloudTransparency = 1;
     f3CloudsColor = float3(0);
     fDistToCloud = +FLT_MAX;

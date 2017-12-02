@@ -115,6 +115,7 @@ final class CCloudsController {
     // SRV and UAV for particle lattice
     private int m_pbufCloudParticlesUAV;
     private int m_pbufCloudParticlesSRV;
+    private int m_pbufCloudParticlesSRVTest;
 
     private int m_pbufAtomicCounter;
 
@@ -445,8 +446,8 @@ final class CCloudsController {
             gl.glBlendFuncSeparatei(1, GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ONE);
 
             gl.glEnablei(GLenum.GL_BLEND, 2);
-            gl.glBlendEquationi(1, GLenum.GL_FUNC_ADD);
-            gl.glBlendFuncSeparatei(1, GLenum.GL_ONE, GLenum.GL_SRC_ALPHA, GLenum.GL_ONE, GLenum.GL_ONE);
+            gl.glBlendEquationi(2, GLenum.GL_FUNC_ADD);
+            gl.glBlendFuncSeparatei(2, GLenum.GL_ONE, GLenum.GL_SRC_ALPHA, GLenum.GL_ONE, GLenum.GL_ONE);
         };
 
         SamplerDesc SamLinearWrap = new SamplerDesc();
@@ -551,6 +552,10 @@ final class CCloudsController {
 
         Create3DNoise(/*pDevice*/);
 
+        loadTestData();
+    }
+
+    private void loadTestData(){
         if(m_debugStaticScene){
             int[] ints = DebugTools.loadIntegerList("E:/textures/OutdoorCloudResources/ValidCellsUnorderedListDX.txt");
             m_pbufValidCellsUnorderedListTest = gl.glGenBuffer();
@@ -567,6 +572,12 @@ final class CCloudsController {
             StackByte bytes = loadVisibleParticlesUnorderedListData();
             m_pbufVisibleParticlesUnorderedListSRVTest = gl.glGenBuffer();
             gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufVisibleParticlesUnorderedListSRVTest);
+            gl.glBufferData(GLenum.GL_SHADER_STORAGE_BUFFER, CacheBuffer.wrap(bytes.getData(), 0, bytes.size()), GLenum.GL_STATIC_DRAW);
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, 0);
+
+            bytes = loadCloudParticlesData();
+            m_pbufCloudParticlesSRVTest = gl.glGenBuffer();
+            gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, m_pbufCloudParticlesSRVTest);
             gl.glBufferData(GLenum.GL_SHADER_STORAGE_BUFFER, CacheBuffer.wrap(bytes.getData(), 0, bytes.size()), GLenum.GL_STATIC_DRAW);
             gl.glBindBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, 0);
         }
@@ -595,6 +606,42 @@ final class CCloudsController {
 
                     isFloat = !isFloat;
                 }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return bytes;
+    }
+
+    private StackByte loadCloudParticlesData(){
+        StackByte bytes = new StackByte(4096);
+        try (BufferedReader in = new BufferedReader(new FileReader("E:/textures/OutdoorCloudResources/CloudParticlesDX.txt"))){
+            String line;
+            byte[] tmp = new byte[4];
+            while ((line = in.readLine()) != null){
+                StringTokenizer tokenizer = new StringTokenizer(line, " [],");
+
+                int count = 0;
+                while (tokenizer.hasMoreElements()){
+                    Numeric.getBytes(Float.parseFloat(tokenizer.nextToken()), tmp, 0);
+
+                    bytes.push(tmp[0]);
+                    bytes.push(tmp[1]);
+                    bytes.push(tmp[2]);
+                    bytes.push(tmp[3]);
+
+                    if(count == 5){
+                        bytes.resize(bytes.size() + 8); // skip the pad
+                        count = 0;
+                    }else{
+                        count++;
+                    }
+                }
+
+
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -1707,13 +1754,21 @@ final class CCloudsController {
             throw new NullPointerException("DepthBuffer can't be null.");
         }
 
-        bindTexture(12, m_ptex3DPrecomputedParticleDensitySRV, m_psamLinearClamp);
+        bindTexture(12, m_ptex3DPrecomputedParticleDensitySRV, m_psamLinearWrap);
         bindTexture(0, RenderAttribs.pDepthBufferSRV, m_psamLinearClamp);
         bindTexture(14, m_ptex3DMultipleSctrInParticleLUT_SRV, m_psamLinearWrap);
-        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, m_pbufCloudParticlesSRV);
-        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
-        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufParticlesLightingSRV);
-//
+
+        if(false) {
+            int count = 25938;
+            gl.glBindBufferRange(GLenum.GL_SHADER_STORAGE_BUFFER, 3, m_debugStaticScene ? m_pbufCloudParticlesSRVTest : m_pbufCloudParticlesSRV, 0, count * SParticleAttribs.SIZE);
+            gl.glBindBufferRange(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV, 0, count * SCloudCellAttribs.SIZE);
+            gl.glBindBufferRange(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufParticlesLightingSRV, 0, SCloudParticleLighting.SIZE * count);
+        }else {
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, m_debugStaticScene ? m_pbufCloudParticlesSRVTest : m_pbufCloudParticlesSRV);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_pbufCloudGridSRV);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, m_pbufParticlesLightingSRV);
+        }
+
 //        pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 //        RenderCloudsTech.Apply();
 //        UINT Strides[] = {sizeof(UINT)};
@@ -1721,9 +1776,10 @@ final class CCloudsController {
 //        pDeviceContext->IASetVertexBuffers(0, 1, &m_pbufSerializedVisibleParticles.p, Strides, Offsets);
 //        pDeviceContext->IASetInputLayout(m_pRenderCloudsInputLayout);
 //        pDeviceContext->DrawInstancedIndirect(m_pbufDrawIndirectArgs, 0);
-//        m_pbsRT0MulRT1MinRT2Over.run();
-//        gl.glEnable(GLenum.GL_CULL_FACE);
-//        gl.glCullFace(GLenum.GL_BACK);
+        m_pbsRT0MulRT1MinRT2Over.run();
+        gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glCullFace(GLenum.GL_BACK);
+        gl.glFrontFace(GLenum.GL_CW);
 
         gl.glBindVertexArray(m_pRenderCloudsInputLayout);
         RenderCloudsTech.enable();
@@ -1736,7 +1792,6 @@ final class CCloudsController {
         gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, m_pbufDrawIndirectArgs);
         gl.glDrawArraysIndirect(GLenum.GL_POINTS, 0);
         gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, 0);
-//        gl.glDrawArrays(GLenum.GL_POINTS, 0, 25931);
         gl.glBindVertexArray(0);
 
         gl.glDisablei(GLenum.GL_BLEND, 0);
@@ -1745,9 +1800,9 @@ final class CCloudsController {
         gl.glDisablei(GLenum.GL_BLEND, 2);
         gl.glDisable(GLenum.GL_CULL_FACE);
 
-        bindTexture(12, null, 0);
-        bindTexture(14, null, 0);
-        bindTexture(0, RenderAttribs.pDepthBufferSRV, 0);
+        bindTexture(12, null, 0);  gl.glBindTexture(GLenum.GL_TEXTURE_3D, 0);
+        bindTexture(14, null, 0);  gl.glBindTexture(GLenum.GL_TEXTURE_3D, 0);
+        bindTexture(0, null, 0);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
@@ -2809,6 +2864,20 @@ final class CCloudsController {
                 e.printStackTrace();
             }
         }
+
+        /*final String SingleSctrTexPath   = "intel\\Cloud\\textures\\SingleSctrInParticleLUT_DX.dat";
+        final String MultipleSctrTexPath = "intel\\Cloud\\textures\\MultipleSctrInParticleLUT_DX.dat";
+
+        try {
+            ByteBuffer binary = FileUtils.loadNative(SingleSctrTexPath);
+            m_ptex3DSingleSctrInParticleLUT_SRV = TextureUtils.createTexture3D(new Texture3DDesc(32,64,16, 1, GLenum.GL_R16F),
+                    new TextureDataDesc(GLenum.GL_RED, GLenum.GL_HALF_FLOAT, binary));
+            binary = FileUtils.loadNative(MultipleSctrTexPath);
+            m_ptex3DMultipleSctrInParticleLUT_SRV = TextureUtils.createTexture3D(new Texture3DDesc(32,64,16, 1, GLenum.GL_R16F),
+                    new TextureDataDesc(GLenum.GL_RED, GLenum.GL_HALF_FLOAT, binary));
+        }catch (IOException e) {
+            e.printStackTrace();
+        }*/
 
 //        HRESULT hr1 = D3DX11CreateShaderResourceViewFromFile(pDevice, SingleSctrTexPath, nullptr, nullptr, &m_ptex3DSingleSctrInParticleLUT_SRV, nullptr);
 //        HRESULT hr2 = D3DX11CreateShaderResourceViewFromFile(pDevice, MultipleSctrTexPath, nullptr, nullptr, &m_ptex3DMultipleSctrInParticleLUT_SRV, nullptr);

@@ -236,7 +236,7 @@ float4 WorldParamsToParticleScatteringLUT(in float3 f3StartPosUSSpace,
     return f4LUTCoords;
 }
 
-float HGPhaseFunc(float fCosTheta, const float g = 0.9)
+float HGPhaseFunc(float fCosTheta, const float g /*= 0.9*/)
 {
     return (1.0/(4.0*PI) * (1.0 - g*g)) / pow( max((1.0 + g*g) - (2.0*g)*fCosTheta,0.0), 3.f/2.f);
 }

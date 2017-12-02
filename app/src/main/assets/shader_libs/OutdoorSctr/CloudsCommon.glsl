@@ -145,7 +145,7 @@ layout(binding = 1) buffer StructuredBuffer0
  uint g_ValidCellsUnorderedList[];
 };
 
-layout(std430, binding = 2) buffer StructuredBuffer1
+layout(binding = 2) buffer StructuredBuffer1
 {
  SCloudCellAttribs g_CloudCells[];
 };
