@@ -38,6 +38,7 @@ public class CameraData {
 
     public Matrix4f getViewMatrix() { return view;}
     public Matrix4f getViewProjMatrix() { return viewProj;}
+    public Matrix4f getProjMatrix() { return projection;}
 
     public void setProjection(float fov, float aspectRatio, float nearClipDistance, float farClipDistance){
         this.fov = fov;

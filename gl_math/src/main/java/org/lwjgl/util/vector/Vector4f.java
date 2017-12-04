@@ -137,6 +137,19 @@ public class Vector4f extends Vector implements Serializable, ReadableVector4f, 
 	}
 
 	/**
+	 * Load from another Vector3f
+	 * @param src The source vector
+	 * @return this
+	 */
+	public Vector4f set(ReadableVector3f src, float w) {
+		x = src.getX();
+		y = src.getY();
+		z = src.getZ();
+		this.w = w;
+		return this;
+	}
+
+	/**
 	 * @return the length squared of the vector
 	 */
 	public float lengthSquared() {

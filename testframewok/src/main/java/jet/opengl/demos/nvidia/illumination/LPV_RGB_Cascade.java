@@ -35,12 +35,12 @@ final class LPV_RGB_Cascade extends Cascade implements RTCollection_RGB{
         return levels;
     }
 
-    void clearRenderTargetView(/*ID3D11DeviceContext* pd3dContext,*/ float clearColor[], boolean front, int level)
+    public void clearRenderTargetView(/*ID3D11DeviceContext* pd3dContext,*/ float clearColor[], boolean front, int level)
     {
         m_collection[level].clearRenderTargetView(/*pd3dContext,*/clearColor,front);
     }
 
-    void setLPVTransformsRotatedAndOffset(float LPVscale, ReadableVector3f LPVtranslate, Matrix4f cameraViewMatrix, ReadableVector3f viewVector)
+    public void setLPVTransformsRotatedAndOffset(float LPVscale, ReadableVector3f LPVtranslate, Matrix4f cameraViewMatrix, ReadableVector3f viewVector)
     {
         Vector3f tmp0 = new Vector3f();
         for(int level=0; level<m_levels; level++) {
@@ -50,31 +50,41 @@ final class LPV_RGB_Cascade extends Cascade implements RTCollection_RGB{
         }
     }
 
-    SimpleRT getRed(int level, boolean front/*=true*/) { return m_collection[level].getRed(front); }
-    SimpleRT getBlue(int level, boolean front/*=true*/) { return m_collection[level].getBlue(front); }
-    SimpleRT getGreen(int level, boolean front/*=true*/) { return m_collection[level].getGreen(front); }
+    @Override
+    public SimpleRT_RGB get(int level) {
+        return m_collection[level];
+    }
 
-    SimpleRT getRedFront(int level) { return m_collection[level].getRedFront(); }
-    SimpleRT getBlueFront(int level) { return m_collection[level].getBlueFront(); }
-    SimpleRT getGreenFront(int level) { return m_collection[level].getGreenFront(); }
+    public SimpleRT getRed(int level, boolean front/*=true*/) { return m_collection[level].getRed(front); }
+    public SimpleRT getBlue(int level, boolean front/*=true*/) { return m_collection[level].getBlue(front); }
+    public SimpleRT getGreen(int level, boolean front/*=true*/) { return m_collection[level].getGreen(front); }
 
-    SimpleRT getRedBack(int level) { return m_collection[level].getRedBack(); }
-    SimpleRT getBlueBack(int level) { return m_collection[level].getBlueBack();  }
-    SimpleRT getGreenBack(int level) { return m_collection[level].getGreenBack(); }
+    public SimpleRT getRedFront(int level) { return m_collection[level].getRedFront(); }
+    public SimpleRT getBlueFront(int level) { return m_collection[level].getBlueFront(); }
+    public SimpleRT getGreenFront(int level) { return m_collection[level].getGreenFront(); }
+
+    public SimpleRT getRedBack(int level) { return m_collection[level].getRedBack(); }
+    public SimpleRT getBlueBack(int level) { return m_collection[level].getBlueBack();  }
+    public SimpleRT getGreenBack(int level) { return m_collection[level].getGreenBack(); }
 
     void swapBuffers(int level) { m_collection[level].swapBuffers();  }
 
     int getCurrentBuffer(int level) { return m_collection[level].getCurrentBuffer(); }
 
-    int getNumLevels() {return m_levels; };
+    public int getNumLevels() {return m_levels; };
 
-    int getWidth3D(int level) {return  m_collection[level].getWidth3D(); }
-    int getHeight3D(int level) {return  m_collection[level].getHeight3D(); }
-    int getDepth3D(int level) {return  m_collection[level].getDepth3D(); }
+    public int getWidth3D(int level) {return  m_collection[level].getWidth3D(); }
+    public int getHeight3D(int level) {return  m_collection[level].getHeight3D(); }
+    public int getDepth3D(int level) {return  m_collection[level].getDepth3D(); }
 
-    int getWidth2D(int level) {return  m_collection[level].getWidth2D(); }
-    int getHeight2D(int level) {return  m_collection[level].getHeight2D(); }
+    public int getWidth2D(int level) {return  m_collection[level].getWidth2D(); }
+    public int getHeight2D(int level) {return  m_collection[level].getHeight2D(); }
 
-    int getNumCols(int level) {return  m_collection[level].getNumCols(); }
-    int getNumRows(int level) {return  m_collection[level].getNumRows(); }
+    public int getNumCols(int level) {return  m_collection[level].getNumCols(); }
+    public int getNumRows(int level) {return  m_collection[level].getNumRows(); }
+
+    @Override
+    public void dispose() {
+
+    }
 }

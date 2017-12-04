@@ -383,6 +383,16 @@ final class Mesh extends SDKmesh{
         RenderBounded(minSize, maxSize, iDiffuseSlot, iNormalSlot,INVALID_SAMPLER_SLOT,INVALID_SAMPLER_SLOT, ALL_ALPHA);
     }
 
+    final void RenderSubsetBounded( int iMesh,
+                              int subset,
+//                              ID3D11DeviceContext* pd3dDeviceContext,
+                              ReadableVector3f minExtentsSize, ReadableVector3f maxExtentsSize,
+                              boolean bAdjacent/*=false*/,
+                              int iDiffuseSlot){
+        RenderSubsetBounded(iMesh, subset, minExtentsSize, maxExtentsSize, bAdjacent, iDiffuseSlot,
+                INVALID_SAMPLER_SLOT, INVALID_SAMPLER_SLOT, INVALID_SAMPLER_SLOT, ALL_ALPHA );
+    }
+
 
     void RenderSubsetBounded( int iMesh,
                               int subset,
