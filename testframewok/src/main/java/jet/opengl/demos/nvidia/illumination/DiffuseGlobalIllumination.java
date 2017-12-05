@@ -14,6 +14,7 @@ import org.lwjgl.util.vector.Vector4i;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.demos.scene.CameraData;
@@ -36,8 +37,6 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
-import static javafx.scene.input.KeyCode.L;
-
 /**
  * Created by Administrator on 2017/11/22 0022.
  */
@@ -52,7 +51,7 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
     float                       g_LPVscale;
     final Vector3f              g_lightPos = new Vector3f();
     float                       g_lightRadius;
-    final Vector3f            g_mUp = new Vector3f(0,1,0);
+    final Vector3f             g_mUp = new Vector3f(0,1,0);
 
     enum PROP_TYPE
     {
@@ -350,6 +349,7 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
         g_shadowViewportScene.set(0,0,Defines.RSM_RES, Defines.RSM_RES);
 
         initializePresetLight();
+        resetSettingValues();
     }
 
     void initializePresetLight()
@@ -1831,7 +1831,7 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
                         //initialize the LPV
                         initializeLPV(/*pd3dContext,*/ LPV0Accumulate.get(i), LPV0Propagate.get(i), lightViewMatrix, lightProjMatrix, g_pRSMColorRT, g_pRSMNormalRT, g_pShadowMapDS, g_fLightFov, 1, g_lightNear, g_lightFar, g_useDirectionalLight);
                         //initialize the GV ( geometry volume) with the RSM data
-                        initializeGV(/*pd3dContext,*/ GV0.getRenderTarget(i), GV0Color.getRenderTarget(i), g_pRSMAlbedoRT, g_pRSMNormalRT, g_pShadowMapDS, g_fLightFov, 1, g_lightNear, g_lightFar, g_useDirectionalLight, lightProjMatrix, *lightViewMatrix);
+                        initializeGV(/*pd3dContext,*/ GV0.getRenderTarget(i), GV0Color.getRenderTarget(i), g_pRSMAlbedoRT, g_pRSMNormalRT, g_pShadowMapDS, g_fLightFov, 1, g_lightNear, g_lightFar, g_useDirectionalLight, lightProjMatrix, lightViewMatrix);
                     }
                 }
                 else
@@ -2006,235 +2006,358 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
         int srvsUsed = 1;
 
         //bind the shadow buffer and LPV buffers
-        if(LPV0Accumulate.getRed(0).getNumChannels()>1 && LPV0Accumulate->getRed(0)->getNumRTs()==1)
+        if(LPV0Accumulate.getRed(0).getNumChannels()>1 && LPV0Accumulate.getRed(0).getNumRTs()==1)
         {
-            if(g_bUseSingleLPV || g_propType == HIERARCHY)
+            if(g_bUseSingleLPV || g_propType == PROP_TYPE.HIERARCHY)
             {
                 int level = 0;
                 if(g_bUseSingleLPV) level = g_PropLevel;
 
-                ID3D11ShaderResourceView* ppSRVs4[4] = { g_pSceneShadowMap->get_pSRV(0), LPV0Accumulate->getRed(level)->get_pSRV(0), LPV0Accumulate->getGreen(level)->get_pSRV(0), LPV0Accumulate->getBlue(level)->get_pSRV(0)  };
-                pd3dContext->PSSetShaderResources( 1, 4, ppSRVs4);
+                /*ID3D11ShaderResourceView* ppSRVs4[4] = { g_pSceneShadowMap->get_pSRV(0), LPV0Accumulate->getRed(level)->get_pSRV(0), LPV0Accumulate->getGreen(level)->get_pSRV(0), LPV0Accumulate->getBlue(level)->get_pSRV(0)  };
+                pd3dContext->PSSetShaderResources( 1, 4, ppSRVs4);*/
+                bind(g_pSceneShadowMap.get_pSRV(0), 1, 0);
+                bind(LPV0Accumulate.getRed(level).get_pSRV(0), 2, 0);
+                bind(LPV0Accumulate.getGreen(level).get_pSRV(0), 3, 0);
+                bind(LPV0Accumulate.getBlue(level).get_pSRV(0), 4, 0);
                 srvsUsed = 4;
             }
-            else if(g_propType == CASCADE)
+            else if(g_propType == PROP_TYPE.CASCADE)
             {
-                ID3D11ShaderResourceView* ppSRVs4[7] = { g_pSceneShadowMap->get_pSRV(0), LPV0Accumulate->getRed(0)->get_pSRV(0), LPV0Accumulate->getGreen(0)->get_pSRV(0), LPV0Accumulate->getBlue(0)->get_pSRV(0),
+                /*ID3D11ShaderResourceView* ppSRVs4[7] = { g_pSceneShadowMap->get_pSRV(0), LPV0Accumulate->getRed(0)->get_pSRV(0), LPV0Accumulate->getGreen(0)->get_pSRV(0),
+                LPV0Accumulate->getBlue(0)->get_pSRV(0),
                     LPV0Accumulate->getRed(1)->get_pSRV(0), LPV0Accumulate->getGreen(1)->get_pSRV(0), LPV0Accumulate->getBlue(1)->get_pSRV(0)};
-                pd3dContext->PSSetShaderResources( 1, 7, ppSRVs4);
+                pd3dContext->PSSetShaderResources( 1, 7, ppSRVs4);*/
+                bind(g_pSceneShadowMap.get_pSRV(0), 1, 0);
+                bind(LPV0Accumulate.getRed(0).get_pSRV(0), 2, 0);
+                bind(LPV0Accumulate.getGreen(0).get_pSRV(0), 3, 0);
+                bind(LPV0Accumulate.getBlue(0).get_pSRV(0), 4, 0);
+                bind(LPV0Accumulate.getRed(1).get_pSRV(0), 5, 0);
+                bind(LPV0Accumulate.getGreen(1).get_pSRV(0), 6, 0);
+                bind(LPV0Accumulate.getBlue(1).get_pSRV(0), 7, 0);
                 srvsUsed = 7;
             }
         }
-        else if(LPV0Accumulate->getRed(0)->getNumChannels()==1 && LPV0Accumulate->getRed(0)->getNumRTs()==4)
+        else if(LPV0Accumulate.getRed(0).getNumChannels()==1 && LPV0Accumulate.getRed(0).getNumRTs()==4)
         {
-            if(g_bUseSingleLPV || g_propType == HIERARCHY)
+            if(g_bUseSingleLPV || g_propType == PROP_TYPE.HIERARCHY)
             {
                 int level = 0;
                 if(g_bUseSingleLPV) level = g_PropLevel;
-                ID3D11ShaderResourceView* ppSRVs_0[4] = { g_pSceneShadowMap->get_pSRV(0),
-                        LPV0Accumulate->getRed(level)->get_pSRV(0), LPV0Accumulate->getGreen(level)->get_pSRV(0), LPV0Accumulate->getBlue(level)->get_pSRV(0)  };
-                ID3D11ShaderResourceView* ppSRVs_1[3] = { LPV0Accumulate->getRed(level)->get_pSRV(1), LPV0Accumulate->getGreen(level)->get_pSRV(1), LPV0Accumulate->getBlue(level)->get_pSRV(1)  };
-                ID3D11ShaderResourceView* ppSRVs_2[3] = { LPV0Accumulate->getRed(level)->get_pSRV(2), LPV0Accumulate->getGreen(level)->get_pSRV(2), LPV0Accumulate->getBlue(level)->get_pSRV(2)  };
-                ID3D11ShaderResourceView* ppSRVs_3[3] = { LPV0Accumulate->getRed(level)->get_pSRV(3), LPV0Accumulate->getGreen(level)->get_pSRV(3), LPV0Accumulate->getBlue(level)->get_pSRV(3)  };
-                pd3dContext->PSSetShaderResources(  1, 4, ppSRVs_0);
+                /*ID3D11ShaderResourceView* ppSRVs_0[4] = { g_pSceneShadowMap->get_pSRV(0),
+                        LPV0Accumulate->getRed(level)->get_pSRV(0), LPV0Accumulate->getGreen(level)->get_pSRV(0), LPV0Accumulate->getBlue(level)->get_pSRV(0)  };*/
+                bind(g_pSceneShadowMap.get_pSRV(0), 1, 0);
+                bind(LPV0Accumulate.getRed(level).get_pSRV(0), 2, 0);
+                bind(LPV0Accumulate.getGreen(level).get_pSRV(0), 3, 0);
+                bind(LPV0Accumulate.getBlue(level).get_pSRV(0), 4, 0);
+
+//                ID3D11ShaderResourceView* ppSRVs_1[3] = { LPV0Accumulate->getRed(level)->get_pSRV(1), LPV0Accumulate->getGreen(level)->get_pSRV(1), LPV0Accumulate->getBlue(level)->get_pSRV(1)  };
+                bind(LPV0Accumulate.getRed(level).get_pSRV(1), 12, 0);
+                bind(LPV0Accumulate.getGreen(level).get_pSRV(1), 13, 0);
+                bind(LPV0Accumulate.getBlue(level).get_pSRV(1), 14, 0);
+
+//                ID3D11ShaderResourceView* ppSRVs_2[3] = { LPV0Accumulate->getRed(level)->get_pSRV(2), LPV0Accumulate->getGreen(level)->get_pSRV(2), LPV0Accumulate->getBlue(level)->get_pSRV(2)  };
+                bind(LPV0Accumulate.getRed(level).get_pSRV(2), 21, 0);
+                bind(LPV0Accumulate.getGreen(level).get_pSRV(2), 22, 0);
+                bind(LPV0Accumulate.getBlue(level).get_pSRV(2), 23, 0);
+
+//                ID3D11ShaderResourceView* ppSRVs_3[3] = { LPV0Accumulate->getRed(level)->get_pSRV(3), LPV0Accumulate->getGreen(level)->get_pSRV(3), LPV0Accumulate->getBlue(level)->get_pSRV(3)  };
+                bind(LPV0Accumulate.getRed(level).get_pSRV(3), 30, 0);
+                bind(LPV0Accumulate.getGreen(level).get_pSRV(3), 31, 0);
+                bind(LPV0Accumulate.getBlue(level).get_pSRV(3), 32, 0);
+
+                /*pd3dContext->PSSetShaderResources(  1, 4, ppSRVs_0);
                 pd3dContext->PSSetShaderResources( 12, 3, ppSRVs_1);
                 pd3dContext->PSSetShaderResources( 21, 3, ppSRVs_2);
-                pd3dContext->PSSetShaderResources( 30, 3, ppSRVs_3);
+                pd3dContext->PSSetShaderResources( 30, 3, ppSRVs_3);*/
                 srvsUsed = 33;
             }
-            else if(g_propType == CASCADE)
+            else if(g_propType == PROP_TYPE.CASCADE)
             {
-                assert(0); //this path is not implemented yet, but needs to be implemented
+                assert(false); //this path is not implemented yet, but needs to be implemented
             }
         }
     else
-        assert(0); //this path is not implemented and either we are here by mistake, or we have to implement this path because it is really needed
+        assert(false); //this path is not implemented and either we are here by mistake, or we have to implement this path because it is really needed
 
 
         //bind the samplers
-        ID3D11SamplerState *states[2] = { g_pLinearSampler, g_pComparisonSampler };
+        /*ID3D11SamplerState *states[2] = { g_pLinearSampler, g_pComparisonSampler };
         pd3dContext->PSSetSamplers( 0, 2, states );
         ID3D11SamplerState *state[1] = { g_pAnisoSampler };
-        pd3dContext->PSSetSamplers( 3, 1, state );
+        pd3dContext->PSSetSamplers( 3, 1, state );*/
 
         // set the shaders
-        pd3dContext->VSSetShader( g_pVS, NULL, 0 );
+//        pd3dContext->VSSetShader( g_pVS, NULL, 0 );
+        g_Program.setVS(g_pVS);
         if(useFloat4s)
-            pd3dContext->PSSetShader( g_pPS, NULL, 0 );
+//            pd3dContext->PSSetShader( g_pPS, NULL, 0 );
+            g_Program.setPS(g_pPS);
         else
-            pd3dContext->PSSetShader( g_pPS_separateFloatTextures, NULL, 0 );
+//            pd3dContext->PSSetShader( g_pPS_separateFloatTextures, NULL, 0 );
+            g_Program.setPS(g_pPS_separateFloatTextures);
 
+        final Matrix4f ViewProjClip2TexLight = CacheBuffer.getCachedMatrix();
+        final Matrix4f WVPMatrixLight = CacheBuffer.getCachedMatrix();
+        final Matrix4f WVMatrixITLight = CacheBuffer.getCachedMatrix();
+        final Matrix4f WVMatrixLight = CacheBuffer.getCachedMatrix();
+
+        final Matrix4f ViewProjClip2TexCamera = CacheBuffer.getCachedMatrix();
+        final Matrix4f WVPMatrixCamera = CacheBuffer.getCachedMatrix();
+        final Matrix4f WVMatrixITCamera = CacheBuffer.getCachedMatrix();
+        final Matrix4f WVMatrixCamera = CacheBuffer.getCachedMatrix();
         for(int i=0; i<numMeshes; i++)
         {
-            RenderMesh* mesh = meshes[i];
+            RenderMesh mesh = meshes[i];
             //set the matrices
-            D3DXMATRIX ViewProjClip2TexLight, WVPMatrixLight, WVMatrixITLight, WVMatrixLight;
-            mesh->createMatrices( g_pSceneShadowMapProj, mShadowMatrix, &WVMatrixLight, &WVMatrixITLight, &WVPMatrixLight, &ViewProjClip2TexLight );
-            D3DXMATRIX ViewProjClip2TexCamera, WVPMatrixCamera, WVMatrixITCamera, WVMatrixCamera;
-            mesh->createMatrices( *p_cameraProjectionMatrix, *p_cameraViewMatrix, &WVMatrixCamera, &WVMatrixITCamera, &WVPMatrixCamera, &ViewProjClip2TexCamera );
+            mesh.createMatrices( g_pSceneShadowMapProj, mShadowMatrix, WVMatrixLight, WVMatrixITLight, WVPMatrixLight, ViewProjClip2TexLight );
+            mesh.createMatrices( p_cameraProjectionMatrix, p_cameraViewMatrix, WVMatrixCamera, WVMatrixITCamera, WVPMatrixCamera, ViewProjClip2TexCamera );
 
-            UpdateSceneCB( pd3dContext, *g_LightCamera.GetEyePt(), g_lightRadius, g_depthBiasFromGUI, g_bUseSM, &(WVPMatrixCamera), &(WVMatrixITCamera), &(mesh->m_WMatrix), &(ViewProjClip2TexLight));
+            UpdateSceneCB( /*pd3dContext,*/ g_LightCamera.getPosition(), g_lightRadius, g_depthBiasFromGUI, g_bUseSM, WVPMatrixCamera, WVMatrixITCamera,
+                    mesh.m_WMatrix, ViewProjClip2TexLight);
 
             //first render the meshes with no alpha
-            pd3dContext->OMSetBlendState(g_pNoBlendBS, BlendFactor, 0xffffffff);
-            pd3dContext->Map( g_pcbMeshRenderOptions, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-            CB_MESH_RENDER_OPTIONS* pMeshRenderOptions = ( CB_MESH_RENDER_OPTIONS* )MappedResource.pData;
-            if(g_useTextureForFinalRender)
-                pMeshRenderOptions->useTexture = mesh->m_UseTexture;
+//            pd3dContext->OMSetBlendState(g_pNoBlendBS, BlendFactor, 0xffffffff);
+            g_pNoBlendBS.run();
+
+            /*pd3dContext->Map( g_pcbMeshRenderOptions, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+            CB_MESH_RENDER_OPTIONS* pMeshRenderOptions = ( CB_MESH_RENDER_OPTIONS* )MappedResource.pData;*/
+            /*if(g_useTextureForFinalRender)
+                pMeshRenderOptions.useTexture = mesh->m_UseTexture;
             else
-                pMeshRenderOptions->useTexture = false;
+                pMeshRenderOptions.useTexture = false;
             pMeshRenderOptions->useAlpha = false;
-            pd3dContext->Unmap( g_pcbMeshRenderOptions, 0 );
-            pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbMeshRenderOptions );
+            pd3dContext->Unmap( g_pcbMeshRenderOptions, 0 );*/
+            bytes = CacheBuffer.getCachedByteBuffer(16);
+            if(g_useTextureForFinalRender){
+                bytes.putInt(mesh.m_UseTexture?1:0);
+            }else{
+                bytes.putInt(0);  // useTexture false
+            }
+            bytes.putInt(0);  // useAlpha false
+            bytes.position(16).flip();
+            g_pcbMeshRenderOptions.update(0, bytes);
+
+//            pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbMeshRenderOptions );
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_pcbMeshRenderOptions.getBuffer());
             if(g_subsetToRender==-1)
-                mesh->m_Mesh.RenderBounded( pd3dContext, D3DXVECTOR3(0,0,0), D3DXVECTOR3(100000,100000,100000), 0, 39, -1, 40, Mesh::NO_ALPHA );
+                mesh.m_Mesh.RenderBounded( /*pd3dContext,*/ new Vector3f(0,0,0), new Vector3f(100000,100000,100000), 0, 39, -1, 40, Mesh.NO_ALPHA );
             else
-                mesh->m_Mesh.RenderSubsetBounded(0,g_subsetToRender, pd3dContext, D3DXVECTOR3(0,0,0), D3DXVECTOR3(10000,10000,10000), false, 0, 39, -1, 40, Mesh::NO_ALPHA );
+                mesh.m_Mesh.RenderSubsetBounded(0,g_subsetToRender, /*pd3dContext,*/ new Vector3f(0,0,0), new Vector3f(10000,10000,10000), false, 0, 39, -1, 40, Mesh.NO_ALPHA );
 
 
             //then render the meshes with alpha
-            pd3dContext->OMSetBlendState(g_pAlphaBlendBS, BlendFactor, 0xffffffff);
-            pd3dContext->Map( g_pcbMeshRenderOptions, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+//            pd3dContext->OMSetBlendState(g_pAlphaBlendBS, BlendFactor, 0xffffffff);
+            g_pAlphaBlendBS.run();
+
+            /*pd3dContext->Map( g_pcbMeshRenderOptions, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
             pMeshRenderOptions = ( CB_MESH_RENDER_OPTIONS* )MappedResource.pData;
             if(g_useTextureForFinalRender)
                 pMeshRenderOptions->useTexture = mesh->m_UseTexture;
             else
                 pMeshRenderOptions->useTexture = false;
             pMeshRenderOptions->useAlpha = true;
-            pd3dContext->Unmap( g_pcbMeshRenderOptions, 0 );
-            pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbMeshRenderOptions );
+            pd3dContext->Unmap( g_pcbMeshRenderOptions, 0 );*/
+            bytes = CacheBuffer.getCachedByteBuffer(16);
+            if(g_useTextureForFinalRender){
+                bytes.putInt(mesh.m_UseTexture?1:0);
+            }else{
+                bytes.putInt(0);  // useTexture false
+            }
+            bytes.putInt(1);  // useAlpha false
+            bytes.position(16).flip();
+            g_pcbMeshRenderOptions.update(0, bytes);
+
+//            pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbMeshRenderOptions );
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_pcbMeshRenderOptions.getBuffer());
             if(g_subsetToRender==-1)
-                mesh->m_Mesh.RenderBounded( pd3dContext, D3DXVECTOR3(0,0,0), D3DXVECTOR3(100000,100000,100000), 0, 39, -1, 40, Mesh::WITH_ALPHA );
+                mesh.m_Mesh.RenderBounded( /*pd3dContext,*/ new Vector3f(0,0,0), new Vector3f(100000,100000,100000), 0, 39, -1, 40, Mesh.WITH_ALPHA );
             else
-                mesh->m_Mesh.RenderSubsetBounded(0,g_subsetToRender, pd3dContext, D3DXVECTOR3(0,0,0), D3DXVECTOR3(10000,10000,10000), false, 0, 39, -1, 40, Mesh::WITH_ALPHA );
-            pd3dContext->OMSetBlendState(g_pNoBlendBS, BlendFactor, 0xffffffff);
+                mesh.m_Mesh.RenderSubsetBounded(0,g_subsetToRender, /*pd3dContext,*/ new Vector3f(0,0,0), new Vector3f(10000,10000,10000), false, 0, 39, -1, 40, Mesh.WITH_ALPHA );
+//            pd3dContext->OMSetBlendState(g_pNoBlendBS, BlendFactor, 0xffffffff);
+            g_pNoBlendBS.run();
         }
 
-        ID3D11ShaderResourceView** ppSRVsNULL = new ID3D11ShaderResourceView*[srvsUsed];
+        CacheBuffer.free(ViewProjClip2TexLight);
+        CacheBuffer.free(WVPMatrixLight);
+        CacheBuffer.free(WVMatrixITLight);
+        CacheBuffer.free(WVMatrixLight);
+
+        CacheBuffer.free(ViewProjClip2TexCamera);
+        CacheBuffer.free(WVPMatrixCamera);
+        CacheBuffer.free(WVMatrixITCamera);
+        CacheBuffer.free(WVMatrixCamera);
+
+
+        /*ID3D11ShaderResourceView** ppSRVsNULL = new ID3D11ShaderResourceView*[srvsUsed];
         for(int i=0; i<srvsUsed; i++) ppSRVsNULL[i]=NULL;
         pd3dContext->PSSetShaderResources( 1, srvsUsed, ppSRVsNULL);
-        delete[] ppSRVsNULL;
-
+        delete[] ppSRVsNULL;*/
+        for(int i=0; i<srvsUsed; i++){
+            bind(null,i+1, 0);
+        }
 
         //render the box visualizing the LPV
         if(g_bVizLPVBB)
         {
-            D3DXVECTOR4 colors[3];
-            colors[0] = D3DXVECTOR4(1.0f,0.0f,0.0f,1.0f);
-            colors[1] = D3DXVECTOR4(0.0f,1.0f,0.0f,1.0f);
-            colors[2] = D3DXVECTOR4(0.0f,0.0f,1.0f,1.0f);
+            Vector4f[] colors = new Vector4f[3];
+            colors[0] = new Vector4f(1.0f,0.0f,0.0f,1.0f);
+            colors[1] = new Vector4f(0.0f,1.0f,0.0f,1.0f);
+            colors[2] = new Vector4f(0.0f,0.0f,1.0f,1.0f);
 
-            if(g_propType == HIERARCHY)
-                VisualizeBB(pd3dContext, LPV0Propagate->m_collection[0], VPMatrix, colors[0]);
+            if(g_propType == PROP_TYPE.HIERARCHY)
+                VisualizeBB(/*pd3dContext,*/ LPV0Propagate.get(0), VPMatrix, colors[0]);
             else
-                for(int i=0; i<LPV0Propagate->getNumLevels(); i++)
-                    VisualizeBB(pd3dContext, LPV0Propagate->m_collection[i], VPMatrix, colors[min(2,i)]);
+                for(int i=0; i<LPV0Propagate.getNumLevels(); i++)
+                    VisualizeBB(/*pd3dContext,*/ LPV0Propagate.get(1), VPMatrix, colors[Math.min(2,i)]);
         }
 
         //render the light arrow
-        pd3dContext->Map( g_pcbSimple, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-        pPSSimple = ( CB_SIMPLE_OBJECTS* )MappedResource.pData;
+        /*pd3dContext->Map( g_pcbSimple, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        pPSSimple = ( CB_SIMPLE_OBJECTS* )MappedResource.pData;*/
         //calculate and set the world view projection matrix for transforming the arrow
-        D3DXMATRIX objScale, objXForm;
+
+        /*D3DXMATRIX objScale, objXForm;
         D3DXMatrixScaling(&objScale,0.06f,0.06f,0.06f);
         D3DXMATRIX mLookAtInv;
         D3DXMatrixInverse(&mLookAtInv, NULL, &mShadowMatrix);
         D3DXMATRIX mWorldS = objScale * mLookAtInv ;
         D3DXMatrixMultiply(&objXForm,&mWorldS,&VPMatrix);
-        D3DXMatrixTranspose( &pPSSimple->m_WorldViewProj,&objXForm);
-        pPSSimple->m_color = D3DXVECTOR4(1.0f,1.0f,0.0f,1.0f);
-        pd3dContext->Unmap( g_pcbSimple, 0 );
-        pd3dContext->PSSetConstantBuffers( 4, 1, &g_pcbSimple );
-        pd3dContext->VSSetConstantBuffers( 4, 1, &g_pcbSimple );
-        pd3dContext->RSSetState(g_pRasterizerStateMainRender);
-        pd3dContext->VSSetShader( g_pSimpleVS, NULL, 0 );
-        pd3dContext->PSSetShader( g_pSimplePS, NULL, 0 );
-        g_MeshArrow.Render( pd3dContext, 0 );
+        D3DXMatrixTranspose( &pPSSimple->m_WorldViewProj,&objXForm);*/
+        final Matrix4f mLookAtInv = CacheBuffer.getCachedMatrix();
+        Matrix4f.invert(mShadowMatrix, mLookAtInv);
+        mLookAtInv.scale(0.06f,0.06f,0.06f);
+        Matrix4f.mul(VPMatrix, mLookAtInv, pPSSimple.m_WorldViewProj);
+        CacheBuffer.free(mLookAtInv);
+        pPSSimple.m_color.set(1.0f,1.0f,0.0f,1.0f);
+//        pd3dContext->Unmap( g_pcbSimple, 0 );
+        bytes = CacheBuffer.wrap(CB_SIMPLE_OBJECTS.SIZE, pPSSimple);
+        g_pcbSimple.update(0, bytes);
+
+        /*pd3dContext->PSSetConstantBuffers( 4, 1, &g_pcbSimple );
+        pd3dContext->VSSetConstantBuffers( 4, 1, &g_pcbSimple );*/
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 4, g_pcbSimple.getBuffer());
+
+//        pd3dContext->RSSetState(g_pRasterizerStateMainRender);
+        g_pRasterizerStateMainRender.run();
+
+        /*pd3dContext->VSSetShader( g_pSimpleVS, NULL, 0 );
+        pd3dContext->PSSetShader( g_pSimplePS, NULL, 0 );*/
+        g_Program.setVS(g_pSimpleVS);
+        g_Program.setPS(g_pSimplePS);
+        g_MeshArrow.render( /*pd3dContext,*/ 0, SDKmesh.INVALID_SAMPLER_SLOT,  SDKmesh.INVALID_SAMPLER_SLOT);
 
 
         if(g_bVisualizeLPV3D)
         {
             //render little spheres filling the LPV region showing the value of the LPV at that location in 3D space
-
-            pd3dContext->Map( g_pcbSimple, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+            /*pd3dContext->Map( g_pcbSimple, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
             pPSSimple = ( CB_SIMPLE_OBJECTS* )MappedResource.pData;
             D3DXMATRIX wvp;
             D3DXMatrixMultiply(&wvp,&(LPV0Propagate->m_collection[0]->getWorldToLPVBB()),&VPMatrix);
-            D3DXMatrixTranspose( &pPSSimple->m_WorldViewProj,&wvp);
-            pPSSimple->m_color = D3DXVECTOR4(1.0f,0.0f,0.0f,1.0f);
-            pPSSimple->m_sphereScale = D3DXVECTOR4(0.002f * g_LPVscale/23.0f,0.002f * g_LPVscale/23.0f,0.002f * g_LPVscale/23.0f,0.002f * g_LPVscale/23.0f);
-            pd3dContext->Unmap( g_pcbSimple, 0 );
-            pd3dContext->VSSetConstantBuffers( 4, 1, &g_pcbSimple );
+            D3DXMatrixTranspose( &pPSSimple->m_WorldViewProj,&wvp);*/
+            Matrix4f.mul(VPMatrix, LPV0Propagate.get(0).getWorldToLPVBB(), pPSSimple.m_WorldViewProj);
 
-            pd3dContext->VSSetConstantBuffers( 5, 1, &g_pcbRender );
-            pd3dContext->PSSetConstantBuffers( 5, 1, &g_pcbRender );
-            pd3dContext->PSSetConstantBuffers( 7, 1, &g_pcbRenderLPV ); //note: right now this is not visualizing the right level of the cascade
+            pPSSimple.m_color.set(1.0f,0.0f,0.0f,1.0f);
+            pPSSimple.m_sphereScale.set(0.002f * g_LPVscale/23.0f,0.002f * g_LPVscale/23.0f,0.002f * g_LPVscale/23.0f,0.002f * g_LPVscale/23.0f);
+//            pd3dContext->Unmap( g_pcbSimple, 0 );
+            bytes = CacheBuffer.wrap(CB_SIMPLE_OBJECTS.SIZE, pPSSimple);
+            g_pcbSimple.update(0, bytes);
 
-            if(g_currVizChoice == GV_COLOR )
-                pd3dContext->PSSetShaderResources( 11, 1, GV0Color->getShaderResourceViewpp(g_PropLevel) );
-            else if(g_currVizChoice == GV )
-                pd3dContext->PSSetShaderResources( 11, 1, GV0->getShaderResourceViewpp(g_PropLevel) );
-            else if(g_currVizChoice == GREEN_ACCUM_LPV )
-                pd3dContext->PSSetShaderResources( 11, 1, LPV0Accumulate->getGreen(g_PropLevel)->get_ppSRV(0) );
-    else if(g_currVizChoice == BLUE_ACCUM_LPV )
-            pd3dContext->PSSetShaderResources( 11, 1, LPV0Accumulate->getBlue(g_PropLevel)->get_ppSRV(0) );
-    else pd3dContext->PSSetShaderResources( 11, 1, LPV0Propagate->getRed(g_PropLevel)->get_ppSRV(0) );
+//            pd3dContext->VSSetConstantBuffers( 4, 1, &g_pcbSimple );
+//            pd3dContext->VSSetConstantBuffers( 5, 1, &g_pcbRender );
+//            pd3dContext->PSSetConstantBuffers( 5, 1, &g_pcbRender );
+//            pd3dContext->PSSetConstantBuffers( 7, 1, &g_pcbRenderLPV ); //note: right now this is not visualizing the right level of the cascade
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 4, g_pcbSimple.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, g_pcbRender.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 7, g_pcbRenderLPV.getBuffer());
 
+            if(g_currVizChoice == VIZ_OPTIONS.GV_COLOR )
+//                pd3dContext->PSSetShaderResources( 11, 1, GV0Color->getShaderResourceViewpp(g_PropLevel) );
+                bind(GV0Color.getShaderResourceViewpp(g_PropLevel, 0), 11, 0);
+            else if(g_currVizChoice == VIZ_OPTIONS.GV )
+//                pd3dContext->PSSetShaderResources( 11, 1, GV0->getShaderResourceViewpp(g_PropLevel) );
+                bind(GV0.getShaderResourceViewpp(g_PropLevel, 0), 11, 0);
+            else if(g_currVizChoice == VIZ_OPTIONS.GREEN_ACCUM_LPV )
+//                pd3dContext->PSSetShaderResources( 11, 1, LPV0Accumulate->getGreen(g_PropLevel)->get_ppSRV(0) );
+                bind(LPV0Accumulate.getGreen(g_PropLevel).get_ppSRV(0), 11, 0);
+            else if(g_currVizChoice == VIZ_OPTIONS.BLUE_ACCUM_LPV )
+//                    pd3dContext->PSSetShaderResources( 11, 1, LPV0Accumulate->getBlue(g_PropLevel)->get_ppSRV(0) );
+                bind(LPV0Accumulate.getBlue(g_PropLevel).get_ppSRV(0), 11, 0);
+            else
+//                pd3dContext->PSSetShaderResources( 11, 1, LPV0Propagate->getRed(g_PropLevel)->get_ppSRV(0) );
+                bind(LPV0Propagate.getRed(g_PropLevel).get_ppSRV(0), 11, 0);
 
-            pd3dContext->RSSetState(g_pRasterizerStateMainRender);
-            pd3dContext->VSSetShader( g_pVSVizLPV, NULL, 0 );
-            pd3dContext->PSSetShader( g_pPSVizLPV, NULL, 0 );
+//            pd3dContext->RSSetState(g_pRasterizerStateMainRender);
+            g_pRasterizerStateMainRender.run();
+            /*pd3dContext->VSSetShader( g_pVSVizLPV, NULL, 0 );
+            pd3dContext->PSSetShader( g_pPSVizLPV, NULL, 0 );*/
+            g_Program.setVS(g_pVSVizLPV);
+            g_Program.setPS(g_pPSVizLPV);
 
-            ID3D11SamplerState *states[1] = { g_pDefaultSampler };
-            pd3dContext->PSSetSamplers( 0, 1, states );
+            /*ID3D11SamplerState *states[1] = { g_pDefaultSampler };
+            pd3dContext->PSSetSamplers( 0, 1, states );*/
 
-            int xLimit = LPV0Propagate->m_collection[g_PropLevel]->getWidth3D();
-            int yLimit = LPV0Propagate->m_collection[g_PropLevel]->getHeight3D();
-            int zLimit = LPV0Propagate->m_collection[g_PropLevel]->getDepth3D();
+            int xLimit = LPV0Propagate.get(g_PropLevel).getWidth3D();
+            int yLimit = LPV0Propagate.get(g_PropLevel).getHeight3D();
+            int zLimit = LPV0Propagate.get(g_PropLevel).getDepth3D();
 
             for(int x=0; x<xLimit; x++)
                 for(int y=0; y<yLimit; y++)
                     for(int z=0; z<zLimit; z++)
                     {
-
-                        pd3dContext->Map( g_pcbLPVViz, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+                        /*pd3dContext->Map( g_pcbLPVViz, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
                         VIZ_LPV* cbLPVIndex = ( VIZ_LPV* )MappedResource.pData;
                         cbLPVIndex->LPVSpacePos = D3DXVECTOR3((float)x/xLimit,(float)y/yLimit,(float)z/zLimit);
                         pd3dContext->Unmap( g_pcbLPVViz, 0 );
-                        pd3dContext->VSSetConstantBuffers( 2, 1, &g_pcbLPVViz );
+                        pd3dContext->VSSetConstantBuffers( 2, 1, &g_pcbLPVViz );*/
+                        FloatBuffer buffer = CacheBuffer.wrap((float)x/xLimit,(float)y/yLimit,(float)z/zLimit, 0);
+                        g_pcbLPVViz.update(0, buffer);
+                        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, g_pcbLPVViz.getBuffer());
 
-                        g_LowResMesh.Render( pd3dContext, 0 );
+                        g_LowResMesh.render( /*pd3dContext,*/ 0, SDKmesh.INVALID_SAMPLER_SLOT, SDKmesh.INVALID_SAMPLER_SLOT);
                     }
 
-            ID3D11ShaderResourceView* ppSRVsNULL1[1] = { NULL };
-            pd3dContext->PSSetShaderResources( 11, 1, ppSRVsNULL1);
-
+            /*ID3D11ShaderResourceView* ppSRVsNULL1[1] = { NULL };
+            pd3dContext->PSSetShaderResources( 11, 1, ppSRVsNULL1);*/
+            bind(null, 11, 0);
         }
 
         if(g_bVisualizeSM)
         {
-            if(g_currVizChoice == COLOR_RSM )
-                visualizeMap(g_pRSMColorRT, pd3dContext, g_pRSMColorRT->getNumChannels() );
-            else if(g_currVizChoice == NORMAL_RSM )
-                visualizeMap(g_pRSMNormalRT, pd3dContext, g_pRSMNormalRT->getNumChannels() );
-            else if(g_currVizChoice == ALBEDO_RSM )
-                visualizeMap(g_pRSMAlbedoRT, pd3dContext, g_pRSMAlbedoRT->getNumChannels() );
+            if(g_currVizChoice == VIZ_OPTIONS.COLOR_RSM )
+                visualizeMap(g_pRSMColorRT, /*pd3dContext,*/ g_pRSMColorRT.getNumChannels() );
+            else if(g_currVizChoice == VIZ_OPTIONS.NORMAL_RSM )
+                visualizeMap(g_pRSMNormalRT, /*pd3dContext,*/ g_pRSMNormalRT.getNumChannels() );
+            else if(g_currVizChoice == VIZ_OPTIONS.ALBEDO_RSM )
+                visualizeMap(g_pRSMAlbedoRT, /*pd3dContext,*/ g_pRSMAlbedoRT.getNumChannels() );
 
-            else if(g_currVizChoice == RED_LPV )
-                visualizeMap(LPV0Propagate->getRed(g_PropLevel), pd3dContext, LPV0Propagate->getRed(g_PropLevel)->getNumChannels() );
-        else if(g_currVizChoice == GREEN_ACCUM_LPV )
-            visualizeMap(LPV0Accumulate->getGreen(g_PropLevel), pd3dContext, LPV0Accumulate->getGreen(g_PropLevel)->getNumChannels() );
-        else if(g_currVizChoice == BLUE_ACCUM_LPV )
-            visualizeMap(LPV0Accumulate->getBlue(g_PropLevel), pd3dContext, LPV0Accumulate->getBlue(g_PropLevel)->getNumChannels());
+            else if(g_currVizChoice == VIZ_OPTIONS.RED_LPV )
+                visualizeMap(LPV0Propagate.getRed(g_PropLevel), /*pd3dContext,*/ LPV0Propagate.getRed(g_PropLevel).getNumChannels() );
+            else if(g_currVizChoice == VIZ_OPTIONS.GREEN_ACCUM_LPV )
+                visualizeMap(LPV0Accumulate.getGreen(g_PropLevel), /*pd3dContext,*/ LPV0Accumulate.getGreen(g_PropLevel).getNumChannels() );
+            else if(g_currVizChoice == VIZ_OPTIONS.BLUE_ACCUM_LPV )
+                visualizeMap(LPV0Accumulate.getBlue(g_PropLevel), /*pd3dContext,*/ LPV0Accumulate.getBlue(g_PropLevel).getNumChannels());
 
-        else if(g_currVizChoice == GV )
-            visualizeMap(GV0->getRenderTarget(g_PropLevel),pd3dContext, 1);
-        else if(g_currVizChoice == GV_COLOR )
-            visualizeMap(GV0Color->getRenderTarget(g_PropLevel),pd3dContext, 1);
+            else if(g_currVizChoice == VIZ_OPTIONS.GV )
+                visualizeMap(GV0.getRenderTarget(g_PropLevel),/*pd3dContext,*/ 1);
+            else if(g_currVizChoice == VIZ_OPTIONS.GV_COLOR )
+                visualizeMap(GV0Color.getRenderTarget(g_PropLevel),/*pd3dContext,*/ 1);
 
         }
     }
 
+    private void bind(TextureGL tex, int unit, int sampler){
+        gl.glActiveTexture(GLenum.GL_TEXTURE0 + unit);
+        if(tex != null){
+            gl.glBindTexture(tex.getTarget(), tex.getTexture());
+        }else{
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+        }
+
+        gl.glBindSampler(unit, sampler);
+    }
+
+    private final CB_MESH_RENDER_OPTIONS pMeshRenderOptions = new CB_MESH_RENDER_OPTIONS();
     private final CB_RENDER_LPV pcbRenderLPV = new CB_RENDER_LPV();
 
     void resetSettingValues()
@@ -2284,7 +2407,7 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
         g_directionalDampingAmount = 0.1f;
     }
 
-    void visualizeMap(RenderTarget RT, /*ID3D11DeviceContext* pd3dContext,*/ int numChannels)
+    void visualizeMap(SimpleRT RT, /*ID3D11DeviceContext* pd3dContext,*/ int numChannels)
     {
         // draw the 2d texture
         /*UINT stride = sizeof( TexPosVertex );
@@ -2331,9 +2454,9 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
             pd3dContext->Unmap( g_pcbSlices3D, 0 );
             pd3dContext->VSSetConstantBuffers( 0, 1, &g_pcbSlices3D );*/
             FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(4);
-            buffer.put(RT.getWidth());
-            buffer.put(RT.getHeight());
-            buffer.put(RT.getDepth());
+            buffer.put(RT.m_width3D);
+            buffer.put(RT.m_height3D);
+            buffer.put(RT.m_depth3D);
             buffer.put(0).flip();
             g_pcbSlices3D.update(0, buffer);
             gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, g_pcbSlices3D.getBuffer());
@@ -2567,87 +2690,109 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
                    DepthRT pShadowTex, Matrix4f projectionMatrix, Matrix4f viewMatrix, int numMeshes, RenderMesh[] meshes, Vector4i shadowViewport,
                    ReadableVector3f lightPos, float lightRadius, float depthBiasFromGUI, boolean bUseSM)
     {
-        throw new UnsupportedOperationException();
-        /*float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        /*throw new UnsupportedOperationException();
+        float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         pd3dContext->OMSetBlendState(g_pNoBlendBS, BlendFactor, 0xffffffff);
         pd3dContext->OMSetDepthStencilState(g_normalDepthStencilState, 0);
-        pd3dContext->RSSetState(g_pRasterizerStateMainRender);
+        pd3dContext->RSSetState(g_pRasterizerStateMainRender);*/
+        g_pNoBlendBS.run();
+        g_normalDepthStencilState.run();
+        g_pRasterizerStateMainRender.run();
 
 
-        D3D11_MAPPED_SUBRESOURCE MappedResource;
+        /*D3D11_MAPPED_SUBRESOURCE MappedResource;
         float ClearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-
         pd3dContext->ClearRenderTargetView( pRSMColorRT->get_pRTV(0), ClearColor );
         pd3dContext->ClearRenderTargetView( pRSMAlbedoRT->get_pRTV(0), ClearColor );
-        pd3dContext->ClearRenderTargetView( pRSMNormalRT->get_pRTV(0), ClearColor );
-        ID3D11RenderTargetView* pRTVs[3] = { pRSMColorRT->get_pRTV(0), pRSMNormalRT->get_pRTV(0), pRSMAlbedoRT->get_pRTV(0) };
+        pd3dContext->ClearRenderTargetView( pRSMNormalRT->get_pRTV(0), ClearColor );*/
+        gl.glClearTexImage(pRSMColorRT.get_pRTV(0).getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
+        gl.glClearTexImage(pRSMAlbedoRT.get_pRTV(0).getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
+        gl.glClearTexImage(pRSMNormalRT.get_pRTV(0).getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
+
+        TextureGL[] pRTVs = { pRSMColorRT.get_pRTV(0), pRSMNormalRT.get_pRTV(0), pRSMAlbedoRT.get_pRTV(0), pShadowMapDS.pDSV };
 
         if(depthPeel)
         {
-            ID3D11ShaderResourceView* ppSRV[1] = { pShadowTex->get_pSRV(0) };
-            pd3dContext->PSSetShaderResources( 6, 1, ppSRV );
+            /*ID3D11ShaderResourceView* ppSRV[1] = { pShadowTex->get_pSRV(0) };
+            pd3dContext->PSSetShaderResources( 6, 1, ppSRV );*/
+            bind(pShadowTex.get_pSRV(0), 6, 0);
 
-            ID3D11SamplerState *states[1] = { g_pDepthPeelingTexSampler };
-            pd3dContext->PSSetSamplers( 2, 1, states );
+            /*ID3D11SamplerState *states[1] = { g_pDepthPeelingTexSampler };
+            pd3dContext->PSSetSamplers( 2, 1, states );*/
         }
 
-        pd3dContext->ClearDepthStencilView( *pShadowMapDS, D3D11_CLEAR_DEPTH, 1.0, 0 );
+//        pd3dContext->ClearDepthStencilView( *pShadowMapDS, D3D11_CLEAR_DEPTH, 1.0, 0 );
+        gl.glClearTexImage(pShadowMapDS.pDSV.getTexture(), 0, GLenum.GL_DEPTH_COMPONENT, GLenum.GL_FLOAT, CacheBuffer.wrap(1.0f));
 
-        pd3dContext->OMSetRenderTargets( 3, pRTVs, *pShadowMapDS );
-        pd3dContext->RSSetViewports(1, &shadowViewport);
+        /*pd3dContext->OMSetRenderTargets( 3, pRTVs, *pShadowMapDS );
+        pd3dContext->RSSetViewports(1, &shadowViewport);*/
+        g_RenderTargets.bind();
+        g_RenderTargets.setRenderTextures(pRTVs, null);
+        gl.glViewport(shadowViewport.x,shadowViewport.y,shadowViewport.z, shadowViewport.w);
 
-        D3DXMATRIX inverseProjectionMatrix;
-        D3DXMatrixInverse( &inverseProjectionMatrix, NULL, projectionMatrix);
+        /*D3DXMATRIX inverseProjectionMatrix;
+        D3DXMatrixInverse( &inverseProjectionMatrix, NULL, projectionMatrix);*/
 
         if(depthPeel)
         {
-            pd3dContext->VSSetShader( g_pVSRSMDepthPeeling, NULL, 0 );
-            pd3dContext->PSSetShader( g_pPSRSMDepthPeel, NULL, 0 );
+            /*pd3dContext->VSSetShader( g_pVSRSMDepthPeeling, NULL, 0 );
+            pd3dContext->PSSetShader( g_pPSRSMDepthPeel, NULL, 0 );*/
+            g_Program.setVS(g_pVSRSMDepthPeeling);
+            g_Program.setPS(g_pPSRSMDepthPeel);
         }
         else
         {
-            pd3dContext->VSSetShader( g_pVSRSM, NULL, 0 );
-            pd3dContext->PSSetShader( g_pPSRSM, NULL, 0 );
+            /*pd3dContext->VSSetShader( g_pVSRSM, NULL, 0 );
+            pd3dContext->PSSetShader( g_pPSRSM, NULL, 0 );*/
+            g_Program.setVS(g_pVSRSM);
+            g_Program.setPS(g_pPSRSM);
         }
 
         //bind the sampler
-        ID3D11SamplerState *states[1] = { g_pLinearSampler };
+        /*ID3D11SamplerState *states[1] = { g_pLinearSampler };
         pd3dContext->PSSetSamplers( 0, 1, states );
         ID3D11SamplerState *stateAniso[1] = { g_pAnisoSampler };
-        pd3dContext->PSSetSamplers( 3, 1, stateAniso );
+        pd3dContext->PSSetSamplers( 3, 1, stateAniso );*/
 
-
+        final Matrix4f WVMatrix = CacheBuffer.getCachedMatrix(), WVMatrixIT = CacheBuffer.getCachedMatrix(),
+                WVPMatrix = CacheBuffer.getCachedMatrix(), ViewProjClip2Tex = CacheBuffer.getCachedMatrix();
         //render the meshes
         for(int i=0; i<numMeshes; i++)
         {
-            RenderMesh* mesh = meshes[i];
-
+            RenderMesh mesh = meshes[i];
             //set the light matrices
-            D3DXMATRIX WVMatrix, WVMatrixIT, WVPMatrix, ViewProjClip2Tex;
-            mesh->createMatrices( *projectionMatrix, *viewMatrix, &WVMatrix, &WVMatrixIT, &WVPMatrix, &ViewProjClip2Tex );
-            UpdateSceneCB( pd3dContext, lightPos, lightRadius, depthBiasFromGUI, bUseSM, &(WVPMatrix), &(WVMatrixIT), &(mesh->m_WMatrix), &(ViewProjClip2Tex) );
 
-            pd3dContext->Map( g_pcbMeshRenderOptions, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+            mesh.createMatrices( projectionMatrix, viewMatrix, WVMatrix, WVMatrixIT, WVPMatrix, ViewProjClip2Tex );
+            UpdateSceneCB( /*pd3dContext,*/ lightPos, lightRadius, depthBiasFromGUI, bUseSM, WVPMatrix, WVMatrixIT, mesh.m_WMatrix, ViewProjClip2Tex );
+
+            /*pd3dContext->Map( g_pcbMeshRenderOptions, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
             CB_MESH_RENDER_OPTIONS* pMeshRenderOptions = ( CB_MESH_RENDER_OPTIONS* )MappedResource.pData;
             if(g_useTextureForRSMs)
                 pMeshRenderOptions->useTexture = mesh->m_UseTexture;
             else
                 pMeshRenderOptions->useTexture = false;
             pd3dContext->Unmap( g_pcbMeshRenderOptions, 0 );
-            pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbMeshRenderOptions );
+            pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbMeshRenderOptions );*/
+            IntBuffer buffer = CacheBuffer.wrap(g_useTextureForRSMs ? mesh.m_UseTexture ? 1:0:0, 0,0,0);
+            g_pcbMeshRenderOptions.update(0, buffer);
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_pcbMeshRenderOptions.getBuffer());
 
             if(g_subsetToRender==-1)
-                mesh->m_Mesh.RenderBounded( pd3dContext, D3DXVECTOR3(0,0,0), D3DXVECTOR3(100000,100000,100000), 0 );
+                mesh.m_Mesh.RenderBounded( /*pd3dContext,*/ Vector3f.ZERO, new Vector3f(100000,100000,100000), 0 );
             else
-                mesh->m_Mesh.RenderSubsetBounded(0,g_subsetToRender, pd3dContext, D3DXVECTOR3(0,0,0), D3DXVECTOR3(10000,10000,10000), false, 0 );
+                mesh.m_Mesh.RenderSubsetBounded(0,g_subsetToRender, /*pd3dContext,*/ Vector3f.ZERO, new Vector3f(10000,10000,10000), false, 0 );
         }
 
-
-        ID3D11RenderTargetView* pRTVsNULL3[3] = { NULL, NULL, NULL };
+        CacheBuffer.free(WVMatrix);
+        CacheBuffer.free(WVMatrixIT);
+        CacheBuffer.free(WVPMatrix);
+        CacheBuffer.free(ViewProjClip2Tex);
+        /*ID3D11RenderTargetView* pRTVsNULL3[3] = { NULL, NULL, NULL };
         pd3dContext->OMSetRenderTargets( 3, pRTVsNULL3, NULL );
 
         ID3D11ShaderResourceView* ppSRVNULL[1] = { NULL };
         pd3dContext->PSSetShaderResources( 6, 1, ppSRVNULL );*/
+        bind(null,6, 0);
     }
 
     //initialize the GV ( geometry volume) with the RSM data
