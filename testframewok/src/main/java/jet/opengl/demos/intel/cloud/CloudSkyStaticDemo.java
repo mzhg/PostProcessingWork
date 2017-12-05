@@ -142,6 +142,7 @@ public class CloudSkyStaticDemo extends NvSampleApp {
         m_TestData.load(binary);
         System.out.println(m_TestData);
 
+        gl.glEnable(GLenum.GL_FRAMEBUFFER_SRGB);
         m_SceneColor = loadTextureFromBinaryFile("E:\\textures\\OutdoorCloudResources\\SceneData\\colorBuffer.data", 1280, 720, GLenum.GL_RGBA16F, 1);
         m_SceneDepth = loadTextureFromBinaryFile("E:\\textures\\OutdoorCloudResources\\SceneData\\depthBuffer.data", 1280, 720, GLenum.GL_DEPTH_COMPONENT32F, 1);
         m_ShdowMap = loadTextureFromBinaryFile("E:\\textures\\OutdoorCloudResources\\SceneData\\shadowMap.data", 512, 512, GLenum.GL_DEPTH_COMPONENT32F, 4);

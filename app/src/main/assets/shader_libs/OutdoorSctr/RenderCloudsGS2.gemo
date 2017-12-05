@@ -1,0 +1,169 @@
+#include "CloudsCommon.glsl"
+// This geometry shader generates either bounding volume (TILING_MODE == 0) or bounding
+// sprite (TILING_MODE == 1) for each particle
+layout (points) in;
+#if TILING_MODE
+layout (triangle_strip, max_vertices = 4) out;
+#else
+layout (triangle_strip, max_vertices = 10+4+4) out;
+#endif
+in flat uint m_uiParticleID[];
+
+layout(binding = 0) buffer StructuredBuffer_SCloudParticleLighting
+{
+    SCloudParticleLighting g_bufParticleLighting[];
+};
+
+out RenderCloudsPSIn
+{
+    float2 m_f2SunLightAttenuation;
+    float4 m_f4SunLight;
+    float4 m_f4AmbientLight;
+
+    float3 m_f3Pos;  // particle position
+    float  m_fSize;  // particle size
+    float  m_fRndAzimuthBias;
+    float  m_fDensity;
+
+    float3 m_f3Normal;
+    float3 m_f3Tangent;
+    float3 m_f3Bitangent;
+    float  m_fMorphFadeout;
+}_output;
+
+void main()
+{
+    uint uiParticleId = m_uiParticleID[0];
+    SParticleAttribs ParticleAttrs = g_Particles[uiParticleId];
+
+    // Only visible particles are sent for rendering
+
+    uint uiCellID = uiParticleId / g_GlobalCloudAttribs.uiMaxLayers;
+    SCloudCellAttribs CellAttrs = g_CloudCells[uiCellID];
+
+    float fCloudThickness = g_GlobalCloudAttribs.fCloudThickness;
+    float3 f3Size = GetParticleScales(ParticleAttrs.fSize, CellAttrs.uiNumActiveLayers);
+
+    SCloudParticleLighting ParticleLighting = g_bufParticleLighting[uiParticleId];
+
+    _output.m_f2SunLightAttenuation = ParticleLighting.f2SunLightAttenuation;
+    _output.m_f4SunLight = ParticleLighting.f4SunLight;
+    _output.m_f4AmbientLight = ParticleLighting.f4AmbientLight;
+
+    _output.m_f3Pos = ParticleAttrs.f3Pos;
+    _output.m_fSize = ParticleAttrs.fSize;
+    _output.m_fRndAzimuthBias = ParticleAttrs.fRndAzimuthBias;
+    _output.m_fDensity = ParticleAttrs.fDensity;
+
+    _output.m_f3Normal         = CellAttrs.f3Normal;
+    _output.m_f3Tangent        = CellAttrs.f3Tangent;
+    _output.m_f3Bitangent      = CellAttrs.f3Bitangent;
+    _output.m_fMorphFadeout    = CellAttrs.fMorphFadeout;
+
+    float3 f3Tangent   = CellAttrs.f3Tangent.xyz;
+    float3 f3Normal    = CellAttrs.f3Normal.xyz;
+    float3 f3Bitangent = CellAttrs.f3Bitangent.xyz;
+    // Construct particle view-projection matrix
+    float4x4 ParticleObjToWorldSpaceMatr = float4x4(0);
+    // Start with rotation:
+    ParticleObjToWorldSpaceMatr[0].xyz = f3Tangent.xyz;
+    ParticleObjToWorldSpaceMatr[1].xyz = f3Normal.xyz;
+    ParticleObjToWorldSpaceMatr[2].xyz = f3Bitangent.xyz;
+    // Add translation to particle world position
+    ParticleObjToWorldSpaceMatr[3].xyzw = float4(ParticleAttrs.f3Pos,1);
+    ParticleObjToWorldSpaceMatr = transpose(ParticleObjToWorldSpaceMatr);
+
+#if TILING_MODE
+    float2 f2MinXY = float2(+1);
+    float2 f2MaxXY = float2(-1);
+    float4x4 mViewProj = g_GlobalCloudAttribs.mParticleTiling;
+#else
+    float4 Outs[8];
+    float4x4 mViewProj = g_WorldViewProj;
+#endif
+    // Multiply with camera view-proj matrix
+    float4x4 ParticleObjToProjSpaceMatr = mViewProj * ParticleObjToWorldSpaceMatr;
+
+    for(int iCorner = 0; iCorner < 8; ++iCorner)
+    {
+        float4 f4CurrCornerWorldPos;
+        f4CurrCornerWorldPos.xyz = f3Size * float3( bool(iCorner & 0x01) ? +1 : -1, bool(iCorner & 0x04) ? +1 : -1, bool(iCorner & 0x02) ? +1 : -1);
+        f4CurrCornerWorldPos.w = 1;
+
+        float4 f4CurrCornerPosPS = mul( f4CurrCornerWorldPos, ParticleObjToProjSpaceMatr );
+
+#if TILING_MODE
+        if( f4CurrCornerPosPS.w > 0 )
+        {
+            float2 f2XY = f4CurrCornerPosPS.xy / f4CurrCornerPosPS.w;
+            f2MinXY = min(f2MinXY, f2XY);
+            f2MaxXY = max(f2MaxXY, f2XY);
+        }
+#else
+        Outs[iCorner] = f4CurrCornerPosPS;
+#endif
+    }
+
+#if TILING_MODE
+    if( all(lessThan(f2MinXY, f2MaxXY)) )
+    {
+        // Extend aprite by 0.5 dst pixel size to assure conservative rasterization
+        float2 f2TileTexSize = float2(g_GlobalCloudAttribs.fTileTexWidth, g_GlobalCloudAttribs.fTileTexHeight);
+        f2MinXY -= 1.0f / f2TileTexSize;
+        f2MaxXY += 1.0f / f2TileTexSize;
+        float2 f2XY[4] =
+        {
+            float2(f2MinXY.x, f2MaxXY.y),
+            float2(f2MinXY.x, f2MinXY.y),
+            float2(f2MaxXY.x, f2MaxXY.y),
+            float2(f2MaxXY.x, f2MinXY.y)
+        };
+        for(int i = 0; i < 4; ++i)
+        {
+//            PS_Input CurrOut;
+//            CurrOut.uiParticleID = uiParticleId;
+//            CurrOut.f4Pos = float4(f2XY[i],1,1);
+//            Out.Append( CurrOut );
+            ps_uiParticleID = uiParticleId;
+            gl_Position = float4(f2XY[i],1,1);
+            EmitVertex();
+        }
+
+        EndPrimitive();
+    }
+#else
+    // Generate bounding box faces
+    {
+        const uint Side[] = {0,4,1,5,3,7,2,6,0,4};
+        for(int i = 0; i < 10; ++i)
+        {
+//            Out.Append( Outs[ Side[ i ] ] );
+             gl_Position = Outs[ Side[ i ] ];
+             EmitVertex();
+        }
+        EndPrimitive();
+    }
+
+    {
+        const uint uiBottomCap[] = {2,0,3,1};
+        for(int i=0; i<4; ++i)
+        {
+//            Out.Append( Outs[ uiBottomCap[ i ] ] );
+            gl_Position = Outs[ uiBottomCap[ i ] ];
+            EmitVertex();
+        }
+        EndPrimitive();
+    }
+
+    {
+        const uint uiTopCap[] = {4,6,5,7};
+        for(int i=0; i<4; ++i)
+        {
+//            Out.Append( Outs[ uiTopCap[ i ] ] );
+            gl_Position = Outs[ uiTopCap[ i ] ];
+            EmitVertex();
+        }
+        EndPrimitive();
+    }
+#endif
+}

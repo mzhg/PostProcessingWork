@@ -145,7 +145,9 @@ void main()
 #else
     f3RayStart = g_f4CameraPos.xyz;
     #if DEBUG_STATIC_SCENE
-        fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0).x;
+        int2 size = textureSize(g_tex2DDepthBuffer, 0);
+        int2 pos = int2(gl_FragCoord.x, /*float(size.y) -*/ gl_FragCoord.y);
+        fDepth = texelFetch(g_tex2DDepthBuffer, pos, 0).x;
     #else
         fDepth = texelFetch(g_tex2DDepthBuffer, int2(gl_FragCoord), 0).x;
         fDepth = 2.0 * fDepth - 1.0;

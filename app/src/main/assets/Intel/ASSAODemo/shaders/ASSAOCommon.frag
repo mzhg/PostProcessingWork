@@ -240,9 +240,9 @@ float3 NDCToViewspace( float2 pos, float viewspaceDepth )
 {
     float3 ret;
 
-    ret.xy = (g_ASSAOConsts.NDCToViewMul * pos.xy + g_ASSAOConsts.NDCToViewAdd) * -viewspaceDepth;
+    ret.xy = (g_ASSAOConsts.NDCToViewMul * pos.xy + g_ASSAOConsts.NDCToViewAdd) * viewspaceDepth;
 
-    ret.z = -viewspaceDepth;
+    ret.z = viewspaceDepth;
 
     return ret;
 }
@@ -407,7 +407,8 @@ void SSAOTap( const int qualityLevel, inout float obscuranceSum, inout float wei
 }
 
 // this function is designed to only work with half/half depth at the moment - there's a couple of hardcoded paths that expect pixel/texel size, so it will not work for full res
-void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, out float outWeight, const float2 SVPos/*, const float2 normalizedScreenPos*/, /*uniform*/ int qualityLevel, bool adaptiveBase )
+void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, out float outWeight, const float2 SVPos/*, const float2 normalizedScreenPos*/, /*uniform*/
+                                  int qualityLevel, bool adaptiveBase )
 {
     float2 SVPosRounded = trunc( SVPos );
     uint2 SVPosui = uint2( SVPosRounded ); //same as uint2( SVPos )

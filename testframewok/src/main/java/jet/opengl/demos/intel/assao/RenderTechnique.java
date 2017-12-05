@@ -6,9 +6,7 @@ import org.lwjgl.util.vector.Vector2i;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.shader.GLSLProgram;
-import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.Macro;
-import jet.opengl.postprocessing.shader.ProgramProperties;
 
 
 final class RenderTechnique extends GLSLProgram{
@@ -53,10 +51,9 @@ final class RenderTechnique extends GLSLProgram{
 	private int m_g_ASSAOConsts_PerPassFullResCoordOffsetLoc = -1;
 	private int m_g_ASSAOConsts_QuarterResPixelSizeLoc = -1;
 	
-	private String m_debugName;
-	
+
 	public RenderTechnique(String shaderFile, Macro[] macros){
-		final String shader_path = "advance/ASSAODemo/shaders/";
+		final String shader_path = "Intel/ASSAODemo/shaders/";
 		try {
 			setSourceFromFiles(shader_path + "Quad_VS.vert", shader_path + shaderFile, macros);
 		} catch (IOException e) {
@@ -64,7 +61,7 @@ final class RenderTechnique extends GLSLProgram{
 		}
 
 		int dot = shaderFile.indexOf('.');
-		m_debugName = shaderFile.substring(0, dot);
+		setName(shaderFile.substring(0, dot));
 		
 		init();
 	}
@@ -134,11 +131,11 @@ final class RenderTechnique extends GLSLProgram{
 		setQuarterResPixelSize(data.QuarterResPixelSize);
 	}
 	
-	public void printPrograminfo(){
+	/*public void printPrograminfo(){
 		System.out.println("----------------------------"+m_debugName +"-----------------------------------------" );
 		ProgramProperties props = GLSLUtil.getProperties(getProgram());
 		System.out.println(props);
-	}
+	}*/
 	
 	private void setDetailAOStrength(float f) { if(m_g_ASSAOConsts_DetailAOStrengthLoc >=0)gl.glUniform1f(m_g_ASSAOConsts_DetailAOStrengthLoc, f);}
 	private void setEffectShadowPow(float f) { if(m_g_ASSAOConsts_EffectShadowPowLoc >=0)gl.glUniform1f(m_g_ASSAOConsts_EffectShadowPowLoc, f);}

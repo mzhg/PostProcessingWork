@@ -135,7 +135,6 @@ layout(r32ui, binding = TEXBUFFER_CELL_COUNTER) uniform uimageBuffer g_ValidCell
 //layout(binding = TEXBUFFER_VALIDP_UNORDEREDLIST) uniform uimageBuffer g_ValidParticlesUnorderedList;
 layout(binding = TEX3D_PARTICLE_DENSITY_LUT) uniform sampler3D g_tex3DParticleDensityLUT;
 layout(binding = TEX3D_SINGLE_SCATT_IN_PART_LUT) uniform sampler3D g_tex3DSingleScatteringInParticleLUT;
-layout(binding = TEX3D_MULTIL_SCATT_IN_PART_LUT) uniform sampler3D g_tex3DMultipleScatteringInParticleLUT;
 layout(binding = TEX2D_SCR_CLOUD_MIN_MAX_DIST) uniform sampler2D g_tex2DScrSpaceCloudMinMaxDist;
 layout(binding = TEX2D_SCR_CLOUD_TRANSPARENCY) uniform sampler2D g_tex2DScrSpaceCloudTransparency;
 layout(binding = TEX2D_SCR_CLOUD_COLOR) uniform sampler2D g_tex2DScrSpaceCloudColor;

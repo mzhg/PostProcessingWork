@@ -3,25 +3,26 @@
 layout(binding = 0) uniform sampler2D g_tex2DDepthBuffer;
 layout(binding = 1) uniform sampler3D g_tex3DMultipleScatteringInParticleLUT;
 
-//StructuredBuffer<SCloudParticleLighting> g_bufParticleLighting : register( t7 );
-layout(binding = 0) buffer StructuredBuffer_SCloudParticleLighting
+in RenderCloudsPSIn
 {
-    SCloudParticleLighting g_bufParticleLighting[];
-};
+    float2 m_f2SunLightAttenuation;
+    float4 m_f4SunLight;
+    float4 m_f4AmbientLight;
 
-/*layout(binding = 3) uniform ParticlesRead
-{
-    SParticleAttribs g_ParticlesR[MAX_PARTICLE_COUNT];
-};
+    float3 m_f3Pos;  // particle position
+    float  m_fSize;  // particle size
+    float  m_fRndAzimuthBias;
+    float  m_fDensity;
 
-layout(binding = 2) uniform CloudCellsRead
-{
-    SCloudCellAttribs g_CloudCellsR[MAX_CELL_COUNT];
-};*/
+    float3 m_f3Normal;
+    float3 m_f3Tangent;
+    float3 m_f3Bitangent;
+    float  m_fMorphFadeout;
+}_input;
 
 // This helper function computes intersection of the view ray with the particle ellipsoid
-void IntersectRayWithParticle(const in SParticleAttribs ParticleAttrs,
-                              const in SCloudCellAttribs CellAttrs,
+void IntersectRayWithParticle(//const in SParticleAttribs ParticleAttrs,
+                              //const in SCloudCellAttribs CellAttrs,
                               const in float3 f3CameraPos,
                               const in float3 f3ViewRay,
                               out float2 f2RayIsecs,
@@ -32,15 +33,15 @@ void IntersectRayWithParticle(const in SParticleAttribs ParticleAttrs,
                               out float fDistanceToExitPoint)
 {
     // Construct local frame matrix
-    float3 f3Normal    = CellAttrs.f3Normal.xyz;
-    float3 f3Tangent   = CellAttrs.f3Tangent.xyz;
-    float3 f3Bitangent = CellAttrs.f3Bitangent.xyz;
+    float3 f3Normal    = _input.m_f3Normal.xyz;
+    float3 f3Tangent   = _input.m_f3Tangent.xyz;
+    float3 f3Bitangent = _input.m_f3Bitangent.xyz;
 
     #if 0
     float3x3 f3x3ObjToWorldSpaceRotation = float3x3(f3Tangent, f3Normal, f3Bitangent);
     // World to obj space is inverse of the obj to world space matrix, which is simply transpose
     // for orthogonal matrix:
-    float3x3 f3x3WorldToObjSpaceRotation = /*transpose*/(f3x3ObjToWorldSpaceRotation);
+    float3x3 f3x3WorldToObjSpaceRotation = transpose(f3x3ObjToWorldSpaceRotation);
     #else
     float3x3 f3x3WorldToObjSpaceRotation;
     f3x3WorldToObjSpaceRotation[0] = f3Tangent;
@@ -49,13 +50,13 @@ void IntersectRayWithParticle(const in SParticleAttribs ParticleAttrs,
     #endif
 
     // Compute camera location and view direction in particle's object space:
-    float3 f3CamPosObjSpace = f3CameraPos - ParticleAttrs.f3Pos;
+    float3 f3CamPosObjSpace = f3CameraPos - _input.m_f3Pos;
     f3CamPosObjSpace = mul(f3CamPosObjSpace, f3x3WorldToObjSpaceRotation);
     float3 f3ViewRayObjSpace = mul(f3ViewRay, f3x3WorldToObjSpaceRotation );
     float3 f3LightDirObjSpce = mul(-g_f4DirOnLight.xyz, f3x3WorldToObjSpaceRotation );
 
     // Compute scales to transform ellipsoid into the unit sphere:
-    float3 f3Scale = 1.f / GetParticleScales(ParticleAttrs.fSize, CellAttrs.uiNumActiveLayers);
+    float3 f3Scale = 1.f / GetParticleScales(_input.m_fSize, /*CellAttrs.uiNumActiveLayers*/ 0);
 
     float3 f3ScaledCamPosObjSpace;
     f3ScaledCamPosObjSpace  = f3CamPosObjSpace*f3Scale;
@@ -221,8 +222,8 @@ void MergeParticleLayers(in SParticleLayer Layer0,
 
 // This function computes different attributes of a particle which will be used
 // for rendering
-void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
-                            const in SCloudCellAttribs CellAttrs,
+void ComputeParticleRenderAttribs(//const in SParticleAttribs ParticleAttrs,
+                            //const in SCloudCellAttribs CellAttrs,
                             in float fTime,
                             in float3 f3CameraPos,
                             in float3 f3ViewRay,
@@ -236,7 +237,7 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
                             out float fTransparency,
                             /*uniform*/ in bool bAutoLOD
 #if !LIGHT_SPACE_PASS
-                            , in SCloudParticleLighting ParticleLighting
+                            //, in SCloudParticleLighting ParticleLighting
                             , out float4 f4Color
 #endif
                             )
@@ -269,7 +270,7 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
     float4 f4LUTCoords;
     WorldParamsToOpticalDepthLUTCoords(f3EntryPointUSSpace, f3ViewRayUSSpace, f4LUTCoords);
     // Randomly rotate the sphere
-    f4LUTCoords.y += ParticleAttrs.fRndAzimuthBias;
+    f4LUTCoords.y += _input.m_fRndAzimuthBias;
 
     float fLOD = 0;//log2( 256.f / (ParticleAttrs.fSize / max(fDistanceToEntryPoint,1) * g_GlobalCloudAttribs.fBackBufferWidth)  );
 	// Get the normalized density along the view ray
@@ -280,8 +281,8 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
     fCloudMass = fNormalizedDensity * (fDistanceToExitPoint - fDistanceToEntryPoint);
     float fFadeOutDistance = g_GlobalCloudAttribs.fParticleCutOffDist * g_fParticleToFlatMorphRatio;
     float fFadeOutFactor = saturate( (g_GlobalCloudAttribs.fParticleCutOffDist - fDistanceToEntryPoint) /  max(fFadeOutDistance,1) );
-    fCloudMass *= fFadeOutFactor * CellAttrs.fMorphFadeout;
-    fCloudMass *= ParticleAttrs.fDensity;
+    fCloudMass *= fFadeOutFactor * _input.m_fMorphFadeout;
+    fCloudMass *= _input.m_fDensity;
 
 	// Compute transparency
     fTransparency = exp( -fCloudMass * g_GlobalCloudAttribs.fAttenuationCoeff );
@@ -291,13 +292,13 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
 	float fCosTheta = dot(-f3ViewRayUSSpace, f3LightDirUSSpace);
 	float PhaseFunc = HGPhaseFunc(fCosTheta, 0.8);
 
-	float2 f2SunLightAttenuation = ParticleLighting.f2SunLightAttenuation;
-	float3 f3SingleScattering =  fTransparency * ParticleLighting.f4SunLight.rgb * f2SunLightAttenuation.x * PhaseFunc * pow(CellAttrs.fMorphFadeout,2);
+	float2 f2SunLightAttenuation = _input.m_f2SunLightAttenuation;
+	float3 f3SingleScattering =  fTransparency * _input.m_f4SunLight.rgb * f2SunLightAttenuation.x * PhaseFunc * pow(_input.m_fMorphFadeout,2);
 
 	float4 f4MultipleScatteringLUTCoords = WorldParamsToParticleScatteringLUT(f3EntryPointUSSpace, f3ViewRayUSSpace, f3LightDirUSSpace, true);
     float fMultipleScattering =
 		textureLod(g_tex3DMultipleScatteringInParticleLUT, f4MultipleScatteringLUTCoords.xyz, 0).x;  // samLinearWrap
-	float3 f3MultipleScattering = (1-fTransparency) * fMultipleScattering * f2SunLightAttenuation.y * ParticleLighting.f4SunLight.rgb;
+	float3 f3MultipleScattering = (1-fTransparency) * fMultipleScattering * f2SunLightAttenuation.y * _input.m_f4SunLight.rgb;
 
 	// Compute ambient light
 	float3 f3EarthCentre = float3(0, -g_fEarthRadius, 0);
@@ -305,7 +306,7 @@ void ComputeParticleRenderAttribs(const in SParticleAttribs ParticleAttrs,
 	float fCloudBottomBoundary = g_fEarthRadius + g_GlobalCloudAttribs.fCloudAltitude - g_GlobalCloudAttribs.fCloudThickness/2.f;
 	float fAmbientStrength =  (fEnttryPointAltitude - fCloudBottomBoundary) /  g_GlobalCloudAttribs.fCloudThickness;//(1-fNoise)*0.5;//0.3;
 	fAmbientStrength = clamp(fAmbientStrength, 0.3, 1.0);
-	float3 f3Ambient = (1-fTransparency) * fAmbientStrength * ParticleLighting.f4AmbientLight.rgb;
+	float3 f3Ambient = (1-fTransparency) * fAmbientStrength * _input.m_f4AmbientLight.rgb;
 
 
 	f4Color.rgb = float3(0);
@@ -393,11 +394,11 @@ void main()
         IntelExt_Init();
     #endif
 
-        SParticleAttribs ParticleAttrs = g_Particles[ps_uiParticleID];
-        SCloudCellAttribs CellAttribs = g_CloudCells[ps_uiParticleID / g_GlobalCloudAttribs.uiMaxLayers];
+//        SParticleAttribs ParticleAttrs = g_Particles[ps_uiParticleID];
+//        SCloudCellAttribs CellAttribs = g_CloudCells[ps_uiParticleID / g_GlobalCloudAttribs.uiMaxLayers];
 
     #if !LIGHT_SPACE_PASS
-        SCloudParticleLighting ParticleLighting = g_bufParticleLighting[ps_uiParticleID];
+//        SCloudParticleLighting ParticleLighting = g_bufParticleLighting[ps_uiParticleID];
     #endif
         float fTime = g_fTimeScale*g_GlobalCloudAttribs.fTime;
 
@@ -434,7 +435,7 @@ void main()
         float2 f2RayIsecs;
         float fDistanceToEntryPoint, fDistanceToExitPoint;
         float3 f3EntryPointUSSpace, f3ViewRayUSSpace, f3LightDirUSSpace;
-        IntersectRayWithParticle(ParticleAttrs, CellAttribs, f3CameraPos,  f3ViewRay,
+        IntersectRayWithParticle(/*ParticleAttrs, CellAttribs,*/ f3CameraPos,  f3ViewRay,
                                  f2RayIsecs, f3EntryPointUSSpace, f3ViewRayUSSpace,
                                  f3LightDirUSSpace,
                                  fDistanceToEntryPoint, fDistanceToExitPoint);
@@ -451,7 +452,7 @@ void main()
         float fCloudMass;
         float fIsecLenUSSpace = f2RayIsecs.y - f2RayIsecs.x;
         // Compute particle rendering attributes
-        ComputeParticleRenderAttribs(ParticleAttrs, CellAttribs,
+        ComputeParticleRenderAttribs(//ParticleAttrs, CellAttribs,
                                 fTime,
                                 f3CameraPos,
                                 f3ViewRay,
@@ -465,7 +466,7 @@ void main()
                                 fTransparency,
                                 true
     #if !LIGHT_SPACE_PASS
-                                , ParticleLighting
+                                //, ParticleLighting
                                 , f4Color
     #endif
                                 );
@@ -508,7 +509,9 @@ void main()
             for(iLayer = 0; iLayer < NUM_PARTICLE_LAYERS; ++iLayer)
                 g_rwbufParticleLayers[uiLayerDataInd + iLayer] = Layers[iLayer+1];
         #else
-            f4Color.rgb *= 1-fTransparency;
+            #if DEBUG_STATIC_SCENE == 0
+                f4Color.rgb *= 1-fTransparency;
+            #endif
         #endif
     #endif
 

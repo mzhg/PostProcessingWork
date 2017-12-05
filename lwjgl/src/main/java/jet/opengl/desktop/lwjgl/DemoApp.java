@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.intel.cloud.CloudSkyStaticDemo;
+import jet.opengl.demos.intel.assao.ASSAOStaticTestDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -87,7 +87,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new CloudSkyStaticDemo());
+        run(new ASSAOStaticTestDemo());
 
 //        testRectVertex();
     }

@@ -6,6 +6,8 @@ layout(location = 1) out float Out_fColor1;
 layout(location = 2) out float Out_fColor2; 
 layout(location = 3) out float Out_fColor3;
 
+const int MIP_LEVEL = 0;
+
 void main()
 {
 	int2 baseCoords = int2(gl_FragCoord.xy) * 2;

@@ -182,10 +182,11 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
         boolean adaptive = m_adaptive;
         System.out.println("test ASSAOConstants: " + filename);
         final String FILE_PATH  = "E:/textures/ASSAO%s%sASSAOConstants_%s.dat";
+        final String OUT_FILE_PATH  = "E:/textures/ASSAO%s%sASSAOConstants_%s.txt";
 
         String gl_file = String.format(FILE_PATH, "GL", adaptive ? "_ADAPTIVE/" : "/", filename);
         String dx_file = String.format(FILE_PATH, "DX", adaptive ? "_ADAPTIVE/" : "/", filename);
-        String result_file = String.format(FILE_PATH, "Result/", "", filename);
+        String result_file = String.format(OUT_FILE_PATH, "Result/", "", filename);
 
         ASSAOConstants gl_data = new ASSAOConstants();
         gl_data.load(DebugTools.loadBinary(gl_file));
@@ -194,7 +195,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
         dx_data.load(DebugTools.loadBinary(dx_file));
 
         String result = DebugTools.compareObjects(gl_data, dx_data).toString();
-//        System.out.println(result);
+        System.out.println(result);
         DebugTools.write(result, result_file);
     }
 
@@ -214,7 +215,8 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
         dx_data.load(DebugTools.loadBinary(dx_file));
 
         String result = DebugTools.compareObjects(gl_data, dx_data).toString();
-//        System.out.println(result);
+        System.out.println(result);
+        System.out.println();
         DebugTools.write(result, result_file);
     }
 
@@ -233,9 +235,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
 
     void FullscreenPassDraw(RenderTechnique pixelShader, int width, int height, Runnable blendState ){}
     
-    private void setRenderTargets(Texture2D...textures){
-
-    }
+    private void setRenderTargets(Texture2D...textures){}
     
     private void unbindRenderTargets(int count){
     	for(int i = 1; i < count; i++){
@@ -360,6 +360,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
             }
         }
 
+        m_depthMipLevels = SSAO_DEPTH_MIP_LEVELS;
         // only do mipmaps for higher quality levels (not beneficial on quality level 1, and detrimental on quality level 0)
         if( settings.QualityLevel > 1 )
         {
@@ -382,7 +383,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                 {
                     for (int j = 0; j < /*fourDepthMips.length*/4; j++)
                     {
-                        String filename = String.format("DepthMipViews[%d][%d].txt", j, i);
+                        String filename = String.format("DepthMipViews[%d][%d]", j, i);
 //                        DEBUG_TEXTURE2D(dx11Context, fourDepthMips[j], filename);
 //                        saveTextureAsText(fourDepthMips[j], filename);
                         testTexture(filename);
@@ -500,6 +501,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
 //                    DEBUG_TEXTURE2D(dx11Context, rts[0], debugName)
 //                    saveTextData("GenerateSSAO_Pass" + pass + "_Adaptive" + adaptive, rts[0]);
                     testTexture("GenerateSSAO_Pass" + pass + "_Adaptive" + adaptive);
+                    System.exit(0);
                 }
 
                 // remove textures from slots 0, 1, 2, 3 to avoid API complaints
@@ -533,7 +535,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                                 /*sprintf_s(debugName, "%sGenerateSSAO_Pass%d_Blur_Pass%d.txt", DEBUG_FILE_FOLDER, pass, i);
                                 DEBUG_TEXTURE2D(dx11Context, rts[0], debugName)*/
 //                                saveTextData(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d.txt", pass,adaptive, i), rts[0]);
-                                testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d.txt", pass,adaptive, i));
+                                testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d", pass,adaptive, i));
                             }
                             wideBlursRemaining--;
                         }
@@ -545,7 +547,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                                 /*sprintf_s(debugName, "%sGenerateSSAO_Pass%d_Blur_Pass%d.txt", DEBUG_FILE_FOLDER, pass, i);
                                 DEBUG_TEXTURE2D(dx11Context, rts[0], debugName)*/
 //                                saveTextData(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d.txt", pass,adaptive, i), rts[0]);
-                                testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d.txt", pass,adaptive, i));
+                                testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d", pass,adaptive, i));
                             }
                         }
                     }
@@ -557,7 +559,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                             /*sprintf_s(debugName, "%sGenerateSSAO_Pass%d_Blur_Pass%d.txt", DEBUG_FILE_FOLDER, pass, i);
                             DEBUG_TEXTURE2D(dx11Context, rts[0], debugName)*/
 //                            saveTextData(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d.txt", pass,adaptive, i), rts[0]);
-                            testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d.txt", pass,adaptive, i));
+                            testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d", pass,adaptive, i));
                         }
                     }
 
@@ -659,7 +661,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                         /*sprintf_s(debugName, "%sImportanceMap.txt", DEBUG_FILE_FOLDER);
                         DEBUG_TEXTURE2D(dx11Context, m_importanceMap.RTV, debugName)*/
 //                        saveTextData("ImportanceMap.txt", m_importanceMap);
-                        testTexture("ImportanceMap.txt");
+                        testTexture("ImportanceMap");
                     }
 
 	                // postprocess A
@@ -674,7 +676,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                         /*sprintf_s(debugName, "%sImportanceMapA.txt", DEBUG_FILE_FOLDER);
                         DEBUG_TEXTURE2D(dx11Context, m_importanceMapPong.RTV, debugName)*/
 //                        saveTextData("ImportanceMapA.txt", m_importanceMapPong);
-                        testTexture("ImportanceMapA.txt");
+                        testTexture("ImportanceMapA");
                     }
 
 	                // postprocess B
@@ -695,7 +697,7 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                         /*sprintf_s(debugName, "%sImportanceMapB.txt", DEBUG_FILE_FOLDER);
                         DEBUG_TEXTURE2D(dx11Context, m_importanceMap.RTV, debugName);*/
 //                        saveTextData("ImportanceMapB.txt", m_importanceMap);
-                        testTexture("ImportanceMapB.txt");
+                        testTexture("ImportanceMapB");
                     }
 	            }
 	        }
@@ -776,5 +778,49 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
             ImportanceMap               = GLenum.GL_R8;
         }
 	}
+
+    private static final int g_TestScreenWidth = 1600;
+    private static final int g_TestScreenHeight = 900;
+
+	public static void main(String[] args){
+	    ASSAOGLMemoryCompare compare = new ASSAOGLMemoryCompare(true);
+
+        final ASSAO_InputsOpenGL m_Inputs = new ASSAO_InputsOpenGL();
+        final ASSAO_Settings     m_Settings = new ASSAO_Settings();
+        m_Settings.QualityLevel = 3;
+
+        m_Inputs.DepthSRV = null;
+        m_Inputs.DrawOpaque = false;
+        m_Inputs.MatricesRowMajorOrder = false;
+        m_Inputs.NormalSRV = new Texture2D();  // dummy
+//		m_Scene.getProjMatrix(m_Inputs.ProjectionMatrix);
+        m_Inputs.ScissorLeft = 0;
+        m_Inputs.ScissorTop = 0;
+        m_Inputs.ScissorRight = g_TestScreenHeight;
+        m_Inputs.ScissorBottom = g_TestScreenWidth;
+        m_Inputs.ViewportHeight = g_TestScreenHeight;
+        m_Inputs.ViewportWidth = g_TestScreenWidth ;
+
+        compare.Draw(m_Settings, m_Inputs);
+
+//        System.out.println("a = " + ScreenSpaceToViewSpaceDepth(0.017359f));  // 5.757441   --- 5.7574306
+//        System.out.println("b = " + ScreenSpaceToViewSpaceDepth(0.0173584f)); // 5.75764    --- 5.757649
+//        System.out.println("c = " + ScreenSpaceToViewSpaceDepth(0.0173256f)); // 5.768533   --- 5.7685404
+//        System.out.println("d = " + ScreenSpaceToViewSpaceDepth(0.0173249f)); // 5.7687664  --- 5.76876
+    }
+
+    private static float ScreenSpaceToViewSpaceDepth( float screenDepth )
+    {
+        float depthLinearizeMul = -0.10000099f;
+        float depthLinearizeAdd = -1.00001E-5f;
+
+        // Optimised version of "-cameraClipNear / (cameraClipFar - projDepth * (cameraClipFar - cameraClipNear)) * cameraClipFar"
+
+        // Set your depthLinearizeMul and depthLinearizeAdd to:
+        // depthLinearizeMul = ( cameraClipFar * cameraClipNear) / ( cameraClipFar - cameraClipNear );
+        // depthLinearizeAdd = cameraClipFar / ( cameraClipFar - cameraClipNear );
+
+        return depthLinearizeMul / ( depthLinearizeAdd - screenDepth );
+    }
 
 }

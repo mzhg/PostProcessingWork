@@ -20,7 +20,7 @@ void main()
 //    float b = g_DepthSource.Load( baseCoord, int2( 1, 0 ) ).x;
 //    float c = g_DepthSource.Load( baseCoord, int2( 0, 1 ) ).x;
 //    float d = g_DepthSource.Load( baseCoord, int2( 1, 1 ) ).x;
-	float a = texelFetch(g_DepthSource, baseCoord.xy, baseCoord.z).x;
+	float a = texelFetch(      g_DepthSource, baseCoord.xy, baseCoord.z).x;
 	float b = texelFetchOffset(g_DepthSource, baseCoord.xy, baseCoord.z, int2( 1, 0 )).x;
 	float c = texelFetchOffset(g_DepthSource, baseCoord.xy, baseCoord.z, int2( 0, 1 )).x;
 	float d = texelFetchOffset(g_DepthSource, baseCoord.xy, baseCoord.z, int2( 1, 1 )).x;

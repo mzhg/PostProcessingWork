@@ -1,7 +1,5 @@
 package jet.opengl.demos.intel.cloud;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -30,6 +28,7 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3D;
 import jet.opengl.postprocessing.texture.Texture3DDesc;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
+import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -1700,7 +1699,7 @@ final class CCloudsController {
 //            RenderCloudsTech.SetRS( m_prsSolidFillCullFront );
 //            RenderCloudsTech.SetBS( m_pbsRT0MulRT1MinRT2Over );
             RenderCloudsTech = m_RenderCloudsTech[bLightSpacePass ? 1 : 0] = new CRenderTechnique("RenderCloudsVS.vert",
-                    "RenderCloudsGS.gemo", "RenderCloudsPS.frag", macros);
+                    "RenderCloudsGS2.gemo", "RenderCloudsPS2.frag", macros);
         }
 
         if(m_pRenderCloudsInputLayout == 0 )
@@ -1756,7 +1755,7 @@ final class CCloudsController {
 
         bindTexture(12, m_ptex3DPrecomputedParticleDensitySRV, m_psamLinearWrap);
         bindTexture(0, RenderAttribs.pDepthBufferSRV, m_psamLinearClamp);
-        bindTexture(14, m_ptex3DMultipleSctrInParticleLUT_SRV, m_psamLinearWrap);
+        bindTexture(1, m_ptex3DMultipleSctrInParticleLUT_SRV, m_psamLinearWrap);
 
         if(false) {
             int count = 25938;
@@ -1780,6 +1779,7 @@ final class CCloudsController {
         gl.glDisable(GLenum.GL_CULL_FACE);
         gl.glCullFace(GLenum.GL_BACK);
         gl.glFrontFace(GLenum.GL_CW);
+
 
         gl.glBindVertexArray(m_pRenderCloudsInputLayout);
         RenderCloudsTech.enable();
@@ -2843,7 +2843,7 @@ final class CCloudsController {
     }
 
     private void PrecomputeScatteringInParticle(/*ID3D11Device *pDevice, ID3D11DeviceContext *pDeviceContext*/){
-        final String SingleSctrTexPath   = "intel\\Cloud\\textures\\SingleSctr.dds";
+        /*final String SingleSctrTexPath   = "intel\\Cloud\\textures\\SingleSctr.dds";
         final String MultipleSctrTexPath = "intel\\Cloud\\textures\\MultipleSctr.dds";
 
         if(FileUtils.g_IntenalFileLoader.exists(SingleSctrTexPath) && FileUtils.g_IntenalFileLoader.exists(MultipleSctrTexPath)){
@@ -2863,9 +2863,9 @@ final class CCloudsController {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
+        }*/
 
-        /*final String SingleSctrTexPath   = "intel\\Cloud\\textures\\SingleSctrInParticleLUT_DX.dat";
+        final String SingleSctrTexPath   = "intel\\Cloud\\textures\\SingleSctrInParticleLUT_DX.dat";
         final String MultipleSctrTexPath = "intel\\Cloud\\textures\\MultipleSctrInParticleLUT_DX.dat";
 
         try {
@@ -2875,9 +2875,10 @@ final class CCloudsController {
             binary = FileUtils.loadNative(MultipleSctrTexPath);
             m_ptex3DMultipleSctrInParticleLUT_SRV = TextureUtils.createTexture3D(new Texture3DDesc(32,64,16, 1, GLenum.GL_R16F),
                     new TextureDataDesc(GLenum.GL_RED, GLenum.GL_HALF_FLOAT, binary));
+            return;
         }catch (IOException e) {
             e.printStackTrace();
-        }*/
+        }
 
 //        HRESULT hr1 = D3DX11CreateShaderResourceViewFromFile(pDevice, SingleSctrTexPath, nullptr, nullptr, &m_ptex3DSingleSctrInParticleLUT_SRV, nullptr);
 //        HRESULT hr2 = D3DX11CreateShaderResourceViewFromFile(pDevice, MultipleSctrTexPath, nullptr, nullptr, &m_ptex3DMultipleSctrInParticleLUT_SRV, nullptr);

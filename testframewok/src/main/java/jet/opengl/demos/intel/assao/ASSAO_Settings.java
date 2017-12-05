@@ -78,4 +78,25 @@ final class ASSAO_Settings implements Readable, Writable{
         DetailShadowStrength = buf.getFloat();
         return this;
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("ASSAO_Settings{");
+        sb.append("\nRadius=").append(Radius);
+        sb.append(", \nShadowMultiplier=").append(ShadowMultiplier);
+        sb.append(", \nShadowPower=").append(ShadowPower);
+        sb.append(", \nShadowClamp=").append(ShadowClamp);
+        sb.append(", \nHorizonAngleThreshold=").append(HorizonAngleThreshold);
+        sb.append(", \nFadeOutFrom=").append(FadeOutFrom);
+        sb.append(", \nFadeOutTo=").append(FadeOutTo);
+        sb.append(", \nQualityLevel=").append(QualityLevel);
+        sb.append(", \nAdaptiveQualityLimit=").append(AdaptiveQualityLimit);
+        sb.append(", \nBlurPassCount=").append(BlurPassCount);
+        sb.append(", \nSharpness=").append(Sharpness);
+        sb.append(", \nTemporalSupersamplingAngleOffset=").append(TemporalSupersamplingAngleOffset);
+        sb.append(", \nTemporalSupersamplingRadiusOffset=").append(TemporalSupersamplingRadiusOffset);
+        sb.append(", \nDetailShadowStrength=").append(DetailShadowStrength);
+        sb.append('\n').append('}');
+        return sb.toString();
+    }
 }

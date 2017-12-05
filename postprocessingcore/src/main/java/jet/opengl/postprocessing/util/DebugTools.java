@@ -92,15 +92,10 @@ public final class DebugTools {
     }
 
     public static void write(ByteBuffer data, String filename, boolean append) throws IOException {
-        File file = new File(filename);
-        write(data, file, append);
+        write(data, makesureDirectionsExsit(filename), append);
     }
 
     public static void write(ByteBuffer data, File file, boolean append) throws IOException{
-        File parent = file.getParentFile();
-        if(!parent.exists())
-            parent.mkdirs();
-
         try (FileChannel out = new FileOutputStream(file, append).getChannel()){
             out.write(data);
             out.close();
@@ -108,7 +103,7 @@ public final class DebugTools {
     }
 
     public static void write(String data, String filename){
-        try (BufferedWriter out = new BufferedWriter(new FileWriter(filename))){
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(makesureDirectionsExsit(filename)))){
             out.write(data);
             out.flush();
         } catch (IOException e) {
@@ -145,6 +140,15 @@ public final class DebugTools {
         }
 
         return null;
+    }
+
+    private static File makesureDirectionsExsit(String filename){
+        File outFile = new File(filename);
+        File parent = outFile.getParentFile();
+        if(parent.exists() == false)
+            parent.mkdirs();
+
+        return outFile;
     }
 
     public static void convertBinaryToText(String source, int internalFormat, int width, String destion) throws IOException {
@@ -1677,7 +1681,7 @@ public final class DebugTools {
     }
 
     private static float parseFloat(String token){
-        if(token.contains(".#QNAN")){
+        if(token.contains(".#QNAN") || token.equalsIgnoreCase("nan")){
             return Float.NaN;
         }else if(token.contains(".#INF")){
             return Float.POSITIVE_INFINITY;
