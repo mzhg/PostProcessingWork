@@ -51,11 +51,16 @@ final class LPV_RGB_Hierarchy extends Hierarchy implements RTCollection_RGB{
         m_collection[level].clearRenderTargetView(/*pd3dContext,*/clearColor,front);
     }
 
-    void setLPVTransformsRotatedAndOffset(float LPVscale, ReadableVector3f LPVtranslate, Matrix4f cameraViewMatrix, ReadableVector3f viewVector)
+    public void setLPVTransformsRotatedAndOffset(float LPVscale, ReadableVector3f LPVtranslate, Matrix4f cameraViewMatrix, ReadableVector3f viewVector)
     {
         for(int level=0; level<m_levels; level++)
             m_collection[level].setLPVTransformsRotatedAndOffset(LPVscale, LPVtranslate, cameraViewMatrix, viewVector, m_collection[level].getWidth3D(),
                     m_collection[level].getHeight3D(), m_collection[level].getDepth3D());
+    }
+
+    @Override
+    public SimpleRT_RGB get(int level) {
+        return m_collection[level];
     }
 
     //downsample level finerLevel to level finerLevel+1
@@ -118,17 +123,17 @@ final class LPV_RGB_Hierarchy extends Hierarchy implements RTCollection_RGB{
         }
     }
 
-    SimpleRT getRed(int level, boolean front/*=true*/) { return m_collection[level].getRed(front); }
-    SimpleRT getBlue(int level, boolean front/*=true*/) { return m_collection[level].getBlue(front); }
-    SimpleRT getGreen(int level, boolean front/*=true*/) { return m_collection[level].getGreen(front); }
+    public SimpleRT getRed(int level, boolean front/*=true*/) { return m_collection[level].getRed(front); }
+    public SimpleRT getBlue(int level, boolean front/*=true*/) { return m_collection[level].getBlue(front); }
+    public SimpleRT getGreen(int level, boolean front/*=true*/) { return m_collection[level].getGreen(front); }
 
-    SimpleRT getRedFront(int level) { return m_collection[level].getRedFront(); }
-    SimpleRT getBlueFront(int level) { return m_collection[level].getBlueFront(); }
-    SimpleRT getGreenFront(int level) { return m_collection[level].getGreenFront(); }
+    public SimpleRT getRedFront(int level) { return m_collection[level].getRedFront(); }
+    public SimpleRT getBlueFront(int level) { return m_collection[level].getBlueFront(); }
+    public SimpleRT getGreenFront(int level) { return m_collection[level].getGreenFront(); }
 
-    SimpleRT getRedBack(int level) { return m_collection[level].getRedBack(); }
-    SimpleRT getBlueBack(int level) { return m_collection[level].getBlueBack();  }
-    SimpleRT getGreenBack(int level) { return m_collection[level].getGreenBack(); }
+    public SimpleRT getRedBack(int level) { return m_collection[level].getRedBack(); }
+    public SimpleRT getBlueBack(int level) { return m_collection[level].getBlueBack();  }
+    public SimpleRT getGreenBack(int level) { return m_collection[level].getGreenBack(); }
 
     void swapBuffers(int level) { m_collection[level].swapBuffers();  }
 
