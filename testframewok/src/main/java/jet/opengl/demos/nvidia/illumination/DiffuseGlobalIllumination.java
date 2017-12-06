@@ -6,7 +6,6 @@ import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
 import org.lwjgl.util.vector.Matrix;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
-import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Vector4i;
@@ -2799,257 +2798,364 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
     void initializeGV(/*ID3D11DeviceContext* pd3dContext,*/ SimpleRT GV, SimpleRT GVColor, SimpleRT RSMAlbedoRT, SimpleRT RSMNormalRT, DepthRT shadowMapDS,
                       float fovy, float aspectRatio, float nearPlane, float farPlane, boolean useDirectional, Matrix4f projectionMatrix, Matrix4f viewMatrix)
     {
-//        HRESULT hr;
-        throw new UnsupportedOperationException();
-        /*float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        /*HRESULT hr;
+        float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         pd3dContext->OMSetBlendState(g_pMaxBlendBS, BlendFactor, 0xffffffff);
-        pd3dContext->OMSetDepthStencilState(g_depthStencilStateDisableDepth, 0);
+        pd3dContext->OMSetDepthStencilState(g_depthStencilStateDisableDepth, 0);*/
+        g_pMaxBlendBS.run();
+        g_depthStencilStateDisableDepth.run();
 
-        assert(GV->getNumRTs()==1); // this code cannot deal with more than one texture in each RenderTarget
-        ID3D11RenderTargetView* GVRTV = GV->get_pRTV(0);
-        ID3D11RenderTargetView* GVColorRTV = GVColor->get_pRTV(0);
+        assert(GV.getNumRTs()==1); // this code cannot deal with more than one texture in each RenderTarget
+        TextureGL GVRTV = GV.get_pRTV(0);
+        TextureGL GVColorRTV = GVColor.get_pRTV(0);
 
-        D3DXMATRIX viewToLPVMatrix;
-        viewToLPVMatrix = GV->getViewToLPVMatrixGV(viewMatrix);
+        Matrix4f viewToLPVMatrix;
+        viewToLPVMatrix = GV.getViewToLPVMatrixGV(viewMatrix);
 
         //set the constant buffer
-        float tanFovyHalf = tan(fovy/2.0f);
-        float tanFovxHalf = tan(fovy/2.0f)*aspectRatio;
+        float tanFovyHalf = (float)Math.tan(fovy/2.0f);
+        float tanFovxHalf = (float)Math.tan(fovy/2.0f)*aspectRatio;
 
-        D3D11_MAPPED_SUBRESOURCE MappedResource;
+        /*D3D11_MAPPED_SUBRESOURCE MappedResource;
         pd3dContext->Map( g_reconPos, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
         RECONSTRUCT_POS* pcbTempR = ( RECONSTRUCT_POS* )MappedResource.pData;
         pcbTempR->farClip = farPlane;
-        pd3dContext->Unmap( g_reconPos, 0 );
-        pd3dContext->VSSetConstantBuffers( 6, 1, &g_reconPos );
-        pd3dContext->PSSetConstantBuffers( 6, 1, &g_reconPos );
+        pd3dContext->Unmap( g_reconPos, 0 );*/
 
-        D3DXMATRIX mProjInv;
+        FloatBuffer buffer = CacheBuffer.wrap(farPlane, 0,0,0);
+        g_reconPos.update(0, buffer);
+
+        /*pd3dContext->VSSetConstantBuffers( 6, 1, &g_reconPos );
+        pd3dContext->PSSetConstantBuffers( 6, 1, &g_reconPos );*/
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_reconPos.getBuffer());
+
+        /*D3DXMATRIX mProjInv;
         D3DXMatrixInverse(&mProjInv, NULL, projectionMatrix);
         V(pd3dContext->Map( g_pcbInvProjMatrix, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource ) );
         CB_INVPROJ_MATRIX* pInvProjMat = ( CB_INVPROJ_MATRIX* )MappedResource.pData;
         D3DXMatrixTranspose( &pInvProjMat->m_InverseProjMatrix, &mProjInv );
         pd3dContext->Unmap( g_pcbInvProjMatrix, 0 );
-        pd3dContext->VSSetConstantBuffers( 7, 1, &g_pcbInvProjMatrix );
+        pd3dContext->VSSetConstantBuffers( 7, 1, &g_pcbInvProjMatrix );*/
+        final Matrix4f mProjInv = CacheBuffer.getCachedMatrix();
+        Matrix4f.invert(projectionMatrix, mProjInv);
+        buffer = CacheBuffer.wrap(mProjInv);
+        CacheBuffer.free(mProjInv);
+        g_pcbInvProjMatrix.update(0, buffer);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 7, g_pcbInvProjMatrix.getBuffer());
 
-        g_LPVViewport.Width  = (float)GV->getWidth3D();
-        g_LPVViewport.Height = (float)GV->getHeight3D();
+        g_LPVViewport.z  = GV.getWidth3D();
+        g_LPVViewport.w = GV.getHeight3D();
 
         //clear and bind the GVs as render targets
         //bind all the GVs as MRT output
-        ID3D11RenderTargetView* pRTVGV[2] = { GVRTV, GVColorRTV };
-        pd3dContext->OMSetRenderTargets( 2, pRTVGV, NULL );
-        pd3dContext->RSSetViewports(1, &g_LPVViewport);
+        TextureGL pRTVGV[] = { GVRTV, GVColorRTV };
+        /*pd3dContext->OMSetRenderTargets( 2, pRTVGV, NULL );
+        pd3dContext->RSSetViewports(1, &g_LPVViewport);*/
+        g_RenderTargets.bind();
+        g_RenderTargets.setRenderTextures(pRTVGV, null);
 
         //bind the RSMs to be read as textures
-        ID3D11ShaderResourceView* ppSRVsRSMs2[3] = {RSMAlbedoRT->get_pSRV(0), RSMNormalRT->get_pSRV(0), shadowMapDS->get_pSRV(0)};
-        pd3dContext->VSSetShaderResources( 0, 3, ppSRVsRSMs2);
+        /*ID3D11ShaderResourceView* ppSRVsRSMs2[3] = {RSMAlbedoRT->get_pSRV(0), RSMNormalRT->get_pSRV(0), shadowMapDS->get_pSRV(0)};
+        pd3dContext->VSSetShaderResources( 0, 3, ppSRVsRSMs2);*/
+        bind(RSMAlbedoRT.get_pSRV(0), 0, 0);
+        bind(RSMNormalRT.get_pSRV(0), 1, 0);
+        bind(shadowMapDS.get_pSRV(0), 2, 0);
 
         //set the shaders
-        if(g_useBilinearInit && g_bilinearInitGVenabled)
-            pd3dContext->VSSetShader( g_pVSInitializeLPV_Bilinear, NULL, 0 );
-        else
-            pd3dContext->VSSetShader( g_pVSInitializeLPV, NULL, 0 );
-        if(g_useBilinearInit && g_bilinearInitGVenabled)
-            pd3dContext->GSSetShader( g_pGSInitializeLPV_Bilinear, NULL, 0 );
-        else
-            pd3dContext->GSSetShader( g_pGSInitializeLPV, NULL, 0 );
-        pd3dContext->PSSetShader( g_pPSInitializeGV, NULL, 0 );
+        if(g_useBilinearInit && g_bilinearInitGVenabled) {
+//            pd3dContext -> VSSetShader(g_pVSInitializeLPV_Bilinear, NULL, 0);
+            g_Program.setVS(g_pVSInitializeLPV_Bilinear);
+        }else {
+//            pd3dContext -> VSSetShader(g_pVSInitializeLPV, NULL, 0);
+            g_Program.setVS(g_pVSInitializeLPV);
+        }
+        if(g_useBilinearInit && g_bilinearInitGVenabled) {
+//            pd3dContext -> GSSetShader(g_pGSInitializeLPV_Bilinear, NULL, 0);
+            g_Program.setGS(g_pGSInitializeLPV_Bilinear);
+        }else {
+//            pd3dContext -> GSSetShader(g_pGSInitializeLPV, NULL, 0);
+            g_Program.setGS(g_pGSInitializeLPV);
+        }
+//        pd3dContext->PSSetShader( g_pPSInitializeGV, NULL, 0 );
+        g_Program.setPS(g_pPSInitializeGV);
 
         //set the constants
-        pd3dContext->Map( g_pcbLPVinitVS, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        /*pd3dContext->Map( g_pcbLPVinitVS, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
         CB_LPV_INITIALIZE* pcbLPVinitVS = ( CB_LPV_INITIALIZE* )MappedResource.pData;
         pcbLPVinitVS->RSMWidth = RSMNormalRT->getWidth2D();
         pcbLPVinitVS->RSMHeight = RSMNormalRT->getHeight2D();
         pd3dContext->Unmap( g_pcbLPVinitVS, 0 );
-        pd3dContext->VSSetConstantBuffers( 0, 1, &g_pcbLPVinitVS );
-
+        pd3dContext->VSSetConstantBuffers( 0, 1, &g_pcbLPVinitVS );*/
+        pcbLPVinitVS.RSMWidth = RSMNormalRT.getWidth2D();
+        pcbLPVinitVS.RSMHeight = RSMNormalRT.getHeight2D();
+        ByteBuffer bytes = CacheBuffer.wrap(CB_LPV_INITIALIZE.SIZE, pcbLPVinitVS);
+        g_pcbLPVinitVS.update(0, bytes);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, g_pcbLPVinitVS.getBuffer());
 
         //initialize the constant buffer which changes based on the chosen LPV level
-        pd3dContext->Map( g_pcbLPVinitialize_LPVDims, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-        CB_LPV_INITIALIZE3* pcbLPVinitVS3 = ( CB_LPV_INITIALIZE3* )MappedResource.pData;
-        pcbLPVinitVS3->g_numCols = GV->getNumCols();    //the number of columns in the flattened 2D LPV
-        pcbLPVinitVS3->g_numRows = GV->getNumRows();    //the number of columns in the flattened 2D LPV
-        pcbLPVinitVS3->LPV2DWidth =  GV->getWidth2D();  //the total width of the flattened 2D LPV
-        pcbLPVinitVS3->LPV2DHeight = GV->getHeight2D(); //the total height of the flattened 2D LPV
-        pcbLPVinitVS3->LPV3DWidth = GV->getWidth3D();   //the width of the LPV in 3D
-        pcbLPVinitVS3->LPV3DHeight = GV->getHeight3D(); //the height of the LPV in 3D
-        pcbLPVinitVS3->LPV3DDepth = GV->getDepth3D();   //the depth of the LPV in 3D
-        pcbLPVinitVS3->fluxWeight = 4 * tanFovxHalf * tanFovyHalf / (RSM_RES * RSM_RES);
-        pcbLPVinitVS3->fluxWeight *= 30.0f; //arbitrary scale
-        pcbLPVinitVS3->useFluxWeight = useDirectional? 0 : 1;
-        pd3dContext->Unmap( g_pcbLPVinitialize_LPVDims, 0 );
+        /*pd3dContext->Map( g_pcbLPVinitialize_LPVDims, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        CB_LPV_INITIALIZE3* pcbLPVinitVS3 = ( CB_LPV_INITIALIZE3* )MappedResource.pData;*/
+        pcbLPVinitVS3.g_numCols = GV.getNumCols();    //the number of columns in the flattened 2D LPV
+        pcbLPVinitVS3.g_numRows = GV.getNumRows();    //the number of columns in the flattened 2D LPV
+        pcbLPVinitVS3.LPV2DWidth =  GV.getWidth2D();  //the total width of the flattened 2D LPV
+        pcbLPVinitVS3.LPV2DHeight = GV.getHeight2D(); //the total height of the flattened 2D LPV
+        pcbLPVinitVS3.LPV3DWidth = GV.getWidth3D();   //the width of the LPV in 3D
+        pcbLPVinitVS3.LPV3DHeight = GV.getHeight3D(); //the height of the LPV in 3D
+        pcbLPVinitVS3.LPV3DDepth = GV.getDepth3D();   //the depth of the LPV in 3D
+        pcbLPVinitVS3.fluxWeight = 4 * tanFovxHalf * tanFovyHalf / (Defines.RSM_RES * Defines.RSM_RES);
+        pcbLPVinitVS3.fluxWeight *= 30.0f; //arbitrary scale
+        pcbLPVinitVS3.useFluxWeight = useDirectional? 0 : 1;
+//        pd3dContext->Unmap( g_pcbLPVinitialize_LPVDims, 0 );
+        bytes = CacheBuffer.wrap(CB_LPV_INITIALIZE3.SIZE, pcbLPVinitVS3);
+        g_pcbLPVinitialize_LPVDims.update(0, bytes);
 
-        pd3dContext->VSSetConstantBuffers( 5, 1, &g_pcbLPVinitialize_LPVDims );
-        pd3dContext->GSSetConstantBuffers( 5, 1, &g_pcbLPVinitialize_LPVDims );
+        /*pd3dContext->VSSetConstantBuffers( 5, 1, &g_pcbLPVinitialize_LPVDims );
+        pd3dContext->GSSetConstantBuffers( 5, 1, &g_pcbLPVinitialize_LPVDims );*/
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, g_pcbLPVinitialize_LPVDims.getBuffer());
 
+        /*pd3dContext->Map( g_pcbLPVinitVS2, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        CB_LPV_INITIALIZE2* pcbLPVinitVS2 = ( CB_LPV_INITIALIZE2* )MappedResource.pData;*/
 
-        pd3dContext->Map( g_pcbLPVinitVS2, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-        CB_LPV_INITIALIZE2* pcbLPVinitVS2 = ( CB_LPV_INITIALIZE2* )MappedResource.pData;
-        D3DXMatrixTranspose( &pcbLPVinitVS2->g_ViewToLPV, &viewToLPVMatrix);
+        Matrix4f.transpose(viewToLPVMatrix, pcbLPVinitVS2.g_ViewToLPV);
 
-        D3DXVec3TransformNormal(&pcbLPVinitVS2->lightDirGridSpace, &D3DXVECTOR3(0, 0, 1), &viewToLPVMatrix);
-        D3DXVec3Normalize(&pcbLPVinitVS2->lightDirGridSpace, &pcbLPVinitVS2->lightDirGridSpace);
+        /*D3DXVec3TransformNormal(&pcbLPVinitVS2->lightDirGridSpace, &D3DXVECTOR3(0, 0, 1), &viewToLPVMatrix);
+        D3DXVec3Normalize(&pcbLPVinitVS2->lightDirGridSpace, &pcbLPVinitVS2->lightDirGridSpace);*/
+        Matrix4f.transformNormal(viewToLPVMatrix, Vector3f.Z_AXIS, pcbLPVinitVS2.lightDirGridSpace);
+        pcbLPVinitVS2.lightDirGridSpace.normalise();
 
-        pcbLPVinitVS2->displacement = g_VPLDisplacement;
-        pd3dContext->Unmap( g_pcbLPVinitVS2, 0 );
-        pd3dContext->VSSetConstantBuffers( 1, 1, &g_pcbLPVinitVS2 );
+        pcbLPVinitVS2.displacement = g_VPLDisplacement;
+        /*pd3dContext->Unmap( g_pcbLPVinitVS2, 0 );
+        pd3dContext->VSSetConstantBuffers( 1, 1, &g_pcbLPVinitVS2 );*/
+        bytes = CacheBuffer.wrap(CB_LPV_INITIALIZE2.SIZE, pcbLPVinitVS2);
+        g_pcbLPVinitVS2.update(0, bytes);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, g_pcbLPVinitVS2.getBuffer());
 
-        int numPoints = RSMAlbedoRT->getWidth2D()*RSMAlbedoRT->getHeight2D();
+        int numPoints = RSMAlbedoRT.getWidth2D()*RSMAlbedoRT.getHeight2D();
         if(g_useBilinearInit && g_bilinearInitGVenabled)
             numPoints *= 8;
-        unsigned int stride = 0;
-        unsigned int offset = 0;
-        ID3D11Buffer* buffer[] = { NULL };
+        int stride = 0;
+        int offset = 0;
+        /*ID3D11Buffer* buffer[] = { NULL };
         pd3dContext->IASetVertexBuffers(0, 1, buffer, &stride, &offset);
         pd3dContext->IASetInputLayout(NULL);
         pd3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-        pd3dContext->Draw(numPoints,0);
-        pd3dContext->IASetInputLayout( g_pMeshLayout );
+        pd3dContext->Draw(numPoints,0);*/
+        gl.glBindVertexArray(0);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+        gl.glDrawArrays(GLenum.GL_POINTS, 0, numPoints);
+
+        /*pd3dContext->IASetInputLayout( g_pMeshLayout );
 
         ID3D11RenderTargetView* pRTVsNULL3[3] = { NULL, NULL, NULL };
         pd3dContext->OMSetRenderTargets( 3, pRTVsNULL3, NULL );
         ID3D11ShaderResourceView* ppSRVsNULL3[3] = { NULL, NULL, NULL };
         pd3dContext->VSSetShaderResources( 0, 3, ppSRVsNULL3);
         ID3D11GeometryShader* NULLGS = NULL;
-        pd3dContext->GSSetShader( NULLGS, NULL, 0 );
+        pd3dContext->GSSetShader( NULLGS, NULL, 0 );*/
+        g_Program.setGS(null);
+        for(int i = 0; i < 12; i++){
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, i, 0);
+        }
 
-        pd3dContext->OMSetBlendState(g_pNoBlendBS, BlendFactor, 0xffffffff);
+        /*pd3dContext->OMSetBlendState(g_pNoBlendBS, BlendFactor, 0xffffffff);
         pd3dContext->OMSetDepthStencilState(g_normalDepthStencilState, 0);*/
+        g_pNoBlendBS.run();
+        g_normalDepthStencilState.run();
     }
+
+    private final CB_LPV_INITIALIZE2 pcbLPVinitVS2 = new CB_LPV_INITIALIZE2();
+    private final CB_LPV_INITIALIZE3 pcbLPVinitVS3 = new CB_LPV_INITIALIZE3();
+    private final CB_LPV_INITIALIZE pcbLPVinitVS = new CB_LPV_INITIALIZE();
 
     void initializeLPV(/*ID3D11DeviceContext* pd3dContext,*/ SimpleRT_RGB LPVAccumulate, SimpleRT_RGB LPVPropagate,
                        Matrix4f viewMatrix, Matrix4f mProjectionMatrix, SimpleRT RSMColorRT, SimpleRT RSMNormalRT, DepthRT shadowMapDS,
                        float fovy, float aspectRatio, float nearPlane, float farPlane, boolean useDirectional)
     {
-        throw new UnsupportedOperationException();
-        /*HRESULT hr;
+//        HRESULT hr;
 
-        float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        pd3dContext->OMSetBlendState(g_pMaxBlendBS, BlendFactor, 0xffffffff);
-        pd3dContext->OMSetDepthStencilState(g_depthStencilStateDisableDepth, 0);
+        float BlendFactor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        /*pd3dContext->OMSetBlendState(g_pMaxBlendBS, BlendFactor, 0xffffffff);
+        pd3dContext->OMSetDepthStencilState(g_depthStencilStateDisableDepth, 0);*/
+        g_pMaxBlendBS.run();
+        g_depthStencilStateDisableDepth.run();
 
-        ID3D11RenderTargetView* pRTVsNULL3[3] = { NULL, NULL, NULL };
+//        ID3D11RenderTargetView* pRTVsNULL3[3] = { NULL, NULL, NULL };
 
-        D3DXMATRIX inverseViewToLPVMatrix, viewToLPVMatrix;
-        LPVPropagate->getLPVLightViewMatrices(viewMatrix, &viewToLPVMatrix, &inverseViewToLPVMatrix);
+        Matrix4f inverseViewToLPVMatrix = CacheBuffer.getCachedMatrix();
+        Matrix4f viewToLPVMatrix = CacheBuffer.getCachedMatrix();
+        LPVPropagate.getLPVLightViewMatrices(viewMatrix, viewToLPVMatrix, inverseViewToLPVMatrix);
 
         //set the constant buffer
-        float tanFovyHalf = tan(fovy/2.0f);
-        float tanFovxHalf = tan(fovy/2.0f)*aspectRatio;
+        float tanFovyHalf = (float)Math.tan(fovy/2.0f);
+        float tanFovxHalf =(float) Math.tan(fovy/2.0f)*aspectRatio;
 
-        D3D11_MAPPED_SUBRESOURCE MappedResource;
+        /*D3D11_MAPPED_SUBRESOURCE MappedResource;
         pd3dContext->Map( g_reconPos, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
         RECONSTRUCT_POS* pcbTempR = ( RECONSTRUCT_POS* )MappedResource.pData;
         pcbTempR->farClip = farPlane;
         pd3dContext->Unmap( g_reconPos, 0 );
         pd3dContext->VSSetConstantBuffers( 6, 1, &g_reconPos );
-        pd3dContext->PSSetConstantBuffers( 6, 1, &g_reconPos );
+        pd3dContext->PSSetConstantBuffers( 6, 1, &g_reconPos );*/
 
-        D3DXMATRIX mProjInv;
+        FloatBuffer buffer = CacheBuffer.wrap(farPlane, 0,0,0);
+        g_reconPos.update(0, buffer);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_reconPos.getBuffer());
+
+        /*D3DXMATRIX mProjInv;
         D3DXMatrixInverse(&mProjInv, NULL, &mProjectionMatrix);
         V(pd3dContext->Map( g_pcbInvProjMatrix, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource ) );
         CB_INVPROJ_MATRIX* pInvProjMat = ( CB_INVPROJ_MATRIX* )MappedResource.pData;
         D3DXMatrixTranspose( &pInvProjMat->m_InverseProjMatrix, &mProjInv );
         pd3dContext->Unmap( g_pcbInvProjMatrix, 0 );
-        pd3dContext->VSSetConstantBuffers( 7, 1, &g_pcbInvProjMatrix );
+        pd3dContext->VSSetConstantBuffers( 7, 1, &g_pcbInvProjMatrix );*/
 
-        g_LPVViewport.Width  = (float)LPVPropagate->getWidth3D();
-        g_LPVViewport.Height = (float)LPVPropagate->getHeight3D();
+        final Matrix4f mProjInv = CacheBuffer.getCachedMatrix();
+        Matrix4f.invert(mProjectionMatrix, mProjInv);
+        buffer = CacheBuffer.wrap(mProjInv);
+        CacheBuffer.free(mProjInv);
+        g_pcbInvProjMatrix.update(0, buffer);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 7, g_pcbInvProjMatrix.getBuffer());
 
-        unsigned int stride = 0;
-        unsigned int offset = 0;
-        ID3D11Buffer* buffer[] = { NULL };
-        ID3D11ShaderResourceView* ppSRVsRSMs[3] = { RSMColorRT->get_pSRV(0), RSMNormalRT->get_pSRV(0), shadowMapDS->get_pSRV(0)};
+        g_LPVViewport.z  = LPVPropagate.getWidth3D();
+        g_LPVViewport.w = LPVPropagate.getHeight3D();
 
-        CB_LPV_INITIALIZE2* pcbLPVinitVS2;
-        int numPoints = RSMColorRT->getWidth2D()*RSMColorRT->getHeight2D();
+        int stride = 0;
+        int offset = 0;
+//        ID3D11Buffer* buffer[] = { NULL };
+//        ID3D11ShaderResourceView* ppSRVsRSMs[3] = { RSMColorRT->get_pSRV(0), RSMNormalRT->get_pSRV(0), shadowMapDS->get_pSRV(0)};
+
+        int numPoints = RSMColorRT.getWidth2D()*RSMColorRT.getHeight2D();
         if(g_useBilinearInit)
             numPoints *= 8;
-        ID3D11GeometryShader* NULLGS = NULL;
+//        ID3D11GeometryShader* NULLGS = NULL;
 
         //initialize the LPV with the RSM from the direct light source
-        ID3D11RenderTargetView* pRTVsLPV[3] = { LPVPropagate->getRed()->get_pRTV(0), LPVPropagate->getGreen()->get_pRTV(0), LPVPropagate->getBlue()->get_pRTV(0) };
-        pd3dContext->OMSetRenderTargets( 3, pRTVsLPV, NULL );
-        pd3dContext->RSSetViewports(1, &g_LPVViewport);
+        TextureGL pRTVsLPV[] = { LPVPropagate.getRed(true).get_pRTV(0), LPVPropagate.getGreen(true).get_pRTV(0), LPVPropagate.getBlue(true).get_pRTV(0) };
+        /*pd3dContext->OMSetRenderTargets( 3, pRTVsLPV, NULL );
+        pd3dContext->RSSetViewports(1, &g_LPVViewport);*/
+        g_RenderTargets.bind();
+        g_RenderTargets.setRenderTextures(pRTVsLPV, null);
+        gl.glViewport(g_LPVViewport.x,g_LPVViewport.y,g_LPVViewport.z, g_LPVViewport.w);
+
 
         //bind the RSMs to be read as textures
-        pd3dContext->VSSetShaderResources( 0, 3, ppSRVsRSMs);
+//        pd3dContext->VSSetShaderResources( 0, 3, ppSRVsRSMs);
+        bind(RSMColorRT.get_pSRV(0), 0, 0);
+        bind(RSMNormalRT.get_pSRV(0), 0, 0);
+        bind(shadowMapDS.get_pSRV(0), 0, 0);
 
         //set the shaders
-        if(g_useBilinearInit)
-            pd3dContext->VSSetShader( g_pVSInitializeLPV_Bilinear, NULL, 0 );
-        else
-            pd3dContext->VSSetShader( g_pVSInitializeLPV, NULL, 0 );
-        if(g_useBilinearInit)
-            pd3dContext->GSSetShader( g_pGSInitializeLPV_Bilinear, NULL, 0 );
-        else
-            pd3dContext->GSSetShader( g_pGSInitializeLPV, NULL, 0 );
-        pd3dContext->PSSetShader( g_pPSInitializeLPV, NULL, 0 );
+        if(g_useBilinearInit) {
+//            pd3dContext -> VSSetShader(g_pVSInitializeLPV_Bilinear, NULL, 0);
+            g_Program.setVS(g_pVSInitializeLPV_Bilinear);
+        }else {
+//            pd3dContext -> VSSetShader(g_pVSInitializeLPV, NULL, 0);
+            g_Program.setVS(g_pVSInitializeLPV);
+        }
+        if(g_useBilinearInit) {
+//            pd3dContext -> GSSetShader(g_pGSInitializeLPV_Bilinear, NULL, 0);
+            g_Program.setGS(g_pGSInitializeLPV_Bilinear);
+        }else {
+//            pd3dContext -> GSSetShader(g_pGSInitializeLPV, NULL, 0);
+            g_Program.setGS(g_pGSInitializeLPV);
+        }
+//        pd3dContext->PSSetShader( g_pPSInitializeLPV, NULL, 0 );
+        g_Program.setPS(g_pPSInitializeLPV);
 
         //set the constants
-        pd3dContext->Map( g_pcbLPVinitVS, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-        CB_LPV_INITIALIZE* pcbLPVinitVS = ( CB_LPV_INITIALIZE* )MappedResource.pData;
-        pcbLPVinitVS->RSMWidth = RSMNormalRT->getWidth2D();
-        pcbLPVinitVS->RSMHeight = RSMNormalRT->getHeight2D();
-        pcbLPVinitVS->lightStrength = g_directLightStrength;
-        pd3dContext->Unmap( g_pcbLPVinitVS, 0 );
+        /*pd3dContext->Map( g_pcbLPVinitVS, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        CB_LPV_INITIALIZE* pcbLPVinitVS = ( CB_LPV_INITIALIZE* )MappedResource.pData;*/
+        pcbLPVinitVS.RSMWidth = RSMNormalRT.getWidth2D();
+        pcbLPVinitVS.RSMHeight = RSMNormalRT.getHeight2D();
+        pcbLPVinitVS.lightStrength = g_directLightStrength;
+
+        /*pd3dContext->Unmap( g_pcbLPVinitVS, 0 );
         pd3dContext->VSSetConstantBuffers( 0, 1, &g_pcbLPVinitVS );
-        pd3dContext->PSSetConstantBuffers( 0, 1, &g_pcbLPVinitVS );
+        pd3dContext->PSSetConstantBuffers( 0, 1, &g_pcbLPVinitVS );*/
+        ByteBuffer bytes = CacheBuffer.wrap(CB_LPV_INITIALIZE.SIZE, pcbLPVinitVS);
+        g_pcbLPVinitVS.update(0, bytes);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, g_pcbLPVinitVS.getBuffer());
 
-        pd3dContext->Map( g_pcbLPVinitialize_LPVDims, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-        CB_LPV_INITIALIZE3* pcbLPVinitVS3 = ( CB_LPV_INITIALIZE3* )MappedResource.pData;
-        pcbLPVinitVS3->g_numCols = LPVPropagate->getNumCols();    //the number of columns in the flattened 2D LPV
-        pcbLPVinitVS3->g_numRows = LPVPropagate->getNumRows();    //the number of columns in the flattened 2D LPV
-        pcbLPVinitVS3->LPV2DWidth =  LPVPropagate->getWidth2D();  //the total width of the flattened 2D LPV
-        pcbLPVinitVS3->LPV2DHeight = LPVPropagate->getHeight2D(); //the total height of the flattened 2D LPV
-        pcbLPVinitVS3->LPV3DWidth = LPVPropagate->getWidth3D();   //the width of the LPV in 3D
-        pcbLPVinitVS3->LPV3DHeight = LPVPropagate->getHeight3D(); //the height of the LPV in 3D
-        pcbLPVinitVS3->LPV3DDepth = LPVPropagate->getDepth3D();   //the depth of the LPV in 3D
-        pcbLPVinitVS3->fluxWeight = 4 * tanFovxHalf * tanFovyHalf / (RSM_RES * RSM_RES);
-        pcbLPVinitVS3->fluxWeight *= 30.0f; //arbitrary scale
-        pcbLPVinitVS3->useFluxWeight = useDirectional? 0 : 1;
-        pd3dContext->Unmap( g_pcbLPVinitialize_LPVDims, 0 );
+        /*pd3dContext->Map( g_pcbLPVinitialize_LPVDims, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        CB_LPV_INITIALIZE3* pcbLPVinitVS3 = ( CB_LPV_INITIALIZE3* )MappedResource.pData;*/
+        pcbLPVinitVS3.g_numCols = LPVPropagate.getNumCols();    //the number of columns in the flattened 2D LPV
+        pcbLPVinitVS3.g_numRows = LPVPropagate.getNumRows();    //the number of columns in the flattened 2D LPV
+        pcbLPVinitVS3.LPV2DWidth =  LPVPropagate.getWidth2D();  //the total width of the flattened 2D LPV
+        pcbLPVinitVS3.LPV2DHeight = LPVPropagate.getHeight2D(); //the total height of the flattened 2D LPV
+        pcbLPVinitVS3.LPV3DWidth = LPVPropagate.getWidth3D();   //the width of the LPV in 3D
+        pcbLPVinitVS3.LPV3DHeight = LPVPropagate.getHeight3D(); //the height of the LPV in 3D
+        pcbLPVinitVS3.LPV3DDepth = LPVPropagate.getDepth3D();   //the depth of the LPV in 3D
+        pcbLPVinitVS3.fluxWeight = 4 * tanFovxHalf * tanFovyHalf / (Defines.RSM_RES * Defines.RSM_RES);
+        pcbLPVinitVS3.fluxWeight *= 30.0f; //arbitrary scale
+        pcbLPVinitVS3.useFluxWeight = useDirectional? 0 : 1;
+        /*pd3dContext->Unmap( g_pcbLPVinitialize_LPVDims, 0 );
         pd3dContext->VSSetConstantBuffers( 5, 1, &g_pcbLPVinitialize_LPVDims );
-        pd3dContext->GSSetConstantBuffers( 5, 1, &g_pcbLPVinitialize_LPVDims );
+        pd3dContext->GSSetConstantBuffers( 5, 1, &g_pcbLPVinitialize_LPVDims );*/
+        bytes = CacheBuffer.wrap(CB_LPV_INITIALIZE3.SIZE, pcbLPVinitVS3);
+        g_pcbLPVinitialize_LPVDims.update(0, bytes);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, g_pcbLPVinitialize_LPVDims.getBuffer());
 
-        pd3dContext->Map( g_pcbLPVinitVS2, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-        pcbLPVinitVS2 = ( CB_LPV_INITIALIZE2* )MappedResource.pData;
-        D3DXMatrixTranspose( &pcbLPVinitVS2->g_ViewToLPV, &viewToLPVMatrix);
-        D3DXMatrixTranspose( &pcbLPVinitVS2->g_LPVtoView, &inverseViewToLPVMatrix);
+        /*pd3dContext->Map( g_pcbLPVinitVS2, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        pcbLPVinitVS2 = ( CB_LPV_INITIALIZE2* )MappedResource.pData;*/
+        /*D3DXMatrixTranspose( &pcbLPVinitVS2->g_ViewToLPV, &viewToLPVMatrix);
+        D3DXMatrixTranspose( &pcbLPVinitVS2->g_LPVtoView, &inverseViewToLPVMatrix);*/
+        pcbLPVinitVS2.g_ViewToLPV.load(viewToLPVMatrix);
+        pcbLPVinitVS2.g_LPVtoView.load(inverseViewToLPVMatrix);
 
-        D3DXVec3TransformNormal(&pcbLPVinitVS2->lightDirGridSpace, &D3DXVECTOR3(0, 0, 1), &viewToLPVMatrix);
-        D3DXVec3Normalize(&pcbLPVinitVS2->lightDirGridSpace, &pcbLPVinitVS2->lightDirGridSpace);
+        /*Matrix4f.transformNormal()&pcbLPVinitVS2->lightDirGridSpace, &D3DXVECTOR3(0, 0, 1), &viewToLPVMatrix);
+        D3DXVec3Normalize(&pcbLPVinitVS2->lightDirGridSpace, &pcbLPVinitVS2->lightDirGridSpace);*/
+        Matrix4f.transformNormal(viewToLPVMatrix, Vector3f.Z_AXIS, pcbLPVinitVS2.lightDirGridSpace);
+        pcbLPVinitVS2.lightDirGridSpace.normalise();
 
-        pcbLPVinitVS2->displacement = g_VPLDisplacement;
-        pd3dContext->Unmap( g_pcbLPVinitVS2, 0 );
-        pd3dContext->VSSetConstantBuffers( 1, 1, &g_pcbLPVinitVS2 );
+        pcbLPVinitVS2.displacement = g_VPLDisplacement;
+        /*pd3dContext->Unmap( g_pcbLPVinitVS2, 0 );
+        pd3dContext->VSSetConstantBuffers( 1, 1, &g_pcbLPVinitVS2 );*/
+        bytes = CacheBuffer.wrap(CB_LPV_INITIALIZE2.SIZE, pcbLPVinitVS2);
+        g_pcbLPVinitVS2.update(0, bytes);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, g_pcbLPVinitVS2.getBuffer());
 
         //render as many points as pixels in the RSM
         //each point will VTFs to determine its position in the grid, its flux and its normal
         //(to determine the point's position in the grid we first have to unproject the point to world space, then transform it to LPV space)
         //the point will then set its output position to write to the correct part of the output 2D texture
         //in the pixel shader the point will write out the SPH coefficients of the clamped cosine lobe
-        pd3dContext->IASetVertexBuffers(0, 1, buffer, &stride, &offset);
+        /*pd3dContext->IASetVertexBuffers(0, 1, buffer, &stride, &offset);
         pd3dContext->IASetInputLayout(NULL);
         pd3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
         pd3dContext->Draw(numPoints,0);
-        pd3dContext->IASetInputLayout( g_pMeshLayout );
+        pd3dContext->IASetInputLayout( g_pMeshLayout );*/
+        gl.glBindVertexArray(0);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+        gl.glDrawArrays(GLenum.GL_POINTS, 0, numPoints);
 
-        pd3dContext->OMSetRenderTargets( 3, pRTVsNULL3, NULL );
+        /*pd3dContext->OMSetRenderTargets( 3, pRTVsNULL3, NULL );
         ID3D11ShaderResourceView* ppSRVsNULL3[3] = { NULL, NULL, NULL };
         pd3dContext->VSSetShaderResources( 0, 3, ppSRVsNULL3);
-        pd3dContext->GSSetShader( NULLGS, NULL, 0 );
+        pd3dContext->GSSetShader( NULLGS, NULL, 0 );*/
 
-        pd3dContext->OMSetBlendState(g_pNoBlendBS, BlendFactor, 0xffffffff);
+        g_Program.setGS(null);
+        for(int i = 0; i < 12; i++){
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, i, 0);
+        }
+
+        /*pd3dContext->OMSetBlendState(g_pNoBlendBS, BlendFactor, 0xffffffff);
         pd3dContext->OMSetDepthStencilState(g_normalDepthStencilState, 0);*/
+        g_pNoBlendBS.run();
+        g_normalDepthStencilState.run();
+        bind(null, 0, 0);
+        bind(null, 1, 0);
+        bind(null, 2, 0);
+
+        CacheBuffer.free(inverseViewToLPVMatrix);
+        CacheBuffer.free(viewToLPVMatrix);
     }
 
     void invokeHierarchyBasedPropagation(/*ID3D11DeviceContext* pd3dContext,*/ boolean useSingleLPV, int numHierarchyLevels, int numPropagationStepsLPV, int PropLevel,
                                          LPV_Hierarchy GV, LPV_Hierarchy GVColor, LPV_RGB_Hierarchy LPVAccumulate, LPV_RGB_Hierarchy LPVPropagate)
     {
-        throw new UnsupportedOperationException();
-        /*float ClearColor2[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+//        float ClearColor2[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
         if(!useSingleLPV)
         {
@@ -3057,33 +3163,33 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
             //here we are downsampling from level 0 to level 1
             for(int i=0; i<numHierarchyLevels-1;i++)
             {
-                GV->Downsample(pd3dContext,i,DOWNSAMPLE_MAX);
-                GVColor->Downsample(pd3dContext,i,DOWNSAMPLE_MAX);
+                GV.Downsample(/*pd3dContext,*/i,Defines.DOWNSAMPLE_MAX);
+                GVColor.Downsample(/*pd3dContext,*/i,Defines.DOWNSAMPLE_MAX);
             }
-
-            PropSpecs propAmounts[MAX_LEVELS];
+            final int MAX_LEVELS = 10;
+            PropSpecs[] propAmounts = new PropSpecs[MAX_LEVELS];
 
             if(numHierarchyLevels == 2)
             {
                 int individualSteps = numPropagationStepsLPV/3;
-                propAmounts[0] = PropSpecs(individualSteps , individualSteps+ (numPropagationStepsLPV-individualSteps*3));
-                propAmounts[1] = PropSpecs(individualSteps, 0);
+                propAmounts[0] = new PropSpecs(individualSteps , individualSteps+ (numPropagationStepsLPV-individualSteps*3));
+                propAmounts[1] = new PropSpecs(individualSteps, 0);
             }
             else if(numHierarchyLevels == 3)
             {
-                propAmounts[0] = PropSpecs(numPropagationStepsLPV/5,numPropagationStepsLPV/5);
-                propAmounts[1] = PropSpecs(numPropagationStepsLPV/5,numPropagationStepsLPV/5);
-                propAmounts[2] = PropSpecs(numPropagationStepsLPV/5,0);
+                propAmounts[0] = new PropSpecs(numPropagationStepsLPV/5,numPropagationStepsLPV/5);
+                propAmounts[1] = new PropSpecs(numPropagationStepsLPV/5,numPropagationStepsLPV/5);
+                propAmounts[2] = new PropSpecs(numPropagationStepsLPV/5,0);
             }
             else
             {
                 for(int i=0;i<(numHierarchyLevels-1);i++)
-                    propAmounts[i] = PropSpecs(numPropagationStepsLPV/(numHierarchyLevels*2-1),numPropagationStepsLPV/(numHierarchyLevels*2-1));
-                propAmounts[numHierarchyLevels-1] = PropSpecs(numPropagationStepsLPV/(numHierarchyLevels*2-1),0);
+                    propAmounts[i] = new PropSpecs(numPropagationStepsLPV/(numHierarchyLevels*2-1),numPropagationStepsLPV/(numHierarchyLevels*2-1));
+                propAmounts[numHierarchyLevels-1] = new PropSpecs(numPropagationStepsLPV/(numHierarchyLevels*2-1),0);
             }
 
 
-            propagateLightHierarchy(pd3dContext, LPVAccumulate, LPVPropagate, GV, GVColor, 0, propAmounts, numHierarchyLevels);
+            propagateLightHierarchy(/*pd3dContext,*/ LPVAccumulate, LPVPropagate, GV, GVColor, 0, propAmounts, numHierarchyLevels);
 
         }
         else
@@ -3092,33 +3198,108 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
 
             for(int level=0; level<PropLevel; level++)
             {
-                LPVPropagate->clearRenderTargetView(pd3dContext,ClearColor2,true, level+1);
-                LPVPropagate->clearRenderTargetView(pd3dContext,ClearColor2,false, level+1);
-                LPVAccumulate->clearRenderTargetView(pd3dContext,ClearColor2,true, level+1);
-                LPVAccumulate->clearRenderTargetView(pd3dContext,ClearColor2,false, level+1);
+                LPVPropagate.clearRenderTargetView(/*pd3dContext,*/null,true, level+1);
+                LPVPropagate.clearRenderTargetView(/*pd3dContext,*/null,false, level+1);
+                LPVAccumulate.clearRenderTargetView(/*pd3dContext,*/null,true, level+1);
+                LPVAccumulate.clearRenderTargetView(/*pd3dContext,*/null,false, level+1);
 
-                LPVPropagate->Downsample(pd3dContext,level,DOWNSAMPLE_AVERAGE);
-                LPVAccumulate->Downsample(pd3dContext,level,DOWNSAMPLE_AVERAGE);
-                GV->Downsample(pd3dContext,level,DOWNSAMPLE_MAX);
-                GVColor->Downsample(pd3dContext,level,DOWNSAMPLE_MAX);
+                LPVPropagate.Downsample(/*pd3dContext,*/level,Defines.DOWNSAMPLE_AVERAGE);
+                LPVAccumulate.Downsample(/*pd3dContext,*/level,Defines.DOWNSAMPLE_AVERAGE);
+                GV.Downsample(/*pd3dContext,*/level,Defines.DOWNSAMPLE_MAX);
+                GVColor.Downsample(/*pd3dContext,*/level,Defines.DOWNSAMPLE_MAX);
             }
 
             if(g_usePSPropagation)
             {
-                pd3dContext->PSSetConstantBuffers( 0, 1, &g_pcbLPVinitVS );
+                /*pd3dContext->PSSetConstantBuffers( 0, 1, &g_pcbLPVinitVS );
                 pd3dContext->PSSetConstantBuffers( 2, 1, &g_pcbLPVpropagateGather );
-                pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbLPVpropagateGather2 );
+                pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbLPVpropagateGather2 );*/
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, g_pcbLPVinitVS.getBuffer());
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, g_pcbLPVpropagateGather.getBuffer());
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_pcbLPVpropagateGather2.getBuffer());
             }
             else
             {
-                pd3dContext->CSSetConstantBuffers( 0, 1, &g_pcbLPVinitVS );
+                /*pd3dContext->CSSetConstantBuffers( 0, 1, &g_pcbLPVinitVS );
                 pd3dContext->CSSetConstantBuffers( 2, 1, &g_pcbLPVpropagateGather );
-                pd3dContext->CSSetConstantBuffers( 6, 1, &g_pcbLPVpropagateGather2 );
+                pd3dContext->CSSetConstantBuffers( 6, 1, &g_pcbLPVpropagateGather2 );*/
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, g_pcbLPVinitVS.getBuffer());
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, g_pcbLPVpropagateGather.getBuffer());
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_pcbLPVpropagateGather2.getBuffer());
             }
 
             for(int i=0; i< numPropagationStepsLPV; i++)
-                propagateLPV(pd3dContext, i, LPVPropagate->m_collection[PropLevel], LPVAccumulate->m_collection[PropLevel], GV->m_collection[PropLevel], GVColor->m_collection[PropLevel] );
-        }*/
+                propagateLPV(/*pd3dContext,*/ i, LPVPropagate.get(PropLevel), LPVAccumulate.get(PropLevel), GV.getRenderTarget(PropLevel), GVColor.getRenderTarget(PropLevel) );
+        }
+    }
+
+    void propagateLightHierarchy(/*ID3D11DeviceContext* pd3dContext,*/ LPV_RGB_Hierarchy LPVAccumulate, LPV_RGB_Hierarchy LPVPropagate, LPV_Hierarchy GV,
+                                 LPV_Hierarchy GVColor, int level, PropSpecs[] propAmounts/*[MAX_LEVELS]*/, int numLevels)
+    {
+        //set shader constants
+        if(g_usePSPropagation)
+        {
+            /*pd3dContext->PSSetConstantBuffers( 2, 1, &g_pcbLPVpropagateGather );
+            pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbLPVpropagateGather2 );*/
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, g_pcbLPVpropagateGather.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_pcbLPVpropagateGather2.getBuffer());
+        }
+        else
+        {
+            /*pd3dContext->CSSetConstantBuffers( 2, 1, &g_pcbLPVpropagateGather );
+            pd3dContext->CSSetConstantBuffers( 6, 1, &g_pcbLPVpropagateGather2 );*/
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, g_pcbLPVpropagateGather.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_pcbLPVpropagateGather2.getBuffer());
+        }
+
+        //propagate at the current level
+        for(int i=0; i< propAmounts[level].m_down ; i++)
+            propagateLPV(/*pd3dContext,*/ i, LPVPropagate.get(level), LPVAccumulate.get(level), GV.getRenderTarget(level), GVColor.getRenderTarget(level) );
+
+        //recursively call propagate at the lower level
+        if(level<(numLevels-1))
+        {
+//            float ClearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+            //clear the coarser level
+            //dont need to clear the propagation buffers, because the front buffer will be completely overwritten by the downsample function,
+            //and the backbuffer will be completely overwritten by the propagate function
+            LPVAccumulate.clearRenderTargetView(/*pd3dContext,*/null,true,level+1);
+            LPVAccumulate.clearRenderTargetView(/*pd3dContext,*/null,false,level+1);
+
+            //dowsample the  current level wavefront to the coarser level wavefront. the front buffer is downsampled to the front buffer
+            LPVPropagate.Downsample(/*pd3dContext,*/level,Defines.DOWNSAMPLE_AVERAGE);
+
+            //propagate at the coarser level
+            propagateLightHierarchy(/*pd3dContext,*/ LPVAccumulate, LPVPropagate, GV, GVColor, level+1, propAmounts, numLevels);
+
+            //upsample the coarser level wavefront LPV to the finer level
+            LPVPropagate.Upsample(/*pd3dContext,*/ level+1, Defines.UPSAMPLE_BILINEAR, Defines.SAMPLE_REPLACE);
+            //upsample and accumulate the coarser level accumulated LPV to the finer level
+            LPVAccumulate.Upsample(/*pd3dContext,*/ level+1,Defines.UPSAMPLE_BILINEAR, Defines.SAMPLE_ACCUMULATE);
+        }
+
+        //and then propagate once more at the current level
+        if(g_usePSPropagation)
+        {
+            /*pd3dContext->PSSetConstantBuffers( 2, 1, &g_pcbLPVpropagateGather );
+            pd3dContext->PSSetConstantBuffers( 6, 1, &g_pcbLPVpropagateGather2 );*/
+
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, g_pcbLPVpropagateGather.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_pcbLPVpropagateGather2.getBuffer());
+        }
+        else
+        {
+            /*pd3dContext->CSSetConstantBuffers( 2, 1, &g_pcbLPVpropagateGather );
+            pd3dContext->CSSetConstantBuffers( 6, 1, &g_pcbLPVpropagateGather2 );*/
+
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, g_pcbLPVpropagateGather.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, g_pcbLPVpropagateGather2.getBuffer());
+        }
+
+        for(int i=0; i< propAmounts[level].m_up ; i++)
+            propagateLPV(/*pd3dContext,*/ i, LPVPropagate.get(level), LPVAccumulate.get(level), GV.getRenderTarget(level), GVColor.getRenderTarget(level) );
+
     }
 
     void invokeCascadeBasedPropagation(/*ID3D11DeviceContext* pd3dContext,*/ boolean useSingleLPV, int propLevel, LPV_RGB_Cascade LPVAccumulate, LPV_RGB_Cascade LPVPropagate,
@@ -3151,20 +3332,156 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
                 propagateLPV(/*pd3dContext,*/iteration, LPVPropagate.get(level), LPVAccumulate.get(level), GV.getRenderTarget(level), GVColor.getRenderTarget(level));
     }
 
-    void propagateLPV(/*ID3D11DeviceContext* pd3dContext,*/ int iteration, SimpleRT_RGB LPVPropagate, SimpleRT_RGB LPVAccumulate, SimpleRT GV, SimpleRT GVColor )
+    private final CB_GV pcbGV = new CB_GV();
+
+    //shader to do propagation and accumulation of light for one iteration
+    void propagateLPV_PixelShaderPath(/*ID3D11DeviceContext* pd3dContext,*/ int iteration, SimpleRT_RGB LPVPropagate, SimpleRT_RGB LPVAccumulate, SimpleRT GV,
+                                      SimpleRT GVColor )
     {
-        throw new UnsupportedOperationException();
-
-        /*if(g_usePSPropagation)
-            return propagateLPV_PixelShaderPath(pd3dContext, iteration, LPVPropagate, LPVAccumulate, GV, GVColor );
-
-        bool bAccumulateSeparately = false;
-        if(LPVAccumulate->getRedFront()->getNumChannels()==1 && LPVAccumulate->getRedFront()->getNumRTs()==4) bAccumulateSeparately = true;
-
-        D3D11_MAPPED_SUBRESOURCE MappedResource;
+        /*ID3D11GeometryShader* NULLGS = NULL;
+        D3D11_MAPPED_SUBRESOURCE MappedResource;*/
 
         //swap buffers so that the data that we just wrote goes into the back buffer. we will read from the backbuffer and write to the frontbuffer
-        LPVPropagate->swapBuffers();
+        LPVPropagate.swapBuffers();
+        //LPVAccumulate->swapBuffers(); dont need to swap accumulate buffers because we are just going to be additively blending to the front buffer
+
+        //set the shaders
+        /*pd3dContext->VSSetShader( g_pVSPropagateLPV, NULL, 0 );
+        pd3dContext->GSSetShader( g_pGSPropagateLPV, NULL, 0 );*/
+        g_Program.setVS(g_pVSPropagateLPV);
+        g_Program.setGS(g_pGSPropagateLPV);
+        if(g_useOcclusion || g_useMultipleBounces) {
+//            pd3dContext -> PSSetShader(g_pPSPropagateLPV, NULL, 0);
+            g_Program.setPS(g_pPSPropagateLPV);
+        }else {
+//            pd3dContext -> PSSetShader(g_pPSPropagateLPVSimple, NULL, 0);
+            g_Program.setPS(g_pPSPropagateLPVSimple);
+        }
+
+
+        //set the LPV backbuffers as textures to read from
+        /*ID3D11ShaderResourceView* ppSRVsLPV[5] = { LPVPropagate->getRedBack()->get_pSRV(0), LPVPropagate->getGreenBack()->get_pSRV(0), LPVPropagate->getBlueBack()->get_pSRV(0),
+            GV->get_pSRV(0), GVColor->get_pSRV(0)};
+        pd3dContext->PSSetShaderResources( 3, 5, ppSRVsLPV);*/
+        bind(LPVPropagate.getRedBack().get_pSRV(0), 3, 0);
+        bind(LPVPropagate.getGreenBack().get_pSRV(0), 4, 0);
+        bind(LPVPropagate.getBlueBack().get_pSRV(0), 5, 0);
+        bind(GV.get_pSRV(0), 6, 0);
+        bind(GVColor.get_pSRV(0), 7, 0);
+
+        //update constant buffer
+        /*pd3dContext->Map( g_pcbLPVpropagate, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        CB_LPV_PROPAGATE* pcbLPVinitVS3 = ( CB_LPV_PROPAGATE* )MappedResource.pData;*/
+        pcbLPVinitVS3.g_numCols = LPVAccumulate.getNumCols();    //the number of columns in the flattened 2D LPV
+        pcbLPVinitVS3.g_numRows = LPVAccumulate.getNumRows();    //the number of columns in the flattened 2D LPV
+        pcbLPVinitVS3.LPV2DWidth =  LPVAccumulate.getWidth2D();  //the total width of the flattened 2D LPV
+        pcbLPVinitVS3.LPV2DHeight = LPVAccumulate.getHeight2D(); //the total height of the flattened 2D LPV
+        pcbLPVinitVS3.LPV3DWidth = LPVAccumulate.getWidth3D();   //the width of the LPV in 3D
+        pcbLPVinitVS3.LPV3DHeight = LPVAccumulate.getHeight3D(); //the height of the LPV in 3D
+        pcbLPVinitVS3.LPV3DDepth = LPVAccumulate.getDepth3D();   //the depth of the LPV in 3D
+        pcbLPVinitVS3.useFluxWeight = 0;
+
+        /*pd3dContext->Unmap( g_pcbLPVpropagate, 0 );
+        pd3dContext->PSSetConstantBuffers( 5, 1, &g_pcbLPVpropagate ); //have to update this at each iteration*/
+        ByteBuffer bytes = CacheBuffer.wrap(CB_LPV_INITIALIZE3.SIZE, pcbLPVinitVS3);
+        g_pcbLPVpropagate.update(0, bytes);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, g_pcbLPVpropagate.getBuffer());
+
+        if(iteration<2)
+        {
+            /*pd3dContext->Map( g_pcbGV, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+            CB_GV* pcbGV = ( CB_GV* )MappedResource.pData;*/
+
+            if(iteration<1 || !g_useOcclusion) pcbGV.useGVOcclusion = 0;
+            else pcbGV.useGVOcclusion = 1;
+
+            pcbGV.useMultipleBounces = g_useMultipleBounces?1:0;
+            pcbGV.fluxAmplifier = g_fluxAmplifier;
+            pcbGV.reflectedLightAmplifier = g_reflectedLightAmplifier;
+            pcbGV.occlusionAmplifier = g_occlusionAmplifier;
+
+            //in the first step we can optionally copy the propagation LPV data into the accumulation LPV
+            if(iteration<1) pcbGV.copyPropToAccum = 1; else pcbGV.copyPropToAccum = 0;
+
+            /*pd3dContext->Unmap( g_pcbGV, 0 );
+            pd3dContext->PSSetConstantBuffers( 3, 1, &g_pcbGV );*/
+            bytes = CacheBuffer.wrap(CB_GV.SIZE, pcbGV);
+            g_pcbGV.update(0, bytes);
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, g_pcbGV.getBuffer());
+        }
+
+        g_LPVViewport.z  = LPVPropagate.getWidth3D();
+        g_LPVViewport.w = LPVPropagate.getHeight3D();
+
+        //set the MRTs that we are going to be writing to
+        TextureGL pRTVLPV[] = { LPVPropagate.getRedFront().get_pRTV(0), LPVPropagate.getGreenFront().get_pRTV(0) , LPVPropagate.getBlueFront().get_pRTV(0)
+            ,LPVAccumulate.getRedFront().get_pRTV(0), LPVAccumulate.getGreenFront().get_pRTV(0) , LPVAccumulate.getBlueFront().get_pRTV(0)};
+        /*pd3dContext->OMSetRenderTargets( 6, pRTVLPV, NULL );
+        pd3dContext->RSSetViewports(1, &g_LPVViewport);*/
+        g_RenderTargets.bind();
+        g_RenderTargets.setRenderTextures(pRTVLPV, null);
+        gl.glViewport(g_LPVViewport.x, g_LPVViewport.y, g_LPVViewport.z, g_LPVViewport.w);
+
+        //do the actual rendering
+        /*float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        pd3dContext->OMSetBlendState(g_pNoBlend1AddBlend2BS, BlendFactor, 0xffffffff);
+        UINT stride = sizeof( Tex3PosVertex );
+        UINT offset = 0;
+        pd3dContext->IASetInputLayout( g_pPos3Tex3IL );
+        pd3dContext->IASetVertexBuffers( 0, 1, &(LPVAccumulate->m_pRenderToLPV_VB), &stride, &offset );
+        pd3dContext->IASetIndexBuffer(NULL,DXGI_FORMAT_R32_UINT,0);
+        pd3dContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+        pd3dContext->Draw( 6*LPVAccumulate->getDepth3D(), 0 );*/
+        g_pNoBlend1AddBlend2BS.run();
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, LPVAccumulate.m_pRenderToLPV_VB.getBuffer());
+        g_pPos3Tex3IL.bind();
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 6*LPVAccumulate.getDepth3D());
+        g_pPos3Tex3IL.unbind();
+
+        /*pd3dContext->GSSetShader( NULLGS, NULL, 0 );
+        ID3D11RenderTargetView* pRTVsNULL6[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
+        pd3dContext->OMSetRenderTargets( 6, pRTVsNULL6, NULL );
+        ID3D11ShaderResourceView* ppSRVsNULL8[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+        pd3dContext->PSSetShaderResources( 3, 8, ppSRVsNULL8);*/
+        g_Program.setGS(null);
+        for(int i = 3; i < 8; i++){
+            bind(null, i, 0);
+        }
+    }
+
+    private void bindImage(TextureGL tex, int unit, boolean read, boolean write){
+        int access;
+        if(read && !write){
+            access = GLenum.GL_READ_ONLY;
+        }else if(read && write){
+            access = GLenum.GL_READ_WRITE;
+        }else if(write){
+            access = GLenum.GL_WRITE_ONLY;
+        }else{
+            throw new IllegalArgumentException();
+        }
+
+        if(tex != null){
+            gl.glBindImageTexture(unit, tex.getTexture(), 0, false, 0, access, tex.getFormat());
+        }else{
+            gl.glBindImageTexture(unit, 0, 0, false, 0, access, GLenum.GL_RGBA8);
+        }
+    }
+
+    void propagateLPV(/*ID3D11DeviceContext* pd3dContext,*/ int iteration, SimpleRT_RGB LPVPropagate, SimpleRT_RGB LPVAccumulate, SimpleRT GV, SimpleRT GVColor )
+    {
+        if(g_usePSPropagation) {
+            propagateLPV_PixelShaderPath(/*pd3dContext,*/ iteration, LPVPropagate, LPVAccumulate, GV, GVColor);
+            return;
+        }
+
+        boolean bAccumulateSeparately = false;
+        if(LPVAccumulate.getRedFront().getNumChannels()==1 && LPVAccumulate.getRedFront().getNumRTs()==4) bAccumulateSeparately = true;
+
+//        D3D11_MAPPED_SUBRESOURCE MappedResource;
+
+        //swap buffers so that the data that we just wrote goes into the back buffer. we will read from the backbuffer and write to the frontbuffer
+        LPVPropagate.swapBuffers();
 
         //clear the front buffer because we are going to be replacing its contents completely with the propagated wavefront from backbuffer
         //we are not doing a clear here since it is faster for my app to just update all the voxels in the shader
@@ -3172,92 +3489,135 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
         //LPVPropagate->clearRenderTargetView(pd3dContext, ClearColorLPV, true);
 
         //make sure that the propagate LPV is actually a float4, since the other paths are not implemented (and were not needed since we dont need to read and write to LPVPropagate)
-        assert(LPVPropagate->getRedFront()->getNumRTs()==1);
-        assert(GV->getNumRTs()==1);
-        assert(GVColor->getNumRTs()==1);
+        assert(LPVPropagate.getRedFront().getNumRTs()==1);
+        assert(GV.getNumRTs()==1);
+        assert(GVColor.getNumRTs()==1);
 
-
-        UINT initCounts = 0;
+        g_Program.setVS(null);
+        g_Program.setPS(null);
+        int initCounts = 0;
 
         //set the shader
-        if(g_useOcclusion || g_useMultipleBounces)
-            pd3dContext->CSSetShader( g_pCSPropagateLPV, NULL, 0 );
-        else
-            pd3dContext->CSSetShader( g_pCSPropagateLPVSimple, NULL, 0 );
+        if(g_useOcclusion || g_useMultipleBounces) {
+//            pd3dContext -> CSSetShader(g_pCSPropagateLPV, NULL, 0);
+            g_Program.setCS(g_pCSPropagateLPV);
+        }else {
+//            pd3dContext -> CSSetShader(g_pCSPropagateLPVSimple, NULL, 0);
+            g_Program.setCS(g_pCSPropagateLPVSimple);
+        }
 
         //set the unordered views that we are going to be writing to
-        ID3D11UnorderedAccessView* ppUAV[3] = { LPVPropagate->getRedFront()->get_pUAV(0), LPVPropagate->getGreenFront()->get_pUAV(0) , LPVPropagate->getBlueFront()->get_pUAV(0)};
-        pd3dContext->CSSetUnorderedAccessViews( 0, 3, ppUAV, &initCounts );
+        /*ID3D11UnorderedAccessView* ppUAV[3] = { LPVPropagate->getRedFront()->get_pUAV(0), LPVPropagate->getGreenFront()->get_pUAV(0) , LPVPropagate->getBlueFront()->get_pUAV(0)};
+        pd3dContext->CSSetUnorderedAccessViews( 0, 3, ppUAV, &initCounts );*/
+
+        bindImage(LPVPropagate.getRedFront().get_pUAV(0), 0, false, true);
+        bindImage(LPVPropagate.getGreenFront().get_pUAV(0), 1, false, true);
+        bindImage(LPVPropagate.getBlueFront().get_pUAV(0), 2, false, true);
 
         //set the LPV backbuffers as textures to read from
-        ID3D11ShaderResourceView* ppSRVsLPV[5] = { LPVPropagate->getRedBack()->get_pSRV(0), LPVPropagate->getGreenBack()->get_pSRV(0), LPVPropagate->getBlueBack()->get_pSRV(0),
+        /*ID3D11ShaderResourceView* ppSRVsLPV[5] = { LPVPropagate->getRedBack()->get_pSRV(0), LPVPropagate->getGreenBack()->get_pSRV(0), LPVPropagate->getBlueBack()->get_pSRV(0),
             GV->get_pSRV(0), GVColor->get_pSRV(0)};
-        pd3dContext->CSSetShaderResources( 3, 5, ppSRVsLPV);
+        pd3dContext->CSSetShaderResources( 3, 5, ppSRVsLPV);*/
+
+        bind(LPVPropagate.getRedBack().get_pSRV(0), 3, 0);
+        bind(LPVPropagate.getGreenBack().get_pSRV(0), 4, 0);
+        bind(LPVPropagate.getBlueBack().get_pSRV(0), 5, 0);
+        bind(GV.get_pSRV(0), 6, 0);
+        bind(GVColor.get_pSRV(0), 7, 0);
 
         if(!bAccumulateSeparately)
         {
-            LPVAccumulate->swapBuffers();
+            LPVAccumulate.swapBuffers();
 
             //set the textures and UAVs for the accumulation buffer
-            ID3D11UnorderedAccessView* ppUAVAccum[3] = { LPVAccumulate->getRedFront()->get_pUAV(0), LPVAccumulate->getGreenFront()->get_pUAV(0) , LPVAccumulate->getBlueFront()->get_pUAV(0)};
-            pd3dContext->CSSetUnorderedAccessViews( 3, 3, ppUAVAccum, &initCounts );
+            /*ID3D11UnorderedAccessView* ppUAVAccum[3] = { LPVAccumulate->getRedFront()->get_pUAV(0), LPVAccumulate->getGreenFront()->get_pUAV(0) , LPVAccumulate->getBlueFront()->get_pUAV(0)};
+            pd3dContext->CSSetUnorderedAccessViews( 3, 3, ppUAVAccum, &initCounts );*/
+            bindImage(LPVAccumulate.getRedFront().get_pUAV(0), 3, false, true);
+            bindImage(LPVAccumulate.getGreenFront().get_pUAV(0), 4, false, true);
+            bindImage(LPVAccumulate.getBlueFront().get_pUAV(0), 5, false, true);
 
             //set the LPV backbuffers as textures to read from
-            ID3D11ShaderResourceView* ppSRVsLPVAccum[3] = { LPVAccumulate->getRedBack()->get_pSRV(0), LPVAccumulate->getGreenBack()->get_pSRV(0), LPVAccumulate->getBlueBack()->get_pSRV(0)};
-            pd3dContext->CSSetShaderResources( 8, 3, ppSRVsLPVAccum);
+            /*ID3D11ShaderResourceView* ppSRVsLPVAccum[3] = { LPVAccumulate->getRedBack()->get_pSRV(0), LPVAccumulate->getGreenBack()->get_pSRV(0), LPVAccumulate->getBlueBack()->get_pSRV(0)};
+            pd3dContext->CSSetShaderResources( 8, 3, ppSRVsLPVAccum);*/
+            bind(LPVAccumulate.getRedBack().get_pSRV(0), 8, 0);
+            bind(LPVAccumulate.getGreenBack().get_pSRV(0), 9, 0);
+            bind(LPVAccumulate.getBlueBack().get_pSRV(0), 10, 0);
         }
 
         //update constant buffer
-        pd3dContext->Map( g_pcbLPVpropagate, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-        CB_LPV_PROPAGATE* pcbLPVinitVS3 = ( CB_LPV_PROPAGATE* )MappedResource.pData;
-        pcbLPVinitVS3->g_numCols = LPVAccumulate->getNumCols();    //the number of columns in the flattened 2D LPV
-        pcbLPVinitVS3->g_numRows = LPVAccumulate->getNumRows();    //the number of columns in the flattened 2D LPV
-        pcbLPVinitVS3->LPV2DWidth =  LPVAccumulate->getWidth2D();  //the total width of the flattened 2D LPV
-        pcbLPVinitVS3->LPV2DHeight = LPVAccumulate->getHeight2D(); //the total height of the flattened 2D LPV
-        pcbLPVinitVS3->LPV3DWidth = LPVAccumulate->getWidth3D();   //the width of the LPV in 3D
-        pcbLPVinitVS3->LPV3DHeight = LPVAccumulate->getHeight3D(); //the height of the LPV in 3D
-        pcbLPVinitVS3->LPV3DDepth = LPVAccumulate->getDepth3D();   //the depth of the LPV in 3D
-        pcbLPVinitVS3->b_accumulate = !bAccumulateSeparately;
-        pd3dContext->Unmap( g_pcbLPVpropagate, 0 );
-        pd3dContext->CSSetConstantBuffers( 5, 1, &g_pcbLPVpropagate ); //have to update this at each iteration
+        /*pd3dContext->Map( g_pcbLPVpropagate, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+        CB_LPV_PROPAGATE* pcbLPVinitVS3 = ( CB_LPV_PROPAGATE* )MappedResource.pData;*/
+        pcbLPVinitVS3.g_numCols = LPVAccumulate.getNumCols();    //the number of columns in the flattened 2D LPV
+        pcbLPVinitVS3.g_numRows = LPVAccumulate.getNumRows();    //the number of columns in the flattened 2D LPV
+        pcbLPVinitVS3.LPV2DWidth =  LPVAccumulate.getWidth2D();  //the total width of the flattened 2D LPV
+        pcbLPVinitVS3.LPV2DHeight = LPVAccumulate.getHeight2D(); //the total height of the flattened 2D LPV
+        pcbLPVinitVS3.LPV3DWidth = LPVAccumulate.getWidth3D();   //the width of the LPV in 3D
+        pcbLPVinitVS3.LPV3DHeight = LPVAccumulate.getHeight3D(); //the height of the LPV in 3D
+        pcbLPVinitVS3.LPV3DDepth = LPVAccumulate.getDepth3D();   //the depth of the LPV in 3D
+        pcbLPVinitVS3.useFluxWeight = (!bAccumulateSeparately) ? 1 : 0;
+        /*pd3dContext->Unmap( g_pcbLPVpropagate, 0 );
+        pd3dContext->CSSetConstantBuffers( 5, 1, &g_pcbLPVpropagate ); //have to update this at each iteration*/
+        ByteBuffer bytes = CacheBuffer.wrap(CB_LPV_INITIALIZE3.SIZE, pcbLPVinitVS3);
+        g_pcbLPVpropagate.update(0, bytes);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, g_pcbLPVpropagate.getBuffer());
 
         if(iteration<2)
         {
-            pd3dContext->Map( g_pcbGV, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-            CB_GV* pcbGV = ( CB_GV* )MappedResource.pData;
+            /*pd3dContext->Map( g_pcbGV, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
+            CB_GV* pcbGV = ( CB_GV* )MappedResource.pData;*/
 
-            if(iteration<1 || !g_useOcclusion) pcbGV->useGVOcclusion = 0;
-            else pcbGV->useGVOcclusion = 1;
+            if(iteration<1 || !g_useOcclusion) pcbGV.useGVOcclusion = 0;
+            else pcbGV.useGVOcclusion = 1;
 
-            pcbGV->useMultipleBounces = g_useMultipleBounces;
-            pcbGV->fluxAmplifier = g_fluxAmplifier;
-            pcbGV->reflectedLightAmplifier = g_reflectedLightAmplifier;
-            pcbGV->occlusionAmplifier = g_occlusionAmplifier;
+            pcbGV.useMultipleBounces = g_useMultipleBounces?1:0;
+            pcbGV.fluxAmplifier = g_fluxAmplifier;
+            pcbGV.reflectedLightAmplifier = g_reflectedLightAmplifier;
+            pcbGV.occlusionAmplifier = g_occlusionAmplifier;
 
             //in the first step we can optionally copy the propagation LPV data into the accumulation LPV
-            if(iteration<1) pcbGV->copyPropToAccum = 1; else pcbGV->copyPropToAccum = 0;
+            if(iteration<1) pcbGV.copyPropToAccum = 1; else pcbGV.copyPropToAccum = 0;
+            bytes = CacheBuffer.wrap(CB_GV.SIZE, pcbGV);
 
-            pd3dContext->Unmap( g_pcbGV, 0 );
-            pd3dContext->CSSetConstantBuffers( 3, 1, &g_pcbGV );
+            /*pd3dContext->Unmap( g_pcbGV, 0 );
+            pd3dContext->CSSetConstantBuffers( 3, 1, &g_pcbGV );*/
+            g_pcbGV.update(0, bytes);
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, g_pcbGV.getBuffer());
         }
 
-        pd3dContext->Dispatch( LPVPropagate->getWidth3D()/X_BLOCK_SIZE,  LPVPropagate->getHeight3D()/Y_BLOCK_SIZE,  LPVPropagate->getDepth3D()/Z_BLOCK_SIZE );
+//        pd3dContext->Dispatch( LPVPropagate->getWidth3D()/X_BLOCK_SIZE,  LPVPropagate->getHeight3D()/Y_BLOCK_SIZE,  LPVPropagate->getDepth3D()/Z_BLOCK_SIZE );
+        gl.glDispatchCompute(LPVPropagate.getWidth3D()/Defines.X_BLOCK_SIZE,  LPVPropagate.getHeight3D()/Defines.Y_BLOCK_SIZE,  LPVPropagate.getDepth3D()/Defines.Z_BLOCK_SIZE);
 
-        ID3D11UnorderedAccessView* ppUAVssNULL3[3] = { NULL, NULL, NULL};
+        /*ID3D11UnorderedAccessView* ppUAVssNULL3[3] = { NULL, NULL, NULL};
         pd3dContext->CSSetUnorderedAccessViews( 0, 3, ppUAVssNULL3, &initCounts );
         ID3D11ShaderResourceView* ppSRVsNULL5[5] = { NULL, NULL, NULL, NULL, NULL };
-        pd3dContext->CSSetShaderResources( 3, 5, ppSRVsNULL5);
+        pd3dContext->CSSetShaderResources( 3, 5, ppSRVsNULL5);*/
 
+        bindImage(null, 0, false, true);
+        bindImage(null, 1, false, true);
+        bindImage(null, 2, false, true);
+
+        bind(null, 3, 0);
+        bind(null, 4, 0);
+        bind(null, 5, 0);
+        bind(null, 6, 0);
+        bind(null, 7, 0);
 
         if(!bAccumulateSeparately)
         {
             //unset the textures and UAVs for the accumulation buffer
-            ID3D11UnorderedAccessView* ppUAVAccumNULL[3] = {NULL, NULL, NULL};
-            pd3dContext->CSSetUnorderedAccessViews( 3, 3, ppUAVAccumNULL, &initCounts );
+            /*ID3D11UnorderedAccessView* ppUAVAccumNULL[3] = {NULL, NULL, NULL};
+            pd3dContext->CSSetUnorderedAccessViews( 3, 3, ppUAVAccumNULL, &initCounts );*/
+            bindImage(null, 3, false, true);
+            bindImage(null, 4, false, true);
+            bindImage(null, 5, false, true);
 
             //set the LPV backbuffers as textures to read from
-            ID3D11ShaderResourceView* ppSRVsLPVAccumNULL[3] = { NULL, NULL, NULL};
-            pd3dContext->CSSetShaderResources( 8, 3, ppSRVsLPVAccumNULL);
+            /*ID3D11ShaderResourceView* ppSRVsLPVAccumNULL[3] = { NULL, NULL, NULL};
+            pd3dContext->CSSetShaderResources( 8, 3, ppSRVsLPVAccumNULL);*/
+            bind(null, 8, 0);
+            bind(null, 9, 0);
+            bind(null, 10, 0);
+
         }
         else
         {
@@ -3265,10 +3625,103 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
             //note: this code is very specific to either having 3 float4 RGB textures, or 12 float textures
             //if you need more generality you will need to add it to the calculation of batches and accumulateLPV
             int numBatches = 1;
-            if(LPVAccumulate->getRedFront()->getNumChannels()==1 && LPVAccumulate->getRedFront()->getNumRTs()==4) numBatches = 2;
+            if(LPVAccumulate.getRedFront().getNumChannels()==1 && LPVAccumulate.getRedFront().getNumRTs()==4) numBatches = 2;
 
             for(int batch=0; batch<numBatches; batch++)
-                accumulateLPVs(pd3dContext, batch, LPVPropagate, LPVAccumulate );
-        }*/
+                accumulateLPVs(/*pd3dContext,*/ batch, LPVPropagate, LPVAccumulate );
+        }
+    }
+
+    void accumulateLPVs(/*ID3D11DeviceContext* pd3dContext,*/int batch, SimpleRT_RGB LPVPropagate, SimpleRT_RGB LPVAccumulate )
+    {
+        int initCounts = 0;
+
+        if(LPVAccumulate.getRedFront().getNumChannels()>1 && LPVAccumulate.getRedFront().getNumRTs()==1)
+        {
+//            pd3dContext->CSSetShader( g_pCSAccumulateLPV, NULL, 0 );
+            g_Program.setCS(g_pCSAccumulateLPV);
+
+            LPVAccumulate.swapBuffers();
+
+            /*ID3D11UnorderedAccessView* ppUAV[3] = { LPVAccumulate->getRedFront()->get_pUAV(0), LPVAccumulate->getGreenFront()->get_pUAV(0) , LPVAccumulate->getBlueFront()->get_pUAV(0)};
+            pd3dContext->CSSetUnorderedAccessViews( 0, 3, ppUAV, &initCounts );*/
+            bindImage(LPVAccumulate.getRedFront().get_pUAV(0), 0, true, true);
+            bindImage(LPVAccumulate.getGreenFront().get_pUAV(0), 1, true, true);
+            bindImage(LPVAccumulate.getBlueFront().get_pUAV(0), 2, true, true);
+
+            //set the LPVs as textures to read from
+            /*ID3D11ShaderResourceView* ppSRVsLPV[6] = { LPVPropagate->getRedFront()->get_pSRV(0), LPVPropagate->getGreenFront()->get_pSRV(0), LPVPropagate->getBlueFront()->get_pSRV(0),
+                LPVAccumulate->getRedBack()->get_pSRV(0), LPVAccumulate->getGreenBack()->get_pSRV(0) , LPVAccumulate->getBlueBack()->get_pSRV(0)};
+            pd3dContext->CSSetShaderResources( 0, 6, ppSRVsLPV);*/
+            bind(LPVPropagate.getRedFront().get_pSRV(0), 0,0);
+            bind(LPVPropagate.getGreenFront().get_pSRV(0), 1,0);
+            bind(LPVPropagate.getBlueFront().get_pSRV(0), 2,0);
+            bind(LPVAccumulate.getRedFront().get_pSRV(0), 3,0);
+            bind(LPVAccumulate.getGreenBack().get_pSRV(0), 4,0);
+            bind(LPVAccumulate.getBlueBack().get_pSRV(0), 5,0);
+        }
+        else if(LPVAccumulate.getRedFront().getNumChannels()==1 && LPVAccumulate.getRedFront().getNumRTs()==4)
+        {
+            //if we have single channel textures then we can read and write to them at the same time, but we can only bind 8 at a time
+            if(batch == 0)
+            {
+//                pd3dContext->CSSetShader( g_pCSAccumulateLPV_singleFloats_8, NULL, 0 );
+                g_Program.setCS(g_pCSAccumulateLPV_singleFloats_8);
+                /*ID3D11UnorderedAccessView* ppUAV[8] ={ LPVAccumulate->getRed()->get_pUAV(0), LPVAccumulate->getRed()->get_pUAV(1), LPVAccumulate->getRed()->get_pUAV(2), LPVAccumulate->getRed()->get_pUAV(3),
+                    LPVAccumulate->getGreen()->get_pUAV(0), LPVAccumulate->getGreen()->get_pUAV(1), LPVAccumulate->getGreen()->get_pUAV(2), LPVAccumulate->getGreen()->get_pUAV(3)};
+                pd3dContext->CSSetUnorderedAccessViews( 0, 8, ppUAV, &initCounts );*/
+                bindImage(LPVAccumulate.getRed(true).get_pUAV(0), 0, true, true);
+                bindImage(LPVAccumulate.getRed(true).get_pUAV(1), 1, true, true);
+                bindImage(LPVAccumulate.getRed(true).get_pUAV(2), 2, true, true);
+                bindImage(LPVAccumulate.getRed(true).get_pUAV(3), 3, true, true);
+
+                bindImage(LPVAccumulate.getGreen(true).get_pUAV(0), 4, true, true);
+                bindImage(LPVAccumulate.getGreen(true).get_pUAV(1), 5, true, true);
+                bindImage(LPVAccumulate.getGreen(true).get_pUAV(2), 6, true, true);
+                bindImage(LPVAccumulate.getGreen(true).get_pUAV(3), 7, true, true);
+
+                //set the LPV backbuffers as textures to read from
+                /*ID3D11ShaderResourceView* ppSRVsLPV[2] = { LPVPropagate->getRedFront()->get_pSRV(0), LPVPropagate->getGreenFront()->get_pSRV(0)};
+                pd3dContext->CSSetShaderResources( 0, 2, ppSRVsLPV);*/
+                bind(LPVPropagate.getRedFront().get_pSRV(0), 0,0);
+                bind(LPVPropagate.getGreenFront().get_pSRV(0), 1,0);
+            }
+            else if(batch == 1)
+            {
+                /*pd3dContext->CSSetShader( g_pCSAccumulateLPV_singleFloats_4, NULL, 0 );*/
+                g_Program.setCS(g_pCSAccumulateLPV_singleFloats_4);
+
+                /*ID3D11UnorderedAccessView* ppUAV[4] ={ LPVAccumulate->getBlue()->get_pUAV(0), LPVAccumulate->getBlue()->get_pUAV(1), LPVAccumulate->getBlue()->get_pUAV(2), LPVAccumulate->getBlue()->get_pUAV(3)};
+                pd3dContext->CSSetUnorderedAccessViews( 0, 4, ppUAV, &initCounts );*/
+                bindImage(LPVAccumulate.getBlue(true).get_pUAV(0), 0, true, true);
+                bindImage(LPVAccumulate.getBlue(true).get_pUAV(1), 0, true, true);
+                bindImage(LPVAccumulate.getBlue(true).get_pUAV(2), 0, true, true);
+                bindImage(LPVAccumulate.getBlue(true).get_pUAV(3), 0, true, true);
+
+                //set the LPV backbuffers as textures to read from
+                /*ID3D11ShaderResourceView* ppSRVsLPV[1] = {LPVPropagate->getBlueFront()->get_pSRV(0)};
+                pd3dContext->CSSetShaderResources( 0, 1, ppSRVsLPV);*/
+                bind(LPVPropagate.getBlueFront().get_pSRV(0), 0, 0);
+            }
+
+        }
+        else
+            assert(false); //this path is not implemented and either we are here by mistake, or we have to implement this path because it is really needed
+
+//        pd3dContext->CSSetConstantBuffers( 0, 1, &g_pcbLPVpropagate ); //have to update this at each iteration
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, g_pcbLPVpropagate.getBuffer());
+        gl.glDispatchCompute( LPVPropagate.getWidth3D()/Defines.X_BLOCK_SIZE,  LPVPropagate.getHeight3D()/Defines.Y_BLOCK_SIZE,  LPVPropagate.getDepth3D()/Defines.Z_BLOCK_SIZE );
+
+        /*ID3D11UnorderedAccessView* ppUAVsNULL8[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+        pd3dContext->CSSetUnorderedAccessViews( 0, 8, ppUAVsNULL8, &initCounts );
+        ID3D11ShaderResourceView* ppSRVsNULL6[6] = { NULL, NULL, NULL, NULL, NULL, NULL};
+        pd3dContext->CSSetShaderResources( 0, 6, ppSRVsNULL6);*/
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
+        for(int i = 0; i < 8; i++){
+            bind(null, i, 0);
+            bindImage(null, i, true, false);
+        }
+
+        g_Program.setCS(null);
     }
 }

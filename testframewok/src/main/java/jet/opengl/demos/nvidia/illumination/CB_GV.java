@@ -1,12 +1,15 @@
 package jet.opengl.demos.nvidia.illumination;
 
+import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector4f;
+
+import java.nio.ByteBuffer;
 
 /**
  * Created by Administrator on 2017/11/13 0013.
  */
 
-final class CB_GV {
+final class CB_GV implements Readable{
     static final int SIZE = Vector4f.SIZE * 2;
 
     int useGVOcclusion;
@@ -18,4 +21,18 @@ final class CB_GV {
     float reflectedLightAmplifier;
     float occlusionAmplifier;
     float temp2;
+
+    @Override
+    public ByteBuffer store(ByteBuffer buf) {
+        buf.putInt(useGVOcclusion);
+        buf.putInt(temp);
+        buf.putInt(useMultipleBounces);
+        buf.putInt(copyPropToAccum);
+
+        buf.putFloat(fluxAmplifier);
+        buf.putFloat(reflectedLightAmplifier);
+        buf.putFloat(occlusionAmplifier);
+        buf.putFloat(temp2);
+        return buf;
+    }
 }
