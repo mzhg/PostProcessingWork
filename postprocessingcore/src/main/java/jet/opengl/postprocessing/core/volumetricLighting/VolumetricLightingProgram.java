@@ -51,8 +51,6 @@ final class VolumetricLightingProgram extends GLSLProgram{
 //	Texture2D<float3> g_tex2DDownscaledInsctrRadiance: register( t2 );
 //	Texture2D<INSCTR_LUT_FORMAT> g_tex2DPrecomputedPointLightInsctr: register( t6 );
 	
-	private String debugName;
-	
 	private int mAngularRayleighBetaLoc = -1;
 	private int mLightWorldPosLoc = -1;
 	private int mShowLightingOnlyLoc = -1;
@@ -93,6 +91,9 @@ final class VolumetricLightingProgram extends GLSLProgram{
 			e.printStackTrace();
 		}
 
+		int dot = fragfile.indexOf('.');
+		setName(fragfile.substring(0, dot));
+
 		initUniformIndices();
 	}
 
@@ -105,6 +106,9 @@ final class VolumetricLightingProgram extends GLSLProgram{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		int dot = computeFile.indexOf('.');
+		setName(computeFile.substring(0, dot));
 
 		initUniformIndices();
 	}
@@ -128,6 +132,9 @@ final class VolumetricLightingProgram extends GLSLProgram{
 			e.printStackTrace();
 		}
 
+		int dot = fragFile.indexOf('.');
+		setName(fragFile.substring(0, dot));
+
 		initUniformIndices();
 	}
 
@@ -146,11 +153,7 @@ final class VolumetricLightingProgram extends GLSLProgram{
 		System.out.println(props);
 	}*/
 	
-	public String getDebugName() { return debugName;}
-	public void   setDebugName(String name) { debugName = name;}
-	
 	protected void initUniformIndices(){
-		final int m_program = getProgram();
 		mAngularRayleighBetaLoc = getUniformLocation("g_f4AngularRayleighBeta");
 		mLightWorldPosLoc = getUniformLocation("g_f4LightWorldPos");
 		mShowLightingOnlyLoc = getUniformLocation("g_bShowLightingOnly");

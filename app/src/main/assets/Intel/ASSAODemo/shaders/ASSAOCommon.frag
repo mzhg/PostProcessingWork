@@ -168,6 +168,8 @@ layout(binding = TEX2D_VIEW_DEPTH1) uniform sampler2D  g_ViewspaceDepthSource1;
 layout(binding = TEX2D_VIEW_DEPTH2) uniform sampler2D  g_ViewspaceDepthSource2;
 layout(binding = TEX2D_VIEW_DEPTH3) uniform sampler2D  g_ViewspaceDepthSource3;
 
+layout(binding = TEX2D_VIEW_DEPTH1) uniform sampler2D  g_ViewspaceDepthTapSource;
+
 layout(binding = TEX2D_IMPORTANCE_MAP) uniform sampler2D  g_ImportanceMap;
 
 //layout(binding = TEX2D_LOAD_COUNTER) uniform sampler1D  g_LoadCounter;
@@ -176,12 +178,21 @@ layout(binding = TEX2D_BLUR_INPUT) uniform sampler2D  g_BlurInput;
 
 layout(binding = TEX2D_FINAL_SSAO) uniform sampler2DArray  g_FinalSSAO;
 
-layout(r32ui, binding = 1) uniform uimage2D g_LoadCounter;
+layout(binding = 0) uniform usampler1D g_LoadCounter;
 //layout(binding = TEX2D_IMPORTANCE_MAP) uniform sampler2D  g_NormalsOutputUAV;
 //layout(binding = TEX2D_IMPORTANCE_MAP) uniform sampler2D  g_LoadCounterOutputUAV;
 
 #endif 
 
+float4 RandomMapping(float2 uv)
+{
+	float x = pow(abs(uv.x), 0.3);
+    float y = pow(abs(uv.y), 0.5);
+    float z = pow(abs(uv.x), 0.6);
+    float w = pow(abs(uv.y), 0.9);
+
+	return float4(x,y,z,w);
+}
 
 // packing/unpacking for edges; 2 bits per edge mean 4 gradient values (0, 0.33, 0.66, 1) for smoother transitions!
 float PackEdges( float4 edgesLRTB )
@@ -238,6 +249,9 @@ float3 ClipSpaceToViewSpacePosition( float2 clipPos, float viewspaceDepth )
 
 float3 NDCToViewspace( float2 pos, float viewspaceDepth )
 {
+#if SSAO_DEBUG_STATIC_SCENE == 0
+    viewspaceDepth = -viewspaceDepth;
+#endif
     float3 ret;
 
     ret.xy = (g_ASSAOConsts.NDCToViewMul * pos.xy + g_ASSAOConsts.NDCToViewAdd) * viewspaceDepth;
@@ -343,7 +357,7 @@ void SSAOTapInner( const int qualityLevel, inout float obscuranceSum, inout floa
 {
     // get depth at sample
 //    float viewspaceSampleZ = g_ViewspaceDepthSource.SampleLevel( g_ViewspaceDepthTapSampler, samplingUV.xy, mipLevel ).x; // * g_ASSAOConsts.MaxViewspaceDepth;
-	float viewspaceSampleZ = textureLod(g_ViewspaceDepthSource, samplingUV.xy, mipLevel).x;
+	float viewspaceSampleZ = textureLod(g_ViewspaceDepthTapSource, samplingUV.xy, mipLevel).x;
 	
     // convert to viewspace
     float3 hitPos = NDCToViewspace( samplingUV.xy, viewspaceSampleZ ).xyz;
@@ -364,7 +378,9 @@ void SSAOTapInner( const int qualityLevel, inout float obscuranceSum, inout floa
     weightSum += weight;
 }
 
-void SSAOTap( const int qualityLevel, inout float obscuranceSum, inout float weightSum, const int tapIndex, const float2x2 rotScale, const float3 pixCenterPos, const float3 negViewspaceDir, float3 pixelNormal, const float2 normalizedScreenPos, const float mipOffset, const float falloffCalcMulSq, float weightMod, float2 normXY, float normXYLength )
+void SSAOTap( const int qualityLevel, inout float obscuranceSum, inout float weightSum, const int tapIndex, const float2x2 rotScale,
+              const float3 pixCenterPos, const float3 negViewspaceDir, float3 pixelNormal, const float2 normalizedScreenPos,
+              const float mipOffset, const float falloffCalcMulSq, float weightMod, float2 normXY, float normXYLength )
 {
     float2  sampleOffset;
     float   samplePow2Len;
@@ -386,7 +402,8 @@ void SSAOTap( const int qualityLevel, inout float obscuranceSum, inout float wei
 
     float2 samplingUV = sampleOffset * g_ASSAOConsts.Viewport2xPixelSize + normalizedScreenPos;
 
-    SSAOTapInner( qualityLevel, obscuranceSum, weightSum, samplingUV, mipLevel, pixCenterPos, negViewspaceDir, pixelNormal, falloffCalcMulSq, weightMod, tapIndex * 2 );
+    SSAOTapInner( qualityLevel, obscuranceSum, weightSum, samplingUV, mipLevel, pixCenterPos, negViewspaceDir, pixelNormal,
+                  falloffCalcMulSq, weightMod, tapIndex * 2 );
 
     // for the second tap, just use the mirrored offset
     float2 sampleOffsetMirroredUV    = -sampleOffset;
@@ -416,11 +433,18 @@ void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, 
     const int numberOfTaps = (adaptiveBase)?(SSAO_ADAPTIVE_TAP_BASE_COUNT) : int( g_numTaps[qualityLevel] );
     float pixZ, pixLZ, pixTZ, pixRZ, pixBZ;
 
-//    float4 valuesUL     = g_ViewspaceDepthSource.GatherRed( g_PointMirrorSampler, SVPosRounded * g_ASSAOConsts.HalfViewportPixelSize );
-//    float4 valuesBR     = g_ViewspaceDepthSource.GatherRed( g_PointMirrorSampler, SVPosRounded * g_ASSAOConsts.HalfViewportPixelSize, int2( 1, 1 ) );
+#if 0
+	float2 uv           = SVPosRounded * g_ASSAOConsts.HalfViewportPixelSize;
+	float4 valuesUL     = RandomMapping(uv);
+
+	uv                  += g_ASSAOConsts.HalfViewportPixelSize;
+	float4 valuesBR     = RandomMapping(uv);
+#else
 	float4 valuesUL = textureGather(g_ViewspaceDepthSource,       SVPosRounded * g_ASSAOConsts.HalfViewportPixelSize);
 	float4 valuesBR = textureGatherOffset(g_ViewspaceDepthSource, SVPosRounded * g_ASSAOConsts.HalfViewportPixelSize, int2(1));
-	
+#endif
+
+#if 1
     // get this pixel's viewspace depth
     pixZ = valuesUL.y; //float pixZ = g_ViewspaceDepthSource.SampleLevel( g_PointMirrorSampler, normalizedScreenPos, 0.0 ).x; // * g_ASSAOConsts.MaxViewspaceDepth;
 
@@ -429,6 +453,13 @@ void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, 
     pixTZ   = valuesUL.z;
     pixRZ   = valuesBR.z;
     pixBZ   = valuesBR.x;
+#else
+    pixZ = valuesUL.w;
+    pixLZ   = valuesUL.x;
+    pixTZ   = valuesUL.z;
+    pixRZ   = valuesBR.z;
+    pixBZ   = valuesBR.x;
+#endif
 
     float2 normalizedScreenPos = SVPosRounded * g_ASSAOConsts.Viewport2xPixelSize + g_ASSAOConsts.Viewport2xPixelSize_x_025;
     float3 pixCenterPos = NDCToViewspace( normalizedScreenPos, pixZ ); // g
@@ -461,6 +492,7 @@ void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, 
         uint pseudoRandomIndex = uint( SVPosRounded.y * 2 + SVPosRounded.x ) % 5;
         float4 rs = g_ASSAOConsts.PatternRotScaleMatrices[ pseudoRandomIndex ];
         rotScale = float2x2( rs.x * pixLookupRadiusMod, rs.y * pixLookupRadiusMod, rs.z * pixLookupRadiusMod, rs.w * pixLookupRadiusMod );
+        rotScale = transpose(rotScale);
     }
 
     // the main obscurance & sample weight storage
@@ -533,8 +565,6 @@ void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, 
         edgesLRTB *= normalEdgesLRTB;
     }
 
-
-
     const float globalMipOffset     = SSAO_DEPTH_MIPS_GLOBAL_OFFSET;
     float mipOffset = ( qualityLevel < SSAO_DEPTH_MIPS_ENABLE_AT_QUALITY_PRESET ) ? ( 0 ) : ( log2( pixLookupRadiusMod ) + globalMipOffset );
 
@@ -553,7 +583,8 @@ void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, 
         // [unroll] // <- doesn't seem to help on any platform, although the compilers seem to unroll anyway if const number of tap used!
         for( int i = 0; i < numberOfTaps; i++ )
         {
-            SSAOTap( qualityLevel, obscuranceSum, weightSum, i, rotScale, pixCenterPos, negViewspaceDir, pixelNormal, normalizedScreenPos, mipOffset, falloffCalcMulSq, 1.0, normXY, normXYLength );
+            SSAOTap( qualityLevel, obscuranceSum, weightSum, i, rotScale, pixCenterPos, negViewspaceDir, pixelNormal,
+                     normalizedScreenPos, mipOffset, falloffCalcMulSq, 1.0, normXY, normXYLength );
         }
     }
     else // if( qualityLevel == 3 ) adaptive approach
@@ -575,7 +606,7 @@ void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, 
         float edgeCount = dot( 1.0-edgesLRTB, float4( 1.0, 1.0, 1.0, 1.0 ) );
         //importance += edgeCount / (float)SSAO_ADAPTIVE_TAP_FLEXIBLE_COUNT;
 
-        float avgTotalImportance = float(imageLoad(g_LoadCounter, int2(0))) * g_ASSAOConsts.LoadCounterAvgDiv;
+        float avgTotalImportance = float(/*imageLoad(g_LoadCounter, int2(0))*/  texelFetch(g_LoadCounter, 0, 0).x) * g_ASSAOConsts.LoadCounterAvgDiv;
 
         float importanceLimiter = saturate( g_ASSAOConsts.AdaptiveSampleCountLimit / avgTotalImportance );
         importance *= importanceLimiter;
@@ -595,7 +626,8 @@ void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, 
         {
             additionalSampleCountFlt -= 1.0f;
             float weightMod = saturate(additionalSampleCountFlt * blendRangeInv); // slowly blend in the last few samples
-            SSAOTap( qualityLevel, obscuranceSum, weightSum, int(i), rotScale, pixCenterPos, negViewspaceDir, pixelNormal, normalizedScreenPos, mipOffset, falloffCalcMulSq, weightMod, normXY, normXYLength );
+            SSAOTap( qualityLevel, obscuranceSum, weightSum, int(i), rotScale, pixCenterPos, negViewspaceDir, pixelNormal, normalizedScreenPos,
+                     mipOffset, falloffCalcMulSq, weightMod, normXY, normXYLength );
         }
     }
 
@@ -605,7 +637,7 @@ void GenerateSSAOShadowsInternal( out float outShadowTerm, out float4 outEdges, 
         float obscurance = obscuranceSum / weightSum;
 
         outShadowTerm   = obscurance;
-        outEdges        = vec4(0);
+        outEdges        = float4(0);
         outWeight       = weightSum;
         return;
     }

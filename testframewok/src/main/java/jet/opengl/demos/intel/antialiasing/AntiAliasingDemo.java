@@ -74,8 +74,8 @@ public final class AntiAliasingDemo extends NvSampleApp {
         {
                 new NvTweakEnumi( "Fastest", 1 ),
                 new NvTweakEnumi( "Low", 2 ),
-                new NvTweakEnumi( "Mid", 3 ),
-                new NvTweakEnumi( "Hight", 4 ),
+                new NvTweakEnumi( "Medium", 3 ),
+                new NvTweakEnumi( "High", 4 ),
                 new NvTweakEnumi( "Extrame", 5 ),
         };
 

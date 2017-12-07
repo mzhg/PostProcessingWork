@@ -20,14 +20,17 @@ void main()
     depthsArr[0].y = texelFetchOffset(g_ViewspaceDepthSource, baseCoords, MIP_LEVEL, int2( 1, 0 )).x ;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[0].z = texelFetchOffset(g_ViewspaceDepthSource, baseCoords, MIP_LEVEL, int2( 0, 1 )).x ;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[0].w = texelFetchOffset(g_ViewspaceDepthSource, baseCoords, MIP_LEVEL, int2( 1, 1 )).x ;// * g_ASSAOConsts.MaxViewspaceDepth;
+
     depthsArr[1].x = texelFetchOffset(g_ViewspaceDepthSource1,baseCoords, MIP_LEVEL, int2( 0, 0 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[1].y = texelFetchOffset(g_ViewspaceDepthSource1,baseCoords, MIP_LEVEL, int2( 1, 0 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[1].z = texelFetchOffset(g_ViewspaceDepthSource1,baseCoords, MIP_LEVEL, int2( 0, 1 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[1].w = texelFetchOffset(g_ViewspaceDepthSource1,baseCoords, MIP_LEVEL, int2( 1, 1 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
+
     depthsArr[2].x = texelFetchOffset(g_ViewspaceDepthSource2,baseCoords, MIP_LEVEL, int2( 0, 0 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[2].y = texelFetchOffset(g_ViewspaceDepthSource2,baseCoords, MIP_LEVEL, int2( 1, 0 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[2].z = texelFetchOffset(g_ViewspaceDepthSource2,baseCoords, MIP_LEVEL, int2( 0, 1 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[2].w = texelFetchOffset(g_ViewspaceDepthSource2,baseCoords, MIP_LEVEL, int2( 1, 1 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
+
     depthsArr[3].x = texelFetchOffset(g_ViewspaceDepthSource3,baseCoords, MIP_LEVEL, int2( 0, 0 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[3].y = texelFetchOffset(g_ViewspaceDepthSource3,baseCoords, MIP_LEVEL, int2( 1, 0 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
     depthsArr[3].z = texelFetchOffset(g_ViewspaceDepthSource3,baseCoords, MIP_LEVEL, int2( 0, 1 )).x;// * g_ASSAOConsts.MaxViewspaceDepth;
@@ -45,7 +48,11 @@ void main()
     {
         float4 depths = depthsArr[i];
 
+#if SSAO_DEBUG_STATIC_SCENE == 0
+        float closest = max( max( depths.x, depths.y ), max( depths.z, depths.w ) );
+#else
         float closest = min( min( depths.x, depths.y ), min( depths.z, depths.w ) );
+#endif
 
         CalculateRadiusParameters( abs( closest ), float2(1.0), dummyUnused1, dummyUnused2, falloffCalcMulSq );
 

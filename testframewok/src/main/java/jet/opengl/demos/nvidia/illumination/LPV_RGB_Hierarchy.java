@@ -46,7 +46,7 @@ final class LPV_RGB_Hierarchy extends Hierarchy implements RTCollection_RGB{
         return levels;
     }
 
-    void clearRenderTargetView(/*ID3D11DeviceContext* pd3dContext,*/ float clearColor[], boolean front, int level)
+    public void clearRenderTargetView(/*ID3D11DeviceContext* pd3dContext,*/ float clearColor[], boolean front, int level)
     {
         m_collection[level].clearRenderTargetView(/*pd3dContext,*/clearColor,front);
     }
@@ -139,15 +139,15 @@ final class LPV_RGB_Hierarchy extends Hierarchy implements RTCollection_RGB{
 
     int getCurrentBuffer(int level) { return m_collection[level].getCurrentBuffer(); }
 
-    int getNumLevels() {return m_levels; };
+    public int getNumLevels() {return m_levels; };
 
-    int getWidth3D(int level) {return  m_collection[level].getWidth3D(); }
-    int getHeight3D(int level) {return  m_collection[level].getHeight3D(); }
-    int getDepth3D(int level) {return  m_collection[level].getDepth3D(); }
+    public int getWidth3D(int level) {return  m_collection[level].getWidth3D(); }
+    public int getHeight3D(int level) {return  m_collection[level].getHeight3D(); }
+    public int getDepth3D(int level) {return  m_collection[level].getDepth3D(); }
 
-    int getWidth2D(int level) {return  m_collection[level].getWidth2D(); }
-    int getHeight2D(int level) {return  m_collection[level].getHeight2D(); }
+    public int getWidth2D(int level) {return  m_collection[level].getWidth2D(); }
+    public int getHeight2D(int level) {return  m_collection[level].getHeight2D(); }
 
-    int getNumCols(int level) {return  m_collection[level].getNumCols(); }
-    int getNumRows(int level) {return  m_collection[level].getNumRows(); }
+    public int getNumCols(int level) {return  m_collection[level].getNumCols(); }
+    public int getNumRows(int level) {return  m_collection[level].getNumRows(); }
 }

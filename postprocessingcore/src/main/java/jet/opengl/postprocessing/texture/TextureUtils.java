@@ -192,18 +192,40 @@ public final class TextureUtils {
 		// reset the position.
 		bytes.position(0);
 	}
-	
+
+	/**
+	 * Create texture view from a given texture specfied by <code>source</code>. This method may be breake the texture binding.
+	 * @param source
+	 * @param target
+	 * @param minlevel
+	 * @param numlevels
+	 * @param minlayer
+	 * @param numlayers
+	 * @return
+	 */
 	public static Texture2D createTextureView(TextureGL source, int target, int minlevel, int numlevels, int minlayer, int numlayers){
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int texture = gl.glGenTexture();
 		gl.glTextureView(texture, target, source.getTexture(), source.getFormat(), minlevel, numlevels, minlayer, numlayers);
 		GLCheck.checkError();
+
+		int mipmapWidth = source.getWidth();
+		int mipmapHeight = source.getHeight();
+		if(minlevel > 0){
+			gl.glBindTexture(source.getTarget(), source.getTexture());
+			mipmapWidth = gl.glGetTexLevelParameteri(target, minlevel, GLenum.GL_TEXTURE_WIDTH);
+			mipmapHeight = gl.glGetTexLevelParameteri(target, minlevel, GLenum.GL_TEXTURE_HEIGHT);
+
+			if(mipmapWidth == 0 || mipmapHeight == 0)
+				throw new IllegalArgumentException("Invalid mipmap.");
+			gl.glBindTexture(source.getTarget(), 0);
+		}
 		
 		Texture2D result = new Texture2D();
 		result.arraySize = numlayers;
 		result.format = source.format;
-		result.height = source.getHeight();
-		result.width  = source.getWidth();
+		result.height = mipmapHeight;
+		result.width  = mipmapWidth;
 		result.target = target;
 		result.textureID = texture;
 		result.mipLevels = numlayers;

@@ -1,20 +1,15 @@
 package jet.opengl.demos.intel.assao;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
-
-import org.lwjgl.util.vector.Matrix4f;
+import com.nvidia.developer.opengl.ui.NvTweakEnumi;
 
 import jet.opengl.demos.scenes.CubeScene;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.shader.FullscreenProgram;
 
 
 public class ASSAODemoDebug extends NvSampleApp{
-	
-	private FullscreenProgram m_screenProgram;
-	private final Matrix4f m_ViewProj = new Matrix4f();
 	private ASSAO_Effect m_Effect;
 	private final ASSAO_InputsOpenGL m_Inputs = new ASSAO_InputsOpenGL();
 	private final ASSAO_Settings     m_Settings = new ASSAO_Settings();
@@ -22,31 +17,41 @@ public class ASSAODemoDebug extends NvSampleApp{
 	private CubeScene m_Scene;
 
 	@Override
+	public void initUI() {
+		// Effect quality; -1 - lowest (low, half res checkerboard), 0 - low, 1 - medium, 2 - high, 3 - very high / adaptive; each quality level is roughly 2x more costly than the previous, except the q3 which is variable but, in general, above q2.
+		// ASSAO quality
+		NvTweakEnumi assaoQualities[] =
+		{
+			new NvTweakEnumi( "Lowest", -1 ),
+			new NvTweakEnumi( "Low", 0 ),
+			new NvTweakEnumi( "Medium", 1 ),
+			new NvTweakEnumi( "High", 2 ),
+			new NvTweakEnumi( "Adaptive", 3 ),
+		};
+
+		mTweakBar.addEnum("ASSAO Quality", createControl("QualityLevel", m_Settings), assaoQualities, 1);
+	}
+
+	@Override
 	protected void initRendering() {
-		ASSAOGL.ASSAO_DEBUG = true;
+		ASSAOGL.ASSAO_DEBUG = false;
 		getGLContext().setSwapInterval(0);
 		gl = GLFuncProviderFactory.getGLFuncProvider();
 		m_Scene = new CubeScene(m_transformer);
 		m_Scene.onCreate();
 		
-		m_screenProgram = new FullscreenProgram();
 		m_Effect = new ASSAOGL();
 		((ASSAOGL)m_Effect).InitializeGL();
+
+//		m_Settings.QualityLevel = 3;
 	}
 	
 	@Override
 	public void display() {
 		m_Scene.draw();
+		m_Scene.resoveMultisampleTexture();
 
-		/*m_Scene.getViewProjMatrix(m_ViewProj);
-		m_screenProgram.enable();
-		gl.glDisable(GLenum.GL_DEPTH_TEST);
-		gl.glBindVertexArray(0);
-//		m_SceneColor.bind(0);
-		gl.glBindTexture(m_SceneColor.getTarget(), m_SceneColor.getTexture());
-		gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
-		gl.glBindVertexArray(0);*/
-		
+
 		m_Inputs.DepthSRV = m_Scene.getSceneDepth();
 		m_Inputs.DrawOpaque = false;
 		m_Inputs.MatricesRowMajorOrder = false;
@@ -55,15 +60,6 @@ public class ASSAODemoDebug extends NvSampleApp{
 		m_Inputs.ScissorLeft = 0;
 		m_Inputs.ScissorTop = 0;
 
-//		m_frameAttribs.sceneColorTexture = m_Scene.getSceneColor();
-//		m_frameAttribs.sceneDepthTexture = m_Scene.getSceneDepth();
-//		m_frameAttribs.cameraNear = m_Scene.getSceneNearPlane();
-//		m_frameAttribs.cameraFar =  m_Scene.getSceneFarPlane();
-//		m_frameAttribs.outputTexture = null;
-//		m_frameAttribs.viewport.set(0,0, getGLContext().width(), getGLContext().height());
-//		m_frameAttribs.viewMat = m_Scene.getViewMat();
-//		m_frameAttribs.projMat = m_Scene.getProjMat();
-//		m_frameAttribs.fov =     m_Scene.getFovInRadian();
 
 		m_Inputs.ScissorRight = m_Scene.getSceneDepth().getWidth();
 		m_Inputs.ScissorBottom = m_Scene.getSceneDepth().getHeight();

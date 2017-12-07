@@ -3,7 +3,7 @@
 layout(location = 0) out float Out_fColor; 
 in vec4 m_f4UVAndScreenPos;
 
-layout(r32ui, binding = 0) uniform uimage2D g_LoadCounterOutputUAV;  // read_write
+layout(r32ui, binding = 0) uniform uimage1D g_LoadCounterOutputUAV;  // read_write
 
 void main()
 {
@@ -33,7 +33,7 @@ void main()
     
     // save every 9th to avoid InterlockedAdd congestion - since we're blurring, this is good enough; compensated by multiplying LoadCounterAvgDiv by 9
     if( ((pos.x % 3) + (pos.y % 3)) == 0  )
-        imageAtomicAdd( g_LoadCounterOutputUAV, int2(0), sum );
+        imageAtomicAdd( g_LoadCounterOutputUAV, 0, sum );
 
     Out_fColor = retVal;
 }

@@ -47,7 +47,7 @@ public class CubeScene implements GLEventListener {
 	
 	private NvInputTransformer m_Transformer;
 	private GLFuncProvider gl;
-	private int m_SampleCount = 4; // MSAA count.
+	private int m_SampleCount = 1; // MSAA count.
 	private int m_SampleLastCount = 1; // MSAA count.
 
 	public CubeScene(NvInputTransformer transformer){

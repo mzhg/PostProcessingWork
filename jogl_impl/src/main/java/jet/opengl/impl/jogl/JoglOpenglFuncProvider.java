@@ -49,6 +49,9 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
         if(m_GLVersion == null){
             VersionNumber versionNumber = gl.getContext().getGLVersionNumber();
             m_GLVersion = new GLAPIVersion(gl.getGLProfile().usesNativeGLES(), versionNumber.getMajor(), versionNumber.getMinor(), false);
+            if(m_GLVersion.major == 4 && m_GLVersion.minor > 5){
+                m_GLVersion = new GLAPIVersion(false, 4, 5, false);
+            }
         }
 
         return m_GLVersion;
@@ -123,6 +126,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glDeleteTextures(IntBuffer textures) {
+        gl.glDeleteTextures(textures.remaining(), textures);
+    }
+
+    @Override
     public void glDeleteTexture(int texture) {
         glDeleteTextures(texture);
     }
@@ -167,6 +175,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glDisablei(int cap, int index) {
+        gl.glDisablei(cap, index);
+    }
+
+    @Override
     public void glFinish() {
         gl.glFinish();
     }
@@ -185,6 +198,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     public int glGenTexture() {
         gl.glGenTextures(1, intValues, 0);
         return intValues[0];
+    }
+
+    @Override
+    public void glGenTextures(IntBuffer textures) {
+        gl.glGenTextures(textures.remaining(), textures);
     }
 
     @Override
@@ -275,7 +293,7 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
 
     @Override
     public void glTexImage1D(int target, int level, int internalformat, int width, int border, int format, int type, Buffer pixels) {
-
+        gl.glTexImage1D(target, level, internalformat, width, border, format, type, pixels);
     }
 
     @Override
@@ -391,6 +409,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glDeleteFramebuffers(IntBuffer framebuffer) {
+        gl.glDeleteFramebuffers(framebuffer.remaining(), framebuffer);
+    }
+
+    @Override
     public void glDeleteProgram(int program) {
         gl.glDeleteProgram(program);
     }
@@ -398,6 +421,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glDeleteRenderbuffer(int renderbuffer) {
         gl.glDeleteRenderbuffers(1, wrap(renderbuffer), 0);
+    }
+
+    @Override
+    public void glDeleteRenderbuffers(IntBuffer renderbuffers) {
+        gl.glDeleteRenderbuffers(renderbuffers.remaining(), renderbuffers);
     }
 
     @Override
@@ -458,9 +486,19 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glGenFramebuffers(IntBuffer framebuffers) {
+        gl.glGenFramebuffers(framebuffers.remaining(), framebuffers);
+    }
+
+    @Override
     public int glGenRenderbuffer() {
         gl.glGenRenderbuffers(1, intValues, 0);
         return intValues[0];
+    }
+
+    @Override
+    public void glGenRenderbuffers(IntBuffer renderbuffers) {
+        gl.glGenRenderbuffers(renderbuffers.remaining(),renderbuffers);
     }
 
     @Override
@@ -1881,5 +1919,30 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glDeleteSync(long sync) {
         gl.glDeleteSync(sync);
+    }
+
+    @Override
+    public void glProgramUniform3f(int program, int index, float x, float y, float z) {
+        gl.glProgramUniform3f(program, index, x, y, z);
+    }
+
+    @Override
+    public void glScissorIndexed(int index, int x, int y, int width, int height) {
+        gl.glScissorIndexed(index, x, y, width, height);
+    }
+
+    @Override
+    public void glViewportIndexedf(int index, float x, float y, float width, float height) {
+        gl.glViewportIndexedf(index, x, y, width, height);
+    }
+
+    @Override
+    public void glBindImageTextures(int unit, IntBuffer images) {
+        gl.glBindImageTextures(unit, images.remaining(), images);
+    }
+
+    @Override
+    public void glViewportArrayv(int index, FloatBuffer viewports) {
+        gl.glViewportArrayv(index, viewports.remaining()/4, viewports);
     }
 }

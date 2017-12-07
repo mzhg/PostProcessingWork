@@ -2,7 +2,7 @@
 
 // #define QUALITY_LEVEL 0,1,2,3
 // #define ADPATIVE_BASE 0,1
-layout(location = 0) out float2 Out_fColor; 
+layout(location = 0) out float4 Out_fColor;
 
 void main()
 {
@@ -20,4 +20,6 @@ void main()
 		Out_fColor.y = PackEdges( outEdges );
 	#endif
 #endif
+
+   Out_fColor.zw =  float2(0);
 }

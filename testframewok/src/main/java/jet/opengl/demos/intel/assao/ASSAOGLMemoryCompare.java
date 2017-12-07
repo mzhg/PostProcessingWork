@@ -500,8 +500,8 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
 //                    sprintf_s(debugName, "%sGenerateSSAO_Pass%d.txt", DEBUG_FILE_FOLDER, pass);
 //                    DEBUG_TEXTURE2D(dx11Context, rts[0], debugName)
 //                    saveTextData("GenerateSSAO_Pass" + pass + "_Adaptive" + adaptive, rts[0]);
-                    testTexture("GenerateSSAO_Pass" + pass + "_Adaptive" + adaptive);
-                    System.exit(0);
+                    if(blurPasses != 0)
+                        testTexture("GenerateSSAO_Pass" + pass + "_Adaptive" + adaptive);
                 }
 
                 // remove textures from slots 0, 1, 2, 3 to avoid API complaints
@@ -535,7 +535,8 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                                 /*sprintf_s(debugName, "%sGenerateSSAO_Pass%d_Blur_Pass%d.txt", DEBUG_FILE_FOLDER, pass, i);
                                 DEBUG_TEXTURE2D(dx11Context, rts[0], debugName)*/
 //                                saveTextData(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d.txt", pass,adaptive, i), rts[0]);
-                                testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d", pass,adaptive, i));
+                                if( i != (blurPasses-1) )
+                                    testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d", pass,adaptive, i));
                             }
                             wideBlursRemaining--;
                         }
@@ -547,7 +548,8 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                                 /*sprintf_s(debugName, "%sGenerateSSAO_Pass%d_Blur_Pass%d.txt", DEBUG_FILE_FOLDER, pass, i);
                                 DEBUG_TEXTURE2D(dx11Context, rts[0], debugName)*/
 //                                saveTextData(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d.txt", pass,adaptive, i), rts[0]);
-                                testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d", pass,adaptive, i));
+                                if( i != (blurPasses-1) )
+                                    testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d", pass,adaptive, i));
                             }
                         }
                     }
@@ -559,17 +561,12 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
                             /*sprintf_s(debugName, "%sGenerateSSAO_Pass%d_Blur_Pass%d.txt", DEBUG_FILE_FOLDER, pass, i);
                             DEBUG_TEXTURE2D(dx11Context, rts[0], debugName)*/
 //                            saveTextData(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d.txt", pass,adaptive, i), rts[0]);
-                            testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d", pass,adaptive, i));
+                            if( i != (blurPasses-1) )
+                                testTexture(String.format("GenerateSSAO_Pass%d_Adaptive%d_Blur_Pass%d", pass,adaptive, i));
                         }
                     }
-
 //                    pPingRT.unbind();
                     bind(null, RenderTechnique.TEX2D_BLUR_INPUT, 0);
-                    
-//                    Swap( pPingRT, pPongRT );
-                    /*Texture2D tmp = pPingRT;
-                    pPingRT = pPongRT;
-                    pPongRT = tmp;*/
                 }
             }
             
@@ -577,6 +574,9 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
             // remove textures to avoid API complaints
 //            dx11Context->PSSetShaderResources( SSAO_TEXTURE_SLOT0, _countof(zeroSRVs), zeroSRVs );
         }
+
+        if (!g_PrintOnce)
+            testTexture(String.format("GenerateSSAO_FinalResults%s", adaptiveBasePass ? "_Adaptive":""));
 
 //        gl.glDisable(GLenum.GL_SCISSOR_TEST);
     }
@@ -803,10 +803,10 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
 
         compare.Draw(m_Settings, m_Inputs);
 
+//        System.out.println("1/255 = " + (1.0/255));     0.00392
 //        System.out.println("a = " + ScreenSpaceToViewSpaceDepth(0.017359f));  // 5.757441   --- 5.7574306
 //        System.out.println("b = " + ScreenSpaceToViewSpaceDepth(0.0173584f)); // 5.75764    --- 5.757649
 //        System.out.println("c = " + ScreenSpaceToViewSpaceDepth(0.0173256f)); // 5.768533   --- 5.7685404
-//        System.out.println("d = " + ScreenSpaceToViewSpaceDepth(0.0173249f)); // 5.7687664  --- 5.76876
     }
 
     private static float ScreenSpaceToViewSpaceDepth( float screenDepth )

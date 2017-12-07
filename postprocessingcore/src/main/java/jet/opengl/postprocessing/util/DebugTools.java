@@ -1506,7 +1506,7 @@ public final class DebugTools {
                 for(int j = 0; j < length; j ++){
                     float ogl_value = fsrcValues[j];
                     float dx_value = fdstValues[j];
-                    if(!Numeric.isClose(ogl_value, dx_value, 0.1f)){  // not same
+                    if(!Numeric.isClose(ogl_value, dx_value, .1f)){  // not same
                         result.add(mkToken(fsrcValues), mkToken(fdstValues), i);
                         break;
                     }else if(ogl_value == igoreValue){
@@ -1681,7 +1681,7 @@ public final class DebugTools {
     }
 
     private static float parseFloat(String token){
-        if(token.contains(".#QNAN") || token.equalsIgnoreCase("nan")){
+        if(token.contains(".#QNAN") || token.contains("nan") || token.equals("NAN")){
             return Float.NaN;
         }else if(token.contains(".#INF")){
             return Float.POSITIVE_INFINITY;

@@ -2,11 +2,13 @@ package jet.opengl.demos.intel.assao;
 
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector2i;
+import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
 
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 
 final class RenderTechnique extends GLSLProgram{
@@ -50,7 +52,8 @@ final class RenderTechnique extends GLSLProgram{
 	private int m_g_ASSAOConsts_HalfViewportPixelSizeLoc = -1;
 	private int m_g_ASSAOConsts_PerPassFullResCoordOffsetLoc = -1;
 	private int m_g_ASSAOConsts_QuarterResPixelSizeLoc = -1;
-	
+	private int m_PatternRotScaleMatrices = -1;
+
 
 	public RenderTechnique(String shaderFile, Macro[] macros){
 		final String shader_path = "Intel/ASSAODemo/shaders/";
@@ -98,6 +101,7 @@ final class RenderTechnique extends GLSLProgram{
 		m_g_ASSAOConsts_HalfViewportPixelSizeLoc = gl.glGetUniformLocation(m_program, "g_ASSAOConsts.HalfViewportPixelSize");
 		m_g_ASSAOConsts_PerPassFullResCoordOffsetLoc = gl.glGetUniformLocation(m_program, "g_ASSAOConsts.PerPassFullResCoordOffset");
 		m_g_ASSAOConsts_QuarterResPixelSizeLoc = gl.glGetUniformLocation(m_program, "g_ASSAOConsts.QuarterResPixelSize");
+		m_PatternRotScaleMatrices = gl.glGetUniformLocation(m_program, "g_ASSAOConsts.PatternRotScaleMatrices");
 	}
 	
 	public void setUnfiorms(ASSAOConstants data){
@@ -129,6 +133,7 @@ final class RenderTechnique extends GLSLProgram{
 		setHalfViewportPixelSize(data.HalfViewportPixelSize);
 		setPerPassFullResCoordOffset(data.PerPassFullResCoordOffset);
 		setQuarterResPixelSize(data.QuarterResPixelSize);
+		setPatternRotScaleMatrices(data.PatternRotScaleMatrices);
 	}
 	
 	/*public void printPrograminfo(){
@@ -165,4 +170,9 @@ final class RenderTechnique extends GLSLProgram{
 	private void setHalfViewportPixelSize(Vector2f v) { if(m_g_ASSAOConsts_HalfViewportPixelSizeLoc >=0)gl.glUniform2f(m_g_ASSAOConsts_HalfViewportPixelSizeLoc, v.x, v.y);}
 	private void setPerPassFullResCoordOffset(Vector2i v) { if(m_g_ASSAOConsts_PerPassFullResCoordOffsetLoc >=0)gl.glUniform2i(m_g_ASSAOConsts_PerPassFullResCoordOffsetLoc, v.x, v.y);}
 	private void setQuarterResPixelSize(Vector2f v) { if(m_g_ASSAOConsts_QuarterResPixelSizeLoc >=0)gl.glUniform2f(m_g_ASSAOConsts_QuarterResPixelSizeLoc, v.x, v.y);}
+	private void setPatternRotScaleMatrices(Vector4f[] mats){
+		if(m_PatternRotScaleMatrices >=0){
+			gl.glUniform4fv(m_PatternRotScaleMatrices, CacheBuffer.wrap(mats));
+		}
+	}
 }
