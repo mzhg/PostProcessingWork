@@ -80,6 +80,7 @@ public interface GLFuncProvider {
     public void glEnable (int cap);
     public void glEnablei (int cap, int index);
     void glDisablei(int cap, int index);
+    boolean glIsEnabledi(int cap, int index);
 
     public void glFinish ();
 
@@ -1657,4 +1658,6 @@ public interface GLFuncProvider {
 
     void glBindImageTextures(int unit, IntBuffer images);
     void glViewportArrayv(int index, FloatBuffer viewports);
+
+    void glBindFragDataLocation(int program, int index, String name);
 }

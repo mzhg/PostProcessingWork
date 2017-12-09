@@ -228,6 +228,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     public void glDisablei(int cap, int index) {GL30.glDisablei(cap, index);}
 
     @Override
+    public boolean glIsEnabledi(int cap, int index) {
+        return GL30.glIsEnabledi(cap, index);
+    }
+
+    @Override
     public void glFinish() {
         GL11.glFinish();
     }
@@ -1951,6 +1956,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glViewportArrayv(int index, FloatBuffer viewports) {
         GL41.glViewportArrayv(index, viewports);
+    }
+
+    @Override
+    public void glBindFragDataLocation(int program, int index, String name) {
+        GL30.glBindFragDataLocation(program, index, name);
     }
 
 }

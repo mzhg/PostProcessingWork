@@ -7,7 +7,6 @@ import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 /**
  * Created by mazhen'gui on 2017/4/24.
  */
-
 public class PostProcessingFishEyeEffect extends PostProcessingEffect {
 
     @Override

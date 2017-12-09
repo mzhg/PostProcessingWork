@@ -180,6 +180,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public boolean glIsEnabledi(int cap, int index) {
+        return gl.glIsEnabledi(cap, index);
+    }
+
+    @Override
     public void glFinish() {
         gl.glFinish();
     }
@@ -1944,5 +1949,10 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glViewportArrayv(int index, FloatBuffer viewports) {
         gl.glViewportArrayv(index, viewports.remaining()/4, viewports);
+    }
+
+    @Override
+    public void glBindFragDataLocation(int program, int index, String name) {
+        gl.glBindFragDataLocation(program, index, name);
     }
 }
