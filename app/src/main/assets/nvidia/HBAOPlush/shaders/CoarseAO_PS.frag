@@ -15,8 +15,10 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited. 
 */
 
+#include "ConstantBuffers.glsl"
+
 #if FETCH_GBUFFER_NORMAL
-#include "FetchNormal_Common.glsl"
+#include "ReconstructNormal_Common.glsl"
 #endif
 
 #if API_GL
@@ -46,7 +48,7 @@ float3 FetchFullResViewNormal(int2 fragCoord)
 {
 #if !FETCH_GBUFFER_NORMAL
 //    return ReconstructedNormalTexture.Load(int3(IN.pos.xy,0)) * 2.0 - 1.0;
-	return texelFetch(ReconstructedNormalTexture, fragCoord, 0) * 2.0 - 1.0;
+	return texelFetch(ReconstructedNormalTexture, fragCoord, 0).xyz * 2.0 - 1.0;
 #else
     return FetchFullResViewNormal_GBuffer(fragCoord);
 #endif
@@ -196,7 +198,7 @@ in vec4 m_f4UVAndScreenPos;
 
 void main()
 {
-    float2 fragCoord = floor(gl_FragCoord) * 4.0 + g_PerPassConstants.f2Offset;
+    float2 fragCoord = floor(gl_FragCoord.xy) * 4.0 + g_PerPassConstants.f2Offset;
     float2 UV = fragCoord * (g_f2InvQuarterResolution / 4.0);
 
     // Batch 2 texture fetches before the branch
@@ -213,7 +215,7 @@ void main()
         return;
     }
 
-    float AO = ComputeCoarseAO(IN.uv, ViewPosition, ViewNormal, Params);
+    float AO = ComputeCoarseAO(/*IN.uv*/ m_f4UVAndScreenPos.xy, ViewPosition, ViewNormal, Params);
 
 #if ENABLE_DEPTH_THRESHOLD
     AO *= DepthThresholdFactor(ViewPosition.z);

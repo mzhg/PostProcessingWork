@@ -19,13 +19,12 @@ float3 FetchFullResViewNormal(PostProc_VSOut IN, float3 ViewPosition)
 //----------------------------------------------------------------------------------
 //float4 ReconstructNormal_PS(PostProc_VSOut IN) : SV_TARGET
 layout(location = 0) out float4 OutColor;
-in float2 m_Texcoord;
 
 void main()
 {
 	PostProc_VSOut IN;
 	IN.pos = gl_FragCoord;
-	IN.uv = m_Texcoord;
+	IN.uv = vec2(0);
 	
     float3 ViewPosition = FetchFullResViewPos(IN.uv);
     float3 ViewNormal = FetchFullResViewNormal(IN, ViewPosition);

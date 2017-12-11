@@ -1,7 +1,5 @@
 package jet.opengl.demos.nvidia.hbaoplus;
 
-import java.nio.ByteBuffer;
-
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -19,7 +17,7 @@ final class RTTexture2D extends BaseRTTexture{
         {
         	m_TextureId = gl.glGenTexture();
             gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_TextureId);
-            gl.glTexImage2D(GLenum.GL_TEXTURE_2D, 0, internalFormat, width, height, 0, getBaseGLFormat(internalFormat), getBaseGLType(internalFormat), (ByteBuffer)null);
+            gl.glTexImage2D(GLenum.GL_TEXTURE_2D, 0, internalFormat, width, height, 0, getBaseGLFormat(internalFormat), getBaseGLType(internalFormat), null);
             gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
 
 //            THROW_IF(GL.glGetError());

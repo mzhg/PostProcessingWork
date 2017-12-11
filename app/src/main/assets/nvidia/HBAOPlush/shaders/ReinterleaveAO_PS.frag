@@ -41,7 +41,13 @@ struct PSOut
 */
 
 layout(location = 0) out float4 OutColor;
-in float2 m_Texcoord;
+
+void SubtractViewportOrigin(PostProc_VSOut IN)
+{
+    IN.pos.xy -= g_f2InputViewportTopLeft;
+	float2 relativeFragCoord = gl_FragCoord.xy - g_f2InputViewportTopLeft;
+    IN.uv = relativeFragCoord * g_f2InvFullResolution;
+}
 
 //-------------------------------------------------------------------------
 // PSOut ReinterleaveAO_PS(PostProc_VSOut IN)
@@ -50,7 +56,7 @@ void main()
 //    PSOut OUT;
 	PostProc_VSOut IN;
 	IN.pos = gl_FragCoord;
-	IN.uv = m_Texcoord;
+	IN.uv = vec2(0);
 	
 #if !ENABLE_BLUR
     SubtractViewportOrigin(IN);

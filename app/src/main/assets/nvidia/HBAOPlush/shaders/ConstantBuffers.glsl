@@ -11,7 +11,7 @@
 #ifndef CONSTANT_BUFFERS_H
 #define CONSTANT_BUFFERS_H
 
-#include "<std-class>hlsl_compatiable.glsl"
+#include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
 #include "SharedDefines.h"
 
 #ifdef __cplusplus
@@ -116,5 +116,12 @@ struct PostProc_VSOut
 } // namespace SSAO
 } // namespace GFSDK
 #endif
+
+
+void AddViewportOrigin(inout PostProc_VSOut IN)
+{
+    IN.pos.xy += g_f2InputViewportTopLeft;
+    IN.uv = IN.pos.xy * g_f2InvFullResolution;
+}
 
 #endif //CONSTANT_BUFFERS_H

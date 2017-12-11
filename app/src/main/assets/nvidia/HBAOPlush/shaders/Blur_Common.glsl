@@ -7,7 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 */
-#include "<std-class>hlsl_compatiable.glsl"
+#include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
 
 /*
 Texture2D<float2> AODepthTexture    : register(t0);

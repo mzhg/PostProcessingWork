@@ -24,6 +24,7 @@ public class HBAOPlusPostProcess implements Disposeable {
     private RenderOptions m_Options;
     private Viewports m_Viewports;
     private int m_FullResViewDepthTextureId;
+    private boolean m_printOnce;
     
     private final ProgramDesc m_TempDesc = new ProgramDesc();
     private final HashMap<ProgramDesc, SSAOProgram> m_ProgramMap = new HashMap<>();
@@ -129,6 +130,8 @@ public class HBAOPlusPostProcess implements Disposeable {
         GLCheck.checkError();
         RenderHBAOPlus(RenderMask);
         GLCheck.checkError();
+
+        m_printOnce = true;
     }
     
     private void RenderHBAOPlus(int RenderMask){
@@ -264,7 +267,10 @@ public class HBAOPlusPostProcess implements Disposeable {
     	m_TempDesc.fragFile = (m_InputDepth.depthTextureType == GFSDK_SSAO_DepthTextureType.GFSDK_SSAO_VIEW_DEPTHS) ?
     			"CopyDepth_PS.frag" : "LinearizeDepth_PS.frag";
     	m_TempDesc.resolveDepth = getResolveDepthPermutation() != 0;
-    	return getProgram(m_TempDesc);
+    	SSAOProgram program = getProgram(m_TempDesc);
+    	program.setName((m_InputDepth.depthTextureType == GFSDK_SSAO_DepthTextureType.GFSDK_SSAO_VIEW_DEPTHS) ?
+                "CopyDepth" : "LinearizeDepth");
+    	return program;
     }
 
     private int getAODepthWrapMode()
@@ -302,6 +308,10 @@ public class HBAOPlusPostProcess implements Disposeable {
                 gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 //    	        ASSERT_GL_ERROR(m_GL);
 
+                if(!m_printOnce){
+                    Program.printPrograminfo();
+                }
+
     	        m_FullResViewDepthTextureId = m_RTs.getFullResViewDepthTexture(/*m_GL*/).getTexture();
     	    }
     }
@@ -319,6 +329,11 @@ public class HBAOPlusPostProcess implements Disposeable {
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 //        ASSERT_GL_ERROR(m_GL);
+
+        if(!m_printOnce){
+            Program.setName("DebugNormals");
+            Program.printPrograminfo();
+        }
     }
     
     void DrawDeinterleavedDepth(SSAOProgram Program){
@@ -340,6 +355,11 @@ public class HBAOPlusPostProcess implements Disposeable {
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         }
 
+        if(!m_printOnce){
+            Program.setName("DeinterleavedDepth");
+            Program.printPrograminfo();
+        }
+
         setFullViewport();
 //        ASSERT_GL_ERROR(m_GL);
     }
@@ -354,6 +374,11 @@ public class HBAOPlusPostProcess implements Disposeable {
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 //        ASSERT_GL_ERROR(m_GL);
+
+        if(!m_printOnce){
+            Program.setName("ReconstructedNormal");
+            Program.printPrograminfo();
+        }
     }
     
     private SSAOProgram getProgram(ProgramDesc desc){
@@ -393,6 +418,11 @@ public class HBAOPlusPostProcess implements Disposeable {
 
         setFullViewport();
 //        ASSERT_GL_ERROR(m_GL);
+
+        if(!m_printOnce){
+            Program.setName("CoarseAO");
+            Program.printPrograminfo();
+        }
     }
     
     void DrawReinterleavedAO(SSAOProgram Program){
@@ -409,6 +439,11 @@ public class HBAOPlusPostProcess implements Disposeable {
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 //        ASSERT_GL_ERROR(m_GL);
+
+        if(!m_printOnce){
+            Program.setName("ReinterleavedAO");
+            Program.printPrograminfo();
+        }
     }
     
     void DrawReinterleavedAO_PreBlur(SSAOProgram Program){
@@ -436,7 +471,13 @@ public class HBAOPlusPostProcess implements Disposeable {
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 //        ASSERT_GL_ERROR(m_GL);
+
+        if(!m_printOnce){
+            Program.setName("BlurX");
+            Program.printPrograminfo();
+        }
     }
+
     void DrawBlurY(SSAOProgram Program){
         gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, m_Output.fboId);
         setOutputBlendState(/*m_GL*/);
@@ -449,6 +490,11 @@ public class HBAOPlusPostProcess implements Disposeable {
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 //        ASSERT_GL_ERROR(m_GL);
+
+        if(!m_printOnce){
+            Program.setName("BlurY");
+            Program.printPrograminfo();
+        }
     }
 
     private void setDataFlow(GFSDK_SSAO_InputData_GL InputData, GFSDK_SSAO_Parameters Parameters, GFSDK_SSAO_Output_GL Output){

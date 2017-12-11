@@ -175,6 +175,7 @@ public class JoglDemoMain implements GLEventListener, ListSelectionListener, Ite
 //        }
 
         mDemoList.add(new DemoDesc("jet.opengl.demos.postprocessing.LightingVolumeDemo", "LightingVolumeDemo", "LightingVolumeDemo"));
+        mDemoList.add(new DemoDesc("jet.opengl.demos.nvidia.hbaoplus.HBAOPlusDemo", "HBAOPlusDemo", "HBAOPlusDemo"));
     }
 
     private void initResolutionLists(){
@@ -230,27 +231,6 @@ public class JoglDemoMain implements GLEventListener, ListSelectionListener, Ite
     private void run(NvAppBase app, int width, int height, boolean fullscreen){
         NvEGLConfiguration config = new NvEGLConfiguration();
         app.configurationCallback(config);
-
-        /*LwjglApp baseApp = new LwjglApp();
-        GLContextConfig glconfig = baseApp.getGLContextConfig();
-        glconfig.alphaBits = config.alphaBits;
-        glconfig.depthBits = config.depthBits;
-        glconfig.stencilBits = config.stencilBits;
-
-        glconfig.redBits = config.redBits;
-        glconfig.greenBits = config.greenBits;
-        glconfig.blueBits = config.blueBits;
-        glconfig.debugContext = config.debugContext;
-        glconfig.multiSamplers = config.multiSamplers;
-
-        baseApp.registerGLEventListener(app);
-        baseApp.registerGLFWListener(new InputAdapter(app, app, app));
-        baseApp.registerGLEventListener(this);
-        baseApp.setWindowSize(width, height);
-        baseApp.setFullScreenMode(fullscreen);
-        app.setGLContext(baseApp);
-        baseApp.start();*/
-
         new JoglApp(app, width, height, fullscreen);
     }
 

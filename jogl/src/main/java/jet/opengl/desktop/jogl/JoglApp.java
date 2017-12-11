@@ -1,5 +1,6 @@
 package jet.opengl.desktop.jogl;
 
+import com.jogamp.opengl.DebugGL4;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.awt.GLCanvas;
@@ -51,7 +52,7 @@ public class JoglApp extends JFrame implements GLEventListener, NvGLAppContext {
 
     @Override
     public void init(GLAutoDrawable drawable) {
-//        drawable.setGL(new DebugGL4(drawable.getGL().getGL4()));
+        drawable.setGL(new DebugGL4(drawable.getGL().getGL4()));
         gl = drawable;
         LogUtil.i(LogUtil.LogType.DEFAULT, "GLThreadName: " + Thread.currentThread().getName());
         GLFuncProviderFactory.initlizeGLFuncProvider(GLAPI.JOGL, drawable.getGL().getGL4());

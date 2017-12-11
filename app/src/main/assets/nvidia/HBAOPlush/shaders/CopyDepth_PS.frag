@@ -27,36 +27,35 @@ layout(binding=0)  uniform sampler2DMS DepthTextureMS;
 layout(binding=0)  uniform sampler2D DepthTexture;
 #endif
 
-//----------------------------------------------------------------------------------
-float ConvertToViewDepth(float HardwareDepth)
-{
-    float NormalizedDepth = saturate(g_fInverseDepthRangeA * HardwareDepth + g_fInverseDepthRangeB);
 
-    return 1.0 / (NormalizedDepth * g_fLinearizeDepthA + g_fLinearizeDepthB);
-}
+layout(location = 0) out float OutColor;
 
 //----------------------------------------------------------------------------------
+//float CopyDepth_PS(PostProc_VSOut IN) : SV_TARGET
+
+//----------------------------------------------------------------------------------
+
 void AddViewportOrigin(inout PostProc_VSOut IN)
 {
     IN.pos.xy += g_f2InputViewportTopLeft;
     IN.uv = IN.pos.xy * g_f2InvFullResolution;
 }
 
-//----------------------------------------------------------------------------------
-// float LinearizeDepth_PS(PostProc_VSOut IN) : SV_TARGET
-
-layout(location = 0) out float OutColor;
 void main()
 {
+	PostProc_VSOut IN;
+	IN.pos = gl_FragCoord;
+	IN.uv = vec2(0);
+	
     AddViewportOrigin(IN);
 
 #if RESOLVE_DEPTH
-    float HardwareDepth = // DepthTextureMS.Load(int2(IN.pos.xy), g_iSampleIndex);
-    						 texelFetch(DepthTextureMS, ivec2(gl_FragCoord.xy), sampleIndex).x;
+    float ViewDepth = // DepthTextureMS.Load(int2(IN.pos.xy), g_iSampleIndex);
+    				  texelFetch(DepthTextureMS, ivec2(IN.pos.xy), g_iSampleIndex).x;
 #else
-    float HardwareDepth = // DepthTexture.Load(int3(IN.pos.xy, 0));
-    						 texelFetch(DepthTexture, ivec2(gl_FragCoord.xy), 0).x;
+    float ViewDepth = // DepthTexture.Load(int3(IN.pos.xy, 0));
+    				  texelFetch(DepthTexture, ivec2(IN.pos.xy), 0).x;
 #endif
 
-    OutColor = ConvertToViewDepth(HardwareDepth);
+    OutColor=ViewDepth;
 }

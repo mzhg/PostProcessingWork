@@ -61,10 +61,11 @@ final class RTTexture2DArray extends BaseRTTexture{
             drawBuffers.flip();
 
 //            GL.glGenFramebuffers(2, m_OctaSliceFbo);
-            gl.glGenFramebuffers(CacheBuffer.wrap(m_OctaSliceFbo));
+            m_OctaSliceFbo[0] = gl.glGenFramebuffer();
+            m_OctaSliceFbo[1] = gl.glGenFramebuffer();
             for (int PassIndex = 0; PassIndex < 2; ++PassIndex)
             {
-                gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, m_OctaSliceFbo[PassIndex]);
+                gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_OctaSliceFbo[PassIndex]);
                 for (int RenderTargetId = 0; RenderTargetId < array_size/2; ++RenderTargetId)
                 {
                     int LayerIndex = PassIndex * MAX_NUM_MRTS + RenderTargetId;
@@ -73,7 +74,7 @@ final class RTTexture2DArray extends BaseRTTexture{
                 }
 //                GL.glDrawBuffers(MAX_NUM_MRTS, DrawBuffers);
                 gl.glDrawBuffers(drawBuffers);
-                gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, 0);
+                gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
             }
 
 //            THROW_IF(GL.glGetError());

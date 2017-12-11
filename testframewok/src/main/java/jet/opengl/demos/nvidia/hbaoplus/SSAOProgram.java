@@ -192,17 +192,26 @@ class SSAOProgram extends GLSLProgram{
 		ShaderSourceItem gs_item = null;
 		ShaderSourceItem ps_item = null;
 
-		final String shader_path = "nvidia/HBAOPlush/";
+		final String shader_path = "nvidia/HBAOPlush/shaders/";
 		if(vertfile !=null){
-			vs_item = new ShaderSourceItem(ShaderLoader.loadShaderFile(shader_path + vertfile, false), ShaderType.VERTEX);
+			if(vertfile.equals("PostProcessingDefaultScreenSpaceVS.vert")){
+				vertfile = "shader_libs/" + vertfile;
+			}else{
+				vertfile = shader_path + vertfile;
+			}
+
+			vs_item = new ShaderSourceItem(ShaderLoader.loadShaderFile(vertfile, false), ShaderType.VERTEX);
+			vs_item.macros = macros;
 		}
 
 		if(geomFile != null){
 			gs_item = new ShaderSourceItem(ShaderLoader.loadShaderFile(shader_path + geomFile, false), ShaderType.GEOMETRY);
+			gs_item.macros = macros;
 		}
 
 		if(fragfile != null){
 			ps_item = new ShaderSourceItem(ShaderLoader.loadShaderFile(shader_path + fragfile, false), ShaderType.FRAGMENT);
+			ps_item.macros = macros;
 		}
 
 		setSourceFromStrings(vs_item, gs_item, ps_item);
