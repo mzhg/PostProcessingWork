@@ -48,6 +48,9 @@ final class PerPassConstantBuffers {
             m_CBs[PassIndex].release(/*GL*/);
         }
     }
+
+    PerPassConstantBuffer getCB(int passIndex){ return m_CBs[passIndex]; }
+
     int getBufferId(int PassIndex)
     {
 //        ASSERT(PassIndex < SIZEOF_ARRAY(m_CBs));

@@ -1780,7 +1780,7 @@ final class CCloudsController {
         gl.glCullFace(GLenum.GL_BACK);
         gl.glFrontFace(GLenum.GL_CW);
 
-
+        gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, m_pbufDrawIndirectArgs);
         gl.glBindVertexArray(m_pRenderCloudsInputLayout);
         RenderCloudsTech.enable();
         RenderCloudsTech.setUniforms(m_CloudAttribs);
@@ -1789,10 +1789,10 @@ final class CCloudsController {
         RenderCloudsTech.setCameraPos(RenderAttribs.f3CameraPos);
         RenderCloudsTech.setDirOnLight(RenderAttribs.f4DirOnLight);
 
-        gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, m_pbufDrawIndirectArgs);
         gl.glDrawArraysIndirect(GLenum.GL_POINTS, 0);
-        gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, 0);
         gl.glBindVertexArray(0);
+        gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, 0);
+        GLCheck.checkError();
 
         gl.glDisablei(GLenum.GL_BLEND, 0);
         gl.glDisablei(GLenum.GL_BLEND, 1);

@@ -27,11 +27,11 @@
 #endif
 
 //Texture2DArray<float>   QuarterResDepthTexture      : register(t0);
-uniform sampler2DArray QuarterResDepthTexture;
+layout(binding = 0) uniform sampler2DArray QuarterResDepthTexture;
 
 #if !FETCH_GBUFFER_NORMAL
 // Texture2D<float3>       ReconstructedNormalTexture  : register(t1);
-uniform sampler2D  ReconstructedNormalTexture;
+layout(binding = 1) uniform sampler2D  ReconstructedNormalTexture;
 #endif
 
 //sampler                 PointClampSampler           : register(s0);
@@ -148,7 +148,6 @@ float ComputeCoarseAO(float2 FullResUV, float3 ViewPosition, float3 ViewNormal, 
     float SmallScaleAO = 0;
     float LargeScaleAO = 0;
 
-//    [unroll]
     for (float DirectionIndex = 0; DirectionIndex < NUM_DIRECTIONS; ++DirectionIndex)
     {
         float Angle = Alpha * DirectionIndex;

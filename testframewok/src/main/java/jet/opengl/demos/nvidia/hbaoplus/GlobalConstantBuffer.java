@@ -97,10 +97,13 @@ final class GlobalConstantBuffer extends BaseConstantBuffer{
     void setProjectionConstants(InputDepthInfo InputDepth){
     	final float InvFocalLenX  = InputDepth.projectionMatrixInfo.getTanHalfFovX();
         final float InvFocalLenY  = InputDepth.projectionMatrixInfo.getTanHalfFovY();
-        m_Data.f2UVToViewA.x =  2.f * InvFocalLenX;
+        /*m_Data.f2UVToViewA.x =  2.f * InvFocalLenX;
         m_Data.f2UVToViewA.y = -2.f * InvFocalLenY;
         m_Data.f2UVToViewB.x = -1.f * InvFocalLenX;
-        m_Data.f2UVToViewB.y =  1.f * InvFocalLenY;
+        m_Data.f2UVToViewB.y =  1.f * InvFocalLenY;*/
+
+        m_Data.f2UVToViewA.set(InvFocalLenX * -2.0f, InvFocalLenY * -2.0f);
+        m_Data.f2UVToViewB.set(InvFocalLenX, InvFocalLenY);
     }
     
     void setViewportConstants(InputDepthInfo InputDepth){

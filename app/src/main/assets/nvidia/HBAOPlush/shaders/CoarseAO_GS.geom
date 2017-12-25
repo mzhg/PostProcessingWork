@@ -7,7 +7,7 @@
 * distribution of this software and related documentation without an express 
 * license agreement from NVIDIA CORPORATION is strictly prohibited. 
 */
-
+#extension GL_NV_geometry_shader_passthrough : enable
 #include "ConstantBuffers.glsl"
 
 /*
@@ -37,8 +37,6 @@ void CoarseAO_GS(triangle PostProc_VSOut input[3], inout TriangleStream<GSOut> O
 
 layout(triangles) in;
 
-#extension GL_NV_geometry_shader_passthrough : enable
-
 #if GL_NV_geometry_shader_passthrough
 
   layout(passthrough) in gl_PerVertex {
@@ -49,7 +47,7 @@ layout(triangles) in;
 
   void main()
   {
-    gl_Layer = g_PerPassConstants.uSliceIndex;
+    gl_Layer = int(g_PerPassConstants.uSliceIndex);
 //    gl_PrimitiveID = gl_PrimitiveIDIn;
   }
 
@@ -75,7 +73,7 @@ layout(triangles) in;
   {
     for (int i = 0; i < 3; i++){
       m_f4UVAndScreenPos = IN[i].m_f4UVAndScreenPos;
-      gl_Layer = g_PerPassConstants.uSliceIndex;
+      gl_Layer = int(g_PerPassConstants.uSliceIndex);
       gl_Position = gl_in[i].gl_Position;
       EmitVertex();
     }

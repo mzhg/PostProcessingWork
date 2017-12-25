@@ -26,6 +26,12 @@ public class GFSDK_SSAO_InputDepthData {
 	
 	/** 4x4 perspective matrix from the depth generation pass */
 	public final Matrix4f projectionMatrix = new Matrix4f();
+
+	/** The camera near plane. */
+	public float near;
+
+	/** The camera far plane. */
+	public float far;
 	
 	/** DistanceInViewSpaceUnits = MetersToViewSpaceUnits * DistanceInMeters */
 	public float metersToViewSpaceUnits = 1.0f;

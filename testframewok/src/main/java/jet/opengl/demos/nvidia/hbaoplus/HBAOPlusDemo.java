@@ -59,11 +59,13 @@ public final class HBAOPlusDemo extends NvSampleApp {
         input.depthData.fullResDepthTexture = m_Scene.getSceneDepth();
         input.depthData.projectionMatrix.load(m_Scene.getProjMat());
         input.depthData.metersToViewSpaceUnits = 0.005f;
+        input.depthData.near = m_Scene.getSceneNearPlane();
+        input.depthData.far  = m_Scene.getSceneFarPlane();
 
         input.normalData.enable = false;
 
         output.outputFBO = 0;  // screen
-        output.blend.mode = GFSDK_SSAO_BlendMode.GFSDK_SSAO_OVERWRITE_RGB;
+        output.blend.mode = GFSDK_SSAO_BlendMode.GFSDK_SSAO_MULTIPLY_RGB;
 
         AOParams.radius = 2.f;
         AOParams.bias = 0.2f;

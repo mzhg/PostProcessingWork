@@ -10,6 +10,7 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 
 public class HBAOPlusPostProcess implements Disposeable {
+    static boolean g_debug = true;
 
 //	private final GlobalConstantStruct m_UniformData = new GlobalConstantStruct();
 	private final GlobalConstantBuffer m_GlobalCB = new GlobalConstantBuffer();
@@ -125,9 +126,7 @@ public class HBAOPlusPostProcess implements Disposeable {
     
     private void render(int RenderMask){
 //    	m_GlobalCB.updateBuffer(/*m_GL,*/ RenderMask);  TODO do not need this
-    	GLCheck.checkError();
         setFullscreenState();
-        GLCheck.checkError();
         RenderHBAOPlus(RenderMask);
         GLCheck.checkError();
 
@@ -165,8 +164,8 @@ public class HBAOPlusPostProcess implements Disposeable {
 //                DrawReconstructedNormal(m_Shaders.reconstructNormal_PS);
             	DrawReconstructedNormal(getProgram(m_TempDesc));
             }
-            
-            
+
+            m_TempDesc.geomFile = "CoarseAO_GS.geom";
             m_TempDesc.fragFile = "CoarseAO_PS.frag";
             m_TempDesc.foregroundAO = getEnableForegroundAOPermutation();
             m_TempDesc.backgroundAO = getEnableBackgroundAOPermutation();
@@ -301,7 +300,8 @@ public class HBAOPlusPostProcess implements Disposeable {
 
     	        Program.enable(/*m_GL*/);
 //    	        Program.setDepthTexture(/*m_GL, */m_InputDepth.texture.target, m_InputDepth.texture.textureID);
-    	        // TODO binding Textures don't forget
+                gl.glActiveTexture(GLenum.GL_TEXTURE0);
+                gl.glBindTexture(m_InputDepth.texture.target, m_InputDepth.texture.textureID);
     	        
     	        Program.setUniformData(m_GlobalCB.m_Data);
 
@@ -341,7 +341,8 @@ public class HBAOPlusPostProcess implements Disposeable {
 
         Program.enable(/*m_GL*/);
 //        Program.setDepthTexture(/*m_GL,*/ m_FullResViewDepthTextureId);
-     // TODO binding Textures don't forget
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_FullResViewDepthTextureId);
         Program.setUniformData(m_GlobalCB.m_Data);
 
         int PassIndex = 0;
@@ -349,8 +350,7 @@ public class HBAOPlusPostProcess implements Disposeable {
         {
 //            GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, m_PerPassCBs.GetBindingPoint(), m_PerPassCBs.getBufferId(SliceIndex));
             gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_RTs.getQuarterResViewDepthTextureArray(/*m_GL,*/ m_Options).getOctaSliceFramebuffer(PassIndex++));
-            // TODO PerPass Uniform data
-        	// TODO Framebuffer Layer object
+            Program.setUniformData(m_PerPassCB.getCB(SliceIndex).m_Data);
 
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         }
@@ -369,11 +369,16 @@ public class HBAOPlusPostProcess implements Disposeable {
 
         Program.enable(/*m_GL*/);
 //        Program.setDepthTexture(/*m_GL,*/ m_FullResViewDepthTextureId, getAODepthWrapMode());
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_FullResViewDepthTextureId);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_NEAREST);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_NEAREST);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+
         Program.setUniformData(m_GlobalCB.m_Data);
-        // TODO binding Textures don't forget
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
-//        ASSERT_GL_ERROR(m_GL);
 
         if(!m_printOnce){
             Program.setName("ReconstructedNormal");
@@ -404,20 +409,33 @@ public class HBAOPlusPostProcess implements Disposeable {
 //        Program.setDepthTexture(/*m_GL,*/ m_RTs.getQuarterResViewDepthTextureArray(/*m_GL,*/ m_Options).getTextureArray(), getAODepthWrapMode());
 //        Program.setNormalTexture(/*m_GL,*/ getFullResNormalTextureTarget(), getFullResNormalTexture());
         Program.setUniformData(m_GlobalCB.m_Data);
-        // TODO binding Textures don't forget
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_RTs.getQuarterResViewDepthTextureArray(/*m_GL,*/ m_Options).getTextureArray());
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_NEAREST);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_NEAREST);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
+
+        gl.glActiveTexture(GLenum.GL_TEXTURE1);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D, getFullResNormalTexture());
 
         gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, m_RTs.getQuarterResAOTextureArray(/*m_GL*/).getLayeredFramebuffer());
-        // TODO
         
         for (int SliceIndex = 0; SliceIndex < 16; ++SliceIndex)
         {
 //            GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, m_PerPassCBs.GetBindingPoint(), m_PerPassCBs.getBufferId(SliceIndex));
-        	// TODO
-            gl.glDrawArrays(GLenum.GL_POINTS, 0, 1);
+            Program.setUniformData(m_PerPassCB.getCB(SliceIndex).m_Data);
+            gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         }
 
         setFullViewport();
 //        ASSERT_GL_ERROR(m_GL);
+
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, 0);
 
         if(!m_printOnce){
             Program.setName("CoarseAO");
@@ -428,18 +446,21 @@ public class HBAOPlusPostProcess implements Disposeable {
     void DrawReinterleavedAO(SSAOProgram Program){
 //    	ASSERT(!m_Options.Blur.Enable);
 
-    	gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, m_Output.fboId);
+    	gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, /*m_Output.fboId*/0);
+    	gl.glDisable(GLenum.GL_BLEND);
         setOutputBlendState(/*m_GL*/);
         setFullViewport();
 
         Program.enable(/*m_GL*/);
 //        Program.setAOTexture(/*m_GL,*/ m_RTs.getQuarterResAOTextureArray(/*m_GL*/).getTextureArray());
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_RTs.getQuarterResAOTextureArray(/*m_GL*/).getTextureArray());
         Program.setUniformData(m_GlobalCB.m_Data);
-        // TODO binding Textures don't forget
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 //        ASSERT_GL_ERROR(m_GL);
 
+        gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, 0);
         if(!m_printOnce){
             Program.setName("ReinterleavedAO");
             Program.printPrograminfo();
@@ -532,7 +553,6 @@ public class HBAOPlusPostProcess implements Disposeable {
 //    	m_InputDepth = GFSDK::SSAO::GL::InputDepthInfo();
 
         m_InputDepth.setData(/*m_GL,*/ DepthData);
-        
 
         m_GlobalCB.setDepthData(m_InputDepth);
 
@@ -587,6 +607,17 @@ public class HBAOPlusPostProcess implements Disposeable {
 
     private void setFullViewport()
     {
+        if(g_debug){
+            if(m_Viewports.fullRes.topLeftX != 0.f)
+                throw new IllegalArgumentException();
+            if(m_Viewports.fullRes.topLeftY != 0.f)
+                throw new IllegalArgumentException();
+            if(m_Viewports.fullRes.width != 1280.f)
+                throw new IllegalArgumentException();
+            if(m_Viewports.fullRes.height != 720.f)
+                throw new IllegalArgumentException();
+        }
+
         gl.glViewport(
             (int)(m_Viewports.fullRes.topLeftX), 
             (int)(m_Viewports.fullRes.topLeftY),
@@ -596,6 +627,17 @@ public class HBAOPlusPostProcess implements Disposeable {
 
     private void setQuarterViewport()
     {
+        if(g_debug){
+            if(m_Viewports.quarterRes.topLeftX != 0.f)
+                throw new IllegalArgumentException();
+            if(m_Viewports.quarterRes.topLeftY != 0.f)
+                throw new IllegalArgumentException();
+            if(m_Viewports.quarterRes.width != 1280.f/4)
+                throw new IllegalArgumentException();
+            if(m_Viewports.quarterRes.height != 720.f/4)
+                throw new IllegalArgumentException();
+        }
+
         gl.glViewport(
             (int)(m_Viewports.quarterRes.topLeftX),
             (int)(m_Viewports.quarterRes.topLeftY),

@@ -12,7 +12,7 @@ class InputDepthInfo {
     {
         GFSDK_SSAO_Status Status;
 
-        Status = projectionMatrixInfo.init(depthData.projectionMatrix);  // TODO Error
+        Status = projectionMatrixInfo.init(depthData.projectionMatrix, depthData.near, depthData.far);
         if (Status != GFSDK_SSAO_Status.GFSDK_SSAO_OK)
         {
             return Status;

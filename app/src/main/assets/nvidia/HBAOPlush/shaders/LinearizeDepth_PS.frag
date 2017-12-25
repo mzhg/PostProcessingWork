@@ -35,6 +35,14 @@ float ConvertToViewDepth(float HardwareDepth)
     return 1.0 / (NormalizedDepth * g_fLinearizeDepthA + g_fLinearizeDepthB);
 }
 
+/*float ScreenSpaceToViewSpaceDepth( float screenDepth )
+{
+    float depthLinearizeMul = g_ASSAOConsts.DepthUnpackConsts.x;
+    float depthLinearizeAdd = g_ASSAOConsts.DepthUnpackConsts.y;
+
+    return depthLinearizeMul / ( depthLinearizeAdd - screenDepth );
+}*/
+
 //----------------------------------------------------------------------------------
 // float LinearizeDepth_PS(PostProc_VSOut IN) : SV_TARGET
 

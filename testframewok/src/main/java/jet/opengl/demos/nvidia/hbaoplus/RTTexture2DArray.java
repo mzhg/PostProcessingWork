@@ -43,6 +43,7 @@ final class RTTexture2DArray extends BaseRTTexture{
         	m_LayeredFboId = gl.glGenFramebuffer();
             gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, m_LayeredFboId);
             gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, m_TextureArrayId, 0);
+            gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
             gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, 0);
 
 //            THROW_IF(GL.glGetError());

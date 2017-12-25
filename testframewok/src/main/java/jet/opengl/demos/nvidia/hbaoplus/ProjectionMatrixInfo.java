@@ -11,7 +11,7 @@ class ProjectionMatrixInfo {
 	private float m_TanHalfFovX;
 	private float m_TanHalfFovY;
 	
-	GFSDK_SSAO_Status init(Matrix4f projectionMatrix){
+	GFSDK_SSAO_Status init(Matrix4f projectionMatrix, float near, float far){
 		if (!isValid(projectionMatrix))
 	    {
 	        return GFSDK_SSAO_Status.GFSDK_SSAO_INVALID_PROJECTION_MATRIX;
@@ -38,17 +38,13 @@ class ProjectionMatrixInfo {
 
 	    // Rely on INFs to be generated in case of any divisions by zero
 //	    m_ZNear = (API == API_GL) ? (B / (A - 1.f)) : (B / A);
-	    m_ZNear = (B / (A - 1.f));
-	    m_ZFar = B / (A + 1.f);
+	    m_ZNear = near;
+	    m_ZFar = far;
 	    
 	    // Some matrices may use negative m00 or m11 terms to flip X/Y axises
 	    m_TanHalfFovX = 1.f / Math.abs(m.m00);
 	    m_TanHalfFovY = 1.f / Math.abs(m.m11);
 	    
-//	    System.out.println("m_ZNear = " + m_ZNear);
-//	    System.out.println("m_ZFar = " + m_ZFar);
-//	    System.out.println("m_TanHalfFovX = " + m_TanHalfFovX);
-//	    System.out.println("m_TanHalfFovY = " + m_TanHalfFovY);
 	    return GFSDK_SSAO_Status.GFSDK_SSAO_OK;
 	}
     
@@ -63,10 +59,7 @@ class ProjectionMatrixInfo {
     }
 
     // Clamp to EPSILON to avoid any divisions by 0.f
-    float getInverseZNear()
-    {
-        return Math.max(1.f / m_ZNear, Numeric.EPSILON);
-    }
+    float getInverseZNear() { return Math.max(1.f / m_ZNear, Numeric.EPSILON);}
     
     float getInverseZFar()
     {
