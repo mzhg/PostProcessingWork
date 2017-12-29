@@ -202,7 +202,7 @@ void main()
 
     // Batch 2 texture fetches before the branch
     float3 ViewPosition = FetchQuarterResViewPos(UV);
-    float3 ViewNormal = FetchFullResViewNormal(int2(fragCoord));
+    float3 ViewNormal = -FetchFullResViewNormal(int2(fragCoord));
 
     AORadiusParams Params = GetAORadiusParams(ViewPosition.z);
 
@@ -214,7 +214,7 @@ void main()
         return;
     }
 
-    float AO = ComputeCoarseAO(/*IN.uv*/ m_f4UVAndScreenPos.xy, ViewPosition, ViewNormal, Params);
+    float AO = ComputeCoarseAO(/*IN.uv*/ UV, ViewPosition, ViewNormal, Params);
 
 #if ENABLE_DEPTH_THRESHOLD
     AO *= DepthThresholdFactor(ViewPosition.z);

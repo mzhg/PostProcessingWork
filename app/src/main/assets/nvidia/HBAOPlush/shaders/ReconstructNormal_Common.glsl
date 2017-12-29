@@ -60,7 +60,7 @@ layout(binding = 0) uniform sampler2D FullResDepthTexture;
 //----------------------------------------------------------------------------------
 float3 UVToView(float2 UV, float viewDepth)
 {
-    viewDepth = -viewDepth;  // negative for the opengl
+//    viewDepth = -viewDepth;  // negative for the opengl
     UV = g_f2UVToViewA * UV + g_f2UVToViewB;
     return float3(UV * viewDepth, viewDepth);
 }

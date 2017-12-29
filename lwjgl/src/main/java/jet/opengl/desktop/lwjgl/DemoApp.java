@@ -11,7 +11,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.nvidia.hbaoplus.HBAOPlusDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -87,8 +86,9 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-        run(new HBAOPlusDemo());
-
+//        run(new HBAOPlusDemo());
+//        run(new ASSAODemoDebug());
+        run(new ShaderTest());
 //        testRectVertex();
     }
 

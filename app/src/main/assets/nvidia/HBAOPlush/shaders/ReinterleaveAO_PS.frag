@@ -42,7 +42,7 @@ struct PSOut
 
 layout(location = 0) out float4 OutColor;
 
-void SubtractViewportOrigin(PostProc_VSOut IN)
+void SubtractViewportOrigin(inout PostProc_VSOut IN)
 {
     IN.pos.xy -= g_f2InputViewportTopLeft;
 	float2 relativeFragCoord = gl_FragCoord.xy - g_f2InputViewportTopLeft;
@@ -58,17 +58,18 @@ void main()
 	IN.pos = gl_FragCoord;
 	IN.uv = vec2(0);
 	
-#if !ENABLE_BLUR
+//#if !ENABLE_BLUR
     SubtractViewportOrigin(IN);
-#endif
+//#endif
+    vec2 pos = gl_FragCoord.xy - g_f2InputViewportTopLeft;
 
 #if USE_INTEGER_MATH
-    int2 FullResPos = int2(IN.pos.xy);
+    int2 FullResPos = int2(pos.xy);
     int2 Offset = FullResPos & 3;
     int SliceId = Offset.y * 4 + Offset.x;
     int2 QuarterResPos = FullResPos >> 2;
 #else
-    float2 FullResPos = floor(IN.pos.xy);
+    float2 FullResPos = floor(pos.xy);
     float2 Offset = fmod(abs(FullResPos), float2(4,4));
     float SliceId = Offset.y * 4.0 + Offset.x;
     float2 QuarterResPos = FullResPos / 4.0;
@@ -82,9 +83,9 @@ void main()
     OutColor.xy = float2(AO, ViewDepth);
     OutColor.zw = float2(0);
 #else
-    float AO = //AOTexture.Load(int4(QuarterResPos, SliceId, 0));
-    			texelFetch(AOTexture, int3(QuarterResPos, SliceId), 0).r;
-    OutColor = float4(pow(saturate(AO), g_fPowExponent));
+    float4 AO = //AOTexture.Load(int4(QuarterResPos, SliceId, 0));
+    			texelFetch(AOTexture, int3(QuarterResPos, SliceId), 0);
+    OutColor = float4(pow(saturate(AO.x), g_fPowExponent));
 #endif
 
 //    return OUT;

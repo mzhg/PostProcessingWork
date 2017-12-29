@@ -10,7 +10,9 @@ class ProjectionMatrixInfo {
 	private float m_ZFar;
 	private float m_TanHalfFovX;
 	private float m_TanHalfFovY;
-	
+	private float m_20;
+	private float m_21;
+
 	GFSDK_SSAO_Status init(Matrix4f projectionMatrix, float near, float far){
 		if (!isValid(projectionMatrix))
 	    {
@@ -40,7 +42,10 @@ class ProjectionMatrixInfo {
 //	    m_ZNear = (API == API_GL) ? (B / (A - 1.f)) : (B / A);
 	    m_ZNear = near;
 	    m_ZFar = far;
-	    
+
+		m_20 = m.m20;
+		m_21 = m.m21;
+
 	    // Some matrices may use negative m00 or m11 terms to flip X/Y axises
 	    m_TanHalfFovX = 1.f / Math.abs(m.m00);
 	    m_TanHalfFovY = 1.f / Math.abs(m.m11);
@@ -65,6 +70,9 @@ class ProjectionMatrixInfo {
     {
         return Math.max(1.f / m_ZFar, Numeric.EPSILON);
     }
+
+    float getM20() { return m_20;}
+    float getM21() { return m_21;}
 
     float getTanHalfFovX()
     {

@@ -54,12 +54,12 @@ layout(std140,binding=0) uniform controlBuffer {
     void outputColor(vec4 color) {
       imageStore(imgOutput, ivec3(ivec2(gl_FragCoord.xy),gl_PrimitiveID), color);
     }
-  #else
+  #else  // AO_LAYERED == 1
     void outputColor(vec4 color) {
       Out_f4Color = color;
     }
-  #endif
-#else
+  #endif // AO_LAYERED == 1
+#else  // AO_LAYERED
 //  layout(location=0) uniform vec2 g_Float2Offset;
 //  layout(location=1) uniform vec4 g_Jitter;
   uniform vec4 g_Uniforms[2];
@@ -76,9 +76,9 @@ layout(std140,binding=0) uniform controlBuffer {
   void outputColor(vec4 color) {
     Out_f4Color = color;
   }
-#endif
+#endif // AO_LAYERED
   
-#else
+#else  // AO_DEINTERLEAVED
   uniform sampler2DArray  g_LinearDepthTex;
   uniform sampler2D       g_ViewNormalTex;
   uniform sampler2D       g_TexRandom;

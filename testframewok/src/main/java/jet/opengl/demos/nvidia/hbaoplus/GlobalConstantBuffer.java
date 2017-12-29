@@ -102,8 +102,18 @@ final class GlobalConstantBuffer extends BaseConstantBuffer{
         m_Data.f2UVToViewB.x = -1.f * InvFocalLenX;
         m_Data.f2UVToViewB.y =  1.f * InvFocalLenY;*/
 
-        m_Data.f2UVToViewA.set(InvFocalLenX * -2.0f, InvFocalLenY * -2.0f);
-        m_Data.f2UVToViewB.set(InvFocalLenX, InvFocalLenY);
+        if(HBAOPlusPostProcess.g_useStandardNormal) {
+            m_Data.f2UVToViewA.set(InvFocalLenX * -2.0f, InvFocalLenY * -2.0f);
+            m_Data.f2UVToViewB.set(InvFocalLenX, InvFocalLenY);
+        }else{
+            float x = 2.0f * InvFocalLenX,     // (x) * (R - L)/N
+                    y = 2.0f * InvFocalLenY,     // (y) * (T - B)/N
+                    z = -( 1.0f - InputDepth.projectionMatrixInfo.getM20()) * InvFocalLenX, // L/N
+                    w = -( 1.0f + InputDepth.projectionMatrixInfo.getM21()) * InvFocalLenY;  // B/N
+
+            m_Data.f2UVToViewA.set(x,y);
+            m_Data.f2UVToViewB.set(z,w);
+        }
     }
     
     void setViewportConstants(InputDepthInfo InputDepth){

@@ -38,7 +38,7 @@ final class States {
 	static void setBlendStateDisabledPreserveAlpha()
 	{
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-		gl.glColorMask( true, true, true, false);
+		gl.glColorMask( true, true, true, true);
 		gl.glDisable(GLenum.GL_BLEND);
 //	    ASSERT_GL_ERROR(GL);
 	}

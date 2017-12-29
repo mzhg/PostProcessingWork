@@ -16,7 +16,7 @@ public class ProgramResources {
     public String toString() {
         StringBuilder out = new StringBuilder(512);
 
-        if(active_uniform_properties.length > 0){
+        if(active_uniform_properties!= null && active_uniform_properties.length > 0){
             out.append("ACTIVE UNIFORMS: \n");
             for(UniformProperty property : active_uniform_properties){
                 out.append(property.toString()).append('\n');

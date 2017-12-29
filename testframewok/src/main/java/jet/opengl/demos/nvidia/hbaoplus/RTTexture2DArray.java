@@ -31,6 +31,11 @@ final class RTTexture2DArray extends BaseRTTexture{
         	m_TextureArrayId = gl.glGenTexture();
             gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_TextureArrayId);
             gl.glTexImage3D(GLenum.GL_TEXTURE_2D_ARRAY, 0, internalFormat, width, height, array_size, 0, getBaseGLFormat(internalFormat), getBaseGLType(internalFormat), (ByteBuffer)null);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_NEAREST);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_NEAREST);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
             gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, 0);
 
 //            THROW_IF(GL.glGetError());
@@ -70,7 +75,6 @@ final class RTTexture2DArray extends BaseRTTexture{
                 for (int RenderTargetId = 0; RenderTargetId < array_size/2; ++RenderTargetId)
                 {
                     int LayerIndex = PassIndex * MAX_NUM_MRTS + RenderTargetId;
-//                    ASSERT(LayerIndex < ARRAY_SIZE);
                     gl.glFramebufferTextureLayer(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0 + RenderTargetId, m_TextureArrayId, 0, LayerIndex);
                 }
 //                GL.glDrawBuffers(MAX_NUM_MRTS, DrawBuffers);

@@ -18,6 +18,10 @@ final class RTTexture2D extends BaseRTTexture{
         	m_TextureId = gl.glGenTexture();
             gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_TextureId);
             gl.glTexImage2D(GLenum.GL_TEXTURE_2D, 0, internalFormat, width, height, 0, getBaseGLFormat(internalFormat), getBaseGLType(internalFormat), null);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_NEAREST);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_NEAREST);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+            gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
             gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
 
 //            THROW_IF(GL.glGetError());

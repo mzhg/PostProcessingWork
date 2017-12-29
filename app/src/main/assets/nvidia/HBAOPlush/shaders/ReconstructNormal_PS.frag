@@ -11,23 +11,20 @@
 #include "ReconstructNormal_Common.glsl"
 
 //----------------------------------------------------------------------------------
-float3 FetchFullResViewNormal(PostProc_VSOut IN, float3 ViewPosition)
+float3 FetchFullResViewNormal(float2 uv, float3 ViewPosition)
 {
-    return ReconstructNormal(IN.uv, ViewPosition);
+    return ReconstructNormal(uv, ViewPosition);
 }
 
 //----------------------------------------------------------------------------------
 //float4 ReconstructNormal_PS(PostProc_VSOut IN) : SV_TARGET
 layout(location = 0) out float4 OutColor;
+in float4 m_f4UVAndScreenPos;
 
 void main()
 {
-	PostProc_VSOut IN;
-	IN.pos = gl_FragCoord;
-	IN.uv = vec2(0);
-	
-    float3 ViewPosition = FetchFullResViewPos(IN.uv);
-    float3 ViewNormal = FetchFullResViewNormal(IN, ViewPosition);
+    float3 ViewPosition = FetchFullResViewPos(m_f4UVAndScreenPos.xy);
+    float3 ViewNormal = FetchFullResViewNormal(m_f4UVAndScreenPos.xy, ViewPosition);
 
     OutColor = float4(ViewNormal * 0.5 + 0.5, 0);
 }

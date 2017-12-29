@@ -21,6 +21,8 @@ public final class HBAOPlusDemo extends NvSampleApp {
     private final GFSDK_SSAO_Parameters AOParams = new GFSDK_SSAO_Parameters();
     private final GFSDK_SSAO_Output_GL output = new GFSDK_SSAO_Output_GL();
 
+    private boolean mEnableSSAO = true;
+
     @Override
     public void initUI() {
         // Effect quality; -1 - lowest (low, half res checkerboard), 0 - low, 1 - medium, 2 - high, 3 - very high / adaptive; each quality level is roughly 2x more costly than the previous, except the q3 which is variable but, in general, above q2.
@@ -35,6 +37,8 @@ public final class HBAOPlusDemo extends NvSampleApp {
         };
 
 //        mTweakBar.addEnum("ASSAO Quality", createControl("QualityLevel", m_Settings), assaoQualities, 1);
+
+        mTweakBar.addValue("Enable SSAO", createControl("mEnableSSAO"));
     }
 
     @Override
@@ -54,6 +58,9 @@ public final class HBAOPlusDemo extends NvSampleApp {
     public void display() {
         m_Scene.draw();
         m_Scene.resoveMultisampleTexture();
+
+        if(!mEnableSSAO)
+            return;
 
         input.depthData.depthTextureType = GFSDK_SSAO_DepthTextureType.GFSDK_SSAO_HARDWARE_DEPTHS;
         input.depthData.fullResDepthTexture = m_Scene.getSceneDepth();

@@ -8,9 +8,16 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.LogUtil;
 
 public class HBAOPlusPostProcess implements Disposeable {
     static boolean g_debug = true;
+    static boolean g_useStandardNormal = false;
+    private static final String DEBUG_FILE_FOLDER = "E:/textures/HBAOPlus/";
 
 //	private final GlobalConstantStruct m_UniformData = new GlobalConstantStruct();
 	private final GlobalConstantBuffer m_GlobalCB = new GlobalConstantBuffer();
@@ -160,7 +167,11 @@ public class HBAOPlusPostProcess implements Disposeable {
             if (!m_InputNormal.texture.isSet())
             {
 //            	m_TempDesc.reset();
-            	m_TempDesc.fragFile = "ReconstructNormal_PS.frag";
+                if(!g_useStandardNormal) {
+                    m_TempDesc.fragFile = "ReconstructNormal_PS.frag";
+                }else {
+                    m_TempDesc.fragFile = "ReconstructNormalSTD.frag";
+                }
 //                DrawReconstructedNormal(m_Shaders.reconstructNormal_PS);
             	DrawReconstructedNormal(getProgram(m_TempDesc));
             }
@@ -201,7 +212,7 @@ public class HBAOPlusPostProcess implements Disposeable {
             {
             	m_TempDesc.reset();
             	m_TempDesc.fragFile = "ReinterleaveAO_PS.frag";
-            	m_TempDesc.blur = getEnableBlurPermutation();
+            	m_TempDesc.blur = false;
 //                DrawReinterleavedAO(m_Shaders.reinterleaveAO_PS(getEnableBlurPermutation()));
             	DrawReinterleavedAO(getProgram(m_TempDesc));
             }
@@ -310,10 +321,24 @@ public class HBAOPlusPostProcess implements Disposeable {
 
                 if(!m_printOnce){
                     Program.printPrograminfo();
+                    saveTextData("LinearDepthGL.txt", GLenum.GL_TEXTURE_2D, m_RTs.getFullResViewDepthTexture().getTexture());
+                    saveTextData("DepthGL.txt", m_InputDepth.texture.target, m_InputDepth.texture.textureID);
+
+                    float x = 0.9338722f;
+                    System.out.println(x + ": " + 1.0f/(x * -9.99 + 10) + ", xo = 1.5020746");
                 }
 
     	        m_FullResViewDepthTextureId = m_RTs.getFullResViewDepthTexture(/*m_GL*/).getTexture();
     	    }
+    }
+
+    final void saveTextData(String filename, int target, int texture){
+        try {
+            DebugTools.saveTextureAsText(target, texture, 0, DEBUG_FILE_FOLDER + filename);
+            LogUtil.i(LogUtil.LogType.DEFAULT, "Save '" + filename + "' done!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     
     private void DrawDebugNormals(SSAOProgram Program){
@@ -343,6 +368,7 @@ public class HBAOPlusPostProcess implements Disposeable {
 //        Program.setDepthTexture(/*m_GL,*/ m_FullResViewDepthTextureId);
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_FullResViewDepthTextureId);
+
         Program.setUniformData(m_GlobalCB.m_Data);
 
         int PassIndex = 0;
@@ -358,6 +384,8 @@ public class HBAOPlusPostProcess implements Disposeable {
         if(!m_printOnce){
             Program.setName("DeinterleavedDepth");
             Program.printPrograminfo();
+
+            saveTextData("DeinterleavedDepthGL.txt", GLenum.GL_TEXTURE_2D_ARRAY, m_RTs.getQuarterResViewDepthTextureArray(m_Options).getTextureArray());
         }
 
         setFullViewport();
@@ -366,15 +394,12 @@ public class HBAOPlusPostProcess implements Disposeable {
     
     void DrawReconstructedNormal(SSAOProgram Program){
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_RTs.getFullResNormalTexture(/*m_GL*/).getFramebuffer());
+        setFullViewport();
 
         Program.enable(/*m_GL*/);
 //        Program.setDepthTexture(/*m_GL,*/ m_FullResViewDepthTextureId, getAODepthWrapMode());
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_FullResViewDepthTextureId);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_NEAREST);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_NEAREST);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
 
         Program.setUniformData(m_GlobalCB.m_Data);
 
@@ -383,6 +408,8 @@ public class HBAOPlusPostProcess implements Disposeable {
         if(!m_printOnce){
             Program.setName("ReconstructedNormal");
             Program.printPrograminfo();
+
+            saveTextData("ReconstructedNormalGL.txt", GLenum.GL_TEXTURE_2D, m_RTs.getFullResNormalTexture().getTexture());
         }
     }
     
@@ -410,13 +437,7 @@ public class HBAOPlusPostProcess implements Disposeable {
 //        Program.setNormalTexture(/*m_GL,*/ getFullResNormalTextureTarget(), getFullResNormalTexture());
         Program.setUniformData(m_GlobalCB.m_Data);
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
-        gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_RTs.getQuarterResViewDepthTextureArray(/*m_GL,*/ m_Options).getTextureArray());
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_NEAREST);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_NEAREST);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_2D_ARRAY, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
 
         gl.glActiveTexture(GLenum.GL_TEXTURE1);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, getFullResNormalTexture());
@@ -433,6 +454,7 @@ public class HBAOPlusPostProcess implements Disposeable {
         setFullViewport();
 //        ASSERT_GL_ERROR(m_GL);
 
+        // unbind the textures.
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, 0);
@@ -440,14 +462,30 @@ public class HBAOPlusPostProcess implements Disposeable {
         if(!m_printOnce){
             Program.setName("CoarseAO");
             Program.printPrograminfo();
+
+//            saveTextData("CoarseAOGL.txt", GLenum.GL_TEXTURE_2D_ARRAY, m_RTs.getQuarterResAOTextureArray().getTextureArray());
         }
     }
-    
+
+    private int mReinterleavedFBO;
+    private Texture2D mReinterleavedTex;
+
     void DrawReinterleavedAO(SSAOProgram Program){
 //    	ASSERT(!m_Options.Blur.Enable);
 
-    	gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, /*m_Output.fboId*/0);
+        if(mReinterleavedFBO == 0){
+            mReinterleavedTex = TextureUtils.createTexture2D(new Texture2DDesc((int)m_Viewports.fullRes.width, (int)m_Viewports.fullRes.width, GLenum.GL_RGBA8), null);
+
+            mReinterleavedFBO = gl.glGenFramebuffer();
+            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, mReinterleavedFBO);
+            gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0,  mReinterleavedTex.getTarget(), mReinterleavedTex.getTexture(), 0);
+            gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
+        }
+
+    	gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, m_Output.fboId);
+//        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, mReinterleavedFBO);
     	gl.glDisable(GLenum.GL_BLEND);
+    	gl.glDisable(GLenum.GL_DEPTH_TEST);
         setOutputBlendState(/*m_GL*/);
         setFullViewport();
 
@@ -455,15 +493,17 @@ public class HBAOPlusPostProcess implements Disposeable {
 //        Program.setAOTexture(/*m_GL,*/ m_RTs.getQuarterResAOTextureArray(/*m_GL*/).getTextureArray());
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, m_RTs.getQuarterResAOTextureArray(/*m_GL*/).getTextureArray());
+
         Program.setUniformData(m_GlobalCB.m_Data);
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
-//        ASSERT_GL_ERROR(m_GL);
 
         gl.glBindTexture(GLenum.GL_TEXTURE_2D_ARRAY, 0);
         if(!m_printOnce){
             Program.setName("ReinterleavedAO");
             Program.printPrograminfo();
+
+//            saveTextData("ReinterleavedAO.txt", mReinterleavedTex.getTarget(), mReinterleavedTex.getTexture());
         }
     }
     

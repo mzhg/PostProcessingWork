@@ -45,7 +45,9 @@ public class PostProcessingReconstructNormalProgram extends GLSLProgram{
         invert.store(buffer);
         buffer.flip();
         gl.glUniformMatrix4fv(centerIndex, false, buffer);
-        GLCheck.checkError("ReconstructNormalProgram::setCameraMatrixs");
+
+        if(GLCheck.CHECK)
+            GLCheck.checkError("ReconstructNormalProgram::setCameraMatrixs");
     }
 
     public void setTexelSize(float texelSizeX, float texelSizeY){
