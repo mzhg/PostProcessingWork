@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.shader.ShaderSourceItem;
 
 /**
  * Created by mazhen'gui on 2017/11/18.
@@ -45,7 +46,7 @@ public final class VaDirectXShaderManager implements Disposeable{
         m_cacheFileDir = /*VaCore.GetExecutableDirectory( ) +*/ "cache\\";
     }
 
-    public ID3DBlob          FindInCache( VaShaderCacheKey key, boolean[] foundButModified ){
+    public ShaderSourceItem FindInCache(VaShaderCacheKey key, boolean[] foundButModified ){
         boolean _foundButModified = false;
 
         if( !m_cacheLoaded )
@@ -82,7 +83,7 @@ public final class VaDirectXShaderManager implements Disposeable{
         }
     }
 
-    public void                AddToCache( VaShaderCacheKey key, ID3DBlob shaderBlob, List<VaShaderCacheEntry.FileDependencyInfo> dependencies ){
+    public void AddToCache( VaShaderCacheKey key, ShaderSourceItem shaderBlob, List<VaShaderCacheEntry.FileDependencyInfo> dependencies ){
         /*std::map<vaShaderCacheKey, vaShaderCacheEntry *>::iterator it = m_cache.find( key );
 
         if( it != m_cache.end( ) )

@@ -27,11 +27,11 @@ public abstract class VaAsset extends VaImguiHierarchyObject implements Disposea
     public VaAssetType Type;
 //        const wstring                                       StoragePath;
 
-    /*virtual const shared_ptr<vaTexture> *               GetTexture( )                       { return nullptr; }
-    virtual const shared_ptr<vaRenderMesh> *            GetMesh( )                          { return nullptr; }
-    virtual const shared_ptr<vaRenderMaterial> *        GetMaterial( )                      { return nullptr; }*/
+    public VaTexture                                    GetTexture( )                       { return null; }
+    public VaRenderMesh                                 GetMesh( )                          { return null; }
+    public VaRenderMaterial                             GetMaterial( )                      { return null; }
 
-    public String                                      Name( )                       { return m_name; }
+    public String                                       Name( )                       { return m_name; }
 
 //    bool                                                Rename( const string & newName );
 

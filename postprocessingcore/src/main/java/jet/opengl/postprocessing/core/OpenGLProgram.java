@@ -122,7 +122,6 @@ public interface OpenGLProgram extends Disposeable{
         }
 
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-
         int formats = gl.glGetInteger(GLenum.GL_NUM_PROGRAM_BINARY_FORMATS);
         int[] binaryFormats = new int[formats];
         IntBuffer _binaryFormats = CacheBuffer.getCachedIntBuffer(formats);

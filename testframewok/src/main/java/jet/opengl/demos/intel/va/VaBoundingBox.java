@@ -13,8 +13,7 @@ public class VaBoundingBox {
 
     public static VaBoundingBox             Degenerate = new VaBoundingBox();
 
-    public
-    VaBoundingBox( ) { };
+    public VaBoundingBox( ) { }
     public VaBoundingBox(ReadableVector3f bmin, ReadableVector3f bsize ) /*: Min(bmin), Size( bsize ) { }*/{
         Min.set(bmin);
         Size.set(bsize);

@@ -385,6 +385,11 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
                                      vaTextureFlags flags = vaTextureFlags::None */){
         throw new UnsupportedOperationException();
     }
+
+    public static VaTexture Create2D(int format, int width, int height, int mipLevels, int arraySize, int sampleCount, int bindFlags){
+        return Create2D(format, width, height, mipLevels, arraySize, sampleCount, bindFlags, 0, null, 0, Unknown, Unknown, Unknown, Unknown, BSF_None);
+    }
+
     public static VaTexture Create2D(int format, int width, int height, int mipLevels, int arraySize, int sampleCount, int bindFlags,
                                      int accessFlags /*= vaTextureAccessFlags::None*/, Object initialData /*= NULL*/, int initialDataPitch /*= 0*/,
                                      int srvFormat /*= vaTextureFormat::Unknown*/, int rtvFormat /*= vaTextureFormat::Unknown*/,

@@ -81,7 +81,7 @@ public class VaRenderingModuleRegistrar {
         return ret;
     }
 
-    interface ModuleCreateFunction{
+    public interface ModuleCreateFunction{
         VaRenderingModule  call( VaConstructorParamsBase params );
     }
 

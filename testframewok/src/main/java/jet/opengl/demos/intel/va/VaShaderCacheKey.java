@@ -1,5 +1,7 @@
 package jet.opengl.demos.intel.va;
 
+import java.io.IOException;
+
 import jet.opengl.postprocessing.util.CommonUtil;
 
 /**
@@ -13,11 +15,12 @@ public class VaShaderCacheKey {
 //    bool                       operator < ( const vaShaderCacheKey & cmp ) const     { return this->StringPart < cmp.StringPart; }
 //    bool                       operator >( const vaShaderCacheKey & cmp ) const     { return this->StringPart > cmp.StringPart; }
 
-    public void                       Save( VaStream outStream ){
-        throw new UnsupportedOperationException();
+    public void Save( VaStream outStream ) throws IOException{
+        outStream.WriteString(StringPart );
     }
-    public void                       Load( VaStream inStream ){
-        throw new UnsupportedOperationException();
+
+    public void Load( VaStream inStream ) throws IOException{
+        StringPart = inStream.ReadString();
     }
 
     @Override

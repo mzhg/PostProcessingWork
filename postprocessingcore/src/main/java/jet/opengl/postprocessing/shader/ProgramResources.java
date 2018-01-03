@@ -6,7 +6,6 @@ import java.util.List;
 /**
  * Created by mazhen'gui on 2017/7/14.
  */
-
 public class ProgramResources {
     /** The properties of active uniform variables for program. */
     public UniformProperty[] active_uniform_properties;

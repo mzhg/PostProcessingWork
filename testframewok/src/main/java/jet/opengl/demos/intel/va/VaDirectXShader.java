@@ -7,6 +7,7 @@ import java.util.List;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderProgram;
+import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -138,7 +139,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         m_disasm = "";
     }
     //
-    public  void                    Reload( )                                       { DestroyShader( ); CreateShader( ); }
+    public  void                    Reload( )  { DestroyShader( ); CreateShader( ); }
     public  void                    Reload( Macro[] newMacroDefines ){
         StoreMacros( newMacroDefines );
         Reload( );
@@ -151,7 +152,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
     //
     public abstract void            SetToD3DContext( /*ID3D11DeviceContext * context*/ ) /*= 0*/;
     //
-    public boolean                  IsLoadedFromCache( )                       { return m_lastLoadedFromCache; }
+    public boolean                  IsLoadedFromCache( )  { return m_lastLoadedFromCache; }
     //
 //#ifdef VA_HOLD_SHADER_DISASM
     public void                     SetShaderDisasmAutoDumpToFile( boolean enable )    { m_disasmAutoDumpToFile = enable; }
@@ -241,7 +242,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         return buffer;
     }
     //
-    public static void                     ReloadAllShaders( ){
+    public static void ReloadAllShaders( ){
         LogUtil.i(LogUtil.LogType.DEFAULT, "Recompiling shaders...");
 
         final List<VaDirectXShader> shaderList = GetAllShadersList();
@@ -257,20 +258,20 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         final int _totalLoadedFromCache = totalLoadedFromCache;
         LogUtil.i(LogUtil.LogType.DEFAULT, ()->String.format("... %d shaders reloaded (%d from cache)", totalLoaded, _totalLoadedFromCache));
     }
-    //
-    public void                    OnDeviceCreated( /*ID3D11Device* device, IDXGISwapChain* swapChain*/ ){
+
+    public void OnDeviceCreated( /*ID3D11Device* device, IDXGISwapChain* swapChain*/ ){
         DestroyShader( );
         CreateShader( );
     }
 
-    public void                    OnDeviceDestroyed( ){
+    public void OnDeviceDestroyed( ){
         DestroyShader( );
     }
-    //
+
     protected void CreateShader(){
 //        HRESULT hr;
         boolean[] loadedFromCache = new boolean[1];
-        ID3DBlob shaderBlob = null;
+        ShaderSourceItem shaderBlob = null;
         try {
             shaderBlob = CreateShaderBase( loadedFromCache );
         } catch (IOException e) {
@@ -294,17 +295,19 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         }
 
         SAFE_RELEASE( shaderBlob );*/
+
+
         throw new UnsupportedOperationException();
     }
 
-    protected void                    DestroyShader( )            { DestroyShaderBase( ); }
-    protected void                            DestroyShaderBase( ){
+    protected void   DestroyShader( )            { DestroyShaderBase( ); }
+    protected void   DestroyShaderBase( ){
         m_lastLoadedFromCache = false;
         SAFE_RELEASE( m_shader );
     }
 
-    protected static ID3DBlob CompileShaderFromFile(String szFileName, Macro[] pDefines, String szEntryPoint,
-                                                String szShaderModel, /*byte[] ppBlobOut,*/ List<VaShaderCacheEntry.FileDependencyInfo> outDependencies ) throws IOException
+    protected static ShaderSourceItem CompileShaderFromFile(String szFileName, Macro[] pDefines, String szEntryPoint,
+                                                            String szShaderModel, /*byte[] ppBlobOut,*/ List<VaShaderCacheEntry.FileDependencyInfo> outDependencies ) throws IOException
     {
 //        HRESULT hr = S_OK;
 
@@ -414,7 +417,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         return null;
     }
 
-    protected static ID3DBlob CompileShaderFromBuffer( CharSequence shaderCode, Macro[] pDefines, String szEntryPoint,
+    protected static ShaderSourceItem CompileShaderFromBuffer( CharSequence shaderCode, Macro[] pDefines, String szEntryPoint,
                                                                String szShaderModel/*, ID3DBlob** ppBlobOut*/ )
     {
 //        HRESULT hr = S_OK;
@@ -453,8 +456,8 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
     }
 
     //
-    protected ID3DBlob                  CreateShaderBase( boolean[] loadedFromCache ) throws IOException{
-        ID3DBlob shaderBlob = null;
+    protected ShaderSourceItem                  CreateShaderBase( boolean[] loadedFromCache ) throws IOException{
+        ShaderSourceItem shaderBlob = null;
         loadedFromCache[0] = false;
 
         /*ID3D11Device * device = vaDirectXCore::GetDevice( );

@@ -1,12 +1,10 @@
 package jet.opengl.demos.intel.va;
 
-import java.util.Arrays;
-
 /**
  * Created by mazhen'gui on 2017/11/18.
  */
 
-public abstract class VaRenderingGlobals extends VaRenderingModuleImpl {
+public abstract class VaRenderingGlobals extends VaRenderingModuleImpl{
     public static final int            c_shaderDebugFloatOutputCount = VaShaderDefine.SHADERGLOBAL_DEBUG_FLOAT_OUTPUT_COUNT;
     public static final int            c_shaderDebugOutputSyncDelay  = 4;
 

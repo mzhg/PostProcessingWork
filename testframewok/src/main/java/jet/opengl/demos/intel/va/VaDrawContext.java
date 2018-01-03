@@ -18,5 +18,23 @@ public class VaDrawContext {
 
     boolean renderingGlobalsUpdated;
 
+    public VaDrawContext(VaCameraBase camera, VaRenderDeviceContext deviceContext, VaRenderingGlobals globals, VaLighting lighting){
+        this(camera, deviceContext, globals, lighting, null, null);
+    }
+
+    public VaDrawContext(VaCameraBase camera, VaRenderDeviceContext deviceContext, VaRenderingGlobals globals, VaLighting lighting /*= nullptr*/,
+                         VaSimpleShadowMap simpleShadowMap, Object userContext /*= nullptr*/ )
+//            : Camera( camera ), APIContext( deviceContext ), Globals( globals ), Lighting( lighting ), SimpleShadowMap( simpleShadowMap ), UserContext( userContext ), renderingGlobalsUpdated( false )
+    {
+        Camera = camera;
+        APIContext = deviceContext;
+        Globals = globals;
+        Lighting = lighting;
+        SimpleShadowMap = simpleShadowMap;
+        UserContext = userContext;
+        renderingGlobalsUpdated = false;
+        PassType        = VaRenderPassType.Unknown;
+    }
+
     public boolean  GetRenderingGlobalsUpdated( )             { return renderingGlobalsUpdated; }
 }

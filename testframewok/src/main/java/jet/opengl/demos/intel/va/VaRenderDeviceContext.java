@@ -87,7 +87,7 @@ public abstract class VaRenderDeviceContext extends VaRenderingModuleImpl {
 
         VaTexture anyRT = ( renderTarget != null ) ? ( renderTarget ) : ( depthStencil );
 
-        VaViewport vp = m_outputsState.Viewport;  // todo
+        VaViewport vp = m_outputsState.Viewport;
 
         if( anyRT != null )
         {

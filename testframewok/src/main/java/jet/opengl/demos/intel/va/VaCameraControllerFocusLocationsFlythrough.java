@@ -34,6 +34,13 @@ public class VaCameraControllerFocusLocationsFlythrough implements VaCameraContr
         public float                   UserParam0;
         public float                   UserParam1;
 
+        public Keyframe(ReadableVector3f position, Quaternion orientation, float showTime){
+            Position.set(position);
+            Orientation.set(orientation);
+
+            ShowTime = showTime;
+        }
+
         public Keyframe(ReadableVector3f position, Quaternion orientation, float showTime, float userParam0 /*= 0.0f*/, float userParam1 /*= 0.0f*/ )// : Position(position), Orientation( orientation ), ShowTime(showTime), UserParam0( userParam0 ), UserParam1(userParam1) { }
         {
             Position.set(position);

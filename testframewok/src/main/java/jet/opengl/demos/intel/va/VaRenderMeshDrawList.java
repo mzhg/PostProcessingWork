@@ -30,6 +30,10 @@ public class VaRenderMeshDrawList {
         m_drawList.add(new Entry( mesh, translation, rotation, color, subPartMask ) );
     }
 
+    public void Insert( VaRenderMesh mesh, Matrix4f transform){
+        Insert(mesh, transform, new Vector4f(1,1,1,1), 0xFFFFFFFF);
+    }
+
     public void Insert( VaRenderMesh mesh, Matrix4f transform, ReadableVector4f color /*= vaVector4( 1.0f, 1.0f, 1.0f, 1.0f )*/, int subPartMask /*= 0xFFFFFFFF*/ ){
 //        vaVector3 scale, translation; vaQuaternion rotation;
         final Vector3f scale = CacheBuffer.getCachedVec3();

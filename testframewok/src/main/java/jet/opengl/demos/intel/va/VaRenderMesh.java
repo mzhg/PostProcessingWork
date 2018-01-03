@@ -63,8 +63,8 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
     public void                                            SetParts( List<SubPart> parts ) { /*m_parts = parts;*/ m_parts.clear(); m_parts.addAll(parts); } //assert( parts.size() <= c_maxSubParts ); }
 
     public VaTriangleMesh        GetTriangleMesh(  )                           { return m_triangleMesh; }
-    public void                                            SetTriangleMesh( VaTriangleMesh mesh ) {m_triangleMesh = mesh;}
-    public void                                            CreateTriangleMesh( /*const vector<StandardVertex> &*/ StackByte vertices, /*const vector<uint32> &*/ StackInt indices ){
+    public void                  SetTriangleMesh( VaTriangleMesh mesh ) {m_triangleMesh = mesh;}
+    public void    CreateTriangleMesh( /*const vector<StandardVertex> &*/ StackByte vertices, /*const vector<uint32> &*/ StackInt indices ){
 //        shared_ptr<StandardTriangleMesh> mesh = VA_RENDERING_MODULE_CREATE_SHARED( vaRenderMesh::StandardTriangleMesh );
         VaTriangleMesh mesh = VaRenderingModuleRegistrar.CreateModuleTyped("StandardTriangleMesh", null);
 
@@ -160,15 +160,96 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
     }
 
     // these use vaStandardShapes::Create* functions and create shapes with center in (0, 0, 0) and each vertex magnitude of 1 (normalized), except where specified otherwise, and then transformed by the provided transform
-    /*public static VaRenderMesh                 CreatePlane( Matrix4f transform, float sizeX = 1.0f, float sizeY = 1.0f );
-    public static VaRenderMesh                 CreateTetrahedron( Matrix4f transform, bool shareVertices );
-    public static VaRenderMesh                 CreateCube( Matrix4f transform, bool shareVertices, float edgeHalfLength = 0.7071067811865475f );
+    public static VaRenderMesh CreatePlane( Matrix4f transform, float sizeX /*= 1.0f*/, float sizeY /*= 1.0f*/ ){
+        StackFloat  vertices = new StackFloat(3 * 4);
+        StackFloat  normals = new StackFloat(3 * 4);
+        StackFloat  tangents = new StackFloat(4 * 4);
+        StackFloat  texcoords0 = new StackFloat(2 * 4);
+        StackFloat  texcoords1 = new StackFloat(2 * 4);
+        StackInt     indices = new StackInt(6);
+
+        VaStandardShapes.CreatePlane( vertices, indices, sizeX, sizeY );
+        int windingOrder = WindingOrder_CounterClockwise;
+
+        VaTriangleMeshTools.GenerateNormals( normals, vertices, indices, windingOrder == WindingOrder_CounterClockwise );
+
+        Vector4f defaultTan = new Vector4f(1,0,0,1);
+        Vector3f temp = new Vector3f();
+        for( int i = 0; i < vertices.size( ); i++ )
+        {
+//            tangents[i] = vaVector4( 1.0f, 0.0f, 0.0f, 1.0f );
+            VaTriangleMeshTools.loadVertex(temp, vertices.getData(), i*3);
+
+            tangents.push(defaultTan);
+            Vector2f texcoord = new Vector2f(temp.x / sizeX + 0.5f,temp.y / sizeY + 0.5f );
+            texcoords0.push(texcoord);
+            texcoords1.push(texcoord);
+        }
+
+        return Create( transform, vertices, normals, tangents, texcoords0, texcoords1, indices, WindingOrder_CounterClockwise );
+    }
+
+    public static VaRenderMesh CreateTetrahedron( Matrix4f transform, boolean shareVertices ){
+        StackFloat  vertices = new StackFloat(3 * 4);
+        StackFloat  normals = new StackFloat(3 * 4);
+        StackFloat  tangents = new StackFloat(4 * 4);
+        StackFloat  texcoords0 = new StackFloat(2 * 4);
+        StackFloat  texcoords1 = new StackFloat(2 * 4);
+        StackInt     indices = new StackInt(6);
+
+        VaStandardShapes.CreateTetrahedron( vertices, indices, shareVertices );
+        int windingOrder = WindingOrder_Clockwise;
+
+        VaTriangleMeshTools.GenerateNormals( normals, vertices, indices, windingOrder == WindingOrder_CounterClockwise );
+
+        FillDummyTTT( vertices, normals, tangents, texcoords0, texcoords1 );
+
+        return Create( transform, vertices, normals, tangents, texcoords0, texcoords1, indices, windingOrder );
+    }
+
+    /*public static VaRenderMesh                 CreateCube( Matrix4f transform, bool shareVertices, float edgeHalfLength = 0.7071067811865475f );
     public static VaRenderMesh                 CreateOctahedron( Matrix4f transform, bool shareVertices );
     public static VaRenderMesh                 CreateIcosahedron( Matrix4f transform, bool shareVertices );
     public static VaRenderMesh                 CreateDodecahedron( Matrix4f transform, bool shareVertices );
     public static VaRenderMesh                 CreateSphere( Matrix4f transform, int tessellationLevel, bool shareVertices );
     public static VaRenderMesh                 CreateCylinder( Matrix4f transform, float height, float radiusBottom, float radiusTop, int tessellation, bool openTopBottom, bool shareVertices );
-    public static VaRenderMesh                 CreateTeapot( Matrix4f transform );*/
+    */
+    public static VaRenderMesh                 CreateTeapot( Matrix4f transform ){
+        return null;
+    }
+
+    // dummy tangents, for better, http://www.terathon.com/code/tangent.html or http://developer.nvidia.com/object/NVMeshMender.html
+    private static void FillDummyTTT( StackFloat vertices, StackFloat normals, StackFloat tangents, StackFloat texcoords0, StackFloat texcoords1 )
+    {
+        Vector3f bitangent = new Vector3f();
+        Vector3f vertex = new Vector3f();
+        Vector3f normal = new Vector3f();
+        for( int i = 0; i < vertices.size( )/3; i++ )
+        {
+            VaTriangleMeshTools.loadVertex(vertex, vertices.getData(), i*3);
+            VaTriangleMeshTools.loadVertex(normal, normals.getData(), i*3);
+//            vaVector3 bitangent = ( vertices[i] + vaVector3( 0.0f, 0.0f, -5.0f ) ).Normalize( );
+            bitangent.set(vertex);
+            bitangent.z += -5.0f;
+            bitangent.normalise();
+
+            if( Vector3f.dot( bitangent, normal ) > 0.9f ) {
+//                bitangent = (vertices[i] + vaVector3(-5.0f, 0.0f, 0.0f)).Normalize();
+                bitangent.set(vertex);
+                bitangent.x += -5.0f;
+                bitangent.normalise();
+            }
+//            tangents[i] = vaVector4( vaVector3::Cross( bitangent, normals[i] ).Normalize( ), 1.0 );
+            Vector3f.cross(bitangent, normal, bitangent).normalise();
+            tangents.push(bitangent);
+            tangents.push(1.0f);
+
+            Vector2f texcoord = new Vector2f( vertex.x / 2.0f + 0.5f, vertex.y / 2.0f + 0.5f );
+
+            texcoords0.push(texcoord);
+            texcoords1.push(texcoord);
+        }
+    }
 
     @Override
     public void dispose() {
@@ -269,5 +350,5 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
             IndexCount = indexCount;
             Material = material;
         }
-    };
+    }
 }

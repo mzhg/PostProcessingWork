@@ -1,5 +1,9 @@
 package jet.opengl.postprocessing.util;
 
+import org.lwjgl.util.vector.ReadableVector2f;
+import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.ReadableVector4f;
+
 import java.util.Arrays;
 
 public class StackFloat {
@@ -46,6 +50,24 @@ public class StackFloat {
 			items = Arrays.copyOf(items, Math.max(16, items.length * 2));
 
 		items[size++] = item;
+	}
+
+	public void push(ReadableVector2f v){
+		push(v.getX());
+		push(v.getY());
+	}
+
+	public void push(ReadableVector3f v){
+		push(v.getX());
+		push(v.getY());
+		push(v.getZ());
+	}
+
+	public void push(ReadableVector4f v){
+		push(v.getX());
+		push(v.getY());
+		push(v.getZ());
+		push(v.getW());
 	}
 	
 	public boolean isEmpty() {

@@ -73,6 +73,7 @@ public class VaCameraBase {
     public float                           GetFarPlane( )                                { return m_farPlane; }
     //
     public void                            SetPosition(ReadableVector3f newPos )             { m_position.set(newPos); }
+    public void                            SetPosition(float x, float y, float z )             { m_position.set(x,y,z); }
     public void                            SetOrientation(ReadableVector4f newOri )       { m_orientation.set(newOri); }
     public void                            SetOrientationLookAt(ReadableVector3f lookAtPos,ReadableVector3f upVector /*= vaVector3( 0.0f, 0.0f, 1.0f )*/ ){
         Matrix4f mat = CacheBuffer.getCachedMatrix();

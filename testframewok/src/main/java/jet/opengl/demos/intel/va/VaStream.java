@@ -1,5 +1,8 @@
 package jet.opengl.demos.intel.va;
 
+import org.lwjgl.util.vector.Readable;
+import org.lwjgl.util.vector.Writable;
+
 import java.io.Closeable;
 import java.io.IOException;
 
@@ -25,11 +28,13 @@ public abstract class VaStream implements Closeable{
     public abstract byte         Read() throws IOException;
     public abstract short        ReadShort() throws IOException;
     public abstract int          ReadInt() throws IOException;
+    public abstract void         ReadObject(int size, Writable obj) throws IOException;
 
     public abstract boolean      WriteLong(long value) throws IOException;
     public abstract boolean      Write(byte value) throws IOException;
     public abstract boolean      WriteShort(short value) throws IOException;
     public abstract boolean      WriteInt(int value) throws IOException;
+    public abstract boolean      WriteObject(int size, Readable obj) throws IOException;
 
     // these use internal binary representation prefixed with size
     public boolean       WriteString( String str )throws IOException{

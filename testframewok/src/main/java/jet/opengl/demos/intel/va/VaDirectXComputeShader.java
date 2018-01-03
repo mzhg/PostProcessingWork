@@ -8,7 +8,6 @@ public final class VaDirectXComputeShader extends VaDirectXShader {
     @Override
     public void SetToD3DContext() {}
 
-
     @Override
     protected void CreateShader(){
         super.CreateShader();

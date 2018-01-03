@@ -1,5 +1,8 @@
 package jet.opengl.demos.intel.va;
 
+import org.lwjgl.util.vector.Readable;
+import org.lwjgl.util.vector.Writable;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
@@ -26,13 +29,13 @@ public class VaFileStream extends VaStream {
     private SeekableByteChannel m_file;
     private ByteBuffer m_CacheBuffer;
 
-    protected VaFileStream(){
+    public VaFileStream(){
         m_file = null;
         m_accessMode = FileAccessMode.Default;
     }
 
     // Specifies how the operating system should open a file.
-    enum FileCreationMode
+    public enum FileCreationMode
     {
         /** Create a new file. If the file already exists, the call will fail. */
         CreateNew            /*= 1*/,
@@ -54,7 +57,7 @@ public class VaFileStream extends VaStream {
         Append               /*= 6*/,
     };
 
-    enum FileAccessMode
+    public enum FileAccessMode
     {
         /** Chose the access mode automatically based on creation mode */
         Default              /*= -1*/,
@@ -69,7 +72,7 @@ public class VaFileStream extends VaStream {
         ReadWrite            /*= 3*/,
     };
 
-    enum FileShareMode
+    public enum FileShareMode
     {
         // Chose the mode automatically based on creation mode
         Default              /*= -1*/,
@@ -97,10 +100,19 @@ public class VaFileStream extends VaStream {
         return  m_file != null;
     }
 
-    public boolean Open( String file_path, FileCreationMode creationMode, FileAccessMode accessMode, FileShareMode shareMode ) throws IOException{
+    public boolean Open( String file_path, FileCreationMode creationMode) throws IOException{
+        return Open(file_path, creationMode, FileAccessMode.Default);
+    }
+
+    public boolean Open( String file_path, FileCreationMode creationMode, FileAccessMode accessMode ) throws IOException{
         file_path = FileUtils.g_IntenalFileLoader.resolvePath(file_path);
 
         if( IsOpen( ) ) return false;
+
+        if(creationMode == FileCreationMode.Open){
+            if( VaFileTools.FileExists( file_path ) )
+                return false;
+        }
 
         StandardOpenOption dwCreationDisposition;
         if(creationMode == FileCreationMode.CreateNew){
@@ -328,6 +340,20 @@ public class VaFileStream extends VaStream {
     }
 
     @Override
+    public void ReadObject(int size, Writable obj) throws IOException {
+        ByteBuffer buffer;
+        if(CACHE_SIZE >= size){
+            buffer = m_CacheBuffer;
+        }else{
+            buffer = BufferUtils.createByteBuffer(size);
+        }
+
+        buffer.position(0).limit(size);
+        m_file.read(buffer);
+        obj.load(buffer);
+    }
+
+    @Override
     public boolean WriteLong(long value) throws IOException {
         m_CacheBuffer.position(0);
         m_CacheBuffer.putLong(value).flip();
@@ -353,6 +379,19 @@ public class VaFileStream extends VaStream {
         m_CacheBuffer.position(0);
         m_CacheBuffer.putInt(value).flip();
         return m_file.write(m_CacheBuffer) != 0;
+    }
+
+    @Override
+    public boolean WriteObject(int size, Readable obj) throws IOException {
+        ByteBuffer buffer;
+        if(CACHE_SIZE >= size){
+            buffer = m_CacheBuffer;
+        }else{
+            buffer = BufferUtils.createByteBuffer(size);
+        }
+
+        obj.store(buffer).flip();
+        return m_file.write(buffer) != 0;
     }
 
     @Override

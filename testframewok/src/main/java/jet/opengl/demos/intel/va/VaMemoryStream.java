@@ -1,5 +1,8 @@
 package jet.opengl.demos.intel.va;
 
+import org.lwjgl.util.vector.Readable;
+import org.lwjgl.util.vector.Writable;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -179,6 +182,11 @@ public class VaMemoryStream extends VaStream {
     }
 
     @Override
+    public void ReadObject(int size, Writable obj) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public boolean WriteLong(long value) throws IOException {
         Numeric.getBytes(value, m_Caches, 0);
         return Write(m_Caches, 0, 8) > 0;
@@ -200,6 +208,11 @@ public class VaMemoryStream extends VaStream {
     public boolean WriteInt(int value) throws IOException {
         Numeric.getBytes(value, m_Caches, 0);
         return Write(m_Caches, 0, 4) > 0;
+    }
+
+    @Override
+    public boolean WriteObject(int size, Readable obj) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     @Override
