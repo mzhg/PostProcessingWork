@@ -1,9 +1,9 @@
 package jet.opengl.postprocessing.core;
 
 import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -11,7 +11,6 @@ import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.ProgramResources;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CachaRes;
-import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -113,8 +112,13 @@ public interface OpenGLProgram extends Disposeable{
         GLSLUtil.checkLinkError(programID);
     }
 
+    /**
+     * Retrieve the program binary data. Return null if the video card doesn't support the opengl-extension <i>ARB_get_program_binary</i>
+     * @param binaryFormat the format of the returned binary data.
+     * @return
+     */
     @CachaRes
-    default ByteBuffer getProgramBinary(){
+    default ByteBuffer getProgramBinary(int[] binaryFormat){
         int programId = getProgram();
         if(programId == 0){
             LogUtil.i(LogUtil.LogType.DEFAULT, "getProgramBinary:: return null when programId is 0.");
@@ -122,16 +126,22 @@ public interface OpenGLProgram extends Disposeable{
         }
 
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-        int formats = gl.glGetInteger(GLenum.GL_NUM_PROGRAM_BINARY_FORMATS);
-        int[] binaryFormats = new int[formats];
-        IntBuffer _binaryFormats = CacheBuffer.getCachedIntBuffer(formats);
-        gl.glGetIntegerv(GLenum.GL_PROGRAM_BINARY_FORMATS, _binaryFormats);
-        int len = gl.glGetProgrami(programId, GLenum.GL_PROGRAM_BINARY_LENGTH);
-        _binaryFormats.get(binaryFormats);
+        GLAPIVersion api = gl.getGLAPIVersion();
+        if((api.major >= 4 && api.minor >= 1) || (api.ES && api.major >= 3 && api.minor >= 0) || gl.isSupportExt("ARB_get_program_binary")){
+//			// Get the expected size of the program binary
+            int binary_size = gl.glGetProgrami(programId, GLenum.GL_PROGRAM_BINARY_LENGTH);
+//
+//			// Allocate some memory to store the program binary
+            ByteBuffer binary = BufferUtils.createByteBuffer(binary_size);
 
-        ByteBuffer binary = BufferUtils.createByteBuffer(len);
-        gl.glGetProgramBinary(programId, new int[len], binaryFormats, binary);
-        return  binary;
+//			IntBuffer format = GLUtil.getCachedIntBuffer(1);
+//			format.put(0).flip();
+            // Now retrieve the binary from the program obj ect
+            gl.glGetProgramBinary(programId, new int[1], binaryFormat, binary);
+            return binary;
+        }
+
+        return null;
     }
 
     /**

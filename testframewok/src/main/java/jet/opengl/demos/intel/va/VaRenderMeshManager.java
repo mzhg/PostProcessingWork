@@ -1,5 +1,6 @@
 package jet.opengl.demos.intel.va;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import jet.opengl.postprocessing.util.LogUtil;
@@ -12,19 +13,21 @@ public abstract class VaRenderMeshManager extends VaImguiHierarchyObject impleme
     private static  VaRenderMeshManager g_Instance;
 
     private String __name;
-    protected final TT_Tracker< VaRenderMesh >                m_renderMeshes = new TT_Tracker<>();
-    protected boolean                                        m_isDestructing;
+    protected final TT_Tracker< VaRenderMesh >  m_renderMeshes = new TT_Tracker<>();
+    protected boolean  m_isDestructing;
 
-    public static VaRenderMeshManager GetInstance() { return g_Instance;}
-    /*public static void CreateInstanceIfNot() {
+    public static VaRenderMeshManager GetInstance() {
         if(g_Instance == null){
-            g_Instance = new VaRenderMeshManager();
+            VaRenderingModuleRegistrar.CreateModule("vaRenderMeshManager", null);
         }
-    }*/
+
+        Objects.requireNonNull(g_Instance);
+        return g_Instance;
+    }
 
     protected VaRenderMeshManager(){
         if(g_Instance != null)
-            throw new Error("This is a instance class!");
+            throw new Error("This is a single-ton class!");
 
         m_isDestructing = false;
         m_renderMeshes.SetAddedCallback( /*std::bind( &vaRenderMeshManager::RenderMeshesTrackeeAddedCallback, this, std::placeholders::_1 )*/ this::RenderMeshesTrackeeAddedCallback );
@@ -44,22 +47,22 @@ public abstract class VaRenderMeshManager extends VaImguiHierarchyObject impleme
         __name = name;
     }
 
-    protected void                                            RenderMeshesTrackeeAddedCallback( int newTrackeeIndex ){}
-    protected void                                            RenderMeshesTrackeeBeforeRemovedCallback( int removedTrackeeIndex, int replacedByTrackeeIndex ){}
+    protected void RenderMeshesTrackeeAddedCallback( int newTrackeeIndex ){}
+    protected void RenderMeshesTrackeeBeforeRemovedCallback( int removedTrackeeIndex, int replacedByTrackeeIndex ){}
 
     public abstract void                                    Draw( VaDrawContext drawContext, VaRenderMeshDrawList list );
 
-    public TT_Tracker< VaRenderMesh>                GetRenderMeshTracker( )                                                     { return m_renderMeshes; }
+    public TT_Tracker< VaRenderMesh> GetRenderMeshTracker( ) { return m_renderMeshes; }
 
-    public VaRenderMesh                        CreateRenderMesh(){
+    public VaRenderMesh CreateRenderMesh(){
         return CreateRenderMesh(UUID.randomUUID());
     }
 
-    public VaRenderMesh                        CreateRenderMesh(UUID uid /*= vaCore::GUIDCreate()*/ ){
+    public VaRenderMesh CreateRenderMesh(UUID uid /*= vaCore::GUIDCreate()*/ ){
 //        shared_ptr<vaRenderMesh> ret = shared_ptr<vaRenderMesh>( new vaRenderMesh( *this, uid ) );
         VaRenderMesh ret = new VaRenderMesh(this, uid);
 
-        if( ret.UIDObject_IsCorrectlyTracked() )
+        if( !ret.UIDObject_IsCorrectlyTracked() )
         {
             LogUtil.e(LogUtil.LogType.DEFAULT, "Error creating mesh; uid already used");
             return null;

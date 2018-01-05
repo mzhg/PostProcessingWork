@@ -19,6 +19,7 @@ public class VaDirectXConstantsBuffer extends VaDirectXBuffer {
     public void Create( Object initializeData /*= NULL*/ ){
         Create( 1, /*D3D11_BIND_CONSTANT_BUFFER*/GLenum.GL_UNIFORM_BUFFER, initializeData, /*D3D11_USAGE_DEFAULT*/GLenum.GL_STREAM_DRAW );
     }
+
     public void Update( /*ID3D11DeviceContext * context,*/ Object data ){
         if(m_elementSize == 0)
             throw new IllegalArgumentException();

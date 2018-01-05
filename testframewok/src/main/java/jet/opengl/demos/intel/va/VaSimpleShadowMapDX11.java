@@ -43,7 +43,9 @@ final class VaSimpleShadowMapDX11 extends VaSimpleShadowMap implements VaDirectX
     private VaTexture      m_prevCanvasDS;
 
     private boolean        m_depthSlopeDirty;
-    protected boolean        m_helperMacroConstructorCalled;
+    protected boolean      m_helperMacroConstructorCalled;
+
+    private int            m_storeageIndex;
 
     private final ShaderSimpleShadowsGlobalConstants m_globalConstants = new ShaderSimpleShadowsGlobalConstants();
 
@@ -60,6 +62,16 @@ final class VaSimpleShadowMapDX11 extends VaSimpleShadowMap implements VaDirectX
         m_helperMacroConstructorCalled = true;
 
         VaDirectXCore.helperInitlize(this);
+    }
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
     }
 
     @Override

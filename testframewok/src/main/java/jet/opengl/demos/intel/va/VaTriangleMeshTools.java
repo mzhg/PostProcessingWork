@@ -154,7 +154,7 @@ final class VaTriangleMeshTools {
             addVertex(outNormalsData, norm, i2);
         }
 
-        for( int i = 0; i < vertices.size( ); i++ )
+        for( int i = 0; i < vertices.size( )/3; i++ )
         {
 //            float length = outNormals[i].Length();
             final int i0 = i * 3;

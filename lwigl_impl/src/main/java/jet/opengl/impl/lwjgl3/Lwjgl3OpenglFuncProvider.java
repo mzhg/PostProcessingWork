@@ -3,6 +3,7 @@ package jet.opengl.impl.lwjgl3;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.ARBDirectStateAccess;
+import org.lwjgl.opengl.ARBGetProgramBinary;
 import org.lwjgl.opengl.ARBMultiBind;
 import org.lwjgl.opengl.ARBSeparateShaderObjects;
 import org.lwjgl.opengl.GL;
@@ -1402,6 +1403,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glResumeTransformFeedback() {
         GL40.glResumeTransformFeedback();
+    }
+
+    @Override
+    public void glProgramBinary(int program, int binaryFormat, ByteBuffer binary) {
+        ARBGetProgramBinary.glProgramBinary(program, binaryFormat, binary);
     }
 
     @Override

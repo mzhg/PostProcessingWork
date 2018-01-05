@@ -13,9 +13,7 @@ public final class VaRenderingCore implements Disposeable{
     private static VaRenderingCore g_Instance;
 
     private VaRenderingCore(){
-        VaRenderingModuleRegistrar.CreateSingletonIfNotCreated( );
-
-        EmbeddedRenderingMedia.load();
+        /*EmbeddedRenderingMedia.load();
         for( int i = 0; i < EmbeddedRenderingMedia.BINARY_EMBEDDER_ITEM_COUNT; i++ )
         {
             String name = EmbeddedRenderingMedia.BINARY_EMBEDDER_NAMES[i];
@@ -23,8 +21,16 @@ public final class VaRenderingCore implements Disposeable{
             int dataSize = EmbeddedRenderingMedia.BINARY_EMBEDDER_SIZES[i];
 //            int64 timeStamp = EmbeddedRenderingMedia.BINARY_EMBEDDER_TIMES[i];
 
-            VaFileTools.EmbeddedFilesRegister( name, data, dataSize/*, timeStamp*/ );
+            VaFileTools.EmbeddedFilesRegister( name, data, dataSize*//*, timeStamp*//* );
+        }*/
+    }
+
+    public static VaRenderingCore GetInstance(){
+        if(g_Instance == null){
+            Initialize();
         }
+
+        return g_Instance;
     }
 
     @Override
@@ -35,15 +41,15 @@ public final class VaRenderingCore implements Disposeable{
     // at the moment vaRenderingCore handles asset loading - if there's need in the future, this can be split into a separate class or even a separate module
 
     // pushBack (searched last) or pushFront (searched first)
-    void      RegisterAssetSearchPath( String searchPath, boolean pushBack /*= true*/ ){
+    public void RegisterAssetSearchPath( String searchPath/*, boolean pushBack = true*/ ){
         String cleanedSearchPath = VaFileTools.CleanupPath( searchPath + "\\", false );
-        if( pushBack )
+//        if( pushBack )
             m_assetSearchPaths.addLast( cleanedSearchPath );
-        else
-            m_assetSearchPaths.addFirst( cleanedSearchPath );
+//        else
+//            m_assetSearchPaths.addFirst( cleanedSearchPath );
     }
 
-    String   FindAssetFilePath( String assetFileName ){
+    public String FindAssetFilePath( String assetFileName ){
 //        for( int i = 0; i < m_assetSearchPaths.size( ); i++ )
         String fileName = assetFileName;
         for(String searchPath : m_assetSearchPaths)
@@ -70,35 +76,33 @@ public final class VaRenderingCore implements Disposeable{
     }
 
     // Initialize the system - must be called before any other calls to the module
-    static void                             Initialize( ){
+    static void Initialize( ){
         assert( !IsInitialized() );
-        /*new vaRenderingCore();*/
         g_Instance = new VaRenderingCore();
 
         InitializePlatform( );
     }
-    static void                             Deinitialize( ){
+
+    static void Deinitialize( ){
         assert( IsInitialized( ) );
         g_Instance.dispose();
         g_Instance = null;
     }
 
-    static void                             OnAPIInitialized( ){
+    static void  OnAPIInitialized( ){
         VaRenderingModuleRegistrar.CreateModuleTyped("vaRenderMaterialManager", null);
         VaRenderingModuleRegistrar.CreateModuleTyped("vaRenderMeshManager", null);
-        VaAssetPackManager.CreateInstanceIfNot();
     }
+
     static void                             OnAPIAboutToBeDeinitialized( ){}
 
     static boolean                             IsInitialized( )                                            { return g_Instance != null; }
 
-    private static void                             InitializePlatform( ){
-        /*VA_RENDERING_MODULE_REGISTER( vaTexture, vaTextureDX11 );
+    private static void InitializePlatform( ){
+        /*VA_RENDERING_MODULE_REGISTER( vaTexture, vaTextureDX11 );  TODEO
         VA_RENDERING_MODULE_REGISTER( vaTriangleMesh_PositionColorNormalTangentTexcoord1Vertex, vaTriangleMeshDX11_PositionColorNormalTangentTexcoord1Vertex );
 
         VA_RENDERING_MODULE_REGISTER( vaGPUTimer, vaGPUTimerDX11 );*/
-
-        throw new IllegalArgumentException();
 
         /*RegisterCanvasDX11( );
         RegisterSimpleShadowMapDX11( );
@@ -113,5 +117,12 @@ public final class VaRenderingCore implements Disposeable{
         RegisterLightingDX11( );
         RegisterPostProcessTonemapDX11( );
         RegisterPostProcessBlurDX11( );*/
+
+        VaRenderingModuleRegistrar.RegisterModule("vaSky", (params -> new VaSkyDX11(params)));
+        VaRenderingModuleRegistrar.RegisterModule("vaRenderingGlobals", (params -> new VaRenderingGlobalsDX11(params)));
+        VaRenderingModuleRegistrar.RegisterModule("vaGBuffer", (params -> new VaGBufferDX11(params)));
+        VaRenderingModuleRegistrar.RegisterModule("vaLighting", (params -> new VaLightingDX11(params)));
+        VaRenderingModuleRegistrar.RegisterModule("vaRenderMeshManager", (params -> new VaRenderMeshManagerDX11(params)));
+        VaRenderingModuleRegistrar.RegisterModule("vaRenderMesh::StandardTriangleMesh", (params -> new VaTriangleMeshDX11(params)));
     }
 }

@@ -33,6 +33,17 @@ public class LightingGlobalConstants implements Readable{
         buf.putLong(0);
         return buf;
     }
+
+    void zeros(){
+        DirectionalLightWorldDirection.set(0,0,0,0);
+        DirectionalLightViewspaceDirection.set(0,0,0,0);
+        DirectionalLightIntensity.set(0,0,0,0);
+        AmbientLightIntensity.set(0,0,0,0);
+        FogColor.set(0,0,0,0);
+
+        FogDistanceMin = 0;
+        FogDensity = 0;
+    }
 //    float                   FogDummy0;
 //    float                   FogDummy1;
 

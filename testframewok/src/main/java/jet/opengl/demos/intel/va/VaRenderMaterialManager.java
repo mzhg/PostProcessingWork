@@ -7,7 +7,6 @@ import jet.opengl.postprocessing.util.LogUtil;
 /**
  * Created by mazhen'gui on 2017/11/17.
  */
-
 public class VaRenderMaterialManager extends VaImguiHierarchyObject implements VaRenderingModule {
     private String mRenderingModuleTypeName;
     protected final TT_Tracker< VaRenderMaterial >              m_renderMaterials;

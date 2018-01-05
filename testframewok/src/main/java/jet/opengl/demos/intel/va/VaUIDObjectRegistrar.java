@@ -14,12 +14,16 @@ import jet.opengl.postprocessing.util.LogUtil;
 public final class VaUIDObjectRegistrar implements Disposeable{
     private static  VaUIDObjectRegistrar g_Instance;
 
-    TT_Tracker< VaUIDObject >                m_objects;
+    TT_Tracker< VaUIDObject > m_objects;
 
     private Map<UUID, VaUIDObject/*, vaGUIDComparer*/ > m_objectsMap = new HashMap<>();
 
-    public static VaUIDObjectRegistrar GetInstance() { return g_Instance;}
-    public static void CreateInstanceIfNot() {
+    public static VaUIDObjectRegistrar GetInstance() {
+        CreateInstanceIfNot();
+        return g_Instance;
+    }
+
+    private static void CreateInstanceIfNot() {
         if(g_Instance == null){
             g_Instance = new VaUIDObjectRegistrar();
         }
@@ -48,7 +52,7 @@ public final class VaUIDObjectRegistrar implements Disposeable{
         assert( m_objectsMap.size() == 0 );
     }*/
 
-    protected void                                         UIDObjectTrackeeAddedCallback( int newTrackeeIndex ){
+    protected void UIDObjectTrackeeAddedCallback( int newTrackeeIndex ){
 //        auto it = m_objectsMap.find( m_objects[newTrackeeIndex]->m_uid );
         final VaUIDObject object = m_objects.get(newTrackeeIndex);
         VaUIDObject it = m_objectsMap.get(object.m_uid);
@@ -66,7 +70,7 @@ public final class VaUIDObjectRegistrar implements Disposeable{
         }
     }
 
-    protected void                                         UIDObjectTrackeeBeforeRemovedCallback( int toBeRemovedTrackeeIndex, int toBeReplacedByTrackeeIndex ){
+    protected void UIDObjectTrackeeBeforeRemovedCallback( int toBeRemovedTrackeeIndex, int toBeReplacedByTrackeeIndex ){
         // if we're not correctly tracked, there's no point removing us from the map (in fact, we will likely remove another instance)
         final VaUIDObject object = m_objects.get(toBeRemovedTrackeeIndex);
         if( !object.m_correctlyTracked )

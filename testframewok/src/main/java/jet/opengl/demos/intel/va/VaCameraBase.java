@@ -54,7 +54,7 @@ public class VaCameraBase {
         m_viewTrans         = vaMatrix4x4::Identity;
         m_projTrans         = vaMatrix4x4::Identity;*/
         //
-        m_useReversedZ      = true;
+        m_useReversedZ      = false;    // must be false
         //
         UpdateSecondaryFOV( );
     }
@@ -110,10 +110,10 @@ public class VaCameraBase {
     public Matrix4f             GetInvViewMatrix( )                          { return m_worldTrans; }
     //
 
-    public final void                            GetZOffsettedProjMatrix( Matrix4f outMat){
+    public final void GetZOffsettedProjMatrix( Matrix4f outMat){
         GetZOffsettedProjMatrix(outMat, 1.0f, 0.0f);
     }
-    public void                            GetZOffsettedProjMatrix( Matrix4f outMat, float zModMul /*= 1.0f*/, float zModAdd /*= 0.0f*/ ){
+    public void GetZOffsettedProjMatrix( Matrix4f outMat, float zModMul /*= 1.0f*/, float zModAdd /*= 0.0f*/ ){
         UpdateSecondaryFOV( );
 //        mat = vaMatrix4x4::PerspectiveFovLH( m_YFOV, m_aspect, m_nearPlane * zModMul + zModAdd, m_farPlane * zModMul + zModAdd );
         Matrix4f.perspective(m_YFOV, m_aspect, m_nearPlane * zModMul + zModAdd, m_farPlane * zModMul + zModAdd, outMat);
@@ -151,11 +151,11 @@ public class VaCameraBase {
         UpdateSecondaryFOV( );
     }
     //
-    public boolean                            Load( VaStream inStream ){
+    public boolean Load( VaStream inStream ){
         throw new UnsupportedOperationException();
     }
 
-    public boolean                            Save( VaStream outStream ){
+    public boolean Save( VaStream outStream ){
         throw new UnsupportedOperationException();
     }
     //

@@ -1195,8 +1195,13 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 	    
 	    g_PrintOnce = true;
 	}
-	
-	private static final class BufferFormats{
+
+    @Override
+    public void dispose() {
+
+    }
+
+    private static final class BufferFormats{
 		int         DepthBufferViewspaceLinear;
 		int         AOResult;
 		int         Normals;

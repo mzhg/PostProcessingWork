@@ -28,8 +28,6 @@
 #define vaVector2i  int2
 #define vaVector4i  int4
 
-#define VA_COMPILED_AS_SHADER_CODE 1
-
 #ifndef VA_COMPILED_AS_SHADER_CODE
 namespace VertexAsylum
 {
@@ -81,10 +79,10 @@ namespace VertexAsylum
 
 //cbuffer PostProcessConstantsBuffer : register( B_CONCATENATER( POSTPROCESS_CONSTANTS_BUFFERSLOT ) )
 
-layout(binding = POSTPROCESS_CONSTANTS_BUFFERSLOT) uniform
+layout(binding = POSTPROCESS_CONSTANTS_BUFFERSLOT) uniform PostProcessConstantsBuffer
 {
     PostProcessConstants                    g_PostProcessConsts;
-}
+};
 
 #endif
 

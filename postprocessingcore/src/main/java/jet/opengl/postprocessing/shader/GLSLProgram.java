@@ -2,7 +2,6 @@ package jet.opengl.postprocessing.shader;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -13,14 +12,12 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.OpenGLProgram;
-import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.StringUtils;
 
-import static jet.opengl.postprocessing.common.GLenum.GL_NUM_PROGRAM_BINARY_FORMATS;
-import static jet.opengl.postprocessing.common.GLenum.GL_PROGRAM_BINARY_FORMATS;
 import static jet.opengl.postprocessing.shader.GLSLUtil.getShaderName;
 
 public class GLSLProgram implements OpenGLProgram{
@@ -71,17 +68,21 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @param binary the binary data used to initlize the program.
 	 */
 	@CachaRes
-	public void setSourceFromBinary(byte[] binary){
+	public void setSourceFromBinary(byte[] binary, int binaryFormat){
 		dispose();
-
-		int formats = gl.glGetInteger(GL_NUM_PROGRAM_BINARY_FORMATS);
-		int[] binaryFormats = new int[formats];
-		IntBuffer _binaryFormats = CacheBuffer.getCachedIntBuffer(formats);
-		gl.glGetIntegerv(GL_PROGRAM_BINARY_FORMATS, _binaryFormats);
-		_binaryFormats.get(binaryFormats);
-
 		m_program = gl.glCreateProgram();
-//		gl.glProgramBinary(m_program, binaryFormats, CacheBuffer.wrap(binary));
+		gl.glProgramBinary(m_program, binaryFormat, CacheBuffer.wrap(binary));
+	}
+
+	/**
+	 * Initializes an existing shader object from a given binary data <br>
+	 * @param binary the binary data used to initlize the program.
+	 */
+	@CachaRes
+	public void setSourceFromBinary(ByteBuffer binary, int binaryFormat){
+		dispose();
+		m_program = gl.glCreateProgram();
+		gl.glProgramBinary(m_program, binaryFormat, binary);
 	}
 
 	////------------------
@@ -120,6 +121,18 @@ public class GLSLProgram implements OpenGLProgram{
 		prog.setSourceFromStrings(vertSrc, fragSrc, macros);
 		return prog;
 	}
+
+	/**
+	 * Creates and returns a shader object from the given binary data.
+	 * @param binary the shader binary
+	 * @param binaryformat the binary format
+	 * @return a reference to an <code>NvGLSLProgram</code> on success and null on failure
+	 */
+	public static GLSLProgram createFromBinary(ByteBuffer binary, int binaryformat){
+		GLSLProgram prog = new GLSLProgram();
+		prog.setSourceFromBinary(binary, binaryformat);
+		return prog;
+	}
 	
 	/**
 	 * Creates and returns a shader object from a pair of source strings.
@@ -145,6 +158,12 @@ public class GLSLProgram implements OpenGLProgram{
 			100, 300, 310, 320
 	};
 
+	public static ShaderProgram createShaderProgramFromBinary(ByteBuffer binary, int format, int shaderType){
+		ShaderProgram program = new ShaderProgram();
+		createFromBinary(binary, format, shaderType, program, "ShaderProgram");
+		return program;
+	}
+
 	public static ShaderProgram createShaderProgramFromFile(String filename, ShaderType type, Macro... macros)throws IOException{
 		return createShaderProgramFromFile(filename, type, null, macros);
 	}
@@ -161,6 +180,12 @@ public class GLSLProgram implements OpenGLProgram{
 		createFromString(item, result, "ShaderProgram");
 
 		return result;
+	}
+
+	public static ShaderProgram createShaderProgramFromSource(ShaderSourceItem source){
+		ShaderProgram shader = new ShaderProgram();
+		createFromString(source, shader, "ShaderProgram");
+		return shader;
 	}
 
 	public static ShaderProgram createShaderProgramFromString(CharSequence source, ShaderType type, Macro... macros){
@@ -189,21 +214,13 @@ public class GLSLProgram implements OpenGLProgram{
 
 			if (status == 0)
 			{
-//				int infoLogLength;
-//				infoLogLength = gl.glGetProgrami(object, GL20.GL_INFO_LOG_LENGTH);
 				String infoLog = gl.glGetProgramInfoLog(object);
 				LogUtil.e(LogUtil.LogType.DEFAULT, String.format("Error compiling %s, %s:\n", debugName, getShaderName(target)));
 				LogUtil.e(LogUtil.LogType.DEFAULT, String.format("Log: %s", infoLog));
 
-//				try {
-//					FileUtils.write(source, "error_shader.txt", false);
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-
 				gl.glDeleteProgram( object);
+				DebugTools.saveErrorShaderSource(source);
 				object = 0;
-
 				throw new GLSLException("Compiling program " + debugName + " occur error!");
 			}
 		}else{
@@ -214,6 +231,18 @@ public class GLSLProgram implements OpenGLProgram{
 //		program.set(target, object);
 		program.m_programId = object;
 		program.m_target = target;
+	}
+
+	public static void createFromBinary(ByteBuffer binary, int format, int shaderType, ShaderProgram program,String debugName){
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+
+		int object = gl.glCreateProgram();
+		gl.glProgramBinary(object, format, binary);
+
+		program.m_programId = object;
+		program.m_target = shaderType;
+
+		GLCheck.checkError();
 	}
 
 	private static CharSequence constructSourceImpl(ShaderSourceItem item){
@@ -337,16 +366,6 @@ public class GLSLProgram implements OpenGLProgram{
 	private int compileProgram(ShaderSourceItem[] src){
 		int program = gl.glCreateProgram();
 		int count = src.length;
-//
-//	    int i;
-//	    for (i = 0; i < count; i++) {
-//	        int shader = GLSLUtil.compileShaderFromSource(src[i].src, src[i].type, m_strict);
-//	        gl.glAttachShader(program, shader);
-//	        // can be deleted since the program will keep a reference
-//	        gl.glDeleteShader(shader);
-//	    }
-//
-//	    return linkProgram(program);
 
 		int i;
 		for (i = 0; i < count; i++) {
@@ -354,13 +373,7 @@ public class GLSLProgram implements OpenGLProgram{
 				continue;
 
 			CharSequence source = constructSource(src[i]);
-			int shader = /*GL20.glCreateShader(src[i].type);
-			CharSequence source = constructSource(src[i]);
-			GL20.glShaderSource(shader, source);
-			GL20.glCompileShader(shader);
-			if (!checkCompileError(shader, src[i].type, source))
-				return 0;*/
-					GLSLUtil.compileShaderFromSource(source, src[i].type, GLCheck.CHECK);
+			int shader = GLSLUtil.compileShaderFromSource(source, src[i].type, GLCheck.CHECK);
 
 			gl.glAttachShader(program, shader);
 
@@ -417,28 +430,6 @@ public class GLSLProgram implements OpenGLProgram{
 		}
 	    
 	    return program;
-	}
-	
-	/**
-	 * Retrieve the program binary data. Return null if the video card doesn't support the opengl-extension <i>ARB_get_program_binary</i>
-	 * @return
-	 */
-	public ByteBuffer getProgramBinary(int[] format){
-		if(gl.isSupportExt("ARB_get_program_binary")){
-//			// Get the expected size of the program binary
-			int binary_size = gl.glGetProgrami(m_program, GLenum.GL_PROGRAM_BINARY_LENGTH);
-//			
-//			// Allocate some memory to store the program binary
-			ByteBuffer binary = BufferUtils.createByteBuffer(binary_size);
-			
-//			IntBuffer format = GLUtil.getCachedIntBuffer(1);
-//			format.put(0).flip();
-			// Now retrieve the binary from the program obj ect
-			gl.glGetProgramBinary(m_program, new int[1], format, binary);
-			return binary;
-		}
-		
-		return null;
 	}
 	
 	/**

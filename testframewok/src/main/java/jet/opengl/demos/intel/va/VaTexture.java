@@ -349,10 +349,10 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
 //        MiscFlags;
     }
 
-    public static VaTexture              Import(String storagePath, boolean assumeSourceIsInSRGB, boolean dontAutogenerateMIPs) throws IOException{
+    public static VaTexture Import(String storagePath, boolean assumeSourceIsInSRGB, boolean dontAutogenerateMIPs) throws IOException{
         return Import(storagePath, assumeSourceIsInSRGB, dontAutogenerateMIPs, BSF_ShaderResource);
     }
-    public static VaTexture              Import(String storagePath, boolean assumeSourceIsInSRGB, boolean dontAutogenerateMIPs,
+    public static VaTexture Import(String storagePath, boolean assumeSourceIsInSRGB, boolean dontAutogenerateMIPs,
                                                 int binds /*= vaTextureBindSupportFlags::ShaderResource*/ ) throws IOException{
         /*assert( vaDirectXCore::GetDevice( ) != NULL ); // none of this works without a device
         if( vaDirectXCore::GetDevice( ) == NULL )

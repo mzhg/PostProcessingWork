@@ -28,6 +28,7 @@ final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
 
 //        vaDirectXConstantsBuffer< GBufferConstants >
 //                                                m_constantsBuffer;
+    private int m_storeageIndex;
 
     private final List<Macro> m_staticShaderMacros = new ArrayList<>();
     private String                                 m_shaderFileToUse;
@@ -38,6 +39,16 @@ final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
         m_shaderFileToUse                   = "vaGBuffer.hlsl";
 
         VaDirectXCore.helperInitlize(this);
+    }
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
     }
 
     static float ReCreateIfNeeded(Holder<VaTexture> inoutTex, int width, int height, int format, float inoutTotalSizeSum )
@@ -229,10 +240,7 @@ final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
 
     @Override
     public void dispose() {
-        if(VaDirectXCore.isContextCreated()){
-            OnReleasingSwapChain();
-            OnDeviceDestroyed();
-        }
+        VaDirectXCore.GetInstance().UnregisterNotifyTargetInternal(this);
     }
 
     String                         GetShaderFilePath( )       { return m_shaderFileToUse;  };

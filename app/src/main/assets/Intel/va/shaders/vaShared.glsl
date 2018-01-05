@@ -41,12 +41,15 @@ SamplerState                            g_samplerAnisotropicWrap    : register( 
 
 
 SamplerComparisonState                  g_SimpleShadowMapCmpSampler     : register( S_CONCATENATER( SHADERSIMPLESHADOWSGLOBAL_CMPSAMPLERSLOT ) );
-#endif
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Global texture slots
-Texture2D<float>                        g_SimpleShadowMapTexture        : register( T_CONCATENATER( SHADERSIMPLESHADOWSGLOBAL_TEXTURESLOT ) ); 
+Texture2D<float>                        g_SimpleShadowMapTexture        : register( T_CONCATENATER( SHADERSIMPLESHADOWSGLOBAL_TEXTURESLOT ) );
+#endif
+
+layout(binding = SHADERSIMPLESHADOWSGLOBAL_TEXTURESLOT) uniform sampler2DArray g_SimpleShadowMapTexture;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -82,14 +85,13 @@ struct GenericBillboardSpriteVertex
     float4 Color                : COLOR;
     float4 Transform2D          : TEXCOORD0;
 };
+#endif
 
 struct GBufferOutput
 {
-    float4  Albedo              : SV_Target0;
-    float4  Normal              : SV_Target1;
+    float4  Albedo              ;//: SV_Target0;
+    float4  Normal              ;//: SV_Target1;
 };
-
-#endif
 
 struct GBufferDecodedPixel
 {
@@ -105,34 +107,6 @@ struct LocalMaterialValues
     float3x3    TangentSpace;
     bool        IsFrontFace;
 };
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-GenericSceneVertexTransformed GenericColoredVS( const in GenericSceneVertex input )
-{
-    GenericSceneVertexTransformed ret;
-
-    ret.Color                   = input.Color   ;
-    ret.Texcoord0               = input.Texcoord;
-
-    ret.ViewspacePos            = mul( g_Global.View, float4( input.Position.xyz, 1.0 ) );
-    ret.ViewspaceNormal.xyz     = normalize( mul( g_Global.View, float4(input.Normal.xyz, 0.0) ).xyz );
-    ret.ViewspaceTangent.xyz    = normalize( mul( g_Global.View, float4(input.Tangent.xyz, 0.0) ).xyz );
-    ret.ViewspaceBitangent.xyz  = normalize( cross( ret.ViewspaceNormal.xyz, ret.ViewspaceTangent.xyz) );
-
-    // distance to camera
-    ret.ViewspacePos.w          = length( ret.ViewspacePos.xyz );
-
-    ret.Position                = mul( g_Global.Proj, float4( ret.ViewspacePos.xyz, 1.0 ) );
-
-    ret.ViewspaceNormal.w       = 0.0;
-    ret.ViewspaceTangent.w      = 0.0;
-    ret.ViewspaceBitangent.w    = 0.0;
-
-    return ret;
-}
-
 
 // ///////////////////////////////////////////////////////////////////////////////////////////////////
 // // Global constant buffers
@@ -182,7 +156,7 @@ float3 GLSL_mod( float3 x, float3 y )
 //     Lastmod : 20110409 (stegu)
 //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
 //               Distributed under the MIT License. See LICENSE file.
-float3 permute(float3 x) { return GLSL_mod(((x*34.0)+1.0)*x, 289.0); }
+float3 permute(float3 x) { return GLSL_mod(((x*34.0)+1.0)*x, float3(289.0)); }
 //
 float snoise(float2 v)
 {
@@ -193,7 +167,7 @@ float snoise(float2 v)
   i1 = (x0.x > x0.y) ? float2(1.0, 0.0) : float2(0.0, 1.0);
   float4 x12 = x0.xyxy + C.xxzz;
   x12.xy -= i1;
-  i = GLSL_mod(i, 289.0);
+  i = GLSL_mod(i, float2(289.0));
     float3 p = permute( permute( i.y + float3( 0.0, i1.y, 1.0 ) ) + i.x + float3( 0.0, i1.x, 1.0 ) );
   float3 m = max(0.5 - float3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
   m = m*m ;
@@ -226,7 +200,7 @@ float3 DisplayNormal( float3 normal )
 
 float3 DisplayNormalSRGB( float3 normal )
 {
-    return pow( abs( normal * 0.5 + 0.5 ), 2.2 );
+    return pow( abs( normal * 0.5 + 0.5 ), float3(2.2) );
 }
 
 // good source of ideas for future improvements: http://iquilezles.org/www/articles/fog/fog.htm
@@ -238,12 +212,14 @@ float3 FogForwardApply( float3 color, float viewspaceDistance )
     return lerp( g_Global.Lighting.FogColor.rgb, color.rgb, fogStrength );
 }
 
+#if 0
 float3 DebugViewGenericSceneVertexTransformed( in float3 inColor, const in GenericSceneVertexTransformed input )
 {
 //    inColor.x = 1.0;
 
     return inColor;
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Normals encode/decode

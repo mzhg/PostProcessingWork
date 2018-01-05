@@ -8,13 +8,23 @@ import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 
 public class VaRenderMaterialDX11 extends VaRenderMaterial implements VaDirectXNotifyTarget {
     private VaRenderMaterialCachedShadersDX11 m_shaders;
-
     private VaDirectXConstantsBuffer/*< RenderMeshMaterialConstants >*/ m_constantsBuffer = new VaDirectXConstantsBuffer(RenderMeshMaterialConstants.SIZE);
+    private int m_storeageIndex;
 
     protected VaRenderMaterialDX11(VaConstructorParamsBase params) {
         super(params);
 
         VaDirectXCore.helperInitlize(this);
+    }
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
     }
 
     @Override

@@ -16,10 +16,10 @@
 // 2016-09-07: filip.strugar@intel.com: first commit (extracted from VertexAsylum codebase, 2006-2016 by Filip Strugar)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include "vaSharedTypes_PostProcess.h"
+
 #ifndef VA_SHADER_SHARED_TYPES_HLSL
 #define VA_SHADER_SHARED_TYPES_HLSL
-
-#include "vaSharedTypes_PostProcess.h"
 
 #ifndef VA_COMPILED_AS_SHADER_CODE
 namespace VertexAsylum
@@ -191,7 +191,7 @@ layout(binding = SHADERGLOBAL_CONSTANTSBUFFERSLOT) uniform GlobalConstantsBuffer
 #endif
 {
     ShaderGlobalConstants                   g_Global;
-}
+};
 
 #if 0
 cbuffer ShaderSimpleShadowsGlobalConstantsBuffer    : register( B_CONCATENATER( SHADERSIMPLESHADOWSGLOBAL_CONSTANTSBUFFERSLOT ) )
@@ -200,7 +200,7 @@ layout(binding = SHADERSIMPLESHADOWSGLOBAL_CONSTANTSBUFFERSLOT) uniform ShaderSi
 #endif
 {
     ShaderSimpleShadowsGlobalConstants      g_SimpleShadowsGlobal;
-}
+};
 
 #if 0
 cbuffer SimpleSkyConstantsBuffer                    : register( B_CONCATENATER( SIMPLESKY_CONSTANTS_BUFFERSLOT ) )
@@ -209,7 +209,7 @@ layout(binding = SIMPLESKY_CONSTANTS_BUFFERSLOT) uniform SimpleSkyConstantsBuffe
 #endif
 {
     SimpleSkyConstants                      g_SimpleSkyGlobal;
-}
+};
 
 #if 0
 cbuffer RenderMeshMaterialConstantsBuffer : register( B_CONCATENATER( RENDERMESHMATERIAL_CONSTANTS_BUFFERSLOT ) )
@@ -218,7 +218,7 @@ layout(binding = RENDERMESHMATERIAL_CONSTANTS_BUFFERSLOT) uniform RenderMeshMate
 #endif
 {
     RenderMeshMaterialConstants             g_RenderMeshMaterialGlobal;
-}
+};
 
 #if 0
 cbuffer RenderMeshConstantsBuffer                   : register( B_CONCATENATER( RENDERMESH_CONSTANTS_BUFFERSLOT ) )
@@ -227,7 +227,7 @@ layout(binding = RENDERMESH_CONSTANTS_BUFFERSLOT) uniform RenderMeshConstantsBuf
 #endif
 {
     RenderMeshConstants                     g_RenderMeshGlobal;
-}
+};
 
 #if 0
 cbuffer ShaderSimpleParticleSystemConstantsBuffer   : register( B_CONCATENATER( SIMPLEPARTICLESYSTEM_CONSTANTS_BUFFERSLOT ) )
@@ -236,7 +236,7 @@ layout(binding = SIMPLEPARTICLESYSTEM_CONSTANTS_BUFFERSLOT) uniform ShaderSimple
 #endif
 {
     ShaderSimpleParticleSystemConstants     g_ParticleSystemConstants;
-}
+};
 
 #if 0
 cbuffer GBufferConstantsBuffer                      : register( B_CONCATENATER( GBUFFER_CONSTANTS_BUFFERSLOT ) )
@@ -245,7 +245,7 @@ layout(binding = GBUFFER_CONSTANTS_BUFFERSLOT) uniform GBufferConstantsBuffer
 #endif
 {
     GBufferConstants                        g_GBufferConstants;
-}
+};
 
 
 

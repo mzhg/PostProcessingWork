@@ -15,6 +15,7 @@ import org.lwjgl.util.vector.Writable;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import jet.opengl.demos.intel.va.VaASSAO;
@@ -90,8 +91,8 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
     private VaGBuffer                   m_GBuffer;
     private VaLighting                  m_lighting;
     private VaPostProcess               m_postProcess;
-    private List<VaRenderMesh>          m_sceneMeshes;
-    private List<Matrix4f>              m_sceneMeshesTransforms;
+    private final List<VaRenderMesh>    m_sceneMeshes = new ArrayList<>();
+    private final List<Matrix4f>        m_sceneMeshesTransforms = new ArrayList<>();
 
     private VaASSAO                     m_SSAOEffect_DevelopmentVersion;
     private ASSAOWrapper            	m_SSAOEffect;
@@ -225,7 +226,6 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
     }
 
     public void Initialize( /*const std::shared_ptr<vaRenderDevice> & renderDevice, const std::shared_ptr<vaApplication> & application*/ ){
-
     }
 
     public VaCameraBase   GetCamera( )          { return m_camera; }

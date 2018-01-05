@@ -14,9 +14,20 @@ import jet.opengl.postprocessing.shader.Macro;
 
 public class VaRenderMaterialManagerDX11 extends VaRenderMaterialManager implements VaDirectXNotifyTarget {
     private final Map< VaRenderMaterialCachedShadersDX11.Key, VaRenderMaterialCachedShadersDX11 > m_cachedShaders = new HashMap<>();
+    private int m_storeageIndex;
 
     protected VaRenderMaterialManagerDX11(){
         VaDirectXCore.helperInitlize(this);
+    }
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
     }
 
     public VaRenderMaterialCachedShadersDX11 FindOrCreateShaders( String fileName, boolean alphaTest, String entryVS_PosOnly, String entryPS_DepthOnly,

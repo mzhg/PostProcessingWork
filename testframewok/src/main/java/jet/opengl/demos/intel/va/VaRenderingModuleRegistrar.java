@@ -17,7 +17,7 @@ public class VaRenderingModuleRegistrar {
 
     private static VaRenderingModuleRegistrar g_Instance;
 
-    public static void                             RegisterModule( String name, ModuleCreateFunction moduleCreateFunction ){
+    public static void RegisterModule( String name, ModuleCreateFunction moduleCreateFunction ){
         // make sure the singleton is alive
         CreateSingletonIfNotCreated();
 
@@ -29,11 +29,11 @@ public class VaRenderingModuleRegistrar {
             LogUtil.e(LogUtil.LogType.DEFAULT, String.format("vaRenderingCore::RegisterModule - name '%s' already registered!", name));
             return;
         }
-//        GetInstance().m_modules.insert( std::pair< std::string, ModuleInfo >( name, ModuleInfo( moduleCreateFunction ) ) );
+
         g_Instance.m_modules.put(name, moduleCreateFunction);
     }
 
-    public static VaRenderingModule              CreateModule( String name, VaConstructorParamsBase  params ){
+    public static VaRenderingModule CreateModule( String name, VaConstructorParamsBase  params ){
         ModuleCreateFunction function = g_Instance.m_modules.get(name);
         if( function == null )
         {
@@ -85,12 +85,12 @@ public class VaRenderingModuleRegistrar {
         VaRenderingModule  call( VaConstructorParamsBase params );
     }
 
-    static void                             CreateSingletonIfNotCreated( ){
+    private static void CreateSingletonIfNotCreated( ){
         if(g_Instance == null)
             g_Instance = new VaRenderingModuleRegistrar();
     }
 
-    static void                             DeleteSingleton( ){
+    static void DeleteSingleton( ){
         g_Instance = null;
     }
 }

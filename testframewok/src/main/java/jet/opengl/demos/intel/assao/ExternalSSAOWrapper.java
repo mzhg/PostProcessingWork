@@ -17,6 +17,7 @@ import jet.opengl.postprocessing.texture.Texture2D;
 
 final class ExternalSSAOWrapper extends VaRenderingModuleImpl implements VaDirectXNotifyTarget{
 
+    private int m_storeageIndex;
     private ExternalSSAOWrapper(VaConstructorParamsBase base){
         VaDirectXCore.helperInitlize(this);
     }
@@ -24,6 +25,16 @@ final class ExternalSSAOWrapper extends VaRenderingModuleImpl implements VaDirec
     public void  OnDeviceCreated(  ){}
 
     public void  OnDeviceDestroyed( ){}
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
+    }
 
     public void  Draw(VaDrawContext drawContext, Texture2D depthTexture, Texture2D normalmapTexture, boolean blend, Vector4i scissorRect ){}
     public void Draw(VaDrawContext drawContext, VaTexture depthTexture, VaTexture normalmapTexture, boolean blend, Vector4i scissorRect) {}

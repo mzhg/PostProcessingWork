@@ -18,8 +18,8 @@ final class VaLightingDX11 extends VaLighting implements VaDirectXNotifyTarget {
     private VaDirectXPixelShader                    m_applyDirectionalAmbientShadowedPS;
 
     //vaDirectXPixelShader                    m_applyTonemapPS;
-
-    private boolean                                    m_shadersDirty;
+    private int                                     m_storeageIndex;
+    private boolean                                 m_shadersDirty;
 
 //        vaDirectXConstantsBuffer< GBufferConstants >
 //                                                m_constantsBuffer;
@@ -33,6 +33,16 @@ final class VaLightingDX11 extends VaLighting implements VaDirectXNotifyTarget {
         m_shaderFileToUse                   = "vaLighting.hlsl";
         VaDirectXCore.helperInitlize(this);
         m_helperMacroConstructorCalled = true;
+    }
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
     }
 
     public void OnDeviceCreated(){

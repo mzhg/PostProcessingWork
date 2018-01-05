@@ -16,7 +16,7 @@ public final class VaDirectXVertexShader extends VaDirectXShader {
     final ArrayList<D3D11_INPUT_ELEMENT_DESC>
             m_inputLayoutElements = new ArrayList<D3D11_INPUT_ELEMENT_DESC>();
 
-    void                       SetInputLayout( D3D11_INPUT_ELEMENT_DESC...  elements/*, int elementCount*/ ){
+    void  SetInputLayout( D3D11_INPUT_ELEMENT_DESC...  elements/*, int elementCount*/ ){
         m_inputLayoutElements.clear();
         if(elements != null){
             for(int i = 0; i < elements.length; i++){

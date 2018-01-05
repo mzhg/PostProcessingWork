@@ -64,8 +64,8 @@ public class VaFileTools {
         while( (foundPos = ret.find(L"\\\\")) != wstring::npos )
             ret.replace( foundPos, 2, L"\\" );*/
 
-        ret = ret.replaceAll("/", "\\");
-        ret = ret.replaceAll("\\\\", "\\");
+        ret = ret.replace('/', '\\');
+//        ret = ret.replaceAll("\\\\", "\\");
 
         // restore network path
         if( (ret.length() > 0) && (ret.charAt(0) == '\\') )

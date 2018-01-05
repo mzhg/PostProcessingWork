@@ -1,6 +1,8 @@
 package jet.opengl.demos.intel.assao;
 
-interface ASSAO_Effect{
+import jet.opengl.postprocessing.common.Disposeable;
+
+interface ASSAO_Effect extends Disposeable{
 
 	void                PreAllocateVideoMemory(ASSAO_Inputs inputs);
     void                DeleteAllocatedVideoMemory();

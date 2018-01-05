@@ -28,9 +28,20 @@ public class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements 
     private RenderTargets           m_renderTarget;
     private GLSLProgramPipeline     m_program;
     private final TextureGL[]       m_tempRTVs = new TextureGL[c_maxUAVs];
+    private int                     m_storeageIndex;
 
     protected VaRenderDeviceContextDX11( VaConstructorParamsBase params ){
         VaDirectXCore.helperInitlize(this);
+    }
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
     }
 
     @Override

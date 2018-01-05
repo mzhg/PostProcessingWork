@@ -7,6 +7,7 @@ import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.DepthStencilState;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
@@ -28,20 +29,21 @@ public class VaSkyDX11 extends VaSky implements VaDirectXNotifyTarget {
     private VaDirectXConstantsBuffer /*< SimpleSkyConstants >*/ m_constantsBuffer = new VaDirectXConstantsBuffer(SimpleSkyConstants.SIZE);
     private final SimpleSkyConstants            m_constants = new SimpleSkyConstants();
 
+    private int m_storeageIndex;
+
     protected VaSkyDX11( VaConstructorParamsBase params ){
 //        m_depthStencilState = NULL;
-        final int D3D11_APPEND_ALIGNED_ELEMENT = 0;
-        final int D3D11_INPUT_PER_VERTEX_DATA = 0;
-        D3D11_INPUT_ELEMENT_DESC inputElements[] =
-        {
-                VaDirectXTools.CD3D11_INPUT_ELEMENT_DESC( "SV_Position", 0, GLenum.GL_RGB32F, 0,
-                        D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
-        };
-
-        m_vertexShader.CreateShaderAndILFromFile( "vaSky.hlsl", "vs_5_0", "SimpleSkyboxVS", (Macro[]) null, inputElements/*, _countof( inputElements )*/ );
-        m_pixelShader.CreateShaderFromFile( "vaSky.hlsl", "ps_5_0", "SimpleSkyboxPS", (Macro[]) null );
-
         VaDirectXCore.helperInitlize(this);
+    }
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
     }
 
     @Override
@@ -81,6 +83,26 @@ public class VaSkyDX11 extends VaSky implements VaDirectXNotifyTarget {
         }
 
         m_constantsBuffer.Create( );
+        GLCheck.checkError();
+
+        final int D3D11_APPEND_ALIGNED_ELEMENT = 0;
+        final int D3D11_INPUT_PER_VERTEX_DATA = 0;
+        D3D11_INPUT_ELEMENT_DESC inputElements[] =
+                {
+                        VaDirectXTools.CD3D11_INPUT_ELEMENT_DESC( "SV_Position", 0, GLenum.GL_RGB32F, 0,
+                                D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+                };
+
+        m_vertexShader = new VaDirectXVertexShader();
+        m_vertexShader.CreateShaderAndILFromFile( "vaSkyVS.vert", "vs_5_0", "SimpleSkyboxVS", (Macro[]) null, inputElements/*, _countof( inputElements )*/ );
+
+        m_pixelShader = new VaDirectXPixelShader();
+        m_pixelShader.CreateShaderFromFile( "vaSkyPS.frag", "ps_5_0", "SimpleSkyboxPS", (Macro[]) null );
+
+        GLCheck.checkError();
+
+        m_vertexShader.GetShader().printPrograminfo();
+        m_pixelShader.GetShader().printPrograminfo();
     }
 
     @Override

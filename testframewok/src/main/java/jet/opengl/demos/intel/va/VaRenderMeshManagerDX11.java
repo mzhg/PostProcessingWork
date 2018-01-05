@@ -19,9 +19,20 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
     private VaDirectXConstantsBuffer m_constantsBuffer = new VaDirectXConstantsBuffer(RenderMeshConstants.SIZE);
     private final RenderMeshConstants m_constants = new RenderMeshConstants();
     private final RasterizerState  m_rasterizerState = new RasterizerState();
+    private int m_storeageIndex;
 
     protected VaRenderMeshManagerDX11(VaConstructorParamsBase params){
         VaDirectXCore.helperInitlize(this);
+    }
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
     }
 
     @Override

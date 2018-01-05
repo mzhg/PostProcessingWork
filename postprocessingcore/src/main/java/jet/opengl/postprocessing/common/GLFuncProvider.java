@@ -1390,12 +1390,7 @@ public interface GLFuncProvider {
     //
     // // C function void glProgramBinary ( GLuint program, GLenum binaryFormat, const GLvoid *binary, GLsizei length )
     //
-    // public void glProgramBinary(
-    // int program,
-    // int binaryFormat,
-    // java.nio.Buffer binary,
-    // int length
-    // );
+     public void glProgramBinary(int program, int binaryFormat, ByteBuffer binary);
 
     // C function void glProgramParameteri ( GLuint program, GLenum pname, GLint value )
 

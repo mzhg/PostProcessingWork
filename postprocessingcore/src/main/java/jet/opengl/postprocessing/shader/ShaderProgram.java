@@ -31,6 +31,14 @@ public class ShaderProgram implements OpenGLProgram {
     }
 
     @Override
+    public String toString() {
+        StringBuilder out = new StringBuilder("ShaderProgram:[ProgramID = ");
+        out.append(m_programId);
+        out.append(", Target = ").append(ShaderType.wrap(m_target).toString()).append(']');
+        return out.toString();
+    }
+
+    @Override
     public void dispose() {
         if(m_programId != 0) {
             GLFuncProviderFactory.getGLFuncProvider().glDeleteProgram(m_programId);

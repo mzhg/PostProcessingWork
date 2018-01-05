@@ -763,8 +763,11 @@ final class ASSAOGLMemoryCompare implements ASSAO_Effect, ASSAO_Macro{
 	    
 	    m_printProgramOnce = true;
 	}
-	
-	private static final class BufferFormats{
+
+    @Override
+    public void dispose() {}
+
+    private static final class BufferFormats{
 		int         DepthBufferViewspaceLinear;
 		int         AOResult;
 		int         Normals;

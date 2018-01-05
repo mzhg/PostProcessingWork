@@ -110,7 +110,7 @@ public class VaFileStream extends VaStream {
         if( IsOpen( ) ) return false;
 
         if(creationMode == FileCreationMode.Open){
-            if( VaFileTools.FileExists( file_path ) )
+            if( !VaFileTools.FileExists( file_path ) )
                 return false;
         }
 

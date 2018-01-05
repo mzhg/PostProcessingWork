@@ -72,7 +72,6 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
         m_textureEmissiveUID        = VaCore.GUIDNull();
     }
 
-
     @Override
     public String GetRenderingModuleTypeName() {
         return __name;

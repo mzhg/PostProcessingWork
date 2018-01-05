@@ -5,9 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
+import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -40,6 +43,8 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
     protected boolean        m_helperMacroConstructorCalled;
     protected boolean        m_helperMacroDesctructorCalled;
 
+    private int m_storeageIndex;
+
     public VaDirectXShader( ){
         m_shader = null;
 
@@ -57,6 +62,16 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
 
 //#ifdef VA_HOLD_SHADER_DISASM
         m_disasmAutoDumpToFile = false;
+    }
+
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
     }
 
     @Override
@@ -126,7 +141,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
     }
 
     //
-    public void                            Clear( ){
+    public void Clear( ){
         DestroyShader();
 
         m_shader = null;
@@ -269,7 +284,6 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
     }
 
     protected void CreateShader(){
-//        HRESULT hr;
         boolean[] loadedFromCache = new boolean[1];
         ShaderSourceItem shaderBlob = null;
         try {
@@ -295,9 +309,9 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         }
 
         SAFE_RELEASE( shaderBlob );*/
+        m_shader = GLSLProgram.createShaderProgramFromSource(shaderBlob);
+        m_shader.setName(m_entryPoint);
 
-
-        throw new UnsupportedOperationException();
     }
 
     protected void   DestroyShader( )            { DestroyShaderBase( ); }
@@ -328,17 +342,37 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         // find the file
         String fullFileName = VaDirectXShaderManager.GetInstance( ).FindShaderFile( szFileName );
 
-        if( fullFileName /*!= ""*/.isEmpty() == false )
-        {
+        if( fullFileName /*!= ""*/.isEmpty() == false ) {
             boolean attemptReload;
-
             do
             {
                 outDependencies.clear( );
                 outDependencies.add(new VaShaderCacheEntry.FileDependencyInfo( szFileName ) );
 //                vaShaderIncludeHelper includeHelper( outDependencies );
 
-                attemptReload = false;
+                attemptReload = true;
+                ShaderSourceItem sourceItem = new ShaderSourceItem();
+                sourceItem.source = ShaderLoader.loadShaderFile(fullFileName, false);
+                switch (szShaderModel){
+                    case "vs_5_0":
+                    {
+                        sourceItem.type = ShaderType.VERTEX;
+                        sourceItem.compileVersion = 430;
+                        break;
+                    }
+                    case "ps_5_0":
+                    {
+                        sourceItem.type = ShaderType.FRAGMENT;
+                        sourceItem.compileVersion = 430;
+                        break;
+                    }
+
+                    default:
+                        throw new IllegalArgumentException("unsupported shader model: " + szShaderModel);
+                }
+
+                sourceItem.macros = pDefines;
+
                 /*ID3DBlob* pErrorBlob;  TODO
                 hr = D3DCompileFromFile( fullFileName.c_str( ), pDefines, (ID3DInclude*)&includeHelper,
                         szEntryPoint, szShaderModel, dwShaderFlags, 0, ppBlobOut, &pErrorBlob );
@@ -367,8 +401,8 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
                 }
                 SAFE_RELEASE( pErrorBlob );*/
 
-
-            } while( attemptReload );
+                return sourceItem;
+            } while( !attemptReload );
         }
         else
         {
@@ -413,8 +447,6 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
             SAFE_RELEASE( pErrorBlob );*/
             throw new UnsupportedOperationException();
         }
-
-        return null;
     }
 
     protected static ShaderSourceItem CompileShaderFromBuffer( CharSequence shaderCode, Macro[] pDefines, String szEntryPoint,
@@ -559,8 +591,8 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
         return shaderBlob;
     }
     //
-    protected void                    AddBuiltInMacros( ){
-        m_macros.add( new Macro( "VA_COMPILED_AS_SHADER_CODE", "" ) );
+    protected void AddBuiltInMacros( ){
+        m_macros.add( new Macro( "VA_COMPILED_AS_SHADER_CODE", "1" ) );
     }
 
     public ShaderProgram GetShader(){ return m_shader;}

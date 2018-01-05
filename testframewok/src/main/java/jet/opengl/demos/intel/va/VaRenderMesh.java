@@ -8,6 +8,7 @@ import org.lwjgl.util.vector.Vector4f;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import jet.opengl.postprocessing.common.Disposeable;
@@ -105,7 +106,7 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
     }
 
     // create mesh with normals, with provided vertices & indices
-    public static VaRenderMesh                 Create(Matrix4f transform, /*const std::vector<vaVector3> &*/StackFloat vertices, /*const std::vector<vaVector3> &*/StackFloat normals,
+    public static VaRenderMesh  Create(Matrix4f transform, /*const std::vector<vaVector3> &*/StackFloat vertices, /*const std::vector<vaVector3> &*/StackFloat normals,
                                                       /*const std::vector<vaVector4> &*/StackFloat tangents, /*const std::vector<vaVector2> &*/StackFloat texcoords0,
                                                       /*const std::vector<vaVector2> &*/StackFloat texcoords1, /*const std::vector<uint32> &*/StackInt indices,
                                                       int frontFaceWinding /*= vaWindingOrder::CounterClockwise*/ ){
@@ -118,7 +119,6 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
         if((vertex_count != normal_count) || (vertex_count != tangent_count) || (vertex_count != texcoord0_count) || (vertex_count != texcoord1_count)){
             throw new IllegalArgumentException();
         }
-
 
         StandardVertex vertex = new StandardVertex();
         StackByte vertexBytes = new StackByte(StandardVertex.SIZE * vertex_count);
@@ -151,6 +151,7 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
         }
 
         VaRenderMesh mesh = VaRenderMeshManager.GetInstance( ).CreateRenderMesh( );
+        Objects.requireNonNull(mesh);
         mesh.CreateTriangleMesh( vertexBytes, indices );
 //        mesh.SetParts( vector<vaRenderMesh::SubPart>( 1, vaRenderMesh::SubPart( 0, (int)indices.size( ), weak_ptr<vaRenderMaterial>( ) ) ) );
         mesh.SetParts(Arrays.asList(new SubPart(0, indices.size( ), null)));
@@ -171,11 +172,12 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
         VaStandardShapes.CreatePlane( vertices, indices, sizeX, sizeY );
         int windingOrder = WindingOrder_CounterClockwise;
 
+        normals.resize(3 * 4);
         VaTriangleMeshTools.GenerateNormals( normals, vertices, indices, windingOrder == WindingOrder_CounterClockwise );
 
         Vector4f defaultTan = new Vector4f(1,0,0,1);
         Vector3f temp = new Vector3f();
-        for( int i = 0; i < vertices.size( ); i++ )
+        for( int i = 0; i < vertices.size( )/3; i++ )
         {
 //            tangents[i] = vaVector4( 1.0f, 0.0f, 0.0f, 1.0f );
             VaTriangleMeshTools.loadVertex(temp, vertices.getData(), i*3);

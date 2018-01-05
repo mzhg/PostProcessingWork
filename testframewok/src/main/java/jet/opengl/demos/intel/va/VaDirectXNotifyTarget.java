@@ -13,10 +13,10 @@ public interface VaDirectXNotifyTarget extends Disposeable {
     default void                  OnReleasingSwapChain( )                                                 {}
     default void                  OnResizedSwapChain( /*const DXGI_SURFACE_DESC & backBufferSurfaceDesc*/int width, int height )   {}
 
+    void setStorageIndex(int index);
+    int getStorageIndex();
+
     default void dispose(){
-        if(VaDirectXCore.isContextCreated()){
-            OnReleasingSwapChain();
-            OnDeviceDestroyed();
-        }
+        VaDirectXCore.GetInstance().UnregisterNotifyTargetInternal(this);
     }
 }

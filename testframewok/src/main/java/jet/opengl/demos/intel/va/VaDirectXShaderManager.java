@@ -31,14 +31,14 @@ public final class VaDirectXShaderManager implements Disposeable{
 
     private Map<UUID, VaUIDObject/*, vaGUIDComparer*/ > m_objectsMap = new HashMap<>();
 
-    public static VaDirectXShaderManager GetInstance() { return g_Instance;}
-    public static void CreateInstanceIfNot() {
+    public static VaDirectXShaderManager GetInstance() {
         if(g_Instance == null){
             g_Instance = new VaDirectXShaderManager();
         }
+        return g_Instance;
     }
 
-    private VaDirectXShaderManager( )
+    VaDirectXShaderManager( )
     {
         m_cacheLoaded = false;
 
@@ -108,12 +108,12 @@ public final class VaDirectXShaderManager implements Disposeable{
     }
 
     // pushBack (searched last) or pushFront (searched first)
-    public void                RegisterShaderSearchPath( String path, boolean pushBack /*= true*/ ){
+    public void RegisterShaderSearchPath( String path/*, boolean pushBack = true*/ ){
         String cleanedSearchPath = VaFileTools.CleanupPath( path + "\\", false );
-        if( pushBack )
+//        if( pushBack )
             m_searchPaths.addLast(cleanedSearchPath);
-        else
-            m_searchPaths.addFirst(cleanedSearchPath);
+//        else
+//            m_searchPaths.addFirst(cleanedSearchPath);
     }
 
     public String             FindShaderFile(String fileName ){

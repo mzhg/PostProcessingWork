@@ -8,7 +8,11 @@ public class VaImguiHierarchyObject {
     private static int                                              s_lastID;
     private String                                                  m_persistentObjectID;
 
-    protected VaImguiHierarchyObject( ) { m_persistentObjectID = String.format( "IHO%d", s_lastID ); s_lastID++; }  // create unique string id for each new object
+    protected VaImguiHierarchyObject( ) {
+        // create unique string id for each new object
+        m_persistentObjectID = "IHO" + s_lastID;
+        s_lastID++;
+    }
 
     /**
      * this is just so that the title of the collapsing header can be the same for multiple different objects, as ImGui tracks them by string id which defaults to the title

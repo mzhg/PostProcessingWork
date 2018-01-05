@@ -11,6 +11,7 @@ public class VaTriangleMeshDX11 extends VaTriangleMesh implements VaDirectXNotif
     private VaDirectXIndexBuffer/*< uint32 >*/      m_indexBuffer = new VaDirectXIndexBuffer(4);
     private VaDirectXVertexBuffer/*< VertexType >*/ m_vertexBuffer;
     private final int m_vertexStride;
+    private int m_storeageIndex;
 
     protected VaTriangleMeshDX11(VaConstructorParamsBase params ){
         m_vertexStride = ((VaTriangleMeshConstructParams)params).VertexStride;
@@ -40,6 +41,16 @@ public class VaTriangleMeshDX11 extends VaTriangleMesh implements VaDirectXNotif
         m_vertexBuffer.SetToD3DContext( /*context*/ );
     }
 
+    @Override
+    public void setStorageIndex(int index) {
+        m_storeageIndex = index;
+    }
+
+    @Override
+    public int getStorageIndex() {
+        return m_storeageIndex;
+    }
+
     public VaDirectXIndexBuffer     GetIndexBuffer( )      { return m_indexBuffer; }
     public VaDirectXVertexBuffer GetVertexBuffer( )     { return m_vertexBuffer; }
 
@@ -47,19 +58,19 @@ public class VaTriangleMeshDX11 extends VaTriangleMesh implements VaDirectXNotif
     public int GetVertexCount( )      { return Vertices.size( )/m_vertexStride; }
 
     // vaDirectXNotifyTarget
-    public void                                    OnDeviceCreated( /*ID3D11Device* device, IDXGISwapChain* swapChain*/ )
+    public void OnDeviceCreated( /*ID3D11Device* device, IDXGISwapChain* swapChain*/ )
     {
         m_dirty = true;
     }
 
-    public void                                    OnDeviceDestroyed( )
+    public void OnDeviceDestroyed( )
     {
         m_indexBuffer.dispose( );
         m_vertexBuffer.dispose( );
         m_dirty = true;
     }
 
-    public void                                    SetDataDirty( )
+    public void SetDataDirty( )
     {
         m_indexBuffer.dispose( );
         m_vertexBuffer.dispose( );
