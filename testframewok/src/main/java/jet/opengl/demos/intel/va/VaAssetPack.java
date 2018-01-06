@@ -2,6 +2,8 @@ package jet.opengl.demos.intel.va;
 
 import org.lwjgl.util.vector.Vector3f;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,13 +15,13 @@ import jet.opengl.postprocessing.util.LogUtil;
  */
 
 public class VaAssetPack extends VaImguiHierarchyObject {
-    protected String                                              m_name;
+    protected String m_name;
     protected Map< String, VaAsset> m_assetMap = new HashMap<>();
 
-    private TT_Trackee< VaAssetPack >                       m_trackee;  // for tracking by vaAssetPackManager
+    private TT_Trackee< VaAssetPack > m_trackee;  // for tracking by vaAssetPackManager
     protected List<VaAsset> m_assetList;
 
-    protected UIContext                                           m_uiContext;
+    protected UIContext m_uiContext;
 
     public VaAssetPack( String name ){
         m_trackee = new TT_Trackee<>(VaAssetPackManager.GetInstance().m_assetPackTracker, this);
@@ -50,8 +52,11 @@ public class VaAssetPack extends VaImguiHierarchyObject {
         return m_assetMap.get(name);
     }
     //shared_ptr<vaAsset>                                 FindByStoragePath( const wstring & _storagePath );
-    public void                                                Remove( VaAsset asset ){
+    public void Remove( VaAsset asset ){
         if( asset == null )
+            return;
+
+        if(m_assetList == null)
             return;
 
         assert( m_assetList.get(asset.m_parentPackStorageIndex) == asset );
@@ -78,15 +83,95 @@ public class VaAssetPack extends VaImguiHierarchyObject {
             m_assetMap.remove(asset.Name());
         }
     }
-    public void                                                RemoveAll( ){
-        m_assetList.clear();
-        m_assetMap.clear();
+    public void RemoveAll( ){
+        if(m_assetList != null) {
+            m_assetList.clear();
+            m_assetMap.clear();
+        }
     }
+
+    private static final int c_packFileVersion = 1;
 
     // save current contents
     public boolean Save( VaStream outStream ) {throw new UnsupportedOperationException();}
     // load contents (current contents are not deleted)
-    public boolean Load( VaStream inStream ) {throw new UnsupportedOperationException();}
+    public boolean Load( VaStream inStream ) throws IOException{
+        long size = 0;
+        size = inStream./*ReadValue<int64>*/ ReadLong( );
+
+        int fileVersion = 0;
+//        VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( fileVersion ) );
+        fileVersion = inStream.ReadInt();
+
+        if( fileVersion != c_packFileVersion )
+        {
+            LogUtil.e(LogUtil.LogType.DEFAULT, "vaAssetPack::Load(): unsupported file version");
+            return false;
+        }
+
+        m_name = inStream.ReadString(  );
+
+        /*int32 numberOfAssets = 0;
+        VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( numberOfAssets ) );*/
+        int numberOfAssets = inStream.ReadInt();
+
+        List<VaAsset> loadedAssets = new ArrayList<>();
+
+        for( int i = 0; i < numberOfAssets; i++  )
+        {
+            /*int64 subSize = 0;
+            VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int64>( subSize ) );*/
+            long subSize = inStream.ReadLong();
+
+            // read type
+            /*vaAssetType assetType;
+            VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( (int32&)assetType ) );*/
+            int assetType = inStream.ReadInt();
+
+            // read name
+            /*string newAssetName;
+            VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadString( newAssetName ) );*/
+            String newAssetName = inStream.ReadString();
+
+            if( Find( newAssetName ) != null )
+            {
+                LogUtil.e(LogUtil.LogType.DEFAULT, "vaAssetPack::Load(): duplicated asset name, stopping loading.");
+                assert( false );
+                return false;
+            }
+
+            VaAsset newAsset = null;
+
+            switch( VaAssetType.values()[ assetType] )
+            {
+                case Texture:
+                    newAsset = VaAssetTexture.CreateAndLoad(this, newAssetName, inStream ) ;
+                    break;
+                case RenderMesh:
+                    newAsset = VaAssetRenderMesh.CreateAndLoad(this, newAssetName, inStream ) ;
+                    break;
+                case RenderMaterial:
+                    newAsset = VaAssetRenderMaterial.CreateAndLoad(this, newAssetName, inStream );
+                    break;
+                default:
+                    break;
+            }
+
+
+            if(newAsset == null)
+                throw new IllegalStateException("asset is null");
+
+            InsertAndTrackMe( newAsset );
+            loadedAssets.add( newAsset );
+        }
+
+        for( int i = 0; i < loadedAssets.size(); i++ )
+        {
+            loadedAssets.get(i).ReconnectDependencies( );
+        }
+
+        return true;
+    }
 
     /*shared_ptr<vaAssetTexture>*/ public VaAssetTexture  Add( /*const shared_ptr<vaTexture> &*/VaTexture texture, String name ){
 //        string name = vaStringTools::ToLower( _name );
@@ -143,7 +228,7 @@ public class VaAssetPack extends VaImguiHierarchyObject {
         return newItem;
     }
 
-    public String                                      Name( )                               { return m_name; }
+    public String Name( )  { return m_name; }
 
     public boolean                                                Rename( VaAsset asset, String newName ){
 //        string newName = vaStringTools::ToLower( _newName );
@@ -193,10 +278,16 @@ public class VaAssetPack extends VaImguiHierarchyObject {
         return true;
     }
 
-    public int                                              Count( )                          { assert( m_assetList.size() == m_assetMap.size() ); return m_assetList.size(); }
+    public int Count( ) {
+        if(m_assetList == null){
+            return 0;
+        }
+
+        assert( m_assetList.size() == m_assetMap.size() ); return m_assetList.size();
+    }
 
 //        const shared_ptr<vaAsset> &                         operator [] ( size_t index )            { return m_assetList[index]; }
-    public VaAsset Get(int index)   { return m_assetList.get(index);}
+    public VaAsset Get(int index)   { return m_assetList != null ? m_assetList.get(index) : null;}
 
     protected String                                      IHO_GetInstanceInfo( )                { //return vaStringTools::Format("Asset Pack '%s'", m_name.c_str() );
         return "Asset Pack " + m_name;
@@ -374,11 +465,14 @@ public class VaAssetPack extends VaImguiHierarchyObject {
         ImGui::PopItemWidth( );*/
     }
 
-    private void                                                InsertAndTrackMe( /*shared_ptr<vaAsset>*/VaAsset newAsset ){
+    private void InsertAndTrackMe( /*shared_ptr<vaAsset>*/VaAsset newAsset ){
 //        m_assetMap.insert( std::pair< string, shared_ptr<vaAsset> >( vaStringTools::ToLower( newAsset->Name() ), newAsset ) );
         m_assetMap.put(newAsset.Name().toLowerCase(), newAsset);
         //    if( storagePath != L"" )
         //        m_assetMapByStoragePath.insert( std::pair< wstring, shared_ptr<vaAsset> >( vaStringTools::ToLower(newAsset->storagePath), newAsset ) );
+
+        if(m_assetList == null)
+            m_assetList = new ArrayList<>();
 
         assert( newAsset.m_parentPackStorageIndex == -1 );
         m_assetList.add( newAsset );
@@ -386,7 +480,7 @@ public class VaAssetPack extends VaImguiHierarchyObject {
     }
 
 //    private:
-    void                                                OnRenderingAPIAboutToShutdown( )            { RemoveAll(); }
+    void OnRenderingAPIAboutToShutdown( )            { RemoveAll(); }
 
     private static final class UIContext
     {

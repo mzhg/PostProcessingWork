@@ -7,6 +7,9 @@ import java.io.Closeable;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.StackByte;
+import jet.opengl.postprocessing.util.StackFloat;
+import jet.opengl.postprocessing.util.StackInt;
 
 /**
  * Created by mazhen'gui on 2017/11/16.
@@ -28,16 +31,18 @@ public abstract class VaStream implements Closeable{
     public abstract byte         Read() throws IOException;
     public abstract short        ReadShort() throws IOException;
     public abstract int          ReadInt() throws IOException;
+    public abstract float        ReadFloat() throws IOException;
     public abstract void         ReadObject(int size, Writable obj) throws IOException;
 
     public abstract boolean      WriteLong(long value) throws IOException;
     public abstract boolean      Write(byte value) throws IOException;
     public abstract boolean      WriteShort(short value) throws IOException;
     public abstract boolean      WriteInt(int value) throws IOException;
+    public abstract boolean      WriteFloat(float value) throws IOException;
     public abstract boolean      WriteObject(int size, Readable obj) throws IOException;
 
     // these use internal binary representation prefixed with size
-    public boolean       WriteString( String str )throws IOException{
+    public boolean WriteString( String str )throws IOException{
         int lengthInBytes = str.length( );
         if( !/*WriteValue<uint32>*/ WriteInt( lengthInBytes ) )      // 32nd bit flags it as unicode (utf16) for verification when reading
             return false;
@@ -53,7 +58,7 @@ public abstract class VaStream implements Closeable{
             return Write(buffer, 0, lengthInBytes) > 0;
         }
     }
-    public boolean       WriteStringW( String str )throws IOException{
+    public boolean WriteStringW( String str )throws IOException{
         int lengthInBytes = str.length( ) * 2;
         if( !/*WriteValue<uint32>*/ WriteInt( lengthInBytes | ( 1 << 31 ) ) )      // 32nd bit flags it as unicode (utf16) for verification when reading
             return false;
@@ -69,7 +74,7 @@ public abstract class VaStream implements Closeable{
         }
     }
 
-    public String        ReadString( )throws IOException{
+    public String ReadString( )throws IOException{
         int lengthInBytes;
 //        if( !ReadValue<uint32>( lengthInBytes ) )
         if((lengthInBytes = ReadInt()) == -1)
@@ -98,7 +103,7 @@ public abstract class VaStream implements Closeable{
         return new String(buffer);
     }
 
-    public String        ReadStringW( )throws IOException{
+    public String ReadStringW( )throws IOException{
         int lengthInBytes;
 //        if( !ReadValue<uint32>( lengthInBytes ) )
         if((lengthInBytes = ReadInt()) == -1)
@@ -130,9 +135,9 @@ public abstract class VaStream implements Closeable{
     }
 
     // these are supposed to just read a text file but I haven't sorted out any line ending or encoding conversions
-    public final String        ReadTXTW(  ) throws IOException{ return ReadTXTW(-1);}
-    public final String        ReadTXT(  )  throws IOException{ return ReadTXT(-1);}
-    public String        ReadTXTW( int count /*= -1*/ )throws IOException{
+    public final String ReadTXTW(  ) throws IOException{ return ReadTXTW(-1);}
+    public final String ReadTXT(  )  throws IOException{ return ReadTXT(-1);}
+    public String ReadTXTW( int count /*= -1*/ )throws IOException{
         int remainingSize = GetLength( ) - GetPosition( );
         if( count == -1 )
             count = remainingSize;
@@ -163,7 +168,7 @@ public abstract class VaStream implements Closeable{
         return new String(buffer);
     }
 
-    public String        ReadTXT( int count /*= -1*/ )throws IOException{
+    public String ReadTXT( int count /*= -1*/ )throws IOException{
         int remainingSize = GetLength( ) - GetPosition( );
         if( count == -1 )
             count = remainingSize;
@@ -193,7 +198,8 @@ public abstract class VaStream implements Closeable{
         return true;*/
         return new String(buffer);
     }
-    public boolean       WriteTXTW( String str )throws IOException{
+
+    public boolean WriteTXTW( String str )throws IOException{
         int lengthInBytes = str.length( ) * 2;
         assert( lengthInBytes < ( 1 << 31 ) );
         if( lengthInBytes == 0 )
@@ -206,7 +212,8 @@ public abstract class VaStream implements Closeable{
             return Write(buffer,0, lengthInBytes) > 0;
         }
     }
-    public boolean       WriteTXT( String str )throws IOException{
+
+    public boolean WriteTXT( String str )throws IOException{
         int lengthInBytes = str.length( );
         assert( lengthInBytes < ( 1 << 31 ) );
         if( lengthInBytes == 0 )
@@ -218,5 +225,112 @@ public abstract class VaStream implements Closeable{
             }
             return Write(buffer, 0, lengthInBytes) > 0;
         }
+    }
+
+    public boolean ReadVector( StackInt elements ) throws IOException {
+        assert( elements.size( ) == 0 ); // must be empty at the moment
+
+        /*int count;
+        if( !ReadValue<int>( count, -1 ) )
+        return false;*/
+        int count = ReadInt();
+        assert( count >= 0 ); if( count < 0 ) return false;
+        if( count == 0 ) return true;
+
+        elements.resize( count );
+
+        int[] content = elements.getData();
+        for(int i = 0; i < count; i++){
+            content[i] = ReadInt();
+        }
+
+        return true;
+    }
+
+    public boolean WriteVector( StackInt elements ) throws IOException {
+        assert( elements.size( ) < Integer.MAX_VALUE ); // not supported; to add support for 64bit size use most significant bit (sign) to indicate that the size is >= INT_MAX; this is backwards compatible and will not unnecessarily increase file size
+
+        boolean ret = WriteInt(elements.size()); // /*WriteValue<int>( (int)elements.size( ) )*/;
+        assert( ret ); if( !ret ) return false;
+
+        for( int i = 0; i < elements.size( ); i++ )
+        {
+            ret = WriteInt(elements.get(i) );
+            assert( ret ); if( !ret ) return false;
+        }
+
+        return true;
+    }
+
+    public boolean ReadVector( StackFloat elements ) throws IOException {
+        assert( elements.size( ) == 0 ); // must be empty at the moment
+
+        /*int count;
+        if( !ReadValue<int>( count, -1 ) )
+        return false;*/
+        int count = ReadInt();
+        assert( count >= 0 ); if( count < 0 ) return false;
+        if( count == 0 ) return true;
+
+        elements.resize( count );
+
+        float[] content = elements.getData();
+        for(int i = 0; i < count; i++){
+            content[i] = ReadFloat();
+        }
+
+        return true;
+    }
+
+    public boolean WriteVector( StackFloat elements ) throws IOException {
+        assert( elements.size( ) < Integer.MAX_VALUE ); // not supported; to add support for 64bit size use most significant bit (sign) to indicate that the size is >= INT_MAX; this is backwards compatible and will not unnecessarily increase file size
+
+        boolean ret = WriteInt(elements.size()); // /*WriteValue<int>( (int)elements.size( ) )*/;
+        assert( ret ); if( !ret ) return false;
+
+        for( int i = 0; i < elements.size( ); i++ )
+        {
+            ret = WriteFloat(elements.get(i) );
+            assert( ret ); if( !ret ) return false;
+        }
+
+        return true;
+    }
+
+    public boolean ReadVector( StackByte elements ) throws IOException {
+        assert( elements.size( ) == 0 ); // must be empty at the moment
+        if(true)
+            throw new Error("Inner Error!!!");
+
+        /*int count;
+        if( !ReadValue<int>( count, -1 ) )
+        return false;*/
+        int count = ReadInt();
+        assert( count >= 0 ); if( count < 0 ) return false;
+        if( count == 0 ) return true;
+
+        elements.resize( count );
+
+        byte[] content = elements.getData();
+        for(int i = 0; i < count; i++){
+            content[i] = Read();
+        }
+
+        return true;
+    }
+
+    public boolean WriteVector( StackByte elements ) throws IOException {
+        assert( elements.size( ) < Integer.MAX_VALUE ); // not supported; to add support for 64bit size use most significant bit (sign) to indicate that the size is >= INT_MAX; this is backwards compatible and will not unnecessarily increase file size
+
+        boolean ret = WriteInt(elements.size()); // /*WriteValue<int>( (int)elements.size( ) )*/;
+        assert( ret ); if( !ret ) return false;
+
+        for( int i = 0; i < elements.size( ); i++ )
+        {
+            ret = Write(elements.get(i) );
+            assert( ret ); if( !ret ) return false;
+        }
+
+        return true;
     }
 }

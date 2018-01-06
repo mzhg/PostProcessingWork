@@ -182,6 +182,12 @@ public class VaMemoryStream extends VaStream {
     }
 
     @Override
+    public float ReadFloat() throws IOException {
+        Read(m_Caches, 0, 4);
+        return Numeric.getFloat(m_Caches, 0);
+    }
+
+    @Override
     public void ReadObject(int size, Writable obj) throws IOException {
         throw new UnsupportedOperationException();
     }
@@ -206,6 +212,12 @@ public class VaMemoryStream extends VaStream {
 
     @Override
     public boolean WriteInt(int value) throws IOException {
+        Numeric.getBytes(value, m_Caches, 0);
+        return Write(m_Caches, 0, 4) > 0;
+    }
+
+    @Override
+    public boolean WriteFloat(float value) throws IOException {
         Numeric.getBytes(value, m_Caches, 0);
         return Write(m_Caches, 0, 4) > 0;
     }

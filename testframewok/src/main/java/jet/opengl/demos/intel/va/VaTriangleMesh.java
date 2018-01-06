@@ -28,7 +28,7 @@ public class VaTriangleMesh extends VaRenderingModuleImpl{
     }
 
 
-    public void        Reset( )
+    public void Reset( )
     {
         Vertices.clear( );
         Indices.clear( );

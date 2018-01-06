@@ -12,7 +12,7 @@ public class VaDirectXIndexBuffer extends VaDirectXBuffer  {
     protected VaDirectXIndexBuffer(int elementSize) {
         super(elementSize);
 
-        if(elementSize != 1 && elementSize != 2 && elementSize !=3)
+        if(elementSize != 1 && elementSize != 2 && elementSize !=4)
             throw new IllegalArgumentException("Inavliad element size for the index buffer: " + elementSize);
     }
 

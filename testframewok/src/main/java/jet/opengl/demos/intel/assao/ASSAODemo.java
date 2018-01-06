@@ -26,7 +26,6 @@ import jet.opengl.demos.intel.va.VaCameraBase;
 import jet.opengl.demos.intel.va.VaCameraControllerBase;
 import jet.opengl.demos.intel.va.VaCameraControllerFocusLocationsFlythrough;
 import jet.opengl.demos.intel.va.VaCameraControllerFreeFlight;
-import jet.opengl.demos.intel.va.VaCore;
 import jet.opengl.demos.intel.va.VaDrawContext;
 import jet.opengl.demos.intel.va.VaFileStream;
 import jet.opengl.demos.intel.va.VaGBuffer;
@@ -39,6 +38,7 @@ import jet.opengl.demos.intel.va.VaRenderMesh;
 import jet.opengl.demos.intel.va.VaRenderMeshDrawList;
 import jet.opengl.demos.intel.va.VaRenderMeshManager;
 import jet.opengl.demos.intel.va.VaRenderPassType;
+import jet.opengl.demos.intel.va.VaRenderingCore;
 import jet.opengl.demos.intel.va.VaRenderingGlobals;
 import jet.opengl.demos.intel.va.VaRenderingModule;
 import jet.opengl.demos.intel.va.VaRenderingModuleRegistrar;
@@ -1047,7 +1047,11 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
     protected void EnsureLoaded( VaAssetPack pack ){
         if( pack.Count( ) == 0 )
         {
-            String assetsPath = VaCore.GetWorkingDirectory() + "Media/" + pack.Name() + ".apack";
+//            String assetsPath = VaCore.GetWorkingDirectory() + "Media/" + pack.Name() + ".apack";
+            String assetsPath = VaRenderingCore.GetInstance().FindAssetFilePath(pack.Name() + ".apack");
+            if(assetsPath.isEmpty()){
+                throw new NullPointerException();
+            }
 
             long startTime = System.currentTimeMillis();
 
@@ -1139,7 +1143,6 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
             return m_cameraFreeFlightController;
         }
     }
-
 
     void SaveCamera( int index )
     {

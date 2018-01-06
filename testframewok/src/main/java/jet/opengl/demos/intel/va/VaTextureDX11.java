@@ -114,7 +114,7 @@ public final class VaTextureDX11 extends VaTexture{
     }
 
     @Override
-    public boolean Load(VaStream inStream) {
+    public boolean Load(VaStream inStream)  throws IOException{
         throw new UnsupportedOperationException();
     }
 

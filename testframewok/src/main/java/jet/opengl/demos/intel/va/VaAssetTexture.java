@@ -1,5 +1,8 @@
 package jet.opengl.demos.intel.va;
 
+import java.io.IOException;
+import java.util.UUID;
+
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -22,21 +25,24 @@ public class VaAssetTexture extends VaAsset {
 
     public  VaTexture           GetTexture( )                        { return Resource; }
 
-    public static VaAssetTexture                         CreateAndLoad( VaAssetPack pack, String name, VaStream inStream ){
+    public static VaAssetTexture CreateAndLoad( VaAssetPack pack, String name, VaStream inStream ) throws IOException{
         /*vaGUID uid;
         VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<vaGUID>( uid ) );*/
+        long most = inStream.ReadLong();
+        long leatest = inStream.ReadLong();
+        UUID uid = new UUID(most, leatest);
 
         VaTexture newResource = //VA_RENDERING_MODULE_CREATE_PARAMS_SHARED( vaTexture, vaTextureConstructorParams( uid ) );
-                VaRenderingModuleRegistrar.CreateModuleTyped("vaTexture", null);
+                VaRenderingModuleRegistrar.CreateModuleTyped("vaTexture", new VaTextureConstructorParams(uid));
 
         if( newResource == null )
             return null;
 
-        /*if( !newResource->UIDObject_IsCorrectlyTracked() )
+        if( !newResource.UIDObject_IsCorrectlyTracked() )
         {
-            VA_LOG_ERROR_STACKINFO( "Error creating asset texture; uid already used" );
-            return nullptr;
-        }*/
+            LogUtil.e(LogUtil.LogType.DEFAULT, "Error creating asset texture; uid already used" );
+            return null;
+        }
 
         if( newResource.Load( inStream ) )
         {

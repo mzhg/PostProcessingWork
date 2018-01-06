@@ -59,6 +59,8 @@ public class VaDirectXBuffer implements Disposeable {
         m_buffer = new BufferGL();
         m_buffer.initlize(target, elementCount * m_elementSize, cast(initializeData, m_elementSize), usage);
         m_buffer.unbind();
+
+        GLCheck.checkError();
     }
 
 

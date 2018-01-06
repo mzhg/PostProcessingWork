@@ -50,7 +50,7 @@ public abstract class VaRenderMeshManager extends VaImguiHierarchyObject impleme
     protected void RenderMeshesTrackeeAddedCallback( int newTrackeeIndex ){}
     protected void RenderMeshesTrackeeBeforeRemovedCallback( int removedTrackeeIndex, int replacedByTrackeeIndex ){}
 
-    public abstract void                                    Draw( VaDrawContext drawContext, VaRenderMeshDrawList list );
+    public abstract void Draw( VaDrawContext drawContext, VaRenderMeshDrawList list );
 
     public TT_Tracker< VaRenderMesh> GetRenderMeshTracker( ) { return m_renderMeshes; }
 

@@ -5,6 +5,7 @@ import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackByte;
 import jet.opengl.postprocessing.util.StackFloat;
@@ -67,7 +69,7 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
     public void                  SetTriangleMesh( VaTriangleMesh mesh ) {m_triangleMesh = mesh;}
     public void    CreateTriangleMesh( /*const vector<StandardVertex> &*/ StackByte vertices, /*const vector<uint32> &*/ StackInt indices ){
 //        shared_ptr<StandardTriangleMesh> mesh = VA_RENDERING_MODULE_CREATE_SHARED( vaRenderMesh::StandardTriangleMesh );
-        VaTriangleMesh mesh = VaRenderingModuleRegistrar.CreateModuleTyped("StandardTriangleMesh", null);
+        VaTriangleMesh mesh = VaRenderingModuleRegistrar.CreateModuleTyped("vaRenderMesh::StandardTriangleMesh", new VaTriangleMeshConstructParams(StandardVertex.SIZE));
 
         mesh.Vertices = vertices;
         mesh.Indices = indices;
@@ -93,9 +95,99 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
         }
     }
 
-    public boolean                                            Save( VaStream outStream ){ throw new UnsupportedOperationException();}
-    public boolean                                            Load( VaStream inStream ) { throw new UnsupportedOperationException();}
-    public  void                                    ReconnectDependencies( ){
+    private static final int c_renderMeshFileVersion = 2;
+
+    public boolean  Save( VaStream outStream ) throws IOException{
+        outStream./*WriteValue<int32>*/ WriteInt( c_renderMeshFileVersion ) ;
+
+        outStream./*WriteValue<int32>*/ WriteInt(m_frontFaceWinding );
+        outStream./*WriteValue<bool>*/ Write( m_tangentBitangentValid? (byte)1: (byte)0 );
+
+        outStream./*WriteValueVector<uint32>*/ WriteVector( m_triangleMesh.Indices );
+        outStream./*WriteValueVector<StandardVertex>*/WriteVector( m_triangleMesh.Vertices ) ;
+
+        assert( m_parts.size( ) < Integer.MAX_VALUE );
+        outStream./*WriteValue<int32>*/WriteInt(m_parts.size( ) );
+
+        for( int i = 0; i < m_parts.size( ); i++ )
+        {
+            SubPart subPart = m_parts.get(i);
+            outStream./*WriteValue<int32>*/WriteInt( subPart.IndexStart );
+            outStream./*WriteValue<int32>*/WriteInt( subPart.IndexCount );
+
+            /*auto material = subPart.Material.lock();
+            VERIFY_TRUE_RETURN_ON_FALSE( SaveUIDObjectUID( outStream, material ) );*/
+            UUID uuid = subPart.Material != null ? subPart.Material.UIDObject_GetUID() : null;
+            if(uuid != null){
+                outStream.WriteLong(uuid.getMostSignificantBits());
+                outStream.WriteLong(uuid.getLeastSignificantBits());
+            }else{
+                outStream.WriteLong(0);
+                outStream.WriteLong(0);
+            }
+        }
+
+//        VERIFY_TRUE_RETURN_ON_FALSE( outStream.WriteValue<vaBoundingBox>( m_boundingBox ) );
+        m_boundingBox.Save(outStream);
+
+        return true;
+    }
+
+    public boolean  Load( VaStream inStream ) throws IOException{
+        int fileVersion;
+//        VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( fileVersion ) );
+        fileVersion = inStream.ReadInt();
+
+        if( !( (fileVersion >= 1 ) && (fileVersion <= c_renderMeshFileVersion) ) )
+        {
+            LogUtil.e(LogUtil.LogType.DEFAULT, "vaRenderMesh::Load(): unsupported file version");
+            return false;
+        }
+
+//        VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( (int32&)m_frontFaceWinding ) );
+        m_frontFaceWinding = inStream.ReadInt();
+
+        if( fileVersion > 1 ) {
+//            VERIFY_TRUE_RETURN_ON_FALSE(inStream.ReadValue < bool > (m_tangentBitangentValid));
+            m_tangentBitangentValid = inStream.Read() != 0;
+        }
+
+//        shared_ptr<StandardTriangleMesh> triMesh = VA_RENDERING_MODULE_CREATE_SHARED( vaRenderMesh::StandardTriangleMesh );
+        VaTriangleMesh triMesh = VaRenderingModuleRegistrar.CreateModuleTyped("vaRenderMesh::StandardTriangleMesh", new VaTriangleMeshConstructParams(StandardVertex.SIZE));
+
+        inStream.ReadVector(triMesh.Indices );
+        inStream.ReadVector(triMesh.Vertices  );
+
+        SetTriangleMesh( triMesh );
+
+        /*int32 partCount = 0;
+        VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( (int32&)partCount ) );*/
+        int partCount = inStream.ReadInt();
+
+//        m_parts.resize( partCount );
+        m_parts.ensureCapacity(partCount);
+
+        for( int i = 0; i < m_parts.size( ); i++ )
+        {
+            /*VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( m_parts[i].IndexStart ) );
+            VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( m_parts[i].IndexCount ) );
+            VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<vaGUID>( m_parts[i].MaterialID ) );*/
+            SubPart subPart = new SubPart();
+            subPart.IndexStart = inStream.ReadInt();
+            subPart.IndexCount = inStream.ReadInt();
+            long mostSigBits = inStream.ReadLong();
+            long leastSigBits = inStream.ReadLong();
+            subPart.MaterialID = new UUID(mostSigBits, leastSigBits);
+
+            m_parts.add(subPart);
+        }
+
+//        VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<vaBoundingBox>( m_boundingBox ) );
+        m_boundingBox.Load(inStream);
+
+        return true;
+    }
+    public void ReconnectDependencies( ){
         for( int i = 0; i < m_parts.size(); i++ )
         {
             /*std::shared_ptr<vaRenderMaterial> materialSharedPtr;

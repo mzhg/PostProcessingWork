@@ -599,8 +599,8 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     public abstract void                    ClearUAV( /*vaRenderDeviceContext & context,*/ Vector4f clearValue );
     public abstract void                    ClearDSV( /*vaRenderDeviceContext & context,*/ boolean clearDepth, float depthValue, boolean clearStencil, int stencilValue );
 
-    public abstract boolean                    Load( VaStream inStream );
-    public  boolean                    Save( VaStream outStream ){
+    public abstract boolean  Load( VaStream inStream ) throws IOException;
+    public  boolean          Save( VaStream outStream )  throws IOException{
         throw new UnsupportedOperationException();
     }
 
