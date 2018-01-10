@@ -32,7 +32,7 @@ public class VaTriangleMeshDX11 extends VaTriangleMesh implements VaDirectXNotif
                 Vertices.trimToSize();
 
                 m_indexBuffer.Create( Indices.size( ), Indices.getData(), GLenum.GL_STATIC_DRAW);
-                m_vertexBuffer.Create( Vertices.size( ), Vertices.getData(), GLenum.GL_STATIC_DRAW );
+                m_vertexBuffer.Create( Vertices.size( )/m_vertexStride, Vertices.getData(), GLenum.GL_STATIC_DRAW );
             }
             m_dirty = false;
         }

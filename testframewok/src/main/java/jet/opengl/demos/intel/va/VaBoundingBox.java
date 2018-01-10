@@ -25,24 +25,15 @@ public class VaBoundingBox {
     public Vector3f                       Max( )  { return Vector3f.add(Min , Size, null); }
 
     public boolean  Save( VaStream outStream ) throws IOException{
-        outStream.WriteFloat(Min.x);
-        outStream.WriteFloat(Min.y);
-        outStream.WriteFloat(Min.z);
-
-        outStream.WriteFloat(Size.x);
-        outStream.WriteFloat(Size.y);
-        outStream.WriteFloat(Size.z);
+        outStream.Write(Min);
+        outStream.Write(Size);
 
         return true;
     }
 
     public boolean  Load( VaStream inStream ) throws IOException {
-        Min.x = inStream.ReadFloat();
-        Min.y = inStream.ReadFloat();
-        Min.z = inStream.ReadFloat();
-        Size.x = inStream.ReadFloat();
-        Size.y = inStream.ReadFloat();
-        Size.z = inStream.ReadFloat();
+        inStream.Read(Min);
+        inStream.Read(Size);
 
         return true;
     }

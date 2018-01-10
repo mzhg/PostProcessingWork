@@ -34,7 +34,7 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
     private VaRenderMeshManager                           m_renderMeshManager;
 
     private int                                  m_frontFaceWinding;
-    private boolean                                            m_tangentBitangentValid;
+    private boolean  m_tangentBitangentValid;
 
     private VaTriangleMesh               m_triangleMesh;
 
@@ -66,7 +66,7 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
     public void                                            SetParts( List<SubPart> parts ) { /*m_parts = parts;*/ m_parts.clear(); m_parts.addAll(parts); } //assert( parts.size() <= c_maxSubParts ); }
 
     public VaTriangleMesh        GetTriangleMesh(  )                           { return m_triangleMesh; }
-    public void                  SetTriangleMesh( VaTriangleMesh mesh ) {m_triangleMesh = mesh;}
+    public void                  SetTriangleMesh( VaTriangleMesh mesh )        {m_triangleMesh = mesh;}
     public void    CreateTriangleMesh( /*const vector<StandardVertex> &*/ StackByte vertices, /*const vector<uint32> &*/ StackInt indices ){
 //        shared_ptr<StandardTriangleMesh> mesh = VA_RENDERING_MODULE_CREATE_SHARED( vaRenderMesh::StandardTriangleMesh );
         VaTriangleMesh mesh = VaRenderingModuleRegistrar.CreateModuleTyped("vaRenderMesh::StandardTriangleMesh", new VaTriangleMeshConstructParams(StandardVertex.SIZE));
@@ -98,33 +98,27 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
     private static final int c_renderMeshFileVersion = 2;
 
     public boolean  Save( VaStream outStream ) throws IOException{
-        outStream./*WriteValue<int32>*/ WriteInt( c_renderMeshFileVersion ) ;
+        outStream./*WriteValue<int32>*/ Write( c_renderMeshFileVersion ) ;
 
-        outStream./*WriteValue<int32>*/ WriteInt(m_frontFaceWinding );
+        outStream./*WriteValue<int32>*/ Write(m_frontFaceWinding );
         outStream./*WriteValue<bool>*/ Write( m_tangentBitangentValid? (byte)1: (byte)0 );
 
         outStream./*WriteValueVector<uint32>*/ WriteVector( m_triangleMesh.Indices );
-        outStream./*WriteValueVector<StandardVertex>*/WriteVector( m_triangleMesh.Vertices ) ;
+        outStream./*WriteValueVector<StandardVertex>*/WriteVector( m_triangleMesh.Vertices, StandardVertex.SIZE ) ;
 
         assert( m_parts.size( ) < Integer.MAX_VALUE );
-        outStream./*WriteValue<int32>*/WriteInt(m_parts.size( ) );
+        outStream./*WriteValue<int32>*/Write(m_parts.size( ) );
 
         for( int i = 0; i < m_parts.size( ); i++ )
         {
             SubPart subPart = m_parts.get(i);
-            outStream./*WriteValue<int32>*/WriteInt( subPart.IndexStart );
-            outStream./*WriteValue<int32>*/WriteInt( subPart.IndexCount );
+            outStream./*WriteValue<int32>*/Write( subPart.IndexStart );
+            outStream./*WriteValue<int32>*/Write( subPart.IndexCount );
 
             /*auto material = subPart.Material.lock();
             VERIFY_TRUE_RETURN_ON_FALSE( SaveUIDObjectUID( outStream, material ) );*/
             UUID uuid = subPart.Material != null ? subPart.Material.UIDObject_GetUID() : null;
-            if(uuid != null){
-                outStream.WriteLong(uuid.getMostSignificantBits());
-                outStream.WriteLong(uuid.getLeastSignificantBits());
-            }else{
-                outStream.WriteLong(0);
-                outStream.WriteLong(0);
-            }
+            outStream.Write(uuid);
         }
 
 //        VERIFY_TRUE_RETURN_ON_FALSE( outStream.WriteValue<vaBoundingBox>( m_boundingBox ) );
@@ -149,14 +143,14 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
 
         if( fileVersion > 1 ) {
 //            VERIFY_TRUE_RETURN_ON_FALSE(inStream.ReadValue < bool > (m_tangentBitangentValid));
-            m_tangentBitangentValid = inStream.Read() != 0;
+            m_tangentBitangentValid = inStream.ReadBoolean();
         }
 
 //        shared_ptr<StandardTriangleMesh> triMesh = VA_RENDERING_MODULE_CREATE_SHARED( vaRenderMesh::StandardTriangleMesh );
         VaTriangleMesh triMesh = VaRenderingModuleRegistrar.CreateModuleTyped("vaRenderMesh::StandardTriangleMesh", new VaTriangleMeshConstructParams(StandardVertex.SIZE));
 
         inStream.ReadVector(triMesh.Indices );
-        inStream.ReadVector(triMesh.Vertices  );
+        inStream.ReadVector(triMesh.Vertices, StandardVertex.SIZE  );
 
         SetTriangleMesh( triMesh );
 
@@ -166,8 +160,7 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
 
 //        m_parts.resize( partCount );
         m_parts.ensureCapacity(partCount);
-
-        for( int i = 0; i < m_parts.size( ); i++ )
+        for( int i = 0; i < partCount; i++ )
         {
             /*VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( m_parts[i].IndexStart ) );
             VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( m_parts[i].IndexCount ) );
@@ -175,9 +168,7 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
             SubPart subPart = new SubPart();
             subPart.IndexStart = inStream.ReadInt();
             subPart.IndexCount = inStream.ReadInt();
-            long mostSigBits = inStream.ReadLong();
-            long leastSigBits = inStream.ReadLong();
-            subPart.MaterialID = new UUID(mostSigBits, leastSigBits);
+            subPart.MaterialID = inStream.ReadUUID();
 
             m_parts.add(subPart);
         }
@@ -294,6 +285,7 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
         VaStandardShapes.CreateTetrahedron( vertices, indices, shareVertices );
         int windingOrder = WindingOrder_Clockwise;
 
+        normals.resize(vertices.size());
         VaTriangleMeshTools.GenerateNormals( normals, vertices, indices, windingOrder == WindingOrder_CounterClockwise );
 
         FillDummyTTT( vertices, normals, tangents, texcoords0, texcoords1 );

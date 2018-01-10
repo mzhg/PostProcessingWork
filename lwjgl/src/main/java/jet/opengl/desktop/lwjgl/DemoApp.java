@@ -91,6 +91,7 @@ public class DemoApp {
 //        run(new ASSAODemoDebug());
         run(SSAODemoDX11.newInstance());
 //        testRectVertex();
+//        run(new OutdoorLightScatteringSample());
     }
 
     private static void testRectVertex(){

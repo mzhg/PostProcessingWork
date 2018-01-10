@@ -16,13 +16,13 @@ import jet.opengl.postprocessing.util.CommonUtil;
 
 final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
 
-    private VaDirectXPixelShader                    m_pixelShader;
+    private VaDirectXPixelShader                    m_pixelShader = new VaDirectXPixelShader();
 
-    private VaDirectXPixelShader                    m_depthToViewspaceLinearPS;
-    private VaDirectXPixelShader                    m_debugDrawDepthPS;
-    private VaDirectXPixelShader                    m_debugDrawDepthViewspaceLinearPS;
-    private VaDirectXPixelShader                    m_debugDrawNormalMapPS;
-    private VaDirectXPixelShader                    m_debugDrawAlbedoPS;
+    private VaDirectXPixelShader                    m_depthToViewspaceLinearPS = new VaDirectXPixelShader();
+    private VaDirectXPixelShader                    m_debugDrawDepthPS = new VaDirectXPixelShader();
+    private VaDirectXPixelShader                    m_debugDrawDepthViewspaceLinearPS = new VaDirectXPixelShader();
+    private VaDirectXPixelShader                    m_debugDrawNormalMapPS = new VaDirectXPixelShader();
+    private VaDirectXPixelShader                    m_debugDrawAlbedoPS = m_debugDrawNormalMapPS;
     private VaDirectXPixelShader                    m_debugDrawRadiancePS;
     private boolean                                 m_shadersDirty;
 
@@ -31,7 +31,7 @@ final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
     private int m_storeageIndex;
 
     private final List<Macro> m_staticShaderMacros = new ArrayList<>();
-    private String                                 m_shaderFileToUse;
+    private String m_shaderFileToUse;
 
     protected VaGBufferDX11( VaConstructorParamsBase params ){
         m_shadersDirty = true;
@@ -73,8 +73,8 @@ final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
             if( format == VaTexture.D32_FLOAT )
             {
                 bindFlags = (bindFlags & ~(VaTexture.BSF_RenderTarget | VaTexture.BSF_UnorderedAccess)) | VaTexture.BSF_DepthStencil;
-                resourceFormat  = VaTexture.R32_TYPELESS;
-                srvFormat       = VaTexture.R32_FLOAT;
+                resourceFormat  = VaTexture./*R32_TYPELESS*/D32_FLOAT;
+                srvFormat       = VaTexture./*R32_FLOAT*/D32_FLOAT;
                 rtvFormat       = VaTexture.Unknown;
                 dsvFormat       = VaTexture.D32_FLOAT;
                 uavFormat       = VaTexture.Unknown;
@@ -149,12 +149,12 @@ final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
         {
             m_shadersDirty = false;
 
-            m_depthToViewspaceLinearPS.CreateShaderFromFile(        GetShaderFilePath( ), "ps_5_0", "DepthToViewspaceLinearPS",         m_staticShaderMacros );
-            m_debugDrawDepthPS.CreateShaderFromFile(                GetShaderFilePath( ), "ps_5_0", "DebugDrawDepthPS",                 m_staticShaderMacros );
-            m_debugDrawDepthViewspaceLinearPS.CreateShaderFromFile( GetShaderFilePath( ), "ps_5_0", "DebugDrawDepthViewspaceLinearPS",  m_staticShaderMacros );
-            m_debugDrawNormalMapPS.CreateShaderFromFile(            GetShaderFilePath( ), "ps_5_0", "DebugDrawNormalMapPS",             m_staticShaderMacros );
-            m_debugDrawAlbedoPS.CreateShaderFromFile(               GetShaderFilePath( ), "ps_5_0", "DebugDrawAlbedoPS",                m_staticShaderMacros );
-            m_debugDrawRadiancePS.CreateShaderFromFile(             GetShaderFilePath( ), "ps_5_0", "DebugDrawRadiancePS",              m_staticShaderMacros );
+            m_depthToViewspaceLinearPS.CreateShaderFromFile("vaDepthToViewspaceLinearPS.frag", "ps_5_0", "DepthToViewspaceLinearPS",         m_staticShaderMacros );
+            m_debugDrawDepthPS.CreateShaderFromFile(                "vaDebugDrawDepthPS.frag", "ps_5_0", "DebugDrawDepthPS",                 m_staticShaderMacros );
+            m_debugDrawDepthViewspaceLinearPS.CreateShaderFromFile("vaDebugDrawDepthViewspaceLinearPS.frag", "ps_5_0", "DebugDrawDepthViewspaceLinearPS",  m_staticShaderMacros );
+            m_debugDrawNormalMapPS.CreateShaderFromFile("vaDebugDrawNormalMapPS.frag", "ps_5_0", "DebugDrawNormalMapPS",             m_staticShaderMacros );
+//            m_debugDrawAlbedoPS.CreateShaderFromFile("", "ps_5_0", "DebugDrawAlbedoPS",                m_staticShaderMacros );
+//            m_debugDrawRadiancePS.CreateShaderFromFile(             GetShaderFilePath( ), "ps_5_0", "DebugDrawRadiancePS",              m_staticShaderMacros );
         }
     }
 

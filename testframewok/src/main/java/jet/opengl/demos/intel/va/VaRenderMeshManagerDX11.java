@@ -5,6 +5,8 @@ import org.lwjgl.util.vector.Matrix4f;
 import java.util.List;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
@@ -20,6 +22,7 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
     private final RenderMeshConstants m_constants = new RenderMeshConstants();
     private final RasterizerState  m_rasterizerState = new RasterizerState();
     private int m_storeageIndex;
+    private GLFuncProvider gl;
 
     protected VaRenderMeshManagerDX11(VaConstructorParamsBase params){
         VaDirectXCore.helperInitlize(this);
@@ -37,6 +40,7 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
 
     @Override
     public void OnDeviceCreated() {
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         m_constantsBuffer.Create();
     }
 
@@ -48,7 +52,6 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
     @Override
     public void Draw(VaDrawContext drawContext, VaRenderMeshDrawList list) {
         VaRenderDeviceContextDX11 apiContext = (VaRenderDeviceContextDX11) drawContext.APIContext;
-//        ID3D11DeviceContext * dx11Context = apiContext->GetDXImmediateContext( );
 
         assert( drawContext.GetRenderingGlobalsUpdated( ) );    if( !drawContext.GetRenderingGlobalsUpdated( ) ) return;
 
@@ -65,10 +68,12 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
         VaDirectXTools.AssertSetToD3DContextAllShaderTypes( /*dx11Context,*/ ( Texture2D ) null, VaShaderDefine.RENDERMESH_TEXTURE_SLOT5 );
         VaDirectXTools.AssertSetToD3DContextAllShaderTypes( /*dx11Context,*/ ( BufferGL ) null, VaShaderDefine.RENDERMESH_CONSTANTS_BUFFERSLOT );
         VaDirectXTools.AssertSetToD3DContextAllShaderTypes( /*dx11Context,*/ ( BufferGL ) null, VaShaderDefine.RENDERMESHMATERIAL_CONSTANTS_BUFFERSLOT );
+        gl.glUseProgram(0);
 
         // set our main constant buffer
         m_constantsBuffer.SetToD3DContextAllShaderTypes( /*dx11Context,*/ VaShaderDefine.RENDERMESH_CONSTANTS_BUFFERSLOT );
         final GLStateTracker stateTracker = GLStateTracker.getInstance();
+        stateTracker.saveStates();
 
         // Global API states
 //        dx11Context->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
@@ -93,7 +98,6 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
         }
 
         // should sort by mesh, then iterate by meshes -> subparts -> draw entries
-
         for( int i = 0; i < list.Count(); i++ )
         {
             VaRenderMeshDrawList.Entry  entry = list.get(i);
@@ -112,6 +116,7 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
 
 //            StandardTriangleMeshDX11 * triMeshDX11 = mesh.GetTriangleMesh( )->SafeCast<StandardTriangleMeshDX11 *>();
             VaTriangleMeshDX11 triMeshDX11 = mesh.GetTriangleMesh().SafeCast();
+            // bind the array buffer and indices buffers
             triMeshDX11.UpdateAndSetToD3DContext( /*dx11Context*/ );
 
             // update per-instance constants
@@ -145,6 +150,7 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
                 consts.Color.set(entry.Color);
 
                 m_constantsBuffer.Update( /*dx11Context,*/ consts );
+                GLCheck.checkError();
             }
 
             // draw subparts!
@@ -163,7 +169,7 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
                 VaRenderMaterial.MaterialSettings  materialSettings = material.GetSettings();
 
                 RasterizerState rasterizerDesc = m_rasterizerState;
-                rasterizerDesc.fillMode                 = (drawContext.PassType == VaRenderPassType.ForwardDebugWireframe)?(GLenum.GL_LINE):( GLenum.GL_FILL );
+                rasterizerDesc.fillMode        = (drawContext.PassType == VaRenderPassType.ForwardDebugWireframe)?(GLenum.GL_LINE):( GLenum.GL_FILL );
 //                rasterizerDesc.cullMode                 = (materialSettings.FaceCull == vaFaceCull::None)?( D3D11_CULL_NONE ): ( (materialSettings.FaceCull == vaFaceCull::Front)?( D3D11_CULL_FRONT ): ( D3D11_CULL_BACK ) );
                 if(materialSettings.FaceCull == VaRenderMaterial.FaceCull_None){
                     rasterizerDesc.cullFaceEnable = false;
@@ -191,7 +197,23 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
                 material.UploadToAPIContext( drawContext );
 
 //                dx11Context->DrawIndexed( subPart.IndexCount, subPart.IndexStart, 0 );
-                GLFuncProviderFactory.getGLFuncProvider().glDrawElementsBaseVertex(GLenum.GL_TRIANGLES, subPart.IndexCount, GLenum.GL_UNSIGNED_INT, subPart.IndexStart, 0);
+                boolean checkBuffer = true;
+                if(checkBuffer){
+                    int vertexBuffer = gl.glGetInteger(GLenum.GL_ARRAY_BUFFER_BINDING);
+                    if(vertexBuffer == 0)
+                        throw new IllegalStateException("No Vertex Array Buffer binding!");
+
+                    int indiceBuffer = gl.glGetInteger(GLenum.GL_ELEMENT_ARRAY_BUFFER_BINDING);
+                    if(indiceBuffer == 0)
+                        throw new IllegalStateException("No Element Array Buffer binding!");
+
+                    GLCheck.checkError();
+                }
+
+                gl.glDrawElementsBaseVertex(GLenum.GL_TRIANGLES, subPart.IndexCount, GLenum.GL_UNSIGNED_INT, subPart.IndexStart, 0);
+                GLCheck.checkError();
+
+                material.ClearVertexBuffers( drawContext);
             }
         }
 
@@ -208,11 +230,16 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
         VaDirectXTools.SetToD3DContextAllShaderTypes( /*dx11Context,*/ ( BufferGL ) null, VaShaderDefine.RENDERMESH_CONSTANTS_BUFFERSLOT );
         VaDirectXTools.SetToD3DContextAllShaderTypes( /*dx11Context,*/ ( BufferGL ) null, VaShaderDefine.RENDERMESHMATERIAL_CONSTANTS_BUFFERSLOT );
 
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+        stateTracker.restoreStates();
+
         /*ID3D11ShaderResourceView * nullTextures[4] = { NULL, NULL, NULL, NULL };
         dx11Context->VSSetShader( NULL, NULL, 0 );
         dx11Context->VSSetShaderResources( 0, _countof( nullTextures ), nullTextures );
         dx11Context->PSSetShader( NULL, NULL, 0 );
         dx11Context->PSSetShaderResources( 0, _countof( nullTextures ), nullTextures );*/
         apiContext.ClearShaders();
+        GLCheck.checkError();
     }
 }

@@ -7,6 +7,7 @@ import java.util.Map;
 import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.util.LogUtil;
 
 /**
  * Created by mazhen'gui on 2017/11/21.
@@ -28,6 +29,19 @@ public class VaRenderMaterialManagerDX11 extends VaRenderMaterialManager impleme
     @Override
     public int getStorageIndex() {
         return m_storeageIndex;
+    }
+
+    private static String constructShaderFileName(String fileName, String shaderModel, String entryName){
+        String ext;
+        if(shaderModel.startsWith("vs")){
+            ext = "vert";
+        }else if(shaderModel.startsWith("ps")){
+            ext = "frag";
+        }else{
+            throw new IllegalArgumentException("unkowm shaderModel: " + shaderModel);
+        }
+
+        return String.format(fileName, entryName, ext);
     }
 
     public VaRenderMaterialCachedShadersDX11 FindOrCreateShaders( String fileName, boolean alphaTest, String entryVS_PosOnly, String entryPS_DepthOnly,
@@ -62,17 +76,19 @@ public class VaRenderMaterialManagerDX11 extends VaRenderMaterialManager impleme
             inputElements[4] = ( VaDirectXTools.CD3D11_INPUT_ELEMENT_DESC( "TEXCOORD", 0, GLenum.GL_RG32F, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 ) );
             inputElements[5] = ( VaDirectXTools.CD3D11_INPUT_ELEMENT_DESC( "TEXCOORD", 1, GLenum.GL_RG32F, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 ) );
 
-            newShaders.VS_PosOnly.CreateShaderAndILFromFile( fileName, "vs_5_0", entryVS_PosOnly, shaderMacros, inputElements/*, (uint32)inputElements.size( )*/ );
-            newShaders.VS_Standard.CreateShaderAndILFromFile( fileName, "vs_5_0", entryVS_Standard, shaderMacros, inputElements/*, (uint32)inputElements.size( )*/ );
+            newShaders.VS_PosOnly.CreateShaderAndILFromFile( constructShaderFileName(fileName, "vs_5_0",entryVS_PosOnly), "vs_5_0", entryVS_PosOnly, shaderMacros, inputElements/*, (uint32)inputElements.size( )*/ );
+            newShaders.VS_Standard.CreateShaderAndILFromFile( constructShaderFileName(fileName, "vs_5_0",entryVS_Standard),"vs_5_0", entryVS_Standard, shaderMacros, inputElements/*, (uint32)inputElements.size( )*/ );
             if( alphaTest )
-                newShaders.PS_DepthOnly.CreateShaderFromFile( fileName, "ps_5_0", entryPS_DepthOnly, shaderMacros );
+                newShaders.PS_DepthOnly.CreateShaderFromFile( constructShaderFileName(fileName,"ps_5_0",entryPS_DepthOnly), "ps_5_0", entryPS_DepthOnly, shaderMacros );
             else
                 newShaders.PS_DepthOnly.Clear( );
-            newShaders.PS_Forward.CreateShaderFromFile( fileName, "ps_5_0", entryPS_Forward, shaderMacros );
-            newShaders.PS_Deferred.CreateShaderFromFile( fileName, "ps_5_0", entryPS_Deferred, shaderMacros );
+            newShaders.PS_Forward.CreateShaderFromFile( constructShaderFileName(fileName, "ps_5_0",entryPS_Forward),"ps_5_0", entryPS_Forward, shaderMacros );
+            newShaders.PS_Deferred.CreateShaderFromFile( constructShaderFileName(fileName,"ps_5_0",entryPS_Deferred), "ps_5_0", entryPS_Deferred, shaderMacros );
 
 //            m_cachedShaders.insert( std::make_pair( cacheKey, newShaders ) );
             m_cachedShaders.put(cacheKey, newShaders);
+
+            LogUtil.i(LogUtil.LogType.DEFAULT, "Create a VaRenderMaterialCachedShadersDX11, the size of the cache is " + m_cachedShaders.size());
 
             return newShaders;
         }

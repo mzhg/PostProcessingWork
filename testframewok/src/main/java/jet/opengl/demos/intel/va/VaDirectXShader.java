@@ -488,7 +488,7 @@ public abstract class VaDirectXShader implements VaDirectXNotifyTarget, Disposea
     }
 
     //
-    protected ShaderSourceItem                  CreateShaderBase( boolean[] loadedFromCache ) throws IOException{
+    protected ShaderSourceItem CreateShaderBase( boolean[] loadedFromCache ) throws IOException{
         ShaderSourceItem shaderBlob = null;
         loadedFromCache[0] = false;
 

@@ -7,6 +7,7 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.BufferUtils;
 
 /**
@@ -23,6 +24,48 @@ public class BufferGL implements Disposeable{
     private GLFuncProvider gl;
     private boolean m_bInMapping;
 
+    @Override
+    public String toString() {
+        StringBuilder out = new StringBuilder();
+        out.append(getBufferTargetName(m_target)).append('(').append(m_bufferID).append("):[");
+        out.append("size = ").append(m_bufferSize).append(", Usage = ").append(getBufferUsageName(m_usage)).append("]");
+
+        return out.toString();
+    }
+
+    public static String getBufferUsageName(int usage){
+        switch (usage){
+            case GLenum.GL_DYNAMIC_COPY:  return "GL_DYNAMIC_COPY";
+            case GLenum.GL_DYNAMIC_DRAW:  return "GL_DYNAMIC_DRAW";
+            case GLenum.GL_DYNAMIC_READ:  return "GL_DYNAMIC_READ";
+            case GLenum.GL_STATIC_COPY:  return "GL_STATIC_COPY";
+            case GLenum.GL_STATIC_DRAW:  return "GL_STATIC_DRAW";
+            case GLenum.GL_STATIC_READ:  return "GL_STATIC_READ";
+            case GLenum.GL_STREAM_COPY:  return "GL_STREAM_COPY";
+            case GLenum.GL_STREAM_DRAW:  return "GL_STREAM_DRAW";
+            case GLenum.GL_STREAM_READ:  return "GL_STREAM_READ";
+            default:
+                throw new IllegalArgumentException("Unkown Buffer Uage: " + Integer.toHexString(usage));
+        }
+    }
+
+    public static String getBufferTargetName(int target){
+        switch (target){
+            case GLenum.GL_ARRAY_BUFFER: return "GL_ARRAY_BUFFER";
+            case GLenum.GL_ELEMENT_ARRAY_BUFFER: return "GL_ELEMENT_ARRAY_BUFFER";
+            case GLenum.GL_UNIFORM_BUFFER: return "GL_UNIFORM_BUFFER";
+            case GLenum.GL_SHADER_STORAGE_BUFFER: return "GL_SHADER_STORAGE_BUFFER";
+            case GLenum.GL_TEXTURE_BUFFER_ARB: return "GL_TEXTURE_BUFFER";
+            case GLenum.GL_PIXEL_PACK_BUFFER: return "GL_PIXEL_PACK_BUFFER";
+            case GLenum.GL_PIXEL_UNPACK_BUFFER: return "GL_PIXEL_UNPACK_BUFFER";
+            case GLenum.GL_COPY_READ_BUFFER: return "GL_COPY_READ_BUFFER";
+            case GLenum.GL_COPY_WRITE_BUFFER: return "GL_COPY_WRITE_BUFFER";
+            case GLenum.GL_ATOMIC_COUNTER_BUFFER: return "GL_ATOMIC_COUNTER_BUFFER";
+            default:
+                throw new IllegalArgumentException("Unkown buffer target: " + Integer.toHexString(target));
+        }
+    }
+
     public void initlize(int target, int size, Buffer data, int usage/*, boolean persistent*/){
         gl = GLFuncProviderFactory.getGLFuncProvider();
 //        GLAPIVersion version = gl.getGLAPIVersion();
@@ -32,7 +75,7 @@ public class BufferGL implements Disposeable{
 
         gl.glBindBuffer(target, m_bufferID);
         if(data == null){
-            gl.glBufferData(target, (int)size, usage);
+            gl.glBufferData(target, size, usage);
         }else{
             if(GLCheck.CHECK){
                 if(size != BufferUtils.measureSize(data)){

@@ -81,6 +81,11 @@ vec3 mul(in mat3 m , in vec3 v)
 	return m * v;
 }
 
+vec2 mul(in mat2 m , in vec2 v)
+{
+	return m * v;
+}
+
 void sincos(float angle, out float _sin, out float _cos)
 {
     _sin = sin(angle);

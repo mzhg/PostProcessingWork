@@ -1,6 +1,7 @@
 package jet.opengl.demos.intel.va;
 
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
+import jet.opengl.postprocessing.common.GLCheck;
 
 /**
  * Created by mazhen'gui on 2017/11/21.
@@ -38,6 +39,29 @@ public class VaRenderMaterialDX11 extends VaRenderMaterial implements VaDirectXN
     }
 
     @Override
+    public void ClearVertexBuffers(VaDrawContext drawContext) {
+        VaRenderDeviceContextDX11 apiContext = (VaRenderDeviceContextDX11) drawContext.APIContext;
+        apiContext.VSSetShader(null);
+        apiContext.PSSetShader( null);
+
+        if( (drawContext.PassType == VaRenderPassType.DepthPrePass) || (drawContext.PassType ==VaRenderPassType.GenerateShadowmap) )
+        {
+            ID3D11InputLayout inputLayout = m_shaders.VS_PosOnly.GetInputLayout();
+            inputLayout.unbind();
+        }
+        else if( (drawContext.PassType == VaRenderPassType.Deferred) || (drawContext.PassType == VaRenderPassType.ForwardOpaque) || (drawContext.PassType == VaRenderPassType.ForwardTransparent) ||
+                (drawContext.PassType == VaRenderPassType.ForwardDebugWireframe) )
+        {
+            ID3D11InputLayout inputLayout = m_shaders.VS_Standard.GetInputLayout();
+            inputLayout.unbind();
+        }
+        else // all other
+        {
+            assert( false ); // not implemented!
+        }
+    }
+
+    @Override
     public void UploadToAPIContext(VaDrawContext drawContext) {
         UpdateShaderMacros( );
 
@@ -51,7 +75,7 @@ public class VaRenderMaterialDX11 extends VaRenderMaterial implements VaDirectXN
         }
 
         VaRenderDeviceContextDX11 apiContext = (VaRenderDeviceContextDX11) drawContext.APIContext;
-//        ID3D11DeviceContext * dx11Context = apiContext->GetDXImmediateContext( );
+        apiContext.BeginRender();
 
         if( (drawContext.PassType == VaRenderPassType.DepthPrePass) || (drawContext.PassType ==VaRenderPassType.GenerateShadowmap) )
         {
@@ -92,8 +116,10 @@ public class VaRenderMaterialDX11 extends VaRenderMaterial implements VaDirectXN
         if( m_textureSpecular!= nullptr )   materialTextures[2] = m_textureSpecular->SafeCast<vaTextureDX11*>( )->GetSRV( );
 
         dx11Context->PSSetShaderResources( RENDERMESH_TEXTURE_SLOT0, _countof( materialTextures ), materialTextures );*/
-        VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureAlbedo).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT0);
-        VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureNormalmap).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT0+1);
-        VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureSpecular).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT0 + 2);
+        if(m_textureAlbedo != null) VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureAlbedo).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT0);
+        if(m_textureNormalmap != null) VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureNormalmap).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT0+1);
+        if(m_textureSpecular != null) VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureSpecular).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT0 + 2);
+
+        GLCheck.checkError();
     }
 }

@@ -1,5 +1,6 @@
 package jet.opengl.demos.intel.assao;
 
+import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
 import org.lwjgl.util.vector.Matrix3f;
@@ -32,6 +33,7 @@ import jet.opengl.demos.intel.va.VaGBuffer;
 import jet.opengl.demos.intel.va.VaLighting;
 import jet.opengl.demos.intel.va.VaOrientedBoundingBox;
 import jet.opengl.demos.intel.va.VaPostProcess;
+import jet.opengl.demos.intel.va.VaRenderDevice;
 import jet.opengl.demos.intel.va.VaRenderDeviceContext;
 import jet.opengl.demos.intel.va.VaRenderMaterialManager;
 import jet.opengl.demos.intel.va.VaRenderMesh;
@@ -42,12 +44,13 @@ import jet.opengl.demos.intel.va.VaRenderingCore;
 import jet.opengl.demos.intel.va.VaRenderingGlobals;
 import jet.opengl.demos.intel.va.VaRenderingModule;
 import jet.opengl.demos.intel.va.VaRenderingModuleRegistrar;
-import jet.opengl.demos.intel.va.VaShaderDefine;
 import jet.opengl.demos.intel.va.VaSimpleShadowMap;
 import jet.opengl.demos.intel.va.VaSky;
 import jet.opengl.demos.intel.va.VaTexture;
 import jet.opengl.demos.intel.va.VaViewport;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -77,14 +80,13 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
     private VaCameraControllerFocusLocationsFlythrough m_flythroughCameraControllerSibenik;
     private VaCameraControllerFocusLocationsFlythrough m_flythroughCameraControllerLostEmpire;
 
-//    shared_ptr<vaRenderDevice>              m_renderDevice;
+    private VaRenderDevice              m_renderDevice;
 //    shared_ptr<vaApplication>               m_application;
 
     private VaSky m_sky;
     private VaRenderingGlobals m_renderingGlobals;
 
     private VaSimpleShadowMap m_simpleShadowMap;
-
 
     private final VaRenderMeshDrawList m_meshDrawList = new VaRenderMeshDrawList();
 
@@ -100,7 +102,7 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
 
     private int                         m_loadedSceneChoice;
 
-    private float[]                     m_shaderDebugData = new float[VaShaderDefine.SHADERGLOBAL_DEBUG_FLOAT_OUTPUT_COUNT ];
+//    private float[]                     m_shaderDebugData = new float[VaShaderDefine.SHADERGLOBAL_DEBUG_FLOAT_OUTPUT_COUNT ];
 
     private VaAssetPack                 m_assetsDragon;
     private VaAssetPack                 m_assetsSibenik;
@@ -139,6 +141,9 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
 
         m_cameraFreeFlightController    = new VaCameraControllerFreeFlight();
         m_cameraFreeFlightController.SetMoveWhileNotCaptured( false );
+
+        m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
+        m_transformer.setTranslation(4.3f, 29.2f, 14.2f);
 
         m_renderingGlobals  =  VA_RENDERING_MODULE_CREATE_UNIQUE( "vaRenderingGlobals" );
 
@@ -210,8 +215,8 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
                     /*fileOut.WriteValue<int32>( (int32)sizeof(m_settings) );
                     fileOut.WriteValue( m_settings );*/
 
-                    fileOut.WriteInt(SSAODemoSettings.SIZE);
-                    fileOut.WriteObject(m_settings.SIZE, m_settings);
+                    fileOut.Write(SSAODemoSettings.SIZE);
+                    fileOut.Write(m_settings.SIZE, m_settings);
 
                 }
             } catch (IOException e) {
@@ -225,7 +230,9 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
         m_sceneMeshesTransforms.clear();
     }
 
-    public void Initialize( /*const std::shared_ptr<vaRenderDevice> & renderDevice, const std::shared_ptr<vaApplication> & application*/ ){
+    public void Initialize(VaRenderDevice renderDevice/*, const std::shared_ptr<vaApplication> & application*/ ){
+        gl = GLFuncProviderFactory.getGLFuncProvider();
+        m_renderDevice = renderDevice;
     }
 
     public VaCameraBase   GetCamera( )          { return m_camera; }
@@ -241,7 +248,11 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
     public void OnStopped( ){}
     public void OnBeforeStopped( ){}
 
-    public void OnResized( int width, int height, boolean windowed ){    m_camera.SetViewportSize( width, height );}
+    public void OnResized( int width, int height, boolean windowed ){
+        m_renderDevice.ResizeSwapChain(width, height, windowed);
+        GLCheck.checkError();
+        m_camera.SetViewportSize( width, height );
+    }
 
     public void OnTick( float deltaTime ){
         if( deltaTime > 0.2f )
@@ -438,7 +449,7 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
 
     public void OnRender( ){
         m_frameIndex++;
-        VaRenderDeviceContext mainContext = null;//m_renderDevice.GetMainContext( );
+        VaRenderDeviceContext mainContext = m_renderDevice.GetMainContext( );
 
         VaViewport mainViewportBackup   = new VaViewport(0,0, getGLContext().width(),  getGLContext().height()); // m_renderDevice->GetMainContext( )->GetViewport();
         VaViewport mainViewportExpanded = new VaViewport(0,0, getGLContext().width(),  getGLContext().height()); // m_renderDevice->GetMainContext( )->GetViewport();
@@ -476,6 +487,15 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
             m_camera.SetYFOV( expandedFOV );
             m_camera.SetViewportSize( m_expandedSceneResolution.x, m_expandedSceneResolution.y );
             m_camera.Tick( 0.0f, false );  // re-tick for expanded focus
+
+            final Matrix4f proj = m_camera.GetProjMatrix();
+            final Matrix4f view = m_camera.GetViewMatrix();
+            final Matrix4f world = m_camera.GetWorldMatrix();
+
+            Matrix4f.perspective((float)Math.toDegrees(expandedFOV), m_expandedSceneResolution.x/m_expandedSceneResolution.y,
+                    m_camera.GetNearPlane(), m_camera.GetFarPlane(), proj);
+            m_transformer.getModelViewMat(view);
+            Matrix4f.invertRigid(view, world);
 
             mainViewport.Width  = m_expandedSceneResolution.x;
             mainViewport.Height = m_expandedSceneResolution.y;

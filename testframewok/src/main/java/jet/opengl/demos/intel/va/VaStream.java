@@ -1,10 +1,15 @@
 package jet.opengl.demos.intel.va;
 
 import org.lwjgl.util.vector.Readable;
+import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.ReadableVector4f;
 import org.lwjgl.util.vector.Writable;
+import org.lwjgl.util.vector.WritableVector3f;
+import org.lwjgl.util.vector.WritableVector4f;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.UUID;
 
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackByte;
@@ -24,6 +29,10 @@ public abstract class VaStream implements Closeable{
     public abstract void         Seek( int position ) throws IOException;
     public abstract void         Truncate( )throws IOException;     // truncate everything behind current
 
+    public final int             Read( byte[] buffer) throws IOException{
+        return Read(buffer, 0, buffer.length);
+    }
+
     public abstract int          Read( byte[] buffer, int offset, int count /*int64 * outCountRead = NULL*/ ) throws IOException;
     public abstract int          Write(byte[] buffer, int offset, int count/*, int64 * outCountWritten = NULL*/ ) throws IOException;
 
@@ -34,17 +43,82 @@ public abstract class VaStream implements Closeable{
     public abstract float        ReadFloat() throws IOException;
     public abstract void         ReadObject(int size, Writable obj) throws IOException;
 
-    public abstract boolean      WriteLong(long value) throws IOException;
+    public abstract boolean      Write(long value) throws IOException;
     public abstract boolean      Write(byte value) throws IOException;
-    public abstract boolean      WriteShort(short value) throws IOException;
-    public abstract boolean      WriteInt(int value) throws IOException;
-    public abstract boolean      WriteFloat(float value) throws IOException;
-    public abstract boolean      WriteObject(int size, Readable obj) throws IOException;
+    public abstract boolean      Write(short value) throws IOException;
+    public abstract boolean      Write(int value) throws IOException;
+    public abstract boolean      Write(float value) throws IOException;
+    public abstract boolean      Write(int size, Readable obj) throws IOException;
+
+    public final boolean Write(boolean b) throws IOException{
+        return Write((byte)(b?1:0));
+    }
+
+    public final boolean Write(ReadableVector3f v) throws IOException{
+        Write(v.getX());
+        Write(v.getY());
+        Write(v.getZ());
+        return true;
+    }
+
+    public final boolean Write(ReadableVector4f v) throws IOException{
+        Write(v.getX());
+        Write(v.getY());
+        Write(v.getZ());
+        return Write(v.getW());
+    }
+
+    public final boolean Write(UUID uuid) throws IOException{
+        if(uuid != null) {
+            Write(uuid.getMostSignificantBits());
+            Write(uuid.getLeastSignificantBits());
+        }else{
+            final long zero = 0;
+            Write(zero);
+            Write(zero);
+        }
+        return true;
+    }
+
+    public final boolean ReadBoolean() throws IOException{
+        return Read() != 0;
+    }
+
+    public final boolean Read(WritableVector4f v) throws IOException{
+        v.setX(ReadFloat());
+        v.setY(ReadFloat());
+        v.setZ(ReadFloat());
+        v.setW(ReadFloat());
+
+        return true;
+    }
+
+    public final boolean Read(WritableVector3f v) throws IOException{
+        v.setX(ReadFloat());
+        v.setY(ReadFloat());
+        v.setZ(ReadFloat());
+
+        return true;
+    }
+
+    public final int Write(byte[] buffer ) throws IOException{
+        return Write(buffer, 0, buffer.length);
+    }
+
+    public final UUID ReadUUID() throws IOException{
+        long mostSigBits = ReadLong();
+        long leastSigBits = ReadLong();
+
+        return new UUID(mostSigBits, leastSigBits);
+        /*byte[] bits = new byte[16];
+        Read(bits);
+        return UUID.nameUUIDFromBytes(bits);*/
+    }
 
     // these use internal binary representation prefixed with size
     public boolean WriteString( String str )throws IOException{
         int lengthInBytes = str.length( );
-        if( !/*WriteValue<uint32>*/ WriteInt( lengthInBytes ) )      // 32nd bit flags it as unicode (utf16) for verification when reading
+        if( !/*WriteValue<uint32>*/ Write( lengthInBytes ) )      // 32nd bit flags it as unicode (utf16) for verification when reading
             return false;
         assert( lengthInBytes < ( 1 << 31 ) );
         if( lengthInBytes == 0 )
@@ -60,7 +134,7 @@ public abstract class VaStream implements Closeable{
     }
     public boolean WriteStringW( String str )throws IOException{
         int lengthInBytes = str.length( ) * 2;
-        if( !/*WriteValue<uint32>*/ WriteInt( lengthInBytes | ( 1 << 31 ) ) )      // 32nd bit flags it as unicode (utf16) for verification when reading
+        if( !/*WriteValue<uint32>*/ Write( lengthInBytes | ( 1 << 31 ) ) )      // 32nd bit flags it as unicode (utf16) for verification when reading
             return false;
         assert( lengthInBytes < ( 1 << 31 ) );
         if( lengthInBytes == 0 )
@@ -78,7 +152,8 @@ public abstract class VaStream implements Closeable{
         int lengthInBytes;
 //        if( !ReadValue<uint32>( lengthInBytes ) )
         if((lengthInBytes = ReadInt()) == -1)
-            return null;
+            return "";
+
         assert( ( lengthInBytes & ( 1 << 31 ) ) == 0 );                // not reading an ansi string?
 
         // Empty string?
@@ -120,18 +195,14 @@ public abstract class VaStream implements Closeable{
             return "";
         }
 
-        byte[] buffer = new byte[lengthInBytes];          // TODO: remove dynamic alloc for smaller (most) reads - just use stack memory
-        int readBytes;
-        if( (readBytes = Read( buffer,0, lengthInBytes )) != lengthInBytes )
-        {
-//            delete[] buffer;
-            return null;
+        byte[] buffer = new byte[lengthInBytes/2];          // TODO: remove dynamic alloc for smaller (most) reads - just use stack memory
+        for(int i = 0; i < buffer.length; i++){
+            buffer[i] = Read();
+            Read(); // skip
         }
-//        buffer[lengthInBytes / 2] = 0;
 
-//        outStr = std::wstring( buffer, lengthInBytes / 2 );
-//        delete[] buffer;
-        return new String(buffer);  // TODO
+        String str = new String(buffer);
+        return str;
     }
 
     // these are supposed to just read a text file but I haven't sorted out any line ending or encoding conversions
@@ -250,12 +321,12 @@ public abstract class VaStream implements Closeable{
     public boolean WriteVector( StackInt elements ) throws IOException {
         assert( elements.size( ) < Integer.MAX_VALUE ); // not supported; to add support for 64bit size use most significant bit (sign) to indicate that the size is >= INT_MAX; this is backwards compatible and will not unnecessarily increase file size
 
-        boolean ret = WriteInt(elements.size()); // /*WriteValue<int>( (int)elements.size( ) )*/;
+        boolean ret = Write(elements.size()); // /*WriteValue<int>( (int)elements.size( ) )*/;
         assert( ret ); if( !ret ) return false;
 
         for( int i = 0; i < elements.size( ); i++ )
         {
-            ret = WriteInt(elements.get(i) );
+            ret = Write(elements.get(i) );
             assert( ret ); if( !ret ) return false;
         }
 
@@ -285,23 +356,20 @@ public abstract class VaStream implements Closeable{
     public boolean WriteVector( StackFloat elements ) throws IOException {
         assert( elements.size( ) < Integer.MAX_VALUE ); // not supported; to add support for 64bit size use most significant bit (sign) to indicate that the size is >= INT_MAX; this is backwards compatible and will not unnecessarily increase file size
 
-        boolean ret = WriteInt(elements.size()); // /*WriteValue<int>( (int)elements.size( ) )*/;
+        boolean ret = Write(elements.size()); // /*WriteValue<int>( (int)elements.size( ) )*/;
         assert( ret ); if( !ret ) return false;
 
         for( int i = 0; i < elements.size( ); i++ )
         {
-            ret = WriteFloat(elements.get(i) );
+            ret = Write(elements.get(i) );
             assert( ret ); if( !ret ) return false;
         }
 
         return true;
     }
 
-    public boolean ReadVector( StackByte elements ) throws IOException {
+    public boolean ReadVector( StackByte elements, int strideInBytes ) throws IOException {
         assert( elements.size( ) == 0 ); // must be empty at the moment
-        if(true)
-            throw new Error("Inner Error!!!");
-
         /*int count;
         if( !ReadValue<int>( count, -1 ) )
         return false;*/
@@ -309,20 +377,21 @@ public abstract class VaStream implements Closeable{
         assert( count >= 0 ); if( count < 0 ) return false;
         if( count == 0 ) return true;
 
-        elements.resize( count );
+        elements.resize( count * strideInBytes);
 
         byte[] content = elements.getData();
-        for(int i = 0; i < count; i++){
-            content[i] = Read();
-        }
+        Read(content);
+//        for(int i = 0; i < count * strideInBytes; i++){
+//            content[i] = Read();
+//        }
 
         return true;
     }
 
-    public boolean WriteVector( StackByte elements ) throws IOException {
+    public boolean WriteVector( StackByte elements, int strideInBytes ) throws IOException {
         assert( elements.size( ) < Integer.MAX_VALUE ); // not supported; to add support for 64bit size use most significant bit (sign) to indicate that the size is >= INT_MAX; this is backwards compatible and will not unnecessarily increase file size
 
-        boolean ret = WriteInt(elements.size()); // /*WriteValue<int>( (int)elements.size( ) )*/;
+        boolean ret = Write(elements.size()/strideInBytes); // /*WriteValue<int>( (int)elements.size( ) )*/;
         assert( ret ); if( !ret ) return false;
 
         for( int i = 0; i < elements.size( ); i++ )

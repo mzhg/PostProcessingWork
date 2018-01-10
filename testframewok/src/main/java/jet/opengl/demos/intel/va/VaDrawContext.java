@@ -33,7 +33,7 @@ public class VaDrawContext {
         SimpleShadowMap = simpleShadowMap;
         UserContext = userContext;
         renderingGlobalsUpdated = false;
-        PassType        = VaRenderPassType.Unknown;
+        PassType = VaRenderPassType.Unknown;
     }
 
     public boolean  GetRenderingGlobalsUpdated( )             { return renderingGlobalsUpdated; }

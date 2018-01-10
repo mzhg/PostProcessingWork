@@ -314,7 +314,10 @@ public class VaFileStream extends VaStream {
     @Override
     public long ReadLong() throws IOException {
         m_CacheBuffer.position(0).limit(8);
-        m_file.read(m_CacheBuffer);
+        int count = m_file.read(m_CacheBuffer);
+        if(count != 8){
+            throw new IOException();
+        }
         return m_CacheBuffer.getLong(0);
     }
 
@@ -361,7 +364,7 @@ public class VaFileStream extends VaStream {
     }
 
     @Override
-    public boolean WriteLong(long value) throws IOException {
+    public boolean Write(long value) throws IOException {
         m_CacheBuffer.position(0);
         m_CacheBuffer.putLong(value).flip();
         return m_file.write(m_CacheBuffer) != 0;
@@ -375,28 +378,28 @@ public class VaFileStream extends VaStream {
     }
 
     @Override
-    public boolean WriteShort(short value) throws IOException {
+    public boolean Write(short value) throws IOException {
         m_CacheBuffer.position(0);
         m_CacheBuffer.putShort(value).flip();
         return m_file.write(m_CacheBuffer) != 0;
     }
 
     @Override
-    public boolean WriteInt(int value) throws IOException {
+    public boolean Write(int value) throws IOException {
         m_CacheBuffer.position(0);
         m_CacheBuffer.putInt(value).flip();
         return m_file.write(m_CacheBuffer) != 0;
     }
 
     @Override
-    public boolean WriteFloat(float value) throws IOException {
+    public boolean Write(float value) throws IOException {
         m_CacheBuffer.position(0);
         m_CacheBuffer.putFloat(value).flip();
         return m_file.write(m_CacheBuffer) != 0;
     }
 
     @Override
-    public boolean WriteObject(int size, Readable obj) throws IOException {
+    public boolean Write(int size, Readable obj) throws IOException {
         ByteBuffer buffer;
         if(CACHE_SIZE >= size){
             buffer = m_CacheBuffer;

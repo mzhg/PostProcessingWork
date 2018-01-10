@@ -2,12 +2,14 @@ package jet.opengl.demos.intel.va;
 
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.util.LogUtil;
 
 /**
  * Created by mazhen'gui on 2017/11/17.
@@ -21,28 +23,28 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
             FaceCull_Back = 2;
 
     private String __name;
-    private final TT_Trackee< VaRenderMaterial >              m_trackee;
+    private final TT_Trackee< VaRenderMaterial > m_trackee;
 
-    protected VaRenderMaterialManager                        m_renderMaterialManager;
+    protected VaRenderMaterialManager m_renderMaterialManager;
 
-    protected final MaterialSettings                                m_settings =new MaterialSettings();
+    protected final MaterialSettings m_settings =new MaterialSettings();
 
-    protected VaTexture                           m_textureAlbedo;
-    protected VaTexture                           m_textureNormalmap;
-    protected VaTexture                           m_textureSpecular;
-    protected VaTexture                           m_textureEmissive;
+    protected VaTexture   m_textureAlbedo;
+    protected VaTexture   m_textureNormalmap;
+    protected VaTexture   m_textureSpecular;
+    protected VaTexture   m_textureEmissive;
 
-    protected UUID                                          m_textureAlbedoUID;
-    protected UUID                                          m_textureNormalmapUID;
-    protected UUID                                          m_textureSpecularUID;
-    protected UUID                                          m_textureEmissiveUID;
+    protected UUID m_textureAlbedoUID;
+    protected UUID m_textureNormalmapUID;
+    protected UUID m_textureSpecularUID;
+    protected UUID m_textureEmissiveUID;
 
-    protected String                                         m_shaderFileName;
-    protected String                                          m_shaderEntryVS_PosOnly;
-    protected String                                          m_shaderEntryPS_DepthOnly;
-    protected String                                          m_shaderEntryVS_Standard;
-    protected String                                          m_shaderEntryPS_Forward;
-    protected String                                          m_shaderEntryPS_Deferred;
+    protected String m_shaderFileName;
+    protected String m_shaderEntryVS_PosOnly;
+    protected String m_shaderEntryPS_DepthOnly;
+    protected String m_shaderEntryVS_Standard;
+    protected String m_shaderEntryPS_Forward;
+    protected String m_shaderEntryPS_Deferred;
 
     protected final ArrayList<Macro> m_shaderMacros = new ArrayList<>(16);
     protected boolean                                            m_shaderMacrosDirty;
@@ -55,7 +57,7 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
         m_trackee = new TT_Trackee<>(rmParmas.RenderMaterialManager.GetRenderMaterialTracker(), this);
         m_renderMaterialManager = rmParmas.RenderMaterialManager;
 
-        m_shaderFileName            = "vaRenderMesh.hlsl";
+        m_shaderFileName            = "vaRenderMesh_%s.%s";
         m_shaderEntryVS_PosOnly     = "VS_PosOnly";
         m_shaderEntryPS_DepthOnly   = "PS_DepthOnly";
         m_shaderEntryVS_Standard    = "VS_Standard";
@@ -82,13 +84,13 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
         __name = name;
     }
 
-    public MaterialSettings                        GetSettings( )                                                  { return m_settings; }
-    public void                                    SetSettings( MaterialSettings settings )  { if( !m_settings.equals(settings) ) m_shaderMacrosDirty = true; m_settings.set(settings); }
+    public MaterialSettings  GetSettings( ) { return m_settings; }
+    public void              SetSettings( MaterialSettings settings )  { if( !m_settings.equals(settings) ) m_shaderMacrosDirty = true; m_settings.set(settings); }
 
-    public void                                            SetSettingsDirty( )                                             { m_shaderMacrosDirty = true; }
+    public void              SetSettingsDirty( ) { m_shaderMacrosDirty = true; }
 
-    public VaRenderMaterialManager                       GetManager( )                                             { return m_renderMaterialManager; }
-    public int                                             GetListIndex( )                                            { return m_trackee.GetIndex( ); }
+    public VaRenderMaterialManager   GetManager( )                                             { return m_renderMaterialManager; }
+    public int                       GetListIndex( )                                           { return m_trackee.GetIndex( ); }
 
     public VaTexture                   GetTextureAlbedo( )                                        { return m_textureAlbedo;           }
     public VaTexture                   GetTextureNormalmap( )                                     { return m_textureNormalmap;        }
@@ -109,9 +111,88 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
         m_trackee.release();
     }
 
-    public boolean                                            Save(VaStream outStream ) { throw new UnsupportedOperationException();}
-    public boolean                                            Load( VaStream inStream ) {throw new UnsupportedOperationException();}
-    public void                                    ReconnectDependencies( ){
+    private static final int c_renderMeshMaterialFileVersion = 2;
+
+    public boolean Save(VaStream outStream ) throws IOException{
+        outStream./*WriteValue<int32>*/Write( c_renderMeshMaterialFileVersion );
+
+        m_settings.Save(outStream);
+
+        outStream.Write(m_textureAlbedo != null?m_textureAlbedo.UIDObject_GetUID():null);
+        outStream.Write(m_textureNormalmap != null? m_textureNormalmap.UIDObject_GetUID():null);
+        outStream.Write(m_textureSpecular!=null?m_textureSpecular.UIDObject_GetUID():null);
+        outStream.Write(m_textureEmissive!=null?m_textureEmissive.UIDObject_GetUID():null);
+
+        String shaderFileName = m_shaderFileName;
+        if(m_shaderFileName.equals("vaRenderMesh_%s.%s")){
+            shaderFileName = "vaRenderMesh.hlsl";
+        }
+
+        outStream.WriteString( shaderFileName );
+        outStream.WriteString( m_shaderEntryVS_PosOnly );
+        outStream.WriteString( m_shaderEntryPS_DepthOnly );
+        outStream.WriteString( m_shaderEntryVS_Standard );
+        outStream.WriteString( m_shaderEntryPS_Forward );
+        outStream.WriteString( m_shaderEntryPS_Deferred );
+
+        return true;
+    }
+
+    public boolean Load( VaStream inStream ) throws IOException{
+        /*int32 fileVersion = 0;
+        VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<int32>( fileVersion ) );*/
+        int fileVersion = inStream.ReadInt();
+
+        if( !((fileVersion >= 1) && (fileVersion <= c_renderMeshMaterialFileVersion)) )
+        {
+            LogUtil.i(LogUtil.LogType.DEFAULT, "vaRenderMaterial::Load(): unsupported file version");
+            return false;
+        }
+
+        if( fileVersion == 1 )
+        {
+            MaterialSettingsV1 settingsTemp = new MaterialSettingsV1();
+//            VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<MaterialSettingsV1>( settingsTemp ) );
+            settingsTemp.Load(inStream);
+//            m_settings = MaterialSettings();
+            m_settings.FaceCull          = settingsTemp.FaceCull;
+            m_settings.ColorMultAlbedo   .set(settingsTemp.ColorMultAlbedo);
+            m_settings.ColorMultSpecular .set(settingsTemp.ColorMultSpecular);
+            m_settings.AlphaTest         = settingsTemp.AlphaTest;
+            m_settings.ReceiveShadows    = settingsTemp.ReceiveShadows;
+
+        }
+        else
+        {
+//            VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<MaterialSettings>(m_settings ) );
+            m_settings.Load(inStream);
+        }
+
+        m_textureAlbedoUID = inStream.ReadUUID(     );
+        m_textureNormalmapUID = inStream.ReadUUID(     );
+        m_textureSpecularUID = inStream.ReadUUID(     );
+
+        if( fileVersion > 1 )
+            m_textureEmissiveUID = inStream.ReadUUID();
+
+        m_shaderFileName = inStream.ReadStringW( );
+        m_shaderEntryVS_PosOnly = inStream.ReadString( );
+        m_shaderEntryPS_DepthOnly = inStream.ReadString( );
+        m_shaderEntryVS_Standard = inStream.ReadString( );
+        m_shaderEntryPS_Forward = inStream.ReadString( );
+        m_shaderEntryPS_Deferred = inStream.ReadString( );
+
+        m_shaderMacrosDirty = true;
+        m_shadersDirty = true;
+
+        if(m_shaderFileName.equals("vaRenderMesh.hlsl")){
+            m_shaderFileName = "vaRenderMesh_%s.%s";
+        }
+
+        return true;
+    }
+
+    public void ReconnectDependencies( ){
         m_textureAlbedo     = null;
         m_textureNormalmap  = null;
         m_textureSpecular   = null;
@@ -122,9 +203,10 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
         m_textureEmissive = VaUIDObjectRegistrar.GetInstance( ).ReconnectDependency(m_textureEmissiveUID );
     }
 
-    public abstract void                                    UploadToAPIContext( VaDrawContext drawContext );
+    public abstract void UploadToAPIContext( VaDrawContext drawContext );
+    public abstract void ClearVertexBuffers( VaDrawContext drawContext);
 
-    protected void                                            UpdateShaderMacros( ){
+    protected void UpdateShaderMacros( ){
         if( !m_shaderMacrosDirty )
             return;
 
@@ -154,7 +236,7 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
 
     public static final class MaterialSettingsV1
     {
-        public int                                      FaceCull;
+        public int            FaceCull;
 
         public final Vector4f ColorMultAlbedo = new Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
         public final Vector4f ColorMultSpecular = new Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -171,30 +253,90 @@ public abstract class VaRenderMaterial extends  VaAssetResource implements VaRen
             /*ColorMultAlbedo             = vaVector4( 1.0f, 1.0f, 1.0f, 1.0f );
             ColorMultSpecular           = vaVector4( 1.0f, 1.0f, 1.0f, 1.0f );*/
         }
+
+        void Load(VaStream in) throws IOException{
+            FaceCull = in.ReadInt();
+            in.Read(ColorMultAlbedo);
+            in.Read(ColorMultSpecular);
+            AlphaTest = in.ReadBoolean();
+            ReceiveShadows = in.ReadBoolean();
+        }
     };
 
     public static final class MaterialSettings
     {
-        public int                                      FaceCull = FaceCull_Back;
+        public int                  FaceCull = FaceCull_Back;
 
         public final Vector4f       ColorMultAlbedo = new Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
         public final Vector4f       ColorMultSpecular = new Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
         public final Vector4f       ColorMultEmissive = new Vector4f();
 
-        public boolean                                            AlphaTest;
-        public boolean                                            ReceiveShadows;
-        public boolean                                            Wireframe;
+        public boolean              AlphaTest;
+        public boolean              ReceiveShadows;
+        public boolean              Wireframe;
 
-        public float                                           SpecPow;
-        public float                                           SpecMul;
-        public boolean                                            Transparent;
+        public float                SpecPow;
+        public float                SpecMul;
+        public boolean              Transparent;
 
         // for future upgrades, so that file format stays the same
-        public float                                           Dummy3;
-        public float                                           Dummy4;
-        public float                                           Dummy5;
-        public float                                           Dummy6;
-        public float                                           Dummy7;
+        public float                Dummy3;
+        public float                Dummy4;
+        public float                Dummy5;
+        public float                Dummy6;
+        public float                Dummy7;
+
+        public void Save(VaStream outStream) throws IOException{
+            outStream.Write(FaceCull);
+
+            outStream.Write(ColorMultAlbedo);
+            outStream.Write(ColorMultSpecular);
+            outStream.Write(ColorMultEmissive);
+
+            outStream.Write(AlphaTest);
+            outStream.Write(ReceiveShadows);
+            outStream.Write(Wireframe);
+            outStream.Write(false);  // padding
+
+            outStream.Write(SpecPow);
+            outStream.Write(SpecMul);
+            outStream.Write(Transparent);
+            outStream.Write(false);  // padding
+            outStream.Write(false);  // padding
+            outStream.Write(false);  // padding
+
+            outStream.Write(Dummy3);
+            outStream.Write(Dummy4);
+            outStream.Write(Dummy5);
+            outStream.Write(Dummy6);
+            outStream.Write(Dummy7);
+        }
+
+        public void Load(VaStream inStream) throws IOException{
+            FaceCull = inStream.ReadInt();
+
+            inStream.Read(ColorMultAlbedo);
+            inStream.Read(ColorMultSpecular);
+            inStream.Read(ColorMultEmissive);
+
+            AlphaTest = inStream.ReadBoolean();
+            ReceiveShadows = inStream.ReadBoolean();
+            Wireframe = inStream.ReadBoolean();
+            inStream.Read();  // skip the byte
+
+            SpecPow = inStream.ReadFloat();
+            SpecMul = inStream.ReadFloat();
+            Transparent = inStream.ReadBoolean();
+            inStream.Read();  // skip the byte
+            inStream.Read();  // skip the byte
+            inStream.Read();  // skip the byte
+
+            Dummy3 = inStream.ReadFloat();
+            Dummy4 = inStream.ReadFloat();
+            Dummy5 = inStream.ReadFloat();
+            Dummy6 = inStream.ReadFloat();
+            Dummy7 = inStream.ReadFloat();
+        }
 
         MaterialSettings( )
         {

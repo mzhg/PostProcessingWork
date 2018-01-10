@@ -28,9 +28,7 @@ public class VaAssetTexture extends VaAsset {
     public static VaAssetTexture CreateAndLoad( VaAssetPack pack, String name, VaStream inStream ) throws IOException{
         /*vaGUID uid;
         VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<vaGUID>( uid ) );*/
-        long most = inStream.ReadLong();
-        long leatest = inStream.ReadLong();
-        UUID uid = new UUID(most, leatest);
+        UUID uid = inStream.ReadUUID();
 
         VaTexture newResource = //VA_RENDERING_MODULE_CREATE_PARAMS_SHARED( vaTexture, vaTextureConstructorParams( uid ) );
                 VaRenderingModuleRegistrar.CreateModuleTyped("vaTexture", new VaTextureConstructorParams(uid));

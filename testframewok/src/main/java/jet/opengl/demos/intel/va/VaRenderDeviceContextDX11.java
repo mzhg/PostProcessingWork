@@ -19,7 +19,7 @@ import jet.opengl.postprocessing.texture.TextureGL;
  * Created by mazhen'gui on 2017/11/20.
  */
 
-public class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements VaDirectXNotifyTarget {
+final class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements VaDirectXNotifyTarget {
 
     private VaDirectXVertexShader   m_fullscreenVS;
     private BufferGL                m_fullscreenVB;
@@ -27,10 +27,10 @@ public class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements 
     private GLFuncProvider          gl;
     private RenderTargets           m_renderTarget;
     private GLSLProgramPipeline     m_program;
-    private final TextureGL[]       m_tempRTVs = new TextureGL[c_maxUAVs];
+    private final TextureGL[]       m_tempRTVs = new TextureGL[c_maxUAVs + 1];
     private int                     m_storeageIndex;
 
-    protected VaRenderDeviceContextDX11( VaConstructorParamsBase params ){
+    VaRenderDeviceContextDX11( VaConstructorParamsBase params ){
         VaDirectXCore.helperInitlize(this);
     }
 
@@ -85,12 +85,9 @@ public class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements 
 
     @Override
     protected void UpdateRenderTargetsDepthStencilUAVs() {
-        final VaTexture renderTarget = GetRenderTarget();
         final VaTexture depthStencil = GetDepthStencil();
 
-        TextureGL[]    RTVs = m_tempRTVs;
-//        ID3D11UnorderedAccessView * UAVs[ c_maxUAVs];
-//        ID3D11DepthStencilView *    DSV = NULL;
+        TextureGL[] RTVs = m_tempRTVs;
         int count = 0;
         for( int i = 0; i < c_maxRTs; i++ ) {
             RTVs[count++] = (m_outputsState.RenderTargets[i] != null) ? ((VaTextureDX11) (m_outputsState.RenderTargets[i])).GetRTV() : null;
@@ -118,7 +115,7 @@ public class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements 
         return null;
     }
 
-    public static VaRenderDeviceContext           Create( /*ID3D11DeviceContext * deviceContext*/ ){
+    public static VaRenderDeviceContext Create( /*ID3D11DeviceContext * deviceContext*/ ){
         VaRenderDeviceContext canvas =  // VA_RENDERING_MODULE_CREATE( vaRenderDeviceContext );
                                     VaRenderingModuleRegistrar.CreateModuleTyped("vaRenderDeviceContext", null);
 
@@ -126,6 +123,11 @@ public class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements 
         ((VaRenderDeviceContextDX11)canvas).Initialize();
 
         return canvas;
+    }
+
+    public void BeginRender(){
+        gl.glUseProgram(0);
+        m_program.enable();
     }
 
     public void VSSetShader(ShaderProgram shader){
@@ -206,7 +208,7 @@ public class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements 
 
     }
 
-    private void                        Initialize( /*ID3D11DeviceContext * deviceContext*/ ){
+    private void Initialize( /*ID3D11DeviceContext * deviceContext*/ ){
         m_program = new GLSLProgramPipeline();
         m_renderTarget = new RenderTargets();
         gl = GLFuncProviderFactory.getGLFuncProvider();

@@ -49,7 +49,7 @@ SamplerComparisonState                  g_SimpleShadowMapCmpSampler     : regist
 Texture2D<float>                        g_SimpleShadowMapTexture        : register( T_CONCATENATER( SHADERSIMPLESHADOWSGLOBAL_TEXTURESLOT ) );
 #endif
 
-layout(binding = SHADERSIMPLESHADOWSGLOBAL_TEXTURESLOT) uniform sampler2DArray g_SimpleShadowMapTexture;
+layout(binding = SHADERSIMPLESHADOWSGLOBAL_TEXTURESLOT) uniform sampler2DShadow g_SimpleShadowMapTexture;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 

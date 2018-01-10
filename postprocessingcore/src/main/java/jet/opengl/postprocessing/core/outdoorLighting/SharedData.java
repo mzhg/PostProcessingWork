@@ -4,7 +4,6 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector4f;
 
-import java.io.IOException;
 import java.util.Arrays;
 
 import jet.opengl.postprocessing.common.BlendState;
@@ -18,7 +17,6 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
-import jet.opengl.postprocessing.util.DebugTools;
 
 import static jet.opengl.postprocessing.core.outdoorLighting.PostProcessingUnwarpEpipolarScatteringPass.sm_iLowResLuminanceMips;
 
@@ -605,15 +603,7 @@ final class SharedData {
         // TODO don't forget release the GL resources here!!!
     }
 
-    static void saveTextureAsText(TextureGL texture, String filename){
-        if(texture == null) return;
-
-        try {
-            DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, "E:/textures/OutdoorResources/" + filename);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+    static void saveTextureAsText(TextureGL texture, String filename){}
 
     private void createSamplers(){
         if(m_psamLinearBorder0 != 0)

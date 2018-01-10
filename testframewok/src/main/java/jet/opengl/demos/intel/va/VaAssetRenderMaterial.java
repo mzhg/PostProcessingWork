@@ -17,13 +17,10 @@ final class VaAssetRenderMaterial extends VaAsset {
 
     public VaRenderMaterial    GetMaterial( )                       { return Resource; }
 
-    static VaAssetRenderMaterial                  CreateAndLoad( VaAssetPack pack, String name, VaStream inStream ) throws IOException{
+    static VaAssetRenderMaterial CreateAndLoad( VaAssetPack pack, String name, VaStream inStream ) throws IOException{
         UUID uid;
 //        VERIFY_TRUE_RETURN_ON_FALSE( inStream.ReadValue<vaGUID>( uid ) );
-        long mostSigBits = inStream.ReadLong();
-        long leastSigBits = inStream.ReadLong();
-        uid = new UUID(mostSigBits, leastSigBits);
-
+        uid = inStream.ReadUUID();
         VaRenderMaterial newResource = VaRenderMaterialManager.GetInstance( ).CreateRenderMaterial( uid );
 
         if( newResource == null )

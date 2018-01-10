@@ -55,7 +55,7 @@ public class VaCameraControllerFreeFlight implements VaCameraControllerBase {
 
     @Override
     public void CameraTick(float deltaTime, VaCameraBase camera, boolean hasFocus) {
-        throw new UnsupportedOperationException();
+//        throw new UnsupportedOperationException();
     }
 
     public void       SetMoveWhileNotCaptured( boolean moveWhileNotCaptured )    { m_moveWhileNotCaptured = moveWhileNotCaptured; }

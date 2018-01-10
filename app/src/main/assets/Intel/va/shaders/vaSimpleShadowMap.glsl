@@ -22,7 +22,7 @@
 #include "vaShared.glsl"
 
 #ifdef VA_VOLUME_SHADOWS_PLUGIN_USE
-#include "vaVolumeShadowsPluginSelector.glsl"
+//#include "vaVolumeShadowsPluginSelector.glsl"
 #endif
 
 float SimpleShadowMapSampleInternalLowQ( float4 shadowClipSpace )
@@ -38,15 +38,15 @@ float SimpleShadowMapSampleInternalMedQ( float4 shadowClipSpace, float2x2 rotSca
     const int   sampleCount         = 6;
     float samplingOffsetScale       = 1.25f * g_SimpleShadowsGlobal.OneOverShadowMapRes;
 
-    const float2 sampleOffsets[ sampleCount ] = 
-    {
-        0.779040f, -0.579830f,
-        0.233270f,  0.082490f,
-        0.508760f,  0.836340f,
-       -0.476610f,  0.816540f,
-       -0.824430f, -0.320580f,
-       -0.105800f, -0.715330f
-    };
+    const float2 sampleOffsets[ sampleCount ] = float2[sampleCount]
+    (
+        float2(0.779040f, -0.579830f),
+        float2(0.233270f,  0.082490f),
+        float2(0.508760f,  0.836340f),
+        float2(-0.476610f,  0.816540f),
+        float2(-0.824430f, -0.320580f),
+        float2(-0.105800f, -0.715330f)
+    );
 
     rotScale *= samplingOffsetScale;
 
@@ -64,23 +64,23 @@ float SimpleShadowMapSampleInternalHighQ( float4 shadowClipSpace, float2x2 rotSc
     const int   sampleCount         = 14;
     float samplingOffsetScale       = 1.25f * g_SimpleShadowsGlobal.OneOverShadowMapRes;
 
-    const float2 sampleOffsets[ sampleCount ] = 
-    {
-        0.045020f, -0.987710f,
-        0.193940f, -0.397750f,
-        0.557220f, -0.795750f,
-        0.816880f, -0.353330f,
-        0.593080f,  0.117890f,
-        0.647170f,  0.742570f,
-        0.182410f,  0.503600f,
-       -0.213260f,  0.831700f,
-       -0.740980f,  0.623680f,
-       -0.336390f,  0.278780f,
-       -0.850740f,  0.071420f,
-       -0.823710f, -0.528410f,
-       -0.386520f, -0.264500f,
-       -0.434840f, -0.843600f
-    };
+    const float2 sampleOffsets[ sampleCount ] = float2[sampleCount]
+    (
+       float2( 0.045020f, -0.987710f),
+       float2( 0.193940f, -0.397750f),
+       float2( 0.557220f, -0.795750f),
+       float2( 0.816880f, -0.353330f),
+       float2( 0.593080f,  0.117890f),
+       float2( 0.647170f,  0.742570f),
+       float2( 0.182410f,  0.503600f),
+       float2(-0.213260f,  0.831700f),
+       float2(-0.740980f,  0.623680f),
+       float2(-0.336390f,  0.278780f),
+       float2(-0.850740f,  0.071420f),
+       float2(-0.823710f, -0.528410f),
+       float2(-0.386520f, -0.264500f),
+       float2(-0.434840f, -0.843600f)
+    );
 
     rotScale *= samplingOffsetScale;
 
@@ -172,15 +172,15 @@ float SimpleShadowMapSampleVolumetricMedQ( float3 viewspaceEntry, float3 viewspa
         const int   sampleCount         = 6;
         const float samplingOffsetScale = 1.25f * g_SimpleShadowsGlobal.OneOverShadowMapRes;
 
-        const float2 sampleOffsets[ sampleCount ] = 
-        {
-            0.779040f, -0.579830f,
-            0.233270f,  0.082490f,
-            0.508760f,  0.836340f,
-           -0.476610f,  0.816540f,
-           -0.824430f, -0.320580f,
-           -0.105800f, -0.715330f
-        };
+        const float2 sampleOffsets[ sampleCount ] = float2[sampleCount]
+        (
+           float2( 0.779040f, -0.579830f),
+           float2( 0.233270f,  0.082490f),
+           float2( 0.508760f,  0.836340f),
+           float2(-0.476610f,  0.816540f),
+           float2(-0.824430f, -0.320580f),
+           float2(-0.105800f, -0.715330f)
+        );
 
     //    float2x2 rotScale = {   1.0, 0.0,
     //                            0.0, 1.0 };

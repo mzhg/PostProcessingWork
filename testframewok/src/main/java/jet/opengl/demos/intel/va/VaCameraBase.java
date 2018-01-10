@@ -161,14 +161,14 @@ public class VaCameraBase {
     //
 //       std::shared_ptr<> &
     public VaCameraControllerBase GetAttachedController( )                    { return m_controller; }
-    public void                            AttachController(VaCameraControllerBase cameraController ){
+    public void AttachController(VaCameraControllerBase cameraController ){
         m_controller = cameraController;
 
         if( m_controller != null )
             m_controller.CameraAttached( this );
     }
     //
-    public void                            Tick( float deltaTime, boolean hasFocus ){
+    public void Tick( float deltaTime, boolean hasFocus ){
         if( (m_controller != null) && (deltaTime != 0.0f) )
             m_controller.CameraTick( deltaTime, this, hasFocus );
 

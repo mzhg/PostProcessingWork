@@ -191,7 +191,7 @@ public class VaAssetPack extends VaImguiHierarchyObject {
 
         return newItem;
     }
-    public VaAssetRenderMesh                       Add( VaRenderMesh mesh, String name ){
+    public VaAssetRenderMesh Add( VaRenderMesh mesh, String name ){
 //        string name = vaStringTools::ToLower( _name );
         name = name.toLowerCase();
 
@@ -210,7 +210,7 @@ public class VaAssetPack extends VaImguiHierarchyObject {
         return newItem;
     }
 
-    public VaAssetRenderMaterial                   Add(VaRenderMaterial material, String name ){
+    public VaAssetRenderMaterial Add(VaRenderMaterial material, String name ){
         name = name.toLowerCase();
 
         if( Find( name ) != null )

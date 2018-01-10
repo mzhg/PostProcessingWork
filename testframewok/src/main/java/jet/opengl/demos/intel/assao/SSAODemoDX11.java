@@ -5,8 +5,11 @@ import jet.opengl.demos.intel.va.VaDirectXCore;
 import jet.opengl.demos.intel.va.VaDirectXPixelShader;
 import jet.opengl.demos.intel.va.VaDirectXShaderManager;
 import jet.opengl.demos.intel.va.VaDrawContext;
+import jet.opengl.demos.intel.va.VaRenderDevice;
+import jet.opengl.demos.intel.va.VaRenderDeviceDX11;
 import jet.opengl.demos.intel.va.VaRenderingCore;
 import jet.opengl.demos.intel.va.VaRenderingModuleRegistrar;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.shader.Macro;
 
 /**
@@ -46,10 +49,14 @@ public final class SSAODemoDX11 extends ASSAODemo /*implements VaDirectXNotifyTa
 
     @Override
     protected void initRendering() {
+        OnStarted();
 //        m_constantsBuffer.Create( );
         VaDirectXCore.GetInstance().PostDeviceCreated();
 
-        Initialize();
+        VaRenderDevice renderDevice = new VaRenderDeviceDX11();
+
+        Initialize(renderDevice);
+        GLCheck.checkError();
     }
 
     @Override
@@ -68,12 +75,11 @@ public final class SSAODemoDX11 extends ASSAODemo /*implements VaDirectXNotifyTa
             return;
 
         OnResized(width, height, true);
-        VaDirectXCore.GetInstance().PostResizedSwapChain(width, height);
     }
 
     @Override
     public void onDestroy() {
-        VaDirectXCore.GetInstance().PostDeviceDestroyed();
+//        VaDirectXCore.GetInstance().PostDeviceDestroyed();
         super.onDestroy();
     }
 

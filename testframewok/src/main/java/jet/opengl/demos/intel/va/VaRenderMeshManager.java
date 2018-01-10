@@ -10,7 +10,7 @@ import jet.opengl.postprocessing.util.LogUtil;
  */
 
 public abstract class VaRenderMeshManager extends VaImguiHierarchyObject implements VaRenderingModule {
-    private static  VaRenderMeshManager g_Instance;
+    static  VaRenderMeshManager g_Instance;
 
     private String __name;
     protected final TT_Tracker< VaRenderMesh >  m_renderMeshes = new TT_Tracker<>();

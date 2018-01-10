@@ -12,17 +12,16 @@ public class VaRenderMaterialManager extends VaImguiHierarchyObject implements V
     protected final TT_Tracker< VaRenderMaterial >              m_renderMaterials;
     // map<wstring, shared_ptr<vaRenderMaterial>>  m_renderMaterialsMap;
 
-    protected VaRenderMaterial                  m_defaultMaterial;
-    protected boolean                                            m_isDestructing;
-    protected boolean                                            m_texturingDisabled;
+    protected VaRenderMaterial  m_defaultMaterial;
+    protected boolean m_isDestructing;
+    protected boolean m_texturingDisabled;
 
-    private static VaRenderMaterialManager g_Instance;
+    static VaRenderMaterialManager g_Instance;
+    public static VaRenderMaterialManager GetInstance() {
+        if(g_Instance == null)
+            throw new NullPointerException();
 
-    public static VaRenderMaterialManager GetInstance() { return g_Instance;}
-    public static void CreateInstanceIfNot() {
-        if(g_Instance == null){
-            g_Instance = new VaRenderMaterialManager();
-        }
+        return g_Instance;
     }
 
     protected VaRenderMaterialManager( ){
@@ -40,6 +39,7 @@ public class VaRenderMaterialManager extends VaImguiHierarchyObject implements V
                             VaRenderingModuleRegistrar.CreateModuleTyped("vaRenderMaterial",
                                     new VaRenderMaterialConstructorParams(this, VaCore.GUIDFromString("11523d65-09ea-4342-9bad-8dab7a4dc1e0")));
         m_texturingDisabled = false;
+        g_Instance = this;
     }
 //    virtual ~vaRenderMaterialManager( );
 
@@ -63,8 +63,8 @@ public class VaRenderMaterialManager extends VaImguiHierarchyObject implements V
     }
     public TT_Tracker< VaRenderMaterial >             GetRenderMaterialTracker( ) { return m_renderMaterials; }
 
-    public boolean                                         GetTexturingDisabled( )   { return m_texturingDisabled; }
-    public void                                            SetTexturingDisabled( boolean texturingDisabled ){
+    public boolean GetTexturingDisabled( )   { return m_texturingDisabled; }
+    public void SetTexturingDisabled( boolean texturingDisabled ){
         if( m_texturingDisabled == texturingDisabled )
             return;
 
@@ -76,8 +76,8 @@ public class VaRenderMaterialManager extends VaImguiHierarchyObject implements V
         }
     }
 
-    protected String                                IHO_GetInstanceInfo( )  { return String.format( "vaRenderMaterialManager (%d meshes)", m_renderMaterials.size( ) ); }
-    protected void                                    IHO_Draw( ){
+    protected String IHO_GetInstanceInfo( )  { return String.format( "vaRenderMaterialManager (%d meshes)", m_renderMaterials.size( ) ); }
+    protected void   IHO_Draw( ){
 
     }
 

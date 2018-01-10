@@ -128,6 +128,7 @@ public abstract class VaRenderDeviceContext extends VaRenderingModuleImpl {
 
         for( int i = 0; i < c_maxRTs; i++ )
             m_outputsState.RenderTargets[i]      = (i < m_outputsState.RenderTargetCount)?(renderTargets[i]):(null);
+
         for( int i = 0; i < c_maxUAVs; i++ )
         {
             m_outputsState.UAVs[i]               = (i < m_outputsState.UAVCount)?(UAVs[i]):(null);

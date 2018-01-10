@@ -81,6 +81,7 @@ public final class VaRenderingCore implements Disposeable{
         g_Instance = new VaRenderingCore();
 
         InitializePlatform( );
+        OnAPIInitialized();
     }
 
     static void Deinitialize( ){
@@ -123,6 +124,10 @@ public final class VaRenderingCore implements Disposeable{
         VaRenderingModuleRegistrar.RegisterModule("vaGBuffer", (params -> new VaGBufferDX11(params)));
         VaRenderingModuleRegistrar.RegisterModule("vaLighting", (params -> new VaLightingDX11(params)));
         VaRenderingModuleRegistrar.RegisterModule("vaRenderMeshManager", (params -> new VaRenderMeshManagerDX11(params)));
+        VaRenderingModuleRegistrar.RegisterModule("vaRenderMaterial", (params -> new VaRenderMaterialDX11(params)));
+        VaRenderingModuleRegistrar.RegisterModule("vaRenderMaterialManager", (params -> new VaRenderMaterialManagerDX11(/*params*/)));
         VaRenderingModuleRegistrar.RegisterModule("vaRenderMesh::StandardTriangleMesh", (params -> new VaTriangleMeshDX11(params)));
+        VaRenderingModuleRegistrar.RegisterModule("vaTexture", (params -> new VaTextureDX11(params)));
+        VaRenderingModuleRegistrar.RegisterModule("vaRenderDeviceContext", (params -> new VaRenderDeviceContextDX11(params)));
     }
 }

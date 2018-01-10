@@ -95,7 +95,12 @@ public final class VaDirectXTools {
         context->DSSetConstantBuffers( (uint32)slot, 1, &buffer );
         context->GSSetConstantBuffers( (uint32)slot, 1, &buffer );
         context->HSSetConstantBuffers( (uint32)slot, 1, &buffer );*/
-        GLFuncProviderFactory.getGLFuncProvider().glBindBufferBase(buffer.getTarget(), slot, buffer.getBuffer());
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        if(buffer != null) {
+            gl.glBindBufferBase(buffer.getTarget(), slot, buffer.getBuffer());
+        }else{
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, slot, 0);
+        }
     }
 
     public static void SetToD3DContextAllShaderTypes( /*ID3D11DeviceContext * context,*/ TextureGL buffer, int slot )

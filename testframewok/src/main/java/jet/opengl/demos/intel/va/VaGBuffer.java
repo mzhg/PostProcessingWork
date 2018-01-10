@@ -58,7 +58,7 @@ public abstract class VaGBuffer extends VaImguiHierarchyObject implements VaRend
      * @param width
      * @param height
      */
-    public abstract void                            UpdateResources( VaDrawContext drawContext, int width /*= -1*/, int height /*= -1*/ );
+    public abstract void UpdateResources( VaDrawContext drawContext, int width /*= -1*/, int height /*= -1*/ );
     public final void UpdateResources( VaDrawContext drawContext) { UpdateResources(drawContext, -1,-1);}
 
     public abstract void RenderDebugDraw( VaDrawContext drawContext );

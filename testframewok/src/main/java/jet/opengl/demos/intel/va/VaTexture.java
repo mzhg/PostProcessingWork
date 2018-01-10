@@ -6,6 +6,7 @@ import org.lwjgl.util.vector.Vector4i;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3D;
@@ -139,6 +140,84 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     //        FORCE_UINT                  = 0xffffffff
             MaxVal                      = 116;
 
+    static int convertFromatToGL(int format){
+        switch (format){
+            case Unknown : return GLenum.GL_NONE;
+            case R32G32B32A32_FLOAT: return GLenum.GL_RGBA32F;
+            case R32G32B32A32_UINT: return GLenum.GL_RGBA32UI;
+            case R32G32B32A32_SINT: return GLenum.GL_RGBA32I;
+
+            case R32G32B32_FLOAT: return GLenum.GL_RGB32F;
+            case R32G32B32_UINT: return GLenum.GL_RGB32UI;
+            case R32G32B32_SINT: return GLenum.GL_RGB32I;
+
+            case R32G32_FLOAT: return GLenum.GL_RG32F;
+            case R32G32_UINT: return GLenum.GL_RG32UI;
+            case R32G32_SINT: return GLenum.GL_RG32I;
+
+            case R16_FLOAT:   return GLenum.GL_R16F;
+
+            case R16G16B16A16_FLOAT: return GLenum.GL_RGBA16F;
+            case R16G16B16A16_UNORM: return GLenum.GL_RGBA16;
+            case R16G16B16A16_UINT: return GLenum.GL_RGBA16UI;
+            case R16G16B16A16_SNORM: return GLenum.GL_RGBA16_SNORM;
+            case R16G16B16A16_SINT: return GLenum.GL_RGBA16I;
+
+            case R8G8B8A8_UNORM_SRGB: return GLenum.GL_RGBA8_SNORM;
+            case R8G8B8A8_UNORM:      return GLenum.GL_RGBA8;
+
+            case R11G11B10_FLOAT:     return GLenum.GL_R11F_G11F_B10F;
+
+            case D32_FLOAT:         return GLenum.GL_DEPTH_COMPONENT32F;
+
+            case R32G32B32A32_TYPELESS:
+            case R32G32B32_TYPELESS:
+            case R16G16B16A16_TYPELESS:
+            case R32G32_TYPELESS:
+            case R32G8X24_TYPELESS:
+            default:
+                throw new IllegalArgumentException("Invalid format: " + format);
+
+        }
+    }
+
+    static int convertFromatToDX(int format){
+        switch (format){
+            case Unknown : return GLenum.GL_NONE;
+            case GLenum.GL_RGBA32F: return R32G32B32A32_FLOAT;
+            case GLenum.GL_RGBA32UI: return R32G32B32A32_UINT;
+            case GLenum.GL_RGBA32I: return R32G32B32A32_SINT;
+
+            case GLenum.GL_RGB32F: return R32G32B32_FLOAT;
+            case GLenum.GL_RGB32UI: return R32G32B32_UINT;
+            case GLenum.GL_RGB32I: return R32G32B32_SINT;
+
+            case GLenum.GL_RG32F: return R32G32_FLOAT;
+            case GLenum.GL_RG32UI: return R32G32_UINT;
+            case GLenum.GL_RG32I: return R32G32_SINT;
+
+            case GLenum.GL_R16F:   return R16_FLOAT;
+
+            case GLenum.GL_RGBA16F: return R16G16B16A16_FLOAT;
+            case GLenum.GL_RGBA16: return R16G16B16A16_UNORM;
+            case GLenum.GL_RGBA16UI: return R16G16B16A16_UINT;
+            case GLenum.GL_RGBA16_SNORM: return R16G16B16A16_SNORM;
+            case GLenum.GL_RGBA16I: return R16G16B16A16_SINT;
+
+            case GLenum.GL_RGBA8_SNORM: return R8G8B8A8_UNORM_SRGB;
+            case GLenum.GL_RGBA8:      return R8G8B8A8_UNORM;
+
+            case GLenum.GL_R11F_G11F_B10F:     return R11G11B10_FLOAT;
+
+            case GLenum.GL_DEPTH_COMPONENT32F:         return D32_FLOAT;
+            case GLenum.GL_DEPTH24_STENCIL8:   return D24_UNORM_S8_UINT;
+
+            default:
+                throw new IllegalArgumentException("Invalid format: " + Integer.toHexString(format));
+
+        }
+    }
+
     /*enum class vaTextureBindSupportFlags : uint32
     {*/
     public static final int
@@ -157,27 +236,27 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
 
     private String                              m_renderingModuleTypeName;
 
-    private /*vaTextureFlags*/int                      m_flags;
+    /*vaTextureFlags*/int                       m_flags;
 
-    private int /*vaTextureAccessFlags*/                m_accessFlags;
-    private VaTextureType                       m_type;
-    private int/*vaTextureBindSupportFlags*/           m_bindSupportFlags = BSF_None;
+    int /*vaTextureAccessFlags*/                m_accessFlags;
+    VaTextureType                               m_type;
+    int/*vaTextureBindSupportFlags*/            m_bindSupportFlags = BSF_None;
 
-    private int                     m_resourceFormat;
-    private int                     m_srvFormat;
-    private int                     m_rtvFormat;
-    private int                     m_dsvFormat;
-    private int                     m_uavFormat;
+    int                     m_resourceFormat;
+    int                     m_srvFormat;
+    int                     m_rtvFormat;
+    int                     m_dsvFormat;
+    int                     m_uavFormat;
 
-    private int                                 m_sizeX;            // serves as desc.ByteWidth for Buffer
-    private int                                 m_sizeY;            // doubles as ArraySize in 1D texture
-    private int                                 m_sizeZ;            // doubles as ArraySize in 2D texture
-    private int                                 m_sampleCount;
-    private int                                 m_mipLevels;
+    int                                 m_sizeX;            // serves as desc.ByteWidth for Buffer
+    int                                 m_sizeY;            // doubles as ArraySize in 1D texture
+    int                                 m_sizeZ;            // doubles as ArraySize in 2D texture
+    int                                 m_sampleCount;
+    int                                 m_mipLevels;
 
     private int                                 m_viewedMipSlice;   // if m_viewedOriginal is nullptr, this will always be 0
     private int                                 m_viewedArraySlice; // if m_viewedOriginal is nullptr, this will always be 0
-    private VaTexture                           m_viewedOriginal;
+    VaTexture                           m_viewedOriginal;
     private int                                 m_viewedSliceSizeX;
     private int                                 m_viewedSliceSizeY;
     private int                                 m_viewedSliceSizeZ;
@@ -387,7 +466,8 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     }
 
     public static VaTexture Create2D(int format, int width, int height, int mipLevels, int arraySize, int sampleCount, int bindFlags){
-        return Create2D(format, width, height, mipLevels, arraySize, sampleCount, bindFlags, 0, null, 0, Unknown, Unknown, Unknown, Unknown, BSF_None);
+        return Create2D(format, width, height, mipLevels, arraySize, sampleCount, bindFlags, 0, null, 0,
+                Unknown, Unknown, Unknown, Unknown, BSF_None);
     }
 
     public static VaTexture Create2D(int format, int width, int height, int mipLevels, int arraySize, int sampleCount, int bindFlags,
@@ -415,13 +495,17 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
         UINT miscFlags = 0;
         ID3D11Resource * resource = vaDirectXTools::CreateTexture2D( (DXGI_FORMAT)format, width, height, dxInitDataPtr, arraySize, mipLevels, BindFlagsDXFromVA(bindFlags), usage, CPUAccessFlagsDXFromVA(accessFlags), sampleCount, 0, miscFlags );
         */
+
+        format = convertFromatToGL(format);
         TextureDataDesc dxInitDataObj = null;
         if(initialData != null){
             dxInitDataObj = new TextureDataDesc(TextureUtils.measureFormat(format), TextureUtils.measureDataType(format), initialData);  // TODO Need convert the format to the other that the Opengl can accept.
         }
 
         Texture2DDesc texDesc = new Texture2DDesc(width, height, format);
+        texDesc.arraySize = arraySize;
         texDesc.mipLevels = mipLevels;
+        texDesc.sampleCount = sampleCount;
         Texture2D resource = TextureUtils.createTexture2D(texDesc, dxInitDataObj);
         if( resource != null )
         {

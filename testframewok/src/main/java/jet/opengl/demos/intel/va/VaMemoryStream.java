@@ -193,7 +193,7 @@ public class VaMemoryStream extends VaStream {
     }
 
     @Override
-    public boolean WriteLong(long value) throws IOException {
+    public boolean Write(long value) throws IOException {
         Numeric.getBytes(value, m_Caches, 0);
         return Write(m_Caches, 0, 8) > 0;
     }
@@ -205,25 +205,25 @@ public class VaMemoryStream extends VaStream {
     }
 
     @Override
-    public boolean WriteShort(short value) throws IOException {
+    public boolean Write(short value) throws IOException {
         Numeric.getBytes(value, m_Caches, 0);
         return Write(m_Caches, 0, 2) > 0;
     }
 
     @Override
-    public boolean WriteInt(int value) throws IOException {
+    public boolean Write(int value) throws IOException {
         Numeric.getBytes(value, m_Caches, 0);
         return Write(m_Caches, 0, 4) > 0;
     }
 
     @Override
-    public boolean WriteFloat(float value) throws IOException {
+    public boolean Write(float value) throws IOException {
         Numeric.getBytes(value, m_Caches, 0);
         return Write(m_Caches, 0, 4) > 0;
     }
 
     @Override
-    public boolean WriteObject(int size, Readable obj) throws IOException {
+    public boolean Write(int size, Readable obj) throws IOException {
         throw new UnsupportedOperationException();
     }
 

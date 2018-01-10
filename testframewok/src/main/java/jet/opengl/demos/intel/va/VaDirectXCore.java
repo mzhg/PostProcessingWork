@@ -193,7 +193,7 @@ public final class VaDirectXCore implements Disposeable{
         m_traversingNotifyTargets = false;
     }
     //
-    private void TickInternal( ){
+    void TickInternal( ){
         // defragment and remove NULL pointers from the vector, in a quick way
         if( m_notifyTargetsNumberOfZeroed > 0 )
         {
