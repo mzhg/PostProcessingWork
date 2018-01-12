@@ -73,7 +73,6 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
         // set our main constant buffer
         m_constantsBuffer.SetToD3DContextAllShaderTypes( /*dx11Context,*/ VaShaderDefine.RENDERMESH_CONSTANTS_BUFFERSLOT );
         final GLStateTracker stateTracker = GLStateTracker.getInstance();
-        stateTracker.saveStates();
 
         // Global API states
 //        dx11Context->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
@@ -177,6 +176,8 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
                     rasterizerDesc.cullFaceEnable = true;
                     rasterizerDesc.cullMode = (materialSettings.FaceCull == VaRenderMaterial.FaceCull_Front)?( GLenum.GL_FRONT ): ( GLenum.GL_BACK );
                 }
+
+                rasterizerDesc.cullFaceEnable = false;
                 rasterizerDesc.frontCounterClockwise    = mesh.GetFrontFaceWindingOrder() == /*vaWindingOrder::CounterClockwise*/VaRenderMesh.WindingOrder_CounterClockwise;
 //                rasterizerDesc.depthBias                = 0;        // if( drawContext.PassType == vaRenderPassType::GenerateShadowmap ), these will go to whatever there's in simpleShadowMapDX11
 //                rasterizerDesc.depthBiasClamp           = 0;        // if( drawContext.PassType == vaRenderPassType::GenerateShadowmap ), these will go to whatever there's in simpleShadowMapDX11
@@ -192,7 +193,7 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
                     // update depth slope biases here
                 }
 //                dx11Context->RSSetState( vaDirectXTools::FindOrCreateRasterizerState( rasterizerDesc ) );
-                GLStateTracker.getInstance().setRasterizerState(rasterizerDesc);
+//                GLStateTracker.getInstance().setRasterizerState(rasterizerDesc);
 
                 material.UploadToAPIContext( drawContext );
 
@@ -210,8 +211,13 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
                     GLCheck.checkError();
                 }
 
-                gl.glDrawElementsBaseVertex(GLenum.GL_TRIANGLES, subPart.IndexCount, GLenum.GL_UNSIGNED_INT, subPart.IndexStart, 0);
+//                gl.glDrawElementsBaseVertex(GLenum.GL_TRIANGLES, subPart.IndexCount, GLenum.GL_UNSIGNED_INT, subPart.IndexStart, 0);
+                gl.glDrawElements(GLenum.GL_TRIANGLES, subPart.IndexCount, GLenum.GL_UNSIGNED_INT, /*subPart.IndexStart*/0);
                 GLCheck.checkError();
+
+                if(VaRenderingCore.IsCanPrintLog()){
+                    System.out.println(String.format("%s: Render Mesh '%s' at %d", drawContext.PassType.name(), mesh.GetName(), subPartIndex));
+                }
 
                 material.ClearVertexBuffers( drawContext);
             }
@@ -232,7 +238,6 @@ final class VaRenderMeshManagerDX11 extends VaRenderMeshManager implements VaDir
 
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
-        stateTracker.restoreStates();
 
         /*ID3D11ShaderResourceView * nullTextures[4] = { NULL, NULL, NULL, NULL };
         dx11Context->VSSetShader( NULL, NULL, 0 );

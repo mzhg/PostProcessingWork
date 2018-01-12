@@ -15,8 +15,7 @@ final class VaAssetRenderMesh extends VaAsset {
         Resource = mesh;
     }
 
-
-    public VaRenderMesh        GetMesh( )                           { return Resource; }
+    public VaRenderMesh GetMesh( ) { return Resource; }
 
     public static VaAssetRenderMesh  CreateAndLoad( VaAssetPack pack, String name, VaStream inStream ) throws IOException{
         UUID uid;
@@ -30,6 +29,7 @@ final class VaAssetRenderMesh extends VaAsset {
 
         if( newResource.Load( inStream ) )
         {
+            newResource.SetName(name);
             return new VaAssetRenderMesh( pack, newResource, name );
         }
         else

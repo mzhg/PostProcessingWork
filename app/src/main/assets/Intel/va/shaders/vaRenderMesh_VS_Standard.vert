@@ -28,10 +28,27 @@ out RenderMeshStandardVertexInput
 
 void main()
 {
+
+    /*mat4 proj = mat4( 2.4142134, 0.0, 0.0, 0.0,
+                     0.0, 2.4142134, 0.0, 0.0,
+                     0.0, 0.0, -1.0000199, -0.20000198,
+                     0.0, 0.0, -1.0, 0.0);
+
+//                     proj = transpose(proj);
+
+    mat4 view = mat4(1.0, 0.0, 0.0, 4.3,
+                     0.0, 1.0, 0.0, 29.2,
+                     0.0, 0.0, 1.0, 14.2,
+                     0.0, 0.0, 0.0, 1.0);*/
+
+//                     view = transpose(view);
+
+
+
     ret.Color                   = In_Color;
     ret.Texcoord0               = float4( In_Texcoord0, In_Texcoord1 );
 
-    ret.ViewspacePos            = mul( g_RenderMeshGlobal.WorldView, In_Position );
+    ret.ViewspacePos            = mul( g_RenderMeshGlobal.WorldView/*view*/, In_Position );
     ret.ViewspaceNormal.xyz     = normalize( mul( g_RenderMeshGlobal.WorldView, float4(In_Normal.xyz, 0.0) ).xyz );
     ret.ViewspaceTangent.xyz    = normalize( mul( g_RenderMeshGlobal.WorldView, float4(In_Tangent.xyz, 0.0) ).xyz );
     ret.ViewspaceBitangent.xyz  = normalize( cross( ret.ViewspaceNormal.xyz, ret.ViewspaceTangent.xyz) * In_Tangent.w );     // Tangent.w contains handedness/uv.y direction!
@@ -39,7 +56,7 @@ void main()
     // distance to camera
     ret.ViewspacePos.w          = length( ret.ViewspacePos.xyz );
 
-    gl_Position                 = mul( g_Global.Proj, float4( ret.ViewspacePos.xyz, 1.0 ) );
+    gl_Position                 = mul( g_Global.Proj/*proj*/, float4( ret.ViewspacePos.xyz, 1.0 ) );
 
     ret.ViewspaceNormal.w       = 0.0;
     ret.ViewspaceTangent.w      = 0.0;

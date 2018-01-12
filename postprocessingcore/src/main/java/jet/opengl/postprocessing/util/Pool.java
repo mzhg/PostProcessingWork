@@ -51,6 +51,8 @@ public class Pool<T> {
 		if (freeObjects.size() < max) {
 			freeObjects.add(object);
 			peak = Math.max(peak, freeObjects.size());
+		}else{
+			LogUtil.e(LogUtil.LogType.DEFAULT, "Too many objects!!!");
 		}
 		if (object instanceof Poolable) ((Poolable)object).reset();
 	}

@@ -1365,6 +1365,7 @@ public final class TextureUtils {
 		case GLenum.GL_DEPTH_COMPONENT32: return "GL_DEPTH_COMPONENT32";
 		case GLenum.GL_DEPTH_COMPONENT32F:
 										return "GL_DEPTH_COMPONENT32F";
+		case GLenum.GL_DEPTH24_STENCIL8:return "GL_DEPTH24_STENCIL8";
 //		case GL12.GL_BGRA:				return "GL_BGRA8";
 //		case GL12.GL_BGR:				return "";
 		case GLenum.GL_COMPRESSED_RGBA_S3TC_DXT1_EXT: return "GL_COMPRESSED_RGBA_S3TC_DXT1_EXT";

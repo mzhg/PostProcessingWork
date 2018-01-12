@@ -69,10 +69,10 @@ public abstract class VaLighting extends VaImguiHierarchyObject implements VaRen
     public ReadableVector3f GetDirectionalLightIntensity( )    { return m_directionalLightIntensity;   }
     public ReadableVector3f GetAmbientLightIntensity( )        { return m_ambientLightIntensity;       }
 
-    public void SetDirectionalLightDirection( float x, float y, float z )                         { m_directionalLightDirection.set(x,y,z); }
-    public void SetDirectionalLightDirection(  ReadableVector3f newValue )                         { m_directionalLightDirection.set(newValue); }
-    public void SetDirectionalLightIntensity(  ReadableVector3f newValue )                         { m_directionalLightIntensity.set(newValue); }
-    public void SetAmbientLightIntensity( ReadableVector3f newValue )                              { m_ambientLightIntensity    .set(newValue); }
+    public final void SetDirectionalLightDirection( float x, float y, float z )                         { m_directionalLightDirection.set(x,y,z); }
+    public final void SetDirectionalLightDirection(  ReadableVector3f newValue )                         { m_directionalLightDirection.set(newValue); }
+    public final void SetDirectionalLightIntensity(  ReadableVector3f newValue )                         { m_directionalLightIntensity.set(newValue); }
+    public final void SetAmbientLightIntensity( ReadableVector3f newValue )                              { m_ambientLightIntensity    .set(newValue); }
 
     //void                                            GetFogParams
     public void SetFogParams(ReadableVector3f fogColor, float fogDistanceMin, float fogDensity )

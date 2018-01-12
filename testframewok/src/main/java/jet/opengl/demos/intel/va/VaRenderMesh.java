@@ -29,14 +29,14 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
             WindingOrder_Clockwise = 1,
             WindingOrder_CounterClockwise = 2;
 
-    // wstring const                                   m_name;                 // unique (within renderMeshManager) name
-    private final TT_Trackee< VaRenderMesh >                  m_trackee;
-    private VaRenderMeshManager                           m_renderMeshManager;
+    private String m_name;                 // only for the debugging
+    private final TT_Trackee< VaRenderMesh > m_trackee;
+    private VaRenderMeshManager m_renderMeshManager;
 
-    private int                                  m_frontFaceWinding;
+    private int      m_frontFaceWinding;
     private boolean  m_tangentBitangentValid;
 
-    private VaTriangleMesh               m_triangleMesh;
+    private VaTriangleMesh m_triangleMesh;
 
     // This will most likely go out in VA_02; only one part per mesh will be supported in order to increase simplicity on the rendering backend, allow for easier instancing, etc.
     private final ArrayList<SubPart> m_parts = new ArrayList<>();
@@ -50,20 +50,20 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
         m_renderMeshManager = renderMeshManager;
 
         m_frontFaceWinding          = WindingOrder_CounterClockwise;
-//        m_boundingBox               = vaBoundingBox::Degenerate;
         m_tangentBitangentValid     = true;
     }
 
-    //const wstring &                                 GetName( ) const                                    { return m_name; };
+    public String GetName( )                                 { return m_name == null ? "" : m_name; }
+    public void SetName(String name)                         { m_name = name;}
 
-    public VaRenderMeshManager                           GetManager( )                                 { return m_renderMeshManager; }
-    public int                                             GetListIndex( )                               { return m_trackee.GetIndex( ); }
+    public VaRenderMeshManager  GetManager( )                { return m_renderMeshManager; }
+    public int GetListIndex( )                               { return m_trackee.GetIndex( ); }
 
-    public VaBoundingBox                           GetAABB( )                                    { return m_boundingBox; }
+    public VaBoundingBox GetAABB( )                          { return m_boundingBox; }
 
     // This will most likely go out in VA_02; only one part per mesh will be supported in order to increase simplicity on the rendering backend, allow for easier instancing, etc.
-    public List<SubPart> GetParts( )                                   { return m_parts; }
-    public void                                            SetParts( List<SubPart> parts ) { /*m_parts = parts;*/ m_parts.clear(); m_parts.addAll(parts); } //assert( parts.size() <= c_maxSubParts ); }
+    public List<SubPart> GetParts( )  { return m_parts; }
+    public void          SetParts( List<SubPart> parts ) { /*m_parts = parts;*/ m_parts.clear(); m_parts.addAll(parts); }
 
     public VaTriangleMesh        GetTriangleMesh(  )                           { return m_triangleMesh; }
     public void                  SetTriangleMesh( VaTriangleMesh mesh )        {m_triangleMesh = mesh;}
@@ -85,7 +85,7 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
     public boolean                              GetTangentBitangentValid( )                   { return m_tangentBitangentValid; }
     public void                                 SetTangentBitangentValid( boolean value )              { m_tangentBitangentValid = value; }
 
-    public void                                            UpdateAABB( ){
+    public void UpdateAABB( ){
         if( m_triangleMesh != null )
              VaTriangleMesh.CalculateBounds( m_triangleMesh.Vertices,  StandardVertex.SIZE, 0, m_boundingBox);
         else {
@@ -271,7 +271,9 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
             texcoords1.push(texcoord);
         }
 
-        return Create( transform, vertices, normals, tangents, texcoords0, texcoords1, indices, WindingOrder_CounterClockwise );
+        VaRenderMesh renderMesh = Create( transform, vertices, normals, tangents, texcoords0, texcoords1, indices, WindingOrder_CounterClockwise );
+        renderMesh.SetName(String.format("Plane[%.2f, %.2f]", sizeX, sizeY));
+        return renderMesh;
     }
 
     public static VaRenderMesh CreateTetrahedron( Matrix4f transform, boolean shareVertices ){
@@ -290,7 +292,9 @@ public class VaRenderMesh extends VaAssetResource implements Disposeable{
 
         FillDummyTTT( vertices, normals, tangents, texcoords0, texcoords1 );
 
-        return Create( transform, vertices, normals, tangents, texcoords0, texcoords1, indices, windingOrder );
+        VaRenderMesh renderMesh = Create( transform, vertices, normals, tangents, texcoords0, texcoords1, indices, WindingOrder_CounterClockwise );
+        renderMesh.SetName("Tetrahedron");
+        return renderMesh;
     }
 
     /*public static VaRenderMesh                 CreateCube( Matrix4f transform, bool shareVertices, float edgeHalfLength = 0.7071067811865475f );

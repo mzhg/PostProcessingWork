@@ -100,10 +100,13 @@ final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
 
             VaTexture _inoutTex = inoutTex.get();
             if( (_inoutTex != null) && (_inoutTex.GetSizeX() == width) && (_inoutTex.GetSizeY()==height) &&
-                    (_inoutTex.GetResourceFormat()==resourceFormat) && (_inoutTex.GetSRVFormat()==srvFormat) && (_inoutTex.GetRTVFormat()==rtvFormat) && (_inoutTex.GetDSVFormat()==dsvFormat) && (_inoutTex.GetUAVFormat()==uavFormat) )
+                    (_inoutTex.GetResourceFormat()==resourceFormat) && (_inoutTex.GetSRVFormat()==srvFormat) &&
+                    (_inoutTex.GetRTVFormat()==rtvFormat) && (_inoutTex.GetDSVFormat()==dsvFormat) &&
+                    (_inoutTex.GetUAVFormat()==uavFormat) )
                 return inoutTotalSizeSum;
 
-            inoutTex.set(VaTexture.Create2D( resourceFormat, width, height, 1, 1, 1, bindFlags, /*vaTextureAccessFlags::None*/0, null, 0, srvFormat, rtvFormat, dsvFormat, uavFormat,0 ));
+            inoutTex.set(VaTexture.Create2D( resourceFormat, width, height, 1, 1, 1, bindFlags, /*vaTextureAccessFlags::None*/0, null,
+                    0, srvFormat, rtvFormat, dsvFormat, uavFormat,0 ));
         }
 
         return inoutTotalSizeSum;
@@ -113,6 +116,10 @@ final class VaGBufferDX11 extends VaGBuffer implements VaDirectXNotifyTarget {
     public void UpdateResources(VaDrawContext drawContext, int width, int height) {
         if( width == -1 )   width     = drawContext.APIContext.GetViewport().Width;
         if( height == -1 )  height    = drawContext.APIContext.GetViewport().Height;
+
+        /*if(m_resolution.x == width && m_resolution.y == height && !m_shadersDirty){
+            return;
+        }*/
 
         m_resolution.set(width, height);
 

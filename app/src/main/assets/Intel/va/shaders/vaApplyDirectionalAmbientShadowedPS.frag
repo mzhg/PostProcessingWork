@@ -6,5 +6,5 @@ layout(location = 0) out vec4 Out_Color;
 
 void main()
 {
-    Out_Color = ApplyDirectionalAmbient( Position, true );
+    Out_Color = ApplyDirectionalAmbient( /*Position,*/ true );
 }

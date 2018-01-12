@@ -28,7 +28,7 @@ public abstract class VaGBuffer extends VaImguiHierarchyObject implements VaRend
     // protected VaTexture                             m_diffuseIrradiance;        // placeholder for Light Pre-Pass
     // protected VaTexture                             m_specularIrradiance;       // placeholder for Light Pre-Pass
 
-    protected final Vector2i                        m_resolution = new Vector2i();
+    protected final Vector2i m_resolution = new Vector2i();
 
     protected VaGBuffer( ){
         m_debugInfo = "GBuffer (uninitialized - forgot to call RenderTick?)";

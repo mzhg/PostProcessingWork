@@ -53,39 +53,6 @@ LocalMaterialValues GetLocalMaterialValues( /*const in GenericSceneVertexTransfo
     return ret;
 }
 
-float4 MeshColor( /*const GenericSceneVertexTransformed input,*/ LocalMaterialValues lmv, float shadowTerm )
-{
-    const float3 diffuseLightVector     = -g_Global.Lighting.DirectionalLightViewspaceDirection.xyz;
-
-    float3 color    = lmv.Albedo.rgb;
-    float3 normal   = (lmv.IsFrontFace)?(lmv.Normal):(-lmv.Normal);
-
-    float3 viewDir                      = normalize(_input.ViewspacePos.xyz );
-
-    // start calculating final colour
-    float3 lightAccum       = color.rgb * g_Global.Lighting.AmbientLightIntensity.rgb;
-
-    // directional light
-    float nDotL             = dot( normal, diffuseLightVector );
-
-    float3 reflected        = diffuseLightVector - 2.0*nDotL*normal;
-	float rDotV             = saturate( dot(reflected, viewDir) );
-    float specular          = saturate( pow( saturate( rDotV ), 8.0 ) );
-
-    // facing towards light: front and specular
-    float lightFront        = saturate( nDotL ) * shadowTerm;
-    lightAccum              += lightFront * color.rgb * g_Global.Lighting.DirectionalLightIntensity.rgb;
-    //lightAccum += fakeSpecularMul * specular;
-
-    float3 finalColor       = saturate( lightAccum );
-    finalColor              = saturate( finalColor );
-
-    // input.ViewspacePos.w is distance to camera
-    finalColor              = FogForwardApply( finalColor, _input.ViewspacePos.w );
-
-    return float4( finalColor, lmv.Albedo.a );
-}
-
 layout(location = 0) out vec4 Out_Color0;
 layout(location = 1) out vec4 Out_Color1;
 

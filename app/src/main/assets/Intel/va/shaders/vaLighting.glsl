@@ -16,15 +16,15 @@
 // 2016-09-07: filip.strugar@intel.com: first commit (extracted from VertexAsylum codebase, 2006-2016 by Filip Strugar)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "vaShared.hlsl"
+#include "vaShared.glsl"
 
-#include "vaSimpleShadowMap.hlsl"
+#include "vaSimpleShadowMap.glsl"
 
 layout(binding = 0) uniform sampler2D g_textureSlot0;
 layout(binding = 1) uniform sampler2D g_textureSlot1;
 layout(binding = 2) uniform sampler2D g_textureSlot2;
 
-float4 ApplyDirectionalAmbient( const in float4 Position, /*uniform*/ const bool shadowed )
+float4 ApplyDirectionalAmbient( /*const in float4 Position,uniform*/ const bool shadowed )
 {
     vec2 Position = gl_FragCoord.xy;
     float viewspaceDepth    = texelFetch(g_textureSlot0, int2(Position.xy), 0 ).x;

@@ -28,7 +28,7 @@ import jet.opengl.postprocessing.util.Numeric;
 final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
 
     static boolean ASSAO_DEBUG;
-    private static boolean g_PrintOnce = false;
+    private static boolean g_PrintOnce = true;
     static final String DEBUG_FILE_FOLDER = "E:/textures/ASSAOGL_ADAPTIVE/";
 
 	private final BufferFormats            	m_formats = new BufferFormats();
@@ -591,7 +591,7 @@ final class ASSAOGL implements ASSAO_Effect, ASSAO_Macro{
         m_renderTargets.setRenderTextures(textures, null);
     }
 
-    final void saveTextData(String filename, TextureGL texture){
+    static final void saveTextData(String filename, TextureGL texture){
         try {
             DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, DEBUG_FILE_FOLDER + filename);
             LogUtil.i(LogUtil.LogType.DEFAULT, "Save '" + filename + "' done!");

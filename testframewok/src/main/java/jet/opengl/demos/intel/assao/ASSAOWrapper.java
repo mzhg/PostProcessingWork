@@ -33,6 +33,7 @@ final class ASSAOWrapper extends VaRenderingModuleImpl implements VaDirectXNotif
             throw new IllegalStateException();
 
         m_effect = new ASSAOGL();
+        ((ASSAOGL)m_effect).InitializeGL();
     }
 
     @Override

@@ -14,8 +14,8 @@ import jet.opengl.postprocessing.texture.TextureGL;
 final class VaLightingDX11 extends VaLighting implements VaDirectXNotifyTarget {
 
     protected boolean m_helperMacroConstructorCalled;
-    private VaDirectXPixelShader                    m_applyDirectionalAmbientPS;
-    private VaDirectXPixelShader                    m_applyDirectionalAmbientShadowedPS;
+    private VaDirectXPixelShader  m_applyDirectionalAmbientPS = new VaDirectXPixelShader();
+    private VaDirectXPixelShader  m_applyDirectionalAmbientShadowedPS = new VaDirectXPixelShader();
 
     //vaDirectXPixelShader                    m_applyTonemapPS;
     private int                                     m_storeageIndex;
@@ -50,7 +50,8 @@ final class VaLightingDX11 extends VaLighting implements VaDirectXNotifyTarget {
     }
 
     public void OnDeviceDestroyed(){
-
+        m_applyDirectionalAmbientPS.dispose();
+        m_applyDirectionalAmbientShadowedPS.dispose();
     }
 
     String GetShaderFilePath( ) { return m_shaderFileToUse;  }
@@ -60,8 +61,8 @@ final class VaLightingDX11 extends VaLighting implements VaDirectXNotifyTarget {
         {
             m_shadersDirty = false;
 
-            m_applyDirectionalAmbientPS.CreateShaderFromFile( GetShaderFilePath( ), "ps_5_0", "ApplyDirectionalAmbientPS", m_staticShaderMacros );
-            m_applyDirectionalAmbientShadowedPS.CreateShaderFromFile( GetShaderFilePath( ), "ps_5_0", "ApplyDirectionalAmbientShadowedPS", m_staticShaderMacros );
+            m_applyDirectionalAmbientPS.CreateShaderFromFile( "vaApplyDirectionalAmbientPS.frag", "ps_5_0", "ApplyDirectionalAmbientPS", m_staticShaderMacros );
+            m_applyDirectionalAmbientShadowedPS.CreateShaderFromFile( "vaApplyDirectionalAmbientShadowedPS.frag", "ps_5_0", "ApplyDirectionalAmbientShadowedPS", m_staticShaderMacros );
 
             //m_applyTonemapPS.CreateShaderFromFile( GetShaderFilePath( ), "ps_5_0", "ApplyTonemapPS", m_staticShaderMacros );
         }

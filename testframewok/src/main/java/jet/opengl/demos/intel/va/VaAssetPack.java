@@ -141,7 +141,6 @@ public class VaAssetPack extends VaImguiHierarchyObject {
             }
 
             VaAsset newAsset = null;
-
             switch( VaAssetType.values()[ assetType] )
             {
                 case Texture:
@@ -156,7 +155,6 @@ public class VaAssetPack extends VaImguiHierarchyObject {
                 default:
                     break;
             }
-
 
             if(newAsset == null)
                 throw new IllegalStateException("asset is null");
@@ -230,7 +228,7 @@ public class VaAssetPack extends VaImguiHierarchyObject {
 
     public String Name( )  { return m_name; }
 
-    public boolean                                                Rename( VaAsset asset, String newName ){
+    public boolean Rename( VaAsset asset, String newName ){
 //        string newName = vaStringTools::ToLower( _newName );
         newName = newName.toLowerCase();
 

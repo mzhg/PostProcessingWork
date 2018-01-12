@@ -183,6 +183,7 @@ public abstract class VaRenderDeviceContext extends VaRenderingModuleImpl {
 
     protected abstract void                        UpdateViewport( );
     protected abstract void                        UpdateRenderTargetsDepthStencilUAVs( );
+    protected abstract void                        PrintShaderInfo();
 
     public abstract Object                      GetAPIImmediateContextPtr( );
 }

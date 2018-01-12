@@ -47,10 +47,12 @@ import jet.opengl.demos.intel.va.VaRenderingModuleRegistrar;
 import jet.opengl.demos.intel.va.VaSimpleShadowMap;
 import jet.opengl.demos.intel.va.VaSky;
 import jet.opengl.demos.intel.va.VaTexture;
+import jet.opengl.demos.intel.va.VaTextureDX11;
 import jet.opengl.demos.intel.va.VaViewport;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -127,7 +129,9 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
     private String                      m_screenshotCapturePath;
 
     protected final SSAODemoSettings    m_settings = new SSAODemoSettings();
+    private final Matrix4f              m_world = new Matrix4f();
     private GLFuncProvider              gl;
+
 
     public ASSAODemo(){
         m_camera = new VaCameraBase();
@@ -143,7 +147,7 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
         m_cameraFreeFlightController.SetMoveWhileNotCaptured( false );
 
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
-        m_transformer.setTranslation(4.3f, 29.2f, 14.2f);
+        m_transformer.setTranslation(-4.3f, -29.2f, -14.2f);
 
         m_renderingGlobals  =  VA_RENDERING_MODULE_CREATE_UNIQUE( "vaRenderingGlobals" );
 
@@ -164,6 +168,11 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
         m_assetsSibenik     = new VaAssetPack("Sibenik");
         m_assetsSponza      = new VaAssetPack("Sponza");
         m_assetsLostEmpire  = new VaAssetPack("LostEmpire");
+
+        m_world.set(1, 0,0,0,
+                    0,0,1,0,
+                    0,1,0,0,
+                    0,0,0,1);
 
         {
             try(VaFileStream fileIn = new VaFileStream()){
@@ -209,11 +218,11 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
         SaveCamera(-1 );
 
         {
-            try(VaFileStream fileOut = new VaFileStream()){
-                if( fileOut.Open( /*vaCore::GetExecutableDirectory( ) +*/ "SSAODemoSettings.data", VaFileStream.FileCreationMode.Create, VaFileStream.FileAccessMode.Default ) )
+            /*try(VaFileStream fileOut = new VaFileStream()){
+                if( fileOut.Open( *//*vaCore::GetExecutableDirectory( ) +*//* "SSAODemoSettings.data", VaFileStream.FileCreationMode.Create, VaFileStream.FileAccessMode.Default ) )
                 {
-                    /*fileOut.WriteValue<int32>( (int32)sizeof(m_settings) );
-                    fileOut.WriteValue( m_settings );*/
+                    *//*fileOut.WriteValue<int32>( (int32)sizeof(m_settings) );
+                    fileOut.WriteValue( m_settings );*//*
 
                     fileOut.Write(SSAODemoSettings.SIZE);
                     fileOut.Write(m_settings.SIZE, m_settings);
@@ -221,7 +230,7 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-            }
+            }*/
         }
 
         // not needed but useful for debugging so I left it in
@@ -372,6 +381,8 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
             }
 
             CacheBuffer.free(translation);
+        }else{
+//            return;
         }
 
         m_renderingGlobals.Tick( deltaTime );
@@ -447,22 +458,8 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
         }
     }
 
-    public void OnRender( ){
+    private void UpdateCamera(VaRenderDeviceContext mainContext,  VaViewport mainViewport, Vector4i scissorRectForSSAO){
         m_frameIndex++;
-        VaRenderDeviceContext mainContext = m_renderDevice.GetMainContext( );
-
-        VaViewport mainViewportBackup   = new VaViewport(0,0, getGLContext().width(),  getGLContext().height()); // m_renderDevice->GetMainContext( )->GetViewport();
-        VaViewport mainViewportExpanded = new VaViewport(0,0, getGLContext().width(),  getGLContext().height()); // m_renderDevice->GetMainContext( )->GetViewport();
-        VaViewport mainViewport         = new VaViewport(0,0, getGLContext().width(),  getGLContext().height()); // m_renderDevice->GetMainContext( )->GetViewport();
-
-        // current textures for sibenik are not good / complete
-        VaRenderMaterialManager.GetInstance().SetTexturingDisabled( m_settings.DisableTexturing );
-        if( m_settings.SceneChoice == SibenikAndDragons )
-        {
-            VaRenderMaterialManager.GetInstance().SetTexturingDisabled( true );
-        }
-
-        Vector4i scissorRectForSSAO = new Vector4i( 0, 0, 0, 0 );
 
         // update resolution and camera FOV if there's border expansion
         final int drawResolutionBorderExpansionFactor = 12; // will be expanded by Height / expansionFactor
@@ -479,7 +476,7 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
             m_expandedSceneResolution.x = mainViewport.Width + m_expandedSceneBorder * 2;
             m_expandedSceneResolution.y = mainViewport.Height + m_expandedSceneBorder * 2;
 
-            double yScaleDueToBorder = (m_expandedSceneResolution.y * 0.5) / (double)(mainViewport.Height * 0.5);
+            double yScaleDueToBorder = (m_expandedSceneResolution.y * 0.5) / (mainViewport.Height * 0.5);
 
             double nonExpandedTan = Math.tan( m_settings.CameraYFov / 2.0 );
             float expandedFOV = (float)(Math.atan( nonExpandedTan * yScaleDueToBorder ) * 2.0);
@@ -495,7 +492,13 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
             Matrix4f.perspective((float)Math.toDegrees(expandedFOV), m_expandedSceneResolution.x/m_expandedSceneResolution.y,
                     m_camera.GetNearPlane(), m_camera.GetFarPlane(), proj);
             m_transformer.getModelViewMat(view);
+            Matrix4f.mul(view, m_world, view);
             Matrix4f.invertRigid(view, world);
+
+            if(VaRenderingCore.IsCanPrintLog()){
+                LogUtil.i(LogUtil.LogType.DEFAULT, "proj = " + proj);
+                LogUtil.i(LogUtil.LogType.DEFAULT, "view = " + view);
+            }
 
             mainViewport.Width  = m_expandedSceneResolution.x;
             mainViewport.Height = m_expandedSceneResolution.y;
@@ -505,7 +508,8 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
             scissorRectForSSAO.z   = mainViewport.Width  - m_expandedSceneBorder;
             scissorRectForSSAO.w   = mainViewport.Height - m_expandedSceneBorder;
 
-            mainViewportExpanded = mainViewport;
+//            mainViewportExpanded = mainViewport;
+
 
             UpdateTextures( mainViewport.Width, mainViewport.Height );
         }
@@ -515,6 +519,91 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
             VaDrawContext drawContext = new VaDrawContext(m_camera, mainContext, m_renderingGlobals, m_lighting );
             m_GBuffer.UpdateResources( drawContext, m_expandedSceneResolution.x, m_expandedSceneResolution.y );
         }
+    }
+
+    public void OnRender(){
+        VaRenderDeviceContext mainContext = m_renderDevice.GetMainContext( );
+        VaViewport mainViewport         = new VaViewport(0,0, getGLContext().width(),  getGLContext().height());
+
+        VaRenderMaterialManager.GetInstance().SetTexturingDisabled( m_settings.DisableTexturing );
+        if( m_settings.SceneChoice == SibenikAndDragons )
+        {
+            VaRenderMaterialManager.GetInstance().SetTexturingDisabled( true );
+        }
+
+        Vector4i scissorRectForSSAO = new Vector4i( 0, 0, 0, 0 );
+
+        UpdateCamera(mainContext, mainViewport, scissorRectForSSAO);
+
+        VaTexture mainColorRT   = m_GBuffer.GetOutputColor();  // m_renderDevice->GetMainChainColor();
+        VaTexture mainDepthRT   = m_GBuffer.GetDepthBuffer();  // m_renderDevice->GetMainChainDepth();
+
+        VaDrawContext drawContext = new VaDrawContext(m_camera, mainContext, m_renderingGlobals, m_lighting );
+        final GLStateTracker stateTracker = GLStateTracker.getInstance();
+        stateTracker.saveStates();
+
+        // this sets up global constants
+        m_renderingGlobals.SetAPIGlobals( drawContext );
+
+        // clear light accumulation (radiance) RT
+        m_GBuffer.GetRadiance().ClearRTV( /*mainContext, vaVector4( 0.0f, 0.0f, 0.0f, 0.0f )*/ (Vector4f) Vector4f.ZERO);
+
+        // Draw deferred elements into the GBuffer
+        {
+//                VA_SCOPE_CPUGPU_TIMER( GBufferDraw, mainContext );
+            drawContext.PassType = VaRenderPassType.ForwardOpaque;
+
+            // GBuffer textures
+            VaTexture renderTargets[] = {m_GBuffer.GetAlbedo(), m_GBuffer.GetNormalMap() };
+
+            // clear GBuffer
+            for( int i = 0; i < renderTargets.length; i++ )
+                renderTargets[i].ClearRTV( /*mainContext, vaVector4( 0.0f, 0.0f, 0.0f, 0.0f )*/ (Vector4f) Vector4f.ZERO );
+
+//            mainContext.SetRenderTargets(renderTargets.length, renderTargets, mainDepthRT, true );
+            m_renderDevice.BeginFrame(getFrameDeltaTime());
+            gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f );
+            gl.glClearDepthf(1.0f);
+            gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
+
+            m_sky.Draw( drawContext );
+            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
+            VaRenderMeshManager. GetInstance( ).Draw( drawContext, m_meshDrawList );
+            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+            if(VaRenderingCore.IsCanPrintLog()){
+//                ASSAOGL.saveTextData("Deffered_Albedo.txt", ((VaTextureDX11)m_GBuffer.GetAlbedo()).GetSRV());
+//                ASSAOGL.saveTextData("Deffered_NormalMap.txt", ((VaTextureDX11)m_GBuffer.GetNormalMap()).GetSRV());
+//                ASSAOGL.saveTextData("Deffered_Depth.txt", ((VaTextureDX11)m_GBuffer.GetDepthBuffer()).GetSRV());
+            }
+
+            m_renderDevice.EndAndPresentFrame();
+        }
+
+
+
+        m_meshDrawList.Reset();
+        stateTracker.restoreStates();
+
+//        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+//        gl.glViewport(0,0,mainViewport.Width, mainViewport.Height);
+    }
+
+    public void OnRender2( ){
+        VaRenderDeviceContext mainContext = m_renderDevice.GetMainContext( );
+
+        VaViewport mainViewportBackup   = new VaViewport(0,0, getGLContext().width(),  getGLContext().height()); // m_renderDevice->GetMainContext( )->GetViewport();
+//        VaViewport mainViewportExpanded = new VaViewport(0,0, getGLContext().width(),  getGLContext().height()); // m_renderDevice->GetMainContext( )->GetViewport();
+        VaViewport mainViewport         = new VaViewport(0,0, getGLContext().width(),  getGLContext().height()); // m_renderDevice->GetMainContext( )->GetViewport();
+
+        // current textures for sibenik are not good / complete
+        VaRenderMaterialManager.GetInstance().SetTexturingDisabled( m_settings.DisableTexturing );
+        if( m_settings.SceneChoice == SibenikAndDragons )
+        {
+            VaRenderMaterialManager.GetInstance().SetTexturingDisabled( true );
+        }
+
+        Vector4i scissorRectForSSAO = new Vector4i( 0, 0, 0, 0 );
+        UpdateCamera(mainContext, mainViewport, scissorRectForSSAO);
 
         // decide on the main render target / depth
         VaTexture mainColorRT   = m_GBuffer.GetOutputColor();  // m_renderDevice->GetMainChainColor();
@@ -530,13 +619,12 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
         // set main render target / depth
 //        mainContext.SetRenderTarget( mainColorRT, mainDepthRT, true );
 
-//        vaMatrix4x4 viewProj = m_camera->GetViewMatrix( ) * m_camera->GetProjMatrix( );
-        Matrix4f viewProj = null;  // TODO
-
         if( m_settings.UseDeferred )
         {
 //            VA_SCOPE_CPUGPU_TIMER( Deferred, mainContext );
             VaDrawContext drawContext = new VaDrawContext(m_camera, mainContext, m_renderingGlobals, m_lighting );
+            final GLStateTracker stateTracker = GLStateTracker.getInstance();
+            stateTracker.saveStates();
 
             // this sets up global constants
             m_renderingGlobals.SetAPIGlobals( drawContext );
@@ -558,13 +646,17 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
 
                 mainContext.SetRenderTargets(renderTargets.length, renderTargets, mainDepthRT, true );
                 VaRenderMeshManager. GetInstance( ).Draw( drawContext, m_meshDrawList );
+
+                if(VaRenderingCore.IsCanPrintLog()){
+                    ASSAOGL.saveTextData("Deffered_Albedo.txt", ((VaTextureDX11)m_GBuffer.GetAlbedo()).GetSRV());
+                    ASSAOGL.saveTextData("Deffered_NormalMap.txt", ((VaTextureDX11)m_GBuffer.GetNormalMap()).GetSRV());
+                    ASSAOGL.saveTextData("Deffered_Depth.txt", ((VaTextureDX11)m_GBuffer.GetDepthBuffer()).GetSRV());
+                }
             }
 
             // GBuffer processing
             {
 //                VA_SCOPE_CPUGPU_TIMER( GBufferProcess, mainContext );
-                drawContext = new VaDrawContext(m_camera, mainContext, m_renderingGlobals, m_lighting);
-
                 // this sets up global constants
                 m_renderingGlobals.SetAPIGlobals( drawContext );
 
@@ -643,6 +735,7 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
                     VaRenderMeshManager.GetInstance().Draw( drawContext, m_meshDrawList );
             }
 
+            GLStateTracker.getInstance().restoreStates();
             // Apply SSAO
             if( m_settings.EnableSSAO )
             {
@@ -975,15 +1068,17 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
         {
 //            VA_SCOPE_CPUGPU_TIMER( FinalApply, mainContext );
 
-            VaDrawContext drawContext = new VaDrawContext(m_camera, mainContext, m_renderingGlobals, m_lighting);
+            /*VaDrawContext drawContext = new VaDrawContext(m_camera, mainContext, m_renderingGlobals, m_lighting);
             // this sets up global constants
             m_renderingGlobals.SetAPIGlobals( drawContext );
 
             m_postProcess.StretchRect( drawContext, mainColorRT, new Vector4f( (float)m_expandedSceneBorder, (float)m_expandedSceneBorder, (float)m_expandedSceneBorder+mainViewport.Width, (float)m_expandedSceneBorder+mainViewport.Height ),
                     new Vector4f( 0.0f, 0.0f, (float)mainViewport.Width, (float)mainViewport.Height), true );
 
-            mainViewport = mainViewportBackup;
+            mainViewport = mainViewportBackup;*/
         }
+
+        GLCheck.checkError();
     }
 
 //    public VaDebugCanvas2DBase                   GetCanvas2D( )                  { return m_renderDevice->GetCanvas2D( ); }
@@ -1121,7 +1216,6 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
 
         m_comparerReferenceTexture = VaTexture.Create2D( VaTexture.R8G8B8A8_UNORM_SRGB, width, height, 1, 1, 1, VaTexture.BSF_ShaderResource | VaTexture.BSF_RenderTarget );
         m_comparerCurrentTexture   = VaTexture.Create2D( VaTexture.R8G8B8A8_UNORM_SRGB, width, height, 1, 1, 1, VaTexture.BSF_ShaderResource | VaTexture.BSF_RenderTarget );
-
     }
 
     public void LoadCamera( int index /*= -1*/ ){
@@ -1166,14 +1260,14 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
 
     void SaveCamera( int index )
     {
-        try(VaFileStream fileOut = new VaFileStream()){
+        /*try(VaFileStream fileOut = new VaFileStream()){
             if( fileOut.Open( CameraFileName(index), VaFileStream.FileCreationMode.Create, VaFileStream.FileAccessMode.Default ) )
             {
                 m_camera.Save( fileOut );
             }
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     static String CameraFileName( int index )

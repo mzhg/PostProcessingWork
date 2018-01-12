@@ -498,8 +498,8 @@ public class Quaternion extends Vector implements ReadableVector4f, WritableVect
 	 * @return this
 	 */
 	public final Quaternion setFromMatrix(Matrix4f m) {
-		return setFromMat(m.m00, m.m01, m.m02, m.m10, m.m11, m.m12, m.m20,
-				m.m21, m.m22);
+		return setFromMat(m.m00, m.m10, m.m20, m.m01, m.m11, m.m21, m.m02,
+				m.m12, m.m22);
 	}
 	
 	/**
@@ -547,8 +547,8 @@ public class Quaternion extends Vector implements ReadableVector4f, WritableVect
 	 * @return q
 	 */
 	public static Quaternion setFromMatrix(Matrix3f m, Quaternion q) {
-		return q.setFromMat(m.m00, m.m01, m.m02, m.m10, m.m11, m.m12, m.m20,
-				m.m21, m.m22);
+		return q.setFromMat(m.m00, m.m10, m.m20, m.m01, m.m11, m.m21, m.m02,
+				m.m12, m.m22);
 	}
 	
 	public static Vector3f transform(Quaternion left, ReadableVector3f right, Vector3f dst){
@@ -652,15 +652,15 @@ public class Quaternion extends Vector implements ReadableVector4f, WritableVect
 	public static<T extends WritableVector4f> T fromRotationMat(Matrix3f mat,
 																WritableVector4f out){
 		final Matrix3f m = mat;
-		return fromRotationMat(m.m00, m.m01, m.m02, m.m10, m.m11, m.m12, m.m20,
-				m.m21, m.m22, out);
+		return fromRotationMat(m.m00, m.m10, m.m20, m.m01, m.m11, m.m21, m.m02,
+				m.m12, m.m22, out);
 	}
 
 	public static<T extends WritableVector4f> T fromRotationMat(Matrix4f mat,
 																WritableVector4f out){
 		final Matrix4f m = mat;
-		return fromRotationMat(m.m00, m.m01, m.m02, m.m10, m.m11, m.m12, m.m20,
-				m.m21, m.m22, out);
+		return fromRotationMat(m.m00, m.m10, m.m20, m.m01, m.m11, m.m21, m.m02,
+				m.m12, m.m22, out);
 	}
 
 	public static<T extends WritableVector4f> T fromRotationMat(float m00, float m01, float m02, float m10,

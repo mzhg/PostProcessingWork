@@ -30,6 +30,9 @@ final class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements V
     private final TextureGL[]       m_tempRTVs = new TextureGL[c_maxUAVs + 1];
     private int                     m_storeageIndex;
 
+    private ShaderProgram           m_shaderVS;
+    private ShaderProgram           m_shaderPS;
+
     VaRenderDeviceContextDX11( VaConstructorParamsBase params ){
         VaDirectXCore.helperInitlize(this);
     }
@@ -111,6 +114,17 @@ final class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements V
     }
 
     @Override
+    protected void PrintShaderInfo() {
+        if(m_shaderVS != null){
+            m_shaderVS.printPrograminfo();
+        }
+
+        if(m_shaderPS != null){
+            m_shaderPS.printPrograminfo();
+        }
+    }
+
+    @Override
     public Object GetAPIImmediateContextPtr() {
         return null;
     }
@@ -132,10 +146,12 @@ final class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements V
 
     public void VSSetShader(ShaderProgram shader){
         m_program.setVS(shader);
+        m_shaderVS = shader;
     }
 
     public void PSSetShader(ShaderProgram shader){
         m_program.setPS(shader);
+        m_shaderPS = shader;
     }
 
 //    ID3D11DeviceContext *       GetDXImmediateContext( ) const                               { return m_deviceImmediateContext; }
@@ -206,6 +222,9 @@ final class VaRenderDeviceContextDX11 extends VaRenderDeviceContext implements V
         gl.glBindVertexArray(0);
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 
+        if(VaRenderingCore.IsCanPrintLog()){
+            pixelShader.printPrograminfo();
+        }
     }
 
     private void Initialize( /*ID3D11DeviceContext * deviceContext*/ ){

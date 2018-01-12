@@ -194,6 +194,7 @@ public final class VaRenderDeviceDX11 extends VaRenderDevice{
                 gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_framebuffer);
                 gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, m_mainRenderTargetView.getTarget(), m_mainRenderTargetView.getTexture(), 0);
                 gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_mainDepthStencil.getTarget(), m_mainDepthStencil.getTexture(), 0);
+                gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
                 gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
             }
         }

@@ -55,5 +55,5 @@ public abstract class VaRenderingGlobals extends VaRenderingModuleImpl implement
     // if calling more than once per frame make sure c_shaderDebugOutputSyncDelay is big enough to avoid stalls
     public abstract void                UpdateDebugOutputFloats( VaDrawContext drawContext );
 
-    protected void                        MarkAPIGlobalsUpdated( VaDrawContext drawContext )                                    { drawContext.renderingGlobalsUpdated = true; }
+    protected void                        MarkAPIGlobalsUpdated( VaDrawContext drawContext )  { drawContext.renderingGlobalsUpdated = true; }
 }

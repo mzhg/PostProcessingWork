@@ -31,6 +31,7 @@ void GetNormalAndTangentSpace( /*const GenericSceneVertexTransformed input,*/ ou
 			                    normalize( _input.ViewspaceTangent.xyz   ),
 			                    normalize( _input.ViewspaceBitangent.xyz ),
                                 normalize( _input.ViewspaceNormal.xyz    ) );
+    tangentSpace    = transpose(tangentSpace);
 
     normal          = mul( normal, tangentSpace );
     normal          = normalize( normal );
@@ -101,7 +102,6 @@ void main()
         return;
     }
 
-
     bool isFrontFace = gl_FrontFacing;
     float shadowTerm = 1; //SimpleShadowMapSample( input.ViewspacePos.xyz );
 
@@ -113,4 +113,5 @@ void main()
 #endif
 
     Out_Color = MeshColor(/* input,*/ lmv, shadowTerm );
+//    Out_Color.x = 1.;
 }

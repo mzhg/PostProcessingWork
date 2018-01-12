@@ -2597,8 +2597,10 @@ public class Matrix4f extends Matrix implements Serializable {
 
 		if(ypr != null){
 			ypr.set(yaw, pitch, roll);
+//			ypr.set(pitch, -roll, -yaw);
 		}else{
-			ypr = new Vector3f(yaw, pitch, roll);
+//			ypr = new Vector3f(yaw, pitch, roll);
+			ypr = new Vector3f(pitch, -roll, -yaw);
 		}
 
 		return ypr;
@@ -2710,7 +2712,7 @@ public class Matrix4f extends Matrix implements Serializable {
 			float m21 = transform.m21 / scaleZ;
 			float m22 = transform.m22 / scaleZ;
 
-			Quaternion.fromRotationMat(m00, m01, m02, m10, m11, m12, m20, m21, m22, outRotation);
+			Quaternion.fromRotationMat(m00, m10, m20, m01, m11, m21, m02, m12, m22, outRotation);
 		}
 
 		return true;

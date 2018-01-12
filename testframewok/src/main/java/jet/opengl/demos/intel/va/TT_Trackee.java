@@ -9,9 +9,7 @@ public class TT_Trackee<TTTagType> {
     int                           m_index;
     TTTagType                     m_tag;
 
-    public TT_Trackee( TT_Tracker<TTTagType> tracker, TTTagType tag )
-//            : m_tag( tag )
-    {
+    public TT_Trackee( TT_Tracker<TTTagType> tracker, TTTagType tag ) {
         m_tracker = tracker;
         m_tag = tag;
         assert( tracker != null );
@@ -24,8 +22,7 @@ public class TT_Trackee<TTTagType> {
             m_tracker.m_onAddedCallback.call(m_index);
     }
 
-    public void release( )
-    {
+    public void release( ) {
         if( m_tracker == null )
             return;
 
@@ -55,7 +52,7 @@ public class TT_Trackee<TTTagType> {
 
     }
 
-    public TT_Tracker            GetTracker( )  { return m_tracker; };
-    public TTTagType                       GetTag( )      { return m_tag; }
-    public int                             GetIndex( )    { return m_index; }
+    public TT_Tracker  GetTracker( )  { return m_tracker; };
+    public TTTagType   GetTag( )      { return m_tag; }
+    public int         GetIndex( )    { return m_index; }
 }

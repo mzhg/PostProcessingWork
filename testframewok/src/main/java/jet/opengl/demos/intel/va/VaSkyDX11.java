@@ -8,6 +8,7 @@ import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.DepthStencilState;
 import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
@@ -182,13 +183,18 @@ public class VaSkyDX11 extends VaSky implements VaDirectXNotifyTarget {
         dx11Context->OMSetDepthStencilState( (drawContext.Camera.GetUseReversedZ())?( vaDirectXTools::GetDSS_DepthEnabledGE_NoDepthWrite( ) ):( vaDirectXTools::GetDSS_DepthEnabledLE_NoDepthWrite( ) ), 0 );
         float blendFactor[4] = { 0, 0, 0, 0 };
         dx11Context->OMSetBlendState( NULL, blendFactor, 0xFFFFFFFF );*/
-        stateTracker.setRasterizerState(null);
+        /*stateTracker.setRasterizerState(null);
         stateTracker.setDepthStencilState((drawContext.Camera.GetUseReversedZ())?( VaDirectXTools.GetDSS_DepthEnabledGE_NoDepthWrite( ) ):( VaDirectXTools.GetDSS_DepthEnabledLE_NoDepthWrite( ) ));
-        stateTracker.setBlendState(null);
+        stateTracker.setBlendState(null);*/
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glDisable(GLenum.GL_BLEND);
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glDepthMask(false);
 
-//        dx11Context->Draw( 3, 0 );
-        GLFuncProviderFactory.getGLFuncProvider().glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         inputLayout.unbind();
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glDepthMask(true);
 
         // make sure nothing messed with our constant buffers and nothing uses them after
         VaDirectXTools.AssertSetToD3DContextAllShaderTypes( /*dx11Context,*/ m_constantsBuffer.GetBuffer( ), VaShaderDefine.SIMPLESKY_CONSTANTS_BUFFERSLOT );

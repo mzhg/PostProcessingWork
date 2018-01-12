@@ -342,9 +342,9 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
             m_sizeY             = tex2D.getHeight();
             m_mipLevels         = tex2D.getMipLevels();
             m_sizeZ             = tex2D.getArraySize();
-            if( m_resourceFormat != /*vaTextureFormat::Unknown*/ 0 )
-            { assert( m_resourceFormat == /*(vaTextureFormat)desc.Format*/tex2D.getFormat() ); }
-            m_resourceFormat = /*(vaTextureFormat)desc.Format*/tex2D.getFormat(); // TODO Need conver the OpenGL format to vaTextureFormat
+            if( m_resourceFormat != Unknown )
+            { assert( m_resourceFormat == /*(vaTextureFormat)desc.Format*/ convertFromatToDX(tex2D.getFormat()) ); }
+            m_resourceFormat = convertFromatToDX(tex2D.getFormat());
             m_sampleCount       = tex2D.getSampleCount();
             //                  = desc.SampleDesc.Quality;
 
@@ -374,9 +374,11 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
             m_sizeY             = tex3D.getHeight();
             m_sizeZ             = tex3D.getDepth();
             m_mipLevels         = tex3D.getMipLevels();
-            if( m_resourceFormat != /*vaTextureFormat::Unknown*/tex3D.getFormat() )
-            { assert( m_resourceFormat == /*(vaTextureFormat)desc.Format*/tex3D.getFormat() ); }
-            m_resourceFormat = /*(vaTextureFormat)desc.Format*/tex3D.getFormat();  // TODO Need conver the OpenGL format to vaTextureFormat
+
+            int dxFormat = convertFromatToDX(tex3D.getFormat());
+            if( m_resourceFormat != Unknown)
+            { assert( m_resourceFormat == dxFormat); }
+            m_resourceFormat =  dxFormat;
             m_sampleCount       = 1;
             m_type              = VaTextureType.Texture3D;
 
@@ -568,7 +570,7 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
         }
     }
 
-    public static VaTexture              Create2DTestCheckerboardTexture( int format, int bindFlags, int accessFlags /*= vaTextureAccessFlags::None*/ ){
+    public static VaTexture Create2DTestCheckerboardTexture( int format, int bindFlags, int accessFlags /*= vaTextureAccessFlags::None*/ ){
         assert( format == R8G8B8A8_UNORM_SRGB);
         if( format != R8G8B8A8_UNORM_SRGB )
             return null;
@@ -662,10 +664,10 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
 
 
     public int                      GetResourceFormat( )                                      { return m_resourceFormat; }
-    public int                      GetSRVFormat( )                                            { return m_resourceFormat;      }
-    public int                      GetDSVFormat( )                                            { return m_resourceFormat;      }
-    public int                      GetRTVFormat( )                                            { return m_resourceFormat;      }
-    public int                      GetUAVFormat( )                                            { return m_resourceFormat;      }
+    public int                      GetSRVFormat( )                                            { return m_srvFormat;      }
+    public int                      GetDSVFormat( )                                            { return m_dsvFormat;      }
+    public int                      GetRTVFormat( )                                            { return m_rtvFormat;      }
+    public int                      GetUAVFormat( )                                            { return m_uavFormat;      }
 
     public int                             GetSizeX( )                                                { return m_sizeX;       }     // serves as desc.ByteWidth for Buffer
     public int                             GetSizeY( )                                                { return m_sizeY;       }     // doubles as ArraySize in 1D texture

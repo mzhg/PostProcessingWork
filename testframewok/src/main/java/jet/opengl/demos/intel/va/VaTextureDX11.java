@@ -83,25 +83,26 @@ public final class VaTextureDX11 extends VaTexture{
     @Override
     public void ClearRTV(Vector4f clearValue) {
         int rtv = cast(GetSRV()); if(rtv == 0) return;
-
-        gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(GetResourceFormat()),
-                TextureUtils.measureDataType(GetResourceFormat()), clearValue != null ? CacheBuffer.wrap(clearValue) : null);
+        int glFormat = convertFromatToGL(GetResourceFormat());
+        gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(glFormat),
+                TextureUtils.measureDataType(glFormat), clearValue != null ? CacheBuffer.wrap(clearValue) : null);
     }
 
     @Override
     public void ClearUAV(Vector4i clearValue) {
         int rtv = cast(GetUAV()); if(rtv == 0) return;
-
-        gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(GetResourceFormat()),
-                TextureUtils.measureDataType(GetResourceFormat()), clearValue != null ? CacheBuffer.wrap(clearValue) : null);
+        int glFormat = convertFromatToGL(GetResourceFormat());
+        gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(glFormat),
+                TextureUtils.measureDataType(glFormat), clearValue != null ? CacheBuffer.wrap(clearValue) : null);
     }
 
     @Override
     public void ClearUAV(Vector4f clearValue) {
         int rtv = cast(GetUAV()); if(rtv == 0) return;
+        int glFormat = convertFromatToGL(GetResourceFormat());
 
-        gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(GetResourceFormat()),
-                TextureUtils.measureDataType(GetResourceFormat()), clearValue != null ? CacheBuffer.wrap(clearValue) : null);
+        gl.glClearTexImage(rtv, 0, TextureUtils.measureFormat(glFormat),
+                TextureUtils.measureDataType(glFormat), clearValue != null ? CacheBuffer.wrap(clearValue) : null);
     }
 
     @Override

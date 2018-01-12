@@ -41,6 +41,9 @@ public class VaRenderMaterialDX11 extends VaRenderMaterial implements VaDirectXN
     @Override
     public void ClearVertexBuffers(VaDrawContext drawContext) {
         VaRenderDeviceContextDX11 apiContext = (VaRenderDeviceContextDX11) drawContext.APIContext;
+        if(VaRenderingCore.IsCanPrintLog())
+            apiContext.PrintShaderInfo();
+
         apiContext.VSSetShader(null);
         apiContext.PSSetShader( null);
 
@@ -117,8 +120,8 @@ public class VaRenderMaterialDX11 extends VaRenderMaterial implements VaDirectXN
 
         dx11Context->PSSetShaderResources( RENDERMESH_TEXTURE_SLOT0, _countof( materialTextures ), materialTextures );*/
         if(m_textureAlbedo != null) VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureAlbedo).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT0);
-        if(m_textureNormalmap != null) VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureNormalmap).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT0+1);
-        if(m_textureSpecular != null) VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureSpecular).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT0 + 2);
+        if(m_textureNormalmap != null) VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureNormalmap).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT1);
+        if(m_textureSpecular != null) VaDirectXTools.SetToD3DContextAllShaderTypes(((VaTextureDX11)m_textureSpecular).GetSRV(), VaShaderDefine.RENDERMESH_TEXTURE_SLOT2);
 
         GLCheck.checkError();
     }

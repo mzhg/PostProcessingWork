@@ -99,7 +99,6 @@ public class BufferGL implements Disposeable{
         }
 
         gl.glBindBuffer(m_target, m_bufferID);
-        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         gl.glBufferSubData(m_target, offset, data);
     }
 

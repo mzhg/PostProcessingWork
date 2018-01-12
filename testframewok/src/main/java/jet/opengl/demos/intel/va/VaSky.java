@@ -104,6 +104,8 @@ public abstract class VaSky extends VaDrawableRenderingModule{
             lightingToUpdate.SetDirectionalLightDirection( -m_sunDir.x, -m_sunDir.y, -m_sunDir.z );
             lightingToUpdate.SetFogParams( m_settings.FogColor, m_settings.FogDistanceMin, m_settings.FogDensity );
         }
+
+        CacheBuffer.free(mCameraRot);
     }
 
     public static class Settings

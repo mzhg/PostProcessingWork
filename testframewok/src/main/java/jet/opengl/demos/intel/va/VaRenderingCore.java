@@ -12,6 +12,8 @@ public final class VaRenderingCore implements Disposeable{
     private final ArrayDeque<String> m_assetSearchPaths = new ArrayDeque<>();
     private static VaRenderingCore g_Instance;
 
+    private static boolean g_PrintOnce = true;
+
     private VaRenderingCore(){
         /*EmbeddedRenderingMedia.load();
         for( int i = 0; i < EmbeddedRenderingMedia.BINARY_EMBEDDER_ITEM_COUNT; i++ )
@@ -32,6 +34,9 @@ public final class VaRenderingCore implements Disposeable{
 
         return g_Instance;
     }
+
+    public static boolean IsCanPrintLog() { return g_PrintOnce;}
+    public static void ClosePrintLog() {g_PrintOnce = false;}
 
     @Override
     public void dispose() {
