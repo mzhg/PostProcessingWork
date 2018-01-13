@@ -5,10 +5,9 @@
 // List Texture
 //--------------------------------------------------------------------------------------
 
+#include "Common.glsl"
 #ifndef H_LIST_TEXTURE
 #define H_LIST_TEXTURE
-
-#include "Common.hlsl"
 
 #define NODE_LIST_NULL 0xFFFFFFFF
 
@@ -84,7 +83,7 @@ layout(binding = 0) buffer ListShaderBuffer0
   ListTexSegmentNode gListTexSegmentNodesUAV[];
 };
 
-layout(binding = 0) uniform ListUniformBuffer0
+layout(binding = 0) buffer ListUniformBuffer0
 {
     ListTexSegmentNode gListTexSegmentNodesSRV[];
 };
@@ -369,7 +368,8 @@ void LT_InsertLastVisibilityNode(in uint tailNodeAddress, in uint newNodeAddress
     uint oldNodeAddress;
     newNode.next = NODE_LIST_NULL;
     gListTexVisibilityNodesUAV[newNodeAddress] =  newNode;
-    InterlockedExchange(gListTexVisibilityNodesUAV[tailNodeAddress].next, newNodeAddress, oldNodeAddress);
+//    InterlockedExchange(gListTexVisibilityNodesUAV[tailNodeAddress].next, newNodeAddress, oldNodeAddress);
+    atomicExchange(gListTexVisibilityNodesUAV[tailNodeAddress].next, newNodeAddress);
 }
 
 //////////////////////////////////////////////
@@ -399,10 +399,11 @@ float LT_SegmentPointSample(in float2 uv, in float receiverDepth)
         nodeOffset = node.next;
     }
 
-    /*[flatten]*/if (any(uv > 1.0f.xx) || any(uv < 0.0f.xx)) {
+//    /*[flatten]*/if (any(uv > 1.0f.xx) || any(uv < 0.0f.xx))
+    if(any(greaterThan(uv, vec2(1))) || any(lessThan(uv, vec2(0))))
+    {
         transmittance = 1.0f;
     }
-
 
     return transmittance;
 }

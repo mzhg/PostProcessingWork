@@ -54,10 +54,17 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     }
 
     public static CPUTAssetLibrary GetAssetLibrary(){ return mpAssetLibrary; }
-    public static void              DeleteAssetLibrary(){
+
+    static void DeleteAssetLibrary(){
         if(mpAssetLibrary != null)
             mpAssetLibrary.dispose();
         mpAssetLibrary = null;
+    }
+
+    static void CreateAssetLibrary(){
+        if(mpAssetLibrary == null){
+            mpAssetLibrary = new CPUTAssetLibraryDX11();
+        }
     }
 
     public CPUTAssetLibrary() {}

@@ -55,6 +55,7 @@ LocalMaterialValues GetLocalMaterialValues( /*const in GenericSceneVertexTransfo
 }
 
 layout(location = 0) out vec4 Out_Color;
+layout(early_fragment_tests) in;
 
 float4 MeshColor( /*const GenericSceneVertexTransformed input,*/ LocalMaterialValues lmv, float shadowTerm )
 {

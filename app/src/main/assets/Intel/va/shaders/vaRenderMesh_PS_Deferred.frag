@@ -55,6 +55,7 @@ LocalMaterialValues GetLocalMaterialValues( /*const in GenericSceneVertexTransfo
 
 layout(location = 0) out vec4 Out_Color0;
 layout(location = 1) out vec4 Out_Color1;
+layout(early_fragment_tests) in;
 
 void main()
 {

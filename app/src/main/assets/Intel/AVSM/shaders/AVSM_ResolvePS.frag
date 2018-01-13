@@ -1,5 +1,6 @@
 // Copyright 2012 Intel Corporation
 // All Rights Reserved
+#pragma optionNV(unroll all)
 
 #ifndef H_AVSM_RESOLVE
 #define H_AVSM_RESOLVE
@@ -8,7 +9,7 @@
 
 #define MAX_NODES 300
 
-void InitAVSMData(inout AVSMData data)
+void InitAVSMData(out AVSMData data)
 {
     data.depth[0] = mEmptyNode.xxxx;
     data.trans[0] = FIRST_NODE_TRANS_VALUE.xxxx;
@@ -49,14 +50,14 @@ void main()
     uint nodeOffset = LT_GetFirstSegmentNodeOffset(screenAddress);
 
     // Fetch nodes
-    uint nodeCount = 0;
+    int nodeCount = 0;
     ListTexSegmentNode nodes[MAX_NODES];
     /*[loop]*/while ((nodeOffset != NODE_LIST_NULL) && (nodeCount < MAX_NODES)) {
         // Get node..
         ListTexSegmentNode node = LT_GetSegmentNode(nodeOffset);
 
         // Insertion Sort
-        int i = int(nodeCount);
+        int i = nodeCount;
         while (i > 0) {
             if (nodes[i-1].sortKey < node.sortKey) {
                 nodes[i] = nodes[i-1];
@@ -72,7 +73,7 @@ void main()
     }
 
     // Insert nodes into our AVSM
-    /*[loop]*/for (uint i = 0; i < nodeCount; ++i) {
+    /*[loop]*/for (int i = 0; i < nodeCount; ++i) {
         InsertSegmentAVSM(nodes[i].depth, nodes[i].trans, data);
     }
 
@@ -82,7 +83,6 @@ void main()
     }
 
 }
-
 //////////////////////////////////////////////
 // Other algorithms
 //////////////////////////////////////////////

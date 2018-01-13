@@ -348,6 +348,9 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
                                                 ShaderType type){
         String key = name + shaderMain + shaderProfile;
         ShaderProgram ppShader = GLSLProgram.createShaderProgramFromString(pShaderSource, type);
+
+        // TODO binding the uniform blocks
+
         switch (type){
             case VERTEX:  AddVertexShader(key, ppShader); break;
             case COMPUTE: AddComputeShader(key, ppShader); break;

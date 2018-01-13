@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.intel.assao.SSAODemoDX11;
+import jet.opengl.demos.intel.avsm.AVSMDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -89,9 +89,10 @@ public class DemoApp {
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
 //        run(new HBAOPlusDemo());
 //        run(new ASSAODemoDebug());
-        run(SSAODemoDX11.newInstance());
+//        run(SSAODemoDX11.newInstance());
 //        testRectVertex();
 //        run(new OutdoorLightScatteringSample());
+        run(new AVSMDemo());
     }
 
     private static void testRectVertex(){

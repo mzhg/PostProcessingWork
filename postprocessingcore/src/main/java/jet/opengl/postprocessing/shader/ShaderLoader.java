@@ -58,13 +58,8 @@ public class ShaderLoader {
 		return result;
 	}
 	
-	public static void main(String[] args) {
-		String root = "E:/111/3.txt";
-		try {
-			System.err.println(loadShaderFile(root, true));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	public static CharSequence loadShaderFile(String filepath) throws IOException{
+		return loadShaderFile(filepath, false, false);
 	}
 	
 	public static CharSequence loadShaderFile(String filepath, boolean classFile)throws IOException{

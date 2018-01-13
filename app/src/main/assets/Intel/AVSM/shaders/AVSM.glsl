@@ -217,27 +217,27 @@ AVSMSegment FindSegmentAVSM(in AVSMData data, in float receiverDepth)
 
 void RemoveFirstDataNode(inout float4 data[AVSM_RT_COUNT + 1], in float idx)
 {
-    data[0]   = mMask0 >= idx.xxxx ? float4(data[0].yzw, data[1].x) : data[0];
+    data[0]   = /*mMask0 >= idx.xxxx*/ all(greaterThanEqual(mMask0, float4(idx))) ? float4(data[0].yzw, data[1].x) : data[0];
 #if AVSM_RT_COUNT == 1
     data[1].x = mMask1.x >= idx ? data[1].y : data[1].x;
 #endif
 
 #if AVSM_RT_COUNT > 1
-    data[1]   = mMask1 >= idx.xxxx ? float4(data[1].yzw, data[2].x) : data[1];
+    data[1]   = /*mMask1 >= idx.xxxx*/ all(greaterThanEqual(mMask1, float4(idx))) ? float4(data[1].yzw, data[2].x) : data[1];
 #if AVSM_RT_COUNT == 2
     data[2].x = mMask2.x >= idx ? data[2].y : data[2].x;
 #endif
 #endif
 
 #if AVSM_RT_COUNT > 2
-    data[2]   = mMask2 >= idx.xxxx ? float4(data[2].yzw, data[3].x) : data[2];
+    data[2]   = /*mMask2 >= idx.xxxx*/ all(greaterThanEqual(mMask2, float4(idx))) ? float4(data[2].yzw, data[3].x) : data[2];
 #if AVSM_RT_COUNT == 3
     data[3].x = mMask3.x >= idx ? data[3].y : data[3].x;
 #endif
 #endif
 
 #if AVSM_RT_COUNT > 3
-    data[3]   = mMask3 >= idx.xxxx ? float4(data[3].yzw, data[4].x) : data[3];
+    data[3]   = /*mMask3 >= idx.xxxx*/ all(greaterThanEqual(mMask3, float4(idx))) ? float4(data[3].yzw, data[4].x) : data[3];
 #if AVSM_RT_COUNT == 4
     data[4].x = mMask4.x >= idx ? data[4].y : data[4].x;
 #endif
@@ -246,18 +246,18 @@ void RemoveFirstDataNode(inout float4 data[AVSM_RT_COUNT + 1], in float idx)
 
 void RemoveSecondDataNode(inout float4 data[AVSM_RT_COUNT + 1], in float idx)
 {
-    data[0]   = mMask0 >= idx.xxxx ? float4(data[0].yzw, data[1].x) : data[0];
+    data[0]   = /*mMask0 >= idx.xxxx*/ all(greaterThanEqual(mMask0, float4(idx))) ? float4(data[0].yzw, data[1].x) : data[0];
 
 #if AVSM_RT_COUNT > 1
-    data[1]   = mMask1 >= idx.xxxx ? float4(data[1].yzw, data[2].x) : data[1];
+    data[1]   = /*mMask1 >= idx.xxxx*/ all(greaterThanEqual(mMask1, float4(idx))) ? float4(data[1].yzw, data[2].x) : data[1];
 #endif
 
 #if AVSM_RT_COUNT > 2
-    data[2]   = mMask2 >= idx.xxxx ? float4(data[2].yzw, data[3].x) : data[2];
+    data[2]   = /*mMask2 >= idx.xxxx*/ all(greaterThanEqual(mMask2, float4(idx))) ? float4(data[2].yzw, data[3].x) : data[2];
 #endif
 
 #if AVSM_RT_COUNT > 3
-    data[3]   = mMask3 >= idx.xxxx ? float4(data[3].yzw, data[4].x) : data[3];
+    data[3]   = /*mMask3 >= idx.xxxx*/ all(greaterThanEqual(mMask3, float4(idx))) ? float4(data[3].yzw, data[4].x) : data[3];
 #endif
 }
 
@@ -351,8 +351,8 @@ void InsertSegmentAVSM(in float segmentDepth[2],
             t = newNodesTransOffset[0];
         // Update all nodes in between the new two nodes
         } else if ((i > postMoveSegmentStartIdx) && (i < postMoveSegmentEndIdx)) {
-            d = depth[i-1];
-            t = trans[i-1];
+            d =  (i>=1) ? depth[i-1] : 0.;
+            t =  (i>=1) ? trans[i-1] : 0.;
         // Update all nodes located behind the new two nodes
         } else if ((i > 1) && (i > postMoveSegmentEndIdx)) {
             d = depth[i-2];
@@ -399,7 +399,7 @@ void InsertSegmentAVSM(in float segmentDepth[2],
         }
 
         // remove the first node (depth and trasmittance)
-        float ridx = 1.0f + (float)areaToRemoveIdx;
+        float ridx = 1.0f + float(areaToRemoveIdx);
         RemoveFirstDataNode(newDepth, ridx);
         RemoveFirstDataNode(newTrans, ridx);
 

@@ -4,6 +4,7 @@
 #ifndef H_AVSM_GEN
 #define H_AVSM_GEN
 #include "AVSM_Gen_def.h"
+#include "ConstantBuffers.glsl"
 
 //////////////////////////////////////////////
 // Structs
@@ -33,7 +34,7 @@ StructuredBuffer<AVSMGenData>       NONCPUT_gAVSMGenDataSRV             : regist
 
 SamplerState						gAVSMGenCtrlSurfaceSampler          : register(s3);     // set in the CPUT DefaultRenderStates
 #else
-layout(binding = 0) uniform image2D gAVSMGenClearMaskUAV;
+layout(r32f, binding = 0) uniform image2D gAVSMGenClearMaskUAV;
 layout(binding = 0) buffer ShaderBuffer0
 {
     AVSMGenData gAVSMGenDataUAV[];
@@ -241,15 +242,15 @@ void AVSMGenInsertFragmentSoft(in float depthLeft, in float depthRight, in float
 // Address generation functions for the AVSM data
 /////////////////////////////////////////////////
 
-uint AVSMGenAddrGen(uint2 addr2D, uint surfaceWidth)
+uint AVSMGenAddrGen(uint2 addr2D, int surfaceWidth)
 {
 	return addr2D[0] + surfaceWidth * addr2D[1];
 }
 
 uint AVSMGenAddrGenUAV(uint2 addr2D)
 {
-	uint2 dim;
-	gAVSMGenClearMaskUAV.GetDimensions(dim[0], dim[1]);
+//	gAVSMGenClearMaskUAV.GetDimensions(dim[0], dim[1]);
+    int2 dim = imageSize(gAVSMGenClearMaskUAV);
 	return AVSMGenAddrGen(addr2D, dim[0]);
 }
 
@@ -300,11 +301,11 @@ void AVSMGenLoadDataSRV(in uint2 pixelAddr, out AVSMGenNode nodeArray[AVSM_NODE_
     uint data;
     float depth, trans;
 	/*[unroll]*/for(uint i = 0; i < AVSM_RT_COUNT; i++) {
-		[unroll]for(uint j = 0; j < 4; j++) {
-            data   = avsmData.data[i][j];
+		/*[unroll]*/for(uint j = 0; j < 4; j++) {
+            data   = uint(avsmData.data[i][j]);
 
-            nodeArray[4 * i + j].depth = asfloat(data & (uint)AVSM_GEN_TRANS_MASK);
-            nodeArray[4 * i + j].trans = (float)(data & (uint)AVSM_GEN_MAX_UNNORM_TRANS);
+            nodeArray[4 * i + j].depth = asfloat(data & uint(AVSM_GEN_TRANS_MASK));
+            nodeArray[4 * i + j].trans = float(data & uint(AVSM_GEN_MAX_UNNORM_TRANS));
 		}
 	}
 }
@@ -321,7 +322,7 @@ void AVSMGenLoadDataUAV(in uint2 pixelAddr, out AVSMGenNode nodeArray[AVSM_NODE_
             data   = asuint(avsmData.data[i][j]);
 
             nodeArray[4 * i + j].depth = asfloat(data & uint(AVSM_GEN_TRANS_MASK));
-            nodeArray[4 * i + j].trans = float(data & uint(AVSM_GEN_MAX_UNNORM_TRANS));  // TODO
+            nodeArray[4 * i + j].trans = float(data & uint(AVSM_GEN_MAX_UNNORM_TRANS));
 		}
 	}
 }
@@ -355,7 +356,7 @@ void AVSMGenStoreDataUAV(in uint2 pixelAddr, AVSMGenNode nodeArray[AVSM_NODE_COU
 float AVSMGenLoadControlSurfaceUAV(in uint2 pixelAddr)
 {
 //	return gAVSMGenClearMaskUAV[pixelAddr];
-    return imageLod(gAVSMGenClearMaskUAV, int2(pixelAddr)).r;
+    return imageLoad(gAVSMGenClearMaskUAV, int2(pixelAddr)).r;
 }
 
 float AVSMGenLoadControlSurfaceSRV(in uint2 pixelAddr)
@@ -406,7 +407,7 @@ float AVSMGenPointSampleInternalSoft(in int2 pixelAddr, in float receiverDepth)
 			/*[unroll]*/ for (int j = 3; j >= 0; j--) {
 				/*[flatten]*/if (receiverDepth > avsmData.data[i][j]) {
 					// node found! make it negative so it won't be updated anymore
-					receiverDepth = asfloat(asuint(avsmData.data[i][j]) | 0x80000000UL);
+					receiverDepth = asfloat(asuint(avsmData.data[i][j]) | 0x80000000U);
 					/*[flatten]*/if (3 != j) {
 							nextNode = avsmData.data[i][j + 1];
 					} else if (AVSM_RT_COUNT - 1 != i) {
@@ -419,8 +420,8 @@ float AVSMGenPointSampleInternalSoft(in int2 pixelAddr, in float receiverDepth)
 
 		const float transLeft  = AVSMGenUnpackTrans(receiverDepth);
 		const float transRight = AVSMGenUnpackTrans(nextNode);
-		const float depthLeft  = asfloat(asuint(receiverDepth) & (uint)AVSM_GEN_TRANS_MASK2);
-		const float depthRight = asfloat(asuint(nextNode) & (uint)AVSM_GEN_TRANS_MASK);
+		const float depthLeft  = asfloat(asuint(receiverDepth) & uint(AVSM_GEN_TRANS_MASK2));
+		const float depthRight = asfloat(asuint(nextNode) & uint(AVSM_GEN_TRANS_MASK));
 
 		AVSMGenSegment seg = {0, depthLeft, depthRight, transLeft, transRight};
 
@@ -463,10 +464,10 @@ float AVSMGenBilinearSampleSoft(in float2 textureCoords, in float receiverDepth)
 	// texture fetches uses texture coordinates that don't always
 	// match the HW generated coordinates used by gather4
 	bool4 mustSample;
-	mustSample[0] = 0 != NONCPUT_gAVSMGenClearMaskSRV[int2(i, j)];
-	mustSample[1] = 0 != NONCPUT_gAVSMGenClearMaskSRV[int2(i, j + 1)];
-	mustSample[2] = 0 != NONCPUT_gAVSMGenClearMaskSRV[int2(i + 1, j)];
-	mustSample[3] = 0 != NONCPUT_gAVSMGenClearMaskSRV[int2(i + 1, j + 1)];
+	mustSample[0] = (0. != texelFetch(NONCPUT_gAVSMGenClearMaskSRV, int2(i, j), 0).x);
+	mustSample[1] = (0. != texelFetchOffset(NONCPUT_gAVSMGenClearMaskSRV, int2(i, j), 0, int2(0,1)).x);
+	mustSample[2] = (0. != texelFetchOffset(NONCPUT_gAVSMGenClearMaskSRV, int2(i, j), 0, int2(1,0)).x);
+	mustSample[3] = (0. != texelFetchOffset(NONCPUT_gAVSMGenClearMaskSRV, int2(i, j), 0, int2(1,1)).x);
 
 	/*[branch]*/if (any(mustSample)) {
 		const float sample00 = mustSample[0] ? AVSMGenPointSampleInternalSoft(int2(i, j)         , receiverDepth) : 1;
@@ -647,6 +648,84 @@ float AVSMGenBilinearSample(in float2 textureCoords, in float receiverDepth)
 }
 
 #endif // #ifndef AVSM_GEN_SOFT
+
+//-------------------------- Functions declared in Particles.hlsl ----------------------
+
+bool RaySphereIntersection(out float2 interCoeff, in float3 sphereCenter, in float sphereRadius, in float3 rayOrigin, in float3 rayNormDir, const bool snapToSphere)
+{
+	float3 dst = rayOrigin - sphereCenter;
+	float b = dot(dst, rayNormDir);
+	float c = dot(dst, dst) - (sphereRadius * sphereRadius);
+	float d = b * b - c;
+
+   if( snapToSphere )
+   {
+	   d = max( d, 0.00001 );
+   }
+
+	interCoeff = -b.xx + sqrt(d) * float2(-1,1);
+	return d > 0;
+}
+
+// compute particles thickness assuming their billboards
+// in screen space are maximal sections of a sphere.
+float ParticleThickness(float2 ray)
+{
+	return saturate(1 - sqrt(2.0f) * length(ray));
+}
+
+// We model particles as small spheres and we intersect them with light rays
+// Entry and exit points are used to defined an AVSM segment
+bool IntersectDynamicParticle(in  DynamicParticlePSIn _input,
+                              out float3 entry,
+                              out float3 exit,
+                              out float  transmittance,
+                              const bool snapToSphere)
+{
+    bool   res;
+    float2 linearCoeff;
+    float3 normRayDir     = normalize(_input.ViewPos);
+    float3 particleCenter = _input.ViewCenter;
+    float  particleSize = _input.UVS.z;
+    float  particleRadius = mScale * particleSize / 2.0f;
+
+    /*[flatten]*/if (RaySphereIntersection(linearCoeff,
+                              particleCenter,
+                              particleRadius,
+                              float3(0, 0, 0),
+                              normRayDir, snapToSphere)){
+        // compute entry and exit points along the ray direction
+	    entry = linearCoeff.xxx * normRayDir;
+	    exit  = linearCoeff.yyy * normRayDir;
+
+	    // compute normalized opacity
+	    float segLength = (exit.z - entry.z) / (2.0f * particleRadius);
+	    // Compute density based indirectly on distance from center
+	    float densityTimesSegLength = pow(segLength, 4.0f);
+	    // per particle and global opacity multipliers
+        float opacity = _input.Opacity * mParticleOpacity;
+        // compute transmittance
+	    transmittance = exp(-opacity * densityTimesSegLength);
+	    res = true;
+    }
+    else
+    {
+        entry = float3(0);
+        exit  = float3(0);
+        transmittance = 1;
+        res = false;
+    }
+
+    return res;
+}
+
+bool IntersectDynamicParticle(in  DynamicParticlePSIn _input,
+                              out float3 entry,
+                              out float3 exit,
+                              out float  transmittance)
+{
+   return IntersectDynamicParticle( _input, entry, exit, transmittance, false );
+}
 
 #endif // H_AVSM_GEN
 

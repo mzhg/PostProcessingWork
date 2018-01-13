@@ -13,7 +13,6 @@ void main()
         shadowTerm = Input.ShadowInfo.x;
     }
 
-
 	float depthDiff = 1.0f;
     float3 ambient = float3(0.01f);
 	float3 diffuse = float3(0.95f);

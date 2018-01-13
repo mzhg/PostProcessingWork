@@ -12,12 +12,14 @@ import jet.opengl.demos.intel.cput.CPUTAssetLibrary;
 import jet.opengl.demos.intel.cput.CPUTAssetLibraryDX11;
 import jet.opengl.demos.intel.cput.CPUTAssetSet;
 import jet.opengl.demos.intel.cput.CPUTCamera;
+import jet.opengl.demos.intel.cput.CPUTLibrary;
 import jet.opengl.demos.intel.cput.CPUTMaterial;
 import jet.opengl.demos.intel.cput.CPUTMaterialDX11;
 import jet.opengl.demos.intel.cput.CPUTRenderParameters;
 import jet.opengl.demos.scene.BaseScene;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.texture.Texture2D;
@@ -53,7 +55,7 @@ public final class AVSMSampler extends BaseScene {
 
     // AVSM technique
     private AVSMTechnique                   mpAVSMTechnique;
-    private AVSMTechnique.Options          mAppOptions;
+    private final AVSMTechnique.Options mAppOptions = new AVSMTechnique.Options();
 
     private AVSMGuiState         mCurrentGUIState;
 
@@ -63,7 +65,7 @@ public final class AVSMSampler extends BaseScene {
 //    AVSMDebugView       *mpAVSMDebugView;
 
     // GPU timers
-    private NvGPUTimer mGPUTimerAVSMCreation;
+    private NvGPUTimer    mGPUTimerAVSMCreation;
     private NvGPUTimer    mGPUTimerParticlesRendering;
     private NvGPUTimer    mGPUTimerSolidGeometryRendering;
     private NvGPUTimer    mGPUTimerAll;
@@ -73,33 +75,12 @@ public final class AVSMSampler extends BaseScene {
     private boolean                mRButtonDown;
     private CPUTCamera             mpShadowCamera = new CPUTCamera();
     private CPUTCamera             mpCamera = new CPUTCamera();
-    private CharSequence  gpDefaultShaderSource;
-
 
     @Override
     protected void onCreate(Object prevSavedData) {
-        // Detect and report Intel extensions on this system
-        /*HRESULT hr = IGFX::Init( this->mpD3dDevice );
-        if ( FAILED(hr) )
-        {
-            printf("Failed hardware detection initialization: incorrect vendor or device.\n\n");
-        }
-        // detect the available extensions
-        IGFX::Extensions extensions = IGFX::getAvailableExtensions( this->mpD3dDevice );
+        CPUTLibrary.InitlizeCPUT();
 
-        mAVSMExtensionAvailable = extensions.PixelShaderOrdering;*/
         mAVSMExtensionAvailable = false;
-
-        // report and disable the AVSM extension method if the hardware/driver does not support Pixel Shader Ordering feature
-        /*if ( !extensions.PixelShaderOrdering )
-        {
-            CPUTOSServices::GetOSServices()->OpenMessageBox("Pixel Shader Ordering feature not found",
-                "Your hardware or graphics driver does not support the pixel shader ordering feature.  " +
-                        "Please update your driver or run on a system that supports the required feature to see that option.  " +
-                        "Only the pure DirectX version will be enabled.\n\nSee this link for information and a video about Pixel Shader Ordering in this sample:\n" +
-                        "http://software.intel.com/gamecode");
-        }*/
-
         // Create the GUI controls
         CPUTAssetLibraryDX11 pAssetLibrary = (CPUTAssetLibraryDX11) CPUTAssetLibrary.GetAssetLibrary();
         initGUI();
@@ -113,16 +94,30 @@ public final class AVSMSampler extends BaseScene {
         */
 
         // Add our programatic (and global) material parameters
-        pAssetLibrary.SetMediaDirectoryName(    "Media\\");
+        pAssetLibrary.SetMediaDirectoryName(    "Intel\\cput\\Media\\");
         CPUTMaterial.mGlobalProperties.AddValue( "cbPerFrameValues", "$cbPerFrameValues" );
         CPUTMaterial.mGlobalProperties.AddValue( "cbPerModelValues", "#cbPerModelValues" );
         CPUTMaterial.mGlobalProperties.AddValue( "_Shadow", "$shadow_depth" );
 
+        CharSequence psMainShaderSource = null;
+        CharSequence psMainNoTextureShaderSource = null;
+        CharSequence vsMainShaderSource = null;
+        CharSequence vsMainNoTextureShaderSource = null;
+
+        try {
+            psMainShaderSource = ShaderLoader.loadShaderFile("Intel\\AVSM\\shaders\\Default_MainPS.frag");
+            psMainNoTextureShaderSource = ShaderLoader.loadShaderFile("Intel\\AVSM\\shaders\\Default_MainNoTexturePS.frag");
+            vsMainShaderSource = ShaderLoader.loadShaderFile("Intel\\AVSM\\shaders\\Default_MainVS.vert");
+            vsMainNoTextureShaderSource = ShaderLoader.loadShaderFile("Intel\\AVSM\\shaders\\Default_MainNoTextureVS.vert");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // Create default shaders
-        ShaderProgram pPS       = pAssetLibrary.CreateShaderFromMemory(          "$DefaultShader", /*CPUT_DX11::mpD3dDevice,*/          "PSMain", "ps_4_0", gpDefaultShaderSource, ShaderType.FRAGMENT );
-        ShaderProgram pPSNoTex  = pAssetLibrary.CreateShaderFromMemory( "$DefaultShaderNoTexture", /*CPUT_DX11::mpD3dDevice,*/ "PSMainNoTexture", "ps_4_0", gpDefaultShaderSource, ShaderType.FRAGMENT );
-        ShaderProgram pVS       = pAssetLibrary.CreateShaderFromMemory(          "$DefaultShader", /*CPUT_DX11::mpD3dDevice,*/          "VSMain", "vs_4_0", gpDefaultShaderSource, ShaderType.VERTEX);
-        ShaderProgram pVSNoTex  = pAssetLibrary.CreateShaderFromMemory( "$DefaultShaderNoTexture", /*CPUT_DX11::mpD3dDevice,*/ "VSMainNoTexture", "vs_4_0", gpDefaultShaderSource, ShaderType.VERTEX );
+        ShaderProgram pPS       = pAssetLibrary.CreateShaderFromMemory(          "$DefaultShader", "PSMain", "ps_4_0", psMainShaderSource, ShaderType.FRAGMENT );
+        ShaderProgram pPSNoTex  = pAssetLibrary.CreateShaderFromMemory( "$DefaultShaderNoTexture", "PSMainNoTexture", "ps_4_0", psMainNoTextureShaderSource, ShaderType.FRAGMENT );
+        ShaderProgram pVS       = pAssetLibrary.CreateShaderFromMemory(          "$DefaultShader", "VSMain", "vs_4_0", vsMainShaderSource, ShaderType.VERTEX);
+        ShaderProgram pVSNoTex  = pAssetLibrary.CreateShaderFromMemory( "$DefaultShaderNoTexture", "VSMainNoTexture", "vs_4_0", vsMainNoTextureShaderSource, ShaderType.VERTEX );
 
         // We just want to create them, which adds them to the library.  We don't need them any more so release them, leaving refCount at 1 (only library owns a ref)
         /*SAFE_RELEASE(pPS);
@@ -191,12 +186,10 @@ public final class AVSMSampler extends BaseScene {
         mAppOptions.pickedY = 0;
 
         // create the technique class
-        mpAVSMTechnique = new AVSMTechnique(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
+        mpAVSMTechnique = new AVSMTechnique(mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
 
         //  Load the custom shaders needed for the AVSM technique
-        //-------------------------------------------------------
-        /*boolean ReturnCode =*/ mpAVSMTechnique.LoadAVSMShaders(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
-//        ASSERT( (true==ReturnCode), _L("CPUT Error loading AVSM shaders.") );
+        mpAVSMTechnique.LoadAVSMShaders(mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
 
         //  Create the render states needed for the AVSM technique
         //-------------------------------------------------------
@@ -748,6 +741,8 @@ public final class AVSMSampler extends BaseScene {
 
     @Override
     protected void onDestroy() {
+        CPUTLibrary.ReleaseCPUT();
+
 // destroy the particle system
 //        SAFE_DELETE(gParticleSystem);
 
