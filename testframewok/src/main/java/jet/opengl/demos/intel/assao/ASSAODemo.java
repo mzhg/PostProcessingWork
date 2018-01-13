@@ -489,7 +489,7 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
             final Matrix4f view = m_camera.GetViewMatrix();
             final Matrix4f world = m_camera.GetWorldMatrix();
 
-            Matrix4f.perspective((float)Math.toDegrees(expandedFOV), m_expandedSceneResolution.x/m_expandedSceneResolution.y,
+            Matrix4f.perspective((float)Math.toDegrees(expandedFOV), (float)m_expandedSceneResolution.x/m_expandedSceneResolution.y,
                     m_camera.GetNearPlane(), m_camera.GetFarPlane(), proj);
             m_transformer.getModelViewMat(view);
             Matrix4f.mul(view, m_world, view);
@@ -567,9 +567,9 @@ abstract class ASSAODemo extends NvSampleApp implements VaRenderingModule {
             gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
 
             m_sky.Draw( drawContext );
-            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
+//            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
             VaRenderMeshManager. GetInstance( ).Draw( drawContext, m_meshDrawList );
-            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+//            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
             if(VaRenderingCore.IsCanPrintLog()){
 //                ASSAOGL.saveTextData("Deffered_Albedo.txt", ((VaTextureDX11)m_GBuffer.GetAlbedo()).GetSRV());
 //                ASSAOGL.saveTextData("Deffered_NormalMap.txt", ((VaTextureDX11)m_GBuffer.GetNormalMap()).GetSRV());

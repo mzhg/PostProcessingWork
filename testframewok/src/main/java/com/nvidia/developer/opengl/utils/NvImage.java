@@ -2048,42 +2048,57 @@ public class NvImage {
             case DDS10_FORMAT_BC5_SNORM:
                 set_compressed_type_info( GL_COMPRESSED_SIGNED_RG_RGTC2, GL_COMPRESSED_SIGNED_RG_RGTC2, GL_UNSIGNED_BYTE, 16, i, p);
                 break;
-
             case DDS10_FORMAT_B5G6R5_UNORM:
                 set_type_info( GL_RGB5, GL_BGR, GL_UNSIGNED_SHORT_5_6_5, 2, i, p);
                 break;
-
             case DDS10_FORMAT_B5G5R5A1_UNORM:
                 set_type_info( GL_RGB5_A1, GL_BGRA, GL_UNSIGNED_SHORT_5_5_5_1, 2, i, p);
                 break;
-
             case DDS10_FORMAT_B8G8R8A8_UNORM:
                 set_type_info( GL_RGBA8, GL_BGRA, GL_UNSIGNED_BYTE, 2, i, p);
                 break;
-
             case DDS10_FORMAT_B8G8R8X8_UNORM:
                 set_type_info( GL_RGB8, GL_BGRA, GL_UNSIGNED_BYTE, 4, i, p);
                 break;
-
             case DDS10_FORMAT_B8G8R8A8_UNORM_SRGB:
                 set_type_info( GL_SRGB8_ALPHA8, GL_BGRA, GL_UNSIGNED_BYTE, 4, i, p);
                 break;
-
             case DDS10_FORMAT_B8G8R8X8_UNORM_SRGB:
                 set_type_info( GL_SRGB8, GL_BGRA, GL_UNSIGNED_BYTE, 4, i, p);
                 break;
-
             case DDS10_FORMAT_R32G32B32A32_TYPELESS:
+                set_type_info( GL_RGBA32F, GL_RGBA, GL_FLOAT, 4, i, p);
+                break;
             case DDS10_FORMAT_R32G32B32_TYPELESS:
+                set_type_info( GL_RGB32F, GL_RGB, GL_FLOAT, 3, i, p);
+                break;
             case DDS10_FORMAT_R16G16B16A16_TYPELESS:
+                set_type_info( GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT, 4, i, p);
+                break;
             case DDS10_FORMAT_R32G32_TYPELESS:
+                set_type_info( GL_RG32F, GL_RG, GL_FLOAT, 2, i, p);
+                break;
             case DDS10_FORMAT_R10G10B10A2_TYPELESS:
+                set_type_info( GL_RGB10_A2, GL_RGBA, GLenum.GL_UNSIGNED_INT_10_10_10_2, 4, i, p);
+                break;
             case DDS10_FORMAT_R8G8B8A8_TYPELESS:
+                set_type_info( GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, 4, i, p);
+                break;
             case DDS10_FORMAT_R16G16_TYPELESS:
+                set_type_info( GL_RG16, GL_RG, GL_UNSIGNED_SHORT, 2, i, p);
+                break;
             case DDS10_FORMAT_R32_TYPELESS:
+                set_type_info( GL_R32F, GL_RED, GL_FLOAT, 1, i, p);
+                break;
             case DDS10_FORMAT_R8G8_TYPELESS:
+                set_type_info( GL_RG8, GL_RG, GL_UNSIGNED_BYTE, 2, i, p);
+                break;
             case DDS10_FORMAT_R16_TYPELESS:
+                set_type_info( GL_R16, GL_RED, GL_UNSIGNED_SHORT, 1, i, p);
+                break;
             case DDS10_FORMAT_R8_TYPELESS:
+                set_type_info( GL_R8, GL_RED, GL_UNSIGNED_BYTE, 1, i, p);
+                break;
             case DDS10_FORMAT_BC1_TYPELESS:
             case DDS10_FORMAT_BC3_TYPELESS:
             case DDS10_FORMAT_BC4_TYPELESS:

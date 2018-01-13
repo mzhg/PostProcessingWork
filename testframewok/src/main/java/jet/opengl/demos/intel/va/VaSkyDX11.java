@@ -101,9 +101,6 @@ public class VaSkyDX11 extends VaSky implements VaDirectXNotifyTarget {
         m_pixelShader.CreateShaderFromFile( "vaSkyPS.frag", "ps_5_0", "SimpleSkyboxPS", (Macro[]) null );
 
         GLCheck.checkError();
-
-        m_vertexShader.GetShader().printPrograminfo();
-        m_pixelShader.GetShader().printPrograminfo();
     }
 
     @Override

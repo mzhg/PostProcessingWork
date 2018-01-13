@@ -31,7 +31,7 @@ public class VaRenderMeshDrawList {
     }
 
     public void Insert( VaRenderMesh mesh, Matrix4f transform){
-        Insert(mesh, transform, new Vector4f(1,1,1,1), 0xFFFFFFFF);
+        Insert(mesh, transform, Vector4f.ONE, 0xFFFFFFFF);
     }
 
     public void Insert( VaRenderMesh mesh, Matrix4f transform, ReadableVector4f color /*= vaVector4( 1.0f, 1.0f, 1.0f, 1.0f )*/, int subPartMask /*= 0xFFFFFFFF*/ ){

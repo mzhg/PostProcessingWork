@@ -686,9 +686,7 @@ public abstract class VaTexture extends VaAssetResource implements VaRenderingMo
     public abstract void                    ClearDSV( /*vaRenderDeviceContext & context,*/ boolean clearDepth, float depthValue, boolean clearStencil, int stencilValue );
 
     public abstract boolean  Load( VaStream inStream ) throws IOException;
-    public  boolean          Save( VaStream outStream )  throws IOException{
-        throw new UnsupportedOperationException();
-    }
+    public abstract boolean  Save( VaStream outStream )  throws IOException;
 
     @Override
     public String GetRenderingModuleTypeName() {

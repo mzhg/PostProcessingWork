@@ -51,7 +51,7 @@ void main()
     ret.ViewspacePos            = mul( g_RenderMeshGlobal.WorldView/*view*/, In_Position );
     ret.ViewspaceNormal.xyz     = normalize( mul( g_RenderMeshGlobal.WorldView, float4(In_Normal.xyz, 0.0) ).xyz );
     ret.ViewspaceTangent.xyz    = normalize( mul( g_RenderMeshGlobal.WorldView, float4(In_Tangent.xyz, 0.0) ).xyz );
-    ret.ViewspaceBitangent.xyz  = normalize( cross( ret.ViewspaceNormal.xyz, ret.ViewspaceTangent.xyz) * In_Tangent.w );     // Tangent.w contains handedness/uv.y direction!
+    ret.ViewspaceBitangent.xyz  = normalize( cross( ret.ViewspaceNormal.xyz, ret.ViewspaceTangent.xyz) * -In_Tangent.w );     // Tangent.w contains handedness/uv.y direction!
 
     // distance to camera
     ret.ViewspacePos.w          = length( ret.ViewspacePos.xyz );

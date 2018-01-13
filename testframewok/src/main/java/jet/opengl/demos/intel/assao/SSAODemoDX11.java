@@ -227,8 +227,6 @@ public final class SSAODemoDX11 extends ASSAODemo /*implements VaDirectXNotifyTa
     }
 
     static boolean isClose(Quaternion a, Quaternion b){
-        float _a =a.w;
-
         if(Math.signum(a.w) != Math.signum(b.w)){
             return Numeric.isClose(a.getX(), -b.getX(), 0.01f)&&
                     Numeric.isClose(a.getY(), -b.getY(), 0.01f)&&

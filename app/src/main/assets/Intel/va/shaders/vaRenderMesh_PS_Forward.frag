@@ -48,7 +48,7 @@ LocalMaterialValues GetLocalMaterialValues( /*const in GenericSceneVertexTransfo
 
 #if VA_RMM_HASALBEDOTEXTURE
 //    ret.Albedo *= g_textureAlbedo.Sample( g_samplerAnisotropicWrap, _input.Texcoord0.xy );
-    ret.Albedo *= texture(g_textureAlbedo, _input.Texcoord0.xy);
+//    ret.Albedo *= texture(g_textureAlbedo, _input.Texcoord0.xy);
 #endif
 
     return ret;
@@ -61,7 +61,7 @@ float4 MeshColor( /*const GenericSceneVertexTransformed input,*/ LocalMaterialVa
     const float3 diffuseLightVector     = -g_Global.Lighting.DirectionalLightViewspaceDirection.xyz;
 
     float3 color    = lmv.Albedo.rgb;
-    float3 normal   = (lmv.IsFrontFace)?(lmv.Normal):(-lmv.Normal);
+    float3 normal   = (lmv.IsFrontFace)?(-lmv.Normal):(lmv.Normal);
 
     float3 viewDir                      = normalize(_input.ViewspacePos.xyz );
 
