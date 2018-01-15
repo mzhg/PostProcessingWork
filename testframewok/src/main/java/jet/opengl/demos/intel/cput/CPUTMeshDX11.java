@@ -30,7 +30,7 @@ public class CPUTMeshDX11 extends CPUTMesh {
     CPUTMapType              mVertexBufferMappedType = CPUTMapType.CPUT_MAP_UNDEFINED;
     BufferGL             mpVertexBufferForSRVDX; // Need SRV, but _real_ DX won't allow for _real_ VB
     BufferGL             mpVertexView;
-    BufferGL             mpVertexBufferForSRV;
+    CPUTBuffer             mpVertexBufferForSRV;
 
 
     int                      mIndexCount;
@@ -71,7 +71,7 @@ public class CPUTMeshDX11 extends CPUTMesh {
         mD3DMeshTopology = SDKmesh.convertDXDrawCMDToGL(meshTopology);
     }
     @Override
-    public  void                CreateNativeResources( CPUTModel pModel, int meshIdx, int vertexDataInfoArraySize,
+    public  void  CreateNativeResources( CPUTModel pModel, int meshIdx, int vertexDataInfoArraySize,
                                                        CPUTBufferInfo[] pVertexDataInfo, byte[] pVertexData, CPUTBufferInfo pIndexDataInfo, int[] pIndexData ){
         /*CPUTResult result = CPUT_SUCCESS;
         HRESULT hr;
@@ -129,6 +129,7 @@ public class CPUTMeshDX11 extends CPUTMesh {
         ASSERT( !FAILED(hr), _L("Failed creating vertex buffer") );
         CPUTSetDebugName( mpVertexBuffer, _L("Vertex buffer") );*/
         mpVertexBuffer = new BufferGL();
+        mpVertexBuffer.setName("Vertex buffer");
         mpVertexBuffer.initlize(GLenum.GL_ARRAY_BUFFER, mVertexBufferDesc.ByteWidth, CacheBuffer.wrap(pVertexData), GLenum.GL_STATIC_DRAW);
         mpVertexBuffer.unbind();
 
@@ -146,10 +147,14 @@ public class CPUTMeshDX11 extends CPUTMesh {
 
         hr = pD3dDevice->CreateBuffer( &desc, &resourceData, &mpVertexBufferForSRVDX );
         ASSERT( !FAILED(hr), _L("Failed creating vertex buffer for SRV") );
-        CPUTSetDebugName( mpVertexBuffer, _L("Vertex buffer for SRV") );
+        CPUTSetDebugName( mpVertexBuffer, _L("Vertex buffer for SRV") );*/
+        mpVertexBufferForSRVDX = new BufferGL();
+        mpVertexBufferForSRVDX.setName("Vertex buffer for SRV");
+        mpVertexBufferForSRVDX.initlize(GLenum.GL_ARRAY_BUFFER, mVertexBufferDesc.ByteWidth, CacheBuffer.wrap(pVertexData), GLenum.GL_STATIC_DRAW);
+        mpVertexBufferForSRVDX.unbind();
 
         // Create the shader resource view
-        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+        /*D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
         ZeroMemory( &srvDesc, sizeof(srvDesc) );
         srvDesc.Format = DXGI_FORMAT_UNKNOWN;
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
@@ -157,17 +162,19 @@ public class CPUTMeshDX11 extends CPUTMesh {
         srvDesc.Buffer.NumElements = mVertexCount;
 
         hr = pD3dDevice->CreateShaderResourceView( mpVertexBufferForSRVDX, &srvDesc, &mpVertexView );
-        ASSERT( !FAILED(hr), _L("Failed creating vertex buffer SRV") );
+        ASSERT( !FAILED(hr), _L("Failed creating vertex buffer SRV") );*/
+        mpVertexView = mpVertexBufferForSRVDX;
 
-        cString name = _L("@VertexBuffer") + ptoc(pModel) + itoc(meshIdx);
-        mpVertexBufferForSRV = new CPUTBufferDX11( name, mpVertexBufferForSRVDX, mpVertexView );
-        CPUTAssetLibrary::GetAssetLibrary()->AddBuffer( name, mpVertexBufferForSRV );*/
+        String name = "@VertexBuffer" + pModel.toString() + meshIdx;
+        mpVertexBufferForSRV = new CPUTBufferDX11( name, mpVertexBufferForSRVDX/*, mpVertexView*/ );
+        CPUTAssetLibrary.GetAssetLibrary().AddBuffer( name, mpVertexBufferForSRV );
 
         // build the layout object
         int currentByteOffset=0;
         mNumberOfInputLayoutElements = vertexDataInfoArraySize;
         for(int ii=0; ii<vertexDataInfoArraySize; ii++)
         {
+            mpLayoutDescription[ii] = new D3D11_INPUT_ELEMENT_DESC();
             mpLayoutDescription[ii].SemanticName  = pVertexDataInfo[ii].mpSemanticName; // string name that matches
             mpLayoutDescription[ii].SemanticIndex = pVertexDataInfo[ii].mSemanticIndex; // if we have more than one
             mpLayoutDescription[ii].Format = ConvertToDirectXFormat(pVertexDataInfo[ii].mElementType, pVertexDataInfo[ii].mElementComponentCount);
@@ -179,6 +186,7 @@ public class CPUTMeshDX11 extends CPUTMesh {
         }
         // set the last 'dummy' element to null.  Not sure if this is required, as we also pass in count when using this list.
         /*memset( &mpLayoutDescription[vertexDataInfoArraySize], 0, sizeof(D3D11_INPUT_ELEMENT_DESC) );*/
+        mpLayoutDescription[vertexDataInfoArraySize] = new D3D11_INPUT_ELEMENT_DESC();
         mpLayoutDescription[vertexDataInfoArraySize].zeros();
     }
 

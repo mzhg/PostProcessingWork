@@ -846,7 +846,7 @@ final class AVSMTechnique implements Disposeable{
 
             mParticleShadingPS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_PS.frag", ShaderType.FRAGMENT, nodeCount4);
             mParticleShadingPS.setName("ParticleShadingPS");
-            mParticleShadingVS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_VS.vert", ShaderType.VERTEX );
+            mParticleShadingVS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShadingVS.vert", ShaderType.VERTEX );
             mParticleShadingVS.setName("ParticleShadingVS");
             mParticleShadingPerPixelPS[0] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesPerPixelShading_PS.frag", ShaderType.FRAGMENT, nodeCount4);
             mParticleShadingPerPixelPS[0].setName("ParticleShadingPerPixelPS4");
@@ -861,12 +861,12 @@ final class AVSMTechnique implements Disposeable{
             mParticleShadingTessellationVS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_TessellationVS.vert", ShaderType.VERTEX );
             mParticleShadingTessellationVS.setName("ParticleShadingTessellationVS");
 
-            mParticleShadingDS[0] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_DS.gltc", ShaderType.TESS_CONTROL, nodeCount4);
+            mParticleShadingDS[0] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_DS.glte", ShaderType.TESS_EVAL, nodeCount4);
             mParticleShadingDS[0].setName("ParticleShadingDS4");
-            mParticleShadingDS[1] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_DS.gltc", ShaderType.TESS_CONTROL, nodeCount8);
+            mParticleShadingDS[1] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_DS.glte", ShaderType.TESS_EVAL, nodeCount8);
             mParticleShadingDS[1].setName("ParticleShadingDS8");
 
-            mParticleShadingHS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_HS.gltc", ShaderType.TESS_EVAL);
+            mParticleShadingHS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_HS.gltc", ShaderType.TESS_CONTROL);
         } catch (IOException e) {
             e.printStackTrace();
         }

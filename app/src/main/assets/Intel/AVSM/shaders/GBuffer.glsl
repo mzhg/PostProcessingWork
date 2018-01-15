@@ -4,6 +4,8 @@
 // GBuffer and related common utilities and structures
 
 #include "Common.glsl"
+#include "AVSM.glsl"
+#include "AVSM_Gen.glsl"
 
 #ifndef H_GBUFFER
 #define H_GBUFFER
@@ -79,6 +81,67 @@ float2 ProjectIntoAvsmLightTexCoord(float3 positionView)
     float2 texCoord = (positionLight.xy / positionLight.w) * float2(0.5f, +0.5f) + float2(0.5f, 0.5f);
 #endif
     return texCoord;
+}
+
+//Texture2D                     gDepthBuffer                          : register(t30);
+layout(binding = 30) uniform sampler2D  gDepthBuffer;
+////////////////////////////////////////////////////////////////////////////////////////////
+// getting the viewspace depth for smooth particle - solid geometry intersection
+float ScreenToViewDepth( float screenDepth )
+{
+   float depthHackMul = mScreenToViewConsts.x;
+   float depthHackAdd = mScreenToViewConsts.y;
+
+   // Optimised version of "-cameraClipNear / (cameraClipFar - projDepth * (cameraClipFar - cameraClipNear)) * cameraClipFar"
+
+   // Set your depthHackMul and depthHackAdd to:
+   // depthHackMul = ( cameraClipFar * cameraClipNear) / ( cameraClipFar - cameraClipNear );
+   // depthHackAdd = cameraClipFar / ( cameraClipFar - cameraClipNear );
+
+ 	return depthHackMul / (depthHackAdd - screenDepth);
+}
+//
+float LoadScreenDepthViewspace( int2 pos )
+{
+   return ScreenToViewDepth( /*gDepthBuffer.Load( int3( pos.xy, 0 ) ).x*/ texelFetch(gDepthBuffer, pos, 0).x );
+}
+////////////////////////////////////////////////////////////////////////////////////////////
+
+// Generalized volume sampling function
+float VolumeSample(in uint method, in float2 textureCoords, in float receiverDepth)
+{
+    switch (method) {
+        case(VOL_SHADOW_AVSM):
+#ifdef AVSM_BILINEARF
+            return AVSMBilinearSample(textureCoords, receiverDepth);
+#else
+            return AVSMPointSample(textureCoords, receiverDepth);
+#endif
+        case(VOL_SHADOW_AVSM_GEN):
+#ifdef AVSM_GEN_SOFT
+    #ifdef AVSM_GEN_BILINEARF
+			    return AVSMGenBilinearSampleSoft(textureCoords, receiverDepth);
+    #else
+                return AVSMGenPointSampleSoft(textureCoords, receiverDepth);
+    #endif
+#else
+    #ifdef AVSM_GEN_BILINEARF
+			    return AVSMGenBilinearSample(textureCoords, receiverDepth);
+    #else
+                return AVSMGenPointSample(textureCoords, receiverDepth);
+    #endif
+#endif
+        default:
+            return 1.0f;
+    }
+}
+
+float ShadowContrib(SurfaceData LitSurface, DynamicParticlePSIn Input)
+{
+    float2 lightTexCoord = ProjectIntoAvsmLightTexCoord(LitSurface.positionView.xyz);
+    float receiverDepth = mul(float4(LitSurface.positionView.xyz, 1.0f), mCameraViewToAvsmLightView).z;
+
+    return VolumeSample(mUI.volumeShadowMethod, lightTexCoord, receiverDepth);
 }
 
 #endif // H_GBUFFER

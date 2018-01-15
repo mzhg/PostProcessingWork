@@ -212,7 +212,7 @@ public final class AVSMSampler extends BaseScene {
 
         // Load .set file that was specified on the command line
         // Otherwise, load the default object if no .set was specified
-        String MediaPath = ".\\Media\\";
+        String MediaPath = "Intel\\cput\\Media\\";
         pAssetLibrary.SetMediaDirectoryName( MediaPath );
 
         try {

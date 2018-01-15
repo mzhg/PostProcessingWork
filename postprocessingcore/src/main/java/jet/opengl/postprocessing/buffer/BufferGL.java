@@ -24,9 +24,17 @@ public class BufferGL implements Disposeable{
     private GLFuncProvider gl;
     private boolean m_bInMapping;
 
+    private String m_name = "BufferGL"; // only for debugging
+
+    public void setName(String name){ m_name = name; }
+    public String getName()  { return m_name;}
+
     @Override
     public String toString() {
         StringBuilder out = new StringBuilder();
+        if(m_name != null){
+            out.append(m_name).append(' ');
+        }
         out.append(getBufferTargetName(m_target)).append('(').append(m_bufferID).append("):[");
         out.append("size = ").append(m_bufferSize).append(", Usage = ").append(getBufferUsageName(m_usage)).append("]");
 

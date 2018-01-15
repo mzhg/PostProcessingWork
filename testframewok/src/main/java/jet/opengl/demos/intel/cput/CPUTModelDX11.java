@@ -52,7 +52,14 @@ public class CPUTModelDX11 extends CPUTModel {
         resolvedPathAndFile = modelLocation;
 
         // Get the parent ID.  Note: the caller will use this to set the parent.
-        int parentID = pBlock.GetValueByName(_L("parent")).ValueAsInt();
+        int parentID = -1;
+
+        try {
+            parentID = pBlock.GetValueByName(_L("parent")).ValueAsInt();
+        } catch (NumberFormatException e) {
+            System.err.println("Error occured when loading the model: " + resolvedPathAndFile);
+            e.printStackTrace();
+        }
 
         LoadParentMatrixFromParameterBlock( pBlock );
 
@@ -116,6 +123,10 @@ public class CPUTModelDX11 extends CPUTModel {
         mpModelConstantBuffer = new BufferGL();
         mpModelConstantBuffer.initlize(GLenum.GL_UNIFORM_BUFFER, CPUTModelConstantBuffer.SIZE, null, GLenum.GL_STREAM_DRAW);
         mpModelConstantBuffer.unbind();
+        mpModelConstantBuffer.setName("Model Constant buffer");
+        CPUTBufferDX11 pBuffer = new CPUTBufferDX11("Model Constant buffer", mpModelConstantBuffer);
+        String name = _L("#cbPerModelValues") + getClass().getSimpleName();
+        pAssetLibrary.AddConstantBuffer( name, pBuffer );
 
         String assetSetDirectoryName = pAssetLibrary.GetAssetSetDirectoryName();
         String modelDirectory        = pAssetLibrary.GetModelDirectory();

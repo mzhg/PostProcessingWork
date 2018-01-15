@@ -1,13 +1,56 @@
+
+#include "GBuffer.glsl"
+#include "AVSM_Gen.glsl"
+#include "ListTexture.glsl"
+
+layout(early_fragment_tests) in;
+
 layout(location = 0) out vec4 OutColor;
 
-in VS_OUTPUT_HS_INPUT Input;
+//in VS_OUTPUT_HS_INPUT Input;
+in _DynamicParticlePSIn
+{
+//    float4 Position  : SV_POSITION;
+    float3 UVS		 /*: TEXCOORD0*/;
+    float  Opacity	 /*: TEXCOORD1*/;
+    float3 ViewPos	 /*: TEXCOORD2*/;
+    float3 ObjPos    /*: TEXCOORD3*/;
+    float3 ViewCenter/*: TEXCOORD4*/;
+    float4 color      /*: COLOR*/;
+    float2 ShadowInfo /*: TEXCOORD5*/;
+}Input;
+
+SurfaceData ConstructSurfaceData(float3 PosView, float3 Normal)
+{
+    SurfaceData Surface;
+    Surface.positionView = PosView;
+    Surface.positionViewDX = ddx(Surface.positionView);
+    Surface.positionViewDY = ddy(Surface.positionView);
+    Surface.normal = Normal;
+    Surface.albedo = float4(0,0,0,1);
+    Surface.lightSpaceZ = mul(float4(Surface.positionView.xyz, 1.0f), mCameraViewToLightProj).z;
+    Surface.lightTexCoord = ProjectIntoLightTexCoord(Surface.positionView.xyz);
+    Surface.lightTexCoordDX = ddx(Surface.lightTexCoord);
+    Surface.lightTexCoordDY = ddy(Surface.lightTexCoord);
+
+    return Surface;
+}
+
 void main()
 {
     float3 entry, exit;
     float  shadowTerm = 1.0f;
     float  segmentTransmittance = 1.0f;
-//    [flatten]
-    if (IntersectDynamicParticle(Input, entry, exit, segmentTransmittance))
+    DynamicParticlePSIn _Input;
+    _Input.UVS = Input.UVS;
+    _Input.Opacity = Input.Opacity;
+    _Input.ViewPos = Input.ViewPos;
+    _Input.ObjPos = Input.ObjPos;
+    _Input.ViewCenter = Input.ViewCenter;
+    _Input.color = Input.color;
+    _Input.ShadowInfo = Input.ShadowInfo;
+
+    if (IntersectDynamicParticle(_Input, entry, exit, segmentTransmittance))
     {
         float2 lightTexCoord = ProjectIntoLightTexCoord(entry);
 
@@ -16,7 +59,7 @@ void main()
         //return float4( LitSurface.positionView.xy, 1, 1 );
         //return float4( ProjectIntoAvsmLightTexCoord( LitSurface.positionView.xyz ).xy, 1, 1 );
 
-        shadowTerm = ShadowContrib(LitSurface, Input);
+        shadowTerm = ShadowContrib(LitSurface, _Input);
     }
 
     float depthDiff = 1.0f;
@@ -27,13 +70,13 @@ void main()
 
     // soft blend with solid geometry
     {
-        float depthBufferViewspacePos = LoadScreenDepthViewspace( int2(Input.Position.xy) );
+        float depthBufferViewspacePos = LoadScreenDepthViewspace( int2(gl_FragCoord.xy) );
 
-        depthDiff = (depthBufferViewspacePos - Input.ViewPos.z) / mSoftParticlesSaturationDepth;
+        depthDiff = (depthBufferViewspacePos - abs(Input.ViewPos.z)) / mSoftParticlesSaturationDepth;
         depthDiff = smoothstep(0.0f, 1.0f, depthDiff);
     }
 
-    if(mUI.wireframe)
+    if(mUI.wireframe != 0u)
     {
         OutColor = Input.color;
     }

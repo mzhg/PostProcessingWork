@@ -49,6 +49,8 @@
 #define reversebits(x) bitfieldReverse(x)
 #define countbits(x)   bitCount(x)
 #define asuint(x) floatBitsToUint(x)
+#define ddx(x)    dFdx(x)
+#define ddy(x)    dFdy(x)
 
 // #define mul(M, V) M * V
 

@@ -3,6 +3,7 @@ package jet.opengl.demos.intel.cput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
@@ -10,7 +11,12 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
+import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.shader.ProgramResources;
 import jet.opengl.postprocessing.shader.ShaderProgram;
+import jet.opengl.postprocessing.shader.UniformBlockProperties;
+import jet.opengl.postprocessing.shader.UniformBlockType;
+import jet.opengl.postprocessing.shader.UniformProperty;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.LogUtil;
 
@@ -620,7 +626,115 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
     }
 
     protected void ReadShaderSamplersAndTextures(   ShaderProgram shader, CPUTShaderParameters pShaderParameter ){
-        throw new UnsupportedOperationException();
+        ProgramResources resources = GLSLUtil.getProgramResources(shader.getProgram());
+
+        UniformProperty[] samplerUniforms = resources.active_uniform_properties;
+        if(samplerUniforms != null){
+            for(int i = 0; i < samplerUniforms.length; i++){
+                final String typeName = GLSLUtil.getGLSLTypeName(samplerUniforms[i].type);
+
+                if(typeName.contains("sampler")){  // texture
+                    pShaderParameter.mTextureParameterCount++;
+                }else if(typeName.contains("image") || typeName.contains("imageBuffer")){ // unorder resource views
+                    pShaderParameter.mUAVParameterCount ++;
+                }
+            }
+        }
+
+        List<UniformBlockProperties>  uniformBlocks =  resources.uniformBlockProperties;
+        for(int i = 0; i < uniformBlocks.size(); i++){
+            UniformBlockProperties uniformBlock = uniformBlocks.get(i);
+            if(uniformBlock.type == UniformBlockType.UNFIORM_BLOCK){  // const buffers
+                pShaderParameter.mConstantBufferParameterCount++;
+            }else if(uniformBlock.type == UniformBlockType.UNIFORM_BUFFER){ // shader storage buffers
+                pShaderParameter.mBufferParameterCount ++;
+            }
+        }
+
+        pShaderParameter.mpTextureParameterName              = new String[pShaderParameter.mTextureParameterCount];
+        pShaderParameter.mpTextureParameterBindPoint         = new int[   pShaderParameter.mTextureParameterCount];
+        pShaderParameter.mpSamplerParameterName              = new String[pShaderParameter.mSamplerParameterCount];
+        pShaderParameter.mpSamplerParameterBindPoint         = new int[   pShaderParameter.mSamplerParameterCount];
+        pShaderParameter.mpBufferParameterName               = new String[pShaderParameter.mBufferParameterCount];
+        pShaderParameter.mpBufferParameterBindPoint          = new int[   pShaderParameter.mBufferParameterCount];
+        pShaderParameter.mpUAVParameterName                  = new String[pShaderParameter.mUAVParameterCount];
+        pShaderParameter.mpUAVParameterBindPoint             = new int[   pShaderParameter.mUAVParameterCount];
+        pShaderParameter.mpConstantBufferParameterName       = new String[pShaderParameter.mConstantBufferParameterCount];
+        pShaderParameter.mpConstantBufferParameterBindPoint  = new int[   pShaderParameter.mConstantBufferParameterCount];
+
+        // Start over.  This time, copy the names.
+        int ii=0;
+        int textureIndex = 0;
+        int samplerIndex = 0;
+        int bufferIndex = 0;
+        int uavIndex = 0;
+        int constantBufferIndex = 0;
+
+        if(samplerUniforms != null){
+            for(int i = 0; i < samplerUniforms.length; i++){
+                UniformProperty property = samplerUniforms[i];
+                final String typeName = GLSLUtil.getGLSLTypeName(property.type);
+
+                String strName = property.name;
+                boolean ignore = (strName.length() > 8) && (strName.substring(0, 8).equals("NONCPUT_"));
+                if(typeName.contains("sampler")){  // texture
+                    if( ignore )
+                    {
+                        assert pShaderParameter.mTextureParameterCount>0:"Algorithm error";
+                        pShaderParameter.mTextureParameterCount--;
+                    }
+                    else
+                    {
+                        pShaderParameter.mpTextureParameterName[textureIndex] = strName;
+                        pShaderParameter.mpTextureParameterBindPoint[textureIndex] = (Integer)property.value;
+                        textureIndex++;
+                    }
+                }else if(typeName.contains("image") || typeName.contains("imageBuffer")){ // unorder resource views
+                    if( ignore )
+                    {
+                        assert pShaderParameter.mUAVParameterCount > 0 : "Algorithm error";
+                        pShaderParameter.mUAVParameterCount--;
+                    }
+                    else
+                    {
+                        pShaderParameter.mpUAVParameterName[uavIndex] = strName;
+                        pShaderParameter.mpUAVParameterBindPoint[uavIndex] = (Integer)property.value;
+                        uavIndex++;
+                    }
+                }
+            }
+        }
+
+        for(int i = 0; i < uniformBlocks.size(); i++){
+            UniformBlockProperties uniformBlock = uniformBlocks.get(i);
+            String strName = uniformBlock.name;
+            boolean ignore = (strName.length() > 8) && (strName.substring(0, 8).equals("NONCPUT_"));
+            if(uniformBlock.type == UniformBlockType.UNFIORM_BLOCK){  // const buffers
+                if( ignore )
+                {
+                    assert pShaderParameter.mConstantBufferParameterCount > 0:"Algorithm error";
+                    pShaderParameter.mConstantBufferParameterCount--;
+                }
+                else
+                {
+                    pShaderParameter.mpConstantBufferParameterName[constantBufferIndex] = strName;
+                    pShaderParameter.mpConstantBufferParameterBindPoint[constantBufferIndex] = uniformBlock.binding;
+                    constantBufferIndex++;
+                }
+            }else if(uniformBlock.type == UniformBlockType.UNIFORM_BUFFER){ // shader storage buffers
+                if( ignore )
+                {
+                    assert pShaderParameter.mBufferParameterCount > 0 : "Algorithm error";
+                    pShaderParameter.mBufferParameterCount--;
+                }
+                else
+                {
+                    pShaderParameter.mpBufferParameterName[bufferIndex] = strName;
+                    pShaderParameter.mpBufferParameterBindPoint[bufferIndex] = uniformBlock.binding;
+                    bufferIndex++;
+                }
+            }
+        }
     }
 
     protected void BindTextures(        CPUTShaderParameters params, String modelSuffix, String meshSuffix ) throws IOException{
@@ -876,6 +990,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
             }
             if( params.mpConstantBuffer[constantBufferCount] == null )
             {
+                constantBufferName = constantBufferName.toLowerCase();
                 params.mpConstantBuffer[constantBufferCount] = pAssetLibrary.GetConstantBuffer( constantBufferName );
 //                ASSERT( params.mpConstantBuffer[constantBufferCount], _L("Failed getting constant buffer ") + constantBufferName);
                 if(params.mpConstantBuffer[constantBufferCount] == null)

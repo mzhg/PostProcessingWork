@@ -130,6 +130,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     public void SetTextureDirectoryName(         String directoryName) { mTextureDirectoryName   = directoryName; }
     public void SetShaderDirectoryName(          String directoryName) { mShaderDirectoryName    = directoryName; }
     public void SetFontDirectoryName(            String directoryName) { mFontDirectoryName      = directoryName; }
+
     public void SetAllAssetDirectoryNames(       String directoryName) {
         mAssetSetDirectoryName       = directoryName;
         mModelDirectoryName          = directoryName;
@@ -172,7 +173,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
 
     // If the asset exists, these 'Get' methods will addref and return it.  Otherwise,
     // they will create it and return it.
-    public CPUTAssetSet         GetAssetSet(        String name, boolean nameIsFullPathAndFilename/*=false*/ ) throws IOException{
+    public CPUTAssetSet  GetAssetSet(String name, boolean nameIsFullPathAndFilename/*=false*/ ) throws IOException{
         // Resolve the absolute path
         String absolutePathAndFilename;
         /*CPUTOSServices *pServices = CPUTOSServices::GetOSServices();
@@ -362,7 +363,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         // convert string to lowercase
         /*cString lowercaseName = name;
         std::transform(lowercaseName.begin(), lowercaseName.end(), lowercaseName.begin(), ::tolower);*/
-        String lowercaseName = name.toLowerCase();
+        name = name.toLowerCase();
 
         // Do we already have one by this name?
         CPUTAssetListEntry pTail = pHead;

@@ -37,11 +37,11 @@ public class CPUTConfigFile {
                         blocks.add(currentBlock);
 
                     currentBlock = new CPUTConfigBlock();
-                    currentBlock.mszName = line.substring(nOpenBracketIndex, nCloseBracketIndex).toLowerCase();
+                    currentBlock.mszName = line.substring(nOpenBracketIndex + 1, nCloseBracketIndex).toLowerCase();
                 }else {
                     // It's a value
                     if(currentBlock == null){
-                        continue;
+                        currentBlock = new CPUTConfigBlock();
                     }
 
                     int nEqualsIndex = line.indexOf('=');
@@ -77,7 +77,7 @@ public class CPUTConfigFile {
                         boolean dup = false;
                         for(int ii=0;ii<currentBlock.mnValueCount;++ii)
                         {
-                            if(!currentBlock.mpValues[ii].szName.equals(szName))
+                            if(currentBlock.mpValues[ii].szName.equals(szName))
                             {
                                 dup = true;
                                 break;

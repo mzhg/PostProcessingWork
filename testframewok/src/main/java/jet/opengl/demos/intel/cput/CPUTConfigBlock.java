@@ -7,7 +7,7 @@ package jet.opengl.demos.intel.cput;
 public class CPUTConfigBlock {
     final CPUTConfigEntry[] mpValues = new CPUTConfigEntry[64];
     CPUTConfigEntry mName;
-    String         mszName;
+    String          mszName;
     int             mnValueCount;
 
     public CPUTConfigEntry AddValue(String szName, String szValue){
@@ -31,6 +31,7 @@ public class CPUTConfigBlock {
     }
 
     public CPUTConfigEntry GetValueByName(String szName){
+        szName = szName.toLowerCase();
         for(int i = 0; i < mnValueCount; i++){
             if(mpValues[i].szName.equals(szName)){
                 return mpValues[i];

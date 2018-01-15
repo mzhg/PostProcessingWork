@@ -122,6 +122,7 @@ public abstract class CPUTModel extends CPUTRenderNode implements Disposeable{
             for(int ii=0; ii<vertexFormatDesc.mFormatDescriptorCount; ii++)
             {
                 // lookup the CPUT data type equivalent
+                pVertexElementInfo[ii] = new CPUTBufferInfo();
                 pVertexElementInfo[ii].mElementType = CPUTMesh.CPUT_FILE_ELEMENT_TYPE_TO_CPUT_TYPE_CONVERT[vertexFormatDesc.mpElements[ii].mVertexElementType];
                 assert (pVertexElementInfo[ii].mElementType !=CPUTMesh.CPUT_UNKNOWN ) : ".MDL file load error.  This model file has an unknown data type in it's model data.";
                 // calculate the number of elements in this stream block (i.e. F32F32F32 = 3xF32)

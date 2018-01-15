@@ -1,14 +1,44 @@
 #include "Common.glsl"
 #include "GBuffer.glsl"
 
-layout(location = 0) in block
+layout(location = 0) in float4 inPosition	/*: POSITION*/;
+layout(location = 1) in float3 inUV			/*: TEXCOORD0*/;
+layout(location = 2) in float  inOpacity	/*: TEXCOORD1*/;
+
+//out DynamicParticlePSIn Out;
+out _DynamicParticlePSIn
 {
-    vec4 inPosition	/*: POSITION*/;
-    vec3 inUV			/*: TEXCOORD0*/;
-    layout(location = 2) float  inOpacity	/*: TEXCOORD1*/;
+//    float4 Position  : SV_POSITION;
+    float3 UVS		 /*: TEXCOORD0*/;
+    float  Opacity	 /*: TEXCOORD1*/;
+    float3 ViewPos	 /*: TEXCOORD2*/;
+    float3 ObjPos    /*: TEXCOORD3*/;
+    float3 ViewCenter/*: TEXCOORD4*/;
+    float4 color      /*: COLOR*/;
+    float2 ShadowInfo /*: TEXCOORD5*/;
+}Out;
+
+out gl_PerVertex
+{
+    vec4 gl_Position;
 };
 
-out DynamicParticlePSIn Out;
+SurfaceData ConstructSurfaceData(float3 PosView, float3 Normal)
+{
+    SurfaceData Surface;
+    Surface.positionView = PosView;
+
+    /*Surface.positionViewDX = ddx(Surface.positionView);
+    Surface.positionViewDY = ddy(Surface.positionView);
+    Surface.normal = Normal;
+    Surface.albedo = float4(0,0,0,1);
+    Surface.lightSpaceZ = mul(float4(Surface.positionView.xyz, 1.0f), mCameraViewToLightProj).z;
+    Surface.lightTexCoord = ProjectIntoLightTexCoord(Surface.positionView.xyz);
+    Surface.lightTexCoordDX = ddx(Surface.lightTexCoord);
+    Surface.lightTexCoordDY = ddy(Surface.lightTexCoord); */
+
+    return Surface;
+}
 
 void main()
 {
@@ -32,9 +62,17 @@ void main()
     Out.color        = float4(1,1,1,1);
     Out.ShadowInfo = float2( 1, 1 );
 
-    if( mUI.vertexShaderShadowLookup ) //#ifdef CALCULATE_AVSM_IN_VS
+    if( mUI.vertexShaderShadowLookup != 0u) //#ifdef CALCULATE_AVSM_IN_VS
     {
-       DynamicParticlePSIn	vsShadowIn = Out;
+       DynamicParticlePSIn	vsShadowIn;
+       vsShadowIn.UVS = Out.UVS;
+       vsShadowIn.Opacity = Out.Opacity;
+       vsShadowIn.ViewPos = Out.ViewPos;
+       vsShadowIn.ObjPos = Out.ObjPos;
+       vsShadowIn.ViewCenter = Out.ViewCenter;
+       vsShadowIn.color = Out.color;
+       vsShadowIn.ShadowInfo = Out.ShadowInfo;
+
        vsShadowIn.UVS.z *= 2.0;
 
        float3 entry, exit;
@@ -46,7 +84,7 @@ void main()
           float2 lightTexCoord = ProjectIntoLightTexCoord(entry);
 
           SurfaceData LitSurface = ConstructSurfaceData(entry, 0.0f.xxx);
-          if (mUI.enableVolumeShadowLookup)
+          if (mUI.enableVolumeShadowLookup != 0u)
           {
              shadowTerm = ShadowContrib(LitSurface, vsShadowIn);
           }

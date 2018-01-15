@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.shader.ShaderType;
 
@@ -67,12 +68,12 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
         return program;
     }
 
-    void AddPixelShader(String name, ShaderProgram    pShader) { check(pShader, ShaderType.FRAGMENT); AddAsset( name, pShader, mpPixelShaderList ); }
-    void AddComputeShader(  String name, ShaderProgram  pShader) { check(pShader, ShaderType.COMPUTE);AddAsset( name, pShader, mpComputeShaderList ); }
-    void AddVertexShader(   String name, ShaderProgram   pShader) { check(pShader, ShaderType.VERTEX); AddAsset( name, pShader,mpVertexShaderList ); }
-    void AddGeometryShader( String name, ShaderProgram pShader) { check(pShader, ShaderType.GEOMETRY); AddAsset( name, pShader, mpGeometryShaderList ); }
-    void AddHullShader(     String name, ShaderProgram     pShader) {check(pShader, ShaderType.TESS_CONTROL); AddAsset( name, pShader, mpHullShaderList ); }
-    void AddDomainShader(   String name, ShaderProgram   pShader) { check(pShader, ShaderType.TESS_EVAL);AddAsset( name, pShader, mpDomainShaderList ); }
+    void AddPixelShader(String name, ShaderProgram    pShader) { check(pShader, ShaderType.FRAGMENT); mpPixelShaderList = AddAsset( name, pShader, mpPixelShaderList ); }
+    void AddComputeShader(  String name, ShaderProgram  pShader) { check(pShader, ShaderType.COMPUTE);mpComputeShaderList = AddAsset( name, pShader, mpComputeShaderList ); }
+    void AddVertexShader(   String name, ShaderProgram   pShader) { check(pShader, ShaderType.VERTEX); mpVertexShaderList = AddAsset( name, pShader,mpVertexShaderList ); }
+    void AddGeometryShader( String name, ShaderProgram pShader) { check(pShader, ShaderType.GEOMETRY); mpGeometryShaderList = AddAsset( name, pShader, mpGeometryShaderList ); }
+    void AddHullShader(     String name, ShaderProgram     pShader) {check(pShader, ShaderType.TESS_CONTROL); mpHullShaderList = AddAsset( name, pShader, mpHullShaderList ); }
+    void AddDomainShader(   String name, ShaderProgram   pShader) { check(pShader, ShaderType.TESS_EVAL);mpDomainShaderList = AddAsset( name, pShader, mpDomainShaderList ); }
 
     ShaderProgram    FindPixelShader(    String name, boolean nameIsFullPathAndFilename/*=false*/ ) { return    (ShaderProgram) FindAsset( name, mpPixelShaderList,    nameIsFullPathAndFilename ); }
     ShaderProgram  FindComputeShader(  String name, boolean nameIsFullPathAndFilename/*=false*/ ) { return  (ShaderProgram) FindAsset( name, mpComputeShaderList,  nameIsFullPathAndFilename ); }
@@ -168,7 +169,7 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
         }
         /**ppPixelShader = CPUTPixelShaderDX11::CreatePixelShader( finalName, pD3dDevice, shaderMain, shaderProfile );
          return result;*/
-        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.VERTEX);
+        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.VERTEX, new Macro(shaderMain, 1));
         AddVertexShader(finalName + shaderMain + shaderProfile, shader);
         return shader;
     }

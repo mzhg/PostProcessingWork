@@ -41,6 +41,7 @@ public class CPUTConfigEntry {
     }
     public boolean ValueAsBool() throws NumberFormatException
     {
+        if(szValue == null) return false;
         return  (szValue.compareTo("true") == 0) ||
                 (szValue.compareTo("1") == 0) ||
                 (szValue.compareTo("t") == 0);

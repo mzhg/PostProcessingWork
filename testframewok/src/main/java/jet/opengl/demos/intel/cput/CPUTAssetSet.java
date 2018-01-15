@@ -41,13 +41,15 @@ public abstract class CPUTAssetSet implements Disposeable{
             mpRootNode.RenderRecursive(renderParams);
         }
     }
-    public void               RenderShadowRecursive(CPUTRenderParameters renderParams){
+
+    public void RenderShadowRecursive(CPUTRenderParameters renderParams){
         if(mpRootNode != null)
         {
             mpRootNode.RenderShadowRecursive(renderParams);
         }
     }
-    public void               RenderAVSMShadowedRecursive(CPUTRenderParameters renderParams){
+
+    public void RenderAVSMShadowedRecursive(CPUTRenderParameters renderParams){
         if(mpRootNode != null)
         {
             mpRootNode.RenderAVSMShadowedRecursive(renderParams);
