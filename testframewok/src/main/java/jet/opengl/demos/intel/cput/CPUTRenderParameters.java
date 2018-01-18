@@ -8,7 +8,7 @@ public class CPUTRenderParameters {
     public boolean         mShowBoundingBoxes;
     public boolean         mDrawModels = true;
     public boolean         mRenderOnlyVisibleModels = true;
-    public CPUTCamera mpCamera;
-    public CPUTCamera  mpShadowCamera;
-    public AVSMMethod  mAVSMMethod;
+    public CPUTCamera      mpCamera;
+    public CPUTCamera      mpShadowCamera;
+    public AVSMMethod      mAVSMMethod;
 }

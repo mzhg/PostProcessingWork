@@ -22,6 +22,13 @@ final class Camera {
     private final Matrix4f projection = new Matrix4f();
     private final Matrix4f worldProj = new Matrix4f();
 
+    public Camera(){
+    }
+
+    public Camera(float fov, float aspectRatio, float nearClipDistance, float farClipDistance, ReadableVector3f position, ReadableVector3f look, ReadableVector3f up){
+        SetPositionAndOrientation(fov, aspectRatio, nearClipDistance, farClipDistance, position, look, up);
+    }
+
     public float GetFov() { return fov;}
     public float GetAspectRatio() { return aspect;}
     public float GetNearPlaneDistance() { return near;}
@@ -33,8 +40,8 @@ final class Camera {
     public Matrix4f GetProjectionMatrix() { return projection;}
     public Matrix4f GetViewMatrix() { return world;}
 
-
     public Matrix4f GetWorldMatrix() { return world;}
+
     public void SetPositionAndOrientation(float fov, float aspectRatio, float nearClipDistance, float farClipDistance,
                                           ReadableVector3f position, ReadableVector3f look, ReadableVector3f up){
         this.fov = fov;

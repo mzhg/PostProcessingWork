@@ -1671,6 +1671,7 @@ public final class TextureUtils {
 		case GLenum.GL_DEPTH24_STENCIL8:  return GLenum.GL_UNSIGNED_INT_24_8;
 		case GLenum.GL_DEPTH_COMPONENT32: return GLenum.GL_UNSIGNED_INT;
 		case GLenum.GL_DEPTH_COMPONENT32F:return GLenum.GL_FLOAT;
+		case GLenum.GL_DEPTH32F_STENCIL8: return GLenum.GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
 		
 		default:
 			throw new IllegalArgumentException("Unkown internalFormat: " + internalFormat);

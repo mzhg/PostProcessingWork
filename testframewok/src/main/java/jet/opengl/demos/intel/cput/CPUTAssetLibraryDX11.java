@@ -109,7 +109,7 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
         }
         /**ppPixelShader = CPUTPixelShaderDX11::CreatePixelShader( finalName, pD3dDevice, shaderMain, shaderProfile );
         return result;*/
-        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.FRAGMENT);
+        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.FRAGMENT, new Macro(shaderMain, 1));
         AddPixelShader(finalName + shaderMain + shaderProfile, shader);
         return shader;
     }

@@ -14,7 +14,7 @@ out PS_INPUT
     float3 Position ;// TEXCOORD2; // Object space position
 }_output;
 
-uniform cbPerModelValues
+layout(binding = 0) uniform cbPerModelValues
 {
     float4x4 World /*: WORLD*/;
     float4x4 WorldViewProjection /*: WORLDVIEWPROJECTION*/;
@@ -24,14 +24,9 @@ uniform cbPerModelValues
     float4x4 LightWorldViewProjection;
 };
 
-uniform cbMyAVSMValues
-{
-              float4   DummyColor;
-};
-
 // ********************************************************************************************************
 // TODO: Note: nothing sets these values yet
-uniform cbPerFrameValues
+layout(binding = 1) uniform cbPerFrameValues
 {
     float4x4  View;
     float4x4  Projection;

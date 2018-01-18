@@ -8,23 +8,24 @@ import org.lwjgl.util.vector.Vector4i;
 
 import java.io.IOException;
 
+import jet.opengl.demos.intel.cput.AVSMMethod;
 import jet.opengl.demos.intel.cput.CPUTAssetLibrary;
 import jet.opengl.demos.intel.cput.CPUTAssetLibraryDX11;
 import jet.opengl.demos.intel.cput.CPUTAssetSet;
+import jet.opengl.demos.intel.cput.CPUTBufferDX11;
 import jet.opengl.demos.intel.cput.CPUTCamera;
 import jet.opengl.demos.intel.cput.CPUTLibrary;
 import jet.opengl.demos.intel.cput.CPUTMaterial;
 import jet.opengl.demos.intel.cput.CPUTMaterialDX11;
-import jet.opengl.demos.intel.cput.CPUTRenderParameters;
+import jet.opengl.demos.intel.cput.CPUTRenderParametersDX;
+import jet.opengl.demos.intel.cput.CPUTRenderTargetColor;
+import jet.opengl.demos.intel.cput.CPUTRenderTargetDepth;
 import jet.opengl.demos.scene.BaseScene;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderLoader;
-import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.texture.Texture2D;
-import jet.opengl.postprocessing.texture.Texture2DDesc;
-import jet.opengl.postprocessing.texture.TextureUtils;
 
 /**
  * Created by mazhen'gui on 2017/11/11.
@@ -46,7 +47,7 @@ public final class AVSMSampler extends BaseScene {
 
 
     private CPUTAssetSet          mpShadowCameraSet;
-    private Texture2D             mpShadowRenderTarget;
+    private CPUTRenderTargetDepth mpShadowRenderTarget;
 
     private float mScreenWidth;
     private float mScreenHeight;
@@ -54,14 +55,14 @@ public final class AVSMSampler extends BaseScene {
 //    CPUTText              *mpFPSCounter;
 
     // AVSM technique
-    private AVSMTechnique                   mpAVSMTechnique;
+    private AVSMTechnique         mpAVSMTechnique;
     private final AVSMTechnique.Options mAppOptions = new AVSMTechnique.Options();
 
-    private AVSMGuiState         mCurrentGUIState;
+    private final AVSMGuiState mCurrentGUIState = new AVSMGuiState();
 
 
     // Debug stuff
-    private boolean                mAVSMExtensionAvailable;
+    private boolean               mAVSMExtensionAvailable;
 //    AVSMDebugView       *mpAVSMDebugView;
 
     // GPU timers
@@ -79,6 +80,7 @@ public final class AVSMSampler extends BaseScene {
     @Override
     protected void onCreate(Object prevSavedData) {
         CPUTLibrary.InitlizeCPUT();
+        m_renderParams.InitlizeDX();
 
         mAVSMExtensionAvailable = false;
         // Create the GUI controls
@@ -113,17 +115,11 @@ public final class AVSMSampler extends BaseScene {
             e.printStackTrace();
         }
 
-        // Create default shaders
-        ShaderProgram pPS       = pAssetLibrary.CreateShaderFromMemory(          "$DefaultShader", "PSMain", "ps_4_0", psMainShaderSource, ShaderType.FRAGMENT );
-        ShaderProgram pPSNoTex  = pAssetLibrary.CreateShaderFromMemory( "$DefaultShaderNoTexture", "PSMainNoTexture", "ps_4_0", psMainNoTextureShaderSource, ShaderType.FRAGMENT );
-        ShaderProgram pVS       = pAssetLibrary.CreateShaderFromMemory(          "$DefaultShader", "VSMain", "vs_4_0", vsMainShaderSource, ShaderType.VERTEX);
-        ShaderProgram pVSNoTex  = pAssetLibrary.CreateShaderFromMemory( "$DefaultShaderNoTexture", "VSMainNoTexture", "vs_4_0", vsMainNoTextureShaderSource, ShaderType.VERTEX );
-
-        // We just want to create them, which adds them to the library.  We don't need them any more so release them, leaving refCount at 1 (only library owns a ref)
-        /*SAFE_RELEASE(pPS);
-        SAFE_RELEASE(pPSNoTex);
-        SAFE_RELEASE(pVS);
-        SAFE_RELEASE(pVSNoTex);*/
+        // Create default shaders. We just want to create them, which adds them to the library.
+        pAssetLibrary.CreateShaderFromMemory(          "$DefaultShader", "PSMain", "ps_4_0", psMainShaderSource, ShaderType.FRAGMENT );
+        pAssetLibrary.CreateShaderFromMemory( "$DefaultShaderNoTexture", "PSMainNoTexture", "ps_4_0", psMainNoTextureShaderSource, ShaderType.FRAGMENT );
+        pAssetLibrary.CreateShaderFromMemory(          "$DefaultShader", "VSMain", "vs_4_0", vsMainShaderSource, ShaderType.VERTEX);
+        pAssetLibrary.CreateShaderFromMemory( "$DefaultShaderNoTexture", "VSMainNoTexture", "vs_4_0", vsMainNoTextureShaderSource, ShaderType.VERTEX );
 
         // load shadow casting material+sprite object
         /*cString ExecutableDirectory;  TODO
@@ -131,9 +127,8 @@ public final class AVSMSampler extends BaseScene {
         pAssetLibrary.SetMediaDirectoryName(  ExecutableDirectory+_L(".\\Media\\"));*/
         pAssetLibrary.SetMediaDirectoryName("Intel/AVSM/Media/");
 
-        /*mpShadowRenderTarget = new CPUTRenderTargetDepth();
-        mpShadowRenderTarget->CreateRenderTarget( cString(_L("$shadow_depth")), SHADOW_WIDTH_HEIGHT, SHADOW_WIDTH_HEIGHT, DXGI_FORMAT_D16_UNORM );*/
-        mpShadowRenderTarget = TextureUtils.createTexture2D(new Texture2DDesc(SHADOW_WIDTH_HEIGHT, SHADOW_WIDTH_HEIGHT, GLenum.GL_DEPTH_COMPONENT16), null);
+        mpShadowRenderTarget = new CPUTRenderTargetDepth();
+        mpShadowRenderTarget.CreateRenderTarget("$shadow_depth", SHADOW_WIDTH_HEIGHT, SHADOW_WIDTH_HEIGHT, /*DXGI_FORMAT_D16_UNORM*/GLenum.GL_DEPTH_COMPONENT16,1,false );
 
         /*CPUTRenderStateBlockDX11 *pBlock = new CPUTRenderStateBlockDX11(); TODO
         CPUTRenderStateDX11 *pStates = pBlock->GetState();
@@ -186,24 +181,19 @@ public final class AVSMSampler extends BaseScene {
         mAppOptions.pickedY = 0;
 
         // create the technique class
-        mpAVSMTechnique = new AVSMTechnique(mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
+        mpAVSMTechnique = addAutoRelease(new AVSMTechnique(mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim));
 
         //  Load the custom shaders needed for the AVSM technique
         mpAVSMTechnique.LoadAVSMShaders(mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
 
         //  Create the render states needed for the AVSM technique
-        //-------------------------------------------------------
-        /*ReturnCode =*/ mpAVSMTechnique.CreateAVSMRenderStates(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
-//        ASSERT( (true==ReturnCode), _L("CPUT Error creating AVSM render states.") );
+        mpAVSMTechnique.CreateAVSMRenderStates(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
 
         //  Create the buffers needed for the AVSM technique
-        //-------------------------------------------------------
-        /*ReturnCode =*/ mpAVSMTechnique.CreateAVSMBuffers(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, avsmShadowTextureDim);
-//        ASSERT( (true==ReturnCode), _L("CPUT Error creating AVSM buffers.") );
+        mpAVSMTechnique.CreateAVSMBuffers(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, avsmShadowTextureDim);
 
         // We wrap buffers used by the AVSM technique when they are used by CPUT because it allows
         // the CPUT shader auto-bind system to automatically bind the buffers when they're used
-        //-------------------------------------------------------
         mpAVSMTechnique.WrapBuffers();
 
         // Set the debug view material
@@ -228,23 +218,24 @@ public final class AVSMSampler extends BaseScene {
         // and add it to the camera array.
         if( mpAssetSet != null && mpAssetSet.GetCameraCount() > 0 )
         {
-            /*mpCamera = mpAssetSet->GetFirstCamera(); TODO
-            mpCamera->AddRef();*/
+//            mpCamera = mpAssetSet.GetFirstCamera();  TODO
         }
         else
         {
             float factorfactor = 1.5f;
-            /*mpCamera = new CPUTCamera();
-            CPUTAssetLibraryDX11::GetAssetLibrary()->AddCamera( _L("SampleStart Camera"), mpCamera );
+            mpCamera = new CPUTCamera();
+            CPUTAssetLibraryDX11.GetAssetLibrary().AddCamera("SampleStart Camera", mpCamera );
 
-            mpCamera->SetPosition( 70.44f/factorfactor, 13.27f/factorfactor, -18.786f/factorfactor);
+            mpCamera.SetPosition( 70.44f/factorfactor, 13.27f/factorfactor, -18.786f/factorfactor);
             // Set the projection matrix for all of the cameras to match our window.
-            mpCamera->SetAspectRatio(((float)width)/((float)height));
+            int width = mNVApp.getGLContext().width();
+            int height = mNVApp.getGLContext().height();
+            mpCamera.SetAspectRatio(((float)width)/((float)height));
 
-            mpCamera->SetFov(XMConvertToRadians(60.0f));
-            mpCamera->SetFarPlaneDistance(10000.0f);
-            mpCamera->LookAt( 18.823f, 1.077f, -0.038f);
-            mpCamera->Update();*/
+            mpCamera.SetFov(60.0f);
+            mpCamera.SetFarPlaneDistance(10000.0f);
+            mpCamera.LookAt( 18.823f, 1.077f, -0.038f);
+            mpCamera.Update(0);
 
             initCamera(0, new Vector3f( 70.44f/factorfactor, 13.27f/factorfactor, -18.786f/factorfactor),
                     new Vector3f(18.823f, 1.077f, -0.038f));
@@ -254,29 +245,6 @@ public final class AVSMSampler extends BaseScene {
         mpShadowCamera = new CPUTCamera();
         CPUTAssetLibraryDX11.GetAssetLibrary().AddCamera( "ShadowCamera", mpShadowCamera );
 
-        /*mpCameraController = new CPUTCameraControllerFPS();
-        mpCameraController->SetCamera(mpCamera);
-        mpCameraController->SetLookSpeed(0.004f);
-        mpCameraController->SetMoveSpeed(70.0f);*/
-
-        // Initialize with the current surface description
-        /*D3D11_RENDER_TARGET_VIEW_DESC BackBufferRTVDesc;
-        mpBackBufferRTV->GetDesc(&BackBufferRTVDesc);
-
-        ID3D11Resource* pBackBufferRTV=NULL;
-        mpBackBufferRTV->GetResource(&pBackBufferRTV);
-
-        // get the texture
-        ID3D11Texture2D* pBackBufferTexture=NULL;
-        pBackBufferRTV->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture);
-
-        // get surface desc
-        D3D11_TEXTURE2D_DESC surfDesc;
-        pBackBufferTexture->GetDesc(&surfDesc);
-        SAFE_RELEASE(pBackBufferTexture);
-        SAFE_RELEASE(pBackBufferRTV);*/
-
-        /*D3DXMatrixIdentity( &gWorldMatrix );*/
         gWorldMatrix.setIdentity();
 
         // Create a particle system for this specific scene
@@ -306,7 +274,7 @@ public final class AVSMSampler extends BaseScene {
 //        CPUT_DX11::ResizeWindow( width, height );
 
         // Resize any application-specific render targets here
-//        if( mpCamera ) mpCamera->SetAspectRatio(((float)width)/((float)height));
+        if( mpCamera != null ) mpCamera.SetAspectRatio(((float)width)/((float)height));
 
         pAssetLibrary.RebindTexturesAndBuffers();
 
@@ -401,11 +369,25 @@ public final class AVSMSampler extends BaseScene {
         };
 
         // create our simple particle system with 3 emitters
-        gParticleSystem = new ParticleSystem(maxNumPartices, null);
-        gParticleSystem.InitializeParticles(emitters, 3, /*d3dDevice,*/ 8, 8, shaderDefines);
+        gParticleSystem = addAutoRelease(new ParticleSystem(maxNumPartices, null));
+        gParticleSystem.InitializeParticles(emitters, 3, 8, 8, shaderDefines);
     }
 
-    private void GetGUIState(AVSMGuiState pState){}
+    private void GetGUIState(AVSMGuiState pState){
+        pState.Method = AVSMMethod.AVSM_METHOD_DIRECTX;
+        pState.ShadowTextureDimensions = 512;
+        pState.NumberOfNodes = 8;
+        pState.ParticleSize = 20/20.0f;
+        pState.ParticleOpacity = 0.618f;
+        pState.ParticlesPaused = false;
+        pState.WireFrame = false;
+        pState.vertexShaderShadowLookup = true;
+        pState.TessellationDensity = 0.75f;
+        pState.tessellate = pState.TessellationDensity != 0.0f;
+        pState.LightLatitude = 1;
+        pState.LightLongitude = 1;
+    }
+
     private void SetAVSMFrameContextData(AVSMTechnique.FrameContext AVSMFrameContext){
         // update render method:
         switch( mCurrentGUIState.Method )
@@ -529,10 +511,12 @@ public final class AVSMSampler extends BaseScene {
 
     @Override
     protected void update(float dt) {
-        /*if( mpCameraController != NULL )
+        // Update the camera
         {
-            mpCameraController->Update((float)deltaSeconds);
-        }*/
+            mNVApp.getInputTransformer().getModelViewMat(mpCamera.GetViewMatrix());
+            mpCamera.Update();
+            mSceneData.setViewAndUpdateCamera(mpCamera.GetViewMatrix());
+        }
 
         // Set up the shadow camera (a camera that sees what the light sees)
         {
@@ -577,34 +561,25 @@ public final class AVSMSampler extends BaseScene {
         }
     }
 
-    private final CPUTRenderParameters m_renderParams = new CPUTRenderParameters();
+    private final CPUTRenderParametersDX m_renderParams = new CPUTRenderParametersDX();
     private final AVSMTechnique.FrameContext m_AVSMFrameContext = new AVSMTechnique.FrameContext();
 
     @Override
     protected void onRender(boolean clearFBO) {
         /*CPUTGPUProfilerDX11_AutoScopeProfile timerAll( mGPUTimerAll, mCurrentGUIState.EnableStats );
         CPUTRenderParametersDX renderParams(mpContext);*/
-        CPUTRenderParameters renderParams = m_renderParams;
+        CPUTRenderParametersDX renderParams = m_renderParams;
 
         if( mpAVSMTechnique == null )
         {
             /*const float clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
             mpContext->ClearRenderTargetView( mpBackBufferRTV,  clearColor );*/
-            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
             gl.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
             gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
             return;
         }
 
-
         // Set the viewport back to full window size
-        /*D3D11_VIEWPORT viewport;
-        viewport.Width    = (float)mScreenWidth;
-        viewport.Height   = (float)mScreenHeight;
-        viewport.MinDepth = 0.0f;
-        viewport.MaxDepth = 1.0f;
-        viewport.TopLeftX = 0.0f;
-        viewport.TopLeftY = 0.0f;*/
         Vector4i viewport = new Vector4i(0,0, (int)mScreenWidth, (int)mScreenHeight);
 
         // 1. Initialize AVSM structures and update particle movement (but don't do any actual rendering yet)
@@ -624,12 +599,11 @@ public final class AVSMSampler extends BaseScene {
         mpAVSMTechnique.InitializeFrameContext( AVSMFrameContext, mAppOptions, /*mpContext,*/ gParticleSystem, gWorldMatrix,
                 mpCamera, mpShadowCamera, viewport );
 
-//        CPUTBufferDX11 * pMainDepthBuffer = (CPUTBufferDX11 *)CPUTAssetLibrary::GetAssetLibrary()->GetBuffer( L"$DepthBuffer" );
-//        if( pMainDepthBuffer != NULL )  todo why ????
-//        {
-//            AVSMFrameContext.DepthBufferSRV = pMainDepthBuffer->GetShaderResourceView();
-//            pMainDepthBuffer->Release();
-//        }
+        CPUTBufferDX11 pMainDepthBuffer = (CPUTBufferDX11)CPUTAssetLibrary.GetAssetLibrary().GetBuffer("$DepthBuffer" );
+        if( pMainDepthBuffer != null )
+        {
+            m_AVSMFrameContext.DepthBufferSRV = pMainDepthBuffer.GetShaderResourceView();
+        }
 
         // translate the GUI state to AVSMFrameContext parameters
         SetAVSMFrameContextData(AVSMFrameContext);
@@ -644,99 +618,100 @@ public final class AVSMSampler extends BaseScene {
         // one could also use cascades shadow maps or other shadowing techniques.  We choose simple
         // shadow mapping for simplicity/demonstration purposes
         CPUTCamera pLastCamera = mpCamera;
-        /*mpCamera =*/ renderParams.mpCamera = mpShadowCamera;
-//        mpShadowRenderTarget.SetRenderTarget( renderParams, 0, 1.0f, true ); TODO setup the shadow mapping
+        mpCamera = renderParams.mpCamera = mpShadowCamera;
+        mpShadowRenderTarget.SetRenderTarget( renderParams, 0, 1.0f, true );
 
         if( mpAssetSet!= null ) { mpAssetSet.RenderShadowRecursive( renderParams ); }
 
-        /*mpShadowRenderTarget->RestoreRenderTarget(renderParams);*/
-        /*mpCamera =*/ renderParams.mpCamera = pLastCamera;
+        mpShadowRenderTarget.RestoreRenderTarget(renderParams);
+        mpCamera = renderParams.mpCamera = pLastCamera;
         renderParams.mpShadowCamera = mpShadowCamera;
 
         // Clear render target and depth buffer
-        /*const float clearColor[] = { 0.0993f, 0.0993f, 0.1993f, 1.0f };
+        /*final float clearColor[] = { 0.0993f, 0.0993f, 0.1993f, 1.0f };
         mpContext->ClearRenderTargetView( mpBackBufferRTV,  clearColor );
-        mpContext->ClearDepthStencilView( mpDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        mpContext->ClearDepthStencilView( mpDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);*/
 
         // Draw scene
         {
             // Save our main RTV/DSV
-            ID3D11RenderTargetView* pRTV = CPUTRenderTargetColor::GetActiveRenderTargetView();
-            ID3D11DepthStencilView* pDSV = CPUTRenderTargetDepth::GetActiveDepthStencilView();
+            Texture2D pRTV = CPUTRenderTargetColor.GetActiveRenderTargetView();
+            Texture2D pDSV = CPUTRenderTargetDepth.GetActiveDepthStencilView();
 
             // 3. create the AVSM shadow map and capture particle fragments into the AVSM render targets
             {
-                CPUTGPUProfilerDX11_AutoScopeProfile timer( mGPUTimerAVSMCreation, mCurrentGUIState.EnableStats );
-                mpAVSMTechnique->CreateAVSMShadowMap( AVSMFrameContext, mpAssetSet, &renderParams );
+//                CPUTGPUProfilerDX11_AutoScopeProfile timer( mGPUTimerAVSMCreation, mCurrentGUIState.EnableStats );
+                mpAVSMTechnique.CreateAVSMShadowMap( AVSMFrameContext, mpAssetSet, renderParams);
             }
 
             // 4. set the standard render target and draw the regular scene geometry
             {
-                CPUTGPUProfilerDX11_AutoScopeProfile timer( mGPUTimerSolidGeometryRendering, mCurrentGUIState.EnableStats );
+//                CPUTGPUProfilerDX11_AutoScopeProfile timer( mGPUTimerSolidGeometryRendering, mCurrentGUIState.EnableStats );
 
                 // draw CPUT loaded geometry/scene
                 // set the render targets and viewports
-                mpContext->OMSetRenderTargets( 1, &pRTV, pDSV );
-                mpContext->RSSetViewports(1, &viewport);
+                renderParams.OMSetRenderTargets( /*1, &*/pRTV, pDSV );
+                renderParams.RSSetViewports(/*1, &*/viewport.x, viewport.y, viewport.z, viewport.w);
 
                 // set all 'external' states for drawing regular scene geometry
-                mpAVSMTechnique->UpdateStatesAndConstantsForAVSMUse( AVSMFrameContext, true );
+                mpAVSMTechnique.UpdateStatesAndConstantsForAVSMUse( AVSMFrameContext, true );
 
                 // render scene geometry - passing in the AVSM buffers
                 renderParams.mAVSMMethod = mCurrentGUIState.Method;
 
                 // render the skybox - which does not accept AVSM shadows
-                if( mpSkyBox ) { mpSkyBox->RenderRecursive(renderParams); }
+                if( mpSkyBox != null) { mpSkyBox.RenderRecursive(renderParams); }
 
                 // render the scene - accepting AVSM shadows
-                if( mpAssetSet ) { mpAssetSet->RenderAVSMShadowedRecursive(renderParams); }
+                if( mpAssetSet != null) { mpAssetSet.RenderAVSMShadowedRecursive(renderParams); }
             }
 
             // 5. draw screen space ambient occlusion
-*//*#ifdef SSAO_ENABLE
+/*#ifdef SSAO_ENABLE
             {
                 mSSAO.UpdateConsts( mpContext, mpCamera );
                 mSSAO.GenerateSSAO( mpContext );
                 mSSAO.FullscreenApplySSAO( mpContext );
             }
-#endif*//*
+#endif*/
 
             // 6. Render the shaded particles into the standard render target
             {
-                CPUTGPUProfilerDX11_AutoScopeProfile timer( mGPUTimerParticlesRendering, mCurrentGUIState.EnableStats );
+//                CPUTGPUProfilerDX11_AutoScopeProfile timer( mGPUTimerParticlesRendering, mCurrentGUIState.EnableStats );
 
                 // remove depth buffer since we're doing soft depth blend in the pixel shader
-                mpContext->OMSetRenderTargets( 1, &pRTV, NULL );
+                renderParams.OMSetRenderTargets( /*1, &*/pRTV, null );
 
                 // set all 'external' states for drawing 'external' geometry (particles)
-                mpAVSMTechnique->UpdateStatesAndConstantsForAVSMUse( AVSMFrameContext, false );
+                mpAVSMTechnique.UpdateStatesAndConstantsForAVSMUse( AVSMFrameContext, false );
 
                 // render the shadowed/lit particles
-                mpAVSMTechnique->RenderShadedParticles( AVSMFrameContext, pRTV, pDSV );
+                mpAVSMTechnique.RenderShadedParticles( AVSMFrameContext, pRTV, pDSV );
             }
 
             // restore our main RTV/DSV
-            mpContext->OMSetRenderTargets( 1, &pRTV, pDSV );
+            renderParams.OMSetRenderTargets( pRTV, pDSV );
         }
 
         // Draw the debug view
-        if( CPUT_CHECKBOX_CHECKED == mpDebugViewShow->GetCheckboxState() )
+        /*if( CPUT_CHECKBOX_CHECKED == mpDebugViewShow->GetCheckboxState() )
         {
             mpAVSMDebugView->Render(mpContext, mpAVSMTechnique, &AVSMFrameContext, &renderParams);
-        }
+        }*/
 
         // update stats
         if( mCurrentGUIState.EnableStats )
         {
-            AVSMFrameContext.Stats.VolumetricShadowTime = (float)(mGPUTimerAVSMCreation.GetAvgTime() * 1000.0);
-            AVSMFrameContext.Stats.SolidGeometryTime    = (float)(mGPUTimerSolidGeometryRendering.GetAvgTime()* 1000.0);
-            AVSMFrameContext.Stats.ParticlesTime        = (float)(mGPUTimerParticlesRendering.GetAvgTime()* 1000.0);
-            AVSMFrameContext.Stats.TotalTime            = (float)(mGPUTimerAll.GetAvgTime() * 1000.0);
+            AVSMFrameContext.Stats.VolumetricShadowTime = (float)(mGPUTimerAVSMCreation.getScaledCycles() * 1000.0);
+            AVSMFrameContext.Stats.SolidGeometryTime    = (float)(mGPUTimerSolidGeometryRendering.getScaledCycles()* 1000.0);
+            AVSMFrameContext.Stats.ParticlesTime        = (float)(mGPUTimerParticlesRendering.getScaledCycles()* 1000.0);
+            AVSMFrameContext.Stats.TotalTime            = (float)(mGPUTimerAll.getScaledCycles() * 1000.0);
         }
         else
         {
-            memset( &AVSMFrameContext.Stats, 0, sizeof(AVSMFrameContext.Stats) );
-        }*/
+//            memset( &AVSMFrameContext.Stats, 0, sizeof(AVSMFrameContext.Stats) );
+            AVSMFrameContext.Stats.reset();
+        }
     }
 
     @Override

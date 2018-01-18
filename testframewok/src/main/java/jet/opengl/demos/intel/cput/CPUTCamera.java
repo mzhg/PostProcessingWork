@@ -6,7 +6,6 @@ import org.lwjgl.util.vector.Vector3f;
 /**
  * Created by mazhen'gui on 2017/11/14.
  */
-
 public class CPUTCamera extends CPUTRenderNode {
     protected float mFov = 45;                // the field of view in degrees
     protected float mNearPlaneDistance = 1.0f;  // near plane distance
@@ -21,14 +20,22 @@ public class CPUTCamera extends CPUTRenderNode {
         SetPosition(1.0f, 8.0f, 1.0f);
     }
 
-    public void Update( float deltaSeconds/*=0.0f*/ ) {
-        // TODO: Do only if required (i.e. if dirty)
-        /*mProjection = float4x4PerspectiveFovLH( mFov, mAspectRatio, mNearPlaneDistance, mFarPlaneDistance );
-        mView = inverse(*GetWorldMatrix());
-        mFrustum.InitializeFrustum(this);*/
+    public final void Update(  ) {
+        Update(0);
+    }
 
-        throw new RuntimeException();
-    };
+    @Override
+    public void Update(float deltaSeconds) {
+        Matrix4f.perspective(mFov, mAspectRatio, mNearPlaneDistance, mFarPlaneDistance, mProjection);
+        // We asuume the view matrix has already setup.
+        // Upda the world matrix first
+        Matrix4f.invertRigid(mView, mViewProj);
+        SetParentMatrix(mViewProj);
+
+        Matrix4f.mul(mProjection, mView, mViewProj);
+
+//        mFrustum.InitializeFrustum(this);
+    }
 
     public int LoadCamera(CPUTConfigBlock pBlock/*, int *pParentID*/){
         // TODO: Have render node load common properties.
@@ -62,7 +69,7 @@ public class CPUTCamera extends CPUTRenderNode {
     public float           GetFarPlaneDistance() {  return mFarPlaneDistance; }
     public void            SetNearPlaneDistance( float nearPlaneDistance ) { mNearPlaneDistance = nearPlaneDistance; }
     public void            SetFarPlaneDistance(  float farPlaneDistance ) { mFarPlaneDistance = farPlaneDistance; }
-    public void            LookAt( float xx, float yy, float zz ){throw new RuntimeException();}
+    public void            LookAt( float xx, float yy, float zz ){}
 
     public boolean isCenterExtentVisible(Vector3f mBoundingBoxCenterWorldSpace, Vector3f mBoundingBoxHalfWorldSpace) {
         throw new UnsupportedOperationException();

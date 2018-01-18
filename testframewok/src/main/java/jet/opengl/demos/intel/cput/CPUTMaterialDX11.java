@@ -3,13 +3,13 @@ package jet.opengl.demos.intel.cput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.AttribBinder;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.ProgramResources;
@@ -59,6 +59,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
     private GLFuncProvider gl;
 
     public CPUTMaterialDX11(){
+        initlizeGL();
     }
     
     @Override
@@ -275,52 +276,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
 
 //        OUTPUT_BINDING_DEBUG_INFO( (_L("Bindings for : ") + mMaterialName + _L("\n")).c_str() );
         LogUtil.i(LogUtil.LogType.DEFAULT, "Bindings for : " + mMaterialName);
-        /*String pShaderTypeNameList[] = {
-                ("Pixel shader"),
-                ("Compute shader"),
-                ("Vertex shader"),
-                ("Geometry shader"),
-                ("Hull shader"),
-                ("Domain shader"),
-        };
-        cString *pShaderTypeName = pShaderTypeNameList;
-        void *pShaderList[] = {
-            mpPixelShader,
-                    mpComputeShader,
-                    mpVertexShader,
-                    mpGeometryShader,
-                    mpHullShader,
-                    mpDomainShader
-        };
-        void **pShader = pShaderList;*/
-
-        // For each of the shader stages, bind shaders and buffers
-        /*for( CPUTShaderParameters **pCur = mpShaderParametersList; *pCur; pCur++ ) // Bind textures and buffersfor each shader stage
-        {
-            // Clear the bindings to reduce "resource still bound" errors, and to avoid leaving garbage pointers between valid pointers.
-            // We bind resources as arrays.  We bind from the min required bind slot to the max-required bind slot.
-            // Any slots in between will get bound.  It isn't clear if D3D will simply ignore them, or not.
-            // But, they could be garbage, or valid resources from a previous binding.
-            memset( pCur.mppBindViews,           0, sizeof(pCur.mppBindViews) );
-            memset( pCur.mppBindUAVs,            0, sizeof(pCur.mppBindUAVs) );
-            memset( pCur.mppBindConstantBuffers, 0, sizeof(pCur.mppBindConstantBuffers) );
-
-            if( !*pShader++ )
-            {
-                pShaderTypeName++; // Increment the name pointer to remain coherent.
-                continue;          // This shader not bound.  Don't waste time binding to it.
-            }
-
-            OUTPUT_BINDING_DEBUG_INFO( (*(pShaderTypeName++)  + _L("\n")).c_str() );
-
-            BindTextures(        **pCur, modelSuffix, meshSuffix );
-            BindBuffers(         **pCur, modelSuffix, meshSuffix );
-            BindUAVs(            **pCur, modelSuffix, meshSuffix );
-            BindConstantBuffers( **pCur, modelSuffix, meshSuffix );
-
-            OUTPUT_BINDING_DEBUG_INFO( _L("\n") );
-        }*/
-
         BindTextures(        mShaderParameters, modelSuffix, meshSuffix );
         BindBuffers(         mShaderParameters, modelSuffix, meshSuffix );
         BindUAVs(            mShaderParameters, modelSuffix, meshSuffix );
@@ -331,7 +286,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
 
     private void initlizeGL(){
         gl = GLFuncProviderFactory.getGLFuncProvider();
-        mProgram = new GLSLProgramPipeline();
+//        mProgram = new GLSLProgramPipeline();
     }
 
     @Override
@@ -369,17 +324,19 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
     }
 
     private void setShaderResources(){
-        mProgram.setVS(mpVertexShader);
+        /*mProgram.setVS(mpVertexShader);
         mProgram.setTC(mpHullShader);
         mProgram.setTE(mpDomainShader);
         mProgram.setGS(mpGeometryShader);
         mProgram.setPS(mpPixelShader);
-        mProgram.setCS(mpComputeShader);
+        mProgram.setCS(mpComputeShader);*/
+        if(true)
+            throw new UnsupportedOperationException();
 
         if(mShaderParameters.mTextureCount > 0){
             for( int ii=0; ii < mShaderParameters.mTextureCount; ii++ )
             {
-                int bindPoint = mShaderParameters.mpTextureParameterBindPoint[ii];
+                int bindPoint = mShaderParameters.mpTextureParameters.get(ii).index;
                 if(mpLastShaderViews[bindPoint] != mShaderParameters.mppBindViews[bindPoint] )
                 {
                     /*mpLast##SHADER##ShaderViews[bindPoint] = m##SHADER##ShaderParameters.mppBindViews[bindPoint];*/
@@ -393,7 +350,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
 
         if(mShaderParameters.mConstantBufferCount > 0){
             for( int ii=0; ii < mShaderParameters.mConstantBufferCount; ii++ ){
-                int bindPoint = mShaderParameters.mpConstantBufferParameterBindPoint[ii];
+                int bindPoint = mShaderParameters.mpConstantBufferParameters.get(ii).index;
                 if(mpLastShaderConstantBuffers[bindPoint] != mShaderParameters.mppBindConstantBuffers[bindPoint]){
                     BufferGL constantBuffer = mShaderParameters.mppBindConstantBuffers[bindPoint];
 
@@ -430,28 +387,28 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
                 {
                     continue;
                 }
-                int bindPoint = pCur.mpTextureParameterBindPoint[ii];
+                int bindPoint = pCur.mpTextureParameters.get(ii).index;
 //                SAFE_RELEASE(pCur.mppBindViews[bindPoint]);
                 pCur.mppBindViews[bindPoint] = ((CPUTTextureDX11)pCur.mpTexture[ii]).GetShaderResourceView();
 //                pCur.mppBindViews[bindPoint]->AddRef();
             }
             for( int ii=0; ii<pCur.mBufferCount; ii++ )
             {
-                int bindPoint = pCur.mpBufferParameterBindPoint[ii];
+                int bindPoint = pCur.mpBufferParameters.get(ii).index;
                 /*SAFE_RELEASE(pCur.mppBindViews[bindPoint]);
                 pCur.mppBindViews[bindPoint] = ((CPUTBufferDX11)pCur.mpBuffer[ii]).GetShaderResourceView();
                 pCur.mppBindViews[bindPoint]->AddRef();*/
             }
             for( int ii=0; ii<pCur.mUAVCount; ii++ )
             {
-                int bindPoint = pCur.mpUAVParameterBindPoint[ii];
+                int bindPoint = pCur.mpUAVParameters.get(ii).index;
                 /*SAFE_RELEASE(pCur.mppBindUAVs[bindPoint]);
                 pCur.mppBindUAVs[bindPoint] = ((CPUTBufferDX11*)pCur.mpUAV[ii])->GetUnorderedAccessView();
                 pCur.mppBindUAVs[bindPoint]->AddRef();*/
             }
             for( int ii=0; ii<pCur.mConstantBufferCount; ii++ )
             {
-                int bindPoint = pCur.mpConstantBufferParameterBindPoint[ii];
+                int bindPoint = pCur.mpConstantBufferParameters.get(ii).index;
                 /*SAFE_RELEASE(pCur.mppBindConstantBuffers[bindPoint]);
                 pCur.mppBindConstantBuffers[bindPoint] = ((CPUTBufferDX11*)pCur.mpConstantBuffer[ii])->GetNativeBuffer();
                 pCur.mppBindConstantBuffers[bindPoint]->AddRef();*/
@@ -546,7 +503,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         // Note that pixel shaders can too, but DX requires setting those when setting RTV(s).
         for( int ii=0; ii<mShaderParameters.mUAVCount; ii++ )
         {
-            int bindPoint = mShaderParameters.mpUAVParameterBindPoint[ii];
+            int bindPoint = mShaderParameters.mpUAVParameters.get(ii).index;
             if(mpLastComputeShaderUAVs[ii] != mShaderParameters.mppBindUAVs[bindPoint] )
             {
                 TextureGL unorderedView = mShaderParameters.mppBindUAVs[bindPoint];
@@ -629,39 +586,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         ProgramResources resources = GLSLUtil.getProgramResources(shader.getProgram());
 
         UniformProperty[] samplerUniforms = resources.active_uniform_properties;
-        if(samplerUniforms != null){
-            for(int i = 0; i < samplerUniforms.length; i++){
-                final String typeName = GLSLUtil.getGLSLTypeName(samplerUniforms[i].type);
-
-                if(typeName.contains("sampler")){  // texture
-                    pShaderParameter.mTextureParameterCount++;
-                }else if(typeName.contains("image") || typeName.contains("imageBuffer")){ // unorder resource views
-                    pShaderParameter.mUAVParameterCount ++;
-                }
-            }
-        }
-
-        List<UniformBlockProperties>  uniformBlocks =  resources.uniformBlockProperties;
-        for(int i = 0; i < uniformBlocks.size(); i++){
-            UniformBlockProperties uniformBlock = uniformBlocks.get(i);
-            if(uniformBlock.type == UniformBlockType.UNFIORM_BLOCK){  // const buffers
-                pShaderParameter.mConstantBufferParameterCount++;
-            }else if(uniformBlock.type == UniformBlockType.UNIFORM_BUFFER){ // shader storage buffers
-                pShaderParameter.mBufferParameterCount ++;
-            }
-        }
-
-        pShaderParameter.mpTextureParameterName              = new String[pShaderParameter.mTextureParameterCount];
-        pShaderParameter.mpTextureParameterBindPoint         = new int[   pShaderParameter.mTextureParameterCount];
-        pShaderParameter.mpSamplerParameterName              = new String[pShaderParameter.mSamplerParameterCount];
-        pShaderParameter.mpSamplerParameterBindPoint         = new int[   pShaderParameter.mSamplerParameterCount];
-        pShaderParameter.mpBufferParameterName               = new String[pShaderParameter.mBufferParameterCount];
-        pShaderParameter.mpBufferParameterBindPoint          = new int[   pShaderParameter.mBufferParameterCount];
-        pShaderParameter.mpUAVParameterName                  = new String[pShaderParameter.mUAVParameterCount];
-        pShaderParameter.mpUAVParameterBindPoint             = new int[   pShaderParameter.mUAVParameterCount];
-        pShaderParameter.mpConstantBufferParameterName       = new String[pShaderParameter.mConstantBufferParameterCount];
-        pShaderParameter.mpConstantBufferParameterBindPoint  = new int[   pShaderParameter.mConstantBufferParameterCount];
-
         // Start over.  This time, copy the names.
         int ii=0;
         int textureIndex = 0;
@@ -680,58 +604,67 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
                 if(typeName.contains("sampler")){  // texture
                     if( ignore )
                     {
-                        assert pShaderParameter.mTextureParameterCount>0:"Algorithm error";
-                        pShaderParameter.mTextureParameterCount--;
+//                        assert pShaderParameter.mTextureParameterCount>0:"Algorithm error";
+//                        pShaderParameter.mTextureParameterCount--;
                     }
                     else
                     {
-                        pShaderParameter.mpTextureParameterName[textureIndex] = strName;
+                        /*pShaderParameter.mpTextureParameterName[textureIndex] = strName;
                         pShaderParameter.mpTextureParameterBindPoint[textureIndex] = (Integer)property.value;
-                        textureIndex++;
+                        textureIndex++;*/
+                        pShaderParameter.AddTexture(strName, (Integer)property.value);
                     }
                 }else if(typeName.contains("image") || typeName.contains("imageBuffer")){ // unorder resource views
                     if( ignore )
                     {
-                        assert pShaderParameter.mUAVParameterCount > 0 : "Algorithm error";
-                        pShaderParameter.mUAVParameterCount--;
+                        /*assert pShaderParameter.mUAVParameterCount > 0 : "Algorithm error";
+                        pShaderParameter.mUAVParameterCount--;*/
                     }
                     else
                     {
-                        pShaderParameter.mpUAVParameterName[uavIndex] = strName;
+                        /*pShaderParameter.mpUAVParameterName[uavIndex] = strName;
                         pShaderParameter.mpUAVParameterBindPoint[uavIndex] = (Integer)property.value;
-                        uavIndex++;
+                        uavIndex++;*/
+                        pShaderParameter.AddUnorderResourceView(strName, (Integer)property.value);
                     }
                 }
             }
         }
 
-        for(int i = 0; i < uniformBlocks.size(); i++){
-            UniformBlockProperties uniformBlock = uniformBlocks.get(i);
+        for(int i = 0; i < resources.uniformBlockProperties.size(); i++){
+            UniformBlockProperties uniformBlock = resources.uniformBlockProperties.get(i);
             String strName = uniformBlock.name;
             boolean ignore = (strName.length() > 8) && (strName.substring(0, 8).equals("NONCPUT_"));
             if(uniformBlock.type == UniformBlockType.UNFIORM_BLOCK){  // const buffers
+                String name = gl.glGetActiveUniformBlockName(shader.getProgram(), uniformBlock.binding);
+                if(name != null && name.equals(strName) == false){
+                    continue;
+                }
+
                 if( ignore )
                 {
-                    assert pShaderParameter.mConstantBufferParameterCount > 0:"Algorithm error";
-                    pShaderParameter.mConstantBufferParameterCount--;
+                    /*assert pShaderParameter.mConstantBufferParameterCount > 0:"Algorithm error";
+                    pShaderParameter.mConstantBufferParameterCount--;*/
                 }
                 else
                 {
-                    pShaderParameter.mpConstantBufferParameterName[constantBufferIndex] = strName;
+                    /*pShaderParameter.mpConstantBufferParameterName[constantBufferIndex] = strName;
                     pShaderParameter.mpConstantBufferParameterBindPoint[constantBufferIndex] = uniformBlock.binding;
-                    constantBufferIndex++;
+                    constantBufferIndex++;*/
+                    pShaderParameter.AddConstantBuffer(strName, uniformBlock.binding);
                 }
             }else if(uniformBlock.type == UniformBlockType.UNIFORM_BUFFER){ // shader storage buffers
                 if( ignore )
                 {
-                    assert pShaderParameter.mBufferParameterCount > 0 : "Algorithm error";
-                    pShaderParameter.mBufferParameterCount--;
+                    /*assert pShaderParameter.mBufferParameterCount > 0 : "Algorithm error";
+                    pShaderParameter.mBufferParameterCount--;*/
                 }
                 else
                 {
-                    pShaderParameter.mpBufferParameterName[bufferIndex] = strName;
+                    /*pShaderParameter.mpBufferParameterName[bufferIndex] = strName;
                     pShaderParameter.mpBufferParameterBindPoint[bufferIndex] = uniformBlock.binding;
-                    bufferIndex++;
+                    bufferIndex++;*/
+//                    pShaderParameter.AddBuffer(strName, uniformBlock.binding); TODO  Assume no shader storage buffer
                 }
             }
         }
@@ -744,17 +677,18 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
             return;
         }
 
-        if( params.mTextureParameterCount  == 0) {return;}
+        if( params.mpTextureParameters.size()  == 0) {return;}
         /*OUTPUT_BINDING_DEBUG_INFO( _L() );*/
         LogUtil.i(LogUtil.LogType.DEFAULT, "Bound Textures");
 
         CPUTAssetLibraryDX11 pAssetLibrary = (CPUTAssetLibraryDX11)CPUTAssetLibrary.GetAssetLibrary();
 
-        for(params.mTextureCount=0; params.mTextureCount < params.mTextureParameterCount; params.mTextureCount++)
+        for(params.mTextureCount=0; params.mTextureCount < params.mpTextureParameters.size(); params.mTextureCount++)
         {
             String textureName;
             int textureCount = params.mTextureCount;
-            String tagName = params.mpTextureParameterName[textureCount];
+            AttribBinder textureBind = params.mpTextureParameters.get(textureCount);
+            String tagName = textureBind.attributeName;
             CPUTConfigEntry pValue = mConfigBlock.GetValueByName(tagName);
             if( !pValue.IsValid() )
             {
@@ -766,7 +700,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
                 throw new RuntimeException("Can't find texture '" + tagName + "'.");
             textureName = pValue.ValueAsString();
 
-            int bindPoint = params.mpTextureParameterBindPoint[textureCount];
+            int bindPoint = textureBind.index;
             if(bindPoint >= CPUT_MATERIAL_MAX_TEXTURE_SLOTS)
                 throw new RuntimeException("Texture bind point out of range.");
 
@@ -818,16 +752,17 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
             return;
         }
 
-        if( params.mBufferParameterCount == 0 ) { return; }
+        if( params.mpBufferParameters.size() == 0 ) { return; }
         /*OUTPUT_BINDING_DEBUG_INFO( _L("Bound Buffers") );*/
         LogUtil.i(LogUtil.LogType.DEFAULT, "Bound Buffers");
 
         CPUTAssetLibraryDX11 pAssetLibrary = (CPUTAssetLibraryDX11)CPUTAssetLibrary.GetAssetLibrary();
-        for(params.mBufferCount=0; params.mBufferCount < params.mBufferParameterCount; params.mBufferCount++)
+        for(params.mBufferCount=0; params.mBufferCount < params.mpBufferParameters.size(); params.mBufferCount++)
         {
             String bufferName;
             int bufferCount = params.mBufferCount;
-            String tagName = params.mpBufferParameterName[bufferCount];
+            AttribBinder bufferBind = params.mpBufferParameters.get(bufferCount);
+            String tagName = bufferBind.attributeName;
             {
                 CPUTConfigEntry pValue = mConfigBlock.GetValueByName(tagName);
                 if( !pValue.IsValid() )
@@ -842,7 +777,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
 
                 bufferName = pValue.ValueAsString();
             }
-            int bindPoint = params.mpBufferParameterBindPoint[bufferCount];
+            int bindPoint = bufferBind.index;
 //            ASSERT( bindPoint < CPUT_MATERIAL_MAX_BUFFER_SLOTS, _L("Buffer bind point out of range.") );
             if(bindPoint >= CPUT_MATERIAL_MAX_BUFFER_SLOTS)
                 throw new RuntimeException("Buffer bind point out of range.");
@@ -883,16 +818,16 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
             return;
         }
 
-        if( params.mUAVParameterCount ==0) { return; }
+        if( params.mpUAVParameters.size() ==0) { return; }
         LogUtil.i(LogUtil.LogType.DEFAULT, "Bound UAVs");
 
         CPUTAssetLibraryDX11 pAssetLibrary = (CPUTAssetLibraryDX11)CPUTAssetLibrary.GetAssetLibrary();
-        for(params.mUAVCount=0; params.mUAVCount < params.mUAVParameterCount; params.mUAVCount++)
+        for(params.mUAVCount=0; params.mUAVCount < params.mpUAVParameters.size(); params.mUAVCount++)
         {
             String uavName;
             int uavCount = params.mUAVCount;
-
-            String tagName = params.mpUAVParameterName[uavCount];
+            AttribBinder uavBind = params.mpUAVParameters.get(uavCount);
+            String tagName = uavBind.attributeName;
             {
                 CPUTConfigEntry pValue = mConfigBlock.GetValueByName(tagName);
                 if( !pValue.IsValid() )
@@ -905,7 +840,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
                     throw new RuntimeException("Can't find UAV '" + tagName + "'.");
                 uavName = pValue.ValueAsString();
             }
-            int bindPoint = params.mpUAVParameterBindPoint[uavCount];
+            int bindPoint = uavBind.index;
 //            ASSERT( bindPoint < CPUT_MATERIAL_MAX_UAV_SLOTS, _L("UAV bind point out of range.") );
             if(bindPoint >= CPUT_MATERIAL_MAX_UAV_SLOTS){
                 throw new RuntimeException("UAV bind point out of range.");
@@ -948,16 +883,20 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
             return;
         }
 
-        if( params.mConstantBufferParameterCount ==0) { return; }
+        if( params.mpConstantBufferParameters.size() ==0) { return; }
         LogUtil.i(LogUtil.LogType.DEFAULT, "Bound Constant Buffers");
 
         CPUTAssetLibraryDX11 pAssetLibrary = (CPUTAssetLibraryDX11)CPUTAssetLibrary.GetAssetLibrary();
-        for(params.mConstantBufferCount=0; params.mConstantBufferCount < params.mConstantBufferParameterCount; params.mConstantBufferCount++)
+        for(params.mConstantBufferCount=0; params.mConstantBufferCount < params.mpConstantBufferParameters.size(); params.mConstantBufferCount++)
         {
             String constantBufferName;
             int constantBufferCount = params.mConstantBufferCount;
+            AttribBinder constBufferBind = params.mpConstantBufferParameters.get(constantBufferCount);
+            String tagName = constBufferBind.attributeName;
+            if(tagName == null){
+                throw new NullPointerException();
+            }
 
-            String tagName = params.mpConstantBufferParameterName[constantBufferCount];
             {
                 CPUTConfigEntry pValue = mConfigBlock.GetValueByName(tagName);
                 if( !pValue.IsValid() )
@@ -972,7 +911,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
 
                 constantBufferName = pValue.ValueAsString();
             }
-            int bindPoint = params.mpConstantBufferParameterBindPoint[constantBufferCount];
+            int bindPoint = constBufferBind.index;
 //            ASSERT( bindPoint < CPUT_MATERIAL_MAX_CONSTANT_BUFFER_SLOTS, _L("Constant buffer bind point out of range.") );
             if(!(bindPoint < CPUT_MATERIAL_MAX_CONSTANT_BUFFER_SLOTS)){
                 throw new RuntimeException("Constant buffer bind point out of range.");

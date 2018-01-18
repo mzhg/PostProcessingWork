@@ -77,6 +77,7 @@ final class Utils {
     static void TransformBBox(Vector3f min,
                               Vector3f max, Matrix4f m)
     {
+        // TODO This method have bug.
         Vector3f minCorner = min;
         Vector3f maxCorner = max;
         Vector3f[] corners = new Vector3f[8];

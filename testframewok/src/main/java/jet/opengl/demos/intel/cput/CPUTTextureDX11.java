@@ -1,5 +1,7 @@
 package jet.opengl.demos.intel.cput;
 
+import com.nvidia.developer.opengl.utils.NvImage;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -15,7 +17,7 @@ import jet.opengl.postprocessing.texture.TextureUtils;
  * Created by mazhen'gui on 2017/11/14.
  */
 
-final class CPUTTextureDX11 extends CPUTTexture{
+public final class CPUTTextureDX11 extends CPUTTexture{
     // resource view pointer
     /*ID3D11ShaderResourceView *mpShaderResourceView;
     ID3D11Resource           *mpTexture;
@@ -208,7 +210,15 @@ final class CPUTTextureDX11 extends CPUTTexture{
                               ID3D11Resource **ppTexture,*/
             boolean forceLoadAsSRGB
     )throws IOException{
-        return TextureUtils.createTexture2DFromFile(fileName, true);
+        if(fileName.endsWith("dds") || fileName.endsWith("DDS")){
+            NvImage image = new NvImage();
+            image.loadImageFromFile(fileName);
+            int textureID = image.updaloadTexture();
+            int target = image.isCubeMap() ? GLenum.GL_TEXTURE_CUBE_MAP : image.isVolume() ? GLenum.GL_TEXTURE_3D : GLenum.GL_TEXTURE_2D;
+            return TextureUtils.createTexture2D(target, textureID);
+        }else{
+            return TextureUtils.createTexture2DFromFile(fileName, true);
+        }
     }
 
     void ReleaseTexture()
@@ -230,7 +240,7 @@ final class CPUTTextureDX11 extends CPUTTexture{
         return mpShaderResourceView;
     }
 
-    void SetTextureAndShaderResourceView(TextureGL pTexture, TextureGL pShaderResourceView)
+    public void SetTextureAndShaderResourceView(TextureGL pTexture, TextureGL pShaderResourceView)
     {
         // release any resources we might already be pointing too
         SAFE_RELEASE( mpTexture );
@@ -275,6 +285,6 @@ final class CPUTTextureDX11 extends CPUTTexture{
         ASSERT( SUCCEEDED(hr), _L("Failed to create texture shader resource view.") );
         CPUTSetDebugName( *ppShaderResourceView, fileName );*/
 
-        throw new IllegalArgumentException();
+        throw new UnsupportedOperationException();
     }
 }

@@ -1,6 +1,7 @@
 package jet.opengl.demos.intel.avsm;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.nio.ByteBuffer;
@@ -9,6 +10,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 import jet.opengl.demos.intel.cput.CPUTCamera;
+import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -63,7 +65,7 @@ final class ParticleSystem implements Disposeable{
 
     // Each particle has two triangles.  Each triangle has three vertices.  Total;
     private int  mNumVertices;
-    private final int[]  mpParticleCount = new int[MAX_SLICES];
+    private final int[]  mpParticleCount = new int[MAX_SLICES];  // TODO This variable could remove
 
     private final Particle[][] mpParticleBuffer = new Particle[2][];
     private Particle[] mpFirstParticleSource;
@@ -73,7 +75,7 @@ final class ParticleSystem implements Disposeable{
     private int mCurParticleIndex;
     private final IntBuffer[] mpParticleSortIndex = new IntBuffer[MAX_SLICES];
     private final IntBuffer[] mpSortBinHead = new IntBuffer[MAX_SLICES];
-    private final Integer[]     mpSortDummy;
+    private final Integer[]  mpSortDummy;
     private final Vector3f   mLightPosition = new Vector3f();
     private final Vector3f   mLightLook = new Vector3f();
     private final Vector3f   mLightUp = new Vector3f();
@@ -89,7 +91,7 @@ final class ParticleSystem implements Disposeable{
     private boolean          mEnableSizeUpdate;
     private boolean          mEnableOpacityUpdate;
 
-//    ID3D11InputLayout *mpParticleVertexLayout;
+    private ID3D11InputLayout mpParticleVertexLayout;
     private BufferGL      mpParticleVertexBuffer;
     private BufferGL mpParticleVertexBufferSRV;
     private GLFuncProvider gl;
@@ -195,9 +197,9 @@ final class ParticleSystem implements Disposeable{
 //        srand(seed);  //initialize random number generator
         mRandom.setSeed(seed);
 
-        /*D3DXVECTOR3 i0(0.0f, 0.0f, 0.0f);
-        D3DXVECTOR3 i1(1.0f, 0.0f, 0.0f);
-        D3DXVECTOR3 i2(0.0f, 0.0f, 1.0f);
+        ReadableVector3f i0 = Vector3f.ZERO;
+        ReadableVector3f i1 = Vector3f.X_AXIS;
+        ReadableVector3f i2 = Vector3f.Z_AXIS;
 
         mpCamera = new Camera(1.0f,
                 1.0f,
@@ -205,7 +207,7 @@ final class ParticleSystem implements Disposeable{
                 1000.0f,
                 i0,
                 i1,
-                i2 );*/
+                i2 );
     }
 
     void UpdateParticles(CPUTCamera pViewCamera, CPUTCamera pLightCamera, float deltaSeconds){
@@ -477,7 +479,6 @@ final class ParticleSystem implements Disposeable{
             if( particleCount > 1) {
                 // Pass destination particle buffer to the qsort callback
                 mpSortedParticleBuffer = mpFirstParticleDest;
-//                qsort(pSortIndex, particleCount, sizeof(pSortIndex[0]), CompareZ);
                 qsort(pSortIndex);
 
             }
@@ -498,22 +499,19 @@ final class ParticleSystem implements Disposeable{
     }
 
     void PopulateVertexBuffers(/*ID3D11DeviceContext *pD3dCtx*/){
-        /*HRESULT hr;
-        D3D11_MAPPED_SUBRESOURCE mappedResource;
-        V(pD3dCtx->Map(mpParticleVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
-        SimpleVertex *pVertex = (SimpleVertex *)mappedResource.pData;*/
-
         ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(mpParticleVertexBuffer.getBufferSize());
         SimpleVertex pVertex = new SimpleVertex();
 
         int sliceIndex;
         for(sliceIndex = 0; sliceIndex < mNumSlices; sliceIndex++) {
-//            UINT *pParticleSortIndex = mpParticleSortIndex[sliceIndex];
             IntBuffer pParticleSortIndex = mpParticleSortIndex[sliceIndex];
             int particleCountThisSlice = mpParticleCount[sliceIndex];
+            if(pParticleSortIndex.position() != particleCountThisSlice){
+                throw new IllegalArgumentException("Inner error!");
+            }
+
             int ii;
             for( ii=0; ii < particleCountThisSlice; ii++ ) {
-//                Particle *pCurParticle = &mpFirstParticleDest[pParticleSortIndex[ii]];
                 Particle pCurParticle = mpFirstParticleDest[pParticleSortIndex.get(ii)];
 
                 // For now, hack a world-view-projection transformation.
@@ -602,7 +600,9 @@ final class ParticleSystem implements Disposeable{
             gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 3);
         }
 //        pD3dCtx->IASetVertexBuffers(0, 1, &mpParticleVertexBuffer, &Stride, &vbOffset);
-        // TODO binding buffer
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, mpParticleVertexBuffer.getBuffer());
+        mpParticleVertexLayout.bind();
+
         if (DrawSlice)
         {
             int sliceIndex;
@@ -622,6 +622,8 @@ final class ParticleSystem implements Disposeable{
         }else{
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 6 * Count, 6 * Start);
         }
+
+        mpParticleVertexLayout.unbind();
     }
 
     void InitializeParticles(int numVerts, SimpleVertex[] sv,// ID3D11Device *pD3d,
@@ -655,10 +657,7 @@ final class ParticleSystem implements Disposeable{
         mpCamera = new Camera();
         mpCamera.SetPositionAndOrientation((float)Math.toDegrees(1.0f), 1.0f,
                 1.0f, 1000.0f,
-                Vector3f.ZERO, Vector3f.X_AXIS, Vector3f.Z_AXIS);  // TODO
-
-        //////////////////////////////////////////////////////////////////////////
-
+                Vector3f.ZERO, Vector3f.X_AXIS, Vector3f.Z_AXIS);
 
         //Update the particles' system state.
         mEvenOdd = /*mEvenOdd ? 0 : 1*/ 1- mEvenOdd;
@@ -755,7 +754,7 @@ final class ParticleSystem implements Disposeable{
         bd.ByteWidth = sizeof(SimpleVertex) * numVerts;
         bd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D10_BIND_SHADER_RESOURCE;
         bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        bd.MiscFlags = 0;
+        bd.MiscFlags = 0;CleanupParticles
 
         hr = pD3d->CreateBuffer(&bd, NULL, &mpParticleVertexBuffer);
 
@@ -798,6 +797,27 @@ final class ParticleSystem implements Disposeable{
         );
         return hr;*/
 
+        mpParticleVertexLayout = new ID3D11InputLayout() {
+            @Override
+            public void bind() {
+                final int strideInBytes = Vector3f.SIZE * 2 + 4;
+                gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, strideInBytes, 0);  // POSITION
+                gl.glEnableVertexAttribArray(0);
+
+                gl.glVertexAttribPointer(1, 3, GLenum.GL_FLOAT, false, strideInBytes, Vector3f.SIZE);  // TEXCOORD0
+                gl.glEnableVertexAttribArray(1);
+
+                gl.glVertexAttribPointer(2, 1, GLenum.GL_FLOAT, false, strideInBytes, Vector3f.SIZE * 2);  // TEXCOORD1
+                gl.glEnableVertexAttribArray(2);
+            }
+
+            @Override
+            public void unbind() {
+                gl.glDisableVertexAttribArray(0);
+                gl.glDisableVertexAttribArray(1);
+                gl.glDisableVertexAttribArray(2);
+            }
+        };
     }
 
     @Override
@@ -866,7 +886,9 @@ final class ParticleSystem implements Disposeable{
                 mpEmitters[0].mpPos[1],
                 mpEmitters[0].mpPos[2]);
         Vector3f.linear(lookPoint, mLightLook, -mLightDistance, mLightPosition);
-        Matrix4f viewMatrix = Matrix4f.lookAt(mLightPosition, lookPoint, mLightUp, null);
+
+        Matrix4f tmp = CacheBuffer.getCachedMatrix();
+        Matrix4f viewMatrix = Matrix4f.lookAt(mLightPosition, lookPoint, mLightUp, tmp);
 
         /*D3DXMatrixOrthoLH
                 (
@@ -878,6 +900,7 @@ final class ParticleSystem implements Disposeable{
         Matrix4f.ortho(0, mLightWidth, 0, mLightHeight, mLightNearClipDistance, mLightFarClipDistance, gLightViewProjection);
 //        gLightViewProjection = viewMatrix * projectionMatrix;
         Matrix4f.mul(gLightViewProjection, viewMatrix, gLightViewProjection);
+        CacheBuffer.free(tmp);
     }
 
     private void SpawnNewParticles(){

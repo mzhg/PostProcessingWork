@@ -1,7 +1,11 @@
 package jet.opengl.demos.intel.cput;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.shader.AttribBinder;
 import jet.opengl.postprocessing.texture.TextureGL;
 
 /**
@@ -10,9 +14,8 @@ import jet.opengl.postprocessing.texture.TextureGL;
 
 final class CPUTShaderParameters implements Disposeable{
     int                       mTextureCount;
-    String[]                  mpTextureParameterName;
-    int[]                     mpTextureParameterBindPoint;
-    int                       mTextureParameterCount;
+    final List<AttribBinder>  mpTextureParameters = new ArrayList<>();
+
     CPUTTexture[]             mpTexture = new CPUTTexture[CPUTMaterial.CPUT_MATERIAL_MAX_TEXTURE_SLOTS];   // samplerXXX
     CPUTBuffer[]              mpBuffer = new CPUTBuffer[CPUTMaterial.CPUT_MATERIAL_MAX_BUFFER_SLOTS];      // uniform buffer or shader storege buffer
     CPUTBuffer[]              mpUAV =new CPUTBuffer[CPUTMaterial.CPUT_MATERIAL_MAX_UAV_SLOTS];                             // imageXXX
@@ -23,19 +26,13 @@ final class CPUTShaderParameters implements Disposeable{
     int                       mSamplerParameterCount;
 
     int                       mBufferCount;
-    int                       mBufferParameterCount;
-    String[]                  mpBufferParameterName;
-    int[]                     mpBufferParameterBindPoint;
+    final List<AttribBinder>  mpBufferParameters = new ArrayList<>();
 
     int                       mUAVCount;
-    int                       mUAVParameterCount;
-    String[]                  mpUAVParameterName;
-    int[]                     mpUAVParameterBindPoint;
+    final List<AttribBinder>  mpUAVParameters = new ArrayList<>();
 
     int                       mConstantBufferCount;
-    int                       mConstantBufferParameterCount;
-    String[]                  mpConstantBufferParameterName;
-    int[]                     mpConstantBufferParameterBindPoint;
+    final List<AttribBinder>  mpConstantBufferParameters = new ArrayList<>();
 
     int                       mBindViewMin = CPUTMaterial.CPUT_MATERIAL_MAX_SRV_SLOTS;
     int                       mBindViewMax;
@@ -46,10 +43,51 @@ final class CPUTShaderParameters implements Disposeable{
     int                       mBindConstantBufferMin;
     int                       mBindConstantBufferMax;
 
-    Object[]               mppBindViews = new Object[CPUTMaterial.CPUT_MATERIAL_MAX_SRV_SLOTS];  // It can be textures or buffers.
+    Object[]                  mppBindViews = new Object[CPUTMaterial.CPUT_MATERIAL_MAX_SRV_SLOTS];  // It can be textures or buffers.
     TextureGL[]               mppBindUAVs = new TextureGL[CPUTMaterial.CPUT_MATERIAL_MAX_UAV_SLOTS];
     BufferGL[]                mppBindConstantBuffers = new BufferGL[CPUTMaterial.CPUT_MATERIAL_MAX_CONSTANT_BUFFER_SLOTS];
 
+    public void AddTexture(String name, int binding){
+        if(name == null || binding < 0)
+            throw new IllegalArgumentException();
+
+        AttribBinder newValue = new AttribBinder(name, binding);
+
+        if(!mpTextureParameters.contains(newValue)){
+            mpTextureParameters.add(newValue);
+        }
+    }
+
+    public void AddBuffer(String name, int binding){
+        if(name == null || binding < 0)
+            throw new IllegalArgumentException();
+
+        AttribBinder newValue = new AttribBinder(name, binding);
+        if(!mpBufferParameters.contains(newValue)){
+            mpBufferParameters.add(newValue);
+        }
+    }
+
+    public void AddConstantBuffer(String name, int binding){
+        if(name == null || binding < 0)
+            throw new IllegalArgumentException();
+
+        AttribBinder newValue = new AttribBinder(name, binding);
+        if(!mpConstantBufferParameters.contains(newValue)){
+            mpConstantBufferParameters.add(newValue);
+        }
+    }
+
+    public void AddUnorderResourceView(String name, int binding){
+        if(name == null || binding < 0)
+            throw new IllegalArgumentException();
+
+        AttribBinder newValue = new AttribBinder(name, binding);
+
+        if(!mpUAVParameters.contains(newValue)){
+            mpUAVParameters.add(newValue);
+        }
+    }
 
     @Override
     public void dispose() {

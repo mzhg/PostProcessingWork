@@ -3,6 +3,7 @@ package jet.opengl.demos.intel.cput;
 import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.texture.Texture2D;
 
 /**
  * Created by mazhen'gui on 2018/1/15.
@@ -10,6 +11,7 @@ import jet.opengl.postprocessing.buffer.BufferGL;
 
 public class CPUTBufferDX11 extends CPUTBuffer {
     private BufferGL mpBuffer;
+    private Texture2D mpUnorderedAccessView;
 
     public CPUTBufferDX11(){}
 
@@ -20,14 +22,21 @@ public class CPUTBufferDX11 extends CPUTBuffer {
         }
     }
 
-    public BufferGL GetShaderResourceView()
-    {
-        return mpBuffer;
+    public CPUTBufferDX11(String name, Texture2D view){
+        mpUnorderedAccessView = view;
+        if(view != null){
+            view.setName(name);
+        }
     }
 
-    public BufferGL GetUnorderedAccessView()
+    public Texture2D GetShaderResourceView()
     {
-        return mpBuffer;
+        return mpUnorderedAccessView;
+    }
+
+    public Texture2D GetUnorderedAccessView()
+    {
+        return mpUnorderedAccessView;
     }
 
     public void SetShaderResourceView(BufferGL pShaderResourceView)
@@ -35,14 +44,15 @@ public class CPUTBufferDX11 extends CPUTBuffer {
         mpBuffer = pShaderResourceView;
     }
 
-    public void SetUnorderedAccessView(BufferGL pUnorderedAccessView)
+    public void SetUnorderedAccessView(Texture2D pUnorderedAccessView)
     {
-        mpBuffer = pUnorderedAccessView;
+        mpUnorderedAccessView = pUnorderedAccessView;
     }
 
-    public void SetBufferAndViews(BufferGL pBuffer/*, ID3D11ShaderResourceView *pShaderResourceView, ID3D11UnorderedAccessView *pUnorderedAccessView*/ )
+    public void SetBufferAndViews(BufferGL pBuffer, /*ID3D11ShaderResourceView *pShaderResourceView,*/ Texture2D pUnorderedAccessView )
     {
         mpBuffer = pBuffer;
+        mpUnorderedAccessView = pUnorderedAccessView;
     }
 
     public BufferGL GetNativeBuffer() { return mpBuffer; }

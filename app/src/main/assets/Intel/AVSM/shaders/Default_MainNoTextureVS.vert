@@ -5,7 +5,7 @@ layout(location = 0) in float3 In_Pos;
 layout(location = 1) in float3 In_Norm;
 layout(location = 2) in float3 In_Uv;
 
-uniform cbPerModelValues
+layout(binding = 0) uniform cbPerModelValues
 {
     float4x4 World /*: WORLD*/;
     float4x4 WorldViewProjection /*: WORLDVIEWPROJECTION*/;
@@ -15,14 +15,9 @@ uniform cbPerModelValues
     float4x4 LightWorldViewProjection;
 };
 
-uniform cbMyAVSMValues
-{
-              float4   DummyColor;
-};
-
 // ********************************************************************************************************
 // TODO: Note: nothing sets these values yet
-uniform cbPerFrameValues
+layout(binding = 1) uniform cbPerFrameValues
 {
     float4x4  View;
     float4x4  Projection;
