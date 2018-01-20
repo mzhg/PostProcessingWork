@@ -443,7 +443,7 @@ void InsertSegmentAVSM(in float segmentDepth[2],
 SamplerState   gAVSMSampler                     : register(s2);     // set in the CPUT DefaultRenderStates
 Texture2DArray NONCPUT_gAVSMTexture             : register(t26);
 #else
-layout(binding = 0) uniform sampler2DArray NONCPUT_gAVSMTexture;
+layout(binding = 26) uniform sampler2DArray NONCPUT_gAVSMTexture;
 #endif
 void LoadDataLevel(inout AVSMData data, in float2 uv, in float mipLevel)
 {

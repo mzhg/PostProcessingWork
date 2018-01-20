@@ -1,7 +1,7 @@
 #include "GBuffer.glsl"
 #include "AVSM_Gen.glsl"
 
-layout(early_fragment_tests) in;
+//layout(early_fragment_tests) in;
 in _DynamicParticlePSIn
 {
 //    float4 Position  : SV_POSITION;
@@ -45,7 +45,7 @@ void main()
     #endif
 
             float ctrlSurface = AVSMGenLoadControlSurfaceUAV(pixelAddr);
-            if (0 == ctrlSurface) {
+            if (0.0 == ctrlSurface) {
                 AVSMGenData avsmData;
 
                 // Clear and initialize avsm data with just one fragment

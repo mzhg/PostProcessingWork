@@ -40,7 +40,7 @@ layout(binding = 0) buffer ShaderBuffer0
     AVSMGenData gAVSMGenDataUAV[];
 };
 
-layout(binding = 0) uniform sampler2D NONCPUT_gAVSMGenClearMaskSRV;
+layout(binding = 1) uniform sampler2D NONCPUT_gAVSMGenClearMaskSRV;
 layout(binding = 1) buffer ShaderBuffer1   // todo
 {
     AVSMGenData NONCPUT_gAVSMGenDataSRV[];
@@ -650,8 +650,8 @@ float AVSMGenBilinearSample(in float2 textureCoords, in float receiverDepth)
 #endif // #ifndef AVSM_GEN_SOFT
 
 //-------------------------- Functions declared in Particles.hlsl ----------------------
-
-bool RaySphereIntersection(out float2 interCoeff, in float3 sphereCenter, in float sphereRadius, in float3 rayOrigin, in float3 rayNormDir, const bool snapToSphere)
+bool RaySphereIntersection(out float2 interCoeff, in float3 sphereCenter, in float sphereRadius, in float3 rayOrigin,
+                            in float3 rayNormDir, const bool snapToSphere)
 {
 	float3 dst = rayOrigin - sphereCenter;
 	float b = dot(dst, rayNormDir);

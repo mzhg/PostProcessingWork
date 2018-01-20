@@ -1,4 +1,4 @@
-uniform ParticlePerFrameConstants
+layout(binding = 6) uniform ParticlePerFrameConstants
 {
     float  mScale;                             // Scene scale factor
     float  mParticleSize;                      // Particles size in (pre)projection space

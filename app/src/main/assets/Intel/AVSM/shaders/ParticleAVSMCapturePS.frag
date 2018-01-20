@@ -4,8 +4,6 @@
 #include "AVSM_Gen.glsl"
 #include "ListTexture.glsl"
 
-layout(early_fragment_tests) in;
-
 //in DynamicParticlePSIn Input;
 
 in _DynamicParticlePSIn

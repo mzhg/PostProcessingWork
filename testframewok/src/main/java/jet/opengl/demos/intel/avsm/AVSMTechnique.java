@@ -190,7 +190,7 @@ final class AVSMTechnique implements Disposeable{
     private GLFuncProvider gl;
     private RenderTargets mRenderTargets;
     private GLSLProgramPipeline mProgramPipeline;
-    private boolean mPrintOnce;
+    private boolean mPrintOnce = true;
 
     int mShadowTextureDim;
     int mAVSMShadowTextureDim;
@@ -821,40 +821,56 @@ final class AVSMTechnique implements Disposeable{
         try {
             mParticleAVSMCaptureProgram = GLSLProgram.createFromFiles(shaderPath + "DynamicParticlesShadingVS.vert", shaderPath + "ParticleAVSMCapturePS.frag");
             mParticleAVSMCaptureProgram.setName("ParticleAVSMCaptureProgram");
+            mParticleAVSMCaptureProgram.printPrograminfo();
 
             mParticleAVSM_GenPS[0] = GLSLProgram.createFromFiles(shaderPath + "DynamicParticlesShadingVS.vert", shaderPath + "ParticleAVSM_Gen_PS.frag", nodeCount4);
             mParticleAVSM_GenPS[0].setName("ParticleAVSM_GenPS4");
+            mParticleAVSM_GenPS[0].printPrograminfo();
             mParticleAVSM_GenPS[1] = GLSLProgram.createFromFiles(shaderPath + "DynamicParticlesShadingVS.vert", shaderPath + "ParticleAVSM_Gen_PS.frag", nodeCount8);
             mParticleAVSM_GenPS[1].setName("ParticleAVSM_GenPS8");
+            mParticleAVSM_GenPS[1].printPrograminfo();
 
             mAVSMInsertionSortResolveProgram[0] = GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", shaderPath + "AVSM_ResolvePS.frag", MSAA, nodeCount4);
             mAVSMInsertionSortResolveProgram[0].setName("AVSM_ResolvePS4");
+            mAVSMInsertionSortResolveProgram[0].printPrograminfo();
             mAVSMInsertionSortResolveProgram[1] = GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", shaderPath + "AVSM_ResolvePS.frag", MSAA, nodeCount8);
             mAVSMInsertionSortResolveProgram[1].setName("AVSM_ResolvePS8");
+            mAVSMInsertionSortResolveProgram[1].printPrograminfo();
 
             mParticleShadingPS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_PS.frag", ShaderType.FRAGMENT, nodeCount4);
-            mParticleShadingPS.setName("ParticleShadingPS");
+            mParticleShadingPS.setName("ParticleShadingPS");  // TODO
+            mParticleShadingPS.printPrograminfo();
             mParticleShadingVS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShadingVS.vert", ShaderType.VERTEX );
             mParticleShadingVS.setName("ParticleShadingVS");
+            mParticleShadingVS.printPrograminfo();
             mParticleShadingPerPixelPS[0] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesPerPixelShading_PS.frag", ShaderType.FRAGMENT, nodeCount4);
             mParticleShadingPerPixelPS[0].setName("ParticleShadingPerPixelPS4");
+            mParticleShadingPerPixelPS[0].printPrograminfo();
             mParticleShadingPerPixelPS[1] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesPerPixelShading_PS.frag", ShaderType.FRAGMENT, nodeCount8);
             mParticleShadingPerPixelPS[1].setName("ParticleShadingPerPixelPS8");
+            mParticleShadingPerPixelPS[1].printPrograminfo();
 
             mParticleShadingFinalVS[0] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShadingFinal_VS.vert", ShaderType.VERTEX, nodeCount4 );
             mParticleShadingFinalVS[0].setName("ParticleShadingFinalVS4");
+            mParticleShadingFinalVS[0].printPrograminfo();
             mParticleShadingFinalVS[1] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShadingFinal_VS.vert", ShaderType.VERTEX, nodeCount8 );
             mParticleShadingFinalVS[1].setName("ParticleShadingFinalVS8");
+            mParticleShadingFinalVS[1].printPrograminfo();
 
             mParticleShadingTessellationVS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_TessellationVS.vert", ShaderType.VERTEX );
             mParticleShadingTessellationVS.setName("ParticleShadingTessellationVS");
+            mParticleShadingTessellationVS.printPrograminfo();
 
             mParticleShadingDS[0] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_DS.glte", ShaderType.TESS_EVAL, nodeCount4);
             mParticleShadingDS[0].setName("ParticleShadingDS4");
+            mParticleShadingDS[0].printPrograminfo();
             mParticleShadingDS[1] = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_DS.glte", ShaderType.TESS_EVAL, nodeCount8);
             mParticleShadingDS[1].setName("ParticleShadingDS8");
+            mParticleShadingDS[1].printPrograminfo();
 
             mParticleShadingHS = GLSLProgram.createShaderProgramFromFile(shaderPath + "DynamicParticlesShading_HS.gltc", ShaderType.TESS_CONTROL);
+            mParticleShadingHS.setName("ParticleShadingHS");
+            mParticleShadingHS.printPrograminfo();
         } catch (IOException e) {
             e.printStackTrace();
         }
