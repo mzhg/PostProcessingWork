@@ -1,5 +1,7 @@
 package jet.opengl.demos.intel.avsm;
 
+import com.nvidia.developer.opengl.utils.BoundingBox;
+
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
@@ -138,6 +140,7 @@ final class AVSMTechnique implements Disposeable{
     private final List<Texture2D> mGBuffer = new ArrayList<>();
 
     // AVSM
+    private final BoundingBox       mTmpBox = new BoundingBox();
     private final Vector4i          mAVSMShadowViewport = new Vector4i();
     private int                     mAVSMNodeCount;
     private int                     mShaderIdx;
@@ -346,7 +349,7 @@ final class AVSMTechnique implements Disposeable{
             // any objects further away than the frustum can see if desired.
 //            D3DXVECTOR3 dimensions = max - min;
 //            D3DXMatrixOrthoLH(&frameMatx.lightProj, dimensions.x, dimensions.y, 0.0f, 1000.0f);
-            Matrix4f.ortho(min.x, max.x, min.y, max.y, 0.0f, 1000.0f, frameMatx.lightProj);
+            Matrix4f.ortho(min.x, max.x, min.y, max.y, Math.min(0.0f, -max.z), Math.max(1000.0f, -min.z), frameMatx.lightProj);
         }
 
         // Compute composite matrices
@@ -374,26 +377,11 @@ final class AVSMTechnique implements Disposeable{
             assert( false );
 
             // Get bounding boxes from transparent geometry
-            final float bigNumf = 1e10f;
-            Vector3f maxBB = new Vector3f(-bigNumf, -bigNumf, -bigNumf);
-            Vector3f minBB = new Vector3f(+bigNumf, +bigNumf, +bigNumf);
+            Vector3f maxBB = mTmpBox._max;
+            Vector3f minBB = mTmpBox._min;
 
             if (options.enableParticles) {
-                // Initialize minBB, maxBB
-                /*for (int p = 0; p < 3; ++p) {
-                    minBB[p] = std::numeric_limits<float>::max();
-                    maxBB[p] = std::numeric_limits<float>::min();
-                }*/
-                minBB.set(Float.MAX_VALUE,Float.MAX_VALUE,Float.MAX_VALUE);
-                maxBB.set(-Float.MAX_VALUE,-Float.MAX_VALUE,-Float.MAX_VALUE);
-
-                Vector3f particleMin = new Vector3f(), particleMax = new Vector3f();
-                particleSystem.GetBBox(particleMin, particleMax);
-
-                Vector3f.min(minBB, particleMin, minBB);
-                Vector3f.max(maxBB, particleMax, maxBB);
-
-                Utils.TransformBBox(minBB, maxBB, frameMatx.avsmLightView);
+                BoundingBox.transform(frameMatx.avsmLightView, particleSystem.GetBBox(), mTmpBox);
             }
 
             // First adjust the light matrix to be centered on the extents in x/y and behind everything in z
@@ -436,15 +424,14 @@ final class AVSMTechnique implements Disposeable{
         outContext.GPUUIConstants.TessellationDensity		= 1.0f/14.0f;
     }
 
-    private static int parframecount = 0;
     private final ParticlePerFrameConstants m_particlePerFrameConstants = new ParticlePerFrameConstants();
     void UpdateParticles( FrameContext frameContext ){
-        Options options                         = frameContext.Options;
+        Options options                        = frameContext.Options;
         CPUTCamera viewerCamera                = frameContext.ViewerCamera;
         CPUTCamera lightCamera                 = frameContext.LightCamera;
-        ParticleSystem   particleSystem         = frameContext.ParticleSystem;
-        FrameMatrices   frameMatx               = frameContext.Matrices;
-        UIConstants   ui                        = frameContext.GPUUIConstants;
+        ParticleSystem   particleSystem        = frameContext.ParticleSystem;
+        FrameMatrices   frameMatx              = frameContext.Matrices;
+        UIConstants   ui                       = frameContext.GPUUIConstants;
 
 //        static unsigned int parframecount = 0;
         float[] particleDepthBounds = new float[2];
@@ -452,9 +439,7 @@ final class AVSMTechnique implements Disposeable{
             if (ui.pauseParticleAnimaton == 0) {
                 // Update particles
                 float deltaTime = 0.009f; //currTime - mLastTime;
-                if (parframecount < 100) {
-                    particleSystem.UpdateParticles(viewerCamera, lightCamera, deltaTime);
-                }
+                particleSystem.UpdateParticles(viewerCamera, lightCamera, deltaTime);
             }
 
             particleSystem.SortParticles(particleDepthBounds, frameMatx.avsmLightView, false, 1, false);

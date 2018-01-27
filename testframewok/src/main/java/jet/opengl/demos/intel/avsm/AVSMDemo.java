@@ -3,7 +3,6 @@ package jet.opengl.demos.intel.avsm;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
 import jet.opengl.postprocessing.common.GLCheck;
-import jet.opengl.postprocessing.common.GLenum;
 
 /**
  * Created by mazhen'gui on 2018/1/13.
@@ -27,10 +26,9 @@ public class AVSMDemo extends NvSampleApp {
 
     @Override
     public void display() {
-        m_Sampler.draw(true, true);
+        m_Sampler.draw(false, true);
         GLCheck.checkError();
 
-        m_Sampler.resoveMultisampleTexture(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
         GLCheck.checkError();
     }
 

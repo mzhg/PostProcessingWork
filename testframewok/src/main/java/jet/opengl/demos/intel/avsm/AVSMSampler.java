@@ -44,7 +44,8 @@ public final class AVSMSampler extends BaseScene {
     private CPUTAssetSet           mpSkyBox;
     private CPUTAssetSet           mpAssetSet;
 //    CPUTCameraController  *mpCameraController;
-
+    private CPUTBufferDX11         mpBackBuffer;
+    private CPUTBufferDX11         mpDepthBuffer;
 
     private CPUTAssetSet          mpShadowCameraSet;
     private CPUTRenderTargetDepth mpShadowRenderTarget;
@@ -79,6 +80,85 @@ public final class AVSMSampler extends BaseScene {
 
     @Override
     protected void onCreate(Object prevSavedData) {
+        InitlizeCPUT();
+
+        // initialize the AVSM subsystem
+        int shadowTextureDim     = SHADOW_WIDTH_HEIGHT;
+        int avsmShadowTextureDim = AVSM_SHADOW_TEXTURE_DIM;    //  Shadow Texture Dimension - ID_SHADOW_TEXTURE_DIMENSION
+
+        mAppOptions.scene = AVSMTechnique.GROUND_PLANE_SCENE;
+        mAppOptions.enableParticles = true;
+        mAppOptions.enableAutoBoundsAVSM = false;
+        mAppOptions.enableShadowPicking = false;
+        mAppOptions.NodeCount = AVSM_START_NODE_COUNT;
+        mAppOptions.enableTransmittanceCurve = false;
+        mAppOptions.enableVolumeShadowCreation = true;
+        mAppOptions.pickedX = 0;
+        mAppOptions.pickedY = 0;
+
+        // create the technique class
+        mpAVSMTechnique = addAutoRelease(new AVSMTechnique(mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim));
+
+        //  Load the custom shaders needed for the AVSM technique
+        mpAVSMTechnique.LoadAVSMShaders(mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
+
+        //  Create the render states needed for the AVSM technique
+        mpAVSMTechnique.CreateAVSMRenderStates(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
+
+        //  Create the buffers needed for the AVSM technique
+        mpAVSMTechnique.CreateAVSMBuffers(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, avsmShadowTextureDim);
+
+        // We wrap buffers used by the AVSM technique when they are used by CPUT because it allows
+        // the CPUT shader auto-bind system to automatically bind the buffers when they're used
+        mpAVSMTechnique.WrapBuffers();
+
+        // Set the debug view material
+//        mpAVSMDebugView->SetMaterial( pAssetLibrary->GetMaterial( L"AVSMDebugView" ));  TODO
+        LoadCPUTAssets();
+
+        // If no cameras were created from the model sets then create a default simple camera
+        // and add it to the camera array.
+        if( mpAssetSet != null && mpAssetSet.GetCameraCount() > 0 )
+        {
+//            mpCamera = mpAssetSet.GetFirstCamera();  TODO
+        }
+        else
+        {
+            float factorfactor = 1.5f;
+            mpCamera = new CPUTCamera();
+            CPUTAssetLibraryDX11.GetAssetLibrary().AddCamera("SampleStart Camera", mpCamera );
+
+            mpCamera.SetPosition( 70.44f/factorfactor, 13.27f/factorfactor, -18.786f/factorfactor);
+            // Set the projection matrix for all of the cameras to match our window.
+            int width = mNVApp.getGLContext().width();
+            int height = mNVApp.getGLContext().height();
+            mpCamera.SetAspectRatio(((float)width)/((float)height));
+
+            mpCamera.SetFov(60.0f);
+            mpCamera.SetFarPlaneDistance(10000.0f);
+            mpCamera.LookAt( 18.823f, 1.077f, -0.038f);
+            mpCamera.Update(0);
+
+            initCamera(0, new Vector3f( 70.44f/factorfactor, 13.27f/factorfactor, -18.786f/factorfactor),
+                    new Vector3f(18.823f, 1.077f, -0.038f));
+        }
+
+        mpShadowCamera = new CPUTCamera();
+        CPUTAssetLibraryDX11.GetAssetLibrary().AddCamera( "ShadowCamera", mpShadowCamera );
+
+        gWorldMatrix.setIdentity();
+
+        // Create a particle system for this specific scene
+        CreateParticles(/*mpD3dDevice*/);
+
+        // get the current gui state
+        GetGUIState(mCurrentGUIState);
+
+        /*SetAmbientColor( float3( 0.05f, 0.05f, 0.05f ) );
+        SetLightColor( float3( 1.2f, 1.2f, 1.2f ) );*/
+    }
+
+    private void InitlizeCPUT(){
         CPUTLibrary.InitlizeCPUT();
         m_renderParams.InitlizeDX();
 
@@ -164,41 +244,10 @@ public final class AVSMSampler extends BaseScene {
         pBlock->CreateNativeResources();
         CPUTAssetLibrary::GetAssetLibrary()->AddRenderStateBlock( _L("$DefaultRenderStates"), pBlock );
         pBlock->Release(); // We're done with it.  The library owns it now.*/
+    }
 
-
-        // initialize the AVSM subsystem
-        int shadowTextureDim     = SHADOW_WIDTH_HEIGHT;
-        int avsmShadowTextureDim = AVSM_SHADOW_TEXTURE_DIM;    //  Shadow Texture Dimension - ID_SHADOW_TEXTURE_DIMENSION
-
-        mAppOptions.scene = AVSMTechnique.GROUND_PLANE_SCENE;
-        mAppOptions.enableParticles = true;
-        mAppOptions.enableAutoBoundsAVSM = false;
-        mAppOptions.enableShadowPicking = false;
-        mAppOptions.NodeCount = AVSM_START_NODE_COUNT;
-        mAppOptions.enableTransmittanceCurve = false;
-        mAppOptions.enableVolumeShadowCreation = true;
-        mAppOptions.pickedX = 0;
-        mAppOptions.pickedY = 0;
-
-        // create the technique class
-        mpAVSMTechnique = addAutoRelease(new AVSMTechnique(mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim));
-
-        //  Load the custom shaders needed for the AVSM technique
-        mpAVSMTechnique.LoadAVSMShaders(mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
-
-        //  Create the render states needed for the AVSM technique
-        mpAVSMTechnique.CreateAVSMRenderStates(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, shadowTextureDim, avsmShadowTextureDim);
-
-        //  Create the buffers needed for the AVSM technique
-        mpAVSMTechnique.CreateAVSMBuffers(/*mpD3dDevice, mpContext,*/ mAppOptions.NodeCount, avsmShadowTextureDim);
-
-        // We wrap buffers used by the AVSM technique when they are used by CPUT because it allows
-        // the CPUT shader auto-bind system to automatically bind the buffers when they're used
-        mpAVSMTechnique.WrapBuffers();
-
-        // Set the debug view material
-//        mpAVSMDebugView->SetMaterial( pAssetLibrary->GetMaterial( L"AVSMDebugView" ));  TODO
-
+    private void LoadCPUTAssets(){
+        CPUTAssetLibraryDX11 pAssetLibrary = (CPUTAssetLibraryDX11) CPUTAssetLibrary.GetAssetLibrary();
 
         // Load .set file that was specified on the command line
         // Otherwise, load the default object if no .set was specified
@@ -212,49 +261,6 @@ public final class AVSMSampler extends BaseScene {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
-        // If no cameras were created from the model sets then create a default simple camera
-        // and add it to the camera array.
-        if( mpAssetSet != null && mpAssetSet.GetCameraCount() > 0 )
-        {
-//            mpCamera = mpAssetSet.GetFirstCamera();  TODO
-        }
-        else
-        {
-            float factorfactor = 1.5f;
-            mpCamera = new CPUTCamera();
-            CPUTAssetLibraryDX11.GetAssetLibrary().AddCamera("SampleStart Camera", mpCamera );
-
-            mpCamera.SetPosition( 70.44f/factorfactor, 13.27f/factorfactor, -18.786f/factorfactor);
-            // Set the projection matrix for all of the cameras to match our window.
-            int width = mNVApp.getGLContext().width();
-            int height = mNVApp.getGLContext().height();
-            mpCamera.SetAspectRatio(((float)width)/((float)height));
-
-            mpCamera.SetFov(60.0f);
-            mpCamera.SetFarPlaneDistance(10000.0f);
-            mpCamera.LookAt( 18.823f, 1.077f, -0.038f);
-            mpCamera.Update(0);
-
-            initCamera(0, new Vector3f( 70.44f/factorfactor, 13.27f/factorfactor, -18.786f/factorfactor),
-                    new Vector3f(18.823f, 1.077f, -0.038f));
-        }
-
-
-        mpShadowCamera = new CPUTCamera();
-        CPUTAssetLibraryDX11.GetAssetLibrary().AddCamera( "ShadowCamera", mpShadowCamera );
-
-        gWorldMatrix.setIdentity();
-
-        // Create a particle system for this specific scene
-        CreateParticles(/*mpD3dDevice*/);
-
-        // get the current gui state
-        GetGUIState(mCurrentGUIState);
-
-        /*SetAmbientColor( float3( 0.05f, 0.05f, 0.05f ) );
-        SetLightColor( float3( 1.2f, 1.2f, 1.2f ) );*/
     }
 
     @Override
@@ -283,6 +289,16 @@ public final class AVSMSampler extends BaseScene {
         // save the new screen width/height
         mScreenWidth = (float)width;
         mScreenHeight = (float)height;
+
+        if(mpDepthBuffer == null){
+            mpDepthBuffer = new CPUTBufferDX11("$DepthBuffer", getSceneDepthTex());
+            pAssetLibrary.AddBuffer("$DepthBuffer", mpDepthBuffer);
+        }
+
+        if(mpBackBuffer == null){
+            mpBackBuffer = new CPUTBufferDX11("$BackBuffer", getSceneColorTex());
+            pAssetLibrary.AddBuffer("$BackBuffer", mpBackBuffer);
+        }
     }
 
     // Create our very simple particle system.  Could use much more fancy system
@@ -369,7 +385,7 @@ public final class AVSMSampler extends BaseScene {
         };
 
         // create our simple particle system with 3 emitters
-        gParticleSystem = addAutoRelease(new ParticleSystem(maxNumPartices, null));
+        gParticleSystem = addAutoRelease(new ParticleSystem(maxNumPartices));
         gParticleSystem.InitializeParticles(emitters, 3, 8, 8, shaderDefines);
     }
 

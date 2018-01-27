@@ -58,4 +58,21 @@ final class Camera {
 
         Matrix4f.mul(projection, world, worldProj);
     }
+
+    public void SetPositionAndOrientation(float fov, float aspectRatio, float nearClipDistance, float farClipDistance,
+                                          Matrix4f view){
+        this.fov = fov;
+        this.aspect = aspectRatio;
+        this.near = nearClipDistance;
+        this.far = farClipDistance;
+
+        // Setup Frustrum
+        Matrix4f.perspective(fov, aspectRatio, nearClipDistance, farClipDistance, projection);
+        world.load(view);
+
+        Matrix4f.decompseRigidMatrix(world, this.position, right, this.up, this.lookAt);
+        this.lookAt.scale(-1);
+
+        Matrix4f.mul(projection, world, worldProj);
+    }
 }
