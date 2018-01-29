@@ -822,7 +822,7 @@ public class Matrix4f extends Matrix implements Serializable {
 		float y = left.m01 * rightx + left.m11 * righty + left.m21 * rightz + left.m31;
 		float z = left.m02 * rightx + left.m12 * righty + left.m22 * rightz + left.m32;
 		float w = left.m03 * rightx + left.m13 * righty + left.m23 * rightz + left.m33;
-		if(Math.abs(w) < 1.e-6f){
+		if(Math.abs(w) < Float.MIN_NORMAL){
 			w = 1.0f;
 		}
 		
