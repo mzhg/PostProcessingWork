@@ -34,14 +34,14 @@ StructuredBuffer<AVSMGenData>       NONCPUT_gAVSMGenDataSRV             : regist
 
 SamplerState						gAVSMGenCtrlSurfaceSampler          : register(s3);     // set in the CPUT DefaultRenderStates
 #else
-layout(r32f, binding = 0) uniform image2D gAVSMGenClearMaskUAV;
-layout(binding = 0) buffer ShaderBuffer0
+layout(r32f, binding = 1) uniform image2D gAVSMGenClearMaskUAV;
+layout(binding = 10) buffer ShaderBuffer0
 {
     AVSMGenData gAVSMGenDataUAV[];
 };
 
-layout(binding = 1) uniform sampler2D NONCPUT_gAVSMGenClearMaskSRV;
-layout(binding = 1) buffer ShaderBuffer1   // todo
+layout(binding = 2) uniform sampler2D NONCPUT_gAVSMGenClearMaskSRV;
+layout(binding = 12) buffer ShaderBuffer1
 {
     AVSMGenData NONCPUT_gAVSMGenDataSRV[];
 };

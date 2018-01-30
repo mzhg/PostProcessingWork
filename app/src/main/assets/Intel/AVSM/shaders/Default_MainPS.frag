@@ -22,13 +22,6 @@ layout(binding = 0) uniform cbPerModelValues
     float4x4 LightWorldViewProjection;
 };
 
-// ********************************************************************************************************
-layout(binding = 1) uniform cbPerFrameValues
-{
-    float4x4  View;
-    float4x4  Projection;
-};
-
 //Texture2D    TEXTURE0 : register( t0 );
 //    SamplerState SAMPLER0 : register( s0 );
 //    Texture2D    _Shadow  : register( t1 );

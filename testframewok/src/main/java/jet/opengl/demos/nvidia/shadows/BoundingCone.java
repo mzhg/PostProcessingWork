@@ -57,7 +57,7 @@ final class BoundingCone {
                         /*D3DXVECTOR3 tmp = (*boxes)[i].Point(j);
                         D3DXVec3TransformCoord(&tmp, &tmp, projection);
                         ppPts.push_back(tmp);*/
-                        Vector3f tmp = boxes.get(i).corner(j, null);
+                        Vector3f tmp = boxes.get(i).corner(j, (Vector3f) null);
                         Matrix4f.transformCoord(projection, tmp, tmp);
                         ppPts.add(tmp);
                     }

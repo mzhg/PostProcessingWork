@@ -24,14 +24,6 @@ layout(binding = 0) uniform cbPerModelValues
     float4x4 LightWorldViewProjection;
 };
 
-// ********************************************************************************************************
-// TODO: Note: nothing sets these values yet
-layout(binding = 1) uniform cbPerFrameValues
-{
-    float4x4  View;
-    float4x4  Projection;
-};
-
 out gl_PerVertex
 {
     vec4 gl_Position;

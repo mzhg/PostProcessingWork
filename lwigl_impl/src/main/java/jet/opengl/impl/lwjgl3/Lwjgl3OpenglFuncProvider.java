@@ -1969,4 +1969,14 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
         GL30.glBindFragDataLocation(program, index, name);
     }
 
+    @Override
+    public void glClearNamedBufferData(int buffer, int internalformat, int format, int type, Buffer data) {
+        ARBDirectStateAccess.nglClearNamedBufferData(buffer, internalformat, format, type, MemoryUtil.memAddress0Safe(data));
+    }
+
+    @Override
+    public void glClearNamedBufferSubData(int buffer, int internalformat, long offset, long size, int format, int type, Buffer data) {
+        ARBDirectStateAccess.nglClearNamedBufferSubData(buffer, internalformat, offset, size, format, type, MemoryUtil.memAddress0Safe(data));
+    }
+
 }

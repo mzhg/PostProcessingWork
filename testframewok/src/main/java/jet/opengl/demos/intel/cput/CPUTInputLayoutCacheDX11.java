@@ -44,19 +44,13 @@ final class CPUTInputLayoutCacheDX11 {
             return layout;
         }
         // Not found, create a new ID3D11InputLayout object
-
-        // How many elements are in the input layout?
-        int numInputLayoutElements=0;
-        while(null != pDXLayout[numInputLayoutElements].SemanticName)
-        {
-            numInputLayoutElements++;
-        }
         // Create the input layout
         /*HRESULT hr;  TODO create layout
         ID3DBlob *pBlob = pVertexShader->GetBlob();
         hr = pDevice->CreateInputLayout( pDXLayout, numInputLayoutElements, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), ppInputLayout );
         ASSERT( SUCCEEDED(hr), _L("Error creating input layout.") );
         CPUTSetDebugName( *ppInputLayout, _L("CPUTInputLayoutCacheDX11::GetLayout()") );*/
+        layout = ID3D11InputLayout.createInputLayoutFrom(pDXLayout);
 
         // Store this layout object in our map
         /*mLayoutList[layoutKey] = *ppInputLayout;*/
@@ -96,7 +90,7 @@ final class CPUTInputLayoutCacheDX11 {
         /*ASSERT( (pDXLayout[0].Format>=0) && (pDXLayout[0].Format<=DXGI_FORMAT_BC7_UNORM_SRGB), _L("Invalid DXGI Format.") );*/
         // Start first layout entry and no comma.
         String layoutKey = pDXLayout[0].SemanticName + ":" + /*gpDXGIFormatNames[pDXLayout[0].Format]*/ TextureUtils.getFormatName(pDXLayout[0].Format);
-        for( int index=1; null != pDXLayout[index].SemanticName; index++ )
+        for( int index=1; /*null != pDXLayout[index].SemanticName*/ index < pDXLayout.length; index++ )
         {
             /*ASSERT( (pDXLayout[index].Format>=0) && (pDXLayout[index].Format<=DXGI_FORMAT_BC7_UNORM_SRGB), _L("Invalid DXGI Format.") );*/
             // Add a comma and the next layout entry

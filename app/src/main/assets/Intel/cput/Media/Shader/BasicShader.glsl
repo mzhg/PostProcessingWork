@@ -75,9 +75,8 @@ layout(binding = 1) uniform cbPerFrameValues
 #endif
 
 #if psmain
-
-#include "../../../AVSM/shaders/GBuffer.glsl"
 #include "PerCloserFiltering.glsl"
+#include "CPUT_AVSM.glsl"
 
 in PS_INPUT
 {
@@ -90,16 +89,6 @@ in PS_INPUT
     float3 WorldPosition /*: TEXCOORD2*/; // Object space position
 	float3 ViewspacePos     /*: TEXCOORD3*/; //AVSM viewspacepos
 }_input;
-
-// AVSM
-// -------------------------------------
-float ShadowContrib( float3 viewspacePos )
-{
-    float2 lightTexCoord = ProjectIntoAvsmLightTexCoord(viewspacePos);
-    float receiverDepth = mul(float4(viewspacePos, 1.0f), mCameraViewToAvsmLightView).z;
-
-    return VolumeSample(mUI.volumeShadowMethod, lightTexCoord, receiverDepth);
-}
 
 // -------------------------------------
 float4 DIFFUSE( /*PS_INPUT input*/ )
@@ -235,9 +224,9 @@ void main()
 
 layout(location = 0) in float3 In_Position /*: POSITION*/; // Projected position
 layout(location = 1) in float3 In_Normal   /*: NORMAL*/;
-layout(location = 2) in float3 In_Tangent  /*: TANGENT*/;
-layout(location = 3) in float3 In_Binormal /*: BINORMAL*/;
-layout(location = 4) in float2 In_UV0      /*: TEXCOORD0*/;
+layout(location = 2) in float2 In_UV0      /*: TEXCOORD0*/;
+layout(location = 3) in float3 In_Tangent  /*: TANGENT*/;
+layout(location = 4) in float3 In_Binormal /*: BINORMAL*/;
 
 out PS_INPUT
 {

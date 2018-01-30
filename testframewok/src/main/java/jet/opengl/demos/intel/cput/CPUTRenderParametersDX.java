@@ -41,11 +41,20 @@ public class CPUTRenderParametersDX extends CPUTRenderParameters implements Disp
     }
 
     public void PSSetShader(ShaderProgram ps){ mpShaderProgram.setPS(ps);}
-    public void VSSetShader(ShaderProgram ps){ mpShaderProgram.setPS(ps);}
+    public void VSSetShader(ShaderProgram vs){ mpShaderProgram.setVS(vs);}
 
     public void OMSetRenderTargets(Texture2D colorDSV, Texture2D depthStencilDSV){
         mpRenderTarget.bind();
-        mpRenderTarget.setRenderTextures(CommonUtil.toArray(colorDSV, depthStencilDSV), null);
+
+        if(colorDSV == null && depthStencilDSV == null){
+//            mpRenderTarget.setRenderTextures(null, null);  nothing need to-do
+        }else if(colorDSV == null){
+            mpRenderTarget.setRenderTexture(depthStencilDSV, null);
+        }else if(depthStencilDSV == null){
+            mpRenderTarget.setRenderTexture(colorDSV, null);
+        }else{
+            mpRenderTarget.setRenderTextures(CommonUtil.toArray(colorDSV, depthStencilDSV), null);
+        }
     }
 
     public void ClearRenderTargetView(TextureGL tex, float[] clearColor){

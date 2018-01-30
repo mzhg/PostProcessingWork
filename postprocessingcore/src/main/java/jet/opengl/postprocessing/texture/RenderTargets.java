@@ -117,10 +117,14 @@ public class RenderTargets implements Disposeable{
 
     @CachaRes
     public void setRenderTexture(TextureGL texture, TextureAttachDesc desc){
-        texArrays[0] = texture;
-        descArrays[0] = desc;
+        if(texture == null){
+            setRenderTextures(null, null);
+        }else {
+            texArrays[0] = texture;
+            descArrays[0] = desc;
 
-        setRenderTextures(texArrays, descArrays);
+            setRenderTextures(texArrays, descArrays);
+        }
     }
 
     @CachaRes
@@ -141,81 +145,85 @@ public class RenderTargets implements Disposeable{
             }
         }
 
-        int colorAttachIndex  = 0;
-        IntBuffer buffers = CacheBuffer.getCachedIntBuffer(textures.length);
-        for (int i = 0; i < textures.length; i++)
-        {
-            TextureGL pTex = textures[i];
-            if(pTex == null)
-                continue;
+        final int colorAttachedCount;
+        if(textures != null && textures.length > 0) {
+            int colorAttachIndex = 0;
+            IntBuffer buffers = CacheBuffer.getCachedIntBuffer(textures.length);
+            for (int i = 0; i < textures.length; i++) {
+                TextureGL pTex = textures[i];
+                if (pTex == null)
+                    continue;
 
-            TextureAttachDesc desc;
-            if(descs != null && descs[i] != null){
-                desc = descs[i];
-            }else{
-                desc = getDefaultAttachDesc();
-                desc.index = colorAttachIndex;
+                TextureAttachDesc desc;
+                if (descs != null && descs[i] != null) {
+                    desc = descs[i];
+                } else {
+                    desc = getDefaultAttachDesc();
+                    desc.index = colorAttachIndex;
+                }
+
+                int index = desc.index;
+                assert (index < 8);
+
+                int format_conponemt = TextureUtils.measureFormat(pTex.getFormat());
+                switch (format_conponemt) {
+                    case GLenum.GL_DEPTH_COMPONENT:
+                        assert (!depthHandled);
+
+                        if (m_DepthStencilAttach.attached) {
+                            deAttachTexture(GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_DepthStencilAttach.type);
+                            m_DepthStencilAttach.attached = false;
+                        }
+
+                        handleTextureAttachment(pTex, GLenum.GL_DEPTH_ATTACHMENT, desc, m_DepthAttach);
+                        depthHandled = true;
+                        break;
+                    case GLenum.GL_DEPTH_STENCIL:
+                        assert (!depthStencilHandled);
+                        if (m_StencilAttach.attached) {
+                            deAttachTexture(GLenum.GL_STENCIL_ATTACHMENT, m_StencilAttach.type);
+                            m_StencilAttach.attached = false;
+                        }
+
+                        if (m_DepthAttach.attached) {
+                            deAttachTexture(GLenum.GL_DEPTH_ATTACHMENT, m_DepthAttach.type);
+                            m_DepthAttach.attached = false;
+                        }
+
+                        handleTextureAttachment(pTex, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, desc, m_DepthStencilAttach);
+                        depthStencilHandled = true;
+                        break;
+                    case GLenum.GL_STENCIL:
+                        assert (!stencilHandled);
+                        if (m_DepthStencilAttach.attached) {
+                            deAttachTexture(GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_DepthStencilAttach.type);
+                            m_DepthStencilAttach.attached = false;
+                        }
+
+                        handleTextureAttachment(pTex, GLenum.GL_STENCIL_ATTACHMENT, desc, m_StencilAttach);
+                        stencilHandled = true;
+                        break;
+                    default:
+                        assert (!colorHandled[index]);
+                        handleTextureAttachment(pTex, GLenum.GL_COLOR_ATTACHMENT0 + index, desc, m_ColorAttaches[index]);
+                        colorHandled[index] = true;
+
+                        buffers.put(GLenum.GL_COLOR_ATTACHMENT0 + index);
+                        colorAttachIndex++;
+                        break;
+                }
             }
 
-            int index = desc.index;
-            assert(index < 8);
-
-            int format_conponemt = TextureUtils.measureFormat(pTex.getFormat());
-            switch (format_conponemt)
-            {
-                case GLenum.GL_DEPTH_COMPONENT:
-                    assert(!depthHandled);
-
-                    if (m_DepthStencilAttach.attached) {
-                        deAttachTexture(GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_DepthStencilAttach.type);
-                        m_DepthStencilAttach.attached = false;
-                    }
-
-                    handleTextureAttachment(pTex, GLenum.GL_DEPTH_ATTACHMENT, desc, m_DepthAttach);
-                    depthHandled = true;
-                    break;
-                case GLenum.GL_DEPTH_STENCIL:
-                    assert(!depthStencilHandled);
-                    if (m_StencilAttach.attached) {
-                        deAttachTexture(GLenum.GL_STENCIL_ATTACHMENT, m_StencilAttach.type);
-                        m_StencilAttach.attached = false;
-                    }
-
-                    if (m_DepthAttach.attached) {
-                        deAttachTexture(GLenum.GL_DEPTH_ATTACHMENT, m_DepthAttach.type);
-                        m_DepthAttach.attached = false;
-                    }
-
-                    handleTextureAttachment(pTex, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, desc, m_DepthStencilAttach);
-                    depthStencilHandled = true;
-                    break;
-                case GLenum.GL_STENCIL:
-                    assert(!stencilHandled);
-                    if (m_DepthStencilAttach.attached) {
-                        deAttachTexture(GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_DepthStencilAttach.type);
-                        m_DepthStencilAttach.attached = false;
-                    }
-
-                    handleTextureAttachment(pTex, GLenum.GL_STENCIL_ATTACHMENT, desc, m_StencilAttach);
-                    stencilHandled = true;
-                    break;
-                default:
-                    assert(!colorHandled[index]);
-                    handleTextureAttachment(pTex, GLenum.GL_COLOR_ATTACHMENT0 + index, desc, m_ColorAttaches[index]);
-                    colorHandled[index] = true;
-
-                    buffers.put(GLenum.GL_COLOR_ATTACHMENT0 + index);
-                    colorAttachIndex++;
-                    break;
+            // TODO Performance isuee.
+            buffers.flip();
+            colorAttachedCount = buffers.remaining();
+            if (colorAttachedCount > 0) {
+                GLFuncProviderFactory.getGLFuncProvider().glDrawBuffers(buffers);
+            } else {
+                GLFuncProviderFactory.getGLFuncProvider().glDrawBuffers(GLenum.GL_NONE);
             }
-        }
-
-        // TODO Performance isuee.
-        buffers.flip();
-        final int colorAttachedCount = buffers.remaining();
-        if(colorAttachedCount > 0){
-            GLFuncProviderFactory.getGLFuncProvider().glDrawBuffers(buffers);
         }else{
+            colorAttachedCount = 0;
             GLFuncProviderFactory.getGLFuncProvider().glDrawBuffers(GLenum.GL_NONE);
         }
 

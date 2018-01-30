@@ -20,14 +20,14 @@ final class ParticlePerFrameConstants implements Readable{
 
     @Override
     public ByteBuffer store(ByteBuffer buf) {
+        int pos = buf.position();
         buf.putFloat(mScale);
         buf.putFloat(mParticleSize);
         buf.putFloat(mParticleOpacity);
         buf.putFloat(mParticleAlpha);
         buf.putFloat(mbSoftParticles);
         buf.putFloat(mSoftParticlesSaturationDepth);
-        buf.putInt(0);
-        buf.putInt(0);
+        buf.position(pos + SIZE);
         return buf;
     }
 }

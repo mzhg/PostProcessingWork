@@ -1,6 +1,7 @@
 package jet.opengl.demos.intel.cput;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -190,7 +191,7 @@ public class CPUTRenderTargetDepth implements Disposeable{
         Texture2D pView = null;
         pContext.OMSetRenderTargets( /*1,*/ pView, mpDepthTextureDX );
 
-        CPUTRenderTargetColor.SetActiveRenderTargetView( null );
+        CPUTRenderTargetColor.SetActiveRenderTargetView( pView );
         CPUTRenderTargetDepth.SetActiveDepthStencilView( mpDepthTextureDX );
 
         if( clear )
@@ -224,6 +225,9 @@ public class CPUTRenderTargetDepth implements Disposeable{
         pContext.RSSetViewports(0,0, mSavedWidth, mSavedHeight);
 
         mRenderTargetSet = false;
+
+        if(GLCheck.CHECK)
+            GLCheck.checkError();
     }
 
     public Texture2D GetDepthBufferView()   { return mpDepthTextureDX; }

@@ -41,7 +41,7 @@ struct AVSMSegment
 // Constants
 ///////////////////////
 
-layout(binding = 1) uniform AVSMConstants
+layout(binding = 3) uniform AVSMConstants
 {
     float4    mMask0;
     float4    mMask1;
@@ -443,7 +443,7 @@ void InsertSegmentAVSM(in float segmentDepth[2],
 SamplerState   gAVSMSampler                     : register(s2);     // set in the CPUT DefaultRenderStates
 Texture2DArray NONCPUT_gAVSMTexture             : register(t26);
 #else
-layout(binding = 26) uniform sampler2DArray NONCPUT_gAVSMTexture;
+layout(binding = 1) uniform sampler2DArray NONCPUT_gAVSMTexture;
 #endif
 void LoadDataLevel(inout AVSMData data, in float2 uv, in float mipLevel)
 {

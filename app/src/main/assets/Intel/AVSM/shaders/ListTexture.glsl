@@ -83,12 +83,12 @@ layout(binding = 0) buffer ListShaderBuffer0
   ListTexSegmentNode gListTexSegmentNodesUAV[];
 };
 
-layout(binding = 0) buffer ListUniformBuffer0
+layout(binding = 11) buffer ListUniformBuffer0
 {
     ListTexSegmentNode gListTexSegmentNodesSRV[];
 };
 
-layout(binding = 5) uniform atomic_uint gListTexSegmentNodesAtomicCounter;
+layout(binding = 1) uniform atomic_uint gListTexSegmentNodesAtomicCounter;
 
 layout(binding =1, r32ui) uniform uimage2D gListTexFirstVisibilityNodeAddressUAV;
 layout(binding =1) uniform usampler2D gListTexFirstVisibilityNodeAddressSRV;

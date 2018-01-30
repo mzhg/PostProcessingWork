@@ -79,7 +79,7 @@ layout(binding = 1) uniform cbPerFrameValues
 
 #if psmain
 
-#include "../../../AVSM/shaders/GBuffer.glsl"
+#include "CPUT_AVSM.glsl"
 #include "PerCloserFiltering.glsl"
 
 in PS_INPUT
@@ -213,17 +213,6 @@ float4 AMBIENT( /*PS_INPUT input*/ )
 {
     return DIFFUSE(/*input*/);
 }
-
-// AVSM
-// -------------------------------------
-float ShadowContrib( float3 viewspacePos )
-{
-    float2 lightTexCoord = ProjectIntoAvsmLightTexCoord(viewspacePos);
-    float receiverDepth = mul(float4(viewspacePos, 1.0f), mCameraViewToAvsmLightView).z;
-
-    return VolumeSample(mUI.volumeShadowMethod, lightTexCoord, receiverDepth);
-}
-
 
 // -------------------------------------
 float ComputeShadowAmount( /*PS_INPUT input*/ )

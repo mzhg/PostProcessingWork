@@ -10,7 +10,6 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.AttribBinder;
-import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.ProgramResources;
 import jet.opengl.postprocessing.shader.ShaderProgram;
@@ -52,8 +51,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
 
     int                      mSubMaterialCount;
     CPUTMaterialDX11       []mpSubMaterials;
-
-    GLSLProgramPipeline mProgram;
 
     final CPUTShaderParameters     mShaderParameters = new CPUTShaderParameters();
     private GLFuncProvider gl;
@@ -286,7 +283,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
 
     private void initlizeGL(){
         gl = GLFuncProviderFactory.getGLFuncProvider();
-//        mProgram = new GLSLProgramPipeline();
     }
 
     @Override
@@ -323,15 +319,17 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         }
     }
 
-    private void setShaderResources(){
+    private void setShaderResources(CPUTRenderParametersDX context){
         /*mProgram.setVS(mpVertexShader);
         mProgram.setTC(mpHullShader);
         mProgram.setTE(mpDomainShader);
         mProgram.setGS(mpGeometryShader);
         mProgram.setPS(mpPixelShader);
         mProgram.setCS(mpComputeShader);*/
-        if(true)
-            throw new UnsupportedOperationException();
+
+        context.VSSetShader(mpVertexShader);
+        context.PSSetShader(mpPixelShader);
+
 
         if(mShaderParameters.mTextureCount > 0){
             for( int ii=0; ii < mShaderParameters.mTextureCount; ii++ )
@@ -468,7 +466,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
 
     @Override
     public CPUTMaterial CloneMaterial(String absolutePathAndFilename, String modelSuffix, String meshSuffix) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     public ShaderProgram   GetVertexShader()   { return GetCurrentSubMaterial().mpVertexShader; }
@@ -478,8 +476,8 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
     public ShaderProgram   GetDomainShader()   { return GetCurrentSubMaterial().mpDomainShader; }
     public ShaderProgram     GetHullShader()     { return GetCurrentSubMaterial().mpHullShader; }
 
-    public boolean                        IsMultiMaterial()                    { return mSubMaterialCount > 0; }
-    public static void                 GlobalSetCurrentSubMaterial( int index )    { mCurrentSubMaterialIndex = index; }
+    public boolean IsMultiMaterial()                               { return mSubMaterialCount > 0; }
+    public static void GlobalSetCurrentSubMaterial( int index )    { mCurrentSubMaterialIndex = index; }
     public CPUTMaterialDX11   GetCurrentSubMaterial(){
         if( !IsMultiMaterial() )
             return this;
@@ -496,8 +494,11 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
     @Override
     public void SetRenderStates( CPUTRenderParameters renderParams ){
         gl.glUseProgram(0);
-        mProgram.enable();
-        setShaderResources();
+
+        CPUTRenderParametersDX context = (CPUTRenderParametersDX)renderParams;
+
+        context.BeginRender();
+        setShaderResources(context);
 
         // Only the compute shader may have UAVs to bind.
         // Note that pixel shaders can too, but DX requires setting those when setting RTV(s).
@@ -636,11 +637,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
             String strName = uniformBlock.name;
             boolean ignore = (strName.length() > 8) && (strName.substring(0, 8).equals("NONCPUT_"));
             if(uniformBlock.type == UniformBlockType.UNFIORM_BLOCK){  // const buffers
-                String name = gl.glGetActiveUniformBlockName(shader.getProgram(), uniformBlock.binding);
-                if(name != null && name.equals(strName) == false){
-                    continue;
-                }
-
                 if( ignore )
                 {
                     /*assert pShaderParameter.mConstantBufferParameterCount > 0:"Algorithm error";
@@ -664,13 +660,13 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
                     /*pShaderParameter.mpBufferParameterName[bufferIndex] = strName;
                     pShaderParameter.mpBufferParameterBindPoint[bufferIndex] = uniformBlock.binding;
                     bufferIndex++;*/
-//                    pShaderParameter.AddBuffer(strName, uniformBlock.binding); TODO  Assume no shader storage buffer
+                    pShaderParameter.AddBuffer(strName, uniformBlock.binding);
                 }
             }
         }
     }
 
-    protected void BindTextures(        CPUTShaderParameters params, String modelSuffix, String meshSuffix ) throws IOException{
+    protected void BindTextures(CPUTShaderParameters params, String modelSuffix, String meshSuffix ) throws IOException{
         if( IsMultiMaterial() )
         {
             GetCurrentSubMaterial().BindTextures( params, modelSuffix, meshSuffix );

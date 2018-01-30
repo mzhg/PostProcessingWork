@@ -11,13 +11,6 @@ layout(binding = 0) uniform cbPerModelValues
     float4x4 LightWorldViewProjection;
 };
 
-// ********************************************************************************************************
-layout(binding = 1) uniform cbPerFrameValues
-{
-    float4x4  View;
-    float4x4  Projection;
-};
-
 #if !defined(vsmain) && !defined(psmain)
 #error  you must define the shader type: VSMain or PSMain
 #endif

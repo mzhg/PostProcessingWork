@@ -207,17 +207,13 @@ public abstract class CPUTModel extends CPUTRenderNode implements Disposeable{
             throw new IllegalArgumentException();
         }
     }
-    public void       SetMaterial(int ii, CPUTMaterial pMaterial){
+    public void SetMaterial(int ii, CPUTMaterial pMaterial){
         // TODO: ASSSERT that ii is in range
 
         // release old material pointer
         CommonUtil.safeRelease( mpMaterial[ii] );
 
         mpMaterial[ii] = pMaterial;
-        if(mpMaterial[ii] !=null)
-        {
-//            mpMaterial[ii].AddRef();
-        }
     }
 
     @Override

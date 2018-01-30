@@ -16,6 +16,7 @@ import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
@@ -169,6 +170,7 @@ final class ParticleSystem implements Disposeable{
     void InitializeParticles(ParticleEmitter[] pEmitter, int emitterCount, //ID3D11Device *pD3d,
                              int width, int height,
                              Macro[] shaderDefines){
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         InitializeParticlesLayoutAndEffect(/*pD3d, hr,*/ shaderDefines);
         CreateParticlesBuffersAndVertexBuffer(mNumVertices/*, hr, pD3d*/);
 

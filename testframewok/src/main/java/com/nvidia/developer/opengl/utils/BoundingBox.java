@@ -217,6 +217,18 @@ public class BoundingBox {
         return corner;
     }
 
+    /** Returns a specific corner of the bounding box.
+     * pos specifies the corner as a number between 0 and 7.
+     * Each bit selects an axis, X, Y, or Z from least- to
+     * most-significant. Unset bits select the minimum value
+     * for that axis, and set bits select the maximum. */
+    public Vector4f corner(int pos, Vector4f corner)
+    {
+        if(corner == null) corner = new Vector4f();
+        corner.set((pos&1) != 0 ?_max.x:_min.x,(pos&2)!= 0?_max.y:_min.y,(pos&4) != 0?_max.z:_min.z, 1);
+        return corner;
+    }
+
     /** Expands the bounding box to include the given coordinate.
      * If the box is uninitialized, set its min and max extents to v. */
     public void expandBy(ReadableVector3f v)

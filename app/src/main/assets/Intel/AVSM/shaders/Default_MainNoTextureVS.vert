@@ -15,14 +15,6 @@ layout(binding = 0) uniform cbPerModelValues
     float4x4 LightWorldViewProjection;
 };
 
-// ********************************************************************************************************
-// TODO: Note: nothing sets these values yet
-layout(binding = 1) uniform cbPerFrameValues
-{
-    float4x4  View;
-    float4x4  Projection;
-};
-
 out PS_INPUT
 {
 //    float4 Pos      : SV_POSITION;

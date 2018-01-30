@@ -5,7 +5,9 @@ import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
 import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -60,7 +62,7 @@ public class CPUTMeshDX11 extends CPUTMesh {
     public void UnmapIndices(CPUTRenderParameters params) {
         throw new UnsupportedOperationException();
     }
-//    D3D11_INPUT_ELEMENT_DESC *GetLayoutDescription() { return mpLayoutDescription; }
+
     public  BufferGL             GetIndexBuffer()  { return mpIndexBuffer; }
     public  BufferGL             GetVertexBuffer() { return mpVertexBuffer; }
     public  void                      SetMeshTopology(int meshTopology){
@@ -76,12 +78,13 @@ public class CPUTMeshDX11 extends CPUTMesh {
         /*CPUTResult result = CPUT_SUCCESS;
         HRESULT hr;
         ID3D11Device *pD3dDevice = CPUT_DX11::GetDevice();*/
+        gl = GLFuncProviderFactory.getGLFuncProvider();
 
         // Release the layout, offset, stride, and vertex buffer structure objects
         ClearAllObjects();
 
         // allocate the layout, offset, stride, and vertex buffer structure objects
-        mpLayoutDescription = new D3D11_INPUT_ELEMENT_DESC[vertexDataInfoArraySize+1];
+        mpLayoutDescription = new D3D11_INPUT_ELEMENT_DESC[vertexDataInfoArraySize];
 
         // Create the index buffer
         /*D3D11_SUBRESOURCE_DATA resourceData;*/
@@ -108,7 +111,17 @@ public class CPUTMeshDX11 extends CPUTMesh {
             mpIndexBuffer.unbind();
 
             // set the DX index buffer format
-            mIndexBufferFormat = ConvertToDirectXFormat(pIndexDataInfo.mElementType, pIndexDataInfo.mElementComponentCount);
+            if(pIndexDataInfo.mElementComponentCount != 1){
+                throw new IllegalArgumentException();
+            }
+
+            if(pIndexDataInfo.mElementType == CPUT_U32){
+                mIndexBufferFormat = GLenum.GL_UNSIGNED_INT;
+            }else if(pIndexDataInfo.mElementType == CPUT_U16){
+                mIndexBufferFormat = GLenum.GL_UNSIGNED_SHORT;
+            }else if(pIndexDataInfo.mElementType == CPUT_U8){
+                mIndexBufferFormat = GLenum.GL_UNSIGNED_BYTE;
+            }
         }
 
         // set up data format info
@@ -184,14 +197,10 @@ public class CPUTMeshDX11 extends CPUTMesh {
             mpLayoutDescription[ii].AlignedByteOffset = currentByteOffset;
             currentByteOffset += pVertexDataInfo[ii].mElementSizeInBytes;
         }
-        // set the last 'dummy' element to null.  Not sure if this is required, as we also pass in count when using this list.
-        /*memset( &mpLayoutDescription[vertexDataInfoArraySize], 0, sizeof(D3D11_INPUT_ELEMENT_DESC) );*/
-        mpLayoutDescription[vertexDataInfoArraySize] = new D3D11_INPUT_ELEMENT_DESC();
-        mpLayoutDescription[vertexDataInfoArraySize].zeros();
     }
 
     @Override
-    public  void                      BindVertexShaderLayout(CPUTMaterial pMaterial, CPUTMaterial pShadowCastMaterial){
+    public  void BindVertexShaderLayout(CPUTMaterial pMaterial, CPUTMaterial pShadowCastMaterial){
         /*ID3D11Device *pDevice = CPUT_DX11::GetDevice();*/
 
         if( pMaterial != null)
@@ -202,6 +211,7 @@ public class CPUTMeshDX11 extends CPUTMesh {
             /*SAFE_RELEASE(mpInputLayout);*/
             mpInputLayout = CPUTInputLayoutCacheDX11.GetInputLayoutCache().GetLayout(/*pDevice,*/ mpLayoutDescription, pVertexShader.getProgram());
         }
+
         if( pShadowCastMaterial != null)
         {
             ShaderProgram pVertexShader = ((CPUTMaterialDX11)pShadowCastMaterial).GetVertexShader();
@@ -209,14 +219,17 @@ public class CPUTMeshDX11 extends CPUTMesh {
             mpShadowInputLayout = CPUTInputLayoutCacheDX11.GetInputLayoutCache().GetLayout(/*pDevice,*/ mpLayoutDescription, pVertexShader.getProgram());
         }
     }
-    public void                      Draw(CPUTRenderParameters renderParams, CPUTModel pModel)       { Draw(renderParams, pModel, mpInputLayout);}
-    public  void                      DrawShadow(CPUTRenderParameters renderParams, CPUTModel pModel) { Draw(renderParams, pModel, mpShadowInputLayout);}
-    public  void                      DrawAVSMShadowed(CPUTRenderParameters renderParams, CPUTModel pModel) // { Draw(renderParams, pModel, mpShadowInputLayout);}
+
+    public D3D11_INPUT_ELEMENT_DESC[] GetLayoutDescription() { return mpLayoutDescription; }
+
+    public void  Draw(CPUTRenderParameters renderParams, CPUTModel pModel)       { Draw(renderParams, pModel, mpInputLayout);}
+    public void  DrawShadow(CPUTRenderParameters renderParams, CPUTModel pModel) { Draw(renderParams, pModel, mpShadowInputLayout);}
+    public void  DrawAVSMShadowed(CPUTRenderParameters renderParams, CPUTModel pModel) // { Draw(renderParams, pModel, mpShadowInputLayout);}
     {
         Draw(renderParams, pModel, mpShadowInputLayout);
     }
 
-    public  void                      Draw(CPUTRenderParameters renderParams, CPUTModel pModel, ID3D11InputLayout pLayout){
+    public void Draw(CPUTRenderParameters renderParams, CPUTModel pModel, ID3D11InputLayout pLayout){
         // Skip empty meshes.
         if( mIndexCount==0 ) { return; }
 
@@ -232,6 +245,7 @@ public class CPUTMeshDX11 extends CPUTMesh {
         pContext->IASetInputLayout( pInputLayout );
         pContext->DrawIndexed( mIndexCount, 0, 0 );*/
 
+        GLCheck.checkError();
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, mpVertexBuffer.getBuffer());
         pLayout.bind();
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, mpIndexBuffer.getBuffer());
@@ -241,6 +255,7 @@ public class CPUTMeshDX11 extends CPUTMesh {
         pLayout.unbind();
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+        GLCheck.checkError();
     }
 
     public int                      GetTriangleCount() { return mIndexCount/3; }

@@ -631,7 +631,7 @@ final class PracticalPSM {
             for(BoundingBox box :m_ShadowCasterPoints )
             {
 //            const BoundingBox& box = *boxIt++;
-                for ( int i=0; i<8; i++ ) bodyB.add( box.corner(i, null) );
+                for ( int i=0; i<8; i++ ) bodyB.add( box.corner(i, (Vector3f) null) );
             }
 
             //  compute the "light-space" basis, using the algorithm described in the paper
@@ -730,7 +730,7 @@ final class PracticalPSM {
                 for (BoundingBox rcvrIt : m_ShadowReceiverPoints)
                 {
                     for ( int i=0; i<8; i++ )
-                        receiverPts.add( rcvrIt.corner(i, null) );
+                        receiverPts.add( rcvrIt.corner(i, (Vector3f)null) );
                 }
 
 //                D3DXVec3TransformCoordArray( &receiverPts[0], sizeof(D3DXVECTOR3), &receiverPts[0], sizeof(D3DXVECTOR3), &lightSpaceBasis, (UINT)receiverPts.size() );
@@ -833,7 +833,7 @@ final class PracticalPSM {
             shadowCasterPnts = new Vector3f[8*m_ShadowCasterPoints.size()];
             for ( int i=0; i<m_ShadowCasterPoints.size(); i++ )
             {
-                for ( int j=0; j<8; j++ ) shadowCasterPnts[i*8+j] = m_ShadowCasterPoints.get(i).corner(j, null);
+                for ( int j=0; j<8; j++ ) shadowCasterPnts[i*8+j] = m_ShadowCasterPoints.get(i).corner(j, (Vector3f)null);
             }
 
 //            D3DXVec3TransformCoordArray( shadowCasterPnts, sizeof(D3DXVECTOR3), shadowCasterPnts, sizeof(D3DXVECTOR3), &lightSpaceBasis, m_ShadowCasterPoints.size()*8 );
@@ -1027,7 +1027,7 @@ final class PracticalPSM {
                 shadowReceiverPnts = new Vector3f[8*m_ShadowReceiverPoints.size()];
                 for ( int i=0; i<m_ShadowReceiverPoints.size(); i++ )
                 {
-                    for ( int j=0; j<8; j++ ) shadowReceiverPnts[i*8+j] = m_ShadowReceiverPoints.get(i).corner(j, null);
+                    for ( int j=0; j<8; j++ ) shadowReceiverPnts[i*8+j] = m_ShadowReceiverPoints.get(i).corner(j, (Vector3f)null);
                 }
 
 //                D3DXVec3TransformCoordArray( shadowReceiverPnts, sizeof(D3DXVECTOR3), shadowReceiverPnts, sizeof(D3DXVECTOR3), &trapezoid_space, m_ShadowReceiverPoints.size()*8 );

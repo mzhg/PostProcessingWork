@@ -7,6 +7,7 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.shader.ShaderType;
+import jet.opengl.postprocessing.util.FileUtils;
 
 /**
  * Created by mazhen'gui on 2017/11/15.
@@ -141,6 +142,7 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
          return result;*/
         ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.COMPUTE);
         AddComputeShader(finalName + shaderMain + shaderProfile, shader);
+        shader.setName(FileUtils.getFile(finalName));
         return shader;
     }
 
@@ -171,6 +173,7 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
          return result;*/
         ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.VERTEX, new Macro(shaderMain, 1));
         AddVertexShader(finalName + shaderMain + shaderProfile, shader);
+        shader.setName(FileUtils.getFile(finalName));
         return shader;
     }
 
@@ -201,6 +204,7 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
          return result;*/
         ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.GEOMETRY);
         AddGeometryShader(finalName + shaderMain + shaderProfile, shader);
+        shader.setName(FileUtils.getFile(finalName));
         return shader;
     }
 
@@ -231,6 +235,7 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
          return result;*/
         ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.TESS_CONTROL);
         AddHullShader(finalName + shaderMain + shaderProfile, shader);
+        shader.setName(FileUtils.getFile(finalName));
         return shader;
     }
 
@@ -261,6 +266,7 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
          return result;*/
         ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.TESS_EVAL);
         AddDomainShader(finalName + shaderMain + shaderProfile, shader);
+        shader.setName(FileUtils.getFile(finalName));
         return shader;
     }
 
@@ -342,13 +348,13 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
     }
 
     public ShaderProgram CreateShaderFromMemory(String      name,
-//                                                ID3D11Device       *pD3dDevice,
                                                 String      shaderMain,
                                                 String      shaderProfile,
                                                 CharSequence pShaderSource,
                                                 ShaderType type){
         String key = name + shaderMain + shaderProfile;
         ShaderProgram ppShader = GLSLProgram.createShaderProgramFromString(pShaderSource, type);
+        ppShader.setName(name + shaderMain);
 
         // TODO binding the uniform blocks
 

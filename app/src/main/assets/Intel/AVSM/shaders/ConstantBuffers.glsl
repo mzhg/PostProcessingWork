@@ -1,4 +1,4 @@
-layout(binding = 6) uniform ParticlePerFrameConstants
+layout(binding = 5) uniform ParticlePerFrameConstants
 {
     float  mScale;                             // Scene scale factor
     float  mParticleSize;                      // Particles size in (pre)projection space
@@ -8,7 +8,7 @@ layout(binding = 6) uniform ParticlePerFrameConstants
     float  mSoftParticlesSaturationDepth;      // Saturation Depth for Soft Particles.
 };
 
-layout(binding = 7) uniform ParticlePerPassConstants //: register(b7)
+layout(binding = 6) uniform ParticlePerPassConstants //: register(b7)
 {
     float4x4  mParticleWorldViewProj;
     float4x4  mParticleWorldView;

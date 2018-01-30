@@ -5,9 +5,12 @@ import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
  * Created by mazhen'gui on 2017/11/13.
@@ -182,7 +185,7 @@ public class CPUTModelDX11 extends CPUTModel {
     }
 
     /** Set the render state before drawing this object */
-    public void          SetRenderStates(CPUTRenderParameters renderParams){
+    public void SetRenderStates(CPUTRenderParameters renderParams){
         // Should update the constant buffer only when the model moves.
         // But, requires individual, per-model constant buffers
 //        ID3D11DeviceContext *pContext  = ((CPUTRenderParametersDX*)&renderParams)->mpContext;
@@ -260,20 +263,17 @@ public class CPUTModelDX11 extends CPUTModel {
             }
         }
 //        pContext->Unmap(mpModelConstantBuffer,0);
-        // TODO update and binding buffer
+        ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(CPUTModelConstantBuffer.SIZE);
+        pCb.store(buffer).flip();
+        mpModelConstantBuffer.update(0, buffer);
+        GLCheck.checkError();
     }
 
     /** Render - render this model (only) */
-    public void          Render(CPUTRenderParameters renderParams){
+    public void Render(CPUTRenderParameters renderParams){
         /*CPUTRenderParametersDX *pParams = (CPUTRenderParametersDX*)&renderParams;*/
-        CPUTCamera             pCamera = renderParams.mpCamera;
+        CPUTCamera pCamera = renderParams.mpCamera;
 
-/*#ifdef SUPPORT_DRAWING_BOUNDING_BOXES
-        if( renderParams.mShowBoundingBoxes && (!pCamera || pCamera->mFrustum.IsVisible( mBoundingBoxCenterWorldSpace, mBoundingBoxHalfWorldSpace )))
-        {
-            DrawBoundingBox( renderParams );
-        }
-#endif*/
         if( !renderParams.mDrawModels ) { return; }
 
         // TODO: add world-space bounding box to model so we don't need to do that work every frame
@@ -291,12 +291,11 @@ public class CPUTModelDX11 extends CPUTModel {
                 SetRenderStates(renderParams);
 
                 // Potentially need to use a different vertex-layout object!
-//                CPUTVertexShaderDX11 *pVertexShader = pMaterial->GetVertexShader();  TODO  must setup the program
-                ((CPUTMeshDX11)mpMesh[ii]).Draw(renderParams, this);
+                mpMesh[ii].Draw(renderParams, this);
             }
         }
     }
-    public void          RenderShadow(CPUTRenderParameters renderParams){
+    public void RenderShadow(CPUTRenderParameters renderParams){
         /*CPUTRenderParametersDX *pParams = (CPUTRenderParametersDX*)&renderParams;*/
         CPUTCamera             pCamera = renderParams.mpCamera;
 
@@ -323,13 +322,12 @@ public class CPUTModelDX11 extends CPUTModel {
                 SetRenderStates(renderParams);
 
                 // Potentially need to use a different vertex-layout object!
-//                CPUTVertexShaderDX11 *pVertexShader = pMaterial->GetVertexShader();  TODO  must setup the program
-                ((CPUTMeshDX11)mpMesh[ii]).DrawShadow(renderParams, this);
+                mpMesh[ii].DrawShadow(renderParams, this);
             }
         }
     }
     /** Render this using AVSM buffers and standard shadow map to determine shadow amount */
-    public void          RenderAVSMShadowed(CPUTRenderParameters renderParams){
+    public void RenderAVSMShadowed(CPUTRenderParameters renderParams){
         /*CPUTRenderParametersDX *pParams = (CPUTRenderParametersDX*)&renderParams;
         CPUTCamera             *pCamera = pParams->mpCamera;*/
         CPUTCamera             pCamera = renderParams.mpCamera;
@@ -363,9 +361,18 @@ public class CPUTModelDX11 extends CPUTModel {
         }
     }
 
-    public void          SetMaterial(int ii, CPUTMaterial pMaterial){
+    public void SetMaterial(int ii, CPUTMaterial pMaterial){
+        super.SetMaterial(ii, pMaterial);
 
+        // Can't bind the layout if we haven't loaded the mesh yet.
+        CPUTMeshDX11 pMesh = (CPUTMeshDX11)mpMesh[ii];
+        D3D11_INPUT_ELEMENT_DESC[] pDesc = pMesh.GetLayoutDescription();
+        if( pDesc!=null )
+        {
+            pMesh.BindVertexShaderLayout(pMaterial, mpMaterial[ii]);
+        }
     }
+
     void          DrawBoundingBox(CPUTRenderParameters renderParams){
 
     }

@@ -14,6 +14,7 @@ import jet.opengl.demos.intel.cput.CPUTAssetLibraryDX11;
 import jet.opengl.demos.intel.cput.CPUTAssetSet;
 import jet.opengl.demos.intel.cput.CPUTBufferDX11;
 import jet.opengl.demos.intel.cput.CPUTCamera;
+import jet.opengl.demos.intel.cput.CPUTFrameConstantBuffer;
 import jet.opengl.demos.intel.cput.CPUTLibrary;
 import jet.opengl.demos.intel.cput.CPUTMaterial;
 import jet.opengl.demos.intel.cput.CPUTMaterialDX11;
@@ -21,6 +22,7 @@ import jet.opengl.demos.intel.cput.CPUTRenderParametersDX;
 import jet.opengl.demos.intel.cput.CPUTRenderTargetColor;
 import jet.opengl.demos.intel.cput.CPUTRenderTargetDepth;
 import jet.opengl.demos.scene.BaseScene;
+import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderLoader;
@@ -46,6 +48,7 @@ public final class AVSMSampler extends BaseScene {
 //    CPUTCameraController  *mpCameraController;
     private CPUTBufferDX11         mpBackBuffer;
     private CPUTBufferDX11         mpDepthBuffer;
+    private CPUTBufferDX11         mpPerFrameConstantBuffer;
 
     private CPUTAssetSet          mpShadowCameraSet;
     private CPUTRenderTargetDepth mpShadowRenderTarget;
@@ -244,6 +247,24 @@ public final class AVSMSampler extends BaseScene {
         pBlock->CreateNativeResources();
         CPUTAssetLibrary::GetAssetLibrary()->AddRenderStateBlock( _L("$DefaultRenderStates"), pBlock );
         pBlock->Release(); // We're done with it.  The library owns it now.*/
+
+        // Create the per-frame constant buffer.
+        /*D3D11_BUFFER_DESC bd = {0};
+        bd.ByteWidth = sizeof(CPUTFrameConstantBuffer);
+        bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        bd.Usage = D3D11_USAGE_DYNAMIC;
+        bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        ID3D11Buffer *pPerFrameConstantBuffer;
+        hr = (CPUT_DX11::GetDevice())->CreateBuffer( &bd, NULL, &pPerFrameConstantBuffer );
+        ASSERT( !FAILED( hr ), _L("Error creating constant buffer.") );
+        CPUTSetDebugName( pPerFrameConstantBuffer, _L("Per-Frame Constant buffer") );*/
+
+        BufferGL pPerFrameConstantBuffer = new BufferGL();
+        pPerFrameConstantBuffer.initlize(GLenum.GL_UNIFORM_BUFFER, CPUTFrameConstantBuffer.SIZE, null, GLenum.GL_STATIC_DRAW);
+        String name = "$cbPerFrameValues";
+        mpPerFrameConstantBuffer = new CPUTBufferDX11( name, pPerFrameConstantBuffer );
+        CPUTAssetLibrary.GetAssetLibrary().AddConstantBuffer( name, mpPerFrameConstantBuffer );
     }
 
     private void LoadCPUTAssets(){
@@ -265,6 +286,8 @@ public final class AVSMSampler extends BaseScene {
 
     @Override
     public void onResize(int width, int height) {
+        super.onResize(width, height);
+
         mSceneData.setProjection(60, (float)width/height, 60, 10000.0f);
 
         CPUTAssetLibrary pAssetLibrary = CPUTAssetLibrary.GetAssetLibrary();
@@ -582,6 +605,15 @@ public final class AVSMSampler extends BaseScene {
 
     @Override
     protected void onRender(boolean clearFBO) {
+        {
+            int width = mNVApp.getGLContext().width();
+            int height = mNVApp.getGLContext().height();
+            CPUTRenderTargetColor.SetActiveWidthHeight( width, height );
+            CPUTRenderTargetDepth.SetActiveWidthHeight( width, height );
+            CPUTRenderTargetColor.SetActiveRenderTargetView( mpBackBuffer.GetShaderResourceView() );
+            CPUTRenderTargetDepth.SetActiveDepthStencilView( mpDepthBuffer.GetShaderResourceView() );
+        }
+
         /*CPUTGPUProfilerDX11_AutoScopeProfile timerAll( mGPUTimerAll, mCurrentGUIState.EnableStats );
         CPUTRenderParametersDX renderParams(mpContext);*/
         CPUTRenderParametersDX renderParams = m_renderParams;

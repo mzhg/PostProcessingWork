@@ -1,7 +1,10 @@
 package jet.opengl.demos.intel.cput;
 
+import com.nvidia.developer.opengl.utils.BoundingBox;
+
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 /**
  * Created by mazhen'gui on 2017/11/14.
@@ -15,6 +18,9 @@ public class CPUTCamera extends CPUTRenderNode {
     protected final Matrix4f mView = new Matrix4f();
     protected final Matrix4f mProjection = new Matrix4f();
     protected final Matrix4f mViewProj = new Matrix4f();
+
+    private final BoundingBox mBoundingBox = new BoundingBox();
+    private final Vector4f[] m_corners = new Vector4f[8];
 
     public CPUTCamera(){
         SetPosition(1.0f, 8.0f, 1.0f);
@@ -71,7 +77,45 @@ public class CPUTCamera extends CPUTRenderNode {
     public void            SetFarPlaneDistance(  float farPlaneDistance ) { mFarPlaneDistance = farPlaneDistance; }
     public void            LookAt( float xx, float yy, float zz ){}
 
-    public boolean isCenterExtentVisible(Vector3f mBoundingBoxCenterWorldSpace, Vector3f mBoundingBoxHalfWorldSpace) {
-        throw new UnsupportedOperationException();
+    public boolean isCenterExtentVisible(Vector3f centerWorldSpace, Vector3f halfWorldSpace) {
+        mBoundingBox.setFromExtent(centerWorldSpace, halfWorldSpace);
+
+        if(m_corners[0] == null){
+            for(int i = 0; i < m_corners.length; i++)
+                m_corners[i] = new Vector4f();
+        }
+
+        for(int iClipPlaneCorner=0; iClipPlaneCorner < 8; ++iClipPlaneCorner) {
+            Vector4f f3PlaneCornerProjSpace = m_corners[iClipPlaneCorner];
+            mBoundingBox.corner(iClipPlaneCorner, f3PlaneCornerProjSpace);
+
+            Matrix4f.transform(mViewProj, f3PlaneCornerProjSpace, f3PlaneCornerProjSpace);  // Transform the position from world to projection
+        }
+
+        if (m_corners[0].x < -m_corners[0].w && m_corners[1].x < -m_corners[1].w && m_corners[2].x < -m_corners[2].w && m_corners[3].x < -m_corners[3].w &&
+                m_corners[4].x < -m_corners[4].w && m_corners[5].x < -m_corners[5].w && m_corners[6].x < -m_corners[6].w && m_corners[7].x < -m_corners[7].w)
+            return false;
+
+        if (m_corners[0].x > m_corners[0].w && m_corners[1].x > m_corners[1].w && m_corners[2].x > m_corners[2].w && m_corners[3].x > m_corners[3].w &&
+                m_corners[4].x > m_corners[4].w && m_corners[5].x > m_corners[5].w && m_corners[6].x > m_corners[6].w && m_corners[7].x > m_corners[7].w)
+            return false;
+
+        if (m_corners[0].y < -m_corners[0].w && m_corners[1].y < -m_corners[1].w && m_corners[2].y < -m_corners[2].w && m_corners[3].y < -m_corners[3].w &&
+                m_corners[4].y < -m_corners[4].w && m_corners[5].y < -m_corners[5].w && m_corners[6].y < -m_corners[6].w && m_corners[7].y < -m_corners[7].w)
+            return false;
+
+        if (m_corners[0].y > m_corners[0].w && m_corners[1].y > m_corners[1].w && m_corners[2].y > m_corners[2].w && m_corners[3].y > m_corners[3].w &&
+                m_corners[4].y > m_corners[4].w && m_corners[5].y > m_corners[5].w && m_corners[6].y > m_corners[6].w && m_corners[7].y > m_corners[7].w)
+            return false;
+
+        if (m_corners[0].z < -m_corners[0].w && m_corners[1].z < -m_corners[1].w && m_corners[2].z < -m_corners[2].w && m_corners[3].z < -m_corners[3].w &&
+                m_corners[4].z < -m_corners[4].w && m_corners[5].z < -m_corners[5].w && m_corners[6].z < -m_corners[6].w && m_corners[7].z < -m_corners[7].w)
+            return false;
+
+        if (m_corners[0].z > m_corners[0].w && m_corners[1].z > m_corners[1].w && m_corners[2].z > m_corners[2].w && m_corners[3].z > m_corners[3].w &&
+                m_corners[4].z > m_corners[4].w && m_corners[5].z > m_corners[5].w && m_corners[6].z > m_corners[6].w && m_corners[7].z > m_corners[7].w)
+            return false;
+
+        return true;
     }
 }

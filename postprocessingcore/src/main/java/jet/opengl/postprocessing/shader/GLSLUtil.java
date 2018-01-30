@@ -296,12 +296,11 @@ public final class GLSLUtil {
 		for(int i = 0; i < property.active_attributes; i++){
 //    		GL20.glGetActiveAttrib(programId, i, property.active_attribute_max_length, _length, size, type, name);
 			AttribProperties properties = new AttribProperties();
-			properties.size = size.get(0);
-			properties.type = type.get(0);
 //    		int length = _length.getInt(0);
 //    		name.get(bytes, 0, length).position(0);
-
 			properties.name = gl.glGetActiveAttrib(programId, i, property.active_attribute_max_length, size, type);
+			properties.size = size.get(0);
+			properties.type = type.get(0);
 //    		properties.name = new String(bytes, 0, length, Charset.forName("utf-8"));
 			properties.location = gl.glGetAttribLocation(programId, properties.name);
 

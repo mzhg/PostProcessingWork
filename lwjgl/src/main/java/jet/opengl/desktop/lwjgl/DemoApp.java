@@ -93,6 +93,7 @@ public class DemoApp {
 //        testRectVertex();
 //        run(new OutdoorLightScatteringSample());
         run(new AVSMDemo());
+//        run(new ShaderTest());
     }
 
     private static void testRectVertex(){

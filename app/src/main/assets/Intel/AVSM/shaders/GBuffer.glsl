@@ -84,7 +84,7 @@ float2 ProjectIntoAvsmLightTexCoord(float3 positionView)
 }
 
 //Texture2D                     gDepthBuffer                          : register(t30);
-layout(binding = 30) uniform sampler2D  gDepthBuffer;
+layout(binding = 3) uniform sampler2D  gDepthBuffer;
 ////////////////////////////////////////////////////////////////////////////////////////////
 // getting the viewspace depth for smooth particle - solid geometry intersection
 float ScreenToViewDepth( float screenDepth )
