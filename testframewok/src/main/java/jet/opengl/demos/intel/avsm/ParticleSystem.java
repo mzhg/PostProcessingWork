@@ -3,11 +3,9 @@ package jet.opengl.demos.intel.avsm;
 import com.nvidia.developer.opengl.utils.BoundingBox;
 
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -75,8 +73,8 @@ final class ParticleSystem implements Disposeable{
     private Particle[] mpCurParticleDest;
     private int mpCurParticleDestOffset;
     private int mCurParticleIndex;
-    private final IntBuffer[] mpParticleSortIndex = new IntBuffer[MAX_SLICES];
-    private final IntBuffer[] mpSortBinHead = new IntBuffer[MAX_SLICES];
+    private final int[][] mpParticleSortIndex = new int[MAX_SLICES][];
+    private final int[][] mpSortBinHead = new int[MAX_SLICES][];
     private final Integer[]  mpSortDummy;
     private final Vector3f   mLightPosition = new Vector3f();
     private final Vector3f   mLightLook = new Vector3f();
@@ -86,7 +84,6 @@ final class ParticleSystem implements Disposeable{
     private final Vector3f   mEyeDirection = new Vector3f();
     private final Random     mRandom = new Random();
 
-    Camera mpCamera;
     private boolean          mEnableSizeUpdate;
     private boolean          mEnableOpacityUpdate;
 
@@ -97,11 +94,9 @@ final class ParticleSystem implements Disposeable{
 
     // sort dest buffer
     static Particle[] mpSortedParticleBuffer;
-    private Matrix4f gLightViewProjection;
 
     ParticleSystem(int maxNumParticles){
         mMaxNumParticles = maxNumParticles;
-        gLightViewProjection = new Matrix4f();
 
         mEmitterCount = 0;
         mpEmitters = null;
@@ -134,13 +129,11 @@ final class ParticleSystem implements Disposeable{
         mpFirstParticleDest = null;
         mpCurParticleDest = null;
         mCurParticleIndex = 0;
-//        mpParticleVertexLayout = NULL;
+        mpParticleVertexLayout = null;
 
         mpParticleBuffer[0] = null;
         mpParticleBuffer[1] = null;
         mpSortDummy = new Integer[mMaxNumParticles];
-
-//        mpCamera = NULL;
 
         int ii;
         mpParticleVertexBuffer = null;
@@ -193,53 +186,13 @@ final class ParticleSystem implements Disposeable{
         mEmitterCount = emitterCount;
 
         int seed = 1234;  // choose a seed value
-//        srand(seed);  //initialize random number generator
         mRandom.setSeed(seed);
-
-        ReadableVector3f i0 = Vector3f.ZERO;
-        ReadableVector3f i1 = Vector3f.X_AXIS;
-        ReadableVector3f i2 = Vector3f.Z_AXIS;
-
-        mpCamera = new Camera(1.0f,
-                1.0f,
-                1.0f,
-                1000.0f,
-                i0,
-                i1,
-                i2 );
     }
 
     void UpdateParticles(CPUTCamera pViewCamera, CPUTCamera pLightCamera, float deltaSeconds){
         deltaSeconds *= 2.0f;
 
         // Update the camera
-        float fov       = pViewCamera.GetFov();
-        float aspect    = pViewCamera.GetAspectRatio();
-        float nearClip  = pViewCamera.GetNearPlaneDistance();
-        float farClip   = pViewCamera.GetFarPlaneDistance();
-
-        Matrix4f viewWorld    = pViewCamera.GetWorldMatrix();
-        Matrix4f lightWorld   = pLightCamera.GetWorldMatrix();
-
-        /*Vector3f position = new Vector3f();
-        Vector3f lookat = new Vector3f();
-        Vector3f up = new Vector3f();
-
-        pViewCamera.GetPosition(position);
-        pViewCamera.GetLook(lookat);
-        pViewCamera.GetUp(up);*/
-
-        mpCamera.SetPositionAndOrientation(
-                fov,
-                aspect,
-                nearClip,
-                farClip,
-                /**(( D3DXVECTOR3* )&viewWorld._41)   position,*/
-        /**(( D3DXVECTOR3* )&viewWorld._31)  lookat,*/
-        /**(( D3DXVECTOR3* )&viewWorld._21) up*/
-                pViewCamera.GetViewMatrix()  // TODO
-        );
-
         ResetBBox();
 
         // Ping pong between buffers
@@ -251,13 +204,10 @@ final class ParticleSystem implements Disposeable{
         mpCurParticleDestOffset = 0;
         mCurParticleIndex = 0;
 
-        /*mLightRight = *(( D3DXVECTOR3* )&lightWorld._11);
-        mLightUp    = *(( D3DXVECTOR3* )&lightWorld._21);
-        mLightLook  = *(( D3DXVECTOR3* )&lightWorld._31);*/
-
-        pLightCamera.GetRight(mLightRight);
-        pLightCamera.GetUp(mLightUp);
-        pLightCamera.GetLook(mLightLook);
+        Matrix4f.decompseRigidMatrix(pLightCamera.GetViewMatrix(), null, null, null, mLightLook);
+        mLightLook.scale(-1);
+        Matrix4f.decompseRigidMatrix(pViewCamera.GetViewMatrix(), null, null, null, mEyeDirection);
+        mEyeDirection.scale(-1);
 
         UpdateLightViewProjection();
 
@@ -273,7 +223,6 @@ final class ParticleSystem implements Disposeable{
         int ii;
         for(ii = 0; ii < mNumSlices; ii++) {
             mpSortBinHead[ii] = mpParticleSortIndex[ii];
-            mpSortBinHead[ii].position(0);
             mpParticleCount[ii] = 0;
         }
 
@@ -326,15 +275,14 @@ final class ParticleSystem implements Disposeable{
 
             /**mpSortBinHead[sliceIndex] = particleIndex;
                 mpSortBinHead[sliceIndex]++;*/
-                mpSortBinHead[sliceIndex].put(particleIndex);
-                mpParticleCount[sliceIndex]++;
+                mpSortBinHead[sliceIndex][mpParticleCount[sliceIndex]++] = particleIndex;
 
                 // Update velocity
                 int idx = 0;//pCurParticleSource->mEmitterIdx;
                 float velocityScale = 1.0f - (mpEmitters[idx].mDrag * deltaSeconds);
                 pDest.mpVelocity[0] = pCurParticleSource.mpVelocity[0] * velocityScale;
                 pDest.mpVelocity[1] = pCurParticleSource.mpVelocity[1] * velocityScale
-                        + mpEmitters[idx].mGravity * deltaSeconds; // Y also gets gravity
+                                    + mpEmitters[idx].mGravity * deltaSeconds; // Y also gets gravity
                 pDest.mpVelocity[2] = pCurParticleSource.mpVelocity[2] * velocityScale;
 
                 if (mEnableSizeUpdate) {
@@ -380,7 +328,6 @@ final class ParticleSystem implements Disposeable{
         // reset particles count and indices
         for(i = 0; i < mNumSlices; i++) {
             mpSortBinHead[i] = mpParticleSortIndex[i];
-            mpSortBinHead[i].position(0);
             mpParticleCount[i] = 0;
         }
 
@@ -398,7 +345,7 @@ final class ParticleSystem implements Disposeable{
 //            D3DXVec3Transform(&transformedPos, &pos, SortSpaceMat);
             pos.set(pDest.mpPos[0], pDest.mpPos[1], pDest.mpPos[2]);
             Matrix4f.transformVector(SortSpaceMat, pos, transformedPos);
-            float sliceDistance = transformedPos.z;
+            float sliceDistance = -transformedPos.z;
 
             depthMin = Math.min(depthMin, sliceDistance);
             depthMax = Math.max(depthMax, sliceDistance);
@@ -407,8 +354,7 @@ final class ParticleSystem implements Disposeable{
 
         /**mpSortBinHead[0] = mCurParticleIndex;
             mpSortBinHead[0]++;*/
-            mpSortBinHead[0].put(mCurParticleIndex);
-            mpParticleCount[0]++;
+            mpSortBinHead[0][mpParticleCount[0]++] = mCurParticleIndex;
 
 //            pDest++;
             pDestIndex++;
@@ -424,13 +370,11 @@ final class ParticleSystem implements Disposeable{
         final float sliceWidth  = (depthMax - depthMin) / mNumSlices;
         if (mNumSlices > 1) {
             mCurParticleIndex = 0;
-//            pDest = mpFirstParticleDest;
-
             pDestIndex = 0;
             pDest = mpFirstParticleDest[pDestIndex];
+
             for(i = 0; i < mNumSlices; i++) {
                 mpSortBinHead[i] = mpParticleSortIndex[i];
-                mpSortBinHead[i].position(0);
                 mpParticleCount[i] = 0;
             }
 
@@ -443,8 +387,7 @@ final class ParticleSystem implements Disposeable{
 
                 /*mpSortBinHead[sliceIndex] = mCurParticleIndex;
                 mpSortBinHead[sliceIndex]++;*/
-                mpSortBinHead[sliceIndex].put(mCurParticleIndex);
-                mpParticleCount[sliceIndex]++;
+                mpSortBinHead[sliceIndex][mpParticleCount[sliceIndex]++] = mCurParticleIndex;
 
 //                pDest++;
                 pDestIndex++;
@@ -457,8 +400,7 @@ final class ParticleSystem implements Disposeable{
         int slice;
         if (mNumSlices == 1) {
             int ii;
-//            UINT *pSortIndex = mpParticleSortIndex[0];
-            IntBuffer pSortIndex = mpParticleSortIndex[0];
+            int[] pSortIndex = mpParticleSortIndex[0];
             particleCount = mpParticleCount[0];
             final Vector3f transfPos = new Vector3f();
 //            final Vector3f pos = new Vector3f();
@@ -466,39 +408,37 @@ final class ParticleSystem implements Disposeable{
             for(ii =0; ii < particleCount; ii++)
             {
 //                D3DXVECTOR4 transfPos;
-                pos.set(mpFirstParticleDest[pSortIndex.get(ii)].mpPos[0],   // pSortIndex[ii]
-                    mpFirstParticleDest[pSortIndex.get(ii)].mpPos[1],
-                    mpFirstParticleDest[pSortIndex.get(ii)].mpPos[2]);
+                pos.set(mpFirstParticleDest[pSortIndex[ii]].mpPos[0],   // pSortIndex[ii]
+                    mpFirstParticleDest[pSortIndex[ii]].mpPos[1],
+                    mpFirstParticleDest[pSortIndex[ii]].mpPos[2]);
 
 //                D3DXVec4Transform(&transfPos, &pos, SortSpaceMat);
-
-                mpFirstParticleDest[pSortIndex.get(ii)].mSortDistance = sortSign * transfPos.z;   // pSortIndex[ii]
+                Matrix4f.transformVector(SortSpaceMat, pos, transfPos);
+                mpFirstParticleDest[pSortIndex[ii]].mSortDistance = sortSign * -transfPos.z;   // pSortIndex[ii]
             }
         }
 
         for(slice = 0; slice < mNumSlices; slice++) {
-//            UINT *pSortIndex = mpParticleSortIndex[slice];
-            IntBuffer pSortIndex = mpParticleSortIndex[slice];
+            int[] pSortIndex = mpParticleSortIndex[slice];
             particleCount = mpParticleCount[slice];
             if( particleCount > 1) {
                 // Pass destination particle buffer to the qsort callback
                 mpSortedParticleBuffer = mpFirstParticleDest;
-                qsort(pSortIndex);
+                qsort(pSortIndex, particleCount);
 
             }
         } // foreach slice
     }
 
-    void qsort(IntBuffer data){
-        for(int i = 0; i < data.position(); i++){
-            mpSortDummy[i] = data.get(i);
+    void qsort(int[] data, int length){
+        for(int i = 0; i < length; i++){
+            mpSortDummy[i] = data[i];
         }
 
-        Arrays.sort(mpSortDummy, 0, data.position(), ParticleSystem::CompareZ);
+        Arrays.sort(mpSortDummy, 0, length, ParticleSystem::CompareZ);
 
-        for(int i = 0; i < data.position(); i++){
-//            mpSortDummy[i] = data.get(i);
-            data.put(i, mpSortDummy[i]);
+        for(int i = 0; i < length; i++){
+            data[i] = mpSortDummy[i];
         }
     }
 
@@ -508,15 +448,15 @@ final class ParticleSystem implements Disposeable{
 
         int sliceIndex;
         for(sliceIndex = 0; sliceIndex < mNumSlices; sliceIndex++) {
-            IntBuffer pParticleSortIndex = mpParticleSortIndex[sliceIndex];
+            int[] pParticleSortIndex = mpParticleSortIndex[sliceIndex];
             int particleCountThisSlice = mpParticleCount[sliceIndex];
-            if(pParticleSortIndex.position() != particleCountThisSlice){
+            /*if(pParticleSortIndex.position() != particleCountThisSlice){
                 throw new IllegalArgumentException("Inner error!");
-            }
+            }*/
 
             int ii;
             for( ii=0; ii < particleCountThisSlice; ii++ ) {
-                Particle pCurParticle = mpFirstParticleDest[pParticleSortIndex.get(ii)];
+                Particle pCurParticle = mpFirstParticleDest[pParticleSortIndex[ii]];
 
                 // For now, hack a world-view-projection transformation.
                 float xx = pCurParticle.mpPos[0];
@@ -628,114 +568,9 @@ final class ParticleSystem implements Disposeable{
         }
 
         mpParticleVertexLayout.unbind();
-    }
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
 
-    void InitializeParticles(int numVerts, SimpleVertex[] sv,// ID3D11Device *pD3d,
-                             int width,  int height,
-                             Macro[] shaderDefines){
-        InitializeParticlesLayoutAndEffect(/*pD3d, hr,*/ shaderDefines);
-        CreateParticlesBuffersAndVertexBuffer(numVerts/*, hr, pD3d*/);
-
-        //
-        // UpdateLightViewProjection  relies on the fact that
-        // Emitter is in front of the camera.
-        // So, set the Emitter to one of the particles position.
-        //
-
-        mpEmitters = new ParticleEmitter[1];
-        mpEmitters[0].mpPos[0] = sv[0].mpPos[0];
-        mpEmitters[0].mpPos[1] = sv[0].mpPos[1];
-        mpEmitters[0].mpPos[2] = sv[0].mpPos[2];
-        mEmitterCount = 1;
-
-        /*D3DXVECTOR3 i0(0.0f, 0.0f, 0.0f);
-        D3DXVECTOR3 i1(1.0f, 0.0f, 0.0f);
-        D3DXVECTOR3 i2(0.0f, 0.0f, 1.0f);
-        mpCamera = new Camera(1.0f,
-                1.0f,
-                1.0f,
-                1000.0f,
-                i0,
-                i1,
-                i2 );*/
-        mpCamera = new Camera();
-        mpCamera.SetPositionAndOrientation((float)Math.toDegrees(1.0f), 1.0f,
-                1.0f, 1000.0f,
-                Vector3f.ZERO, Vector3f.X_AXIS, Vector3f.Z_AXIS);
-
-        //Update the particles' system state.
-        mEvenOdd = /*mEvenOdd ? 0 : 1*/ 1- mEvenOdd;
-        mpFirstParticleSource = mpParticleBuffer[/*mEvenOdd ? 0 : 1*/1-mEvenOdd];
-        mpFirstParticleDest   = mpParticleBuffer[/*mEvenOdd ? 1 : 0*/mEvenOdd];
-
-        mpCurParticleDest = mpFirstParticleDest;
-        mCurParticleIndex = 0;
-
-        // Use last frame's min and max as a starting point for this frame.
-        mMinDist = mMinDistPrev;
-        mMaxDist = mMaxDistPrev;
-
-        // Reset last frame's min and max so we can determine them for this frame.
-        mMinDistPrev = Float.MAX_VALUE;
-        mMaxDistPrev = -mMinDistPrev;
-
-        // Reset the sort bins
-        int ii;
-        for(ii = 0; ii < mNumSlices; ii++) {
-            mpSortBinHead[ii] = mpParticleSortIndex[ii];
-            mpParticleCount[ii] = 0;
-        }
-
-        // Update existing particles
-        mActiveParticleCount = 0;
-
-        //Initialize rest of the things and let the particles' system going.
-        int newParticleCount = numVerts/6;
-        int pCurParticleDestIndex = 0;
-        Particle pDest = mpCurParticleDest[pCurParticleDestIndex];
-        int oldActiveParticleCount = mActiveParticleCount;
-        mActiveParticleCount = Math.min(mActiveParticleCount + newParticleCount, mMaxNumParticles);
-        newParticleCount = mActiveParticleCount - oldActiveParticleCount;
-
-        for(ii=0; ii < newParticleCount; ii++ ) {
-            int jj = 6*ii;
-            pDest.mpPos[0] = sv[jj].mpPos[0];
-            pDest.mpPos[1] = sv[jj].mpPos[1];
-            pDest.mpPos[2] = sv[jj].mpPos[2];
-
-            /*D3DXVECTOR3 pos(pDest->mpPos[0], pDest->mpPos[1], pDest->mpPos[2]);
-            float sliceDistance  = D3DXVec3Dot( &pos, &mLightLook );*/
-            float sliceDistance = pDest.mpPos[0] * mLightLook.x + pDest.mpPos[1] * mLightLook.y + pDest.mpPos[2] * mLightLook.z;
-            pDest.mSortDistance = mSign * /*D3DXVec3Dot( &pos, &mEyeDirection )*/
-                    (pDest.mpPos[0] * mEyeDirection.x + pDest.mpPos[1] * mEyeDirection.y + pDest.mpPos[2] * mEyeDirection.z);
-
-            // Add this particle's index to the slice's bin
-            float range = mMaxDist - mMinDist;
-            float sliceWidth = range / mNumSlices;
-            float minDist = mMaxDist - mNumSlices * sliceWidth;
-
-            int sliceIndex = (int) ((sliceDistance-minDist)/sliceWidth);
-            sliceIndex = Math.min(mNumSlices-1, sliceIndex);
-            sliceIndex = Math.max(0, sliceIndex);
-
-            /**mpSortBinHead[sliceIndex] = mCurParticleIndex;
-            mpSortBinHead[sliceIndex]++;*/
-            mpSortBinHead[sliceIndex].put(mCurParticleIndex);
-            mpParticleCount[sliceIndex]++;
-
-            pDest.mOpacity = sv[jj].mOpacity;
-            pDest.mSize = sv[jj].mSize;
-            pDest.mpVelocity[0] = pDest.mpVelocity[0] = pDest.mpVelocity[0] = 0.0f;
-
-            pDest.mRemainingLife = mpEmitters[0].mLifetime;
-//            pDest++;  TODO
-            pCurParticleDestIndex++;
-            pDest = mpCurParticleDest[pCurParticleDestIndex];
-            mCurParticleIndex++;
-        }
-
-        // Copy all the particles into the second buffer too.
-//        memcpy(mpFirstParticleSource, mpCurParticleDest, newParticleCount*sizeof(Particle));  TODO
+        System.out.println("Particle Count: " + Count);
     }
 
     void CreateParticlesBuffersAndVertexBuffer(int numVerts/*, HRESULT hr, ID3D11Device *pD3d*/){
@@ -752,7 +587,7 @@ final class ParticleSystem implements Disposeable{
 
         int ii;
         for(ii = 0; ii < MAX_SLICES; ii++) {
-            mpParticleSortIndex[ii] = IntBuffer.allocate(mMaxNumParticles);
+            mpParticleSortIndex[ii] = new int[mMaxNumParticles];
         }
 
         /*// ***************************************************
@@ -850,21 +685,13 @@ final class ParticleSystem implements Disposeable{
     }
 
     private void UpdateLightViewProjection(){
-        // temp hack - create a Camera from the DXUT Camera
-//        const D3DXVECTOR3 &cameraLook     = mpCamera->GetLook();
-        final ReadableVector3f cameraLook = mpCamera.GetLook();
-
-        mUnderBlend = Vector3f.dot(cameraLook, mLightLook ) > 0.0f;
-
+        mUnderBlend = Vector3f.dot(mEyeDirection, mLightLook ) > 0.0f;
         mSign = mUnderBlend ? 1.0f : -1.0f;
-//        mHalfAngleLook = mSign * cameraLook + mLightLook;
-        Vector3f.linear(mLightLook, cameraLook, mSign, mHalfAngleLook);
-//        D3DXVec3Normalize( &mHalfAngleLook, &mHalfAngleLook );
-        mHalfAngleLook.normalise();
 
-        mEyeDirection.set(cameraLook);
-//        D3DXVec3Normalize( &mEyeDirection, &mEyeDirection );
-        mEyeDirection.normalise();
+//        mHalfAngleLook = mSign * cameraLook + mLightLook;
+        Vector3f.linear(mLightLook, mEyeDirection, mSign, mHalfAngleLook);
+        mHalfAngleLook.normalise();
+        if(true) return;
 
         /*D3DXVec3Cross( &mLightUp, &mLightRight, &mLightLook );
         D3DXVec3Normalize( &mLightUp, &mLightUp );*/
@@ -906,9 +733,9 @@ final class ParticleSystem implements Disposeable{
                 mLightHeight,
                 mLightNearClipDistance,
                 mLightFarClipDistance);*/
-        Matrix4f.ortho(mLightWidth, mLightHeight, mLightNearClipDistance, mLightFarClipDistance, gLightViewProjection);  // TODO
+//        Matrix4f.ortho(mLightWidth, mLightHeight, mLightNearClipDistance, mLightFarClipDistance, gLightViewProjection);
 //        gLightViewProjection = viewMatrix * projectionMatrix;
-        Matrix4f.mul(gLightViewProjection, viewMatrix, gLightViewProjection);
+//        Matrix4f.mul(gLightViewProjection, viewMatrix, gLightViewProjection);
         CacheBuffer.free(tmp);
     }
 
@@ -917,8 +744,7 @@ final class ParticleSystem implements Disposeable{
         int newParticleCount = mNewParticleCount;
 
 //        Particle pDest = mpCurParticleDest;
-        int pDestIndex = 0;
-        Particle pDest = mpCurParticleDest[pDestIndex];
+        Particle pDest = mpCurParticleDest[mpCurParticleDestOffset++];
         for (int k = 0; k < mEmitterCount; ++k) {
             int oldActiveParticleCount = mActiveParticleCount;
             mActiveParticleCount = Math.min(mActiveParticleCount + newParticleCount, mMaxNumParticles);
@@ -947,8 +773,7 @@ final class ParticleSystem implements Disposeable{
 
             /**mpSortBinHead[sliceIndex] = mCurParticleIndex;
                 mpSortBinHead[sliceIndex]++;*/
-                mpSortBinHead[sliceIndex].put(mCurParticleIndex);
-                mpParticleCount[sliceIndex]++;
+                mpSortBinHead[sliceIndex][mpParticleCount[sliceIndex]++] = mCurParticleIndex;
 
                 // Radomize the angle and radius.
                 float  angle  = (2.0f * Numeric.PI * mRandom.nextFloat());
@@ -963,13 +788,10 @@ final class ParticleSystem implements Disposeable{
 
                 pDest.mSize    = mpEmitters[k].mStartSize;
                 pDest.mOpacity = 1.0f;
-
                 pDest.mRemainingLife = mpEmitters[k].mLifetime;
                 UpdateBBox(pDest);
-
 //                pDest++;
-                pDestIndex++;
-                pDest = mpCurParticleDest[pDestIndex];  // pointer to next
+                pDest = mpCurParticleDest[mpCurParticleDestOffset++];
                 mCurParticleIndex++;
             }
         }

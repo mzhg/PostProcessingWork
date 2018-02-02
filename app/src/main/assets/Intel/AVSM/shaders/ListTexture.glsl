@@ -9,7 +9,7 @@
 #ifndef H_LIST_TEXTURE
 #define H_LIST_TEXTURE
 
-#define NODE_LIST_NULL 0xFFFFFFFF
+#define NODE_LIST_NULL 0xFFFFFFFFU
 
 //#define ENABLE_PACKED_NODES
 
@@ -76,7 +76,7 @@ RWStructuredBuffer<ListTexVisibilityNode>  gListTexSrtdExitUAV;
 StructuredBuffer<ListTexVisibilityNode>    gListTexSrtdExitSRV                      : register(t21);
 #else
 layout(binding =0, r32ui) uniform uimage2D gListTexFirstSegmentNodeAddressUAV;
-layout(binding =0) uniform usampler2D gListTexFirstSegmentNodeAddressSRV;
+layout(binding =7) uniform usampler2D gListTexFirstSegmentNodeAddressSRV;
 
 layout(binding = 0) buffer ListShaderBuffer0
 {
@@ -88,7 +88,7 @@ layout(binding = 11) buffer ListUniformBuffer0
     ListTexSegmentNode gListTexSegmentNodesSRV[];
 };
 
-layout(binding = 1) uniform atomic_uint gListTexSegmentNodesAtomicCounter;
+layout(binding = 1, offset = 0) uniform atomic_uint gListTexSegmentNodesAtomicCounter;
 
 layout(binding =1, r32ui) uniform uimage2D gListTexFirstVisibilityNodeAddressUAV;
 layout(binding =1) uniform usampler2D gListTexFirstVisibilityNodeAddressSRV;

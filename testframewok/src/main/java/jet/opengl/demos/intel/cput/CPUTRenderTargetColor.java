@@ -14,11 +14,11 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 
 public class CPUTRenderTargetColor implements Disposeable{
 
-    public static Texture2D GetActiveRenderTargetView() { return spActiveRenderTargetView; }
-    public static void                    SetActiveRenderTargetView(Texture2D pView) { spActiveRenderTargetView = pView; }
-    public static void                    SetActiveWidthHeight( int width, int height ) {sCurrentWidth = width; sCurrentHeight=height; }
-    public static int                     GetActiveWidth()  {return sCurrentWidth; }
-    public static int                     GetActiveHeight() {return sCurrentHeight; }
+    public static Texture2D  GetActiveRenderTargetView() { return spActiveRenderTargetView; }
+    public static void       SetActiveRenderTargetView(Texture2D pView) { spActiveRenderTargetView = pView; }
+    public static void       SetActiveWidthHeight( int width, int height ) {sCurrentWidth = width; sCurrentHeight=height; }
+    public static int        GetActiveWidth()  {return sCurrentWidth; }
+    public static int        GetActiveHeight() {return sCurrentHeight; }
 
     protected static int                    sCurrentWidth;
     protected static int                    sCurrentHeight;

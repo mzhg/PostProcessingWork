@@ -31,7 +31,7 @@ void main()
 
     // Make screen-facing
     float4 position;
-    float2 offset	= inUV.xy - 0.5f.xx;
+    float2 offset	= inUV.xy - 0.5;
     position.xyz	= inPosition.xyz + size * (offset.xxx * mEyeRight.xyz + offset.yyy * mEyeUp.xyz);
     position.w		= 1.0;
 

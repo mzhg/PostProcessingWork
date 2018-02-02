@@ -40,7 +40,7 @@ public class CPUTModelDX11 extends CPUTModel {
     public int LoadModel(CPUTConfigBlock pBlock, CPUTModel pMasterModel) throws IOException {
         /*CPUTResult result = CPUT_SUCCESS;*/
         CPUTAssetLibraryDX11 pAssetLibrary = (CPUTAssetLibraryDX11)CPUTAssetLibrary.GetAssetLibrary();
-        String modelSuffix = /*ptoc(this)*/"CPUTModelDX11";
+        final String modelSuffix = /*ptoc(this)*/"CPUTModelDX11";
 
         // set the model's name
         mName = pBlock.GetValueByName("name").ValueAsString();
@@ -123,13 +123,21 @@ public class CPUTModelDX11 extends CPUTModel {
         CPUTBufferDX11 *pBuffer = new CPUTBufferDX11(name, mpModelConstantBuffer);
         pAssetLibrary->AddConstantBuffer( name, pBuffer );
         pBuffer->Release(); // We're done with it.  We added it to the library.  Release our reference.*/
-        mpModelConstantBuffer = new BufferGL();
-        mpModelConstantBuffer.initlize(GLenum.GL_UNIFORM_BUFFER, CPUTModelConstantBuffer.SIZE, null, GLenum.GL_STREAM_DRAW);
-        mpModelConstantBuffer.unbind();
-        mpModelConstantBuffer.setName("Model Constant buffer");
-        CPUTBufferDX11 pBuffer = new CPUTBufferDX11("Model Constant buffer", mpModelConstantBuffer);
-        String name = _L("#cbPerModelValues") + getClass().getSimpleName();
-        pAssetLibrary.AddConstantBuffer( name, pBuffer );
+
+        String name = "#cbPerModelValues" + modelSuffix;
+
+        CPUTBufferDX11 pBuffer = (CPUTBufferDX11) pAssetLibrary.GetConstantBuffer(name);
+        if(pBuffer == null){
+            mpModelConstantBuffer = new BufferGL();
+            mpModelConstantBuffer.initlize(GLenum.GL_UNIFORM_BUFFER, CPUTModelConstantBuffer.SIZE, null, GLenum.GL_STREAM_DRAW);
+            mpModelConstantBuffer.unbind();
+            mpModelConstantBuffer.setName("Model Constant buffer");
+            pBuffer = new CPUTBufferDX11("Model Constant buffer", mpModelConstantBuffer);
+
+            pAssetLibrary.AddConstantBuffer( name, pBuffer );
+        }else{
+            mpModelConstantBuffer = pBuffer.GetNativeBuffer();
+        }
 
         String assetSetDirectoryName = pAssetLibrary.GetAssetSetDirectoryName();
         String modelDirectory        = pAssetLibrary.GetModelDirectory();
@@ -244,7 +252,15 @@ public class CPUTModelDX11 extends CPUTModel {
             pCb->BoundingBoxHalfWorldSpace    = XMLoadFloat3(&XMFLOAT3( bbHWS[0], bbHWS[1], bbHWS[2] )); ;
             pCb->BoundingBoxCenterObjectSpace = XMLoadFloat3(&XMFLOAT3( bbCOS[0], bbCOS[1], bbCOS[2] )); ;
             pCb->BoundingBoxHalfObjectSpace   = XMLoadFloat3(&XMFLOAT3( bbHOS[0], bbHOS[1], bbHOS[2] )); ;*/
-            pCb.LightDirection.set(gLightDir);
+
+            if(renderParams.mpShadowCamera != null){
+                Matrix4f.decompseRigidMatrix(renderParams.mpShadowCamera.GetViewMatrix(), null, null, null, pCb.LightDirection);
+                pCb.LightDirection.scale(-1);
+            }else{
+                pCb.LightDirection.set(g_DefaultLightDir);
+                pCb.LightDirection.normalise();
+            }
+
             pCamera.GetPosition(pCb.EyePosition);
             pCb.BoundingBoxCenterWorldSpace.set(mBoundingBoxCenterWorldSpace);
             pCb.BoundingBoxHalfWorldSpace.set(mBoundingBoxHalfWorldSpace);
@@ -253,7 +269,7 @@ public class CPUTModelDX11 extends CPUTModel {
 
             // Shadow camera
 //            XMMATRIX    shadowView, shadowProjection;
-            CPUTCamera pShadowCamera = /*gpSample->GetShadowCamera()*/ renderParams.mpShadowCamera;
+            CPUTCamera pShadowCamera =  renderParams.mpShadowCamera;
             if( pShadowCamera != null)
             {
                 /*shadowView = XMMATRIX((float*)pShadowCamera->GetViewMatrix());
@@ -296,15 +312,7 @@ public class CPUTModelDX11 extends CPUTModel {
         }
     }
     public void RenderShadow(CPUTRenderParameters renderParams){
-        /*CPUTRenderParametersDX *pParams = (CPUTRenderParametersDX*)&renderParams;*/
-        CPUTCamera             pCamera = renderParams.mpCamera;
-
-/*#ifdef SUPPORT_DRAWING_BOUNDING_BOXES
-        if( renderParams.mShowBoundingBoxes && (!pCamera || pCamera->mFrustum.IsVisible( mBoundingBoxCenterWorldSpace, mBoundingBoxHalfWorldSpace )))
-        {
-            DrawBoundingBox( renderParams );
-        }
-#endif*/
+        CPUTCamera pCamera = renderParams.mpCamera;
         if( !renderParams.mDrawModels ) { return; }
 
         // TODO: add world-space bounding box to model so we don't need to do that work every frame
@@ -328,16 +336,7 @@ public class CPUTModelDX11 extends CPUTModel {
     }
     /** Render this using AVSM buffers and standard shadow map to determine shadow amount */
     public void RenderAVSMShadowed(CPUTRenderParameters renderParams){
-        /*CPUTRenderParametersDX *pParams = (CPUTRenderParametersDX*)&renderParams;
-        CPUTCamera             *pCamera = pParams->mpCamera;*/
-        CPUTCamera             pCamera = renderParams.mpCamera;
-
-/*#ifdef SUPPORT_DRAWING_BOUNDING_BOXES
-        if( renderParams.mShowBoundingBoxes && (!pCamera || pCamera->mFrustum.IsVisible( mBoundingBoxCenterWorldSpace, mBoundingBoxHalfWorldSpace )))
-        {
-            DrawBoundingBox( renderParams );
-        }
-#endif*/
+        CPUTCamera pCamera = renderParams.mpCamera;
         if( !renderParams.mDrawModels ) { return; }
 
         // TODO: add world-space bounding box to model so we don't need to do that work every frame
@@ -355,7 +354,6 @@ public class CPUTModelDX11 extends CPUTModel {
                 SetRenderStates(renderParams);
 
                 // Potentially need to use a different vertex-layout object!
-                /*CPUTVertexShaderDX11 *pVertexShader = pMaterial->GetVertexShader();*/  // TODO  must setup the program
                 mpMesh[ii].Draw(renderParams, this);
             }
         }

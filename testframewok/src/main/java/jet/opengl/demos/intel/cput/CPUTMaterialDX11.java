@@ -109,7 +109,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
                 mpSubMaterials = new CPUTMaterialDX11 [mSubMaterialCount];
                 for( i = 0; i < mSubMaterialCount; i++ )
                 {
-                    mpSubMaterials[i] = (CPUTMaterialDX11)((CPUTAssetLibraryDX11)CPUTAssetLibrary.GetAssetLibrary()).GetMaterial( items.get(i), false, modelSuffix, meshSuffix );
+                    mpSubMaterials[i] = (CPUTMaterialDX11)(CPUTAssetLibrary.GetAssetLibrary()).GetMaterial( items.get(i), false, modelSuffix, meshSuffix );
                     if( mpSubMaterials[i].IsMultiMaterial() )
                     {
                         throw new IllegalArgumentException("Multi-material cannot have a sub material that is also a multi-material (hierarchy not supported at the moment)");
@@ -335,11 +335,11 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
             for( int ii=0; ii < mShaderParameters.mTextureCount; ii++ )
             {
                 int bindPoint = mShaderParameters.mpTextureParameters.get(ii).index;
-                if(mpLastShaderViews[bindPoint] != mShaderParameters.mppBindViews[bindPoint] )
+//                if(mpLastShaderViews[bindPoint] != mShaderParameters.mppBindViews[bindPoint] )
                 {
                     /*mpLast##SHADER##ShaderViews[bindPoint] = m##SHADER##ShaderParameters.mppBindViews[bindPoint];*/
                     TextureGL shaderResource = (TextureGL) mShaderParameters.mppBindViews[bindPoint];
-                    gl.glActiveTexture(GLenum.GL_TEXTURE0);
+                    gl.glActiveTexture(GLenum.GL_TEXTURE0 + bindPoint);
                     gl.glBindTexture(shaderResource.getTarget(), shaderResource.getTexture());
                     mpLastShaderViews[bindPoint] = shaderResource;
                 }
@@ -349,7 +349,8 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         if(mShaderParameters.mConstantBufferCount > 0){
             for( int ii=0; ii < mShaderParameters.mConstantBufferCount; ii++ ){
                 int bindPoint = mShaderParameters.mpConstantBufferParameters.get(ii).index;
-                if(mpLastShaderConstantBuffers[bindPoint] != mShaderParameters.mppBindConstantBuffers[bindPoint]){
+//                if(mpLastShaderConstantBuffers[bindPoint] != mShaderParameters.mppBindConstantBuffers[bindPoint])
+                {
                     BufferGL constantBuffer = mShaderParameters.mppBindConstantBuffers[bindPoint];
 
                     if(constantBuffer != null) {
@@ -357,7 +358,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
                     }else{
                         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, bindPoint, 0);
                     }
-                    mpLastShaderConstantBuffers[bindPoint] = constantBuffer;
+//                    mpLastShaderConstantBuffers[bindPoint] = constantBuffer;
                 }
             }
         }
@@ -493,7 +494,11 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
      */
     @Override
     public void SetRenderStates( CPUTRenderParameters renderParams ){
-        gl.glUseProgram(0);
+        if( IsMultiMaterial() )
+        {
+            GetCurrentSubMaterial().SetRenderStates( renderParams );
+            return;
+        }
 
         CPUTRenderParametersDX context = (CPUTRenderParametersDX)renderParams;
 
@@ -505,10 +510,10 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         for( int ii=0; ii<mShaderParameters.mUAVCount; ii++ )
         {
             int bindPoint = mShaderParameters.mpUAVParameters.get(ii).index;
-            if(mpLastComputeShaderUAVs[ii] != mShaderParameters.mppBindUAVs[bindPoint] )
+//            if(mpLastComputeShaderUAVs[ii] != mShaderParameters.mppBindUAVs[bindPoint] )
             {
                 TextureGL unorderedView = mShaderParameters.mppBindUAVs[bindPoint];
-                mpLastComputeShaderUAVs[ii] = unorderedView;
+//                mpLastComputeShaderUAVs[ii] = unorderedView;
 
                 if(unorderedView != null){
                     gl.glBindImageTexture(bindPoint, unorderedView.getTexture(), 0, false, 0, GLenum.GL_READ_WRITE, unorderedView.getFormat());
@@ -933,8 +938,7 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
             }
 
             // If has constant buffer, then add to mppBindConstantBuffer
-//            params.mppBindConstantBuffers[bindPoint]   = ((CPUTBufferDX11*)params.mpConstantBuffer[constantBufferCount])->GetNativeBuffer();  TODO
-//            if( params.mppBindConstantBuffers[bindPoint] )  { params.mppBindConstantBuffers[bindPoint]->AddRef();}
+            params.mppBindConstantBuffers[bindPoint]   = ((CPUTBufferDX11)params.mpConstantBuffer[constantBufferCount]).GetNativeBuffer();
 
 //            OUTPUT_BINDING_DEBUG_INFO( (itoc(bindPoint) + _L(" : ") + params.mpConstantBuffer[constantBufferCount]->GetName() + _L("\n")).c_str() );
         }

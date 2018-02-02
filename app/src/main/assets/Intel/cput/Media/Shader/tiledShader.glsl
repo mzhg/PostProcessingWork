@@ -261,25 +261,24 @@ void main()
 
 	// get the AVSM shadow term
     float avsmShadow = ShadowContrib( _input.ViewspacePos.xyz );
+    avsmShadow = max(1.0, avsmShadow);
 
 	// calculate total shadowing
     shadowAmount = ( shadowAmount * avsmShadow );
+//    shadowAmount = max(1.0, shadowAmount);
 
 	// Handle rest of lighting
     float3 normal   = _input.Normal;
     float3 tangent  = _input.Tangent;
     float3 binormal = _input.Binormal;
     float3x3 worldToTangent = float3x3(tangent, binormal, normal);
-    normal = normalize( mul( (NORMAL(/*input*/)-0.5)*2, worldToTangent ));
+//    worldToTangent  = transpose(worldToTangent);
+    normal = normalize( mul( (NORMAL(/*input*/)-0.5)*2.0, worldToTangent ));
 
     // Ambient-related computation
     float3 ambient = AmbientColor * AMBIENT(/*input*/).xyz;
     result.xyz +=  ambient;
-#ifdef _CPUT
-   float3 lightDirection = -LightDirection;
-#else
-   float3 lightDirection = LightDirection;
-#endif
+    float3 lightDirection = -LightDirection;
 
     // Diffuse-related computation
     float  nDotL         = saturate( dot( normal, lightDirection ) );
@@ -303,9 +302,9 @@ void main()
 
 layout(location = 0) in float3 In_Position /*: POSITION*/; // Projected position
 layout(location = 1) in float3 In_Normal   /*: NORMAL*/;
-layout(location = 2) in float3 In_Tangent  /*: TANGENT*/;
-layout(location = 3) in float3 In_Binormal /*: BINORMAL*/;
-layout(location = 4) in float2 In_UV0      /*: TEXCOORD0*/;
+layout(location = 2) in float2 In_UV0      /*: TEXCOORD0*/;
+layout(location = 3) in float3 In_Tangent  /*: TANGENT*/;
+layout(location = 4) in float3 In_Binormal /*: BINORMAL*/;
 
 out PS_INPUT
 {

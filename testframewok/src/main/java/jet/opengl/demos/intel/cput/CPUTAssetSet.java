@@ -32,10 +32,10 @@ public abstract class CPUTAssetSet implements Disposeable{
         return CPUT_SUCCESS;*/
         return mppAssetList[index];
     }
-    public CPUTRenderNode    GetRoot() { /*if(mpRootNode){mpRootNode->AddRef();} */return mpRootNode; }
-    public void               SetRoot( CPUTNullNode pRoot) { SAFE_RELEASE(mpRootNode); mpRootNode = pRoot; }
-    public CameraData        GetFirstCamera() {  return mpFirstCamera; } // TODO: Consider supporting indexed access to each asset type
-    public void               RenderRecursive(CPUTRenderParameters renderParams){
+    public CPUTRenderNode GetRoot() { /*if(mpRootNode){mpRootNode->AddRef();} */return mpRootNode; }
+    public void  SetRoot( CPUTNullNode pRoot) { SAFE_RELEASE(mpRootNode); mpRootNode = pRoot; }
+    public CameraData GetFirstCamera() {  return mpFirstCamera; } // TODO: Consider supporting indexed access to each asset type
+    public void  RenderRecursive(CPUTRenderParameters renderParams){
         if(mpRootNode != null)
         {
             mpRootNode.RenderRecursive(renderParams);

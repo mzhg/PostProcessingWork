@@ -45,7 +45,7 @@ void main()
             node.depth[0] = entry.z;
             node.depth[1] = exit.z;
             node.trans    = segmentTransmittance;
-            node.sortKey  = _Input.ViewPos.z;
+            node.sortKey  = -_Input.ViewPos.z; // TODO OpenGL form
 
 	        // Get fragment viewport coordinates
             int2 screenAddress = int2(gl_FragCoord.xy);

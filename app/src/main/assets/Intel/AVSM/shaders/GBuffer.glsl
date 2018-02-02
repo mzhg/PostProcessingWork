@@ -26,7 +26,7 @@ struct NONCPUT_UIConstants
     float TessellatioDensity;               //  1/desired triangle size
 };
 
-layout(binding = 0) uniform PerFrameConstants
+layout(binding = 2) uniform PerFrameConstants
 {
     /*row_major*/   float4x4    mCameraWorldViewProj;
     /*row_major*/   float4x4    mCameraWorldView;
@@ -84,7 +84,7 @@ float2 ProjectIntoAvsmLightTexCoord(float3 positionView)
 }
 
 //Texture2D                     gDepthBuffer                          : register(t30);
-layout(binding = 3) uniform sampler2D  gDepthBuffer;
+layout(binding = 10) uniform sampler2D  gDepthBuffer;
 ////////////////////////////////////////////////////////////////////////////////////////////
 // getting the viewspace depth for smooth particle - solid geometry intersection
 float ScreenToViewDepth( float screenDepth )
@@ -141,7 +141,7 @@ float ShadowContrib(SurfaceData LitSurface, DynamicParticlePSIn Input)
     float2 lightTexCoord = ProjectIntoAvsmLightTexCoord(LitSurface.positionView.xyz);
     float receiverDepth = mul(float4(LitSurface.positionView.xyz, 1.0f), mCameraViewToAvsmLightView).z;
 
-    return VolumeSample(mUI.volumeShadowMethod, lightTexCoord, receiverDepth);
+    return VolumeSample(mUI.volumeShadowMethod, lightTexCoord, -receiverDepth);
 }
 
 #endif // H_GBUFFER

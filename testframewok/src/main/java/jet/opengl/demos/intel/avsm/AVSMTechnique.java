@@ -10,8 +10,6 @@ import org.lwjgl.util.vector.Vector4i;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 import jet.opengl.demos.intel.cput.CPUTAssetLibrary;
 import jet.opengl.demos.intel.cput.CPUTAssetSet;
@@ -35,9 +33,11 @@ import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.DebugTools;
 
 /**
  * Created by mazhen'gui on 2017/10/9.
@@ -137,9 +137,7 @@ final class AVSMTechnique implements Disposeable{
     private Runnable mParticleBlendState;
 
     private int mAVSMSampler;
-
-//    std::vector< std::tr1::shared_ptr<Texture2D> > mGBuffer;
-    private final List<Texture2D> mGBuffer = new ArrayList<>();
+    int mDefaultSampler;
 
     // AVSM
     private final BoundingBox       mTmpBox = new BoundingBox();
@@ -150,6 +148,7 @@ final class AVSMTechnique implements Disposeable{
     private Texture2D mAVSMTextures;
     private Texture2D mAVSMTexturesCPUT;
     private Texture2D mAVSMTexturesDebug;
+    private Texture2D[] mAVSMTexturesRTVs;
     private BufferGL  mAVSMStructBuf;
     private BufferGL  mAVSMStructBufUAV;
     private BufferGL  mAVSMStructBufSRV;
@@ -193,9 +192,10 @@ final class AVSMTechnique implements Disposeable{
 
     private float                mLastTime;
     private GLFuncProvider gl;
-    private RenderTargets mRenderTargets;
     private GLSLProgramPipeline mProgramPipeline;
-    private boolean mPrintOnce = true;
+    private RenderTargets mRenderTarget;
+    static boolean mPrintOnce = true;
+
 
     int mShadowTextureDim;
     int mAVSMShadowTextureDim;
@@ -268,6 +268,7 @@ final class AVSMTechnique implements Disposeable{
         mAVSMTexturesDebug = null;
         mAVSMStructBufUAV = null;
         mAVSMStructBufSRV = null;
+        mAVSMTexturesRTVs = null;
 
         /*mParticleShadingTessellationVS = NULL;
         mParticleShadingTessellationVSReflector = NULL;
@@ -297,7 +298,6 @@ final class AVSMTechnique implements Disposeable{
         }
 
         gl = GLFuncProviderFactory.getGLFuncProvider();
-        mRenderTargets = new RenderTargets();
     }
 
     void InitializeFrameContext(FrameContext outContext, Options options, ParticleSystem  particleSystem,
@@ -331,10 +331,19 @@ final class AVSMTechnique implements Disposeable{
         {
             // NOTE: We don't include the projection matrix here, since we want to just get back the
             // raw view-space extents and use that to *build* the bounding projection matrix
-            Vector3f min = new Vector3f(), max = new Vector3f();
+            /*Vector3f min = new Vector3f(), max = new Vector3f();
             Utils.ComputeFrustumExtents(frameMatx.cameraViewInv, frameMatx.cameraProj,
                     viewerCamera.GetNearPlaneDistance(), viewerCamera.GetFarPlaneDistance(),
-                    frameMatx.lightView, min, max);
+                    frameMatx.lightView, min, max);*/
+
+            final Matrix4f tmp = CacheBuffer.getCachedMatrix();
+            Matrix4f cameraViewProj = viewerCamera.GetViewProjMatrix();
+            Matrix4f.invert(cameraViewProj, tmp);  // proj to world in camera coodinate
+            Matrix4f.mul(frameMatx.lightView, tmp, tmp);  // from world to light view
+            Utils.ComputeFrustumExtents(tmp, mTmpBox);
+            CacheBuffer.free(tmp);
+            Vector3f min = mTmpBox._min;
+            Vector3f max = mTmpBox._max;
 
             // First adjust the light matrix to be centered on the extents in x/y and behind everything in z
 //            D3DXVECTOR3 center = 0.5f * (min + max);
@@ -476,15 +485,13 @@ final class AVSMTechnique implements Disposeable{
 
 //        D3DXVECTOR4 cameraPos  = D3DXVECTOR4( DXUTFromCPUT( viewerCamera->GetPosition() ), 1.0f );
         Vector3f cameraPos             = new Vector3f();
-        viewerCamera.GetPosition(cameraPos);
+        Matrix4f.decompseRigidMatrix(viewerCamera.GetViewMatrix(), cameraPos, null, null);
 
         // no lookup not supported at the moment
         assert( ui.enableVolumeShadowLookup!=0 );
 
         // set all the various camera, light, and per-frame constants in constant buffer
         FillInFrameConstants(frameMatx, cameraPos, viewerCamera, lightCamera, frameContext.mScreenWidth, frameContext.mScreenHeight, ui);
-
-        int savedVolMethod = ui.volumeShadowMethod;
 
         // This phase computes a visibility representation for our shadow volume
         if (ui.volumeShadowMethod !=0 && options.enableVolumeShadowCreation)
@@ -507,7 +514,7 @@ final class AVSMTechnique implements Disposeable{
             }
 
             // Second pass, generate visibility curves (AVSM, uncompressed, deep shadow maps, etc..)
-            GenerateVisibilityCurve(/*d3dDeviceContext,*/ ui);
+            GenerateVisibilityCurve(pRenderParams,ui);
         }
 
         // no lookup not supported at the moment
@@ -553,6 +560,15 @@ final class AVSMTechnique implements Disposeable{
                 &avsmGenCtrlSurface);*/
     }
 
+    private void bindTexture(int unit, TextureGL tex){
+        gl.glActiveTexture(GLenum.GL_TEXTURE0 + unit + 7);
+        if(tex != null){
+            gl.glBindTexture(tex.getTarget(), tex.getTexture());
+        }else{
+            gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+        }
+    }
+
     void UpdateStatesAndConstantsForAVSMUse( FrameContext  frameContext, boolean forCPUTGeometry ){
         ParticleSystem  particleSystem         = frameContext.ParticleSystem;
         Vector4i viewport                      = frameContext.Viewport;
@@ -572,6 +588,7 @@ final class AVSMTechnique implements Disposeable{
                     "gDepthBuffer",
                     1,
                     &frameContext.DepthBufferSRV);*/
+            bindTexture(3, frameContext.DepthBufferSRV);
         }
 
         if(ui.vertexShaderShadowLookup!=0 && !forCPUTGeometry)
@@ -586,7 +603,7 @@ final class AVSMTechnique implements Disposeable{
                         mParticleShadingHSReflector,
                         "PerFrameConstants",
                         1,
-                        &PerFrameConstants); TODO
+                        &PerFrameConstants);
 
                 HSSetConstantBuffers(d3dDeviceContext,
                         mParticleShadingHSReflector,
@@ -645,14 +662,23 @@ final class AVSMTechnique implements Disposeable{
                 DSSetSamplers(d3dDeviceContext,
                         mParticleShadingDSReflector[mShaderIdx],
                         "gAVSMSampler",
-                        1,
+                        1,   TODO sampler
                         &mAVSMSampler);*/
+
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, mParticlePerFrameConstants.getBuffer());  // "ParticlePerFrameConstants"
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, mParticlePerPassConstants.getBuffer());   // "ParticlePerPassConstants"
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, mPerFrameConstants.getBuffer());          // "PerFrameConstants"
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, mAVSMConstantsCPUT.GetNativeBuffer().getBuffer());   // "AVSMConstants"
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 4, mListTextureConstants.getBuffer());
+                gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 12, mAVSMGenDataSRV[mShaderIdx].getBuffer());  // "NONCPUT_gAVSMGenDataSRV"
+                bindTexture(1, asvmTextureSRV);             // "NONCPUT_gAVSMTexture"
+                bindTexture(2, avsmGenCtrlSurface);         // "NONCPUT_gAVSMGenClearMaskSRV"
             }
         }
         else
         {
-            /*ID3D11Buffer* ParticlePerFrameConstants = mParticlePerFrameConstantsCPUT->GetNativeBuffer();
-            VSSetConstantBuffers(d3dDeviceContext,  TODO
+            BufferGL ParticlePerFrameConstants = mParticlePerFrameConstantsCPUT.GetNativeBuffer();
+            /*VSSetConstantBuffers(d3dDeviceContext,  TODO
                     mParticleShadingVSReflector,
                     "ParticlePerPassConstants",
                     1,
@@ -663,6 +689,9 @@ final class AVSMTechnique implements Disposeable{
                     "ParticlePerFrameConstants",
                     1,
                     &ParticlePerFrameConstants);*/
+
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, ParticlePerFrameConstants.getBuffer());  // "ParticlePerFrameConstants"
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, mParticlePerPassConstants.getBuffer());   // "ParticlePerPassConstants"
         }
 
         if( (ui.vertexShaderShadowLookup!=0 && !forCPUTGeometry) || (VOL_SHADOW_NO_SHADOW == ui.volumeShadowMethod))
@@ -695,8 +724,12 @@ final class AVSMTechnique implements Disposeable{
                     "NONCPUT_gAVSMGenDataSRV",
                     1,
                     &mAVSMGenDataSRV[mShaderIdx]);
+            */
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 12, mAVSMGenDataSRV[mShaderIdx].getBuffer());  // "NONCPUT_gAVSMGenDataSRV"
+            bindTexture(1, asvmTextureSRV);             // "NONCPUT_gAVSMTexture"
+            bindTexture(2, avsmGenCtrlSurface);         // "NONCPUT_gAVSMGenClearMaskSRV"
 
-            if( !forCPUTGeometry ) // no need to do this for CPUT geometry, we're setting samplers in CPUT code
+            /*if( !forCPUTGeometry ) // no need to do this for CPUT geometry, we're setting samplers in CPUT code  TODO sampler
             {
                 PSSetSamplers(d3dDeviceContext,
                         mParticleShadingPerPixelPSReflector[mShaderIdx],
@@ -799,6 +832,7 @@ final class AVSMTechnique implements Disposeable{
         mAVSMNodeCount = nodeCount;
         mShaderIdx = (nodeCount+3) / 4 - 1;
         mProgramPipeline = new GLSLProgramPipeline();
+        mRenderTarget = new RenderTargets();
 
         final String shaderPath = "Intel/AVSM/shaders/";
         final Macro nodeCount4 = new Macro("AVSM_NODE_COUNT", 4);
@@ -1095,10 +1129,21 @@ final class AVSMTechnique implements Disposeable{
             SamplerDesc desc = new SamplerDesc();
             desc.magFilter = GLenum.GL_NEAREST;
             desc.minFilter = GLenum.GL_NEAREST_MIPMAP_NEAREST;
-            desc.wrapR = GLenum.GL_CLAMP_TO_EDGE;
-            desc.wrapS = GLenum.GL_CLAMP_TO_EDGE;
-            desc.wrapT = GLenum.GL_CLAMP_TO_EDGE;
+            desc.wrapR = GLenum.GL_CLAMP_TO_BORDER;
+            desc.wrapS = GLenum.GL_CLAMP_TO_BORDER;
+            desc.wrapT = GLenum.GL_CLAMP_TO_BORDER;
+            desc.borderColor = -1;
             mAVSMSampler = SamplerUtils.createSampler(desc);
+        }
+
+        {
+            SamplerDesc desc = new SamplerDesc();
+            desc.magFilter = GLenum.GL_LINEAR;
+            desc.minFilter = GLenum.GL_LINEAR_MIPMAP_LINEAR;
+            desc.wrapR = GLenum.GL_REPEAT;
+            desc.wrapS = GLenum.GL_REPEAT;
+            desc.wrapT = GLenum.GL_REPEAT;
+            mDefaultSampler = SamplerUtils.createSampler(desc);
         }
 
         {
@@ -1137,6 +1182,10 @@ final class AVSMTechnique implements Disposeable{
             Texture2DDesc tex_desc = new Texture2DDesc(mAVSMShadowTextureDim, mAVSMShadowTextureDim, GLenum.GL_RGBA32F);
             tex_desc.arraySize = MAX_AVSM_RT_COUNT;
             mAVSMTextures = TextureUtils.createTexture2D(tex_desc, null);
+            mAVSMTexturesRTVs = new Texture2D[tex_desc.arraySize];
+            for(int i = 0; i < tex_desc.arraySize; i++){
+                mAVSMTexturesRTVs[i] = TextureUtils.createTextureView(mAVSMTextures, GLenum.GL_TEXTURE_2D, 0, 1, i, 1);
+            }
 
             /*mAVSMShadowViewport.Width    = static_cast<float>(mAVSMShadowTextureDim);
             mAVSMShadowViewport.Height   = static_cast<float>(mAVSMShadowTextureDim);
@@ -1385,8 +1434,39 @@ final class AVSMTechnique implements Disposeable{
         CommonUtil.safeRelease(mAVSMTextures);
     }
 
-    private void VSSetConstantBuffers(String name, BufferGL buffer, int slot){
-        gl.glBindBufferBase(buffer.getTarget(), slot, buffer.getBuffer());
+    final void saveTextData(String filename, TextureGL texture, int level) {
+        final String filepath = "E:/textures/AVSM/";
+        try {
+            DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), level, filepath + filename);
+            System.out.println("Save the file: " + filename + " done!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    final void saveTextData(String filename, TextureGL texture){
+        saveTextData(filename, texture, 0);
+    }
+
+    final void saveTextData(String filename, int target, int buffer, int internalformat){
+        final String filepath = "E:/textures/AVSM/";
+        try {
+            DebugTools.saveBufferAsText(target, buffer, internalformat, 128, filepath + filename);
+            System.out.println("Save the file: " + filename + " done!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    final void saveTextData(String filename, int target, int buffer, Class<?> internalformat){
+        final String filepath = "E:/textures/AVSM/";
+        try {
+            DebugTools.saveBufferAsText(target, buffer, internalformat, 128, filepath + filename);
+            System.out.println("Save the file: " + filename + " done!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void CaptureFragments(
@@ -1417,6 +1497,7 @@ final class AVSMTechnique implements Disposeable{
                 BufferGL ParticlePerFrameConstants = mParticlePerFrameConstantsCPUT.GetNativeBuffer();
                 gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, ParticlePerFrameConstants.getBuffer());
                 gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, mParticlePerPassConstants.getBuffer());
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 4, mListTextureConstants.getBuffer());
 
                 // atomici buffer
                 gl.glBindBufferBase(GLenum.GL_ATOMIC_COUNTER_BUFFER, 1, mListTexSegmentNodesAtomicCounter.getBuffer());
@@ -1428,21 +1509,38 @@ final class AVSMTechnique implements Disposeable{
                 // image UVA
                 gl.glBindImageTexture(0, mListTexFirstSegmentNodeOffset.getTexture(),0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_R32UI);
 
+                int oldFBO = gl.glGetInteger(GLenum.GL_FRAMEBUFFER_BINDING);
+                mRenderTarget.bind();
+                mRenderTarget.setRenderTexture(mAVSMTexturesRTVs[0], null);
+
+                // viewport
+                gl.glViewport(mAVSMShadowViewport.x, mAVSMShadowViewport.y, mAVSMShadowViewport.z, mAVSMShadowViewport.w);
 
                 particleSystem.Draw(null, 0, particleSystem.GetParticleCount(),false, false);
 
                 // Cleanup (aka make the runtime happy)
                 gl.glColorMask(true, true, true, true);
                 gl.glDepthMask(true);
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 4, 0);
                 gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, 0);
                 gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 6, 0);
                 gl.glBindBufferBase(GLenum.GL_ATOMIC_COUNTER_BUFFER, 1, 0);
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
                 gl.glBindImageTexture(0, 0,0, false, 0, GLenum.GL_READ_WRITE, GLenum.GL_R32UI);
+                gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, oldFBO);
 
                 if(!mPrintOnce){
+                    System.out.println("Particle Count: " + particleSystem.GetParticleCount());
+                    System.out.println("mAVSMShadowViewport =  " + mAVSMShadowViewport);
                     mParticleAVSMCaptureProgram.setName("ParticleAVSMCaptureProgram");
                     mParticleAVSMCaptureProgram.printPrograminfo();
+
+                    saveTextData("ListTexSegmentNodesAtomicCounter.txt", GLenum.GL_ATOMIC_COUNTER_BUFFER,
+                            mListTexSegmentNodesAtomicCounter.getBuffer(), GLenum.GL_R32UI);
+                    saveTextData("ListTexSegmentNodes.txt", GLenum.GL_SHADER_STORAGE_BUFFER,
+                            mListTexSegmentNodesUAV.getBuffer(), ListTexSegmentNode.class);
+                    saveTextData("ListTexFirstSegmentNodeOffset.txt", mListTexFirstSegmentNodeOffset);
+
                 }
 
                 GLCheck.checkError();
@@ -1519,7 +1617,7 @@ final class AVSMTechnique implements Disposeable{
         }
     }
 
-    private void GenerateVisibilityCurve(//ID3D11DeviceContext* d3dDeviceContext,
+    private void GenerateVisibilityCurve(CPUTRenderParametersDX pRenderParams,
                                  UIConstants ui){
         Texture2D  listTexFirstSegmentNodeOffsetSRV = mListTexFirstSegmentNodeOffset;
 
@@ -1533,10 +1631,11 @@ final class AVSMTechnique implements Disposeable{
             d3dDeviceContext->RSSetViewports(1, &mAVSMShadowViewport);
             ID3D11ShaderReflection *shaderReflector = mAVSMInsertionSortResolvePSReflector[mShaderIdx];
             d3dDeviceContext->PSSetShader(mAVSMInsertionSortResolvePS[mShaderIdx], 0, 0);*/
-            mRasterizerState.run();
+            mRasterizerState.run();  // TODO may be have problem.
+            gl.glDisable(GLenum.GL_CULL_FACE);
             gl.glViewport(mAVSMShadowViewport.x, mAVSMShadowViewport.y, mAVSMShadowViewport.z,mAVSMShadowViewport.w);
+            gl.glBindProgramPipeline(0);
             mAVSMInsertionSortResolveProgram[mShaderIdx].enable();
-            gl.glBindVertexArray(0);
 
             // framework's autobind not in effect on UAV manipulation - manual bind cbuffer
             /*ID3D11Buffer* pAVSMConstants = mAVSMConstantsCPUT->GetNativeBuffer();
@@ -1567,14 +1666,21 @@ final class AVSMTechnique implements Disposeable{
             d3dDeviceContext->OMSetDepthStencilState(mDefaultDepthStencilState, 0x0);
             // Full-screen triangle
             d3dDeviceContext->Draw(3, 0);*/
-            // TODO textures, buffers, and images.
-            mRenderTargets.bind();
+            BufferGL pAVSMConstants = mAVSMConstantsCPUT.GetNativeBuffer();
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, pAVSMConstants.getBuffer());
+            bindTexture(0, listTexFirstSegmentNodeOffsetSRV);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 11, mListTexSegmentNodesSRV.getBuffer());
+
+            mGeometryBlendState.run();
+            mDefaultDepthStencilState.run();
+
             final int avsmRTCount = mAVSMNodeCount / 2;
-//            TextureGL[] pRTs = new TextureGL[avsmRTCount];
+            Texture2D[] pRTs = new Texture2D[avsmRTCount];
             for (int i = 0; i < avsmRTCount; ++i) {
-//                pRTs[i] = .GetRenderTarget(i);
+                pRTs[i] = mAVSMTexturesRTVs[i];
             }
-            mRenderTargets.setRenderTexture(mAVSMTextures, null); // TODO
+
+            pRenderParams.OMSetRenderTargets(pRTs, null);
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 
             if(!mPrintOnce){
@@ -1583,7 +1689,11 @@ final class AVSMTechnique implements Disposeable{
             }
 
             // Cleanup (aka make the runtime happy)
-            Cleanup(/*d3dDeviceContext*/);
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, 0);
+            bindTexture(0, null);
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 11, 0);
+
+            GLCheck.checkError();
         }
     }
 
@@ -1621,6 +1731,7 @@ final class AVSMTechnique implements Disposeable{
                         "ParticlePerFrameConstants",
                         1,
                         &mParticlePerFrameConstants);*/
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, mParticlePerFrameConstants.getBuffer());
             }
             else
             {
@@ -1628,7 +1739,6 @@ final class AVSMTechnique implements Disposeable{
                 /*d3dDeviceContext->VSSetShader(mParticleShadingFinalVS[mShaderIdx], 0, 0);
                 d3dDeviceContext->HSSetShader( NULL, NULL, 0);
                 d3dDeviceContext->DSSetShader( NULL, NULL, 0);*/
-
                 mProgramPipeline.setVS(mParticleShadingFinalVS[mShaderIdx]);
                 mProgramPipeline.setTC(null);
                 mProgramPipeline.setTE(null);
@@ -1649,6 +1759,7 @@ final class AVSMTechnique implements Disposeable{
                     "ParticlePerFrameConstants",
                     1,
                     &mParticlePerFrameConstants);*/
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, mParticlePerFrameConstants.getBuffer());
         }
 
         if(ui.wireframe != 0)
@@ -1667,7 +1778,7 @@ final class AVSMTechnique implements Disposeable{
             // This path handles the cases when we are using particle tesselation
             // manually update the particle constant buffers we need since we're doing the drawing ourselves
             // and not using the framework's auto-bind features
-//            ID3D11Buffer* PerFrameConstants = mPerFrameConstantsCPUT->GetNativeBuffer();
+            BufferGL PerFrameConstants = mPerFrameConstantsCPUT.GetNativeBuffer();
 //            d3dDeviceContext->PSSetShader(mParticleShadingPS, 0, 0);
             mProgramPipeline.setPS(mParticleShadingPS);
 
@@ -1675,13 +1786,15 @@ final class AVSMTechnique implements Disposeable{
                     mParticleShadingPSReflector,
                     "PerFrameConstants",
                     1,
-                    &PerFrameConstants);
-            ID3D11Buffer* ParticlePerFrameConstants = mParticlePerFrameConstantsCPUT->GetNativeBuffer();
-            PSSetConstantBuffers(d3dDeviceContext,
+                    &PerFrameConstants);*/
+            /*PSSetConstantBuffers(d3dDeviceContext,
                     mParticleShadingPSReflector,
                     "ParticlePerFrameConstants",
                     1,
                     &ParticlePerFrameConstants);*/
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, PerFrameConstants.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, mParticlePerFrameConstants.getBuffer());
+
         }
         else
         {
@@ -1690,8 +1803,8 @@ final class AVSMTechnique implements Disposeable{
             // This path handles the cases when we are not using the particle tesselation features
             // manually update the particle constant buffers we need since we're doing the drawing ourselves
             // and not using the framework's auto-bind features
-            /*ID3D11Buffer* PerFrameConstants = mPerFrameConstantsCPUT->GetNativeBuffer();
-            PSSetConstantBuffers(d3dDeviceContext,  TODO
+            BufferGL PerFrameConstants = mPerFrameConstantsCPUT.GetNativeBuffer();
+            /*PSSetConstantBuffers(d3dDeviceContext,  TODO
                     mParticleShadingPerPixelPSReflector[mShaderIdx],
                     "PerFrameConstants",
                     1,
@@ -1704,6 +1817,8 @@ final class AVSMTechnique implements Disposeable{
                     1,
                     &ParticlePerFrameConstants);*/
 
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, PerFrameConstants.getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 5, mParticlePerFrameConstants.getBuffer());
 //            d3dDeviceContext->PSSetShader(mParticleShadingPerPixelPS[mShaderIdx], 0, 0);
             mProgramPipeline.setPS(mParticleShadingPerPixelPS[mShaderIdx]);
 
@@ -1724,6 +1839,9 @@ final class AVSMTechnique implements Disposeable{
                     "NONCPUT_gAVSMGenDataSRV",
                     1,
                     &mAVSMGenDataSRV[mShaderIdx]);*/
+            gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 12, mAVSMGenDataSRV[mShaderIdx].getBuffer());  // "NONCPUT_gAVSMGenDataSRV"
+            bindTexture(1, asvmTextureSRV);             // "NONCPUT_gAVSMTexture"
+            bindTexture(2, avsmGenCtrlSurface);         // "NONCPUT_gAVSMGenClearMaskSRV"
         }
 
 
@@ -1732,11 +1850,9 @@ final class AVSMTechnique implements Disposeable{
         d3dDeviceContext->OMSetBlendState(mParticleBlendState, 0, 0xFFFFFFFF);
         d3dDeviceContext->OMSetDepthStencilState(mParticleDepthStencilState, 0x0);
         particleSystem->Draw( d3dDeviceContext, NULL, 0, particleSystem->GetParticleCount(), ui->tessellate != 0 );*/
-        mRenderTargets.bind();
-        mRenderTargets.setRenderTexture(backBuffer, null);
         mParticleBlendState.run();
         mParticleDepthStencilState.run();
-        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, particleSystem.GetParticleCount());  // TODO
+        particleSystem.Draw( /*d3dDeviceContext,*/ null, 0, particleSystem.GetParticleCount(), ui.tessellate != 0, false );
     }
 
     private final PerFrameConstants m_perFrameConstants = new PerFrameConstants();
@@ -1748,28 +1864,6 @@ final class AVSMTechnique implements Disposeable{
                               CPUTCamera lightCamera,
                               float ScreenWidth, float ScreenHeight,
                               UIConstants ui){
-        // Compute light direction in view space
-        Vector3f lightPosWorld = new Vector3f();
-        lightCamera.GetPosition(lightPosWorld);
-        /*ReadableVector3f lightTargetWorld = DXUTFromCPUT( lightCamera->GetPosition() + lightCamera->GetLook() );
-        Vector3f lightPosView;
-        D3DXVec3TransformCoord(&lightPosView, &lightPosWorld, &m.cameraView);
-        D3DXVECTOR3 lightTargetView;
-        D3DXVec3TransformCoord(&lightTargetView, &lightTargetWorld, &m.cameraView);
-        D3DXVECTOR3 lightDirView = lightTargetView - lightPosView;
-        D3DXVec3Normalize(&lightDirView, &lightDirView);*/
-        Vector3f lightPosView = new Vector3f();   // Todo this code below could optmize
-        Matrix4f.transformVector(m.cameraView, lightPosWorld, lightPosView);
-
-        Vector3f lightTargetView  = new Vector3f();
-        Vector3f lightPositon  = new Vector3f();
-        Vector3f lightLookAt  = new Vector3f();
-
-        lightCamera.GetPosition(lightPositon);
-        lightCamera.GetLook(lightLookAt);
-        Vector3f.add(lightPositon, lightLookAt, lightTargetView);
-        Matrix4f.transformVector(m.cameraView, lightTargetView, lightTargetView);
-
         /*D3D11_MAPPED_SUBRESOURCE mappedResource;
         d3dDeviceContext->Map(mPerFrameConstantsCPUT->GetNativeBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
         PerFrameConstants* constants = static_cast<PerFrameConstants *>(mappedResource.pData);*/
@@ -1788,10 +1882,13 @@ final class AVSMTechnique implements Disposeable{
         constants.mCameraViewToLightView.load(m.cameraViewToLightView);
         constants.mCameraViewToAvsmLightProj.load(m.cameraViewToAvsmLightProj);
         constants.mCameraViewToAvsmLightView.load(m.cameraViewToAvsmLightView);
-//        constants.mLightDir = D3DXVECTOR4(lightDirView, 0.0f);
-        Vector3f.sub(lightTargetView, lightPosView, constants.mLightDir);
+        // Update the light direction.
+        Vector3f lightPosView = new Vector3f();
+        Matrix4f.decompseRigidMatrix(lightCamera.GetViewMatrix(), null, null, null, lightPosView);
+        lightPosView.scale(-1);
+//        Matrix4f.transformNormal(m.cameraView, lightPosView, lightPosView);
+        constants.mLightDir.set(lightPosView);
         constants.mLightDir.w = 0;
-        constants.mLightDir.normalise();
         constants.mScreenResolution.x = ScreenWidth;
         constants.mScreenResolution.y = ScreenHeight;
 
@@ -1816,7 +1913,7 @@ final class AVSMTechnique implements Disposeable{
     private final ParticlePerPassConstants m_particlePerPassConstants = new ParticlePerPassConstants();
 
     private void FillParticleRendererConstants(//ID3D11DeviceContext* d3dDeviceContext,
-                                               CPUTCamera lightCamera,
+                                               CPUTCamera viewerCamera,
                                        Matrix4f cameraView,
                                        Matrix4f cameraViewProj){
         // Particle renderer constants
@@ -1832,7 +1929,7 @@ final class AVSMTechnique implements Disposeable{
         constants.mParticleWorldView.load(cameraView);
 //        constants->mEyeRight              = *(( D3DXVECTOR3* )&lightWorld._11); // *camera->GetWorldRight();
 //        constants->mEyeUp                 = *(( D3DXVECTOR3* )&lightWorld._21); // *camera->GetWorldUp();
-        Matrix4f.decompseRigidMatrix(lightCamera.GetWorldMatrix(), null, constants.mEyeRight, constants.mEyeUp, null);
+        Matrix4f.decompseRigidMatrix(viewerCamera.GetWorldMatrix(), null, constants.mEyeRight, constants.mEyeUp, null);
 //        d3dDeviceContext->Unmap(mParticlePerPassConstants, 0);
 
         ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(ParticlePerPassConstants.SIZE);
@@ -1986,26 +2083,6 @@ final class AVSMTechnique implements Disposeable{
             CommonUtil.safeRelease(mAVSMGenDataSRV[i]);
         }
     }
-
-    /*void CreatePixelShadersFromCompiledObjs(//ID3D11Device* d3dDevice,
-                                            int shaderCount,
-                                           String prefix,
-                                           String suffix,
-                                            ID3D11PixelShader** shaderArray,
-                                            ID3D11ShaderReflection** shaderReflArray);
-
-    void CreateDomainShadersFromCompiledObjs(ID3D11Device* d3dDevice,
-                                             int shaderCount,
-                                           const char* prefix,
-                                           const char* suffix,
-                                             ID3D11DomainShader** shaderArray,
-                                             ID3D11ShaderReflection** shaderReflArray);
-    void CreateVertexShadersFromCompiledObjs(ID3D11Device* d3dDevice,
-                                             int shaderCount,
-                                           const char* prefix,
-                                           const char* suffix,
-                                             ID3D11VertexShader** shaderArray,
-                                             ID3D11ShaderReflection** shaderReflArray);*/
 
     static final class Options{
         int scene = GROUND_PLANE_SCENE;

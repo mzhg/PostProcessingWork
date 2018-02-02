@@ -49,5 +49,5 @@ void main()
     float  rDotL        = saturate(dot( reflection, -LightDirection.xyz ));
     float  specular     = 0.2f * pow( rDotL, 4.0f );
     specular = min( shadowAmount, specular );
-    Out_Color =  DummyColor*float4((nDotL + specular).xxx,  1.0f);
+    Out_Color =  DummyColor* float4((nDotL + specular).xxx,  1.0f);
 }

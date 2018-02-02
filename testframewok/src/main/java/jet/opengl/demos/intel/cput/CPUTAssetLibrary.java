@@ -76,7 +76,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         pServices->ResolveAbsolutePathAndFilename( nameIsFullPathAndFilename ? name : (mAssetSetDirectoryName + name), &absolutePathAndFilename);
         absolutePathAndFilename = nameIsFullPathAndFilename ? name : absolutePathAndFilename;*/
         String absolutePathAndFilename = nameIsFullPathAndFilename ? name : mAssetSetDirectoryName + name;
-
+        absolutePathAndFilename = absolutePathAndFilename.toLowerCase();
 //        UINT hash = CPUTComputeHash( absolutePathAndFilename );
         while(null!=pList)
         {
@@ -87,6 +87,8 @@ public abstract class CPUTAssetLibrary implements Disposeable{
             }
             pList = pList.pNext;
         }
+
+        LogUtil.w(LogUtil.LogType.DEFAULT, "Couldn't found the asset by name: " + absolutePathAndFilename);
         return null;
     }
     public void ReleaseAllLibraryLists(){
@@ -381,7 +383,6 @@ public abstract class CPUTAssetLibrary implements Disposeable{
 
         /*CPUTAssetListEntry **pDest = pTail ? &pTail->pNext : pHead;*/
         CPUTAssetListEntry pDest = new CPUTAssetListEntry();
-        pDest.hash = CPUTComputeHash(name);
         pDest.name = name;
         pDest.pData = pAsset;
         pDest.pNext = null;

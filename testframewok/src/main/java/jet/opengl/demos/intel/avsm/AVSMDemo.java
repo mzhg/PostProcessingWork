@@ -42,6 +42,14 @@ public class AVSMDemo extends NvSampleApp {
     }
 
     @Override
+    public boolean handleCharacterInput(char c) {
+        if(m_Sampler != null)
+            m_Sampler.handleCharacterInput(c);
+
+        return false;
+    }
+
+    @Override
     public void onDestroy() {
         m_Sampler.dispose();
     }

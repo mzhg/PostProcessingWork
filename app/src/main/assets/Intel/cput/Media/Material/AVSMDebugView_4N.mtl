@@ -1,0 +1,16 @@
+texture0 = $shadow_depth
+
+cbMyAVSMValues      = $cbAVSMValues
+AVSMConstants       = $cbAVSMConstants
+PerFrameConstants   = $cbPerFrameConstants
+ParticlePerFrameConstants = $cbParticlePerFrameConstants
+
+VertexShaderFile    = AVSMDebugView_4N.fx
+VertexShaderMain    = VSMain
+VertexShaderProfile = vs_5_0
+
+PixelShaderFile     = AVSMDebugView_4N.fx
+PixelShaderMain     = PSMain
+PixelShaderProfile  = ps_5_0
+
+RenderStateFile     = sprite.rs

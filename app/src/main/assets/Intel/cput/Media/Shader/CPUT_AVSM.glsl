@@ -89,8 +89,8 @@ float2 ProjectIntoAvsmLightTexCoord(float3 positionView)
     return texCoord;
 }
 
-layout(binding = 1) uniform sampler2DArray NONCPUT_gAVSMTexture;
-layout(binding = 2) uniform sampler2D NONCPUT_gAVSMGenClearMaskSRV;
+layout(binding = 8) uniform sampler2DArray NONCPUT_gAVSMTexture;
+layout(binding = 9) uniform sampler2D NONCPUT_gAVSMGenClearMaskSRV;
 
 layout(binding = 12) buffer NONCPUT_ShaderBuffer1
 {
@@ -421,5 +421,5 @@ float ShadowContrib( float3 viewspacePos )
     float2 lightTexCoord = ProjectIntoAvsmLightTexCoord(viewspacePos);
     float receiverDepth = mul(float4(viewspacePos, 1.0f), mCameraViewToAvsmLightView).z;
 
-    return VolumeSample(mUI.volumeShadowMethod, lightTexCoord, receiverDepth);
+    return VolumeSample(mUI.volumeShadowMethod, lightTexCoord, -receiverDepth);
 }

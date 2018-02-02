@@ -14,7 +14,6 @@ package jet.opengl.demos.intel.cput;
  */
 
 final class CPUTAssetListEntry {
-    int                hash;
     String             name;
     Object             pData;
     CPUTAssetListEntry pNext;

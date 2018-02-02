@@ -51,10 +51,10 @@ layout(binding = 1) uniform cbPerFrameValues
     Texture2D texture_NM : register( t4 );
     Texture2D texture_SM : register( t5 );
     Texture2D _Shadow : register( t6 );*/
-    layout(binding = 0) uniform sampler2D texture_DM;
-    layout(binding = 1) uniform sampler2D texture_NM;
-    layout(binding = 2) uniform sampler2D texture_SM;
-    layout(binding = 3) uniform sampler2DShadow _Shadow;
+    layout(binding = 3) uniform sampler2D texture_DM;
+    layout(binding = 4) uniform sampler2D texture_NM;
+    layout(binding = 5) uniform sampler2D texture_SM;
+    layout(binding = 6) uniform sampler2DShadow _Shadow;
 #else
     texture2D decalTexture_DM < string Name = "decalTexture_DM"; string UIName = "decalTexture_DM"; string ResourceType = "2D";>;
     sampler2D SAMPLER0 = sampler_state{ texture = (decalTexture_DM);};
@@ -126,7 +126,7 @@ texture(texture_NM, _input.UV0)
 #else
 tex2D( SAMPLER1, _input.UV0 )
 #endif
-) *(2)) -(1);
+) *(2.0)) -1.0;
 }
 
 // -------------------------------------
@@ -163,16 +163,13 @@ void main()
     float3 tangent  = _input.Tangent;
     float3 binormal = _input.Binormal;
     float3x3 worldToTangent = float3x3(tangent, binormal, normal);
+//    worldToTangent = transpose(worldToTangent);
     normal = normalize( mul( NORMAL(/*input*/).xyz, worldToTangent ));
 
     // Ambient-related computation
     float3 ambient = AmbientColor * AMBIENT(/*input*/).xyz;
     result.xyz +=  ambient;
-    #ifdef _CPUT
-       float3 lightDirection = -LightDirection;
-    #else
-       float3 lightDirection = LightDirection;
-    #endif
+    float3 lightDirection = -LightDirection;
 
     // compute AVSM shadow components
 	float3  lightUv = _input.LightUV.xyz / _input.LightUV.w;
@@ -198,7 +195,7 @@ void main()
 
 	// get the AVSM shadow term
     float avsmShadow = ShadowContrib( _input.ViewspacePos.xyz );
-
+    avsmShadow = max(1.0, avsmShadow);
 	// calculate total shadowing
     shadowAmount = ( shadowAmount * avsmShadow );
 

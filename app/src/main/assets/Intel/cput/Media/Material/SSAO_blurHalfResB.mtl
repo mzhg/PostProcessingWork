@@ -1,0 +1,11 @@
+texture0 = $Scratch2HalfResRenderTarget
+
+VertexShaderFile    = ssao.fx
+VertexShaderMain    = VSMain
+VertexShaderProfile = vs_5_0
+
+PixelShaderFile     = ssao.fx
+PixelShaderMain     = PSBlurHalfRes
+PixelShaderProfile  = ps_5_0
+
+RenderStateFile     = ssao.rs

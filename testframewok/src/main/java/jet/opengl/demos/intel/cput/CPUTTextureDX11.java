@@ -12,6 +12,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.FileUtils;
 
 /**
  * Created by mazhen'gui on 2017/11/14.
@@ -215,7 +216,9 @@ public final class CPUTTextureDX11 extends CPUTTexture{
             image.loadImageFromFile(fileName);
             int textureID = image.updaloadTexture();
             int target = image.isCubeMap() ? GLenum.GL_TEXTURE_CUBE_MAP : image.isVolume() ? GLenum.GL_TEXTURE_3D : GLenum.GL_TEXTURE_2D;
-            return TextureUtils.createTexture2D(target, textureID);
+            Texture2D texture = TextureUtils.createTexture2D(target, textureID);
+            texture.setName(FileUtils.getFile(fileName));
+            return texture;
         }else{
             return TextureUtils.createTexture2DFromFile(fileName, true);
         }

@@ -146,38 +146,8 @@ public class CPUTMeshDX11 extends CPUTMesh {
         mpVertexBuffer.initlize(GLenum.GL_ARRAY_BUFFER, mVertexBufferDesc.ByteWidth, CacheBuffer.wrap(pVertexData), GLenum.GL_STATIC_DRAW);
         mpVertexBuffer.unbind();
 
-        // create the buffer for the shader resource view
-        /*D3D11_BUFFER_DESC desc;  TODO It looks like nothing need to create a buffer that the same as the  mpVertexBuffer.
-        ZeroMemory( &desc, sizeof(desc) );
-        desc.Usage = D3D11_USAGE_DEFAULT;
-        // set the stride for one 'element' block of verts
-        mVertexStride           = pVertexDataInfo[vertexDataInfoArraySize-1].mOffset + pVertexDataInfo[vertexDataInfoArraySize-1].mElementSizeInBytes; // size in bytes of a single vertex block
-        desc.ByteWidth           = mVertexCount * mVertexStride; // size in bytes of entire buffer
-        desc.BindFlags           = D3D11_BIND_SHADER_RESOURCE;
-        desc.CPUAccessFlags      = 0;
-        desc.MiscFlags           = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-        desc.StructureByteStride = mVertexStride;
 
-        hr = pD3dDevice->CreateBuffer( &desc, &resourceData, &mpVertexBufferForSRVDX );
-        ASSERT( !FAILED(hr), _L("Failed creating vertex buffer for SRV") );
-        CPUTSetDebugName( mpVertexBuffer, _L("Vertex buffer for SRV") );*/
-        mpVertexBufferForSRVDX = new BufferGL();
-        mpVertexBufferForSRVDX.setName("Vertex buffer for SRV");
-        mpVertexBufferForSRVDX.initlize(GLenum.GL_ARRAY_BUFFER, mVertexBufferDesc.ByteWidth, CacheBuffer.wrap(pVertexData), GLenum.GL_STATIC_DRAW);
-        mpVertexBufferForSRVDX.unbind();
-
-        // Create the shader resource view
-        /*D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-        ZeroMemory( &srvDesc, sizeof(srvDesc) );
-        srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-        srvDesc.Buffer.ElementOffset = 0;
-        srvDesc.Buffer.NumElements = mVertexCount;
-
-        hr = pD3dDevice->CreateShaderResourceView( mpVertexBufferForSRVDX, &srvDesc, &mpVertexView );
-        ASSERT( !FAILED(hr), _L("Failed creating vertex buffer SRV") );*/
-        mpVertexView = mpVertexBufferForSRVDX;
-
+        mpVertexView = mpVertexBufferForSRVDX = mpVertexBuffer;
         String name = "@VertexBuffer" + pModel.toString() + meshIdx;
         mpVertexBufferForSRV = new CPUTBufferDX11( name, mpVertexBufferForSRVDX/*, mpVertexView*/ );
         CPUTAssetLibrary.GetAssetLibrary().AddBuffer( name, mpVertexBufferForSRV );
@@ -256,7 +226,15 @@ public class CPUTMeshDX11 extends CPUTMesh {
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
         GLCheck.checkError();
+
+//        saveData(-1,-1);
     }
+
+    /*private static int gDrawIndex;
+    private static void saveData(int vertexSize, int indexCount){
+        gDrawIndex++;
+        System.out.println("DrawIndex = " + gDrawIndex);
+    }*/
 
     public int                      GetTriangleCount() { return mIndexCount/3; }
     public int                      GetVertexCount() { return mVertexCount; }

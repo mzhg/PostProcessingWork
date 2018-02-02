@@ -40,7 +40,7 @@ layout(binding = 10) buffer ShaderBuffer0
     AVSMGenData gAVSMGenDataUAV[];
 };
 
-layout(binding = 2) uniform sampler2D NONCPUT_gAVSMGenClearMaskSRV;
+layout(binding = 9) uniform sampler2D NONCPUT_gAVSMGenClearMaskSRV;
 layout(binding = 12) buffer ShaderBuffer1
 {
     AVSMGenData NONCPUT_gAVSMGenDataSRV[];

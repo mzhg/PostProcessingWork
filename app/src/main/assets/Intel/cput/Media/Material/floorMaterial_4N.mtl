@@ -1,0 +1,21 @@
+texture_DM = ConcreteTile.dds
+decalTexture_DM = floorDecal.dds
+texture_SM = concrete_SM.dds
+decalTexture_SM = floorDecalSMAlpha.dds
+texture_NM = concrete_NM.dds
+texture_NMSrgb = false
+decalTexture_NM = floorDecalNMAlpha.dds
+decalTexture_NMSrgb = false
+
+cbMyAVSMValues      = $cbAVSMValues
+AVSMConstants       = $cbAVSMConstants
+PerFrameConstants   = $cbPerFrameConstants
+ParticlePerFrameConstants = $cbParticlePerFrameConstants
+
+VertexShaderFile    = tiledShader_4N.glsl
+VertexShaderMain    = VSMain
+VertexShaderProfile = vs_5_0
+PixelShaderFile     = tiledShader_4N.glsl
+PixelShaderMain     = PSMain
+PixelShaderProfile  = ps_5_0
+RenderStateFile     = $DefaultRenderStates

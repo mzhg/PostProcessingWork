@@ -1,12 +1,15 @@
 package jet.opengl.demos.intel.avsm;
 
+import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.utils.NvGPUTimer;
+import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4i;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import jet.opengl.demos.intel.cput.AVSMMethod;
 import jet.opengl.demos.intel.cput.CPUTAssetLibrary;
@@ -23,11 +26,14 @@ import jet.opengl.demos.intel.cput.CPUTRenderTargetColor;
 import jet.opengl.demos.intel.cput.CPUTRenderTargetDepth;
 import jet.opengl.demos.scene.BaseScene;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderType;
+import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
  * Created by mazhen'gui on 2017/11/11.
@@ -80,6 +86,7 @@ public final class AVSMSampler extends BaseScene {
     private boolean                mRButtonDown;
     private CPUTCamera             mpShadowCamera = new CPUTCamera();
     private CPUTCamera             mpCamera = new CPUTCamera();
+    private VisualDepthTextureProgram mDepthTextureProgram;
 
     @Override
     protected void onCreate(Object prevSavedData) {
@@ -115,6 +122,12 @@ public final class AVSMSampler extends BaseScene {
         // the CPUT shader auto-bind system to automatically bind the buffers when they're used
         mpAVSMTechnique.WrapBuffers();
 
+        try {
+            mDepthTextureProgram = new VisualDepthTextureProgram(false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // Set the debug view material
 //        mpAVSMDebugView->SetMaterial( pAssetLibrary->GetMaterial( L"AVSMDebugView" ));  TODO
         LoadCPUTAssets();
@@ -142,8 +155,9 @@ public final class AVSMSampler extends BaseScene {
             mpCamera.LookAt( 18.823f, 1.077f, -0.038f);
             mpCamera.Update(0);
 
-            initCamera(0, new Vector3f( 70.44f/factorfactor, 13.27f/factorfactor, -18.786f/factorfactor),
-                    new Vector3f(18.823f, 1.077f, -0.038f));
+            mNVApp.getInputTransformer().setMotionMode(NvCameraMotionType.FIRST_PERSON);
+            initCamera(0, new Vector3f( -70.44f/factorfactor, -13.27f/factorfactor, +18.786f/factorfactor),
+                    new Vector3f(-18.823f, -1.077f, +0.038f));
         }
 
         mpShadowCamera = new CPUTCamera();
@@ -212,6 +226,19 @@ public final class AVSMSampler extends BaseScene {
 
         mpShadowRenderTarget = new CPUTRenderTargetDepth();
         mpShadowRenderTarget.CreateRenderTarget("$shadow_depth", SHADOW_WIDTH_HEIGHT, SHADOW_WIDTH_HEIGHT, /*DXGI_FORMAT_D16_UNORM*/GLenum.GL_DEPTH_COMPONENT16,1,false );
+        Texture2D shadowMap = mpShadowRenderTarget.GetDepthResourceView();
+        {
+            // setup depth comparsion property
+            gl.glBindTexture(shadowMap.getTarget(), shadowMap.getTexture());
+            gl.glTexParameteri(shadowMap.getTarget(), GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_NEAREST);
+            gl.glTexParameteri(shadowMap.getTarget(), GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_NEAREST);
+            gl.glTexParameteri(shadowMap.getTarget(), GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_BORDER);
+            gl.glTexParameteri(shadowMap.getTarget(), GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_BORDER);
+            gl.glTexParameterfv(shadowMap.getTarget(), GLenum.GL_TEXTURE_BORDER_COLOR, CacheBuffer.wrap(1.0f, 1.0f, 1.0f, 1.0f));
+            gl.glTexParameteri(shadowMap.getTarget(), GLenum.GL_TEXTURE_COMPARE_FUNC, GLenum.GL_LESS);
+            gl.glTexParameteri(shadowMap.getTarget(), GLenum.GL_TEXTURE_COMPARE_MODE, GLenum.GL_COMPARE_R_TO_TEXTURE);
+            gl.glBindTexture(shadowMap.getTarget(), 0);
+        }
 
         /*CPUTRenderStateBlockDX11 *pBlock = new CPUTRenderStateBlockDX11(); TODO
         CPUTRenderStateDX11 *pStates = pBlock->GetState();
@@ -268,6 +295,7 @@ public final class AVSMSampler extends BaseScene {
     }
 
     private void LoadCPUTAssets(){
+        NvImage.upperLeftOrigin(false);
         CPUTAssetLibraryDX11 pAssetLibrary = (CPUTAssetLibraryDX11) CPUTAssetLibrary.GetAssetLibrary();
 
         // Load .set file that was specified on the command line
@@ -282,6 +310,8 @@ public final class AVSMSampler extends BaseScene {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        NvImage.upperLeftOrigin(true); // reset
     }
 
     @Override
@@ -322,6 +352,50 @@ public final class AVSMSampler extends BaseScene {
             mpBackBuffer = new CPUTBufferDX11("$BackBuffer", getSceneColorTex());
             pAssetLibrary.AddBuffer("$BackBuffer", mpBackBuffer);
         }
+    }
+
+    private final CPUTFrameConstantBuffer frameConstantBuffer = new CPUTFrameConstantBuffer();
+    //-----------------------------------------------------------------------------
+    void SetPerFrameConstantBuffer( float totalSeconds )
+    {
+        if( mpPerFrameConstantBuffer != null)
+        {
+            BufferGL pBuffer = mpPerFrameConstantBuffer.GetNativeBuffer();
+
+            // update parameters of constant buffer
+            /*D3D11_MAPPED_SUBRESOURCE mapInfo;
+            mpContext->Map( pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapInfo );*/
+            {
+                // TODO: remove construction of XMM type
+                CPUTFrameConstantBuffer pCb = frameConstantBuffer;
+                CPUTCamera pCamera     = mpCamera;
+                if( pCamera != null)
+                {
+                    pCb.View               = pCamera.GetViewMatrix();
+                    pCb.Projection         = pCamera.GetProjectionMatrix();
+                }
+                pCb.LightColor         .set(1.2f, 1.2f, 1.2f);
+                pCb.TotalSeconds       .set(totalSeconds, totalSeconds, totalSeconds, totalSeconds);
+                pCb.AmbientColor       .set(0.05f, 0.05f, 0.05f);
+            }
+//            mpContext->Unmap(pBuffer,0);
+
+            ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(CPUTFrameConstantBuffer.SIZE);
+            frameConstantBuffer.store(buffer).flip();
+            pBuffer.update(0, buffer);
+        }
+    }
+
+    private void showShadowMap(Texture2D shadowMap){
+        mDepthTextureProgram.enable();
+        mDepthTextureProgram.setUniforms(mpShadowCamera.GetNearPlaneDistance(), mpShadowCamera.GetFarPlaneDistance(), 0, 1);
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glViewport(0,0, getSceneWidth(), getSceneHeight());
+
+        gl.glActiveTexture(GLenum.GL_TEXTURE0);
+        gl.glBindTexture(shadowMap.getTarget(), shadowMap.getTexture());
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
     }
 
     // Create our very simple particle system.  Could use much more fancy system
@@ -423,8 +497,8 @@ public final class AVSMSampler extends BaseScene {
         pState.vertexShaderShadowLookup = true;
         pState.TessellationDensity = 0.75f;
         pState.tessellate = pState.TessellationDensity != 0.0f;
-        pState.LightLatitude = 1;
-        pState.LightLongitude = 1;
+        pState.LightLatitude = 48;
+        pState.LightLongitude = 29;
     }
 
     private void SetAVSMFrameContextData(AVSMTechnique.FrameContext AVSMFrameContext){
@@ -598,6 +672,8 @@ public final class AVSMSampler extends BaseScene {
             mpShadowCamera.LookAt( lookAtPoint.x, lookAtPoint.y, lookAtPoint.z );
             mpShadowCamera.Update(dt);
         }
+
+        SetPerFrameConstantBuffer(dt);
     }
 
     private final CPUTRenderParametersDX m_renderParams = new CPUTRenderParametersDX();
@@ -665,15 +741,22 @@ public final class AVSMSampler extends BaseScene {
         // 2. Draw the shadowed scene using a standard shadow map from the light's point of view
         // one could also use cascades shadow maps or other shadowing techniques.  We choose simple
         // shadow mapping for simplicity/demonstration purposes
-        CPUTCamera pLastCamera = mpCamera;
-        mpCamera = renderParams.mpCamera = mpShadowCamera;
+        renderParams.mpCamera = mpShadowCamera;
         mpShadowRenderTarget.SetRenderTarget( renderParams, 0, 1.0f, true );
 
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glDepthMask(true);
+        gl.glDepthFunc(GLenum.GL_LESS);
         if( mpAssetSet!= null ) { mpAssetSet.RenderShadowRecursive( renderParams ); }
 
         mpShadowRenderTarget.RestoreRenderTarget(renderParams);
-        mpCamera = renderParams.mpCamera = pLastCamera;
+        renderParams.mpCamera = mpCamera;
         renderParams.mpShadowCamera = mpShadowCamera;
+
+        /*if(true){
+            showShadowMap(mpShadowRenderTarget.GetDepthBufferView());
+            return;
+        }*/
 
         // Clear render target and depth buffer
         /*final float clearColor[] = { 0.0993f, 0.0993f, 0.1993f, 1.0f };
@@ -685,6 +768,10 @@ public final class AVSMSampler extends BaseScene {
             // Save our main RTV/DSV
             Texture2D pRTV = CPUTRenderTargetColor.GetActiveRenderTargetView();
             Texture2D pDSV = CPUTRenderTargetDepth.GetActiveDepthStencilView();
+            // Clear render target and depth buffer
+            gl.glClearColor(0.0993f, 0.0993f, 0.1993f, 1.0f);
+            gl.glClearDepthf(1.0f);
+            gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
 
             // 3. create the AVSM shadow map and capture particle fragments into the AVSM render targets
             {
@@ -703,15 +790,26 @@ public final class AVSMSampler extends BaseScene {
 
                 // set all 'external' states for drawing regular scene geometry
                 mpAVSMTechnique.UpdateStatesAndConstantsForAVSMUse( AVSMFrameContext, true );
+                GLCheck.checkError();
 
                 // render scene geometry - passing in the AVSM buffers
                 renderParams.mAVSMMethod = mCurrentGUIState.Method;
+                gl.glDisable(GLenum.GL_CULL_FACE);
+                gl.glEnable(GLenum.GL_DEPTH_TEST);
 
                 // render the skybox - which does not accept AVSM shadows
                 if( mpSkyBox != null) { mpSkyBox.RenderRecursive(renderParams); }
 
+                for(int i = 0; i < 6; i++){
+                    gl.glBindSampler(i, mpAVSMTechnique.mDefaultSampler);
+                }
+
                 // render the scene - accepting AVSM shadows
                 if( mpAssetSet != null) { mpAssetSet.RenderAVSMShadowedRecursive(renderParams); }
+                for(int i = 0; i < 6; i++){
+                    gl.glBindSampler(i, 0);
+                }
+                GLCheck.checkError();
             }
 
             // 5. draw screen space ambient occlusion
@@ -728,7 +826,7 @@ public final class AVSMSampler extends BaseScene {
 //                CPUTGPUProfilerDX11_AutoScopeProfile timer( mGPUTimerParticlesRendering, mCurrentGUIState.EnableStats );
 
                 // remove depth buffer since we're doing soft depth blend in the pixel shader
-                renderParams.OMSetRenderTargets( /*1, &*/pRTV, null );
+                renderParams.OMSetRenderTargets( pRTV, null );
 
                 // set all 'external' states for drawing 'external' geometry (particles)
                 mpAVSMTechnique.UpdateStatesAndConstantsForAVSMUse( AVSMFrameContext, false );
@@ -759,6 +857,28 @@ public final class AVSMSampler extends BaseScene {
         {
 //            memset( &AVSMFrameContext.Stats, 0, sizeof(AVSMFrameContext.Stats) );
             AVSMFrameContext.Stats.reset();
+        }
+
+        renderParams.BlitToScreen(getSceneWidth(), getSceneHeight());
+        AVSMTechnique.mPrintOnce = true;
+    }
+
+    public void handleCharacterInput(char c){
+        switch (c){
+            case 'p':
+            case 'P':
+            {
+                Vector3f pos =  mNVApp.getInputTransformer().getTranslationVec();
+                System.out.printf("Camera Position: [%f, %f, %f].\n", pos.x, pos.y, pos.z);
+            }
+                break;
+
+            case 'g':
+            case 'G':
+            {
+                AVSMTechnique.mPrintOnce = false;
+                break;
+            }
         }
     }
 

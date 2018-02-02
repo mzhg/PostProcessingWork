@@ -1,6 +1,7 @@
 package jet.opengl.demos.intel.cput;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
@@ -42,6 +43,31 @@ public class CPUTRenderParametersDX extends CPUTRenderParameters implements Disp
 
     public void PSSetShader(ShaderProgram ps){ mpShaderProgram.setPS(ps);}
     public void VSSetShader(ShaderProgram vs){ mpShaderProgram.setVS(vs);}
+
+    public void BlitToScreen(int width, int height){
+        gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, mpRenderTarget.getFramebuffer());
+        gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, 0);
+        gl.glBlitFramebuffer(0, 0, width, height,
+                0, 0, width, height,
+                GLenum.GL_COLOR_BUFFER_BIT, GLenum.GL_NEAREST);
+        gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, 0);
+    }
+
+    public void OMSetRenderTargets(Texture2D[] colorDSV, Texture2D depthStencilDSV){
+        mpRenderTarget.bind();
+
+        if(colorDSV == null && depthStencilDSV == null){
+//            mpRenderTarget.setRenderTextures(null, null);  nothing need to-do
+        }else if(colorDSV == null){
+            mpRenderTarget.setRenderTexture(depthStencilDSV, null);
+        }else if(depthStencilDSV == null){
+            mpRenderTarget.setRenderTextures(colorDSV, null);
+        }else{
+            Texture2D[] RTVs = Arrays.copyOf(colorDSV, colorDSV.length+1);
+            RTVs[colorDSV.length] = depthStencilDSV;
+            mpRenderTarget.setRenderTextures(RTVs, null);
+        }
+    }
 
     public void OMSetRenderTargets(Texture2D colorDSV, Texture2D depthStencilDSV){
         mpRenderTarget.bind();

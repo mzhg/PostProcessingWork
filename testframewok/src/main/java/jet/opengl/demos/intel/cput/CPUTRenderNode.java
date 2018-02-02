@@ -152,7 +152,7 @@ public class CPUTRenderNode implements Disposeable{
     // Recursively visit all sub-nodes in breadth-first mode and mark their
     // cumulative transforms as dirty
     //-----------------------------------------------------------------------------
-    public final void             MarkDirty(){
+    public final void MarkDirty(){
         mWorldMatrixDirty = true;
 
         if(mpSibling != null)
@@ -166,7 +166,7 @@ public class CPUTRenderNode implements Disposeable{
         }
     }
 
-    public final void             AddChild(CPUTRenderNode pNode){
+    public final void AddChild(CPUTRenderNode pNode){
         if( mpChild !=null)
         {
             mpChild.AddSibling( pNode );
@@ -177,7 +177,7 @@ public class CPUTRenderNode implements Disposeable{
             mpChild = pNode;
         }
     }
-    public final void             AddSibling(CPUTRenderNode pNode){
+    public final void AddSibling(CPUTRenderNode pNode){
         if( mpSibling !=null)
         {
             mpSibling.AddSibling( pNode );
@@ -188,7 +188,8 @@ public class CPUTRenderNode implements Disposeable{
 //            pNode.AddRef();
         }
     }
-    public void     Update( float deltaSeconds /*= 0.0f*/ ){}
+
+    public void Update( float deltaSeconds /*= 0.0f*/ ){}
 
     /**
      * Update - recursively visit all sub-nodes in breadth-first mode
@@ -250,7 +251,7 @@ public class CPUTRenderNode implements Disposeable{
     }
 
     /** RenderRecursive - recursively visit all sub-nodes in breadth-first mode */
-    public void     RenderAVSMShadowedRecursive(CPUTRenderParameters renderParams){
+    public void RenderAVSMShadowedRecursive(CPUTRenderParameters renderParams){
         RenderAVSMShadowed(renderParams);
 
         if(mpChild != null)
@@ -265,7 +266,7 @@ public class CPUTRenderNode implements Disposeable{
         }
     }
 
-    public final void             SetParentMatrix(Matrix4f parentMatrix)
+    public final void SetParentMatrix(Matrix4f parentMatrix)
     {
         mParentMatrix.load(parentMatrix);
         MarkDirty();

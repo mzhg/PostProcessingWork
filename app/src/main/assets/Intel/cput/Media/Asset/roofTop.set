@@ -1,0 +1,37 @@
+// Created with FBXConvert.exe (Oct  5 2012 06:49:44)
+[node 0]
+type = model
+name = floor
+parent = -1
+matrixRow0 = 1 0 -0 0
+matrixRow1 = 0 1 -0 0
+matrixRow2 = -0 -0 1 0
+matrixRow3 = 0 0 -0 1
+BoundingBoxCenter = 7.26625 -3.61059 5.70028
+BoundingBoxHalf = 28.3756 3.61059 33.624
+meshcount = 1
+material0 = floorMaterial
+[node 1]
+type = model
+name = walls
+parent = -1
+matrixRow0 = 1 0 -0 0
+matrixRow1 = 0 1 -0 0
+matrixRow2 = -0 -0 1 0
+matrixRow3 = 0 0 -0 1
+BoundingBoxCenter = 7.26625 -8.67705 5.69273
+BoundingBoxHalf = 28.9654 8.94837 34.2062
+meshcount = 1
+material0 = concreteMaterial
+[node 2]
+type = model
+name = doodads
+parent = -1
+matrixRow0 = 1 0 -0 0
+matrixRow1 = 0 1 -0 0
+matrixRow2 = -0 -0 1 0
+matrixRow3 = 0 0 -0 1
+BoundingBoxCenter = 8.27613 1.51902 4.43027 
+BoundingBoxHalf = 26.0229 12.9406 30.9775 
+meshcount = 1
+material0 = metalMaterial

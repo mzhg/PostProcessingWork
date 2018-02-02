@@ -1,5 +1,7 @@
 package jet.opengl.demos.intel.avsm;
 
+import com.nvidia.developer.opengl.utils.BoundingBox;
+
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -8,6 +10,19 @@ import org.lwjgl.util.vector.Vector3f;
  */
 
 final class Utils {
+
+    static void ComputeFrustumExtents(Matrix4f projToView, BoundingBox out){
+        out.init();
+
+        Vector3f f3PlaneCornerProjSpace = new Vector3f();
+        for(int iClipPlaneCorner=0; iClipPlaneCorner < 8; ++iClipPlaneCorner) {
+            f3PlaneCornerProjSpace.set((iClipPlaneCorner & 0x01) != 0 ? +1.f : -1.f,   // x
+                    (iClipPlaneCorner & 0x02) != 0 ? +1.f : -1.f,                      // y
+                    (iClipPlaneCorner & 0x04) != 0 ? +1.f : -1.f);                      // z
+            Matrix4f.transformCoord(projToView, f3PlaneCornerProjSpace, f3PlaneCornerProjSpace);  // Transform the position from projection to world space
+            out.expandBy(f3PlaneCornerProjSpace);
+        }
+    }
 
     static void ComputeFrustumExtents(Matrix4f cameraViewInv,
                                       Matrix4f cameraProj,

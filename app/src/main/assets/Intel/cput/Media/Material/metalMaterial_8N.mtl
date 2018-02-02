@@ -1,0 +1,17 @@
+texture_DM = Metal.dds
+texture_SM = Metal_SM.dds
+texture_NM = Metal_NM.dds
+texture_NMSrgb = false
+
+cbMyAVSMValues      = $cbAVSMValues
+AVSMConstants       = $cbAVSMConstants
+PerFrameConstants   = $cbPerFrameConstants
+ParticlePerFrameConstants = $cbParticlePerFrameConstants
+
+VertexShaderFile    = BasicShader_8N.glsl
+VertexShaderMain    = VSMain
+VertexShaderProfile = vs_5_0
+PixelShaderFile     = BasicShader_8N.glsl
+PixelShaderMain     = PSMain
+PixelShaderProfile  = ps_5_0
+RenderStateFile     = $DefaultRenderStates      // if changing ensure correct samplers for AVSM are there (as in the default state)

@@ -75,7 +75,9 @@ public class CPUTCamera extends CPUTRenderNode {
     public float           GetFarPlaneDistance() {  return mFarPlaneDistance; }
     public void            SetNearPlaneDistance( float nearPlaneDistance ) { mNearPlaneDistance = nearPlaneDistance; }
     public void            SetFarPlaneDistance(  float farPlaneDistance ) { mFarPlaneDistance = farPlaneDistance; }
-    public void            LookAt( float xx, float yy, float zz ){}
+    public void            LookAt( float xx, float yy, float zz ){
+        Matrix4f.lookAt(mParentMatrix.m30, mParentMatrix.m31,  mParentMatrix.m32, xx, yy, zz, 0,1,0, mView);
+    }
 
     public boolean isCenterExtentVisible(Vector3f centerWorldSpace, Vector3f halfWorldSpace) {
         mBoundingBox.setFromExtent(centerWorldSpace, halfWorldSpace);

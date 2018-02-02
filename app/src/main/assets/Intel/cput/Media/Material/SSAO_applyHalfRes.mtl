@@ -1,0 +1,12 @@
+texture0 = $ScratchHalfResRenderTarget
+ViewspaceDepthSource = $ViewspaceDepthSource
+
+VertexShaderFile    = ssao.fx
+VertexShaderMain    = VSMain
+VertexShaderProfile = vs_5_0
+
+PixelShaderFile     = ssao.fx
+PixelShaderMain     = PSApplyHalfRes
+PixelShaderProfile  = ps_5_0
+
+RenderStateFile     = ssao_Apply.rs
