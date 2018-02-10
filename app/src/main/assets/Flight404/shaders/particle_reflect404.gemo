@@ -1,0 +1,79 @@
+#version 330
+
+layout (points) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+in Particle
+{
+  vec3 loc;
+  vec3 vel;
+  float radius;
+  float age;
+  float lifeSpan;
+  float gen;
+  float bounceAge;
+  uint type;
+  
+  vec3 tail0;
+  vec3 tail1;
+  vec3 tail2;
+  vec3 tail3;
+}vs[];
+
+out vec2 gs_texCoord;
+flat out vec4 gs_color;
+
+uniform mat4 u_mvp;
+
+void main()
+{
+	vec3 in_loc = vs[0].loc;
+	vec3 in_vel = vs[0].vel;
+	float in_radius = vs[0].radius;
+	float in_age = vs[0].age;
+	float in_bounceAge = vs[0].bounceAge;
+	
+	// output reflect informations.
+	float altitude = in_loc.y;
+	float reflectMaxAltitude = 5.0;
+	float yPer = (1.0 - (altitude / reflectMaxAltitude)) * .5;
+	
+	if(yPer > 0.05)
+	{
+		float agePer = 1.0 - in_age / vs[0].lifeSpan;
+			
+		vec3 emiter_pos = vec3(in_loc.x, 0.0, in_loc.z);
+		float diam = in_radius * agePer * yPer;
+		
+		float half_size = diam * 0.2;
+		vec4 reflect_color = vec4(agePer * .35, agePer * .25, agePer * 0.1, yPer + 0.1);
+		
+		vec3 u_right = vec3(1.0, 0.0, 0.0);
+		vec3 u_up    = vec3(0.0, 0.0, -1.0);
+		vec4 pos1 = vec4(emiter_pos + u_right * half_size - u_up * half_size, 1.0);
+		gl_Position = u_mvp * pos1;
+		gs_texCoord = vec2(0, 1);
+		gs_color = reflect_color;
+		EmitVertex();
+		
+		vec4 pos2 = vec4(emiter_pos + u_right * half_size + u_up * half_size, 1.0);
+		gl_Position = u_mvp * pos2;
+		gs_texCoord = vec2(0, 0);
+		gs_color = reflect_color;
+		EmitVertex();
+		
+		vec4 pos3 = vec4(emiter_pos - u_right * half_size - u_up * half_size, 1.0);
+		gl_Position = u_mvp * pos3;
+		gs_texCoord = vec2(1, 1);
+		gs_color = reflect_color;
+		EmitVertex();
+		
+		vec4 pos4 = vec4(emiter_pos - u_right * half_size + u_up * half_size, 1.0);
+		gl_Position = u_mvp * pos4;
+		gs_texCoord = vec2(1, 0);
+		gs_color = reflect_color;
+		EmitVertex();
+		
+		EndPrimitive();
+	}
+}

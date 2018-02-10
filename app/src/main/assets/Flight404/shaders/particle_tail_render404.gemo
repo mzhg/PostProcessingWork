@@ -1,0 +1,209 @@
+#version 330
+#extension GL_ARB_gpu_shader5 : enable
+
+// #define USE_VOLUME_LINES
+
+layout (points) in;
+layout (triangle_strip, max_vertices = 48) out;
+
+uniform mat4 projection;
+uniform mat4 modelView;
+uniform float radius = 0.03;
+
+in Particle
+{
+  vec3 loc;
+  vec3 vel;
+  float radius;
+  float age;
+  float lifeSpan;
+  float gen;
+  float bounceAge;
+  uint type;
+  
+  vec3 tail0;
+  vec3 tail1;
+  vec3 tail2;
+  vec3 tail3;
+}vs[];
+
+#ifdef USE_VOLUME_LINES
+out block
+{
+	flat vec3 p1;
+	flat vec3 p2;
+	smooth vec3 fragViewPos;
+} Out;
+
+void genQuad(vec3 v1, vec3 v2)
+{
+	vec3 tmp;
+	const vec3 _Y_ = vec3(0.0,1.0,0.0);
+	const vec3 _X_ = vec3(1.0,0.0,0.0);
+	mat4 pMat = projection;
+	//float radius = vs[0].radius * 0.01;
+	
+	//read line vertices
+	//vec3 v1 = gl_in[0].gl_Position.xyz;
+	//vec3 v2 = gl_in[1].gl_Position.xyz;
+
+	//
+	Out.p1=v1;						//view space line point1 to FP
+	Out.p2=v2;						//view space line point2 to FP
+	vec3 lineDir = v2-v1;
+	float lineLength=length(v1-v2);	//line length to FP
+	vec3 normLineDir = lineDir/lineLength;
+
+	//construction of the hortonormal basis of the line
+	vec3 d2=cross(normLineDir,_Y_);
+	if(abs(normLineDir.y)>0.999)
+		d2=cross(normLineDir,_X_);
+	d2=normalize(d2);
+	vec3 d3=cross(normLineDir,d2);//don't need to normalize here
+	vec3 d2norm=d2;
+	vec3 d3norm=d3;
+	d2*=radius;
+	d3*=radius;
+
+	vec3 lineDirOffsetM = radius*normLineDir;
+	vec3 lineDirOffsetP = lineDir + lineDirOffsetM;
+
+	//precompute all vertices position
+	vec4 viewPos000 = vec4( v1 -d2-d3 -lineDirOffsetM, 1.0);
+	vec4 viewPos001 = vec4( v1 -d2+d3 -lineDirOffsetM, 1.0);
+	vec4 viewPos010 = vec4( v1 +d2-d3 -lineDirOffsetM, 1.0);
+	vec4 viewPos011 = vec4( v1 +d2+d3 -lineDirOffsetM, 1.0);
+	vec4 viewPos110 = vec4( v1 +d2-d3 +lineDirOffsetP, 1.0);
+	vec4 viewPos111 = vec4( v1 +d2+d3 +lineDirOffsetP, 1.0);
+	vec4 viewPos100 = vec4( v1 -d2-d3 +lineDirOffsetP, 1.0);
+	vec4 viewPos101 = vec4( v1 -d2+d3 +lineDirOffsetP, 1.0);
+	//... and their projection
+	vec4 viewPos000proj = pMat * viewPos000;
+	vec4 viewPos001proj = pMat * viewPos001;
+	vec4 viewPos011proj = pMat * viewPos011;
+	vec4 viewPos010proj = pMat * viewPos010;
+	vec4 viewPos100proj = pMat * viewPos100;
+	vec4 viewPos101proj = pMat * viewPos101;
+	vec4 viewPos111proj = pMat * viewPos111;
+	vec4 viewPos110proj = pMat * viewPos110;
+
+	Out.fragViewPos = viewPos001.xyz;
+	gl_Position = viewPos001proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos000.xyz;
+	gl_Position = viewPos000proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos101.xyz;
+	gl_Position = viewPos101proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos100.xyz;
+	gl_Position = viewPos100proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos111.xyz;
+	gl_Position = viewPos111proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos110.xyz;
+	gl_Position = viewPos110proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos011.xyz;
+	gl_Position = viewPos011proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos010.xyz;
+	gl_Position = viewPos010proj;
+	EmitVertex();/////////////////////////////////////
+    EndPrimitive();//////////////////////////////////////////////////////////////////////////
+	
+	Out.fragViewPos = viewPos101.xyz;
+	gl_Position = viewPos101proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos111.xyz;
+	gl_Position = viewPos111proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos001.xyz;
+	gl_Position = viewPos001proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos011.xyz;
+	gl_Position = viewPos011proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos000.xyz;
+	gl_Position = viewPos000proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos010.xyz;
+	gl_Position = viewPos010proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos100.xyz;
+	gl_Position = viewPos100proj;
+	EmitVertex();/////////////////////////////////////
+	Out.fragViewPos = viewPos110.xyz;
+	gl_Position = viewPos110proj;
+	EmitVertex();/////////////////////////////////////
+    EndPrimitive();//////////////////////////////////////////////////////////////////////////
+}
+
+#else
+
+out vec4 color;
+
+void genQuad(vec3 v1, vec3 v2, float per)
+{
+	mat4 mvp = projection * modelView;
+	const vec3 up = vec3(0,1,0);
+	vec3 perp0 = v1 - v2;
+	vec3 perp1 = normalize(cross(perp0, up));  // right
+//	vec3 perp2 = normalize(cross(perp0, perp1)); // up
+//	perp1 =      normalize(cross(perp0, perp2));
+	
+	float agePer = 1.0 - vs[0].age/vs[0].lifeSpan;
+	
+	vec3 off = perp1 * vs[0].radius * agePer * per * .0025;
+	vec4 c = vec4(per, per * .5, 1.5 - per, per);
+	
+	vec3 pos = v1 - off;
+	gl_Position = mvp * vec4(pos, 1.0);
+	color = c;
+	EmitVertex();
+	
+	pos = v1 + off;
+	gl_Position = mvp * vec4(pos, 1.0);
+	color = c;
+	EmitVertex();
+	
+	per -= 1.0/3.0;
+	c = vec4(per, per * .5, 1.5 - per, per);
+	pos = v2 - off;
+	gl_Position = mvp * vec4(pos, 1.0);
+	color = c;
+	EmitVertex();
+	
+	pos = v2 + off;
+	gl_Position = mvp * vec4(pos, 1.0);
+	color = c;
+	EmitVertex();
+	EndPrimitive();//////////////////////////////////////////////////////////////////////////
+}
+
+#endif
+
+void main()
+{
+#ifdef USE_VOLUME_LINES
+	vec4 v0 = modelView * vec4(vs[0].tail0, 1.0);
+	vec4 v1 = modelView * vec4(vs[0].tail1, 1.0);
+	vec4 v2 = modelView * vec4(vs[0].tail2, 1.0);
+	vec4 v3 = modelView * vec4(vs[0].tail3, 1.0);
+	
+	genQuad(v0.xyz, v1.xyz);
+	genQuad(v1.xyz, v2.xyz);
+	genQuad(v2.xyz, v3.xyz);
+#else
+	vec3 v0 = vs[0].tail0;
+	vec3 v1 = vs[0].tail1;
+	vec3 v2 = vs[0].tail2;
+	vec3 v3 = vs[0].tail3;
+	
+	genQuad(v0, v1, 1.0);
+	genQuad(v1, v2, 0.66667);
+	genQuad(v2, v3, 0.33333);
+
+#endif
+}

@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.intel.avsm.AVSMDemo;
+import jet.opengl.demos.flight404.Flight404;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -92,8 +92,11 @@ public class DemoApp {
 //        run(SSAODemoDX11.newInstance());
 //        testRectVertex();
 //        run(new OutdoorLightScatteringSample());
-        run(new AVSMDemo());
+//        run(new AVSMDemo());
 //        run(new ShaderTest());
+//        run(new SoftShadowDemo());
+//        run(new TestD3D11());
+        run(new Flight404());
     }
 
     private static void testRectVertex(){

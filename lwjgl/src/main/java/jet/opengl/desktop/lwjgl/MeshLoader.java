@@ -29,7 +29,7 @@ import jet.opengl.postprocessing.util.DebugTools;
 public class MeshLoader {
     public static void main(String[] args) {
 //        loadLightningXMesh();
-        loadMDL();
+        loadRainbow();
     }
 
     static void loadLightningXMesh(){
@@ -71,10 +71,10 @@ public class MeshLoader {
 
     }
 
-    static void loadMDL(){
-        String root = "E:\\SDK\\avsm\\Media\\Asset\\";
-        String[] tokens = {"roofTop"};
-        String[] exts = {".set"};
+    static void loadRainbow(){
+        String root = "E:\\SDK\\HLSL_RainbowFogbow\\MEDIA\\models\\RainbowFogbowModels\\";
+        String[] tokens = {"rainbowFogBow_skyBox", "rainbowFogBow_skyBox_Noise", "rainbowFogBow_terrain"};
+        String[] exts = {".x", ".x", ".x"};
 
         for(int i = 0; i < tokens.length; i++){
             String token =tokens[i];
@@ -84,7 +84,7 @@ public class MeshLoader {
                 throw new IllegalArgumentException();
 
 
-            AIScene scene = Assimp.aiImportFile(file.getAbsolutePath(), 0);
+            AIScene scene = Assimp.aiImportFile(file.getAbsolutePath(), Assimp.aiProcess_Triangulate|Assimp.aiProcess_SortByPType);
             if (scene == null) {
                 throw new IllegalStateException(Assimp.aiGetErrorString());
             }
@@ -133,7 +133,7 @@ public class MeshLoader {
                 throw new IllegalArgumentException();
 
 
-            AIScene scene = Assimp.aiImportFile(file.getAbsolutePath(), 0);
+            AIScene scene = Assimp.aiImportFile(file.getAbsolutePath(), Assimp.aiProcess_Triangulate);
             if (scene == null) {
                 throw new IllegalStateException(Assimp.aiGetErrorString());
             }
@@ -306,20 +306,25 @@ public class MeshLoader {
         if(faceCount == 0)
             return;
 
-        int elementCount = faceCount * 3;
+        AIFace.Buffer facesBuffer = mesh.mFaces();
+        int vertexPerFace = facesBuffer.get(0).mNumIndices();
+        if(vertexPerFace == 4){
+            int k = 2;
+        }
+        int elementCount = faceCount * vertexPerFace;
         int[] elementArrayBufferData = new int[elementCount];
 
-        AIFace.Buffer facesBuffer = mesh.mFaces();
+
         for (int i = 0; i < faceCount; ++i) {
             AIFace face = facesBuffer.get(i);
-            if (face.mNumIndices() != 3) {
-                throw new IllegalStateException("AIFace.mNumIndices() != 3");
+            if (face.mNumIndices() != vertexPerFace) {
+                throw new IllegalStateException("AIFace.mNumIndices() = " + face.mNumIndices());
             }
 //            elementArrayBufferData.put(face.mIndices());
             IntBuffer indices = face.mIndices();
-            elementArrayBufferData[i * 3 + 0] = indices.get();
-            elementArrayBufferData[i * 3 + 1] = indices.get();
-            elementArrayBufferData[i * 3 + 2] = indices.get();
+            for(int j = 0; j < vertexPerFace; j++){
+                elementArrayBufferData[i * vertexPerFace + j] = indices.get();
+            }
         }
 
         try {

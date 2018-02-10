@@ -1,0 +1,68 @@
+#version 400
+
+layout (points) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+//subroutine void shadeModelType(vec4 position, vec3 normal);
+//subroutine uniform shadeModelType shadeModel;
+
+in vec3 vs_pos[];
+in float vs_radius[];
+
+out vec2 gs_texCoord;
+flat out vec4 gs_color;
+
+uniform vec3 u_up = vec3(0.0, 1.0, 0.0);
+uniform vec3 u_right;
+uniform mat4 u_mvp;
+
+void main()
+{
+	vec3 emiter_pos = vs_pos[0];
+	float radius = vs_radius[0];
+	float altitude = emiter_pos.y;
+	float reflectMaxAltitude = 300.0;
+	float yPer = 1.0 - altitude / reflectMaxAltitude;
+//	float distance = (emiter_pos.y - emiter_radius);
+
+	if(yPer > 0.05){
+		float half_size = radius * 5.0;
+		vec4 reflect_color =  vec4(0.5, 1.0, yPer * .25, yPer);
+		/*
+		Vector3f.linear(right, +half_size, plane_normal, -half_size, out); Vector3f.add(emiter_pos, out, out); out.y = 0; out.store(emiter_reflect_buf);
+		Vector3f.linear(right, +half_size, plane_normal, +half_size, out); Vector3f.add(emiter_pos, out, out); out.y = 0; out.store(emiter_reflect_buf);
+		Vector3f.linear(right, -half_size, plane_normal, -half_size, out); Vector3f.add(emiter_pos, out, out); out.y = 0; out.store(emiter_reflect_buf);
+		Vector3f.linear(right, -half_size, plane_normal, +half_size, out); Vector3f.add(emiter_pos, out, out); out.y = 0; out.store(emiter_reflect_buf);
+		*/
+		
+		vec4 pos1 = vec4(emiter_pos + u_right * half_size - u_up * half_size, 1.0);
+		pos1.y = 0.0;
+		gl_Position = u_mvp * pos1;
+		gs_texCoord = vec2(0, 1);
+		gs_color = reflect_color;
+		EmitVertex();
+		
+		vec4 pos2 = vec4(emiter_pos + u_right * half_size + u_up * half_size, 1.0);
+		pos2.y = 0.0;
+		gl_Position = u_mvp * pos2;
+		gs_texCoord = vec2(0, 0);
+		gs_color = reflect_color;
+		EmitVertex();
+		
+		vec4 pos3 = vec4(emiter_pos - u_right * half_size - u_up * half_size, 1.0);
+		pos3.y = 0.0;
+		gl_Position = u_mvp * pos3;
+		gs_texCoord = vec2(1, 1);
+		gs_color = reflect_color;
+		EmitVertex();
+		
+		vec4 pos4 = vec4(emiter_pos - u_right * half_size + u_up * half_size, 1.0);
+		pos4.y = 0.0;
+		gl_Position = u_mvp * pos4;
+		gs_texCoord = vec2(1, 0);
+		gs_color = reflect_color;
+		EmitVertex();
+		
+		EndPrimitive();
+	}
+}

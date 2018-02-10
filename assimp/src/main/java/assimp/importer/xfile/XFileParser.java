@@ -1,5 +1,10 @@
 package assimp.importer.xfile;
 
+import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -8,11 +13,6 @@ import java.util.ArrayList;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.ZipInputStream;
-
-import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector2f;
-import org.lwjgl.util.vector.Vector3f;
-import org.lwjgl.util.vector.Vector4f;
 
 import assimp.common.AssimpConfig;
 import assimp.common.DeadlyImportError;
@@ -1447,7 +1447,7 @@ public class XFileParser {
 //	void ThrowException( const std::string& pText);
 
 	/** Filters the imported hierarchy for some degenerated cases that some exporters produce.
-	 * @param pData The sub-hierarchy to filter
+	 * @param pNode The sub-hierarchy to filter
 	 */
 	void filterHierarchy( XNode pNode){
 		// if the node has just a single unnamed child containing a mesh, remove
