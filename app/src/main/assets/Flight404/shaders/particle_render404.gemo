@@ -60,12 +60,20 @@ void draw_particle()
 void draw_nebula()
 {
 	color = unpackUnorm4x8(vs[0].type);
-	mat4 mvp = projection * modelView;
+	/*mat4 mvp = projection * modelView;
 	vec4 ppos1 = mvp * vec4(vs[0].loc, 1.0);
-	vec4 ppos2 = mvp * vec4(vec3(vs[0].loc.x + vs[0].radius, vs[0].loc.yz), 1.0);
+	vec4 ppos2 = mvp * vec4(vec3(vs[0].loc.x + vs[0].radius, vs[0].loc.yz), 1.0);*/
+
+	// transform to the camera coordinate.
+    vec4 pos1 = modelView * vec4(vs[0].loc, 1.0);
+    vec4 pos2 = pos1;
+    pos2.x += (vs[0].radius * 0.5);
+    vec4 ppos1 = projection * pos1;
+    vec4 ppos2 = projection * pos2;
+
 	gl_Position = ppos1;
 	
-	gl_PointSize = distance(ppos1.xy/ppos1.w, ppos2.xy/ppos2.w) * 10.0;
+	gl_PointSize = /*distance(ppos1.xy/ppos1.w, ppos2.xy/ppos2.w) * .5*/ 10.0;
 	EmitVertex();
 }
 

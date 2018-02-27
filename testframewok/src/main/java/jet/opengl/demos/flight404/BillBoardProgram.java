@@ -4,6 +4,7 @@ import org.lwjgl.util.vector.Matrix4f;
 
 import java.io.IOException;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
@@ -16,8 +17,6 @@ final class BillBoardProgram extends GLSLProgram{
     final int size_index;
 
     public BillBoardProgram()  {
-
-
         try {
             setSourceFromFiles("flight404/shaders/emiter_debug.vert", "flight404/shaders/emiter_debug.frag");
         } catch (IOException e) {
@@ -29,6 +28,8 @@ final class BillBoardProgram extends GLSLProgram{
 
         enable();
         setTextureUniform("sprite_texture", 0);
+
+        GLCheck.checkError();
     }
 
     public void applyMVP(Matrix4f mat){ gl.glUniformMatrix4fv(mvp_index, false, CacheBuffer.wrap(mat));}

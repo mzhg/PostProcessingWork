@@ -73,23 +73,6 @@ final class ParticleUpdateProgram extends GLSLProgram{
     }
 
     private void bindFeedback(int programid){
-
-//		out vec3 loc;
-//		out vec3 vel;
-//		out float radius;
-//		out float age;
-//		out float lifeSpan;
-//		out float gen;
-//		out float bounceAge;
-
-//		layout (stream = 1) out vec3 n_loc;
-//		layout (stream = 1) out vec3 n_vel;
-//		layout (stream = 1) out float n_radius;
-//		layout (stream = 1) out float n_age;
-//		layout (stream = 1) out float n_lifeSpan;
-//		layout (stream = 1) out float is_grounded;   // boolean variable
-//		layout (stream = 1) out float n_scale;
-//		layout (stream = 1) out uint n_color;       // a packed uint color.
         final String[] varyings =
                 {
                         "loc", "vel","radius", "age", "lifeSpan", "gen", "bounceAge","type", "tail0", "tail1", "tail2", "tail3",

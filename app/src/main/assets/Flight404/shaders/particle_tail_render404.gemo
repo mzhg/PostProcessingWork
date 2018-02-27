@@ -155,7 +155,7 @@ void genQuad(vec3 v1, vec3 v2, float per)
 	
 	float agePer = 1.0 - vs[0].age/vs[0].lifeSpan;
 	
-	vec3 off = perp1 * vs[0].radius * agePer * per * .0025;
+	vec3 off = perp1 * vs[0].radius * agePer * per * 2.5;
 	vec4 c = vec4(per, per * .5, 1.5 - per, per);
 	
 	vec3 pos = v1 - off;

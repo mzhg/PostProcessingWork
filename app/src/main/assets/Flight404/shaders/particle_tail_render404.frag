@@ -10,7 +10,7 @@ in block
 	smooth vec3 fragViewPos;
 } In;
 
-layout(location = FRAG_COLOR, index = 0) out vec4 Color;
+layout(location = FRAG_COLOR) out vec4 Color;
 
 uniform float radius;
 uniform sampler2D gradientTexture;

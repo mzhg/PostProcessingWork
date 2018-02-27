@@ -5,6 +5,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
@@ -33,8 +34,7 @@ final class EmitterReflctProgram extends GLSLProgram{
             e.printStackTrace();
         }
 
-        GLSLProgram program = new GLSLProgram();
-        program.setSourceFromStrings(new ShaderSourceItem[]{
+        setSourceFromStrings(new ShaderSourceItem[]{
                 new ShaderSourceItem(vert, ShaderType.VERTEX),
                 new ShaderSourceItem(gemo, ShaderType.GEOMETRY),
                 new ShaderSourceItem(frag, ShaderType.FRAGMENT),
@@ -43,9 +43,12 @@ final class EmitterReflctProgram extends GLSLProgram{
         u_right = getUniformLocation("u_right");
         u_mvp   = getUniformLocation("u_mvp");
         u_up    = getUniformLocation("u_up");
+        GLCheck.checkError();
 
         enable();
+        GLCheck.checkError();
         setTextureUniform("sprite_texture", 0);
+        GLCheck.checkError();
     }
 
     public void applyUp   (Vector3f up) { gl.glUniform3f(u_up, up.x, up.y, up.z);}

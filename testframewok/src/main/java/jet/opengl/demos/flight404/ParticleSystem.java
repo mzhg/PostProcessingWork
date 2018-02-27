@@ -42,7 +42,7 @@ final class ParticleSystem {
     long last_update_time;
 
     int current_chain;
-    boolean first_loop;
+    private boolean first_loop;
 
     int count = 0;
     int random_texture_1d;
@@ -83,16 +83,26 @@ final class ParticleSystem {
         if(rightButtonDown){
             if(current_time - last_update_time > 50){
                 gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, emitter_source_buffer);
-                ByteBuffer data = gl.glMapBufferRange(GLenum.GL_ARRAY_BUFFER,0, 8 * MAX_EMITTER_COUNT,GLenum.GL_WRITE_ONLY, emitter_buffer);
-                data.position(0);
+                if(emitter_buffer != null){
+                    emitter_buffer.clear();
+                }
 
+                /*ByteBuffer data = emitter_buffer = gl.glMapBufferRange(GLenum.GL_ARRAY_BUFFER,0, 8 * MAX_EMITTER_COUNT,GLenum.GL_WRITE_ONLY, emitter_buffer);
+                if(data != null) {
+                    data.position(0);
+                }else{
+                    data = emitter_buffer;
+                }*/
+                ByteBuffer data = CacheBuffer.getCachedByteBuffer(8 * MAX_EMITTER_COUNT);
                 for(int i = 0; i < MAX_EMITTER_COUNT; i++){
                     float seed = (float)Math.random();
                     data.putFloat(seed);
                     data.putInt(0);
                 }
+                data.flip();
+                gl.glBufferSubData(GLenum.GL_ARRAY_BUFFER, 0, data);
 
-                gl.glUnmapBuffer(GLenum.GL_ARRAY_BUFFER);
+//                gl.glUnmapBuffer(GLenum.GL_ARRAY_BUFFER);
                 last_update_time = System.currentTimeMillis();
                 needAddNewParticle = true;
             }
@@ -143,7 +153,6 @@ final class ParticleSystem {
             particle_update.applyType(TYPE_UPDATE);
             particle_update.applyRecord(count % 5 == 0);
             particle_chains[1-current_chain].drawStream(0);
-            gl.glFlush();
 
             particle_update.applyType(TYPE_NEBULA);
             particle_chains[1-current_chain].drawStream(1);
@@ -155,6 +164,11 @@ final class ParticleSystem {
         count ++;
         gl.glBindTexture(GLenum.GL_TEXTURE_1D, 0);
 
+        if(Flight404.printOnce){
+            particle_update.setName("Particle Update");
+            particle_update.printPrograminfo();
+        }
+
         GLCheck.checkError();
     }
 
@@ -165,7 +179,7 @@ final class ParticleSystem {
         particle_render.applyModelView(frameData.view);
         particle_render.applyProjection(frameData.proj);
         particle_render.applyRenderType(true);
-//        enablePointSprite();
+        emitter.context.enablePointSprite();
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, particle_sprite);
         particle_chains[current_chain].drawStream(0);
@@ -174,19 +188,33 @@ final class ParticleSystem {
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, nebula_sprite);
         particle_render.applyRenderType(false);
         particle_chains[current_chain].drawStream(1);
-//        disablePointSprite();
+        emitter.context.disablePointSprite();
+        if(Flight404.printOnce){
+            particle_render.setName("Particle Render");
+            particle_render.printPrograminfo();
+        }
 
         // 2, draw the particle reflects.
         particle_reflect.enable();
         particle_reflect.applyMVP(frameData.viewProj);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, particle_sprite);
         particle_chains[current_chain].drawStream(0);
+        if(Flight404.printOnce){
+            particle_reflect.setName("Particle Reflect");
+            particle_reflect.printPrograminfo();
+        }
+
         // 3, draw the particle tail.
         tail_render.enable();
         tail_render.applyModelView(frameData.view);
         tail_render.applyProjection(frameData.proj);
-        tail_render.applyRadius(0.05f);
-        particle_chains[current_chain].drawStream(0);
+        tail_render.applyRadius(0.5f);
+        gl.glDisable(GLenum.GL_CULL_FACE);
+//        particle_chains[current_chain].drawStream(0);
+        if(Flight404.printOnce){
+            tail_render.setName("Tail Render");
+            tail_render.printPrograminfo();
+        }
 
         GLCheck.checkError();
         current_chain = 1 - current_chain;

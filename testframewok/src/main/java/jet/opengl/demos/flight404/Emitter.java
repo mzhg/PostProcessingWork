@@ -1,7 +1,5 @@
 package jet.opengl.demos.flight404;
 
-import com.nvidia.developer.opengl.app.NvInputTransformer;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
@@ -10,6 +8,7 @@ import org.lwjgl.util.vector.Vector3f;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -36,21 +35,23 @@ final class Emitter {
     int reflect_sprite;
 
     private GLFuncProvider gl;
-    private NvInputTransformer camera;
+    Flight404 context;
 
-    public Emitter(NvInputTransformer camera) {
-        this.camera = camera;
+    public Emitter(Flight404 context) {
+        this.context = context;
         gl = GLFuncProviderFactory.getGLFuncProvider();
+        GLCheck.checkError();
         reflect_program = new EmitterReflctProgram();
         render_program = new BillBoardProgram();
 
+        GLCheck.checkError();
         emitter_sprite = loadTexture("emitter.png");
         reflect_sprite = loadTexture("reflection.png");
     }
 
     static int loadTexture(String filename){
         try {
-            return TextureUtils.createTexture2DFromFile("fight404/textures/" + filename, false).getTexture();
+            return TextureUtils.createTexture2DFromFile("Flight404/textures/" + filename, false).getTexture();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -80,7 +81,7 @@ final class Emitter {
 
         float t = -Vector3f.dot(plane_normal, eyePos)/Vector3f.dot(plane_normal, dir);
         Vector3f.linear(eyePos, dir, t, emiter_pos);
-        System.out.println(emiter_pos);
+//        System.out.println(emiter_pos);
 
         float radius = emiter_diam * 0.5f;
 
@@ -97,12 +98,20 @@ final class Emitter {
         FloatBuffer buf = CacheBuffer.getCachedFloatBuffer(4);
         emiter_pos.store(buf);
         buf.flip();
+
+        gl.glBindVertexArray(0);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 0, buf);
         gl.glEnableVertexAttribArray(0);
-//        enablePointSprite();
+        context.enablePointSprite();
         gl.glDrawArrays(GLenum.GL_POINTS, 0, 1);
         gl.glDisableVertexAttribArray(0);
-//        disablePointSprite();
+        context.disablePointSprite();
+
+        if(Flight404.printOnce){
+            render_program.setName("Emitter Render");
+            render_program.printPrograminfo();
+        }
 
         // draw the reflect.
         reflect_program.enable();
@@ -125,6 +134,11 @@ final class Emitter {
         gl.glDisableVertexAttribArray(0);
         gl.glDisableVertexAttribArray(1);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
+
+        if(Flight404.printOnce){
+            reflect_program.setName("Emitter Reflect Render");
+            reflect_program.printPrograminfo();
+        }
     }
 
     private Vector3f grap(FrameData frameData, float screenX, float screenY, Vector3f dir){
