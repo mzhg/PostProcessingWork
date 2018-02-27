@@ -4,9 +4,8 @@
 # Post Processing
 **A Java library for high performance modern Graphics(OpenGL) Library. The project is still in beta.**
 
+<br>
 ## Features
-
-```
 + SSAO
   - HBAO
   - ASSAO
@@ -32,16 +31,20 @@
   - SMAA
   - SAA
 + Clouding(Still in progress...)
+<br>
 
 # Shadow Library
 **Still in progress**
 
+<br>
 # Water Effect
 **Still in progress**
 
+<br>
 # Particle Library
 **Still in progress**
 
+<br>
 # Other Interesting Demos
 ...
 
