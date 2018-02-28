@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.flight404.Flight404;
+import jet.opengl.demos.gpupro.noise.ShaderNoise;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -87,7 +87,7 @@ public class DemoApp {
         });
 
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
-//        run(new HBAOPlusDemo());
+//        run(new HBAODemo());
 //        run(new ASSAODemoDebug());
 //        run(SSAODemoDX11.newInstance());
 //        testRectVertex();
@@ -95,8 +95,8 @@ public class DemoApp {
 //        run(new AVSMDemo());
 //        run(new ShaderTest());
 //        run(new SoftShadowDemo());
-//        run(new TestD3D11());
-        run(new Flight404());
+        run(new ShaderNoise());
+//        run(new Flight404());
     }
 
     private static void testRectVertex(){

@@ -137,8 +137,8 @@ public class DOFBokehDemo extends NvSampleApp {
             m_frameAttribs.viewMat = sceneBall.getViewMat();
             m_frameAttribs.projMat = sceneBall.getProjMat();
 
-            m_PostProcessing.addDOFBokeh(m_focalDepth, m_focalRange, m_fStop);
-//            m_PostProcessing.addDOFGaussion(m_focalDepth, m_focalRange, nearTransitionRegion, farTransitionRegion, 1, true, false);
+//            m_PostProcessing.addDOFBokeh(m_focalDepth, m_focalRange, m_fStop);
+            m_PostProcessing.addDOFGaussion(m_focalDepth, m_focalRange, nearTransitionRegion, farTransitionRegion, 1, true, true);
             m_PostProcessing.performancePostProcessing(m_frameAttribs);
         }
 

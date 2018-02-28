@@ -114,7 +114,7 @@ final class ParticleSystem {
         particle_update.applyCounter(count);
         particle_update.applyTime(dt);
         particle_update.applyEyePos(frameData.cameraPos);
-        particle_update.applySeed((float)System.currentTimeMillis());
+        particle_update.applySeed((float)System.currentTimeMillis()/100000);
 
         particle_chains[current_chain].beginRecord(GLenum.GL_POINTS);
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
@@ -210,7 +210,7 @@ final class ParticleSystem {
         tail_render.applyProjection(frameData.proj);
         tail_render.applyRadius(0.5f);
         gl.glDisable(GLenum.GL_CULL_FACE);
-//        particle_chains[current_chain].drawStream(0);
+        particle_chains[current_chain].drawStream(0);
         if(Flight404.printOnce){
             tail_render.setName("Tail Render");
             tail_render.printPrograminfo();

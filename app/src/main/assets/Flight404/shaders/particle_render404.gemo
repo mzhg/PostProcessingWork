@@ -60,6 +60,7 @@ void draw_particle()
 void draw_nebula()
 {
 	color = unpackUnorm4x8(vs[0].type);
+//	color.w = (1.0 - vs[0].age / vs[0].lifeSpan);
 	/*mat4 mvp = projection * modelView;
 	vec4 ppos1 = mvp * vec4(vs[0].loc, 1.0);
 	vec4 ppos2 = mvp * vec4(vec3(vs[0].loc.x + vs[0].radius, vs[0].loc.yz), 1.0);*/
@@ -73,7 +74,7 @@ void draw_nebula()
 
 	gl_Position = ppos1;
 	
-	gl_PointSize = /*distance(ppos1.xy/ppos1.w, ppos2.xy/ppos2.w) * .5*/ 10.0;
+	gl_PointSize = distance(ppos1.xy/ppos1.w, ppos2.xy/ppos2.w) * 40.5;
 	EmitVertex();
 }
 

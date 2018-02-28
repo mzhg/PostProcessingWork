@@ -44,7 +44,7 @@ public final class Flight404 extends NvSampleApp {
     @Override
     protected void initRendering() {
         gl = GLFuncProviderFactory.getGLFuncProvider();
-        getGLContext().setSwapInterval(0);
+//        getGLContext().setSwapInterval(0);
 
         float mTheta =Numeric.PI/4;
         float mPhi = Numeric.PI/3;

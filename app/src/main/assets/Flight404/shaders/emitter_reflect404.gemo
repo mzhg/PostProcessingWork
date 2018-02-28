@@ -7,13 +7,13 @@ layout (triangle_strip, max_vertices = 4) out;
 //subroutine uniform shadeModelType shadeModel;
 
 in vec3 vs_pos[];
-in float vs_radius[];
+flat in float vs_radius[];
 
 out vec2 gs_texCoord;
 flat out vec4 gs_color;
 
-uniform vec3 u_up = vec3(0.0, 1.0, 0.0);
-uniform vec3 u_right;
+uniform vec3 u_up = vec3(0.0, 0.0, 1.0);
+uniform vec3 u_right = vec3(1.0, 0.0, 0.0);
 uniform mat4 u_mvp;
 
 void main()
@@ -21,20 +21,13 @@ void main()
 	vec3 emiter_pos = vs_pos[0];
 	float radius = vs_radius[0];
 	float altitude = emiter_pos.y;
-	float reflectMaxAltitude = 300.0;
+	float reflectMaxAltitude = 50.0;
 	float yPer = 1.0 - altitude / reflectMaxAltitude;
 //	float distance = (emiter_pos.y - emiter_radius);
 
 	if(yPer > 0.05){
-		float half_size = radius * 5.0;
+		float half_size = radius * 20.0 * yPer * yPer;
 		vec4 reflect_color =  vec4(0.5, 1.0, yPer * .25, yPer);
-		/*
-		Vector3f.linear(right, +half_size, plane_normal, -half_size, out); Vector3f.add(emiter_pos, out, out); out.y = 0; out.store(emiter_reflect_buf);
-		Vector3f.linear(right, +half_size, plane_normal, +half_size, out); Vector3f.add(emiter_pos, out, out); out.y = 0; out.store(emiter_reflect_buf);
-		Vector3f.linear(right, -half_size, plane_normal, -half_size, out); Vector3f.add(emiter_pos, out, out); out.y = 0; out.store(emiter_reflect_buf);
-		Vector3f.linear(right, -half_size, plane_normal, +half_size, out); Vector3f.add(emiter_pos, out, out); out.y = 0; out.store(emiter_reflect_buf);
-		*/
-		
 		vec4 pos1 = vec4(emiter_pos + u_right * half_size - u_up * half_size, 1.0);
 		pos1.y = 0.0;
 		gl_Position = u_mvp * pos1;

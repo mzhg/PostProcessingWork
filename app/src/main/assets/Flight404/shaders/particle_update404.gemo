@@ -265,7 +265,7 @@ void nebula_born(vec3 _loc, float _radius, bool _ISGROUNDED)
 	
 	float t_seed = u_seed + sin(_radius);
 	vec3 eye_normal = normalize(eye_loc);
-	n_loc = _loc;
+	n_loc = _loc + random(t_seed) * 2.0 - 1.0;
 	n_vel = eye_normal * 20.0;
 	n_radius = random(t_seed, _radius * .8, _radius * 1.75).x;
 	n_age = 0.0;
@@ -286,6 +286,7 @@ void nebula_born(vec3 _loc, float _radius, bool _ISGROUNDED)
 	else
 	{
 		n_scale = random(t_seed, 1.005, 1.10).x;
+		n_vel.y += random(t_seed).y * 3.0;
 	}
 	
 	EmitStreamVertex(1);

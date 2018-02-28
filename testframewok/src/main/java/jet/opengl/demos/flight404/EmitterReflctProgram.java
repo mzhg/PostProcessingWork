@@ -5,7 +5,6 @@ import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
 
-import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
@@ -43,15 +42,12 @@ final class EmitterReflctProgram extends GLSLProgram{
         u_right = getUniformLocation("u_right");
         u_mvp   = getUniformLocation("u_mvp");
         u_up    = getUniformLocation("u_up");
-        GLCheck.checkError();
 
         enable();
-        GLCheck.checkError();
         setTextureUniform("sprite_texture", 0);
-        GLCheck.checkError();
     }
 
-    public void applyUp   (Vector3f up) { gl.glUniform3f(u_up, up.x, up.y, up.z);}
-    public void applyRight(Vector3f right) { gl.glUniform3f(u_right, right.x, right.y, right.z);}
+    public void applyUp   (Vector3f up) {    if(u_up >= 0) gl.glUniform3f(u_up, up.x, up.y, up.z);}
+    public void applyRight(Vector3f right) { if(u_right >=0) gl.glUniform3f(u_right, right.x, right.y, right.z);}
     public void applyMVP  (Matrix4f mat)   { gl.glUniformMatrix4fv(u_mvp, false, CacheBuffer.wrap(mat));}
 }

@@ -94,8 +94,11 @@ public class LightingVolumeDemo extends NvSampleApp {
             m_frameAttribs.lightPos = m_Scene.getLightPos();
             m_frameAttribs.lightProjMat = m_Scene.getLightProjMat();
             m_frameAttribs.lightViewMat = m_Scene.getLightViewMat();
-            m_LightFrameAttribs.m_f4LightColorAndIntensity.set(80.0f, 80.0f, 80.0f, 5711.714f);   // For the spot light
-            m_LightFrameAttribs.m_f4LightColorAndIntensity.set(0.904016f, 0.843299f, 0.70132f, 200.0f);  // for the direction light.
+            if(m_InitAttribs.m_uiLightType == LightType.SPOT){
+                m_LightFrameAttribs.m_f4LightColorAndIntensity.set(80.0f, 80.0f, 80.0f, 5711.714f);   // For the spot light
+            }else{
+                m_LightFrameAttribs.m_f4LightColorAndIntensity.set(0.904016f, 0.843299f, 0.70132f, 200.0f);  // for the direction light.
+            }
 
             m_InitAttribs.m_uiLightType = LightType.values()[m_Scene.getLightMode()];
             float fSceneExtent = 100;
@@ -103,28 +106,9 @@ public class LightingVolumeDemo extends NvSampleApp {
             m_LightFrameAttribs.m_fDistanceScaler = 60000.f / m_LightFrameAttribs.m_fMaxTracingDistance;
             m_LightFrameAttribs.m_bShowLightingOnly = false;
 
-
-//
             m_PostProcessing.addVolumeLight(m_InitAttribs, m_LightFrameAttribs);
             m_PostProcessing.performancePostProcessing(m_frameAttribs);
         }
-
-//        m_Scene.resoveMultisampleTexture();
-//        if(true)return;
-//        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
-//        gl.glViewport(0, 0, getGLContext().width(), getGLContext().height());
-//        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
-//        gl.glDisable(GLenum.GL_DEPTH_TEST);
-//
-//        fullscreenProgram.enable();
-//        gl.glBindVertexArray(m_DummyVAO);
-////            scene_color_tex2.bind(0);
-//        gl.glActiveTexture(GLenum.GL_TEXTURE0);
-//        gl.glBindTexture(m_Scene.getSceneColor().getTarget(), m_Scene.getSceneColor().getTexture());
-//        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
-//        gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
-//        gl.glUseProgram(0);
-//        gl.glBindVertexArray(0);
     }
 
     @Override

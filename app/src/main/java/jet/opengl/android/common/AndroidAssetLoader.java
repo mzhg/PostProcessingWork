@@ -11,7 +11,6 @@ import jet.opengl.postprocessing.util.FileUtils;
 /**
  * Created by mazhen'gui on 2017/10/12.
  */
-
 public class AndroidAssetLoader implements FileLoader {
 
     private AssetManager manager;
@@ -49,5 +48,10 @@ public class AndroidAssetLoader implements FileLoader {
         }
 
         return false;
+    }
+
+    @Override
+    public String resolvePath(String file) {
+        return file;
     }
 }

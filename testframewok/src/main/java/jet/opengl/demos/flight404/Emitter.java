@@ -27,10 +27,10 @@ final class Emitter {
     final Vector2f mouse_vel = new Vector2f();
     final Vector3f right = new Vector3f();
     final Vector3f up = new Vector3f();
-    float emiter_diam = 5;
+    private final float emiter_diam = 5;
 
-    BillBoardProgram	 render_program;
-    EmitterReflctProgram reflect_program;
+    private BillBoardProgram	 render_program;
+    private EmitterReflctProgram reflect_program;
     int emitter_sprite;
     int reflect_sprite;
 
@@ -81,10 +81,6 @@ final class Emitter {
 
         float t = -Vector3f.dot(plane_normal, eyePos)/Vector3f.dot(plane_normal, dir);
         Vector3f.linear(eyePos, dir, t, emiter_pos);
-//        System.out.println(emiter_pos);
-
-        float radius = emiter_diam * 0.5f;
-
         Vector3f.cross(Vector3f.Y_AXIS, plane_normal, up);
     }
 
@@ -116,19 +112,19 @@ final class Emitter {
         // draw the reflect.
         reflect_program.enable();
         reflect_program.applyMVP(frameData.viewProj);
-        reflect_program.applyRight(up);
-        reflect_program.applyUp(right);
+//        reflect_program.applyRight(right);
+//        reflect_program.applyUp(up);
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, reflect_sprite);
 
         buf = CacheBuffer.getCachedFloatBuffer(4);
         emiter_pos.store(buf);
         buf.put(emiter_diam * 0.3f).flip();
-        gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 16, buf);
-        buf.position(3);
-        gl.glVertexAttribPointer(1, 1, GLenum.GL_FLOAT, false, 16, buf);
+        gl.glVertexAttribPointer(0, 4, GLenum.GL_FLOAT, false, 0, buf);
+//        buf.position(3);
+//        gl.glVertexAttribPointer(1, 1, GLenum.GL_FLOAT, false, 16, buf);
         gl.glEnableVertexAttribArray(0);
-        gl.glEnableVertexAttribArray(1);
+//        gl.glEnableVertexAttribArray(1);
 
         gl.glDrawArrays(GLenum.GL_POINTS, 0, 1);
         gl.glDisableVertexAttribArray(0);
