@@ -2,6 +2,7 @@ uniform int g_useTexture;
 uniform vec3 g_podiumCenterWorld;
 uniform bool g_useDiffuse;
 uniform vec3 gLightPos;
+uniform vec3 gLightDir;
 
 in vec4 worldPosition;
 in vec4 lightPosition;
@@ -36,7 +37,7 @@ vec2 cubeMapTexCoords(vec3 v)
 
 vec4 shade(vec3 worldPos, vec3 normal)
 {
-    vec3 lightDir = normalize(gLightPos - worldPos);
+    vec3 lightDir =  -gLightDir; // normalize(gLightPos - worldPos);
     if (g_useTexture == 1)
     {
         vec2 uv = (worldPos.xz * 0.5f + 0.5f) * 2.0f;
@@ -65,7 +66,7 @@ layout(location = 0) out vec4 OutColor;
 uniform bool bShowVariance = false;
 uniform bool bShowMD = false;
 uniform bool bShowCheb = false;
-uniform bool bVSM = false;
+uniform bool bVSM = true;
 uniform float fFilterWidth = 8.0;
 
 vec4 VSM_DEBUG( vec2 tex, float fragDepth )
@@ -114,7 +115,8 @@ float PCF_FILTER( vec2 tex, float fragDepth )
 float VSM_FILTER( vec2 tex, float fragDepth )
 {
     float lit = 0.0f;
-    vec2 moments = texture( g_ShadowDepth,    tex).rg;
+//    vec2 moments = texture( g_ShadowDepth,    tex).rg;
+    vec2 moments = textureLod( g_ShadowDepth,    tex, 0.).rg;
 
     float E_x2 = moments.y;
     float Ex_2 = moments.x * moments.x;
@@ -145,6 +147,6 @@ void main()
     else
         lit = PCF_FILTER( tex.xy, /*input.lightViewPos.z / input.lightViewPos.w*/tex.z);
 
-    OutColor = shade(worldPosition.xyz, normal) * max(0. , lit);
+    OutColor = shade(worldPosition.xyz, normal) * lit;
 
 }

@@ -86,8 +86,6 @@ public class RainDemo extends NvSampleApp {
     Texture3D         m_SplashBumpTexture;
     Texture3D         m_SplashDiffuseTexture;
 
-//global variables
-
     float g_SpriteSize = 0.8f;
     float g_dirLightRadius = 1000;
     boolean g_bRenderBg = true;
@@ -149,51 +147,6 @@ public class RainDemo extends NvSampleApp {
         WindAnimation.add(new WindValue( new Vector3f(0.0f,-0.5f,-0.02f), time += 10 ) );
         WindAnimation.add(new WindValue( new Vector3f(0.1f,-0.5f,0.4f),  time += 6) );
         WindAnimation.add(new WindValue( new Vector3f(-0.1f,-0.5f,0f),   time += 5 ) );
-//        g_pTotalVelShaderVariable->SetFloatVector((float*)WindAnimation.at(0).windAmount);
-
-        //set the variables
-//        D3DXMATRIX ViewMatrix;
-//        D3DXMATRIX InvViewMatrix;
-//        ViewMatrix = *g_Camera.GetViewMatrix();
-//        D3DXMatrixInverse( &InvViewMatrix, NULL, &ViewMatrix );
-
-
-//        D3DXVECTOR3 VecLightEye;
-//        D3DXVec3Subtract(&VecLightEye,&g_PointLightPos,g_Camera.GetEyePt());
-//        float lengthVecLightEye = D3DXVec3Length(&VecLightEye);
-//        D3DXVec3Normalize(&VecLightEye,&VecLightEye);
-
-//        D3DXVECTOR3 VecLightEye2;
-//        D3DXVec3Subtract(&VecLightEye2,&g_PointLightPos2,g_Camera.GetEyePt());
-//        float lengthVecLightEye2 = D3DXVec3Length(&VecLightEye2);
-//        D3DXVec3Normalize(&VecLightEye2,&VecLightEye2);
-
-
-        //initialize the matrices
-//        g_pInvViewShaderVariable->SetMatrix( (float*)&InvViewMatrix );
-//        g_pProjectionShaderVariable->SetMatrix( (float*)g_Camera.GetProjMatrix());
-
-        //initialize the vectors
-//        g_pEyePosShaderVariable->SetFloatVector((float*)&g_vecEye);
-//        D3DXVECTOR3 LightInViewSpace;
-//        vectorMatrixMultiply(&LightInViewSpace, ViewMatrix,g_PointLightPos);
-//        D3DXVec3Normalize(&LightInViewSpace,&LightInViewSpace);
-//        g_LightPosWithViewTransformationShaderVariable->SetFloatVector((float*)&LightInViewSpace);
-//        vectorMatrixMultiply(&LightInViewSpace, ViewMatrix,g_PointLightPos2);
-//        D3DXVec3Normalize(&LightInViewSpace,&LightInViewSpace);
-//        g_LightPosWithViewTransformation2ShaderVariable->SetFloatVector((float*)&LightInViewSpace);
-//        g_pFogThicknessShaderVariable->SetFloatVector((float*)&g_fogVector);
-
-
-        //initialize the scalars
-//        g_pSpriteSizeShaderVariable->SetFloat(g_SpriteSize);
-//        g_ScreenWidthShaderVariable->SetFloat(g_ScreenWidth);
-//        g_ScreenHeightShaderVariable->SetFloat(g_ScreenHeight);
-//        g_ScreenWidthMultiplierShaderVariable->SetFloat( 2.0f/(g_ScreenWidth-1)  );
-//        g_ScreenHeightMultiplierShaderVariable->SetFloat( 2.0f/(g_ScreenHeight-1)  );
-//        g_DSVPointLightShaderVariable->SetFloat( lengthVecLightEye );
-//        g_DSVPointLight2ShaderVariable->SetFloat( lengthVecLightEye2 );
-//        g_deShaderVariable->SetFloat( (g_ScreenHeight/2.0f)/(tan(g_fov/2.0f)) );
 
         setShadingParametersBasedOnRain();
 
@@ -265,21 +218,6 @@ public class RainDemo extends NvSampleApp {
 
 
         //create vertex buffers for the rain, two will be used to pingpong between during animation
-//        D3D10_BUFFER_DESC bd;
-//        bd.ByteWidth = sizeof( RainVertex ) * g_numRainVertices;
-//        bd.Usage = D3D10_USAGE_DEFAULT;
-//        bd.BindFlags = D3D10_BIND_VERTEX_BUFFER;
-//        bd.CPUAccessFlags = 0;
-//        bd.MiscFlags = 0;
-//        D3D10_SUBRESOURCE_DATA InitData;
-//        ZeroMemory( &InitData, sizeof(D3D10_SUBRESOURCE_DATA) );
-//        InitData.pSysMem = vertices;
-//        InitData.SysMemPitch = sizeof(RainVertex);
-//        V_RETURN( pd3dDevice->CreateBuffer( &bd, &InitData, &g_pParticleStart    ) );
-//        bd.BindFlags |= D3D10_BIND_STREAM_OUTPUT;
-//        V_RETURN( pd3dDevice->CreateBuffer( &bd, NULL,      &g_pParticleDrawFrom ) );
-//        V_RETURN( pd3dDevice->CreateBuffer( &bd, NULL,      &g_pParticleStreamTo ) );
-//        delete[] vertices;
         final int ByteWidth = RainVertex.SIZE * g_numRainVertices;
         ByteBuffer rainVertexData = CacheBuffer.getCachedByteBuffer(ByteWidth);
         for(RainVertex vertex : vertices){

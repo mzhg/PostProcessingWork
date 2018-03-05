@@ -37,6 +37,7 @@ layout(location = 1) in vec3 g_vNormal;
 uniform mat4 g_world;
 uniform mat4 g_viewProj;
 
+uniform mat4 gLightView;
 uniform mat4 gLightViewProj;
 uniform vec3 gLightPos;
 
@@ -53,12 +54,12 @@ void main()
     vec4 worldPos = g_world * vec4(g_vPosition, 1.0);
     worldPosition = worldPos;
     normal = g_vNormal;
-    vec4 position = g_viewProj * worldPos;
-    gl_Position = position;
+    gl_Position = g_viewProj * worldPos;
 
     lightViewPos = gLightViewProj * worldPos;
-    vec3 lightVec = gLightPos.xyz - worldPos.xyz;
-    fDepth = length(lightVec);
-    wLight = lightVec / fDepth;
+//    vec3 lightVec = gLightPos.xyz - worldPos.xyz;
+    vec4 lightVec = gLightView * worldPos;
+    fDepth = -(lightVec.z);
+    wLight = lightVec.xyz / fDepth;
 
 }

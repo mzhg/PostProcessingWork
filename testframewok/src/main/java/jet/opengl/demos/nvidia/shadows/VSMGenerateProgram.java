@@ -20,6 +20,7 @@ final class VSMGenerateProgram extends GLSLProgram{
     private int mWorld;
     private int wLightViewProj;
     private int wLightPos;
+    private int wLightView;
 
     VSMGenerateProgram(){
         final String path = "nvidia/ShadowWorks/shaders/";
@@ -31,10 +32,12 @@ final class VSMGenerateProgram extends GLSLProgram{
 
         mWorld = getUniformLocation("gWorld");
         wLightViewProj = getUniformLocation("gLightViewProj");
+        wLightView = getUniformLocation("gLightView");
         wLightPos = getUniformLocation("gLightPos");
     }
 
     void setWorld(Matrix4f mat) { if(mWorld >=0) gl.glUniformMatrix4fv(mWorld, false, CacheBuffer.wrap(mat));}
     void setLightViewProj(Matrix4f mat) { if(wLightViewProj >=0) gl.glUniformMatrix4fv(wLightViewProj, false, CacheBuffer.wrap(mat));}
+    void setLightView(Matrix4f mat) { if(wLightView >=0) gl.glUniformMatrix4fv(wLightView, false, CacheBuffer.wrap(mat));}
     void setLightPos(ReadableVector3f pos) { if(wLightPos >=0) gl.glUniform3f(wLightPos, pos.getX(), pos.getY(), pos.getZ());}
 }

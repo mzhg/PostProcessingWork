@@ -8,8 +8,9 @@ float BoxFilterStart( float fWidth )  //Assumes filter is odd
 }
 
 uniform bool bVertical = false;
-uniform float fStepSize = 1.0f;
-uniform float fFilterWidth = 8;
+
+const float fStepSize = 1.0f;
+const float fFilterWidth = 9.0;
 layout(binding = 0) uniform sampler2D blurTexture;
 
 void main()
@@ -26,7 +27,7 @@ void main()
 
     Out_Color = vec4(0);
     for( float i = 0.0; i < fFilterWidth; i+=1.0 )
-        Out_Color += texture( blurTexture, vec2( fTexStart + fTexelOffset * i) );
+        Out_Color += textureLod( blurTexture, vec2( fTexStart + fTexelOffset * i),0.);
 
     Out_Color =  Out_Color / fFilterWidth;
 }

@@ -53,10 +53,11 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
     private VSMSceneRenderProgram m_SceneRenderProgram;
 
     private boolean m_useTexture = true;
-    private final Matrix4f m_tempMat0 = new Matrix4f();
+    private final Matrix4f m_lightView = new Matrix4f();
     private final Matrix4f m_tempMat1 = new Matrix4f();
     private final Matrix4f m_lightViewProj = new Matrix4f();
     private final Vector3f m_lightPos = new Vector3f();
+    private final Vector3f m_lightDir = new Vector3f();
     private final BoundingBox m_tempBBox0 = new BoundingBox();
     private float m_worldHeightOffset = 0.2f;
     private float m_worldWidthOffset = 0.2f;
@@ -116,12 +117,11 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
         GLCheck.checkError();
 
         SamplerDesc desc = new SamplerDesc();
-        desc.minFilter = GLenum.GL_NEAREST;
-        desc.magFilter = GLenum.GL_NEAREST;
-        desc.borderColor = 0xFFFFFFFF;  // white
-        desc.wrapR = GLenum.GL_CLAMP_TO_BORDER;
-        desc.wrapS = GLenum.GL_CLAMP_TO_BORDER;
-        desc.wrapT = GLenum.GL_CLAMP_TO_BORDER;
+        desc.minFilter = GLenum.GL_LINEAR_MIPMAP_LINEAR;
+        desc.magFilter = GLenum.GL_LINEAR;
+        desc.wrapR = GLenum.GL_CLAMP_TO_EDGE;
+        desc.wrapS = GLenum.GL_CLAMP_TO_EDGE;
+        desc.wrapT = GLenum.GL_CLAMP_TO_EDGE;
         m_SamplerDepthTex = SamplerUtils.createSampler(desc);
 
         desc.compareMode = GLenum.GL_COMPARE_REF_TO_TEXTURE;
@@ -146,7 +146,7 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
 
         Matrix4f viewMat = mSceneData.getViewMatrix();
         mNVApp.getInputTransformer().getModelViewMat(viewMat);
-        Matrix4f shiftView = m_tempMat0;
+        Matrix4f shiftView = m_tempMat1;
         shiftView.setTranslate(m_worldWidthOffset, 0.0f, m_worldHeightOffset);
         Matrix4f.mul(shiftView, viewMat, viewMat);
         mSceneData.setViewAndUpdateCamera(viewMat);
@@ -158,7 +158,7 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
 
     private void updateLightCamera(){
         final NvInputTransformer camera = mNVApp.getInputTransformer();
-        Matrix4f view = camera.getModelViewMat(NvCameraXformType.SECONDARY, m_tempMat0);
+        Matrix4f view = camera.getModelViewMat(NvCameraXformType.SECONDARY, m_tempMat1);
         Matrix4f inverseView = Matrix4f.invert(view, view);
         Vector3f lightCenterWorld = Matrix4f.transformVector(inverseView, Vector3f.ZERO, s_rot);  // s_rot for templing use.
         float lightCenterWorldY = lightCenterWorld.y;
@@ -178,7 +178,8 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
             camera.update(0.0f);
         }
 
-        updateLightCamera(camera.getModelViewMat(NvCameraXformType.SECONDARY, m_tempMat0));
+        m_lightView.load(view);
+        updateLightCamera(camera.getModelViewMat(NvCameraXformType.SECONDARY, m_lightView));
     }
 
     private void updateLightCamera(Matrix4f view)
@@ -206,16 +207,25 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
 
         Matrix4f proj = m_tempMat1;
         Matrix4f.frustum(frustumWidth, frustumHeight, zNear, zFar, proj);
-//		        m_lightViewProj = proj * view;
         Matrix4f.mul(proj, view, m_lightViewProj);
 
-        Matrix4f inverseView = Matrix4f.invert(view, view);
-        Matrix4f.transformVector(inverseView, Vector3f.ZERO, m_lightPos);
+        final Matrix4f tmp0 = CacheBuffer.getCachedMatrix();
+        tmp0.setTranslate(-frustumWidth/2, -frustumHeight/2, m_tempBBox0._max.z);
+        Matrix4f.mul(tmp0, view, view);
+        CacheBuffer.free(tmp0);
+
+        /*Matrix4f inverseView = Matrix4f.invert(view, view);
+        Matrix4f.transformCoord(inverseView, Vector3f.ZERO, m_lightPos);*/
+
+        Matrix4f.decompseRigidMatrix(view, m_lightPos, null, null, m_lightDir);
+        m_lightDir.scale(-1);
     }
 
     @Override
     public void onShadowRender(VSMGenerateProgram shader) {
         shader.setLightPos(m_lightPos);
+        shader.setLightViewProj(m_lightViewProj);
+        shader.setLightView(m_lightView);
         drawMeshesShadow(shader, m_lightViewProj);
 
         if(!m_printOnce){
@@ -259,7 +269,9 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
         m_SceneRenderProgram.enable();
         m_SceneRenderProgram.setViewProj(mSceneData.getViewProjMatrix());
         m_SceneRenderProgram.setLightPos(m_lightPos);
+        m_SceneRenderProgram.setLightDir(m_lightDir);
         m_SceneRenderProgram.setLightViewProj(m_lightViewProj);
+        m_SceneRenderProgram.setLightView(m_lightView);
         m_SceneRenderProgram.setPodiumCenterWorldPos(m_podiumMesh.getCenter());
         drawMeshes(m_SceneRenderProgram);
 
@@ -436,7 +448,7 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
 //            Matrix4f.mul(lightViewProj, instance.getWorldTransform(), m_tempMat0);
 //            shader.applyMVPMat(m_tempMat0);
             shader.setWorld(instance.getWorldTransform());
-            shader.setLightViewProj(lightViewProj);
+//            shader.setLightViewProj(lightViewProj);
 
             instance.getMesh().render(POS_ATTRIB_LOC, -1);
         }

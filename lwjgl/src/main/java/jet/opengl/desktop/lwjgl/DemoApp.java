@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.gpupro.noise.ShaderNoise;
+import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -94,8 +94,8 @@ public class DemoApp {
 //        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
 //        run(new ShaderTest());
-//        run(new SoftShadowDemo());
-        run(new ShaderNoise());
+        run(new SoftShadowDemo());
+//        run(new ShaderNoise());
 //        run(new Flight404());
     }
 

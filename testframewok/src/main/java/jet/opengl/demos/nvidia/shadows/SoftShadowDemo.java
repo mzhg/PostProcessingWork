@@ -21,8 +21,8 @@ public final class SoftShadowDemo extends NvSampleApp {
     @Override
     protected void initRendering() {
         mShadowConfig.shadowType = ShadowMapGenerator.ShadowType.NONE;
-        mScene = new SoftShadowScene(new ShadowMapGenerator());
-//        mScene = new VarianceShadowScene();
+//        mScene = new SoftShadowScene(new ShadowMapGenerator());
+        mScene = new VarianceShadowScene();
         mScene.setNVApp(this);
         mScene.initScene();
 

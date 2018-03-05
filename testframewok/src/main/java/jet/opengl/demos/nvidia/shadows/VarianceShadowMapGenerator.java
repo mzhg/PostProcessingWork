@@ -38,10 +38,16 @@ final class VarianceShadowMapGenerator implements Disposeable{
 
     public void initlize(int shadowMapSize){
         m_renderTarget = new RenderTargets();
+        gl = GLFuncProviderFactory.getGLFuncProvider();
 
         Texture2DDesc tex_desc = new Texture2DDesc(shadowMapSize, shadowMapSize, GLenum.GL_RG32F);
         tex_desc.mipLevels = (int) (Math.log(shadowMapSize)/Math.log(2));
         m_VarianceShadowMap = TextureUtils.createTexture2D(tex_desc, null);
+        gl.glBindTexture(m_VarianceShadowMap.getTarget(), m_VarianceShadowMap.getTexture());
+        gl.glTexParameteri(m_VarianceShadowMap.getTarget(), GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+        gl.glTexParameteri(m_VarianceShadowMap.getTarget(), GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+        gl.glTexParameteri(m_VarianceShadowMap.getTarget(), GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(m_VarianceShadowMap.getTarget(), GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
 
         tex_desc.mipLevels = 1;
         tex_desc.format = GLenum.GL_DEPTH_COMPONENT32F;  // Standrad shadow map
@@ -49,10 +55,14 @@ final class VarianceShadowMapGenerator implements Disposeable{
 
         tex_desc.format = GLenum.GL_RG32F;
         m_BlurTex = TextureUtils.createTexture2D(tex_desc, null);
+        gl.glBindTexture(m_BlurTex.getTarget(), m_BlurTex.getTexture());
+        gl.glTexParameteri(m_BlurTex.getTarget(), GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+        gl.glTexParameteri(m_BlurTex.getTarget(), GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+        gl.glTexParameteri(m_BlurTex.getTarget(), GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(m_BlurTex.getTarget(), GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+
         m_ShadowGenerateProgram = new VSMGenerateProgram();
         m_BlurProgram = new VSMBlurProgram();
-
-        gl = GLFuncProviderFactory.getGLFuncProvider();
     }
 
     public void generateShadow(){
@@ -80,9 +90,10 @@ final class VarianceShadowMapGenerator implements Disposeable{
         gl.glEnable(GLenum.GL_DEPTH_TEST);
         gl.glDepthFunc(GLenum.GL_LESS);
         gl.glDepthMask(true);
+        float Zmax = 1.e4f;
+        gl.glClearColor(Zmax, Zmax*Zmax, 1.0f, 1.0f);
         gl.glClearDepthf(1.0f);
-        gl.glEnable(GLenum.GL_POLYGON_OFFSET_FILL);
-        gl.glPolygonOffset(4.0f, 32.0f);
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
 
         m_ShadowGenerateProgram.enable();
         m_Scene.onShadowRender(m_ShadowGenerateProgram);
@@ -97,6 +108,7 @@ final class VarianceShadowMapGenerator implements Disposeable{
         gl.glDisable(GLenum.GL_DEPTH_TEST);
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(m_VarianceShadowMap.getTarget(), m_VarianceShadowMap.getTexture());
+        gl.glBindSampler(0, 0);
         gl.glBindVertexArray(0);
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         gl.glBindTexture(m_VarianceShadowMap.getTarget(), 0);
