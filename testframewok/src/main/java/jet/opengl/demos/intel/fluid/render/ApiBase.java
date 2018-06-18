@@ -3,6 +3,7 @@ package jet.opengl.demos.intel.fluid.render;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 
+import jet.opengl.demos.intel.fluid.scene.ModelData;
 import jet.opengl.demos.intel.fluid.scene.ModelNode;
 import jet.opengl.demos.intel.fluid.utils.Camera;
 import jet.opengl.demos.intel.fluid.utils.Viewport;
@@ -27,13 +28,13 @@ public interface ApiBase {
 
     void        renderSimpleText(CharSequence text , ReadableVector3f position , boolean useScreenSpace );
 
-    void        applyRenderState(RenderStateS renderState );
-    void        getRenderState( RenderStateS renderState );
+    void        applyRenderState(RenderState renderState );
+    void        getRenderState( RenderState renderState );
     void        disableTexturing();
 
-    /*VertexBufferBase    NewVertexBuffer() = 0 ;
-    IndexBufferBase     NewIndexBuffer() = 0 ;
-    void                DeleteIndexBuffer( IndexBufferBase * indexBuffer ) = 0 ;
-    MeshBase            NewMesh( ModelData * owningModelData ) = 0 ;
-    TextureBase         NewTexture() = 0 ;*/
+    VertexBufferBase    newVertexBuffer();
+    IndexBufferBase     newIndexBuffer();
+    void                deleteIndexBuffer( IndexBufferBase indexBuffer );
+    MeshBase            newMesh( ModelData owningModelData );
+    TextureBase         newTexture();
 }

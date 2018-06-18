@@ -12,4 +12,13 @@ public class MaterialProperties {
     public final Vector4f mSpecularColor = new Vector4f(0.0f , 0.0f , 0.0f , 1.0f);
     public final Vector4f mEmissiveColor = new Vector4f(0.0f , 0.0f , 0.0f , 1.0f);
     public float          mSpecularPower;
+
+    public void set(MaterialProperties ohs){
+        mDiffuseColor.set(ohs.mDiffuseColor);
+        mAmbientColor.set(ohs.mAmbientColor);
+        mSpecularColor.set(ohs.mSpecularColor);
+        mEmissiveColor.set(ohs.mEmissiveColor);
+
+        mSpecularPower = ohs.mSpecularPower;
+    }
 }

@@ -106,11 +106,11 @@ public class SceneNodeBase implements ISceneNode{
      as the container since then ISceneNode::Visit can operate with it.
      */
     @Override
-    public void Clear(int deleteNode) {
+    public void clear(int deleteNode) {
         for( ISceneNode sceneNode : mSceneNodes )
         {
             assert ( ((SceneNodeBase) sceneNode ).getTypeId() != sTypeId ); // Derived class must reassign type id.
-            sceneNode.Clear( deleteNode ) ;
+            sceneNode.clear( deleteNode ) ;
             if( DELETE_NODES == deleteNode )
             {
 //                delete sceneNode ;

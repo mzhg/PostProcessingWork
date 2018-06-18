@@ -44,7 +44,7 @@ import java.nio.FloatBuffer;
  * $Id$
  */
 
-public class Vector3f extends Vector implements Serializable, ReadableVector3f, WritableVector3f {
+public class Vector3f extends Vector implements Serializable, ReadableVector3f, WritableVector3f, Cloneable {
 
 	private static final long serialVersionUID = 3977120849790213774L;
 	
@@ -784,5 +784,29 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 	public static void initAsMinMax(WritableVector3f min, WritableVector3f max){
 		if(min!=null) min.set(-Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE);
 		if(max!=null) max.set(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
+	}
+
+	public static Vector3f saturation(Vector3f inout){
+		return saturation(inout, inout);
+	}
+
+	public static Vector3f saturation(ReadableVector3f src, Vector3f out){
+		if(out == null)
+			out = new Vector3f();
+
+		float x = src.getX();
+		float y = src.getY();
+		float z = src.getZ();
+
+		out.x = (x > 1.f) ? 1.f : ((x < 0.f) ? 0.f : x);
+		out.y = (y > 1.f) ? 1.f : ((y < 0.f) ? 0.f : y);
+		out.z = (z > 1.f) ? 1.f : ((z < 0.f) ? 0.f : z);
+		return out;
+	}
+
+	@Override
+	public Vector3f clone()  {
+		// This is faster than the defualt clone method.
+		return new Vector3f(x,y,z);
 	}
 }

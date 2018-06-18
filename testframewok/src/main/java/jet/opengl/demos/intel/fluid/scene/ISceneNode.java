@@ -35,5 +35,7 @@ public interface ISceneNode extends IRenderable{
     void            visit( IVisitor  visitor );
 
     /** Remove all child nodes this node parents. */
-    void            Clear( int deleteNode /*= DELETE_NODES*/ );
+    void            clear( int deleteNode /*= DELETE_NODES*/ );
+
+    default void clear(){clear(DELETE_NODES);}
 }

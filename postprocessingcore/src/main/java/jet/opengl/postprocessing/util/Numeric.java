@@ -900,4 +900,19 @@ public final class Numeric {
 	{
 		return t * t * ( 3 - 2 * t );
 	}
+
+	public static int  nearestPowerOfTwo(int numElements){
+		int initialCapacity = numElements;
+		initialCapacity |= (initialCapacity >>>  1);
+		initialCapacity |= (initialCapacity >>>  2);
+		initialCapacity |= (initialCapacity >>>  4);
+		initialCapacity |= (initialCapacity >>>  8);
+		initialCapacity |= (initialCapacity >>> 16);
+		initialCapacity++;
+
+		if (initialCapacity < 0)   // Too many elements, must back off
+			initialCapacity >>>= 1;// Good luck allocating 2 ^ 30 elements
+
+		return initialCapacity;
+	}
 }

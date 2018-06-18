@@ -20,11 +20,14 @@ public class StackFloat {
 		items = new float[capacity];
 	}
 
-	public void set(int index, float value) {
+	public float set(int index, float value) {
 		if (index >= size)
 			throw new IndexOutOfBoundsException("index = " + index + ", size = " + size);
 
+		float old = items[index];
 		items[index] = value;
+
+		return old;
 	}
 	
 	public void addAll(StackFloat ints){
