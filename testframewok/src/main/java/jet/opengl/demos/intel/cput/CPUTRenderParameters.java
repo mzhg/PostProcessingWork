@@ -11,4 +11,9 @@ public class CPUTRenderParameters {
     public CPUTCamera      mpCamera;
     public CPUTCamera      mpShadowCamera;
     public AVSMMethod      mAVSMMethod;
+
+    public int             mWidth;
+    public int             mHeight;
+    public CPUTBuffer      mpPerModelConstants;
+    public CPUTBuffer      mpPerFrameConstants;
 }

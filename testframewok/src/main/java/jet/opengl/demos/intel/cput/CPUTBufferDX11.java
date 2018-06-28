@@ -11,7 +11,7 @@ import jet.opengl.postprocessing.texture.Texture2D;
 
 public class CPUTBufferDX11 extends CPUTBuffer {
     private BufferGL mpBuffer;
-    private Texture2D mpUnorderedAccessView;
+    private Texture2D mpTexture;
 
     public CPUTBufferDX11(){}
 
@@ -23,7 +23,15 @@ public class CPUTBufferDX11 extends CPUTBuffer {
     }
 
     public CPUTBufferDX11(String name, Texture2D view){
-        mpUnorderedAccessView = view;
+        mpTexture = view;
+        if(view != null){
+            view.setName(name);
+        }
+    }
+
+    public CPUTBufferDX11(String name, BufferGL pBuffer, Texture2D view){
+        mpBuffer = pBuffer;
+        mpTexture = view;
         if(view != null){
             view.setName(name);
         }
@@ -31,12 +39,12 @@ public class CPUTBufferDX11 extends CPUTBuffer {
 
     public Texture2D GetShaderResourceView()
     {
-        return mpUnorderedAccessView;
+        return mpTexture;
     }
 
     public Texture2D GetUnorderedAccessView()
     {
-        return mpUnorderedAccessView;
+        return mpTexture;
     }
 
     public void SetShaderResourceView(BufferGL pShaderResourceView)
@@ -44,15 +52,20 @@ public class CPUTBufferDX11 extends CPUTBuffer {
         mpBuffer = pShaderResourceView;
     }
 
+    public void SetShaderResourceView(Texture2D pShaderResourceView)
+    {
+        mpTexture = pShaderResourceView;
+    }
+
     public void SetUnorderedAccessView(Texture2D pUnorderedAccessView)
     {
-        mpUnorderedAccessView = pUnorderedAccessView;
+        mpTexture = pUnorderedAccessView;
     }
 
     public void SetBufferAndViews(BufferGL pBuffer, /*ID3D11ShaderResourceView *pShaderResourceView,*/ Texture2D pUnorderedAccessView )
     {
         mpBuffer = pBuffer;
-        mpUnorderedAccessView = pUnorderedAccessView;
+        mpTexture = pUnorderedAccessView;
     }
 
     public BufferGL GetNativeBuffer() { return mpBuffer; }

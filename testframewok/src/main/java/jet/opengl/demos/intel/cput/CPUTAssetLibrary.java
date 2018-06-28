@@ -1,9 +1,12 @@
 package jet.opengl.demos.intel.cput;
 
+import org.lwjgl.util.vector.Vector4f;
+
 import java.io.IOException;
 import java.util.Objects;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -23,6 +26,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     protected String  mTextureDirectoryName;
     protected String  mShaderDirectoryName;
     protected String  mFontDirectoryName;
+    protected String  mSystemDirectoryName;
 
     public static CPUTAssetListEntry  mpAssetSetList;
     public static CPUTAssetListEntry  mpNullNodeList;
@@ -68,6 +72,9 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     }
 
     public CPUTAssetLibrary() {}
+
+    public void SetSystemDirectoryName(String directoryName ) { mSystemDirectoryName   = directoryName; }
+    public String GetSystemDirectoryName()   { return mSystemDirectoryName; }
 
     // Add/get/delete items to specified library
     public Object FindAsset(String name, CPUTAssetListEntry pList, boolean nameIsFullPathAndFilename/*=false*/){
@@ -173,6 +180,9 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     public CPUTRenderStateBlock FindRenderStateBlock(String name, boolean nameIsFullPathAndFilename/*=false*/ ) { return (CPUTRenderStateBlock)FindAsset( name, mpRenderStateBlockList, nameIsFullPathAndFilename ); }
 //    CPUTFont     *FindFont(String name, bool nameIsFullPathAndFilename=false)           { return (CPUTFont*)FindAsset(     name, mpFontList,     nameIsFullPathAndFilename ); }
 
+    public CPUTAssetSet  GetAssetSet(String name) throws IOException{
+        return GetAssetSet(name, false);
+    }
     // If the asset exists, these 'Get' methods will addref and return it.  Otherwise,
     // they will create it and return it.
     public CPUTAssetSet  GetAssetSet(String name, boolean nameIsFullPathAndFilename/*=false*/ ) throws IOException{
@@ -214,7 +224,96 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         /*pTexture->AddRef();*/
         return pTexture;
     }
-    public CPUTMaterial         GetMaterial(        String name, boolean nameIsFullPathAndFilename/*=false*/, String modelSuffix/*=_L("")*/, String meshSuffix/*=_L("")*/ ) throws IOException{
+
+    // TODO: All of these Get() functions look very similar.
+    public CPUTMaterial GetMaterial(
+            String     name,
+            boolean    nameIsFullPathAndFilename){
+        return GetMaterial(name, nameIsFullPathAndFilename, null, 0, null,0,
+                null, null, null, null, null,0);
+    }
+// Keep them all for their interface, but have them call a common function
+//-----------------------------------------------------------------------------
+    public CPUTMaterial GetMaterial(
+            String     name,
+            boolean    nameIsFullPathAndFilename,
+            CPUTModel  pModel,
+            int        meshIndex,
+            Macro[]    pShaderMacros, // Note: this is honored only on first load.  Subsequent GetMaterial calls will return the material with shaders as compiled with original macros.
+            int        numSystemMaterials,
+            String[]   pSystemMaterialNames,  // Note: this is honored only on first load.  Subsequent GetMaterial calls will return the material with shaders as compiled with original macros.
+            String     pExternalName,
+            Vector4f[] pExternals, // list of values for the externals
+            int[]      pExternalOffset, // list of offsets to each of the exernals (e.g., char offset of this external in the cbExternals constant buffer)
+            int[]      pExternalSize,
+            int        externalCount
+    ){
+        // Resolve name to absolute path before searching
+        String absolutePathAndFilename;
+        if (name.charAt(0) == '%')
+        {
+            absolutePathAndFilename = mSystemDirectoryName + "Material/" + name.substring(1) + (".mtl");  // TODO: Instead of having the Material/directory hardcoded here it could be set like the normal material directory. But then there would need to be a bunch new variables like SetSystemMaterialDirectory
+//            CPUTFileSystem::ResolveAbsolutePathAndFilename(absolutePathAndFilename, &absolutePathAndFilename); TODO
+        } else if( !nameIsFullPathAndFilename )
+        {
+//            CPUTFileSystem::ResolveAbsolutePathAndFilename( mMaterialDirectoryName + name + _L(".mtl"), &absolutePathAndFilename);  TODO
+            absolutePathAndFilename = mMaterialDirectoryName + name + ".mtl";
+        } else
+        {
+            absolutePathAndFilename = name;
+        }
+
+        CPUTMaterial pMaterial= null;
+        if( pModel != null)
+        {
+            pMaterial = pModel.GetMaterial( meshIndex );
+            if( pMaterial != null)
+            {
+//                pMaterial->AddRef();
+                return pMaterial;
+            }
+        }
+
+        if(pMaterial == null && pShaderMacros == null && pExternals == null )
+        {
+            // Loading a non-instanced material (or, the master).
+            // The caller supplied macros, so we assume they make the material unique.
+            // TODO: Track macros and match if duplicate macros supplied?
+            pMaterial = FindMaterial(absolutePathAndFilename, true);
+        }
+
+        // If the material has per-model properties, then we need a material clone
+        if( pMaterial != null)
+        {
+//            pMaterial->AddRef();
+        }
+        else
+        {
+            pMaterial = CPUTMaterial.CreateMaterial(
+                absolutePathAndFilename,
+                pModel,
+                meshIndex,
+                pShaderMacros,
+                numSystemMaterials,
+                pSystemMaterialNames,
+                externalCount,
+                pExternalName,
+                pExternals,
+                pExternalOffset,
+                pExternalSize
+            );
+//            ASSERT( pMaterial, _L("Failed creating material.") );
+            if(pMaterial == null)
+                throw new NullPointerException();
+        }
+
+
+        // Not looking for an instance, so return what we found
+        return pMaterial;
+    }
+
+    public CPUTMaterial GetMaterial(String name, boolean nameIsFullPathAndFilename/*=false*/, String modelSuffix/*=_L("")*/,
+                                            String meshSuffix/*=_L("")*/ ) throws IOException{
         // Resolve name to absolute path before searching
         /*CPUTOSServices *pServices = CPUTOSServices::GetOSServices();
         cString absolutePathAndFilename;

@@ -57,6 +57,14 @@ public class CPUTRenderTargetColor implements Disposeable{
             String      textureName,
             int         width,
             int         height,
+            int         colorFormat){
+        CreateRenderTarget(textureName, width, height, colorFormat, 1, false, false);
+    }
+
+    public void CreateRenderTarget(
+            String      textureName,
+            int         width,
+            int         height,
             int         colorFormat,
             int         multiSampleCount /*= 1*/,
             boolean     createUAV /*= false*/,

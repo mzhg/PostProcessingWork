@@ -45,6 +45,13 @@ public final class CPUTTextureDX11 extends CPUTTexture{
         mpTexture = pSrv;
     }
 
+    public  TextureGL GetTexture() { return mpTexture;}
+
+    public TextureGL GetColorUAV()
+    {
+        return /*mpColorUAV*/mpTexture;
+    }
+
     @Override
     public ByteBuffer MapTexture(CPUTRenderParameters params, CPUTMapType type, boolean wait) {
         return null;
