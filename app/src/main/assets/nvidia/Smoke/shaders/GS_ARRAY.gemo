@@ -1,0 +1,48 @@
+#include "FluidSim.glsl"
+
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
+out GS_OUTPUT_FLUIDSIM
+{
+//    float4 pos               : SV_Position; // 2D slice vertex coordinates in homogenous clip space
+    float3 cell0             /*: TEXCOORD0*/;   // 3D cell coordinates (x,y,z in 0-dimension range)
+    float3 texcoords         /*: TEXCOORD1*/;   // 3D cell texcoords (x,y,z in 0-1 range)
+    float2 LR                /*: TEXCOORD2*/;   // 3D cell texcoords for the Left and Right neighbors
+    float2 BT                /*: TEXCOORD3*/;   // 3D cell texcoords for the Bottom and Top neighbors
+    float2 DU                /*: TEXCOORD4*/;   // 3D cell texcoords for the Down and Up neighbors
+//    uint RTIndex             /*: SV_RenderTargetArrayIndex*/;  // used to choose the destination slice
+}_output;
+
+out gl_PerVertex{
+  	vec4 gl_Position;
+};
+
+
+in VS_OUTPUT_FLUIDSIM
+{
+  float4 pos               /*: SV_Position*/;
+  float3 cell0             /*: TEXCOORD0*/;
+  float3 texcoords         /*: TEXCOORD1*/;
+  float2 LR                /*: TEXCOORD2*/;
+  float2 BT                /*: TEXCOORD3*/;
+  float2 DU                /*: TEXCOORD4*/;
+}_inputs[];
+
+void main()
+{
+    // cell0.z of the first vertex in the triangle determines the destination slice index
+    /*Out.RTIndex*/ gl_Layer = int(In[0].cell0.z);
+    for(int v=0; v<3; v++)
+    {
+        gl_Position          = _inputs[v].pos;
+        _output.cell0        = _inputs[v].cell0;
+        _output.texcoords    = _inputs[v].texcoords;
+        _output.LR           = _inputs[v].LR;
+        _output.BT           = _inputs[v].BT;
+        _output.DU           = _inputs[v].DU;
+//        triStream.Append( Out );
+        EmitVertex();
+    }
+//    triStream.RestartStrip( );
+}

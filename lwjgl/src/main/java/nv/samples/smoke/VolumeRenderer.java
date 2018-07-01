@@ -2,7 +2,9 @@ package nv.samples.smoke;
 
 import com.nvidia.developer.opengl.utils.NvImage;
 
+import org.lwjgl.util.vector.Matrix;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
 
@@ -14,8 +16,10 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 final class VolumeRenderer implements Disposeable{
     static final int
@@ -31,19 +35,19 @@ final class VolumeRenderer implements Disposeable{
 //    ID3D10Effect                *m_pEffect;
 //    ID3D10EffectTechnique       *m_pTechnique;
 
-    private GLSLProgram            m_epQuadRaycastLevelSet;
-    private GLSLProgram            m_epQuadRaycastFire;
-    private GLSLProgram            m_epQuadRaycastSmoke;
-    private GLSLProgram            m_epGlowHorizontal;
-    private GLSLProgram            m_epGlowVertical;
-    private GLSLProgram            m_epQuadRaycastUpsampleLevelSet;
-    private GLSLProgram            m_epQuadRaycastUpsampleFire;
-    private GLSLProgram            m_epQuadRaycastUpsampleSmoke;
-    private GLSLProgram            m_epCompRayData_Back;
-    private GLSLProgram            m_epCompRayData_Front;
-    private GLSLProgram            m_epCompRayData_FrontNOBLEND;
-    private GLSLProgram            m_epQuadDownSampleRayDataTexture;
-    private GLSLProgram            m_epQuadEdgeDetect;
+    private VolumeRendererProgram            m_epQuadRaycastLevelSet;
+    private VolumeRendererProgram            m_epQuadRaycastFire;
+    private VolumeRendererProgram            m_epQuadRaycastSmoke;
+    private VolumeRendererProgram            m_epGlowHorizontal;
+    private VolumeRendererProgram            m_epGlowVertical;
+    private VolumeRendererProgram            m_epQuadRaycastUpsampleLevelSet;
+    private VolumeRendererProgram            m_epQuadRaycastUpsampleFire;
+    private VolumeRendererProgram            m_epQuadRaycastUpsampleSmoke;
+    private VolumeRendererProgram            m_epCompRayData_Back;
+    private VolumeRendererProgram            m_epCompRayData_Front;
+    private VolumeRendererProgram            m_epCompRayData_FrontNOBLEND;
+    private VolumeRendererProgram            m_epQuadDownSampleRayDataTexture;
+    private VolumeRendererProgram            m_epQuadEdgeDetect;
 
 
     /*ID3D10EffectShaderResourceVariable  *m_evTexture_rayData;
@@ -113,10 +117,6 @@ final class VolumeRenderer implements Disposeable{
 
     private Texture2D       m_pFireTransformFunctionTex2D;
 
-    private boolean         m_bRaycastBisection = true;
-    private boolean         m_bRaycastFilterTricubic = true;
-    private boolean         m_bRaycastShadeAsWater = true;
-
     private int             m_eRenderMode = RM_SMOKE;
 
     private int             m_renderTextureWidth;
@@ -125,6 +125,13 @@ final class VolumeRenderer implements Disposeable{
     private boolean         m_useFP32Blending = true;
 
     private GLFuncProvider  gl;
+    private RenderTargets   fbo;
+
+    public VolumeRenderer(){
+        m_constants.g_bRaycastBisection = true;
+        m_constants.g_bRaycastFilterTricubic = true;
+        m_constants.g_bRaycastShadeAsWater = true;
+    }
 
     @Override
     public void dispose() {
@@ -216,32 +223,36 @@ final class VolumeRenderer implements Disposeable{
         createRayDataResources(width, height);
     }
     void Cleanup() {dispose();}
-    void Draw(Texture2D  pSourceTexSRV){
-        /*m_evTexture_volume.SetResource(pSourceTexSRV);
+    void Draw(Texture2D  pSourceTexSRV, Matrix4f girdWorld, Matrix4f g_View, Matrix4f g_Projection){
+//        m_evTexture_volume.SetResource(pSourceTexSRV);  TODO
         // Set some variables required by the shaders:
         //=========================================================================
 
-        m_evGlowContribution.SetFloat(g_glowContribution);
+        /*m_evGlowContribution.SetFloat(g_glowContribution);  TODO
         m_evFinalIntensityScale.SetFloat(g_finalIntensityScale);
         m_evFinalAlphaScale.SetFloat(g_finalAlphaScale);
         m_evSmokeColorMultiplier.SetFloat(g_smokeColorMultiplier);
         m_evsmokeAlphaMultiplier.SetFloat(g_smokeAlphaMultiplier);
-        m_evRednessFactor.SetInt(g_RednessFactor);
+        m_evRednessFactor.SetInt(g_RednessFactor);*/
 
         // The near and far planes are used to unproject the scene's z-buffer values
-        m_evZNear.SetFloat(g_zNear);
-        m_evZFar.SetFloat(g_zFar);
+        /*m_evZNear.SetFloat(g_zNear);  TODO
+        m_evZFar.SetFloat(g_zFar);*/
 
-        D3DMATRIX grid2World = m_gridMatrix * g_gridWorld;
-        m_evGrid2WorldMatrix->SetMatrix( (float*) &grid2World );
+        final Matrix4f g_gridWorld = girdWorld;
+        /*D3DMATRIX grid2World = m_gridMatrix * g_gridWorld;
+        m_evGrid2WorldMatrix->SetMatrix( (float*) &grid2World );*/
+        Matrix4f.mul(g_gridWorld, m_gridMatrix, m_constants.Grid2World);
 
-        D3DXMATRIX worldView = g_gridWorld * g_View;
+//        D3DXMATRIX worldView = g_gridWorld * g_View;
+        Matrix4f worldView = Matrix4f.mul(g_View, g_gridWorld, m_constants.WorldView);
 
         // The length of one of the axis of the worldView matrix is the length of longest side of the box
         //  in view space. This is used to convert the length of a ray from view space to grid space.
-        D3DXVECTOR3 worldXaxis = D3DXVECTOR3(worldView._11, worldView._12, worldView._13);
+        /*D3DXVECTOR3 worldXaxis = D3DXVECTOR3(worldView._11, worldView._12, worldView._13);
         float worldScale = D3DXVec3Length(&worldXaxis);
-        m_evGridScaleFactor->SetFloat( worldScale );
+        m_evGridScaleFactor->SetFloat( worldScale );*/
+        m_constants.gridScaleFactor = Vector3f.length(worldView.m00, worldView.m10, worldView.m20);  // TODO
 
         // We prepend the current world matrix with this other matrix which adds an offset (-0.5, -0.5, -0.5)
         //  and scale factors to account for unequal number of voxels on different sides of the volume box.
@@ -249,35 +260,41 @@ final class VolumeRenderer implements Disposeable{
         //  raytracing through it, and this matrix allows us to do the raytracing in grid (texture) space:
         //  i.e. each side of the box spans the 0 to 1 range
 //        worldView = m_gridMatrix * worldView;
-        Matrix4f.mul(worldView, m_gridMatrix, worldView);
-
+        /*Matrix4f.mul(worldView, m_gridMatrix, worldView);
         m_evWorldViewMatrix->SetMatrix( (float*)&worldView );
-        m_evTan_FovYhalf->SetFloat( tan(g_Fovy/2.0f) );
-        m_evTan_FovXhalf->SetFloat( tan(g_Fovy/2.0f)*m_renderTextureWidth/m_renderTextureHeight );
+        m_evTan_FovYhalf->SetFloat( tan(g_Fovy/2.0f) );  TODO
+        m_evTan_FovXhalf->SetFloat( tan(g_Fovy/2.0f)*m_renderTextureWidth/m_renderTextureHeight );*/
+        Matrix4f.mul(worldView, m_gridMatrix, m_constants.WorldView);
+
 
         // options for the LevelSet raytracer
-        m_evRaycastBisection->SetBool(m_bRaycastBisection);
+        /*m_evRaycastBisection->SetBool(m_bRaycastBisection);
         m_evRaycastFilterTricubic->SetBool(m_bRaycastFilterTricubic);
-        m_evRaycastShaderAsWater->SetBool(m_bRaycastShadeAsWater);
+        m_evRaycastShaderAsWater->SetBool(m_bRaycastShadeAsWater);*/
 
         // worldViewProjection is used to transform the volume box to screen space
-        D3DXMATRIX worldViewProjection;
+        /*D3DXMATRIX worldViewProjection;
         worldViewProjection = worldView * g_Projection;
-        m_evWorldViewProjectionMatrix->SetMatrix( (float*)&worldViewProjection );
+        m_evWorldViewProjectionMatrix->SetMatrix( (float*)&worldViewProjection );*/
+        Matrix4f.mul(g_Projection, m_constants.WorldView, m_constants.WorldViewProjection);
 
         // invWorldViewProjection is used to transform positions in the "near" plane into grid space
-        D3DXMATRIX invWorldViewProjection;
+        /*D3DXMATRIX invWorldViewProjection;
         D3DXMatrixInverse(&invWorldViewProjection, NULL, &worldViewProjection);
-        m_evInvWorldViewProjectionMatrix->SetMatrix((float*)&invWorldViewProjection);
+        m_evInvWorldViewProjectionMatrix->SetMatrix((float*)&invWorldViewProjection);*/
+        Matrix4f.invert(m_constants.WorldViewProjection, m_constants.InvWorldViewProjection);
 
         // Compute the inverse of the worldView matrix
-        D3DXMATRIX worldViewInv;
+        /*D3DXMATRIX worldViewInv;
         D3DXMatrixInverse(&worldViewInv, NULL, &worldView);
         // Compute the eye's position in "grid space" (the 0-1 texture coordinate cube)
         D3DXVECTOR4 eyeInGridSpace;
         D3DXVECTOR3 origin(0,0,0);
         D3DXVec3Transform(&eyeInGridSpace, &origin, &worldViewInv);
-        m_evEyeOnGrid->SetFloatVector((float*)&eyeInGridSpace);
+        m_evEyeOnGrid->SetFloatVector((float*)&eyeInGridSpace);*/
+        final Matrix4f worldViewInv = CacheBuffer.getCachedMatrix();
+        Matrix4f.invert(worldView, worldViewInv);
+        Matrix4f.transformVector(worldViewInv, Vector3f.ZERO, m_constants.eyeOnGrid);
 
         final float color[] = {0, 0, 0, 0 };
 
@@ -286,11 +303,11 @@ final class VolumeRenderer implements Disposeable{
         //=========================================================================
 
         // Partial init of viewport struct used below
-        *//*D3D10_VIEWPORT rtViewport;
+        /*D3D10_VIEWPORT rtViewport;
         rtViewport.TopLeftX = 0;
         rtViewport.TopLeftY = 0;
         rtViewport.MinDepth = 0;
-        rtViewport.MaxDepth = 1;*//*
+        rtViewport.MaxDepth = 1;*/
 
 
         // Compute the ray data required by the raycasting pass below.
@@ -307,38 +324,44 @@ final class VolumeRenderer implements Disposeable{
 
         // Raycast into the temporary render target:
         //  raycasting is done at the smaller resolution, using a fullscreen quad
-        m_pD3DDevice->ClearRenderTargetView( m_pRayCastRTV, color );
-        m_pD3DDevice->OMSetRenderTargets( 1, &m_pRayCastRTV , NULL );
+        /*m_pD3DDevice->ClearRenderTargetView( m_pRayCastRTV, color );
+        m_pD3DDevice->OMSetRenderTargets( 1, &m_pRayCastRTV , NULL );*/
+        fbo.setRenderTexture(m_pRayCastRTV, null);
+        gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0.f, 0.f, 0.f, 0.f));
 
-      *//*  rtViewport.Width = m_renderTextureWidth;
+        /*rtViewport.Width = m_renderTextureWidth;
         rtViewport.Height = m_renderTextureHeight;
-        m_pD3DDevice->RSSetViewports(1,&rtViewport);*//*
+        m_pD3DDevice->RSSetViewports(1,&rtViewport);*/
+        gl.glViewport(0,0,m_renderTextureWidth,m_renderTextureHeight);
 
-        m_evRTWidth->SetFloat((float)m_renderTextureWidth);
-        m_evRTHeight->SetFloat((float)m_renderTextureHeight);
+        /*m_evRTWidth->SetFloat((float)m_renderTextureWidth);
+        m_evRTHeight->SetFloat((float)m_renderTextureHeight);*/
+        m_constants.RTWidth = m_renderTextureWidth;
+        m_constants.RTHeight = m_renderTextureHeight;
 
-        m_evTexture_rayDataSmall->SetResource(m_pRayDataSmallSRV);
+//        m_evTexture_rayDataSmall->SetResource(m_pRayDataSmallSRV);  TODO
 
         if( m_eRenderMode == RM_LEVELSET )
-            m_epQuadRaycastLevelSet->Apply(0);
+            m_epQuadRaycastLevelSet.enable();
         else if(m_eRenderMode == RM_FIRE)
-            m_epQuadRaycastFire->Apply(0);
+            m_epQuadRaycastFire.enable();
         else
-            m_epQuadRaycastSmoke->Apply(0);
+            m_epQuadRaycastSmoke.enable();
 
         drawScreenQuad();
 
 
-        m_pD3DDevice->ClearRenderTargetView( m_pGlowRTV, color );
+//        m_pD3DDevice->ClearRenderTargetView( m_pGlowRTV, color );
+        gl.glClearTexImage(m_pGlowRTV.getTexture(), 0, TextureUtils.measureFormat(m_pGlowRTV.getFormat()), TextureUtils.measureDataType(m_pGlowRTV.getFormat()), null);
 
         //blur the raycast image to get a blur texture
-        m_evUseGlow->SetBool(g_bRenderGlow);
+//        m_evUseGlow->SetBool(g_bRenderGlow);  TODO
         if((m_eRenderMode == RM_FIRE) && g_bRenderGlow)
         {
             m_pD3DDevice->ClearRenderTargetView( m_pGlowTempRTV, color );
             m_pD3DDevice->OMSetRenderTargets( 1, &m_pGlowTempRTV , NULL );
-            m_evTexture_glow->SetResource(m_pRayCastSRV);
-            m_epGlowHorizontal->Apply(0);
+//            m_evTexture_glow->SetResource(m_pRayCastSRV);  TODO
+            m_epGlowHorizontal.enable();
             drawScreenQuad();
 
             m_pD3DDevice->OMSetRenderTargets( 1, &m_pGlowRTV , NULL );
@@ -379,7 +402,7 @@ final class VolumeRenderer implements Disposeable{
         m_evTexture_rayCast->SetResource(NULL);
         m_evTexture_edge->SetResource(NULL);
         m_evTexture_glow->SetResource(NULL);
-        m_epQuadRaycastUpsampleFire->Apply(0);*/
+        m_epQuadRaycastUpsampleFire->Apply(0);
     }
 
     float GetMaxDim(){return m_maxDim;};
@@ -496,4 +519,7 @@ final class VolumeRenderer implements Disposeable{
         m_pD3DDevice->IASetPrimitiveTopology( D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP );
         m_pD3DDevice->Draw( 4, 0 );*/
     }
+
+    private final VolumeConstants m_constants = new VolumeConstants();
+    VolumeConstants getConstants() { return m_constants;}
 }
