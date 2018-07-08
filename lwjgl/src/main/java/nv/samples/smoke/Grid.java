@@ -8,6 +8,7 @@ import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.demos.intel.va.VaDirectXTools;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -15,7 +16,7 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 
-class Grid {
+class Grid implements Disposeable{
     private static final int VERTICES_PER_SLICE = 6;
     private static final int VERTICES_PER_LINE = 2;
     private static final int LINES_PER_SLICE = 4;
@@ -91,6 +92,11 @@ class Grid {
     int  GetDimX() {return m_dim[0]; }
     int  GetDimY() {return m_dim[1]; }
     int  GetDimZ() {return m_dim[2]; }
+
+    @Override
+    public void dispose() {
+
+    }
 
     private static final class VS_INPUT_FLUIDSIM_STRUCT{
         final Vector3f Pos = new Vector3f();

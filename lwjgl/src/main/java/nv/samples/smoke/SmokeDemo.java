@@ -6,8 +6,8 @@ import jet.opengl.postprocessing.util.Numeric;
 
 public class SmokeDemo extends NvSampleApp {
     // Some common globals shared across
-    int                                 g_Width;
-    int                                 g_Height;
+    static int                                 g_Width;
+    static int                                 g_Height;
 
     static long computeRowColsForFlat3DTexture( int depth/*, int *outCols, int *outRows*/ )
     {

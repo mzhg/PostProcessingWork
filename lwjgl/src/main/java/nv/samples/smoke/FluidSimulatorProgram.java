@@ -6,6 +6,7 @@ import org.lwjgl.util.vector.Vector4f;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ProgramLinkTask;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
@@ -69,7 +70,11 @@ final class FluidSimulatorProgram  extends GLSLProgram{
         initUniforms();
     }
 
-    FluidSimulatorProgram(String vertfile, String gemofile, String fragfile, ProgramLinkTask task){
+    FluidSimulatorProgram(String vertfile, String gemofile, String fragfile, Macro ... macros){
+        this(vertfile, gemofile, fragfile, null, macros);
+    }
+
+    FluidSimulatorProgram(String vertfile, String gemofile, String fragfile, ProgramLinkTask task, Macro ... macros){
         ShaderSourceItem vs_item = new ShaderSourceItem();
         ShaderSourceItem gs_item = null;
         ShaderSourceItem ps_item = null;
@@ -78,17 +83,20 @@ final class FluidSimulatorProgram  extends GLSLProgram{
             final String folder = "nvidia/Smoke/shaders/";
             vs_item.source = ShaderLoader.loadShaderFile(folder + vertfile, false);
             vs_item.type = ShaderType.VERTEX;
+            vs_item.macros = macros;
 
             if(gemofile != null){
                 gs_item = new ShaderSourceItem();
                 gs_item.source = ShaderLoader.loadShaderFile(folder + gemofile, false);
                 gs_item.type = ShaderType.GEOMETRY;
+                gs_item.macros = macros;
             }
 
             if(fragfile != null){
                 ps_item = new ShaderSourceItem();
                 ps_item.source = ShaderLoader.loadShaderFile(folder + fragfile, false);
                 ps_item.type = ShaderType.FRAGMENT;
+                ps_item.macros = macros;
             }
         } catch (IOException e) {
             e.printStackTrace();

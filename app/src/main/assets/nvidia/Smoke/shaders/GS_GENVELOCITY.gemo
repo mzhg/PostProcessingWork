@@ -1,0 +1,113 @@
+#include "Voxelizer.glsl"
+
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+in VsGenVelOutput
+{
+    float4 Pos          /*: POSITION*/;
+    float3 Velocity          /*: TEXCOORD*/;
+}_inputs[];
+
+out float3 m_Velocity;
+
+struct GsGenVelIntVtx
+  // Used internally in GS_GENVELOCITY to store
+  //   the result of an edge-slice intersection
+{
+    float2 Pos;
+    float3 Velocity;
+};
+
+struct GenVelOutput
+{
+    float4 Pos          /*: POSITION*/;
+    float3 Velocity          /*: TEXCOORD*/;
+};
+
+GenVelOutput wrap(int index)
+{
+    GenVelOutput Output;
+    Output.Pos = _inputs[index].Pos;
+    Output.Velocity = _inputs[index].Velocity;
+
+    return Output;
+}
+
+void GetEdgePlaneIntersection( GenVelOutput vA, GenVelOutput vB, float sliceZ,
+                              inout GsGenVelIntVtx intersections[2], inout int idx )
+{
+    // Compute intersection point (x,y), interpolated normal (projected onto plane) and velocity
+    //  float3 P = float3(0, 0, sliceZ);
+    //  float3 N = float3(0, 0, 1);
+    //  float t = dot((P - vA.Pos), N) / dot((vB.Pos - vA.Pos), N);
+    // We can optimize this a bit:
+    float t = (sliceZ - vA.Pos.z) / (vB.Pos.z - vA.Pos.z);
+    if( (t < 0) || (t > 1) )
+        // line-plane intersection is not withing the edge's end-points (A and B)
+        return;
+
+    intersections[idx].Pos = lerp(vA.Pos, vB.Pos, t).xy;
+    //intersections[idx].Normal = normalize(lerp(vA.Normal, vB.Normal, t).xy);
+    intersections[idx].Velocity = lerp(vA.Velocity, vB.Velocity, t);
+    idx++;
+}
+
+// GS_GENVELOCITY: GS that takes as input one triangle (3 vertices)
+//  and outputs:
+//      - 0 triangles, if the input triangle doesn't intersect the given slice
+//      - 2 triangles, if the input triangle intersects the slice, which form a 1-pixel wide quadrilateral
+//          along the triangle/slice intersection edge
+void main()
+{
+//    static GsGenVelOutput output = (GsGenVelOutput) 0;
+    gl_Position = float4(0);
+    m_Velocity = float3(0);
+    gl_Layer = sliceIdx;
+
+    float minZ = min( min(_inputs[0].Pos.z, _inputs[1].Pos.z), _inputs[2].Pos.z);
+    float maxZ = max( max(_inputs[0].Pos.z, _inputs[1].Pos.z), _inputs[2].Pos.z);
+    if( (sliceZ < minZ) || (sliceZ > maxZ) )
+        // this triangle doesn't intersect the slice
+        return;
+
+    GsGenVelIntVtx intersections[2] /*= { (GsGenVelIntVtx)0, (GsGenVelIntVtx)0}*/;
+    for( int i=0; i<2; i++ )
+    {
+        intersections[i].Pos = float2(0);
+        intersections[i].Velocity = float3(0);
+    }
+
+    GenVelOutput _input0 = wrap(0);
+    GenVelOutput _input1 = wrap(1);
+    GenVelOutput _input2 = wrap(2);
+
+    int idx = 0;
+    if( idx < 2 )
+        GetEdgePlaneIntersection(_input0, _input1, sliceZ, intersections, idx);
+    if( idx < 2 )
+        GetEdgePlaneIntersection(_input1, _input2, sliceZ, intersections, idx);
+    if( idx < 2 )
+        GetEdgePlaneIntersection(_input2, _input0, sliceZ, intersections, idx);
+
+    if( idx < 2 )
+        return;
+
+    float sqrtOf2 = 1.414; // the diagonal of a pixel
+    float2 normal = sqrtOf2 * normalize(
+        cross( (_inputs[1].Pos - _inputs[0].Pos), (_inputs[2].Pos - _inputs[0].Pos)).xy);
+
+    for(int j=0; j<2; j++)
+    {
+        gl_Position = float4(intersections[j].Pos, 0, 1);
+        m_Velocity = intersections[j].Velocity;
+//        triStream.Append( output );
+        EmitVertex();
+
+
+        gl_Position = float4((intersections[j].Pos + (normal * projSpacePixDim)), 0, 1);
+        m_Velocity = intersections[j].Velocity;
+//        triStream.Append( output );
+        EmitVertex();
+    }
+}
