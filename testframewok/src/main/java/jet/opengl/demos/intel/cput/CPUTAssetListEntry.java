@@ -1,5 +1,7 @@
 package jet.opengl.demos.intel.cput;
 
+import jet.opengl.postprocessing.shader.Macro;
+
 /**
  * Global Asset Library<p></p>
  *
@@ -17,4 +19,10 @@ final class CPUTAssetListEntry {
     String             name;
     Object             pData;
     CPUTAssetListEntry pNext;
+
+    // new properties.
+    CPUTModel          pModel;
+    int                meshIndex;
+    String             fileName;     // potentially non-unique
+    Macro[]            pShaderMacros;
 }

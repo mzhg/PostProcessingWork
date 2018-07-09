@@ -148,6 +148,11 @@ public class CPUTRenderStateBlockDX11 extends CPUTRenderStateBlock {
         return null;
     }
 
+    @Override
+    public void dispose() {
+
+    }
+
     private static final class CPUTRenderStateDX11{
         final BlendState BlendDesc = new BlendState();
         final DepthStencilState DepthStencilDesc = new DepthStencilState();

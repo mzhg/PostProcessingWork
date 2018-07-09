@@ -1,1 +1,1 @@
-include ':app', ':postprocessingcore', ':testframewok', ':lwjgl', ':jogl', ':lwigl_impl', ':jogl_impl', ':android_impl', ':gl_math', ':assimp', ':particledynamic'
+include ':app', ':postprocessingcore', ':testframewok', ':lwjgl', ':jogl', ':lwigl_impl', ':jogl_impl', ':android_impl', ':gl_math', ':assimp', ':particledynamic', ':parsing', ':parsing'

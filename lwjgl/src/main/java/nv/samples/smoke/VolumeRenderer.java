@@ -126,6 +126,7 @@ final class VolumeRenderer implements Disposeable{
 
     private GLFuncProvider  gl;
     private RenderTargets   fbo;
+    private int             m_width, m_height;
 
     public VolumeRenderer(){
         m_constants.g_bRaycastBisection = true;
@@ -223,7 +224,8 @@ final class VolumeRenderer implements Disposeable{
         createRayDataResources(width, height);
     }
     void Cleanup() {dispose();}
-    void Draw(Texture2D  pSourceTexSRV, Matrix4f girdWorld, Matrix4f g_View, Matrix4f g_Projection){
+    void Draw(Texture2D  pSourceTexSRV, Matrix4f girdWorld, Matrix4f g_View, Matrix4f g_Projection,
+              boolean g_bRenderGlow){
 //        m_evTexture_volume.SetResource(pSourceTexSRV);  TODO
         // Set some variables required by the shaders:
         //=========================================================================
@@ -326,6 +328,7 @@ final class VolumeRenderer implements Disposeable{
         //  raycasting is done at the smaller resolution, using a fullscreen quad
         /*m_pD3DDevice->ClearRenderTargetView( m_pRayCastRTV, color );
         m_pD3DDevice->OMSetRenderTargets( 1, &m_pRayCastRTV , NULL );*/
+        fbo.bind();
         fbo.setRenderTexture(m_pRayCastRTV, null);
         gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0.f, 0.f, 0.f, 0.f));
 
@@ -358,15 +361,19 @@ final class VolumeRenderer implements Disposeable{
 //        m_evUseGlow->SetBool(g_bRenderGlow);  TODO
         if((m_eRenderMode == RM_FIRE) && g_bRenderGlow)
         {
-            m_pD3DDevice->ClearRenderTargetView( m_pGlowTempRTV, color );
-            m_pD3DDevice->OMSetRenderTargets( 1, &m_pGlowTempRTV , NULL );
+            /*m_pD3DDevice->ClearRenderTargetView( m_pGlowTempRTV, color );
+            m_pD3DDevice->OMSetRenderTargets( 1, &m_pGlowTempRTV , NULL );*/
+            gl.glClearTexImage(m_pGlowTempRTV.getTexture(), 0, TextureUtils.measureFormat(m_pGlowTempRTV.getFormat()),
+                    TextureUtils.measureDataType(m_pGlowTempRTV.getFormat()), null);
+            fbo.setRenderTexture(m_pGlowTempRTV, null);
 //            m_evTexture_glow->SetResource(m_pRayCastSRV);  TODO
             m_epGlowHorizontal.enable();
             drawScreenQuad();
 
-            m_pD3DDevice->OMSetRenderTargets( 1, &m_pGlowRTV , NULL );
-            m_evTexture_glow->SetResource(m_pGlowTempSRV);
-            m_epGlowVertical->Apply(0);
+//            m_pD3DDevice->OMSetRenderTargets( 1, &m_pGlowRTV , NULL );
+            fbo.setRenderTexture(m_pGlowRTV, null);
+//            m_evTexture_glow->SetResource(m_pGlowTempSRV);  TODO
+            m_epGlowVertical.enable();
             drawScreenQuad();
 
         }
@@ -375,34 +382,38 @@ final class VolumeRenderer implements Disposeable{
         // Render to the back buffer sampling from the raycast texture that we just created
         // If and edge was detected at the current pixel we will raycast again to avoid
         // smoke aliasing artifacts at scene edges
-        ID3D10RenderTargetView* pRTV = DXUTGetD3D10RenderTargetView();
+        /*ID3D10RenderTargetView* pRTV = DXUTGetD3D10RenderTargetView();
         ID3D10DepthStencilView* pDSV = DXUTGetD3D10DepthStencilView();
-        m_pD3DDevice->OMSetRenderTargets( 1, &pRTV , pDSV );
+        m_pD3DDevice->OMSetRenderTargets( 1, &pRTV , pDSV );*/
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 
-        rtViewport.Width = g_Width;
+        /*rtViewport.Width = g_Width;
         rtViewport.Height = g_Height;
-        m_pD3DDevice->RSSetViewports(1,&rtViewport);
+        m_pD3DDevice->RSSetViewports(1,&rtViewport);*/
+        gl.glViewport(0,0,m_width, m_height);
 
-        m_evRTWidth->SetFloat((float)g_Width);
-        m_evRTHeight->SetFloat((float)g_Height);
+        /*m_evRTWidth->SetFloat((float)g_Width);
+        m_evRTHeight->SetFloat((float)g_Height);*/
+        m_constants.RTWidth = m_width;
+        m_constants.RTHeight = m_height;
 
-        m_evTexture_rayCast->SetResource(m_pRayCastSRV);
-        m_evTexture_edge->SetResource(m_pEdgeSRV);
-        m_evTexture_glow->SetResource(m_pGlowSRV);
+//        m_evTexture_rayCast->SetResource(m_pRayCastSRV); TODO
+//        m_evTexture_edge->SetResource(m_pEdgeSRV);TODO
+//        m_evTexture_glow->SetResource(m_pGlowSRV);TODO
 
         if( m_eRenderMode == RM_LEVELSET )
-            m_epQuadRaycastUpsampleLevelSet->Apply(0);
+            m_epQuadRaycastUpsampleLevelSet.enable();
         else if(m_eRenderMode == RM_FIRE)
-            m_epQuadRaycastUpsampleFire->Apply(0);
+            m_epQuadRaycastUpsampleFire.enable();
         else
-            m_epQuadRaycastUpsampleSmoke->Apply(0);
+            m_epQuadRaycastUpsampleSmoke.enable();
 
         drawScreenQuad();
 
-        m_evTexture_rayCast->SetResource(NULL);
+        /*m_evTexture_rayCast->SetResource(NULL);TODO
         m_evTexture_edge->SetResource(NULL);
-        m_evTexture_glow->SetResource(NULL);
-        m_epQuadRaycastUpsampleFire->Apply(0);
+        m_evTexture_glow->SetResource(NULL);*/
+        m_epQuadRaycastUpsampleFire.enable();
     }
 
     float GetMaxDim(){return m_maxDim;};
@@ -411,7 +422,10 @@ final class VolumeRenderer implements Disposeable{
     private void createGridBox(){}
     private void createScreenQuad(){}
     private void calculateRenderTextureSize(int screenWidth, int screenHeight){}
-    private void createRayDataResources(int width, int height){}
+    private void createRayDataResources(int width, int height){
+        m_width = width;
+        m_height = height;
+    }
     private void createJitterTexture(){}
 
     private void computeRayData(){

@@ -3,7 +3,7 @@ package jet.opengl.demos.intel.cput;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
-import java.util.Objects;
+import java.util.Arrays;
 
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.shader.Macro;
@@ -12,7 +12,6 @@ import jet.opengl.postprocessing.util.LogUtil;
 /**
  * Created by mazhen'gui on 2017/11/14.
  */
-
 public abstract class CPUTAssetLibrary implements Disposeable{
     protected static CPUTAssetLibrary mpAssetLibrary;
 
@@ -39,6 +38,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     public static CPUTAssetListEntry  mpConstantBufferList;
     public static CPUTAssetListEntry  mpRenderStateBlockList;
     public static CPUTAssetListEntry  mpFontList;
+    public static CPUTAssetEntry      mpMaterialEffectListEntry = new CPUTAssetEntry();
 
     public static void RebindTexturesAndBuffers(){
         CPUTAssetListEntry pMaterial = mpMaterialList;
@@ -160,6 +160,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     public void AddNullNode(        String name, CPUTNullNode         pNullNode)        { mpNullNodeList = AddAsset( name, pNullNode,         mpNullNodeList ); }
     public void AddModel(           String name, CPUTModel            pModel)           { mpModelList =    AddAsset( name, pModel,            mpModelList ); }
     public void AddMaterial(        String name, CPUTMaterial         pMaterial)        { mpMaterialList = AddAsset( name, pMaterial,         mpMaterialList ); }
+    public void AddMaterialEffect(  String name, String prefixDecoration, String suffixDecoration, CPUTMaterialEffect pMaterial, Macro[] pShaderMacros, CPUTModel pModel, int meshIndex){ AddAsset( name, prefixDecoration, suffixDecoration, pMaterial, /*&mpMaterialEffectList,       &mpMaterialEffectListTail*/ mpMaterialEffectListEntry,       pShaderMacros, pModel, meshIndex ); }
     public void AddLight(           String name, CPUTLight            pLight)           { mpLightList    = AddAsset( name, pLight,            mpLightList ); }
     public void AddCamera(          String name, CPUTCamera           pCamera)          { mpCameraList   = AddAsset( name, pCamera,           mpCameraList ); }
     public void AddTexture(         String name, CPUTTexture          pTexture)         { mpTextureList  = AddAsset( name, pTexture,          mpTextureList ); }
@@ -460,6 +461,11 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         }
     }
 
+    private final static class CPUTAssetEntry{
+        CPUTAssetListEntry pHead;
+        CPUTAssetListEntry pTail;
+    }
+
     protected CPUTAssetListEntry AddAsset( String name, Object pAsset,  CPUTAssetListEntry pHead ){
         // convert string to lowercase
         /*cString lowercaseName = name;
@@ -497,16 +503,112 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         }
     }
 
-    protected int CPUTComputeHash( String string )
-    {
-        /*int length = string.length();
-        UINT hash = 0;
-        for( size_t ii=0; ii<length; ii++ )
+    void AddAsset(String name, String prefixDecoration, String suffixDecoration, Object pAsset, /*CPUTAssetListEntry pHead,
+                CPUTAssetListEntry pTail*/ CPUTAssetEntry entry, Macro[] pShaderMacros, CPUTModel pModel, int meshIndex
+    ){
+        // convert string to lowercase
+        String lowercaseName = name.toLowerCase();
+//        std::transform(lowercaseName.begin(), lowercaseName.end(), lowercaseName.begin(), tolow);
+
+        // Do we already have one by this name?
+        for( CPUTAssetListEntry pCur=entry.pHead; null!=pCur; pCur=pCur.pNext )
         {
-            hash += tolower(string[ii]);
+//            if ( ((0 == _wcsicmp( pCur->name.data(), name.data() )) && (pCur->pModel == pModel) && (pCur->meshIndex == meshIndex) ) ) {
+            if(pCur.name.equals(name) && pCur.pModel == pModel && pCur.meshIndex == meshIndex){
+                throw new IllegalArgumentException("WARNING: Adding asset with duplicate name: " + name);
+            }
         }
-        return hash;*/
-        return Objects.hashCode(string);
+        String fileName;
+//FIXME string
+/*#ifdef UNICODE
+#define FORWARD_SLASH L"/"
+#define BACK_SLASH L"\\"
+#else
+#define FORWARD_SLASH "/"
+#define BACK_SLASH "\\"
+#endif*/
+        final char FORWARD_SLASH = '/';
+        final char BACK_SLASH = '\\';
+        // find final part of filename to use as short name when when don't care about duplicates
+        // move this to reusable location
+        int index = lowercaseName.indexOf(FORWARD_SLASH);
+        if  (index == /*cString::npos*/-1) {
+            index = lowercaseName.indexOf(BACK_SLASH);
+        }
+        if  (index != /*cString::npos*/ -1) {
+            fileName = lowercaseName.substring(index + 1); // add one to skip the forward or backward slash
+        }
+        else {
+            fileName = name;
+        }
+
+        CPUTAssetListEntry value = new CPUTAssetListEntry(); // TODO: init via constructor
+
+//        (*pTail)->hash       = CPUTComputeHash(prefixDecoration + name + suffixDecoration);
+        value.name       = prefixDecoration + name + suffixDecoration;
+        value.pData      = pAsset;
+        value.pModel     = pModel;
+        value.meshIndex  = meshIndex;
+        value.pNext      = null;
+        value.fileName   = fileName;
+
+        // Copy the shader macros.  If two assets (shaders only?) have different macros, then they're different assets.
+        // Fix me: add support for shader macros
+
+        /*char **p1=(char**)pShaderMacros;
+        int count = 0;
+        if( p1 )
+        {
+            // Count the macros
+            while( *p1 )
+            {
+                ++count;
+                ++p1;
+            }
+            (*pTail)->pShaderMacros = new char *[count+2]; // Add 2 for NULL terminator (1 for macro's name and 1 for its value)
+            p1 = (char**)pShaderMacros;
+            char **p2 = (*pTail)->pShaderMacros;
+            while( *p1 && *p2 )
+            {
+                size_t len = strlen(*p1);
+            *p2 = new char[len+1]; // +1 for NULL terminator
+#ifdef CPUT_OS_WINDOWS
+                strncpy_s( *p2, len+1, *p1, len+1 );
+#else
+                strcpy(*p2, *p1);
+#endif
+                    ++p1;
+                ++p2;
+            }
+            // Set the macro's name and value to NULL
+        *(p2++) = NULL;
+        *p2 = NULL;
+        } else
+        {
+            (*pTail)->pShaderMacros = NULL;
+        }*/
+
+        if(pShaderMacros != null){
+            entry.pTail.pShaderMacros = Arrays.copyOf(pShaderMacros, pShaderMacros.length);
+        }else{
+            entry.pTail.pShaderMacros = null;
+        }
+
+//        pTail = &(*pTail)->pNext;
+
+        if(entry.pHead == null){
+            entry.pHead = entry.pTail = value;
+        }else if(entry.pHead == entry.pTail){
+            entry.pTail = value;
+            entry.pHead.pNext = entry.pTail;
+        }else{
+            entry.pTail.pNext = value;
+            entry.pTail = value;
+        }
+
+        // TODO: Our assets are not yet all derived from CPUTRenderNode.
+        // TODO: For now, rely on caller performing the AddRef() as it knows the assets type.
+//        ((CPUTRefCount*)pAsset)->AddRef();
     }
 
     @Override

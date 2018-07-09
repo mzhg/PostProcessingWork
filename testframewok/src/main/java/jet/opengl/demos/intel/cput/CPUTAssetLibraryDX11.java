@@ -7,6 +7,7 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.shader.ShaderType;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.FileUtils;
 
 /**
@@ -85,7 +86,7 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
 
     // shaders - vertex, pixel
     ShaderProgram GetPixelShader(     String name, /*ID3D11Device *pD3dDevice,*/ String shaderMain, String shaderProfile, /*CPUTPixelShaderDX11    **ppShader,*/
-                                      boolean nameIsFullPathAndFilename/*=false*/) throws IOException{
+                                      boolean nameIsFullPathAndFilename/*=false*/, Macro... macros) throws IOException{
 //        CPUTResult result = CPUT_SUCCESS;
         String finalName;
         if( name.charAt(0) == '$' )
@@ -110,13 +111,21 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
         }
         /**ppPixelShader = CPUTPixelShaderDX11::CreatePixelShader( finalName, pD3dDevice, shaderMain, shaderProfile );
         return result;*/
-        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.FRAGMENT, new Macro(shaderMain, 1));
+
+        if(macros == null){
+            macros = CommonUtil.toArray(new Macro(shaderMain, 1));
+        }else{
+            int length = macros.length;
+            macros = new Macro[length + 1];
+            macros[length] = new Macro(shaderMain, 1);
+        }
+        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.FRAGMENT, macros);
         AddPixelShader(finalName + shaderMain + shaderProfile, shader);
         return shader;
     }
 
     ShaderProgram GetComputeShader(   String name, /*ID3D11Device *pD3dDevice,*/ String shaderMain, String shaderProfile, /*CPUTComputeShaderDX11  **ppShader,*/
-                                      boolean nameIsFullPathAndFilename/*=false*/)throws IOException{
+                                      boolean nameIsFullPathAndFilename/*=false*/, Macro... macros)throws IOException{
         String finalName;
         if( name.charAt(0) == '$' )
         {
@@ -138,16 +147,25 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
              return result;*/
             return pShader;
         }
+
+        if(macros == null){
+            macros = CommonUtil.toArray(new Macro(shaderMain, 1));
+        }else{
+            int length = macros.length;
+            macros = new Macro[length + 1];
+            macros[length] = new Macro(shaderMain, 1);
+        }
+
         /**ppPixelShader = CPUTPixelShaderDX11::CreatePixelShader( finalName, pD3dDevice, shaderMain, shaderProfile );
          return result;*/
-        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.COMPUTE);
+        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.COMPUTE, macros);
         AddComputeShader(finalName + shaderMain + shaderProfile, shader);
         shader.setName(FileUtils.getFile(finalName));
         return shader;
     }
 
     ShaderProgram GetVertexShader(    String name, /*ID3D11Device *pD3dDevice,*/ String shaderMain, String shaderProfile, /*CPUTVertexShaderDX11   **ppShader,*/
-                                      boolean nameIsFullPathAndFilename/*=false*/) throws IOException{
+                                      boolean nameIsFullPathAndFilename/*=false*/, Macro... macros) throws IOException{
         String finalName;
         if( name.charAt(0) == '$' )
         {
@@ -171,14 +189,22 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
         }
         /**ppPixelShader = CPUTPixelShaderDX11::CreatePixelShader( finalName, pD3dDevice, shaderMain, shaderProfile );
          return result;*/
-        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.VERTEX, new Macro(shaderMain, 1));
+        if(macros == null){
+            macros = CommonUtil.toArray(new Macro(shaderMain, 1));
+        }else{
+            int length = macros.length;
+            macros = new Macro[length + 1];
+            macros[length] = new Macro(shaderMain, 1);
+        }
+
+        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.VERTEX, macros);
         AddVertexShader(finalName + shaderMain + shaderProfile, shader);
         shader.setName(FileUtils.getFile(finalName));
         return shader;
     }
 
     ShaderProgram GetGeometryShader(  String name, /*ID3D11Device *pD3dDevice,*/ String shaderMain, String shaderProfile, /*CPUTGeometryShaderDX11 **ppShader,*/
-                                      boolean nameIsFullPathAndFilename/*=false*/)throws IOException{
+                                      boolean nameIsFullPathAndFilename/*=false*/, Macro... macros)throws IOException{
         String finalName;
         if( name.charAt(0) == '$' )
         {
@@ -200,16 +226,25 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
              return result;*/
             return pShader;
         }
+
+        if(macros == null){
+            macros = CommonUtil.toArray(new Macro(shaderMain, 1));
+        }else{
+            int length = macros.length;
+            macros = new Macro[length + 1];
+            macros[length] = new Macro(shaderMain, 1);
+        }
+
         /**ppPixelShader = CPUTPixelShaderDX11::CreatePixelShader( finalName, pD3dDevice, shaderMain, shaderProfile );
          return result;*/
-        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.GEOMETRY);
+        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.GEOMETRY, macros);
         AddGeometryShader(finalName + shaderMain + shaderProfile, shader);
         shader.setName(FileUtils.getFile(finalName));
         return shader;
     }
 
     ShaderProgram GetHullShader(      String name, /*ID3D11Device *pD3dDevice,*/ String shaderMain, String shaderProfile, /*CPUTHullShaderDX11     **ppShader,*/
-                                      boolean nameIsFullPathAndFilename/*=false*/) throws IOException{
+                                      boolean nameIsFullPathAndFilename/*=false*/, Macro... macros) throws IOException{
         String finalName;
         if( name.charAt(0) == '$' )
         {
@@ -231,16 +266,25 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
              return result;*/
             return pShader;
         }
+
+        if(macros == null){
+            macros = CommonUtil.toArray(new Macro(shaderMain, 1));
+        }else{
+            int length = macros.length;
+            macros = new Macro[length + 1];
+            macros[length] = new Macro(shaderMain, 1);
+        }
+
         /**ppPixelShader = CPUTPixelShaderDX11::CreatePixelShader( finalName, pD3dDevice, shaderMain, shaderProfile );
          return result;*/
-        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.TESS_CONTROL);
+        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.TESS_CONTROL, macros);
         AddHullShader(finalName + shaderMain + shaderProfile, shader);
         shader.setName(FileUtils.getFile(finalName));
         return shader;
     }
 
     ShaderProgram GetDomainShader(    String name, /*ID3D11Device *pD3dDevice,*/ String shaderMain, String shaderProfile, /*CPUTDomainShaderDX11   **ppShader,*/
-                                      boolean nameIsFullPathAndFilename/*=false*/) throws IOException{
+                                      boolean nameIsFullPathAndFilename/*=false*/, Macro... macros) throws IOException{
         String finalName;
         if( name.charAt(0) == '$' )
         {
@@ -262,9 +306,18 @@ public final class CPUTAssetLibraryDX11 extends CPUTAssetLibrary{
              return result;*/
             return pShader;
         }
+
+        if(macros == null){
+            macros = CommonUtil.toArray(new Macro(shaderMain, 1));
+        }else{
+            int length = macros.length;
+            macros = new Macro[length + 1];
+            macros[length] = new Macro(shaderMain, 1);
+        }
+
         /**ppPixelShader = CPUTPixelShaderDX11::CreatePixelShader( finalName, pD3dDevice, shaderMain, shaderProfile );
          return result;*/
-        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.TESS_EVAL);
+        ShaderProgram shader =  GLSLProgram.createShaderProgramFromFile(finalName, ShaderType.TESS_EVAL, macros);
         AddDomainShader(finalName + shaderMain + shaderProfile, shader);
         shader.setName(FileUtils.getFile(finalName));
         return shader;
