@@ -2,11 +2,10 @@ package jet.parsing.cplus.reader;
 
 public interface CReader {
 
-    boolean accept(String token);
-
-    CReadResult read(ReaderContext context, String line, String[] reminder);
+    CReadResult read(CReadParams params);
 
     CReaderType getType();
 
     Object parseValue();
+
 }

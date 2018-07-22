@@ -8,4 +8,5 @@ import jet.parsing.cplus.type.CType;
 public class ReaderContext {
     private final List<CType> mTypes = new ArrayList<>();
     private final List<CReader>  mReaders = new ArrayList<>();
+    CHFile mCurrentFile;
 }
