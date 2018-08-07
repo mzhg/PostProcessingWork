@@ -59,7 +59,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         initlizeGL();
     }
     
-    @Override
     public void LoadMaterial(String fileName, String modelSuffix, String meshSuffix) throws IOException {
 //        CPUTResult result = CPUT_SUCCESS;
 
@@ -285,7 +284,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         gl = GLFuncProviderFactory.getGLFuncProvider();
     }
 
-    @Override
     public void ReleaseTexturesAndBuffers(boolean recurseSubMaterials) {
         if( IsMultiMaterial() )
         {
@@ -364,7 +362,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         }
     }
 
-    @Override
     public void RebindTexturesAndBuffers(boolean recurseSubMaterials) {
         if( IsMultiMaterial() )
         {
@@ -415,7 +412,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         }
     }
 
-    @Override
     public boolean MaterialRequiresPerModelPayload() {
         if( IsMultiMaterial() )
         {
@@ -465,7 +461,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
         throw new UnsupportedOperationException();
     }
 
-    @Override
     public CPUTMaterial CloneMaterial(String absolutePathAndFilename, String modelSuffix, String meshSuffix) {
         throw new UnsupportedOperationException();
     }
@@ -492,7 +487,6 @@ public final class CPUTMaterialDX11 extends CPUTMaterial{
      *  shaders, state, etc that this material represents
      * @param renderParams
      */
-    @Override
     public void SetRenderStates( CPUTRenderParameters renderParams ){
         if( IsMultiMaterial() )
         {

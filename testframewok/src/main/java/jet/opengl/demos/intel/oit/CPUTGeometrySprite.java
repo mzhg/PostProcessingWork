@@ -1,5 +1,7 @@
 package jet.opengl.demos.intel.oit;
 
+import java.io.IOException;
+
 import jet.opengl.demos.intel.cput.CPUTAssetLibrary;
 import jet.opengl.demos.intel.cput.CPUTMaterial;
 import jet.opengl.demos.intel.cput.CPUTRenderParameters;
@@ -24,7 +26,7 @@ final class CPUTGeometrySprite implements Disposeable{
             float          spriteWidth  /*= 2.0f*/,
             float          spriteHeight /*= 2.0f*/,
             String         spriteMaterialName /*= cString(_L("Sprite")*/
-            ){
+            )throws IOException {
         // Create resources so we can draw a sprite using the render target as a texture
         mpMaterial = CPUTAssetLibrary.GetAssetLibrary().GetMaterial( spriteMaterialName, false );
 
@@ -76,7 +78,7 @@ final class CPUTGeometrySprite implements Disposeable{
         {
 //            ID3D11DeviceContext *pContext = ((CPUTRenderParametersDX*)&renderParams)->mpContext;
 
-            material.GetMaterialEffects()[0]->SetRenderStates(renderParams);
+            material.GetMaterialEffects()[0].SetRenderStates(renderParams);
 
             /*UINT stride = sizeof( SpriteVertex );
             UINT offset = 0;

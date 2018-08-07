@@ -39,12 +39,13 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     public static CPUTAssetListEntry  mpRenderStateBlockList;
     public static CPUTAssetListEntry  mpFontList;
     public static CPUTAssetEntry      mpMaterialEffectListEntry = new CPUTAssetEntry();
+    public static CPUTAssetEntry      mpMaterialListEntry = new CPUTAssetEntry();
 
     public static void RebindTexturesAndBuffers(){
         CPUTAssetListEntry pMaterial = mpMaterialList;
         while( pMaterial != null)
         {
-            ((CPUTMaterial)pMaterial.pData).RebindTexturesAndBuffers(false);
+            ((CPUTMaterialDX11)pMaterial.pData).RebindTexturesAndBuffers(false);
             pMaterial = pMaterial.pNext;
         }
     }
@@ -52,7 +53,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         CPUTAssetListEntry pMaterial = mpMaterialList;
         while( pMaterial !=null )
         {
-            ((CPUTMaterial)pMaterial.pData).ReleaseTexturesAndBuffers(false);
+            ((CPUTMaterialDX11)pMaterial.pData).ReleaseTexturesAndBuffers(false);
             pMaterial = pMaterial.pNext;
         }
     }
@@ -98,6 +99,50 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         LogUtil.w(LogUtil.LogType.DEFAULT, "Couldn't found the asset by name: " + absolutePathAndFilename);
         return null;
     }
+
+    // Find an asset in a specific library
+// ** Does not Addref() returned items **
+// Asset library doesn't care if we're using absolute paths for names or not, it
+// just adds/finds/deletes the matching string literal.
+//-----------------------------------------------------------------------------
+    Object FindAsset(String name, CPUTAssetListEntry pList, boolean nameIsFullPathAndFilename, Macro[] pShaderMacros, CPUTModel pModel, int meshIndex
+    ){
+        String absolutePathAndFilename;
+        if( !nameIsFullPathAndFilename )
+        {
+//            CPUTFileSystem::ResolveAbsolutePathAndFilename( mAssetSetDirectoryName + name, &absolutePathAndFilename);
+            absolutePathAndFilename = mAssetSetDirectoryName + name;
+        }
+        else
+        {
+            absolutePathAndFilename = name;
+        }
+//        UINT hash = CPUTComputeHash( absolutePathAndFilename );
+
+        while(null!=pList)
+        {
+            //String szNameLower = pList->name;
+            //std::transform(szNameLower.begin(), szNameLower.end(), szNameLower.begin(), tolow);
+            //std::transform(absolutePathAndFilename.begin(), absolutePathAndFilename.end(), absolutePathAndFilename.begin(), tolow);
+
+            if(    pModel    == pList.pModel
+                    && meshIndex == pList.meshIndex
+//                    && hash      == pList->hash
+//fixme
+/*#ifdef UNICODE
+            && (0 == _wcsicmp( absolutePathAndFilename.data(), pList->name.data() ))
+#endif
+                && ShaderDefinesMatch( (char**)pShaderMacros, pList->pShaderMacros*/
+                && pList.name.equalsIgnoreCase(absolutePathAndFilename)
+        )
+            {
+                return pList.pData;
+            }
+            pList = pList.pNext;
+        }
+        return null;
+    }
+
     public void ReleaseAllLibraryLists(){
         ReleaseList(mpAssetSetList);
         ReleaseList(mpMaterialList);
@@ -160,6 +205,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     public void AddNullNode(        String name, CPUTNullNode         pNullNode)        { mpNullNodeList = AddAsset( name, pNullNode,         mpNullNodeList ); }
     public void AddModel(           String name, CPUTModel            pModel)           { mpModelList =    AddAsset( name, pModel,            mpModelList ); }
     public void AddMaterial(        String name, CPUTMaterial         pMaterial)        { mpMaterialList = AddAsset( name, pMaterial,         mpMaterialList ); }
+    public void AddMaterial(        String name, String prefixDecoration, String suffixDecoration, CPUTMaterial pMaterial, Macro[] pShaderMacros, CPUTModel pModel, int meshIndex){ AddAsset( name, prefixDecoration, suffixDecoration, pMaterial, /*&mpMaterialList,       &mpMaterialListTail*/mpMaterialListEntry,       pShaderMacros, pModel, meshIndex ); }
     public void AddMaterialEffect(  String name, String prefixDecoration, String suffixDecoration, CPUTMaterialEffect pMaterial, Macro[] pShaderMacros, CPUTModel pModel, int meshIndex){ AddAsset( name, prefixDecoration, suffixDecoration, pMaterial, /*&mpMaterialEffectList,       &mpMaterialEffectListTail*/ mpMaterialEffectListEntry,       pShaderMacros, pModel, meshIndex ); }
     public void AddLight(           String name, CPUTLight            pLight)           { mpLightList    = AddAsset( name, pLight,            mpLightList ); }
     public void AddCamera(          String name, CPUTCamera           pCamera)          { mpCameraList   = AddAsset( name, pCamera,           mpCameraList ); }
@@ -173,6 +219,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     public CPUTNullNode FindNullNode(String name, boolean nameIsFullPathAndFilename/*=false*/)       { return (CPUTNullNode)FindAsset( name, mpNullNodeList, nameIsFullPathAndFilename ); }
     public CPUTModel    FindModel(String name, boolean nameIsFullPathAndFilename/*=false*/)          { return (CPUTModel)FindAsset(    name, mpModelList,    nameIsFullPathAndFilename ); }
     public CPUTMaterial FindMaterial(String name, boolean nameIsFullPathAndFilename/*=false*/)       { return (CPUTMaterial)FindAsset( name, mpMaterialList, nameIsFullPathAndFilename ); }
+    public CPUTMaterialEffect FindMaterialEffect(String name, boolean nameIsFullPathAndFilename, Macro[] pShaderMacros, CPUTModel pModel, int meshIndex) { return (CPUTMaterialEffect)        FindAsset( name, mpMaterialEffectListEntry.pHead,         nameIsFullPathAndFilename, pShaderMacros, pModel, meshIndex ); }
     public CPUTLight    FindLight(String name, boolean nameIsFullPathAndFilename/*=false*/)          { return (CPUTLight)FindAsset(    name, mpLightList,    nameIsFullPathAndFilename ); }
     public CPUTCamera   FindCamera(String name, boolean nameIsFullPathAndFilename/*=false*/)         { return (CPUTCamera)FindAsset(   name, mpCameraList,   nameIsFullPathAndFilename ); }
     public CPUTTexture  FindTexture(String name, boolean nameIsFullPathAndFilename/*=false*/)        { return (CPUTTexture)FindAsset(  name, mpTextureList,  nameIsFullPathAndFilename ); }
@@ -229,7 +276,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     // TODO: All of these Get() functions look very similar.
     public CPUTMaterial GetMaterial(
             String     name,
-            boolean    nameIsFullPathAndFilename){
+            boolean    nameIsFullPathAndFilename) throws IOException{
         return GetMaterial(name, nameIsFullPathAndFilename, null, 0, null,0,
                 null, null, null, null, null,0);
     }
@@ -248,7 +295,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
             int[]      pExternalOffset, // list of offsets to each of the exernals (e.g., char offset of this external in the cbExternals constant buffer)
             int[]      pExternalSize,
             int        externalCount
-    ){
+    )throws IOException{
         // Resolve name to absolute path before searching
         String absolutePathAndFilename;
         if (name.charAt(0) == '%')
@@ -322,11 +369,11 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         String absolutePathAndFilename = nameIsFullPathAndFilename ? name : (mMaterialDirectoryName + name + ".mtl");
 
         // If we already have one by this name, then return it
-        CPUTMaterial pMaterial = FindMaterial(absolutePathAndFilename, true);
+        CPUTMaterialDX11 pMaterial = (CPUTMaterialDX11) FindMaterial(absolutePathAndFilename, true);
         if(null==pMaterial)
         {
             // We don't already have it in the library, so create it.
-            pMaterial = CPUTMaterial.CreateMaterial( absolutePathAndFilename, modelSuffix, meshSuffix );
+            pMaterial = (CPUTMaterialDX11) CPUTMaterial.CreateMaterial( absolutePathAndFilename, modelSuffix, meshSuffix );
             return pMaterial;
         }
         else if( (0==modelSuffix.length()) && !pMaterial.MaterialRequiresPerModelPayload() )
@@ -345,6 +392,48 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         }
 
         return pMaterial.CloneMaterial( absolutePathAndFilename, modelSuffix, meshSuffix );
+    }
+
+    // TODO: All of these Get() functions look very similar.
+// Keep them all for their interface, but have them call a common function
+//-----------------------------------------------------------------------------
+    public CPUTMaterialEffect GetMaterialEffect(String name, boolean nameIsFullPathAndFilename, CPUTModel pModel, int meshIndex,
+            Macro[] pShaderMacros // Note: this is honored only on first load.  Subsequent GetMaterial calls will return the material with shaders as compiled with original macros.
+    ){
+        // Resolve name to absolute path before searching
+        String absolutePathAndFilename;
+        if (name.charAt(0) == '%')
+        {
+            absolutePathAndFilename = mSystemDirectoryName + "Material/" + name.substring(1) + ".mtl";  // TODO: Instead of having the Material/directory hardcoded here it could be set like the normal material directory. But then there would need to be a bunch new variables like SetSystemMaterialDirectory
+//            CPUTFileSystem::ResolveAbsolutePathAndFilename(absolutePathAndFilename, &absolutePathAndFilename);
+        } else if( !nameIsFullPathAndFilename )
+        {
+//            CPUTFileSystem::ResolveAbsolutePathAndFilename( mMaterialDirectoryName + name + _L(".mtl"), &absolutePathAndFilename);
+            absolutePathAndFilename = mMaterialDirectoryName + name + (".mtl");
+        } else
+        {
+            absolutePathAndFilename = name;
+        }
+
+        CPUTMaterialEffect pMaterial=null;
+
+        if( pMaterial == null && pShaderMacros == null )
+        {
+            // Loading a non-instanced material (or, the master)
+            pMaterial = FindMaterialEffect(absolutePathAndFilename, true);
+        }
+
+        // If the material has per-model properties, then we need a material clone
+        if( pMaterial )
+        {
+            pMaterial->AddRef();
+        }
+        else
+        {
+            pMaterial = CPUTMaterialEffect::CreateMaterialEffect( absolutePathAndFilename, pModel, meshIndex, pShaderMacros );
+            ASSERT( pMaterial, _L("Failed creating material Effect.") );
+        }
+        return pMaterial;
     }
 
     public CPUTModel            GetModel(           String name, boolean nameIsFullPathAndFilename/*=false*/  ) throws IOException{
@@ -614,5 +703,38 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     @Override
     public void dispose() {
 
+    }
+
+    public String GetMaterialEffectPath(String   name,boolean       nameIsFullPathAndFilename)
+    {
+        // Resolve name to absolute path before searching
+        /*String absolutePathAndFilename;
+        if (name.charAt(0) == '%')
+        {
+            absolutePathAndFilename = mSystemDirectoryName + "Material/" + name.substring(1) + (".mtl");  // TODO: Instead of having the Material/directory hardcoded here it could be set like the normal material directory. But then there would need to be a bunch new variables like SetSystemMaterialDirectory
+            CPUTFileSystem::ResolveAbsolutePathAndFilename(absolutePathAndFilename, &absolutePathAndFilename);
+        } else if( !nameIsFullPathAndFilename )
+        {
+            CPUTFileSystem::ResolveAbsolutePathAndFilename( mMaterialDirectoryName + name + _L(".mtl"), &absolutePathAndFilename);
+        } else
+        {
+            absolutePathAndFilename = name;
+        }*/
+
+        String absolutePathAndFilename;
+        if (name.charAt(0) == '%')
+        {
+            absolutePathAndFilename = mSystemDirectoryName + "Material/" + name.substring(1) + (".mtl");  // TODO: Instead of having the Material/directory hardcoded here it could be set like the normal material directory. But then there would need to be a bunch new variables like SetSystemMaterialDirectory
+//            CPUTFileSystem::ResolveAbsolutePathAndFilename(absolutePathAndFilename, &absolutePathAndFilename); TODO
+        } else if( !nameIsFullPathAndFilename )
+        {
+//            CPUTFileSystem::ResolveAbsolutePathAndFilename( mMaterialDirectoryName + name + _L(".mtl"), &absolutePathAndFilename);  TODO
+            absolutePathAndFilename = mMaterialDirectoryName + name + ".mtl";
+        } else
+        {
+            absolutePathAndFilename = name;
+        }
+
+        return absolutePathAndFilename;
     }
 }

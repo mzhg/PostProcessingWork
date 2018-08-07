@@ -31,10 +31,10 @@ public class EDiskRecord {
         }
         String path = new String("F://迅雷下载".getBytes("GBK"), "utf-8");
         Path folder =  Paths.get(path);
-//        if(!.exists(folder)) {
-//            System.out.println("File not exists");
-//            return;
-//        }
+        if(!Files.exists(folder)) {
+            System.out.println("File not exists");
+            return;
+        }
 
         LinkedHashSet<FileKey> newValues = new LinkedHashSet<>();
         Files.walkFileTree(folder, EnumSet.of(FileVisitOption.FOLLOW_LINKS), 1, new ListFile(newValues));
