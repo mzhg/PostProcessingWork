@@ -1,5 +1,6 @@
 package jet.opengl.demos.intel.cput;
 
+import java.io.IOException;
 import java.nio.FloatBuffer;
 
 import jet.opengl.demos.intel.va.VaDirectXTools;
@@ -61,7 +62,7 @@ public class CPUTSpriteDX11 extends CPUTSprite {
             float          spriteWidth  /*= 2.0f*/,
             float          spriteHeight /*= 2.0f*/,
             String spriteMaterialName /*= cString(_L("Sprite"))*/
-    ){
+    )throws IOException {
         CPUTSpriteDX11 pCPUTSprite =  new CPUTSpriteDX11();
 
         // Create resources so we can draw a sprite using the render target as a texture

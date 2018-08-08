@@ -40,6 +40,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     public static CPUTAssetListEntry  mpFontList;
     public static CPUTAssetEntry      mpMaterialEffectListEntry = new CPUTAssetEntry();
     public static CPUTAssetEntry      mpMaterialListEntry = new CPUTAssetEntry();
+    public static CPUTAssetEntry      mpTextureListEntry = new CPUTAssetEntry();
 
     public static void RebindTexturesAndBuffers(){
         CPUTAssetListEntry pMaterial = mpMaterialList;
@@ -207,6 +208,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
     public void AddMaterial(        String name, CPUTMaterial         pMaterial)        { mpMaterialList = AddAsset( name, pMaterial,         mpMaterialList ); }
     public void AddMaterial(        String name, String prefixDecoration, String suffixDecoration, CPUTMaterial pMaterial, Macro[] pShaderMacros, CPUTModel pModel, int meshIndex){ AddAsset( name, prefixDecoration, suffixDecoration, pMaterial, /*&mpMaterialList,       &mpMaterialListTail*/mpMaterialListEntry,       pShaderMacros, pModel, meshIndex ); }
     public void AddMaterialEffect(  String name, String prefixDecoration, String suffixDecoration, CPUTMaterialEffect pMaterial, Macro[] pShaderMacros, CPUTModel pModel, int meshIndex){ AddAsset( name, prefixDecoration, suffixDecoration, pMaterial, /*&mpMaterialEffectList,       &mpMaterialEffectListTail*/ mpMaterialEffectListEntry,       pShaderMacros, pModel, meshIndex ); }
+    public void AddTexture(         String name, String prefixDecoration, String suffixDecoration, CPUTTexture pTexture, CPUTModel pModel, int meshIndex){ AddAsset( name, prefixDecoration, suffixDecoration, pTexture, /*&mpTextureList, &mpTextureListTail,*/mpTextureListEntry,null,pModel, meshIndex ); }
     public void AddLight(           String name, CPUTLight            pLight)           { mpLightList    = AddAsset( name, pLight,            mpLightList ); }
     public void AddCamera(          String name, CPUTCamera           pCamera)          { mpCameraList   = AddAsset( name, pCamera,           mpCameraList ); }
     public void AddTexture(         String name, CPUTTexture          pTexture)         { mpTextureList  = AddAsset( name, pTexture,          mpTextureList ); }
@@ -399,7 +401,7 @@ public abstract class CPUTAssetLibrary implements Disposeable{
 //-----------------------------------------------------------------------------
     public CPUTMaterialEffect GetMaterialEffect(String name, boolean nameIsFullPathAndFilename, CPUTModel pModel, int meshIndex,
             Macro[] pShaderMacros // Note: this is honored only on first load.  Subsequent GetMaterial calls will return the material with shaders as compiled with original macros.
-    ){
+    ) throws IOException{
         // Resolve name to absolute path before searching
         String absolutePathAndFilename;
         if (name.charAt(0) == '%')
@@ -420,18 +422,19 @@ public abstract class CPUTAssetLibrary implements Disposeable{
         if( pMaterial == null && pShaderMacros == null )
         {
             // Loading a non-instanced material (or, the master)
-            pMaterial = FindMaterialEffect(absolutePathAndFilename, true);
+            pMaterial = FindMaterialEffect(absolutePathAndFilename, true, null, null, -1);
         }
 
         // If the material has per-model properties, then we need a material clone
-        if( pMaterial )
+        if( pMaterial != null)
         {
-            pMaterial->AddRef();
+//            pMaterial->AddRef();
         }
         else
         {
-            pMaterial = CPUTMaterialEffect::CreateMaterialEffect( absolutePathAndFilename, pModel, meshIndex, pShaderMacros );
-            ASSERT( pMaterial, _L("Failed creating material Effect.") );
+            pMaterial = CPUTMaterialEffect.CreateMaterialEffect( absolutePathAndFilename, pModel, meshIndex, pShaderMacros,0,null, null, null );
+            if(pMaterial == null)
+                throw new IllegalStateException("Failed creating material Effect.");
         }
         return pMaterial;
     }

@@ -211,6 +211,8 @@ public class CPUTRenderNode implements Disposeable{
             mpChild.UpdateRecursive(deltaSeconds);
         }
     }
+
+    public void     Render(CPUTRenderParameters renderParams, int materialIndex){}
     public void     Render(CPUTRenderParameters renderParams){}
     public void     RenderShadow(CPUTRenderParameters renderParams){}
     public void     RenderAVSMShadowed(CPUTRenderParameters renderParams){}
@@ -229,6 +231,24 @@ public class CPUTRenderNode implements Disposeable{
             while(pNode!=null)
             {
                 pNode.RenderRecursive(renderParams);
+                pNode = pNode.GetSibling();
+            }
+        }
+    }
+
+    // RenderRecursive - recursively visit all sub-nodes in breadth-first mode
+//-----------------------------------------------------------------------------
+    public void RenderRecursive(CPUTRenderParameters renderParams, int materialIndex)
+    {
+        Render(renderParams, materialIndex);
+
+        if(mpChild != null)
+        {
+            mpChild.RenderRecursive(renderParams, materialIndex);
+            CPUTRenderNode pNode = mpChild.GetSibling();
+            while(pNode != null)
+            {
+                pNode.RenderRecursive(renderParams, materialIndex);
                 pNode = pNode.GetSibling();
             }
         }

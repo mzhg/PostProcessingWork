@@ -18,12 +18,21 @@ import jet.opengl.postprocessing.util.FileUtils;
  * Created by mazhen'gui on 2017/11/13.
  */
 public abstract class CPUTModel extends CPUTRenderNode implements Disposeable{
+    public static DrawModelCallBackFunc mDrawModelCallBackFunc;
+    public interface DrawModelCallBackFunc{
+        boolean drawModel(CPUTModel model, CPUTRenderParameters renderParams, CPUTMesh mesh, CPUTMaterialEffect effect, CPUTMaterialEffect pMaterial, Object data);
+    }
+
     protected CPUTMesh     []mpMesh;
-    protected CPUTMaterial []mpMaterial;
+    protected int[]        mpLayoutCount;
+    protected CPUTMaterial[] mpMaterial;
+    protected CPUTMaterial []mpRootMaterial; // Have arrays of submaterials, one array for each mesh.
+    protected CPUTMaterialEffect [][]mpMaterialEffect;
+
     protected CPUTMaterial  mpShadowCastMaterial;
 
     protected int           mMeshCount;
-    protected boolean           mIsRenderable = true;
+    protected boolean       mIsRenderable = true;
     protected final Vector3f mBoundingBoxCenterObjectSpace = new Vector3f();
     protected final Vector3f mBoundingBoxHalfObjectSpace = new Vector3f();
     protected final Vector3f mBoundingBoxCenterWorldSpace = new Vector3f();
@@ -208,12 +217,75 @@ public abstract class CPUTModel extends CPUTRenderNode implements Disposeable{
         }
     }
     public void SetMaterial(int ii, CPUTMaterial pMaterial){
-        // TODO: ASSSERT that ii is in range
+        // release previous submaterials
 
-        // release old material pointer
-        CommonUtil.safeRelease( mpMaterial[ii] );
+        SAFE_RELEASE(mpRootMaterial[ii]);
 
+        mpRootMaterial[ii] = pMaterial;
         mpMaterial[ii] = pMaterial;
+        if(mpMaterial[ii] !=null)
+        {
+//            mpMaterial[ii].AddRef();
+        }
+//        pMaterial->AddRef();
+
+        int index = 0;
+        // release previous submaterials
+        CPUTMaterialEffect []pCur = mpMaterialEffect[ii];
+        if( pCur != null)
+        {
+            while( pCur[index] != null)
+            {
+                SAFE_RELEASE( pCur[index] );
+                pCur[index++] = null;
+            }
+//            SAFE_DELETE( mpMaterialEffect[ii] );
+            mpMaterialEffect[ii] = null;
+        }
+        // Count the new submaterials
+        int count = 0;
+        index = 0;
+        pCur = pMaterial.GetMaterialEffects();
+        while( pCur[index++] != null )
+        {
+            count++;
+        }
+
+        // Copy the pointers to the sub materials
+        mpLayoutCount[ii] = count;
+        mpMaterialEffect[ii] = new CPUTMaterialEffect[count+1];
+        for( int jj=0; jj<count; jj++ )
+        {
+            mpMaterialEffect[ii][jj] = pMaterial.GetMaterialEffects()[jj];
+            if( mpMaterialEffect[ii][jj] != null)
+            {
+                boolean needClone = pMaterial.GetMaterialEffects()[jj].MaterialRequiresPerModelPayload();
+                if( needClone )
+                {
+                    mpMaterialEffect[ii][jj] = pMaterial.GetMaterialEffects()[jj].CloneMaterialEffect( this, ii);
+                }
+                else
+                {
+//                    mpMaterialEffect[ii][jj]->AddRef();
+                }
+            }
+            else
+            {
+                mpMaterialEffect[ii][jj] = null;
+            }
+        }
+        mpMaterialEffect[ii][count] = null;
+    }
+
+    public CPUTMaterial GetMaterial( int meshIndex )
+    {
+        return mpRootMaterial[meshIndex];
+    }
+
+    //-----------------------------------------------------------------------------
+    public int GetMaterialIndex(int meshIndex, int index)
+    {
+        return index >= 0 ? mpRootMaterial[meshIndex].GetCurrentEffect() : mpRootMaterial[meshIndex].GetMaterialEffectCount() + index;
     }
 
     @Override

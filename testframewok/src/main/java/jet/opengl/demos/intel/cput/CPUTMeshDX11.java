@@ -192,6 +192,12 @@ public class CPUTMeshDX11 extends CPUTMesh {
 
     public D3D11_INPUT_ELEMENT_DESC[] GetLayoutDescription() { return mpLayoutDescription; }
 
+    //-----------------------------------------------------------------------------
+    public void Draw(CPUTRenderParameters renderParams, ID3D11InputLayout pInputLayout )
+    {
+        Draw(renderParams, null, pInputLayout);
+    }
+
     public void  Draw(CPUTRenderParameters renderParams, CPUTModel pModel)       { Draw(renderParams, pModel, mpInputLayout);}
     public void  DrawShadow(CPUTRenderParameters renderParams, CPUTModel pModel) { Draw(renderParams, pModel, mpShadowInputLayout);}
     public void  DrawAVSMShadowed(CPUTRenderParameters renderParams, CPUTModel pModel) // { Draw(renderParams, pModel, mpShadowInputLayout);}

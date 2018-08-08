@@ -5,6 +5,7 @@ import org.lwjgl.util.vector.ReadableVector2f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import jet.opengl.demos.intel.cput.CPUTAssetLibrary;
@@ -68,9 +69,14 @@ final class CPUTZoomBox implements Disposeable{
 
 
         mpBorderSprite = new CPUTGeometrySprite();
-        mpBorderSprite.CreateSprite( -1.0f, -1.0f, 2.0f, 2.0f, "ZoomBorder");
-        mpBorderMaterial = pAssetLibrary.GetMaterial( "ZoomBorder", false );
-        mpZoomMaterial = pAssetLibrary.GetMaterial( "Zoom" ,false);
+
+        try {
+            mpBorderSprite.CreateSprite( -1.0f, -1.0f, 2.0f, 2.0f, "ZoomBorder");
+            mpBorderMaterial = pAssetLibrary.GetMaterial( "ZoomBorder", false );
+            mpZoomMaterial = pAssetLibrary.GetMaterial( "Zoom" ,false);
+        }catch (IOException e){
+            e.printStackTrace();
+        }
     }
     void    OnShutdown(){
         dispose();

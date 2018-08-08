@@ -17,12 +17,136 @@ import jet.opengl.postprocessing.util.CacheBuffer;
  */
 
 public class CPUTModelDX11 extends CPUTModel {
+
     private static final Vector3f g_DefaultLightDir = new Vector3f(0.7f, -0.5f, -0.05f);
     static {
         g_DefaultLightDir.normalise();
     }
     protected BufferGL      mpModelConstantBuffer;
     private CPUTModelConstantBuffer constantBuffer = new CPUTModelConstantBuffer();
+
+    ID3D11InputLayout [][]mpInputLayout;
+
+    // Render this model. Render only this model, not its children or siblings.
+//-----------------------------------------------------------------------------
+    public void Render(CPUTRenderParameters renderParams, int materialIndex)
+    {
+        CPUTRenderParametersDX pParams = (CPUTRenderParametersDX)renderParams;
+        CPUTCamera             pCamera = pParams.mpCamera;
+
+        // TODO: Move bboxDirty to member and set only when model moves.
+        boolean bboxDirty = true;
+        if( bboxDirty )
+        {
+            UpdateBoundsWorldSpace();
+        }
+
+        if( renderParams.mDrawModels && !pParams.mRenderOnlyVisibleModels || pCamera == null /*|| pCamera.mFrustum.IsVisible( mBoundingBoxCenterWorldSpace, mBoundingBoxHalfWorldSpace )*/ )
+        {
+            // Update the model's constant buffer.
+            // Note that the materials reference this, so we need to do it only once for all of the model's meshes.
+            UpdateShaderConstants(renderParams);
+
+            // loop over all meshes in this model and draw them
+            for(int ii=0; ii<mMeshCount; ii++)
+            {
+                int finalMaterialIndex = GetMaterialIndex(ii, materialIndex);
+                assert finalMaterialIndex < mpLayoutCount[ii] : _L("material index out of range.");
+                CPUTMaterialEffect pMaterialEffect = (mpMaterialEffect[ii][finalMaterialIndex]);
+
+                int OriginalMaterialIndex = GetMaterialIndex(ii, 0);
+                assert  OriginalMaterialIndex < mpLayoutCount[ii] : _L("material index out of range.");
+                CPUTMaterialEffect pOriginalMaterialEffect = (mpMaterialEffect[ii][OriginalMaterialIndex]);
+
+                mDrawModelCallBackFunc.drawModel(this, renderParams, mpMesh[ii],pMaterialEffect,pOriginalMaterialEffect,mpInputLayout[ii][finalMaterialIndex]);
+            }
+        }
+//#ifdef SUPPORT_DRAWING_BOUNDING_BOXES
+        if( renderParams.mShowBoundingBoxes && (pCamera == null /*|| pCamera->mFrustum.IsVisible( mBoundingBoxCenterWorldSpace, mBoundingBoxHalfWorldSpace )*/))
+        {
+            DrawBoundingBox( renderParams );
+        }
+//#endif
+    }
+
+    // Set the render state before drawing this object
+//-----------------------------------------------------------------------------
+    public void UpdateShaderConstants(CPUTRenderParameters renderParams)
+    {
+        throw new UnsupportedOperationException();
+        /*float4x4     world(*GetWorldMatrix());
+        float4x4     NormalMatrix(*GetWorldMatrix());
+        //TODO:  Is this supposed to be the NormalMatrix?
+        float4x4     invWorld = world; invWorld.transpose(); invWorld.invert();
+
+        //Local transform if node baked into animation
+        if(mSkeleton && mpCurrentAnimation)
+        {
+            world        = GetParentsWorldMatrix();
+            NormalMatrix = GetParentsWorldMatrix();
+        }
+        NormalMatrix.invert();
+        NormalMatrix.transpose();
+
+        CPUTCamera pCamera   = renderParams.mpCamera;
+        float4x4 viewProjection, worldViewProjection;
+        float4 eyePosition;
+
+        if( pCamera != null)
+        {
+            float4x4 view(*pCamera->GetViewMatrix());
+            float4x4 projection(*pCamera->GetProjectionMatrix());
+            viewProjection  = view * projection;
+            worldViewProjection = world * viewProjection;
+            eyePosition = float4(pCamera->GetPosition(), 0.0f);
+        }
+
+        // Shadow camera
+        CPUTCamera *pShadowCamera = renderParams.mpShadowCamera;
+        float4x4 lightWorldViewProjection;
+        if( pShadowCamera )
+        {
+            float4x4 shadowView, shadowProjection;
+            shadowView = float4x4((float*)pShadowCamera->GetViewMatrix());
+            shadowProjection = float4x4((float*)pShadowCamera->GetProjectionMatrix());
+            lightWorldViewProjection = world * shadowView * shadowProjection;
+        }
+
+        ID3D11DeviceContext *pContext  = ((CPUTRenderParametersDX*)&renderParams)->mpContext;
+
+        CPUTBufferDX11* pBuffer = (CPUTBufferDX11*)(renderParams.mpPerModelConstants);
+        D3D11_MAPPED_SUBRESOURCE mapInfo = pBuffer->MapBuffer(renderParams, CPUT_MAP_WRITE_DISCARD);
+        CPUTInstanceConstantBuffer::CPUTModelConstantBuffer *pCb = (CPUTInstanceConstantBuffer::CPUTModelConstantBuffer*)mapInfo.pData;
+
+
+        pCb->World = world;
+        pCb->NormalMatrix = NormalMatrix;
+        pCb->WorldViewProjection = worldViewProjection;
+        pCb->InverseWorld = invWorld;
+        pCb->LightWorldViewProjection = lightWorldViewProjection;
+        pCb->BoundingBoxCenterWorldSpace =  float4(mBoundingBoxCenterWorldSpace, 0.0f);
+        pCb->BoundingBoxHalfWorldSpace =    float4(mBoundingBoxHalfWorldSpace, 0.0f);
+        pCb->BoundingBoxCenterObjectSpace = float4(mBoundingBoxCenterObjectSpace, 0.0f);
+        pCb->BoundingBoxHalfObjectSpace =   float4(mBoundingBoxHalfObjectSpace, 0.0f);
+
+        //TODO: Should this process if object not visible?
+        //Only do this if Model has a skin and is animated
+        if(mSkeleton && mpCurrentAnimation)
+        {
+            ASSERT(0, _L("Animation constant buffer temporarily broken"));
+            //ASSERT(mSkeleton->mNumberOfJoints < 255, _L("Skin Exceeds maximum number of allowable joints: 255"));
+            //for(UINT i = 0; i < mSkeleton->mNumberOfJoints; ++i)
+            //{
+            //    CPUTJoint *pJoint = &mSkeleton->mJointsList[i];
+            //    pCb->SkinMatrix[i] = pJoint->mInverseBindPoseMatrix * pJoint->mScaleMatrix * pJoint->mRTMatrix;
+            //    float4x4 skinNormalMatrix = pCb->SkinMatrix[i];
+            //    skinNormalMatrix.invert(); skinNormalMatrix.transpose();
+            //    pCb->SkinNormalMatrix[i] = skinNormalMatrix;
+            //}
+        }
+
+        pBuffer->UnmapBuffer(renderParams);*/
+    }
 
     /**
      * Load the set file definition of this object.<ul>
@@ -286,6 +410,7 @@ public class CPUTModelDX11 extends CPUTModel {
     }
 
     /** Render - render this model (only) */
+    @Override
     public void Render(CPUTRenderParameters renderParams){
         /*CPUTRenderParametersDX *pParams = (CPUTRenderParametersDX*)&renderParams;*/
         CPUTCamera pCamera = renderParams.mpCamera;

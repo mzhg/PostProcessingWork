@@ -82,6 +82,8 @@ final class AOITTechnique implements Disposeable{
     private final TextureAttachDesc colorDesc = new TextureAttachDesc();
     private final TextureAttachDesc depthDesc = new TextureAttachDesc();
 
+    private final Texture2DDesc m_pBackBufferSurfaceDesc = new Texture2DDesc();
+
     AOITTechnique(){
 
     }
@@ -200,7 +202,7 @@ final class AOITTechnique implements Disposeable{
 //            pD3DImmediateContext->PSSetSamplers(0, 1, &m_pPointSampler);  TODO
 //            pD3DImmediateContext->RSSetViewports(1, &quadViewPort);
             gl.glViewport(0,0, width, height);
-            UpdateConstantBuffer(0, 0, m_pBackBufferSurfaceDesc->Width, m_pBackBufferSurfaceDesc->Height);
+            UpdateConstantBuffer(0, 0, m_pBackBufferSurfaceDesc.width, m_pBackBufferSurfaceDesc.height);
 //            pD3DImmediateContext->RSSetViewports(1, &viewport);
             gl.glViewport(0,0, viewportWidth, viewportHeight);
 
@@ -474,16 +476,18 @@ final class AOITTechnique implements Disposeable{
 
         ID3D11Buffer * pOurConstants;
         hr = (CPUT_DX11::GetDevice())->CreateBuffer( &bd, NULL, &pOurConstants );*/
+        BufferGL pOurConstants = new BufferGL();
+        pOurConstants.initlize(GLenum.GL_UNIFORM_BUFFER, 16, null, GLenum.GL_DYNAMIC_READ);
 
         String name =("$FL_Constants");
-        mFragmentListConstants = new CPUTBufferDX11( name, pOurConstants );
 
         CPUTAssetLibrary.GetAssetLibrary().AddConstantBuffer( name, mFragmentListConstants );
         SAFE_RELEASE(pOurConstants); // We're done with it.  The CPUTBuffer now owns it.
         //mGlobalProperties
 
-        mpClearMaskRT = (CPUTTextureDX11)CPUTTextureDX11.CreateTexture(("$ClearMaskRT"), DXGI_FORMAT_R32_UINT, width, height, DXGI_FORMAT_R32_UINT, D3D11_BIND_RENDER_TARGET |D3D11_BIND_UNORDERED_ACCESS);
-        mpClearMaskRT->AddUAVView(DXGI_FORMAT_R32_UINT);
+        final int DXGI_FORMAT_R32_UINT = GLenum.GL_R32UI;
+        mpClearMaskRT = (CPUTTextureDX11)CPUTTextureDX11.CreateTexture(("$ClearMaskRT"), DXGI_FORMAT_R32_UINT, width, height, DXGI_FORMAT_R32_UINT, 0/*D3D11_BIND_RENDER_TARGET |D3D11_BIND_UNORDERED_ACCESS*/, 1);
+        mpClearMaskRT.AddUAVView(DXGI_FORMAT_R32_UINT);
     }
     void OnShutdown(){
         ReleaseResources();

@@ -56,6 +56,14 @@ public abstract class CPUTAssetSet implements Disposeable{
         }
     }
 
+    public void RenderRecursive( CPUTRenderParameters renderParams, int materialIndex )
+    {
+        if(mpRootNode != null)
+        {
+            mpRootNode.RenderRecursive(renderParams, materialIndex);
+        }
+    }
+
 //    public void               UpdateRecursive( float deltaSeconds );
     public abstract void LoadAssetSet(String name) throws IOException;
     public void               GetBoundingBox(Vector3f pCenter, Vector3f pHalf){

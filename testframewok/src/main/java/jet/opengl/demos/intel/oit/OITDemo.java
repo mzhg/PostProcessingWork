@@ -1,10 +1,7 @@
 package jet.opengl.demos.intel.oit;
 
-import com.nvidia.developer.opengl.app.GLEventListener;
-import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.utils.NvGPUTimer;
 
-import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
@@ -15,7 +12,10 @@ import jet.opengl.demos.intel.cput.CPUTAssetLibrary;
 import jet.opengl.demos.intel.cput.CPUTAssetSet;
 import jet.opengl.demos.intel.cput.CPUTBufferDX11;
 import jet.opengl.demos.intel.cput.CPUTCamera;
+import jet.opengl.demos.intel.cput.CPUTLayerType;
 import jet.opengl.demos.intel.cput.CPUTMaterial;
+import jet.opengl.demos.intel.cput.CPUTMaterialEffect;
+import jet.opengl.demos.intel.cput.CPUTMaterialEffectDX11;
 import jet.opengl.demos.intel.cput.CPUTMesh;
 import jet.opengl.demos.intel.cput.CPUTMeshDX11;
 import jet.opengl.demos.intel.cput.CPUTModel;
@@ -28,12 +28,15 @@ import jet.opengl.demos.intel.cput.CPUTRenderTargetDepth;
 import jet.opengl.demos.intel.cput.CPUTSprite;
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.demos.scene.BaseScene;
-import jet.opengl.demos.scene.CameraData;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 public final class OITDemo extends BaseScene {
+    private static final int
+            CPUT_MATERIAL_INDEX_SHADOW_CAST                 = -1,
+            CPUT_MATERIAL_INDEX_BOUNDING_BOX                = -2;
+
     private CPUTAssetSet          mpConservatorySet;
     private CPUTAssetSet          mpGroundSet;
     private CPUTAssetSet		  mpoutdoorPlantsSet;
@@ -119,7 +122,7 @@ public final class OITDemo extends BaseScene {
         height = mNVApp.getGLContext().height();
 
         CPUTRenderStateBlockDX11 pBlock = new CPUTRenderStateBlockDX11();
-        CPUTRenderStateDX11 pStates = pBlock.GetState();
+//        CPUTRenderStateDX11 pStates = pBlock.GetState();  TODO
 
         CPUTAssetLibrary pAssetLibrary = CPUTAssetLibrary.GetAssetLibrary();
 
@@ -198,7 +201,7 @@ public final class OITDemo extends BaseScene {
         // Can theoretically just release.  But, AssetLibrary holds references too.
         // ***************************
 
-        ResizeWindow(width, height);
+//        ResizeWindow(width, height);
 
         try{
             String ExecutableDirectory = "";
@@ -236,12 +239,20 @@ public final class OITDemo extends BaseScene {
             e.printStackTrace();
         }
 
-        CreateDebugViews();
+        try {
+            CreateDebugViews();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         CreateCameras(width, height);
     }
 
     private static String _L(String str) {return str;}
+
+    private void UpdatePerFrameConstantBuffer( CPUTRenderParameters renderParams, double totalSeconds ){
+        throw new UnsupportedOperationException();
+    }
 
     @Override
     protected void update(float dt) {
@@ -299,6 +310,7 @@ public final class OITDemo extends BaseScene {
     private int frameIndex = 0;
     @Override
     protected void onRender(boolean clearFBO) {
+        float deltaSeconds = mNVApp.getFrameDeltaTime();
         frameIndex ++;
 
         renderParams.mpShadowCamera = null;
@@ -406,7 +418,7 @@ public final class OITDemo extends BaseScene {
                 mpGlassMaterial.SetCurrentEffect(1+MaterialOffset+ HDROffset);
                 mpGrassA1Material.SetCurrentEffect(3+MaterialOffset + HDROffset);
                 mpGrassA2Material.SetCurrentEffect(3+MaterialOffset + HDROffset);
-                mpLeavesTreeAMaterial.etCurrentEffect(3+MaterialOffset + HDROffset);
+                mpLeavesTreeAMaterial.SetCurrentEffect(3+MaterialOffset + HDROffset);
                 mpPRP_ShrubSmall_DM_AMaterial.SetCurrentEffect(3+MaterialOffset + HDROffset);
                 mpFenceMaterial.SetCurrentEffect(2+MaterialOffset + HDROffset);
             }
@@ -416,7 +428,7 @@ public final class OITDemo extends BaseScene {
                 mpGrassA1Material.SetCurrentEffect(4+MaterialOffset + HDROffset);
                 mpGrassA2Material.SetCurrentEffect(4+MaterialOffset + HDROffset);
                 mpLeavesTreeAMaterial.SetCurrentEffect(4+MaterialOffset + HDROffset);
-                mpPRP_ShrubSmall_DM_AMaterial.etCurrentEffect(4+MaterialOffset + HDROffset);
+                mpPRP_ShrubSmall_DM_AMaterial.SetCurrentEffect(4+MaterialOffset + HDROffset);
                 mpFenceMaterial.SetCurrentEffect(3+MaterialOffset + HDROffset);
                 NodeIndex=1;
             }
@@ -586,7 +598,7 @@ public final class OITDemo extends BaseScene {
         SAFE_RELEASE( mpInternalShadowRenderTarget);
 
         SAFE_RELEASE(mpindoorPlantsSet);
-        SAFE_DELETE( mpCameraController );
+//        SAFE_DELETE( mpCameraController );
         SAFE_RELEASE( mpDebugSprite);
         SAFE_RELEASE( mpSkyBoxSprite );
         SAFE_RELEASE( mpFSSprite );
@@ -612,7 +624,7 @@ public final class OITDemo extends BaseScene {
         CPUTMaterial.mGlobalProperties.AddValue( _L("FL_Constants"), _L("$FL_Constants") );
     }
 
-    void CreateDebugViews()
+    void CreateDebugViews() throws IOException
     {
         CPUTAssetLibrary pAssetLibrary = CPUTAssetLibrary.GetAssetLibrary();
 
@@ -810,7 +822,7 @@ public final class OITDemo extends BaseScene {
         ID3D11InputLayout pLayout = (ID3D11InputLayout )pInputLayout;
         pMaterial.SetRenderStates(renderParams);
 
-        AddModel((CPUTModelDX11)pModel, (CPUTMeshDX11)pMesh, (CPUTMaterialEffectDX11)pMaterial, pLayout,((CPUTMaterialEffectDX11)pOriginalMaterial).mLayer == CPUT_LAYER_TRANSPARENT);
+        AddModel((CPUTModelDX11)pModel, (CPUTMeshDX11)pMesh, (CPUTMaterialEffectDX11)pMaterial, pLayout,((CPUTMaterialEffectDX11)pOriginalMaterial).mLayer == CPUTLayerType.CPUT_LAYER_TRANSPARENT);
 
         return true;
     }
@@ -856,11 +868,12 @@ public final class OITDemo extends BaseScene {
         }
 
         float  length = half.length();
-        mpShadowCamera = new CPUTCamera( CPUT_ORTHOGRAPHIC );
+        mpShadowCamera = new CPUTCamera( /*CPUT_ORTHOGRAPHIC*/ );
         mpShadowCamera.SetAspectRatio(1.0f);
         mpShadowCamera.SetNearPlaneDistance(1.0f);
         mpShadowCamera.SetFarPlaneDistance(2.0f*length + 1.0f);
-        mpShadowCamera.SetPosition( lookAtPoint - float3(0, -1, 1) * length );
+//        lookAtPoint - float3(0, -1, 1) * length
+        mpShadowCamera.SetPosition(lookAtPoint.x, lookAtPoint.y + length, lookAtPoint.z - length  );
         mpShadowCamera.LookAt( lookAtPoint.x,lookAtPoint.y,lookAtPoint.z );
         mpShadowCamera.SetWidth( length*2);
         mpShadowCamera.SetHeight(length*2);
@@ -875,7 +888,7 @@ public final class OITDemo extends BaseScene {
 
     // Handle mouse events
 //-----------------------------------------------------------------------------
-    int  HandleMouseEvent(int x, int y, int wheel, CPUTMouseState state, CPUTEventID message)
+    /*int  HandleMouseEvent(int x, int y, int wheel, CPUTMouseState state, CPUTEventID message)
     {
         if(state & CPUT_MOUSE_RIGHT_DOWN)
         {
@@ -890,7 +903,7 @@ public final class OITDemo extends BaseScene {
             return mpCameraController->HandleMouseEvent(x, y, wheel, state, message);
         }
         return CPUT_EVENT_UNHANDLED;
-    }
+    }*/
 
     private final static class FrameStats
     {

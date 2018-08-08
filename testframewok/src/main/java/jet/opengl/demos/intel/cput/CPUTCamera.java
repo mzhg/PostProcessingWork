@@ -14,6 +14,8 @@ public class CPUTCamera extends CPUTRenderNode {
     protected float mNearPlaneDistance = 1.0f;  // near plane distance
     protected float mFarPlaneDistance = 100.f;   // far plane distance
     protected float mAspectRatio =16.0f/9.0f;        // width/height.  TODO: Support separate pixel and viewport aspect ratios
+    protected float mWidth = 64;
+    protected float mHeight = 64;
 
     protected final Matrix4f mView = new Matrix4f();
     protected final Matrix4f mProjection = new Matrix4f();
@@ -75,6 +77,8 @@ public class CPUTCamera extends CPUTRenderNode {
     public float           GetFarPlaneDistance() {  return mFarPlaneDistance; }
     public void            SetNearPlaneDistance( float nearPlaneDistance ) { mNearPlaneDistance = nearPlaneDistance; }
     public void            SetFarPlaneDistance(  float farPlaneDistance ) { mFarPlaneDistance = farPlaneDistance; }
+    public void            SetWidth( float width)  { /*ASSERT_ORTHOGRAPHIC;*/ mWidth  = width;}
+    public void            SetHeight(float height) { /*ASSERT_ORTHOGRAPHIC;*/ mHeight = height;};
     public void            LookAt( float xx, float yy, float zz ){
         Matrix4f.lookAt(mParentMatrix.m30, mParentMatrix.m31,  mParentMatrix.m32, xx, yy, zz, 0,1,0, mView);
     }

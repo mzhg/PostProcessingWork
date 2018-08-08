@@ -1,5 +1,7 @@
 package jet.opengl.demos.intel.cput;
 
+import java.io.IOException;
+
 import jet.opengl.postprocessing.common.Disposeable;
 
 public abstract class CPUTSprite implements Disposeable{
@@ -25,7 +27,7 @@ public abstract class CPUTSprite implements Disposeable{
             float          spriteWidth  /*= 2.0f*/,
             float          spriteHeight /*= 2.0f*/,
             String materialName /*= cString(_L("Sprite"))*/
-            ){
+            ) throws IOException {
         return CPUTSpriteDX11.CreateSpriteDX11( spriteX,spriteY,spriteWidth,spriteHeight,materialName );
     }
 }

@@ -10,6 +10,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.FileUtils;
@@ -68,6 +69,109 @@ public final class CPUTTextureDX11 extends CPUTTexture{
         String formatName = TextureUtils.getFormatName(inFormat);
         return formatName.contains("SNORM");
     }
+
+    public static CPUTTexture CreateTexture(String name, int internalFormat, int width, int height,int format, int BindFlags, int multiSampleCount)
+    {
+        CPUTTextureDX11 pNewTexture = new CPUTTextureDX11(name, 1);
+//        pNewTexture->mName = name;
+        pNewTexture.CreateNativeTexture( internalFormat,  width,  height, format,  BindFlags, multiSampleCount);
+
+//        if(BindFlags&D3D11_BIND_RENDER_TARGET)
+        {
+            pNewTexture.AddRenderTargetView();
+        }
+
+        CPUTAssetLibrary.GetAssetLibrary().AddTexture(name, "", "", pNewTexture, null, -1);
+        return pNewTexture;
+    }
+
+    public void AddRenderTargetView(){ }
+    public void AddUAVView(int uavFormat){}
+
+    public void Resize(int width, int height)
+    {
+        int mInternalFormat = mpTexture.getFormat();
+        int mFormat = mInternalFormat;
+        int mMultiSampleCount = mpTexture.getSampleCount();
+        int mBindFlags = 0;
+        SAFE_RELEASE(mpTexture);
+        SAFE_RELEASE(mpShaderResourceView);
+//        SAFE_RELEASE(mpColorUAV);
+//        SAFE_RELEASE(mpColorRenderTargetView);
+
+        CreateNativeTexture( mInternalFormat,  width,  height, mFormat,  mBindFlags, mMultiSampleCount);
+//        if(mBindFlags&D3D11_BIND_RENDER_TARGET)
+//        {
+//            AddRenderTargetView();
+//        }
+//        if(mBindFlags&D3D11_BIND_UNORDERED_ACCESS)
+//        {
+//            AddUAVView(mUAVFormat);
+//        }
+//        if(mBindFlags&D3D11_BIND_DEPTH_STENCIL)
+//        {
+//            AddDepthView(mdepthFormat);
+//        }
+    }
+
+    void CreateNativeTexture(int internalFormat, int width, int height,int format, int BindFlags, int        multiSampleCount)
+    {
+        /*HRESULT result;
+        ID3D11Resource *pTexture = NULL;
+        ID3D11ShaderResourceView *pShaderResourceView = NULL;
+
+        mWidth			= width;
+        mHeight			= height;
+        mFormat			= format;
+        mInternalFormat = internalFormat;
+        mBindFlags = BindFlags;
+        mMultiSampleCount	= multiSampleCount;
+
+        D3D_FEATURE_LEVEL featureLevel = gpSample->GetFeatureLevel();
+        bool supportsResourceView = ( featureLevel >= D3D_FEATURE_LEVEL_10_1) || (multiSampleCount==1);
+
+        D3D11_TEXTURE2D_DESC depthDesc = {
+                (UINT)width,
+                (UINT)height,
+                (UINT)1, // MIP Levels
+                (UINT)1, // Array Size
+                internalFormat,
+                multiSampleCount, (UINT)0,
+                D3D11_USAGE_DEFAULT,
+                BindFlags | (supportsResourceView ? D3D11_BIND_SHADER_RESOURCE : (UINT)0),
+                (UINT)0, // CPU Access flags
+                (UINT)0 // Misc flags
+        };
+
+        ID3D11Device *pD3dDevice = CPUT_DX11::GetDevice();
+        result = pD3dDevice->CreateTexture2D( &depthDesc, NULL, (ID3D11Texture2D**)&pTexture );*/
+        Texture2DDesc depthDesc = new Texture2DDesc(width, height, 1, 1,internalFormat, multiSampleCount);
+        mpTexture = TextureUtils.createTexture2D(depthDesc, null);
+        boolean supportsResourceView =multiSampleCount == 1;
+//        ASSERT( SUCCEEDED(result), _L("Failed creating depth texture.\nAre you using MSAA with a DX10.0 GPU?\nOnly DX10.1 and above can create a shader resource view for an MSAA depth texture.") );
+
+        if( supportsResourceView )
+        {
+            /*D3D11_SRV_DIMENSION srvDimension = (multiSampleCount>1) ? D3D11_SRV_DIMENSION_TEXTURE2DMS : D3D11_SRV_DIMENSION_TEXTURE2D;
+            // Create the shader-resource view
+            D3D11_SHADER_RESOURCE_VIEW_DESC depthRsDesc =
+                    {
+                            format,
+                            srvDimension,
+                            0
+                    };
+            // TODO: Support optionally creating MIP chain.  Then, support MIP generation (e.g., GenerateMIPS()).
+            depthRsDesc.Texture2D.MipLevels = 1;
+
+            result = pD3dDevice->CreateShaderResourceView( pTexture, &depthRsDesc, &pShaderResourceView );*/
+            mpShaderResourceView = mpTexture;
+        }
+
+//        SetTextureAndShaderResourceView( pTexture, pShaderResourceView );
+//        pTexture->Release();
+//        pShaderResourceView->Release();
+    }
+
     static CPUTTexture    CreateTextureDX11(String name, String absolutePathAndFilename, boolean loadAsSRGB ) throws IOException{
         // TODO:  Delegate to derived class.  We don't currently have CPUTTextureDX11
         /*ID3D11ShaderResourceView *pShaderResourceView = NULL;
