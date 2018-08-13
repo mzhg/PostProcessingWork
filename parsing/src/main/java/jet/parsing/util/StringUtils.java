@@ -30,6 +30,20 @@ public final class StringUtils {
         return firstNonSpaceCharacter(str, 0);
     }
 
+    public static int firstSpaceCharacter(String str, int from){
+        if(from >= str.length())
+            throw new IllegalArgumentException();
+
+        for(int i = from; i < str.length(); i++){
+            final char c = str.charAt(i);
+            if(Character.isWhitespace(c)){
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public static int firstNonSpecifedCharacter(String str, char c, int from){
         if(from >= str.length())
             throw new IllegalArgumentException();
@@ -75,5 +89,21 @@ public final class StringUtils {
         }
 
         return list.toArray(new String[list.size()]);
+    }
+
+    public static int firstSpecifedCharacter(String str, String charSet, int from){
+        if(from >= str.length())
+            throw new IllegalArgumentException();
+
+        for(int i = from; i < str.length(); i++){
+            final char c = str.charAt(i);
+            for(int j = 0; j < charSet.length(); j++){
+                if(c == charSet.charAt(j)){
+                    return i + 1;
+                }
+            }
+        }
+
+        return -1;
     }
 }
