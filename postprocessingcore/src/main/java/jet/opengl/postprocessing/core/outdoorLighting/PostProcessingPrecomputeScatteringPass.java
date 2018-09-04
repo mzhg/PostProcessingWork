@@ -92,7 +92,7 @@ final class PostProcessingPrecomputeScatteringPass extends PostProcessingRenderP
 
         initResources();
 
-        boolean debug = true;
+        boolean debug = false;
         if(debug){
 //    		System.out.println("PrecomputedOpticalDepthTexture: " + compareData(folder + "PrecomputedOpticalDepthTexture\\") + "\n");
 //        	System.out.println("SingleScatterings: " + compareData(folder + "SingleScatterings\\") + "\n");

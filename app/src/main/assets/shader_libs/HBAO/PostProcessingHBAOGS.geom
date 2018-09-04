@@ -1,9 +1,9 @@
 
 layout(triangles) in;
 layout(triangle_strip,max_vertices=3) out;
-  in Inputs {
+  /*in Inputs {
     vec4 m_f4UVAndScreenPos;
-  } IN[];
+  } IN[];*/
 
 
   in gl_PerVertex {
@@ -14,12 +14,12 @@ layout(triangle_strip,max_vertices=3) out;
   	vec4 gl_Position;
   };
 
-  out vec4 m_f4UVAndScreenPos;
+  //out vec4 m_f4UVAndScreenPos;
 
   void main()
   {
     for (int i = 0; i < 3; i++){
-      m_f4UVAndScreenPos = IN[i].m_f4UVAndScreenPos;
+ //     m_f4UVAndScreenPos = IN[i].m_f4UVAndScreenPos;
       gl_Layer = gl_PrimitiveIDIn;
       gl_PrimitiveID = gl_PrimitiveIDIn;
       gl_Position = gl_in[i].gl_Position;

@@ -23,7 +23,7 @@ final class PostProcessingHBAOProgram extends GLSLProgram{
     public PostProcessingHBAOProgram(int deinterleaved, int blur) throws IOException {
         CharSequence vertSrc = ShaderLoader.loadShaderFile("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", false);
         CharSequence geomSrc = null;
-        if(gl.isSupportExt("GL_NV_geometry_shader_passthrough")){
+        if(gl.isSupportExt("GL_NV_geometry_shader_passthrough") && false){
             geomSrc = ShaderLoader.loadShaderFile("shader_libs/HBAO/PostProcessingHBAOGS_NV.geom", false);
         }else{
             geomSrc = ShaderLoader.loadShaderFile("shader_libs/HBAO/PostProcessingHBAOGS.geom", false);

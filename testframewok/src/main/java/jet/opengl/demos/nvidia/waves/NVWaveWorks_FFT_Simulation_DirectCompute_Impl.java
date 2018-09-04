@@ -995,7 +995,6 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
                 gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
                 gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, _11.m_uav_Displacement.getFormat());
-                GLCheck.checkError();
                 if(m_ReadbackInitialised)
                 {
 //                    context->CopyResource(m_d3d._11.m_readback_buffers[readbackSlot], m_d3d._11.m_texture_Displacement);
@@ -1013,7 +1012,6 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 
 //                context->End(m_d3d._11.m_end_queries[timerSlot]);
 //                context->End(m_d3d._11.m_frequency_queries[timerSlot]);  TODO There is no frequency_query in OpenGL
-                GLCheck.checkError();
                 gl.glQueryCounter(_11.m_end_queries[timerSlot[0]], GLenum.GL_TIMESTAMP);
                 GLCheck.checkError();
             }
