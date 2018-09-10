@@ -8,4 +8,7 @@ public interface CReader {
 
     Object parseValue();
 
+    default int getResultCount() { return 0;}
+    default Object parseValue(int index) { return null;}
+    default boolean isMultiReader() {return false;}
 }

@@ -1,7 +1,5 @@
 package jet.parsing.cplus.reader;
 
-import java.math.MathContext;
-
 import jet.parsing.util.StringUtils;
 
 public final class CommentReader implements CReader{

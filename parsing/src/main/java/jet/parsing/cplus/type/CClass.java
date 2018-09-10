@@ -5,13 +5,13 @@ import jet.parsing.cplus.reader.CReader;
 /**
  * This class represents the type of c++ language.
  */
-public class CCustomType implements CType{
+public class CClass implements CType{
     /** The Type name. e.g "int", "float" */
     protected String mName;
 
     protected int mSize;
 
-    public CCustomType(CReader reader) {
+    public CClass(CReader reader) {
 //        this.mName = name;
     }
 
