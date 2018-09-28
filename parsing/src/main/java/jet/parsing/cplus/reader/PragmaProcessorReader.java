@@ -32,7 +32,6 @@ public class PragmaProcessorReader extends ProcessorReader {
             Arrays.fill(conditions, false);
 
             if(params.isToken){
-
                 // handle the token case, we first check it to see whether it is a processor symble.
                 if(params.data.equals(PROCESSOR_START)){
                     conditions[SHARAP_SYMBLE] = true;

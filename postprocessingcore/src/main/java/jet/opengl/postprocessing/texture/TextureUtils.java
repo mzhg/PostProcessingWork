@@ -1225,6 +1225,25 @@ public final class TextureUtils {
 			throw new IllegalArgumentException("req_comp = " + req_comp);
 		}
 	}
+
+	public static int measureDataTypeSize(int format){
+		switch (format)
+		{
+			case GLenum.GL_UNSIGNED_BYTE:
+			case GLenum.GL_BYTE:
+				return 1;
+			case GLenum.GL_UNSIGNED_SHORT:
+			case GLenum.GL_SHORT:
+			case GLenum.GL_HALF_FLOAT:
+				return 2;
+			case GLenum.GL_UNSIGNED_INT:
+			case GLenum.GL_INT:
+			case GLenum.GL_FLOAT:
+				return 4;
+			default:
+				throw new IllegalArgumentException("Unkown format: " + Integer.toHexString(format));
+		}
+	}
 	
 	public static float measureSizePerPixel(int internalFormat){
 		switch (internalFormat) {

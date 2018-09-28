@@ -12,7 +12,7 @@ public class CClass implements CType{
     protected int mSize;
 
     public CClass(CReader reader) {
-//        this.mName = name;
+//        this.mName = na me;
     }
 
     public String getName() {

@@ -94,7 +94,7 @@ public class Ball200 implements GLEventListener {
 	private NvStopWatch m_Timer;
 	private boolean m_bPrintProgram = true;
 	private GLFuncProvider gl;
-	
+
 	public Ball200(NvInputTransformer transformer){
 		m_Transformer = transformer;
 		m_Transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);

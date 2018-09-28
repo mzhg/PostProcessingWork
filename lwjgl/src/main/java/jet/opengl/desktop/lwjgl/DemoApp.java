@@ -11,6 +11,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
+import jet.opengl.demos.labs.scattering.AtmosphereTest;
+import jet.opengl.demos.labs.scattering.Chapman;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.demos.postprocessing.LightingVolumeDemo;
@@ -101,7 +103,9 @@ public class DemoApp {
 //        run(new ShaderNoise());
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
-        run(new TestD3D11());
+//        run(new TestD3D11());
+//        run(new Chapman());
+        run(new AtmosphereTest());
     }
 
     private static void testRectVertex(){
