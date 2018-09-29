@@ -97,7 +97,7 @@ final class CMesh implements Disposeable{
             curvatureSum += curvatures[i];
         }
         float meanCurvature = curvatureSum / /*float(pMesh->m_verts.size())*/pMesh.getCompiledVertexCount();
-        LogUtil.i(LogUtil.LogType.DEFAULT, String.format("\tCurvature min = %0.2f cm^-1, max = %0.2f cm^-1, mean = %0.2f cm^-1",
+        LogUtil.i(LogUtil.LogType.DEFAULT, String.format("\tCurvature min = %.2f cm^-1, max = %.2f cm^-1, mean = %.2f cm^-1",
                 minCurvature, maxCurvature, meanCurvature));
 //        #endif // defined(_DEBUG)\
         return curvatures;
@@ -132,7 +132,7 @@ final class CMesh implements Disposeable{
             throw new IllegalArgumentException(errorBlob.m_msg);
         }
 
-        LogUtil.i(LogUtil.LogType.DEFAULT, String.format("\tUV scale %0.2f cm\n",uvScales[0]));
+        LogUtil.i(LogUtil.LogType.DEFAULT, String.format("\tUV scale %.2f cm\n",uvScales[0]));
         return uvScales[0];
     }
 

@@ -17,6 +17,7 @@ import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringFram
 import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringInitAttribs;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
+import jet.opengl.postprocessing.common.GPUMemoryInfo;
 
 /**
  * Created by mazhen'gui on 2017/6/2.
@@ -78,6 +79,8 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
         m_InitAttribs.m_uiBackBufferHeight = height;
     }
 
+    boolean m_first = true;
+
     @Override
     public void display() {
         m_Scene.draw(getFrameDeltaTime());
@@ -113,6 +116,15 @@ public class OutdoorLightScatteringSample extends NvSampleApp {
 
             m_PostProcessing.addOutdoorLight(m_InitAttribs, m_RuntimeAttribs);
             m_PostProcessing.performancePostProcessing(m_frameAttribs);
+
+            if(m_first)
+            {
+                GPUMemoryInfo info = new GPUMemoryInfo();
+                GLFuncProviderFactory.getGLFuncProvider().glGetMemoryInfo(info);
+                GLCheck.checkError();
+                System.out.println(info);
+                m_first = false;
+            }
         }
 
 //        m_Scene.resoveMultisampleTexture();

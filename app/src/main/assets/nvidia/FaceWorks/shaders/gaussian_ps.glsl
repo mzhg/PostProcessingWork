@@ -91,7 +91,7 @@ void main()
 	{
 		float weight = s_aGaussian21[i].x;
 		float2 offset = s_aGaussian21[i].y * g_vecBlur;
-		sum += weight * texture(g_texSrc, i_uv + offset);  // g_ssBilinearClamp
+		sum += weight * texture(g_texSrc, i_uv + offset).xy;  // g_ssBilinearClamp
 	}
 
 	Out_Color = float4(sum,0,0);

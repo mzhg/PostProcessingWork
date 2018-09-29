@@ -64,8 +64,8 @@ public class Chapman extends NvSampleApp {
             mEarthColor = TextureUtils.createTexture2DFromFile(root + "textures\\earthcolor.jpg",false);
             mOceanMask = TextureUtils.createTexture2DFromFile(root + "textures\\oceanmask.jpg",false);
 
-            mEarthProgram = GLSLProgram.createFromFiles(root + "shaders\\EarthVS.vert", root + "shaders\\EarthPS.frag", null);
-            mChapmam = GLSLProgram.createFromFiles(root + "shaders\\chapman_vs.vert", root + "shaders\\chapman_ps.frag", null);
+            mEarthProgram = GLSLProgram.createFromFiles(root + "shaders\\EarthVS.vert", root + "shaders\\EarthPS.frag");
+            mChapmam = GLSLProgram.createFromFiles(root + "shaders\\chapman_vs.vert", root + "shaders\\chapman_ps.frag");
 
             mEarthProgram.enable();
             int textureIndex = mEarthProgram.getUniformLocation("g_Texture");

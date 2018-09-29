@@ -35,9 +35,9 @@
 #ifndef LIGHTING_HLSLI
 #define LIGHTING_HLSLI
 
-#include "common.hlsli"
-#include "tonemap.hlsli"
-#include "GFSDK_FaceWorks.hlsli"
+#include "common.glsl"
+#include "tonemap.glsl"
+#include "../../../shader_libs/FaceWork/GFSDK_FaceWorks.glsl"
 
 
 
@@ -62,7 +62,7 @@ float EvaluateShadowVSM(
 {
 	float3 uvzShadow = uvzwShadow.xyz / uvzwShadow.w;
 
-	float2 vsmValue = g_texVSM.Sample(g_ssBilinearClamp, uvzShadow.xy);
+	float2 vsmValue = texture(g_texVSM, uvzShadow.xy).xy;   // g_ssBilinearClamp
 	float mean = vsmValue.x;
 	float variance = max(g_vsmMinVariance, vsmValue.y - mean*mean);
 
@@ -83,7 +83,7 @@ float3 EvaluateDiffuseLight(
 	float3 rgbLightDiffuse = g_rgbDirectionalLight * (NdotL * shadow);
 
 	// IBL diffuse
-	rgbLightDiffuse += texture(g_texCubeDiffuse, normalShade);   // g_ssTrilinearRepeat
+	rgbLightDiffuse += texture(g_texCubeDiffuse, normalShade).rgb;   // g_ssTrilinearRepeat
 
 	return rgbLightDiffuse;
 }
@@ -101,11 +101,11 @@ float3 EvaluateSSSDiffuseLight(
 						faceworksData,
 						normalGeom, normalShade, normalBlurred,
 						g_vecDirectionalLight, curvature,
-						g_texCurvatureLUT, g_ssBilinearClamp);
+						g_texCurvatureLUT/*, g_ssBilinearClamp*/);
 	float3 rgbShadow = GFSDK_FaceWorks_EvaluateSSSShadow(
 							faceworksData,
 							normalGeom, g_vecDirectionalLight, shadow,
-							g_texShadowLUT, g_ssBilinearClamp);
+							g_texShadowLUT/*, g_ssBilinearClamp*/);
 	float3 rgbLightDiffuse = g_rgbDirectionalLight * rgbSSS * rgbShadow;
 
 	// IBL diffuse
@@ -113,9 +113,9 @@ float3 EvaluateSSSDiffuseLight(
 	GFSDK_FaceWorks_CalculateNormalsForAmbientLight(
 		normalShade, normalBlurred,
 		normalAmbient0, normalAmbient1, normalAmbient2);
-	float3 rgbAmbient0 = texture(g_texCubeDiffuse, normalAmbient0);  // g_ssTrilinearRepeat
-	float3 rgbAmbient1 = texture(g_texCubeDiffuse, normalAmbient1);
-	float3 rgbAmbient2 = texture(g_texCubeDiffuse, normalAmbient2);
+	float3 rgbAmbient0 = texture(g_texCubeDiffuse, normalAmbient0).rgb;  // g_ssTrilinearRepeat
+	float3 rgbAmbient1 = texture(g_texCubeDiffuse, normalAmbient1).rgb;
+	float3 rgbAmbient2 = texture(g_texCubeDiffuse, normalAmbient2).rgb;
 	rgbLightDiffuse += GFSDK_FaceWorks_EvaluateSSSAmbientLight(
 							rgbAmbient0, rgbAmbient1, rgbAmbient2);
 
@@ -169,16 +169,12 @@ float3 EvaluateSpecularLight(
 	float3 vecReflect = reflect(-vecCamera, normalShade);
 	float gloss0 = gloss;
 	float gloss1 = saturate(2.0 * gloss);
-	float fresnelIBL0 = lerp(specReflectance, 1.0,
-							pow(1.0 - NdotV, 5.0) / (-3.0 * gloss0 + 4.0));
+	float fresnelIBL0 = lerp(specReflectance, 1.0, pow(1.0 - NdotV, 5.0) / (-3.0 * gloss0 + 4.0));
 	float mipLevel0 = -9.0 * gloss0 + 9.0;
-	float3 iblSpec0 = fresnelIBL0 * textureLod(g_texCubeSpec
-										, vecReflect, mipLevel0);  //g_ssTrilinearRepeat
-	float fresnelIBL1 = lerp(specReflectance, 1.0,
-							pow(1.0 - NdotV, 5.0) / (-3.0 * gloss1 + 4.0));
+	float3 iblSpec0 = fresnelIBL0 * textureLod(g_texCubeSpec, vecReflect, mipLevel0).xyz;  //g_ssTrilinearRepeat
+	float fresnelIBL1 = lerp(specReflectance, 1.0, pow(1.0 - NdotV, 5.0) / (-3.0 * gloss1 + 4.0));
 	float mipLevel1 = -9.0 * gloss1 + 9.0;
-	float3 iblSpec1 = fresnelIBL1 * textureLod(g_texCubeSpec
-										, vecReflect, mipLevel1);  //g_ssTrilinearRepeat
+	float3 iblSpec1 = fresnelIBL1 * textureLod(g_texCubeSpec, vecReflect, mipLevel1).xyz;  //g_ssTrilinearRepeat
 	rgbLitSpecular += lerp(iblSpec0, iblSpec1, specLobeBlend);
 
 	return rgbLitSpecular;
@@ -276,7 +272,7 @@ void LightingMegashader(
 
 		float thickness = GFSDK_FaceWorks_EstimateThicknessFromParallelShadowPoisson32(
 							faceworksData,
-							g_texShadowMap, g_ssBilinearClamp, uvzShadow);
+							g_texShadowMap, /*g_ssBilinearClamp,*/ uvzShadow);
 
 		float deepScatterFactor = GFSDK_FaceWorks_EvaluateDeepScatterDirectLight(
 										faceworksData,

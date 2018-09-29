@@ -46,6 +46,10 @@ layout(binding = CB_SHADER) uniform cbShader
 	float2		g_curvatureScaleBias;
 };
 
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
 
 out float i_color;
 //void main(

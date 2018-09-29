@@ -1658,4 +1658,6 @@ public interface GLFuncProvider {
 
     void glClearNamedBufferData(int buffer, int internalformat, int format, int type, Buffer data);
     void glClearNamedBufferSubData(int buffer, int internalformat, long offset, long size, int format, int type, Buffer data);
+
+    void glGetMemoryInfo(GPUMemoryInfo info);
 }

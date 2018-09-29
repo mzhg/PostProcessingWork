@@ -35,24 +35,28 @@
 #include "common.glsl"
 #include "tess.glsl"
 
-layout(location =0) in float3		m_pos		/*: POSITION*/;
-layout(location =1) in float3		m_normal	/*: NORMAL*/;
-layout(location =2) in float2		m_uv		/*: UV*/;
-layout(location =3) in float3		m_tangent	/*: TANGENT*/;
-layout(location =4) in float		m_curvature /*: CURVATURE*/;
+layout(location =0) in float3		In_pos		/*: POSITION*/;
+layout(location =1) in float3		In_normal	/*: NORMAL*/;
+layout(location =2) in float2		In_uv		/*: UV*/;
+layout(location =3) in float3		In_tangent	/*: TANGENT*/;
+layout(location =4) in float		In_curvature /*: CURVATURE*/;
 
 out TessVSOut
 {
-    Vertex vtx;
+    float3		m_pos		/*: POSITION*/;
+    float3		m_normal	/*: NORMAL*/;
+    float2		m_uv		/*: UV*/;
+    float3		m_tangent	/*: TANGENT*/;
+    float		m_curvature /*: CURVATURE*/;
 }_output;
 
 void main(
 	/*in Vertex i_vtx,
 	out Vertex o_vtx*/)
 {
-	_output.vtx.m_pos = m_pos;
-	_output.vtx.m_normal = m_normal;
-	_output.vtx.m_uv = m_uv;
-	_output.vtx.m_tangent = m_tangent;
-	_output.vtx.m_curvature = m_curvature;
+	_output.m_pos = In_pos;
+	_output.m_normal = In_normal;
+	_output.m_uv = In_uv;
+	_output.m_tangent = In_tangent;
+	_output.m_curvature = In_curvature;
 }

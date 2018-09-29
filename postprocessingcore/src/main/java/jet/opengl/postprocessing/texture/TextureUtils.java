@@ -249,7 +249,58 @@ public final class TextureUtils {
 		result.mipLevels = numlevels;
 		return result;
 	}
-	
+
+	public static TextureCube createTextureCube(int cubeTarget, int textureID){
+		return createTextureCube(cubeTarget, textureID, null);
+	}
+
+	public static TextureCube createTextureCube(int cubeTarget, int textureID, TextureCube out){
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+
+		if(!gl.glIsTexture(textureID))
+			return null;
+
+		if(cubeTarget != GLenum.GL_TEXTURE_CUBE_MAP && cubeTarget != GLenum.GL_TEXTURE_CUBE_MAP_ARRAY){
+			throw new IllegalArgumentException("Invalid target: " + getTextureTargetName(cubeTarget));
+		}
+
+		int target = GLenum.GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+
+		gl.glBindTexture(cubeTarget, textureID);
+		TextureCube result = out != null ? out : new TextureCube();
+		result.size  = gl.glGetTexLevelParameteri(target, 0, GLenum.GL_TEXTURE_WIDTH);
+		result.format = gl.glGetTexLevelParameteri(target, 0, GLenum.GL_TEXTURE_INTERNAL_FORMAT);
+		result.target = target;
+		result.textureID = textureID;
+
+		boolean immutableFormat         = gl.glGetTexParameteri(cubeTarget, GLenum.GL_TEXTURE_IMMUTABLE_FORMAT) != 0;
+		if(immutableFormat){
+			result.mipLevels    = gl.glGetTexParameteri(cubeTarget, GLenum.GL_TEXTURE_VIEW_NUM_LEVELS);
+			result.arraySize    = gl.glGetTexParameteri(cubeTarget, GLenum.GL_TEXTURE_VIEW_NUM_LAYERS);
+			if(result.mipLevels == 0){
+				result.mipLevels = gl.glGetTexParameteri(cubeTarget, GLenum.GL_TEXTURE_IMMUTABLE_LEVELS);
+			}
+		}else{
+			result.arraySize    = gl.glGetTexLevelParameteri(target, 0, GLenum.GL_TEXTURE_DEPTH);
+			if(result.size > 0){
+				int level = 1;
+				while(true){
+					int width = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_WIDTH);
+					if(width == 0){
+						break;
+					}
+
+					level++;
+				}
+
+				result.mipLevels = level;
+			}
+		}
+
+		GLCheck.checkError();
+		return result;
+	}
+
 	public static Texture2D createTexture2D(int target, int textureID){
 		return createTexture2D(target, textureID, null);
 	}
@@ -602,6 +653,7 @@ public final class TextureUtils {
 				if(valid_texture2D) GLCheck.checkError();
 				break;
 			case GLenum.GL_TEXTURE_2D:
+				if(valid_texture2D) GLCheck.checkError();
 				gl.glTextureStorage2D(textureID, mipLevels, format, textureDesc.width, textureDesc.height);
 				if(valid_texture2D) GLCheck.checkError();
 				break;
@@ -703,8 +755,10 @@ public final class TextureUtils {
 						allocateStorage = true;
 						if(target == GLenum.GL_TEXTURE_2D){
 							gl.glTexStorage2D(GLenum.GL_TEXTURE_2D, mipLevels, format, textureDesc.width, textureDesc.height);
+							if(valid_texture2D) GLCheck.checkError();
 						}else{
 							gl.glTexStorage3D(GLenum.GL_TEXTURE_2D_ARRAY, mipLevels, format, textureDesc.width, textureDesc.height, textureDesc.arraySize);
+							if(valid_texture2D) GLCheck.checkError();
 						}
 					}
 					

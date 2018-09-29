@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
  */
 
 final class CbufFrame {
-    static final int SIZE = Matrix4f.SIZE * 5 + Vector4f.SIZE * 5;
+    static final int SIZE = Matrix4f.SIZE * 2 + Vector4f.SIZE * 8;
     final Matrix4f m_matWorldToClip = new Matrix4f();
     final Vector4f m_posCamera = new Vector4f();
 
@@ -19,7 +19,7 @@ final class CbufFrame {
 
     final Matrix4f	m_matWorldToUvzwShadow = new Matrix4f();
     /** Matrix for transforming normals to shadow map space */
-    final Matrix4f[]	m_matWorldToUvzShadowNormal = new Matrix4f[3];
+    final Vector4f[]	m_matWorldToUvzShadowNormal = new Vector4f[3];
 
     /** Minimum variance for variance shadow maps */
     float				m_vsmMinVariance;			//
@@ -38,7 +38,7 @@ final class CbufFrame {
 
     CbufFrame(){
         for(int i = 0; i < m_matWorldToUvzShadowNormal.length; i++){
-            m_matWorldToUvzShadowNormal[i] = new Matrix4f();
+            m_matWorldToUvzShadowNormal[i] = new Vector4f();
         }
     }
 

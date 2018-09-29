@@ -25,6 +25,7 @@ import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GL44;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.opengl.NVXGPUMemoryInfo;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.Buffer;
@@ -39,6 +40,7 @@ import java.util.Arrays;
 import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GPUMemoryInfo;
 import jet.opengl.postprocessing.texture.NativeAPI;
 
 /**
@@ -1977,6 +1979,15 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     @Override
     public void glClearNamedBufferSubData(int buffer, int internalformat, long offset, long size, int format, int type, Buffer data) {
         ARBDirectStateAccess.nglClearNamedBufferSubData(buffer, internalformat, offset, size, format, type, MemoryUtil.memAddress0Safe(data));
+    }
+
+    @Override
+    public void glGetMemoryInfo(GPUMemoryInfo info) {
+        info.dedicatedMemory = GL11.glGetInteger(NVXGPUMemoryInfo.GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX );
+        info.maxmumDedicatedMemory = GL11.glGetInteger(NVXGPUMemoryInfo.GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX);
+        info.currentMemory = GL11.glGetInteger(NVXGPUMemoryInfo.GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX);
+        info.evictionCount = GL11.glGetInteger(NVXGPUMemoryInfo.GL_GPU_MEMORY_INFO_EVICTION_COUNT_NVX );
+        info.evictedMemory = GL11.glGetInteger(NVXGPUMemoryInfo.GL_GPU_MEMORY_INFO_EVICTED_MEMORY_NVX);
     }
 
 }

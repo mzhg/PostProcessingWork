@@ -40,12 +40,30 @@ layout(triangles, fractional_odd_spacing, cw) in;
 
 in TessHSOut
 {
-    Vertex vtx;
+    float3		m_pos		/*: POSITION*/;
+    float3		m_normal	/*: NORMAL*/;
+    float2		m_uv		/*: UV*/;
+    float3		m_tangent	/*: TANGENT*/;
+    float		m_curvature /*: CURVATURE*/;
 }i_cps[];
 
-out Vertex o_vtx;
+out VertexThrough
+{
+	float3		m_pos		/*: POSITION*/;
+	float3		m_normal	/*: NORMAL*/;
+	float2		m_uv		/*: UV*/;
+	float3		m_tangent	/*: TANGENT*/;
+	float		m_curvature /*: CURVATURE*/;
+}_output;
+
 out float3 o_vecCamera;
 out float4 o_uvzwShadow;
+
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
+
 //out float4 o_posClip;
 //[domain("tri")]
 void main(
@@ -59,21 +77,21 @@ void main(
 {
     float3 i_bary = gl_TessCoord.xyz;
 	// Lerp all attributes but position
-	o_vtx.m_normal = i_bary.x * i_cps[0].vtx.m_normal + i_bary.y * i_cps[1].vtx.m_normal + i_bary.z * i_cps[2].vtx.m_normal;
-	o_vtx.m_uv = i_bary.x * i_cps[0].vtx.m_uv + i_bary.y * i_cps[1].vtx.m_uv + i_bary.z * i_cps[2].vtx.m_uv;
-	o_vtx.m_tangent = i_bary.x * i_cps[0].vtx.m_tangent + i_bary.y * i_cps[1].vtx.m_tangent + i_bary.z * i_cps[2].vtx.m_tangent;
-	o_vtx.m_curvature = i_bary.x * i_cps[0].vtx.m_curvature + i_bary.y * i_cps[1].vtx.m_curvature + i_bary.z * i_cps[2].vtx.m_curvature;
+	_output.m_normal = i_bary.x * i_cps[0].m_normal + i_bary.y * i_cps[1].m_normal + i_bary.z * i_cps[2].m_normal;
+	_output.m_uv     = i_bary.x * i_cps[0].m_uv + i_bary.y * i_cps[1].m_uv + i_bary.z * i_cps[2].m_uv;
+	_output.m_tangent   = i_bary.x * i_cps[0].m_tangent + i_bary.y * i_cps[1].m_tangent + i_bary.z * i_cps[2].m_tangent;
+	_output.m_curvature = i_bary.x * i_cps[0].m_curvature + i_bary.y * i_cps[1].m_curvature + i_bary.z * i_cps[2].m_curvature;
 
 	// Calculate output position using Phong tessellation
 	// (http://perso.telecom-paristech.fr/~boubek/papers/PhongTessellation/)
 
 	// Compute lerped position
-	float3 posVtx = i_bary.x * i_cps[0].vtx.m_pos + i_bary.y * i_cps[1].vtx.m_pos + i_bary.z * i_cps[2].vtx.m_pos;
+	float3 posVtx = i_bary.x * i_cps[0].m_pos + i_bary.y * i_cps[1].m_pos + i_bary.z * i_cps[2].m_pos;
 
 	// Calculate deltas to project onto three tangent planes
-	float3 vecProj0 = dot(i_cps[0].vtx.m_pos - posVtx, i_cps[0].vtx.m_normal) * i_cps[0].vtx.m_normal;
-	float3 vecProj1 = dot(i_cps[1].vtx.m_pos - posVtx, i_cps[1].vtx.m_normal) * i_cps[1].vtx.m_normal;
-	float3 vecProj2 = dot(i_cps[2].vtx.m_pos - posVtx, i_cps[2].vtx.m_normal) * i_cps[2].vtx.m_normal;
+	float3 vecProj0 = dot(i_cps[0].m_pos - posVtx, i_cps[0].m_normal) * i_cps[0].m_normal;
+	float3 vecProj1 = dot(i_cps[1].m_pos - posVtx, i_cps[1].m_normal) * i_cps[1].m_normal;
+	float3 vecProj2 = dot(i_cps[2].m_pos - posVtx, i_cps[2].m_normal) * i_cps[2].m_normal;
 
 	// Lerp between projection vectors
 	float3 vecOffset = i_bary.x * vecProj0 + i_bary.y * vecProj1 + i_bary.z * vecProj2;
@@ -81,7 +99,7 @@ void main(
 	// Add a fraction of the offset vector to the lerped position
 	posVtx += 0.5 * vecOffset;
 
-	o_vtx.m_pos = posVtx;
+	_output.m_pos = posVtx;
 	o_vecCamera = g_posCamera - posVtx;
 	o_uvzwShadow = mul(float4(posVtx, 1.0), g_matWorldToUvzwShadow);
 	gl_Position = mul(float4(posVtx, 1.0), g_matWorldToClip);

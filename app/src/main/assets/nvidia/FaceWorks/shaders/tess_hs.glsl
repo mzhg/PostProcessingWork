@@ -39,12 +39,20 @@ layout (vertices = 3) out;
 
 in TessVSOut
 {
-    Vertex vtx;
+    float3		m_pos		/*: POSITION*/;
+    float3		m_normal	/*: NORMAL*/;
+    float2		m_uv		/*: UV*/;
+    float3		m_tangent	/*: TANGENT*/;
+    float		m_curvature /*: CURVATURE*/;
 }i_cps[];
 
 out TessHSOut
 {
-    Vertex vtx;
+    float3		m_pos		/*: POSITION*/;
+    float3		m_normal	/*: NORMAL*/;
+    float2		m_uv		/*: UV*/;
+    float3		m_tangent	/*: TANGENT*/;
+    float		m_curvature /*: CURVATURE*/;
 }_outputs[];
 
 /*void calcHSConstants(
@@ -52,13 +60,18 @@ out TessHSOut
 	out PatchConstData o_pcd)*/
 	void main()
 {
-    _outputs[gl_InvocationID].vtx = i_cps[gl_InvocationID].vtx;
+    _outputs[gl_InvocationID].m_pos = i_cps[gl_InvocationID].m_pos;
+    _outputs[gl_InvocationID].m_normal = i_cps[gl_InvocationID].m_normal;
+    _outputs[gl_InvocationID].m_uv = i_cps[gl_InvocationID].m_uv;
+    _outputs[gl_InvocationID].m_tangent = i_cps[gl_InvocationID].m_tangent;
+    _outputs[gl_InvocationID].m_curvature = i_cps[gl_InvocationID].m_curvature;
+
 	// Backface culling: check if the camera is behind all three tangent planes
 	float3 vecNdotV =
 	{
-		dot(g_posCamera - i_cps[0].vtx.m_pos, i_cps[0].vtx.m_normal),
-		dot(g_posCamera - i_cps[1].vtx.m_pos, i_cps[1].vtx.m_normal),
-		dot(g_posCamera - i_cps[2].vtx.m_pos, i_cps[2].vtx.m_normal),
+		dot(g_posCamera - i_cps[0].m_pos, i_cps[0].m_normal),
+		dot(g_posCamera - i_cps[1].m_pos, i_cps[1].m_normal),
+		dot(g_posCamera - i_cps[2].m_pos, i_cps[2].m_normal),
 	};
 
 //	if (all(vecNdotV < 0.0))
@@ -75,9 +88,9 @@ out TessHSOut
 	// Frustum culling: check if all three verts are out on the same side of the frustum
 	// This isn't quite correct because the displacement could make a patch visible even if
 	// it fails this test; but in practice this is nearly impossible to notice
-	float4 posClip0 = mul(float4(i_cps[0].vtx.m_pos, 1.0), g_matWorldToClip);
-	float4 posClip1 = mul(float4(i_cps[1].vtx.m_pos, 1.0), g_matWorldToClip);
-	float4 posClip2 = mul(float4(i_cps[2].vtx.m_pos, 1.0), g_matWorldToClip);
+	float4 posClip0 = mul(float4(i_cps[0].m_pos, 1.0), g_matWorldToClip);
+	float4 posClip1 = mul(float4(i_cps[1].m_pos, 1.0), g_matWorldToClip);
+	float4 posClip2 = mul(float4(i_cps[2].m_pos, 1.0), g_matWorldToClip);
 	float3 xs = { posClip0.x, posClip1.x, posClip2.x };
 	float3 ys = { posClip0.y, posClip1.y, posClip2.y };
 	float3 ws = { posClip0.w, posClip1.w, posClip2.w };
@@ -95,15 +108,15 @@ out TessHSOut
 
 	// Calculate approximate screen-space edge length, but including z length as well,
 	// so we don't undertessellate edges that are foreshortened
-	float edge0 = length(i_cps[2].vtx.m_pos - i_cps[1].vtx.m_pos) / (0.5 * (posClip2.w + posClip1.w));
-	float edge1 = length(i_cps[0].vtx.m_pos - i_cps[2].vtx.m_pos) / (0.5 * (posClip0.w + posClip2.w));
-	float edge2 = length(i_cps[1].vtx.m_pos - i_cps[0].vtx.m_pos) / (0.5 * (posClip1.w + posClip0.w));
+	float edge0 = length(i_cps[2].m_pos - i_cps[1].m_pos) / (0.5 * (posClip2.w + posClip1.w));
+	float edge1 = length(i_cps[0].m_pos - i_cps[2].m_pos) / (0.5 * (posClip0.w + posClip2.w));
+	float edge2 = length(i_cps[1].m_pos - i_cps[0].m_pos) / (0.5 * (posClip1.w + posClip0.w));
 
 	// Calculate dots of the two normals on each edge - used to give more tessellation
 	// in areas with higher curvature
-	float normalDot0 = dot(i_cps[2].vtx.m_normal, i_cps[1].vtx.m_normal);
-	float normalDot1 = dot(i_cps[0].vtx.m_normal, i_cps[2].vtx.m_normal);
-	float normalDot2 = dot(i_cps[1].vtx.m_normal, i_cps[0].vtx.m_normal);
+	float normalDot0 = dot(i_cps[2].m_normal, i_cps[1].m_normal);
+	float normalDot1 = dot(i_cps[0].m_normal, i_cps[2].m_normal);
+	float normalDot2 = dot(i_cps[1].m_normal, i_cps[0].m_normal);
 
 	// Calculate target screen-space error
 	const float errPxTarget = 0.5;

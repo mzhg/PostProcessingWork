@@ -1,6 +1,7 @@
 package jet.opengl.demos.nvidia.face.sample;
 
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.util.CommonUtil;
 
 /**
@@ -9,9 +10,9 @@ import jet.opengl.postprocessing.util.CommonUtil;
 
 final class CBackground {
 
-    Texture2D m_pSrvCubeEnv;
-    Texture2D	m_pSrvCubeDiff;
-    Texture2D	m_pSrvCubeSpec;
+    TextureCube m_pSrvCubeEnv;
+    TextureCube	m_pSrvCubeDiff;
+    TextureCube	m_pSrvCubeSpec;
     float						m_exposure;
 
     void Init(

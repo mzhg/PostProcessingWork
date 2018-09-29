@@ -42,6 +42,11 @@ layout(location =4) in float		m_curvature /*: CURVATURE*/;
 
 out float2 o_uv;
 
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
+
 void main(
 	/*in Vertex i_vtx,
 	out float2 o_uv : UV,

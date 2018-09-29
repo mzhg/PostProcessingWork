@@ -40,9 +40,21 @@ layout(location =2) in float2		m_uv		/*: UV*/;
 layout(location =3) in float3		m_tangent	/*: TANGENT*/;
 layout(location =4) in float		m_curvature /*: CURVATURE*/;
 
-out Vertex o_vtx;
+out TessVSOut
+{
+    float3		m_pos		/*: POSITION*/;
+    float3		m_normal	/*: NORMAL*/;
+    float2		m_uv		/*: UV*/;
+    float3		m_tangent	/*: TANGENT*/;
+    float		m_curvature /*: CURVATURE*/;
+}o_vtx;
 out float3 o_vecCamera;
 out float4 o_uvzwShadow;
+
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
 
 void main(
 	/*in Vertex i_vtx,

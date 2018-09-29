@@ -62,10 +62,10 @@ struct GFSDK_FaceWorks_CBData
 /// \param uv				[in] the UV to sample at
 ///
 /// \return					the mip level to sample at.
-float GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
+/*float GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
 	GFSDK_FaceWorks_CBData cbdata,
-	Texture2D texNormal,
-	SamplerState samp,
+	sampler2D texNormal,
+//	SamplerState samp,
 	float2 uv);
 
 /// Calculate mip level at which to sample normal map, to get the blurred normal to pass to
@@ -81,7 +81,7 @@ float GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
 	GFSDK_FaceWorks_CBData cbdata,
 	sampler2D texNormal,
 //	SamplerState samp,
-	float2 uv);
+	float2 uv);*/
 
 /// Calculate mip level at which to sample normal map, to get the blurred normal to pass to
 /// GFSDK_FaceWorks_EvaluateSSSDiffuseLight.
@@ -292,7 +292,7 @@ nvsf_CBData nvsf_UnpackCBData(GFSDK_FaceWorks_CBData nvsf_opaqueData)
 //	Shader API for SSS
 // ======================================================================================
 
-float GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
+/*float GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
 	GFSDK_FaceWorks_CBData nvsf_opaqueData,
 	sampler2D nvsf_texNormal,
 //	SamplerState nvsf_ss,
@@ -313,7 +313,7 @@ float GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
 	return max(//nvsf_texNormal.CalculateLevelOfDetail(nvsf_ss, nvsf_uv),
 	            textureQueryLod(nvsf_texNormal, nvsf_uv),
 				nvsf_cb.nvsf_MinLevelForBlurredNormal);
-}
+}*/
 float GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
 	GFSDK_FaceWorks_CBData nvsf_opaqueData,
 	sampler2D nvsf_texNormal,
@@ -322,7 +322,7 @@ float GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
 {
 	nvsf_CBData nvsf_cb = nvsf_UnpackCBData(nvsf_opaqueData);
 	return max(//nvsf_texNormal.CalculateLevelOfDetail(nvsf_ss, nvsf_uv),
-	            textureQueryLod(nvsf_texNormal, nvsf_uv),
+	            textureQueryLod(nvsf_texNormal, nvsf_uv).y,
 				nvsf_cb.nvsf_MinLevelForBlurredNormal);
 }
 
@@ -350,7 +350,7 @@ float3 GFSDK_FaceWorks_EvaluateSSSDirectLight(
 	// The lerp factor to generate the G and B normals is increased near the light/dark edge,
 	// to try to prevent bumps from showing up as too blue.
 	// This will be more complex when arbitrary diffusion profiles are supported.
-	float3 nvsf_normalSmoothFactor = saturate(1.0 - nvsf_NdotLBlurredUnclamped);
+	float nvsf_normalSmoothFactor = saturate(1.0 - nvsf_NdotLBlurredUnclamped);
 	nvsf_normalSmoothFactor *= nvsf_normalSmoothFactor;
 	float3 nvsf_normalShadeG = normalize(lerp(nvsf_normalShade, nvsf_normalBlurred, 0.3 + 0.7 * nvsf_normalSmoothFactor));
 	float3 nvsf_normalShadeB = normalize(lerp(nvsf_normalShade, nvsf_normalBlurred, nvsf_normalSmoothFactor));
@@ -494,7 +494,7 @@ float GFSDK_FaceWorks_EstimateThicknessFromParallelShadowPoisson8(
 		float2 nvsf_uvDelta = nvsf_Poisson8[i] * nvsf_cb.nvsf_ShadowFilterRadius;
 		float2 nvsf_uvSample = nvsf_uvzShadow.xy + nvsf_uvDelta;
 //		float nvsf_zShadowMap = nvsf_texDepth.Sample(nvsf_ss, nvsf_uvSample);
-		float nvsf_zShadowMap = texture(nvsf_texDepth, nvsf_uvSample);
+		float nvsf_zShadowMap = texture(nvsf_texDepth, nvsf_uvSample).x;
 		nvsf_sampleSum += max(0, nvsf_uvzShadow.z - nvsf_zShadowMap);
 	}
 
@@ -516,7 +516,7 @@ float GFSDK_FaceWorks_EstimateThicknessFromPerspectiveShadowPoisson8(
 		float2 nvsf_uvDelta = nvsf_Poisson8[i] * nvsf_cb.nvsf_ShadowFilterRadius;
 		float2 nvsf_uvSample = nvsf_uvzShadow.xy + nvsf_uvDelta;
 //		float nvsf_zShadowMap = nvsf_texDepth.Sample(nvsf_ss, nvsf_uvSample);
-		float nvsf_zShadowMap = texture(nvsf_texDepth, nvsf_uvSample);
+		float nvsf_zShadowMap = texture(nvsf_texDepth, nvsf_uvSample).x;
 		nvsf_sampleSum += max(0, nvsf_linearDepth - nvsf_LinearizePerspectiveDepth(nvsf_cb, nvsf_zShadowMap));
 	}
 
@@ -537,7 +537,7 @@ float GFSDK_FaceWorks_EstimateThicknessFromParallelShadowPoisson32(
 		float2 nvsf_uvDelta = nvsf_Poisson32[i] * nvsf_cb.nvsf_ShadowFilterRadius;
 		float2 nvsf_uvSample = nvsf_uvzShadow.xy + nvsf_uvDelta;
 //		float nvsf_zShadowMap = nvsf_texDepth.Sample(nvsf_ss, nvsf_uvSample);
-		float nvsf_zShadowMap = texture(nvsf_texDepth, nvsf_uvSample);
+		float nvsf_zShadowMap = texture(nvsf_texDepth, nvsf_uvSample).x;
 		nvsf_sampleSum += max(0, nvsf_uvzShadow.z - nvsf_zShadowMap);
 	}
 
@@ -559,7 +559,7 @@ float GFSDK_FaceWorks_EstimateThicknessFromPerspectiveShadowPoisson32(
 		float2 nvsf_uvDelta = nvsf_Poisson32[i] * nvsf_cb.nvsf_ShadowFilterRadius;
 		float2 nvsf_uvSample = nvsf_uvzShadow.xy + nvsf_uvDelta;
 //		float nvsf_zShadowMap = nvsf_texDepth.Sample(nvsf_ss, nvsf_uvSample);
-		float nvsf_zShadowMap = texture(nvsf_texDepth, nvsf_uvSample);
+		float nvsf_zShadowMap = texture(nvsf_texDepth, nvsf_uvSample).x;
 		nvsf_sampleSum += max(0, nvsf_linearDepth - nvsf_LinearizePerspectiveDepth(nvsf_cb, nvsf_zShadowMap));
 	}
 

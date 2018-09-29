@@ -58,8 +58,8 @@ final class Lwjgl3ImageLoader implements NativeAPI {
         }
 
         ImageData imageData = new ImageData();
-        imageData.width = _x[0];
-        imageData.height = _y[0];
+        imageData.width = x.get(0);
+        imageData.height = y.get(0);
         imageData.depth = 1;
         imageData.internalFormat = internalFormats[_comp[0] - 1];
         imageData.pixels = pixels;

@@ -33,7 +33,7 @@
 //----------------------------------------------------------------------------------
 
 #include "common.glsl"
-#include "GFSDK_FaceWorks.glsl"
+#include "../../../shader_libs/FaceWork/GFSDK_FaceWorks.glsl"
 
 //cbuffer cbShader : CB_SHADER
 layout(binding=CB_SHADER) uniform cbShader
@@ -41,7 +41,15 @@ layout(binding=CB_SHADER) uniform cbShader
 	GFSDK_FaceWorks_CBData	g_faceworksData;
 };
 
-in Vertex o_vtx;
+in VertexThrough
+{
+	float3		m_pos		/*: POSITION*/;
+	float3		m_normal	/*: NORMAL*/;
+	float2		m_uv		/*: UV*/;
+	float3		m_tangent	/*: TANGENT*/;
+	float		m_curvature /*: CURVATURE*/;
+}o_vtx;
+
 in float3 o_vecCamera;
 in float4 o_uvzwShadow;
 layout(location=0) out vec4 Out_Color;

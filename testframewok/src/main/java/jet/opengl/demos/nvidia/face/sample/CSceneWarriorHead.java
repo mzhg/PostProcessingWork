@@ -30,9 +30,9 @@ final class CSceneWarriorHead implements CScene{
 
     Texture2D	m_pSrvDiffuseLashes;
 
-    Material					m_mtlHead;
-    Material					m_mtlEye;
-    Material					m_mtlLashes;
+    final Material	m_mtlHead = new Material();
+    final Material	m_mtlEye = new Material();
+    final Material	m_mtlLashes = new Material();
 
     NvInputHandler_CameraFly			m_camera;
 
@@ -46,22 +46,22 @@ final class CSceneWarriorHead implements CScene{
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\WarriorHead.obj"));
 //        V_RETURN(LoadObjMesh(strPath, pDevice, &m_meshHead));
         m_meshHead = new CMesh();
-        m_meshHead.loadModel("WarriorHead\\WarriorHead.obj");
+        m_meshHead.loadModel(MODEL_PATH+"WarriorHead\\WarriorHead.obj");
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\EyeL.obj"));
 //        V_RETURN(LoadObjMesh(strPath, pDevice, &m_meshEyeL));
         m_meshEyeL = new CMesh();
-        m_meshEyeL.loadModel("WarriorHead\\EyeL.obj");
+        m_meshEyeL.loadModel(MODEL_PATH+"WarriorHead\\EyeL.obj");
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\EyeR.obj"));
 //        V_RETURN(LoadObjMesh(strPath, pDevice, &m_meshEyeR));
         m_meshEyeR = new CMesh();
-        m_meshEyeR.loadModel("WarriorHead\\EyeR.obj");
+        m_meshEyeR.loadModel(MODEL_PATH+"WarriorHead\\EyeR.obj");
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\Lashes.obj"));
 //        V_RETURN(LoadObjMesh(strPath, pDevice, &m_meshLashes));
         m_meshLashes = new CMesh();
-        m_meshLashes.loadModel("WarriorHead\\Lashes.obj");
+        m_meshLashes.loadModel(MODEL_PATH+"WarriorHead\\Lashes.obj");
 
         // Load textures
 
@@ -83,7 +83,7 @@ final class CSceneWarriorHead implements CScene{
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\eyeballNormalMap.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvNormalEyeSclera, LT_Mipmap | LT_Linear));
-        m_pSrvNormalEyeSclera = CScene.loadTexture("WarriorHead\\eyeballNormalMap.bmp");
+        m_pSrvNormalEyeSclera = CScene.loadTexture("DigitalIra\\eyeballNormalMap.bmp");
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\eyeHazel.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDiffuseEyeIris));

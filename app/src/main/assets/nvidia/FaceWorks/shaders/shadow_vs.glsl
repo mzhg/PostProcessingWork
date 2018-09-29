@@ -52,6 +52,11 @@ layout(location =2) in float2		m_uv		/*: UV*/;
 layout(location =3) in float3		m_tangent	/*: TANGENT*/;
 layout(location =4) in float		m_curvature /*: CURVATURE*/;
 
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
+
 void main(
 	/*in Vertex i_vtx,
 	out float4 o_posClip : SV_Position*/)

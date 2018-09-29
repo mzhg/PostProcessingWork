@@ -56,7 +56,7 @@ layout(binding = CB_DEBUG) uniform cbDebug
 	float		g_debugSlider1;		// ...
 	float		g_debugSlider2;		// ...
 	float		g_debugSlider3;		// ...
-}
+};
 
 //cbuffer cbFrame : CB_FRAME					// matches struct CbufFrame in util.h
 layout(binding = CB_FRAME) uniform cbFrame
@@ -79,7 +79,7 @@ layout(binding = CB_FRAME) uniform cbFrame
 	float		g_deepScatterNormalOffset;	// Normal offset for shadow lookup to calculate thickness
 
 	float		g_exposure;					// Exposure multiplier
-}
+};
 
 #if 0
 TextureCube<float3> g_texCubeDiffuse	: TEX_CUBE_DIFFUSE;
@@ -97,7 +97,7 @@ SamplerComparisonState g_scsPCF			: SAMP_PCF;
 #else
 layout(binding=TEX_CUBE_DIFFUSE)  uniform samplerCube g_texCubeDiffuse;
 layout(binding=TEX_CUBE_SPEC)     uniform samplerCube g_texCubeSpec;
-layout(binding=TEX_SHADOW_MAP)    uniform sampler2DShadow g_texShadowMap;
+layout(binding=TEX_SHADOW_MAP)    uniform sampler2D g_texShadowMap;
 layout(binding=TEX_VSM)           uniform sampler2D g_texVSM;
 layout(binding=TEX_CURVATURE_LUT) uniform sampler2D g_texCurvatureLUT;
 layout(binding=TEX_SHADOW_LUT)    uniform sampler2D g_texShadowLUT;

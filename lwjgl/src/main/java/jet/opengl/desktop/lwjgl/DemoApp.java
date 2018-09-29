@@ -13,6 +13,7 @@ import java.io.InputStream;
 
 import jet.opengl.demos.labs.scattering.AtmosphereTest;
 import jet.opengl.demos.labs.scattering.Chapman;
+import jet.opengl.demos.nvidia.face.sample.FaceWorkDemo;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.demos.postprocessing.LightingVolumeDemo;
@@ -54,6 +55,19 @@ public class DemoApp {
     public static void main(String[] args) {
 //        LogUtil.setLoggerLevel(LogUtil.LogType.NV_FRAMEWROK, Level.OFF);
 //        LogUtil.setLoggerLevel(LogUtil.LogType.DEFAULT, Level.OFF);
+
+        //获取可用内存
+        long value = Runtime.getRuntime().freeMemory();
+        System.out.println("The aviable memory:"+value/1024/1024+"mb");
+        //获取jvm的总数量，该值会不断的变化
+        long  totalMemory = Runtime.getRuntime().totalMemory();
+        System.out.println("The total memory:"+totalMemory/1024/1024+"mb");
+        //获取jvm 可以最大使用的内存数量，如果没有被限制 返回 Long.MAX_VALUE;
+        long maxMemory = Runtime.getRuntime().maxMemory();
+        System.out.println("The maxmum memory:"+maxMemory/1024/1024+"mb");
+
+        value = Runtime.getRuntime().availableProcessors();
+        System.out.println("The CPU cores:" + value);
 
         final String path = "app\\src\\main\\assets\\";
         FileUtils.setIntenalFileLoader(new FileLoader() {
@@ -105,7 +119,8 @@ public class DemoApp {
 //        run(new LightingVolumeDemo());
 //        run(new TestD3D11());
 //        run(new Chapman());
-        run(new AtmosphereTest());
+//        run(new AtmosphereTest());
+        run(new FaceWorkDemo());
     }
 
     private static void testRectVertex(){

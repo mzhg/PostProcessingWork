@@ -62,7 +62,14 @@ public class FileUtils {
 
     public static ByteBuffer loadNative(String filepath) throws IOException{
         try(InputStream inputStream = g_IntenalFileLoader.open(filepath)){
-            ByteBuffer buf = ByteBuffer.allocateDirect(inputStream.available()).order(ByteOrder.nativeOrder());
+            ByteBuffer buf = null;
+
+            try {
+                buf = ByteBuffer.allocateDirect(inputStream.available()).order(ByteOrder.nativeOrder());
+            }catch (OutOfMemoryError e){
+                System.out.printf("The required momery(%.2fMB) is exceed the avaiable heap memory(%.2fMB).\n", inputStream.available()/(1024.f * 1024), Runtime.getRuntime().freeMemory()/(1024.f * 1024));
+                e.printStackTrace();
+            }
 
             if(inputStream instanceof FileInputStream){
                 FileChannel in = ((FileInputStream)inputStream).getChannel();

@@ -20,7 +20,7 @@ final class CSceneDigitalIra implements CScene {
     CMesh						m_meshLashes;
     CMesh						m_meshBrows;
 
-    Texture2D m_pSrvDiffuseHead;
+    Texture2D   m_pSrvDiffuseHead;
     Texture2D	m_pSrvNormalHead;
     Texture2D	m_pSrvSpecHead;
     Texture2D	m_pSrvDeepScatterHead;
@@ -32,15 +32,15 @@ final class CSceneDigitalIra implements CScene {
     Texture2D	m_pSrvDiffuseLashes;
     Texture2D	m_pSrvDiffuseBrows;
 
-    Material					m_mtlHead;
-    Material					m_mtlEye;
-    Material					m_mtlLashes;
-    Material					m_mtlBrows;
+    final Material	m_mtlHead = new Material();
+    final Material	m_mtlEye = new Material();
+    final Material	m_mtlLashes = new Material();
+    final Material	m_mtlBrows = new Material();
 
-    NvInputHandler_CameraFly			m_camera;
+    NvInputHandler_CameraFly m_camera;
 
-    int							m_normalHeadSize;
-    int							m_normalEyeSize;
+    int	m_normalHeadSize;
+    int	m_normalEyeSize;
     
     @Override
     public void Init() {
@@ -91,11 +91,11 @@ final class CSceneDigitalIra implements CScene {
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\lashes.dds"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDiffuseLashes));
-        m_pSrvDiffuseLashes = CScene.loadTexture("DigitalIra\\lashes.bmp");
+        m_pSrvDiffuseLashes = CScene.loadDDSTexture("DigitalIra\\lashes.dds");
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\brows.dds"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDiffuseBrows));
-        m_pSrvDiffuseBrows = CScene.loadTexture("DigitalIra\\brows.bmp");
+        m_pSrvDiffuseBrows = CScene.loadDDSTexture("DigitalIra\\brows.dds");
 
         // Set up materials
 
@@ -141,7 +141,6 @@ final class CSceneDigitalIra implements CScene {
         m_camera.setPosition(new Vector3f(m_meshHead.m_posCenter.x, m_meshHead.m_posCenter.y + 60.0f, m_meshHead.m_posCenter.z));
 
         // Pull out normal map texture sizes for SSS mip level calculations
-
         m_normalHeadSize = CScene.GetTextureSize(m_pSrvNormalHead);
         m_normalEyeSize = CScene.GetTextureSize(m_pSrvNormalEyeSclera);
     }

@@ -21,6 +21,7 @@ import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
@@ -123,8 +124,8 @@ final class CShaderManager {
         m_pVsSkybox = createShader("skybox_vs.glsl", ShaderType.VERTEX);
         m_pPsSkybox = createShader("skybox_ps.glsl", ShaderType.FRAGMENT);
         m_pVsTess = createShader("tess_vs.glsl", ShaderType.VERTEX);
-        m_pHsTess = createShader("tess_hs.glsl", ShaderType.TESS_EVAL);
-        m_pDsTess = createShader("tess_ds.glsl", ShaderType.TESS_CONTROL);
+        m_pHsTess = createShader("tess_hs.glsl", ShaderType.TESS_CONTROL);
+        m_pDsTess = createShader("tess_ds.glsl", ShaderType.TESS_EVAL);
         m_pPsThickness = createShader("thickness_ps.glsl", ShaderType.FRAGMENT);
         m_pVsWorld = createShader("world_vs.glsl", ShaderType.VERTEX);
 
@@ -186,8 +187,8 @@ final class CShaderManager {
 //            ID3D11DeviceContext * pCtx,
             CbufDebug pCbufDebug,
             CbufFrame pCbufFrame,
-            int pSrvCubeDiffuse,
-            int pSrvCubeSpec,
+            TextureCube pSrvCubeDiffuse,
+            TextureCube pSrvCubeSpec,
             Texture2D pSrvCurvatureLUT,
             Texture2D pSrvShadowLUT){
         // Set all the samplers
@@ -241,9 +242,9 @@ final class CShaderManager {
 //        pCtx->PSSetShaderResources(TEX_CURVATURE_LUT, 1, &pSrvCurvatureLUT);
 //        pCtx->PSSetShaderResources(TEX_SHADOW_LUT, 1, &pSrvShadowLUT);
         gl.glActiveTexture(GLenum.GL_TEXTURE0 + TEX_CUBE_DIFFUSE);
-        gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, pSrvCubeDiffuse);
+        gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, pSrvCubeDiffuse.getTexture());
         gl.glActiveTexture(GLenum.GL_TEXTURE0 + TEX_CUBE_SPEC);
-        gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, pSrvCubeSpec);
+        gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, pSrvCubeSpec.getTexture());
         gl.glActiveTexture(GLenum.GL_TEXTURE0 + TEX_CURVATURE_LUT);
         gl.glBindTexture(pSrvCurvatureLUT.getTarget(), pSrvCurvatureLUT.getTexture());
         gl.glActiveTexture(GLenum.GL_TEXTURE0 + TEX_SHADOW_LUT);

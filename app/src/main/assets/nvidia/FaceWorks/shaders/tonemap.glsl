@@ -53,7 +53,7 @@ float3 Tonemap(float3 rgb)
 	else
 	{
 		// Just convert to SRGB gamma space
-		rgb = (rgb < 0.0031308) ? (12.92 * rgb) : (1.055 * pow(rgb, float3(1.0/2.4)) - 0.055);
+		rgb = /*(rgb < 0.0031308)*/all(lessThan(rgb, float3(0.0031308))) ? (12.92 * rgb) : (1.055 * pow(rgb, float3(1.0/2.4)) - 0.055);
 	}
 
 	return rgb;

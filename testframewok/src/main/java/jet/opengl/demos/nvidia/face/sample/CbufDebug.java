@@ -14,6 +14,14 @@ final class CbufDebug {
     float			m_debugSlider2;		// ...
     float			m_debugSlider3;		// ...
 
+    public CbufDebug(float debug, float slider0, float slider1, float slider2, float slider3){
+        m_debug = debug;
+        m_debugSlider0 = slider0;
+        m_debugSlider1 = slider1;
+        m_debugSlider2 = slider2;
+        m_debugSlider3 = slider3;
+    }
+
     ByteBuffer store(ByteBuffer buffer){
         buffer.putFloat(m_debug);
         buffer.putFloat(m_debugSlider0);

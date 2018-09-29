@@ -16,6 +16,7 @@ import java.util.List;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -60,25 +61,32 @@ interface CScene {
     void GetMeshesToDraw(List<MeshToDraw> pMeshesToDraw);
 
     static Texture2D loadDDSTexture(String name){
+        FileLoader older = FileUtils.g_IntenalFileLoader;
+        FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
         int texture = 0;
         try {
             texture = NvImage.uploadTextureFromDDSFile(MODEL_PATH + name);
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            FileUtils.setIntenalFileLoader(older);
         }
 
         return TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, texture);
     }
 
-    static Texture2D loadCubeTexture(String name){
+    static TextureCube loadCubeTexture(String name){
         int texture = 0;
         try {
+            FileLoader old = FileUtils.g_IntenalFileLoader;
+            FileUtils.setIntenalFileLoader(g_SceneFileLoader);
             texture = NvImage.uploadTextureFromDDSFile(MODEL_PATH + name);
+            FileUtils.setIntenalFileLoader(old);  // reset to defualt.
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        return TextureUtils.createTexture2D(GLenum.GL_TEXTURE_CUBE_MAP, texture);
+        return TextureUtils.createTextureCube(GLenum.GL_TEXTURE_CUBE_MAP, texture);
     }
 
     static Texture2D loadTexture(String name){
@@ -87,6 +95,8 @@ interface CScene {
             FileUtils.setIntenalFileLoader(g_SceneFileLoader);
             Texture2D result =  TextureUtils.createTexture2DFromFile(MODEL_PATH + name, true);
             FileUtils.setIntenalFileLoader(old);  // reset to defualt.
+//            System.out.printf("Loaded %s, dimension[width = %d, height = %d], format %s, %s, %d mip levels\n",
+//                    name, result.getWidth(), result.getHeight(), TextureUtils.getFormatName(result.getFormat()), "2D", result.getMipLevels());
             return result;
         } catch (IOException e) {
             e.printStackTrace();

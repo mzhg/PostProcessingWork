@@ -44,5 +44,6 @@ layout(location=0) out vec4 Out_Color;
 //float3 main(in float3 i_vecView : VIEW) : SV_Target
 void main()
 {
-	Out_Color = Tonemap(texture(g_texSkybox, o_vecView).xyz);   // g_ssTrilinearRepeat
+	Out_Color.rgb = Tonemap(texture(g_texSkybox, o_vecView).xyz);   // g_ssTrilinearRepeat
+	Out_Color.a = 1.;
 }

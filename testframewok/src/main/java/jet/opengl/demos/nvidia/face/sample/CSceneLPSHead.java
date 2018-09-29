@@ -21,7 +21,7 @@ final class CSceneLPSHead implements CScene {
     Texture2D	m_pSrvSpecHead;
     Texture2D	m_pSrvDeepScatterHead;
 
-    Material					m_mtlHead;
+    final Material	m_mtlHead = new Material();
 
     NvInputHandler_CameraFly			m_camera;
 
@@ -34,7 +34,7 @@ final class CSceneLPSHead implements CScene {
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"LPSHead\\head.obj"));
 //        V_RETURN(LoadObjMesh(strPath, pDevice, &m_meshHead));
         m_meshHead = new CMesh();
-        m_meshHead.loadModel("LPSHead\\head.obj");
+        m_meshHead.loadModel(MODEL_PATH+"LPSHead\\head.obj");
 
         // Load textures
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"LPSHead\\lambertian.jpg"));

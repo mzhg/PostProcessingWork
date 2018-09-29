@@ -14,14 +14,14 @@ import jet.opengl.postprocessing.util.CommonUtil;
  */
 
 final class CSceneManjaladon implements CScene{
-    CMesh						m_meshManjaladon;
+    CMesh       m_meshManjaladon;
 
-    Texture2D m_pSrvDiffuse;
+    Texture2D   m_pSrvDiffuse;
     Texture2D	m_pSrvNormal;
     Texture2D	m_pSrvSpec;
     Texture2D	m_pSrvDeepScatter;
 
-    Material					m_mtl;
+    final Material	m_mtl = new Material();
 
     NvInputHandler_CameraFly			m_camera;
 
@@ -34,7 +34,7 @@ final class CSceneManjaladon implements CScene{
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"Manjaladon\\manjaladon.obj"));
 //        V_RETURN(LoadObjMesh(strPath, pDevice, &m_meshManjaladon));
         m_meshManjaladon = new CMesh();
-        m_meshManjaladon.loadModel("Manjaladon\\manjaladon.obj");
+        m_meshManjaladon.loadModel(MODEL_PATH+"Manjaladon\\manjaladon.obj");
 
         // Load textures
 

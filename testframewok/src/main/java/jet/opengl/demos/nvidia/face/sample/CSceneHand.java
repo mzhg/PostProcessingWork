@@ -14,16 +14,16 @@ import jet.opengl.postprocessing.util.CommonUtil;
  */
 
 final class CSceneHand implements CScene{
-    CMesh						m_meshHand;
+    CMesh	m_meshHand;
 
     Texture2D   m_pSrvDiffuse;
     Texture2D	m_pSrvNormalFlat;
     Texture2D	m_pSrvSpec;
     Texture2D	m_pSrvDeepScatter;
 
-    Material					m_mtl;
+    final Material	m_mtl = new Material();
 
-    NvInputHandler_CameraFly			m_camera;
+    NvInputHandler_CameraFly m_camera;
 
     @Override
     public void Init() {
@@ -32,7 +32,7 @@ final class CSceneHand implements CScene{
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"hand01.obj"));
 //        V_RETURN(LoadObjMesh(strPath, pDevice, &m_meshHand));
         m_meshHand = new CMesh();
-        m_meshHand.loadModel("hand01.obj");
+        m_meshHand.loadModel(MODEL_PATH + "hand01.obj");
 
         // Create 1x1 textures
 

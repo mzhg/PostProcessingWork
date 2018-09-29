@@ -45,6 +45,11 @@ layout(location =CB_SHADER) uniform cbShader
 	float4x4	g_matClipToWorldAxes;
 };
 
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
+
 out float3 o_vecView;
 void main(
 	/*in Vertex i_vtx,

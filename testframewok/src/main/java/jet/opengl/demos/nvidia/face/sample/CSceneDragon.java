@@ -6,6 +6,9 @@ import org.lwjgl.util.vector.Vector3f;
 
 import java.util.List;
 
+import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GPUMemoryInfo;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.util.CommonUtil;
 
@@ -14,14 +17,14 @@ import jet.opengl.postprocessing.util.CommonUtil;
  */
 
 final class CSceneDragon implements CScene{
-    CMesh						m_meshDragon;
+    CMesh	  m_meshDragon;
 
     Texture2D m_pSrvDiffuse;
-    Texture2D	m_pSrvNormal;
-    Texture2D	m_pSrvSpec;
-    Texture2D	m_pSrvDeepScatter;
+    Texture2D m_pSrvNormal;
+    Texture2D m_pSrvSpec;
+    Texture2D m_pSrvDeepScatter;
 
-    Material					m_mtl;
+    final Material  m_mtl = new Material();
 
     NvInputHandler_CameraFly			m_camera;
 
@@ -34,7 +37,7 @@ final class CSceneDragon implements CScene{
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"Dragon\\Dragon_gdc2014_BindPose.obj"));
 //        V_RETURN(LoadObjMesh(strPath, pDevice, &m_meshDragon));
         m_meshDragon = new CMesh();
-        m_meshDragon.loadModel("Dragon\\Dragon_gdc2014_BindPose.obj");
+        m_meshDragon.loadModel(MODEL_PATH + "Dragon\\Dragon_gdc2014_BindPose.obj");
 
         // Load textures
 
@@ -48,8 +51,13 @@ final class CSceneDragon implements CScene{
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"Dragon\\Dragon_New_S.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvSpec));
+        /*GPUMemoryInfo info = new GPUMemoryInfo();
+        GLFuncProviderFactory.getGLFuncProvider().glGetMemoryInfo(info);
+        GLCheck.checkError();
+        System.out.println(info);*/
         m_pSrvSpec = CScene.loadTexture("Dragon\\Dragon_New_S.bmp");
 
+        System.gc();
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"Dragon\\Dragon_Subsurface.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDeepScatter));
         m_pSrvDeepScatter = CScene.loadTexture("Dragon\\Dragon_Subsurface.bmp");
@@ -73,7 +81,6 @@ final class CSceneDragon implements CScene{
         m_camera.setPosition(new Vector3f(m_meshDragon.m_posCenter.x, m_meshDragon.m_posCenter.y, m_meshDragon.m_posCenter.z + 45));
 
         // Pull out normal map texture size for SSS mip level calculations
-
         m_normalSize = CScene.GetTextureSize(m_pSrvNormal);
     }
 
