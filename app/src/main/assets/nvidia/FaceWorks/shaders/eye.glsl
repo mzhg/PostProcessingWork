@@ -56,7 +56,7 @@ layout(binding=CB_SHADER) uniform cbShader
 	float		g_irisDilation;			// How much the iris is dilated
 
 	GFSDK_FaceWorks_CBData	g_faceworksData;
-}
+};
 
 #if 0
 Texture2D<float3> g_texDiffuseSclera	: TEX_DIFFUSE0;
@@ -81,7 +81,7 @@ void EyeMegashader(
 
 	// Calculate diffuse color, overlaying iris on sclera
 
-	float3 rgbDiffuse = texture(g_texDiffuseSclera, uv);   // g_ssTrilinearRepeatAniso
+	float3 rgbDiffuse = texture(g_texDiffuseSclera, uv).rgb;   // g_ssTrilinearRepeatAniso
 	float irisAlpha = 0.0;
 
 	float radiusDest = length(uv - 0.5.xx);
@@ -90,7 +90,7 @@ void EyeMegashader(
 		// Use a power function to remap the radius, to simulate dilation of the iris
 		float radiusSource = (1.0 - pow(1.0 - radiusDest / g_irisRadiusDest, 1.0 - g_irisDilation)) * g_irisRadiusSource;
 		float2 uvIris = (uv - 0.5.xx) * (radiusSource / radiusDest) + 0.5.xx;
-		float3 rgbIris = texture(g_texDiffuseIris, uvIris);   //g_ssTrilinearRepeatAniso
+		float3 rgbIris = texture(g_texDiffuseIris, uvIris).rgb;   //g_ssTrilinearRepeatAniso
 
 		// Calculate alpha using a smoothstep-like falloff at the edge of the iris
 		irisAlpha = saturate((g_irisRadiusDest - radiusDest) * g_irisEdgeHardness);
@@ -99,7 +99,7 @@ void EyeMegashader(
 	}
 
 	// Sample other textures
-	float3 normalTangent = UnpackNormal(texture(g_texNormal, uv),    // g_ssTrilinearRepeatAniso
+	float3 normalTangent = UnpackNormal(texture(g_texNormal, uv).xyz,    // g_ssTrilinearRepeatAniso
 										g_normalStrength);
 
 	float3 normalTangentBlurred;
@@ -107,9 +107,9 @@ void EyeMegashader(
 	{
 		// Sample normal map with level clamped based on blur, to get normal for SSS
 		float level = GFSDK_FaceWorks_CalculateMipLevelForBlurredNormal(
-						g_faceworksData, g_texNormal, g_ssTrilinearRepeatAniso, uv);
+						g_faceworksData, g_texNormal, /*g_ssTrilinearRepeatAniso,*/ uv);
 		normalTangentBlurred = UnpackNormal(
-									textureLod(g_texNormal, uv, level),   // g_ssTrilinearRepeatAniso
+									textureLod(g_texNormal, uv, level).xyz,   // g_ssTrilinearRepeatAniso
 									g_normalStrength);
 	}
 

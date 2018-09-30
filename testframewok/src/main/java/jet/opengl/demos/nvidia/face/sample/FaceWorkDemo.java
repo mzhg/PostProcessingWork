@@ -1,6 +1,7 @@
 package jet.opengl.demos.nvidia.face.sample;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.ui.NvTweakEnumi;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -10,16 +11,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks;
+import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_CBData;
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_DeepScatterConfig;
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_ErrorBlob;
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_ProjectionType;
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_SSSConfig;
+import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.StringUtils;
 
 /**
  * Created by mazhen'gui on 2017/9/7.
@@ -88,7 +94,8 @@ public class FaceWorkDemo extends NvSampleApp {
     CBackground					g_bkgndTunnel = new CBackground();
     CBackground 				g_pBkgndCur = null;
 
-    CMesh						g_meshFullscreen;
+    int                         g_meshFullscreen;
+    BufferGL                    g_meshFullscreenVB;
 
     Texture2D                   g_pSrvCurvatureLUT = null;
     static final float			g_curvatureRadiusMinLUT = 0.1f;		// cm
@@ -145,13 +152,31 @@ public class FaceWorkDemo extends NvSampleApp {
     private GLFuncProvider gl;
 
     @Override
+    public void initUI() {
+
+//        RM_None = 0,
+//                RM_SSS = 1,
+//                RM_SSSAndDeep = 2,
+//                RM_ViewCurvature = 3,
+//                RM_ViewThickness = 4,
+        mTweakBar.addEnum("Technique", createControl("g_renderMethod"), new NvTweakEnumi[]{
+                new NvTweakEnumi("None", 0),
+                new NvTweakEnumi("SSS", 1),
+                new NvTweakEnumi("SSSAndDeep", 2),
+                new NvTweakEnumi("ViewCurvature", 3),
+                new NvTweakEnumi("ViewThickness", 4),
+        }, 0);
+
+        mTweakBar.addValue("Tesslation", createControl("g_bTessellation"));
+    }
+
+    @Override
     protected void initRendering() {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         // Init FaceWorks
         GFSDK_FaceWorks.GFSDK_FaceWorks_Init();
 
-//        V_RETURN(CreateFullscreenMesh(pDevice, &g_meshFullscreen));  TODO
-
+        CreateFullscreenMesh();
         // Load scenes
         g_sceneDigitalIra.Init();
         g_sceneHand.Init();
@@ -178,7 +203,7 @@ public class FaceWorkDemo extends NvSampleApp {
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"shadowLUT.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, &g_pSrvShadowLUT, LT_None));
-        g_pSrvCurvatureLUT = CScene.loadTexture("shadowLUT.bmp");
+        g_pSrvShadowLUT = CScene.loadTexture("shadowLUT.bmp");
 
         // Load shaders
         g_shdmgr.Init(/*pDevice*/);
@@ -303,7 +328,7 @@ public class FaceWorkDemo extends NvSampleApp {
         // Create shadow map
         g_shadowmap = new CShadowMap();
         g_shadowmap.Init(1024);
-        g_vsm = new CVarShadowMap();
+        g_vsm = new CVarShadowMap(g_shdmgr, g_meshFullscreen);
         g_vsm.Init(1024);
 
         // Set up GPU profiler
@@ -425,23 +450,21 @@ public class FaceWorkDemo extends NvSampleApp {
 //        pd3dContext->ClearDepthStencilView(g_shadowmap.m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
         g_shadowmap.BindRenderTarget(/*pd3dContext*/);
-        gl.glClearBufferfi(GLenum.GL_DEPTH, 0, 1, 0);
-//        pd3dContext->OMSetDepthStencilState(g_pDssDepthTest, 0);  TODO
-//        pd3dContext->RSSetState(g_pRsSolid);                      TODO
+        gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1, 0);
         g_pDssDepthTest.run();
         g_pRsSolid.run();
-
 
         // Draw shadow map
         g_shdmgr.BindShadow(/*pd3dContext,*/ g_shadowmap.m_matWorldToClip);
         for (int i = 0; i < cMeshToDraw; ++i)
         {
-            m_meshesToDraw.get(i).m_pMesh.Draw();
+            m_meshesToDraw.get(i).m_pMesh.Draw(GLenum.GL_TRIANGLES );
         }
 
+        GLCheck.checkError();
         g_vsm.UpdateFromShadowMap(g_shadowmap);
         g_vsm.GaussianBlur();
-
+        GLCheck.checkError();
 //        g_gpuProfiler.Timestamp(pd3dContext, GTS_ShadowMap);
 
         // Bind the non-SRGB render target view, for rendering with tone mapping
@@ -465,6 +488,7 @@ public class FaceWorkDemo extends NvSampleApp {
                 g_shadowmap.m_pSrv,
                 g_vsm.m_pSrv);
 
+        GLCheck.checkError();
         int features = 0;
         if (g_bTessellation)
             features |= SHDFEAT_Tessellation;
@@ -473,6 +497,7 @@ public class FaceWorkDemo extends NvSampleApp {
         {
             case RM_None:
             {
+                gl.glDisable(GLenum.GL_CULL_FACE);
                 // Note: two loops for skin and eye materials so we can have GPU timestamps around
                 // each shader individually. Gack.
 
@@ -482,9 +507,11 @@ public class FaceWorkDemo extends NvSampleApp {
                     if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Skin)
                     {
                         g_shdmgr.BindMaterial(/*pd3dContext, */features, m_meshesToDraw.get(i).m_pMtl);
-                        m_meshesToDraw.get(i).m_pMesh.Draw();
+                        m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES );
                     }
                 }
+
+                GLCheck.checkError();
 //                g_gpuProfiler.Timestamp(pd3dContext, GTS_Skin);
 
                 // Draw eye shaders
@@ -493,9 +520,11 @@ public class FaceWorkDemo extends NvSampleApp {
                     if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Eye)
                     {
                         g_shdmgr.BindMaterial(/*pd3dContext,*/ features, m_meshesToDraw.get(i).m_pMtl);
-                        m_meshesToDraw.get(i).m_pMesh.Draw();
+                        m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES );
                     }
                 }
+
+                GLCheck.checkError();
 //                g_gpuProfiler.Timestamp(pd3dContext, GTS_Eyes);
             }
             break;
@@ -535,6 +564,8 @@ public class FaceWorkDemo extends NvSampleApp {
                 // Note: two loops for skin and eye materials so we can have GPU timestamps around
                 // each shader individually. Gack.
 
+                GFSDK_FaceWorks_CBData cbData = new GFSDK_FaceWorks_CBData();
+
                 // Draw skin shaders
                 for (int i = 0; i < cMeshToDraw; ++i)
                 {
@@ -543,43 +574,46 @@ public class FaceWorkDemo extends NvSampleApp {
                         sssConfigSkin.m_normalMapSize = m_meshesToDraw.get(i).m_normalMapSize;
                         sssConfigSkin.m_averageUVScale = m_meshesToDraw.get(i).m_averageUVScale;
                         GFSDK_FaceWorks.GFSDK_FaceWorks_WriteCBDataForSSS(
-                                sssConfigSkin, /*reinterpret_cast<GFSDK_FaceWorks_CBData *>*/(m_meshesToDraw.get(i).m_pMtl.m_constants[4]), faceworksErrors);
+                                sssConfigSkin, /*reinterpret_cast<GFSDK_FaceWorks_CBData *>*/cbData, faceworksErrors);
+                        System.arraycopy(cbData.data, 0, m_meshesToDraw.get(i).m_pMtl.m_constants, 4, cbData.data.length);
                         GFSDK_FaceWorks.GFSDK_FaceWorks_WriteCBDataForDeepScatter(
-                                deepScatterConfigSkin, /*reinterpret_cast<GFSDK_FaceWorks_CBData *>*/(m_meshesToDraw.get(i).m_pMtl.m_constants[4]), faceworksErrors));
-
+                                deepScatterConfigSkin, /*reinterpret_cast<GFSDK_FaceWorks_CBData *>(m_meshesToDraw.get(i).m_pMtl.m_constants[4])*/cbData, faceworksErrors);
+                        System.arraycopy(cbData.data, 0, m_meshesToDraw.get(i).m_pMtl.m_constants, 4, cbData.data.length);
                         g_shdmgr.BindMaterial(/*pd3dContext,*/ features, m_meshesToDraw.get(i).m_pMtl);
-                        m_meshesToDraw.get(i).m_pMesh->Draw(pd3dContext);
+                        m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
                     }
                 }
-                g_gpuProfiler.Timestamp(pd3dContext, GTS_Skin);
+//                g_gpuProfiler.Timestamp(pd3dContext, GTS_Skin);
 
                 // Draw eye shaders
                 for (int i = 0; i < cMeshToDraw; ++i)
                 {
-                    if (meshesToDraw[i].m_pMtl->m_shader == SHADER_Eye)
+                    if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Eye)
                     {
-                        sssConfigEye.m_normalMapSize = meshesToDraw[i].m_normalMapSize;
-                        sssConfigEye.m_averageUVScale = meshesToDraw[i].m_averageUVScale;
-                        NV(GFSDK_FaceWorks_WriteCBDataForSSS(
-                                &sssConfigEye, reinterpret_cast<GFSDK_FaceWorks_CBData *>(&meshesToDraw[i].m_pMtl->m_constants[12]), &faceworksErrors));
-                        NV(GFSDK_FaceWorks_WriteCBDataForDeepScatter(
-                                &deepScatterConfigEye, reinterpret_cast<GFSDK_FaceWorks_CBData *>(&meshesToDraw[i].m_pMtl->m_constants[12]), &faceworksErrors));
-
-                        g_shdmgr.BindMaterial(pd3dContext, features, meshesToDraw[i].m_pMtl);
-                        meshesToDraw[i].m_pMesh->Draw(pd3dContext);
+                        sssConfigEye.m_normalMapSize = m_meshesToDraw.get(i).m_normalMapSize;
+                        sssConfigEye.m_averageUVScale = m_meshesToDraw.get(i).m_averageUVScale;
+                        GFSDK_FaceWorks.GFSDK_FaceWorks_WriteCBDataForSSS(
+                                sssConfigEye, /*reinterpret_cast<GFSDK_FaceWorks_CBData *>(&m_meshesToDraw.get(i).m_pMtl.m_constants[12])*/cbData, faceworksErrors);
+                        System.arraycopy(cbData.data, 0, m_meshesToDraw.get(i).m_pMtl.m_constants, 12, cbData.data.length);
+                        GFSDK_FaceWorks.GFSDK_FaceWorks_WriteCBDataForDeepScatter(
+                                deepScatterConfigEye, /*reinterpret_cast<GFSDK_FaceWorks_CBData *>(&m_meshesToDraw.get(i).m_pMtl.m_constants[12])*/cbData, faceworksErrors);
+                        System.arraycopy(cbData.data, 0, m_meshesToDraw.get(i).m_pMtl.m_constants, 12, cbData.data.length);
+                        g_shdmgr.BindMaterial(features, m_meshesToDraw.get(i).m_pMtl);
+                        m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
                     }
                 }
-                g_gpuProfiler.Timestamp(pd3dContext, GTS_Eyes);
+//                g_gpuProfiler.Timestamp(pd3dContext, GTS_Eyes);
 
-                if (faceworksErrors.m_msg)
+                if (!StringUtils.isEmpty(faceworksErrors.m_msg))
                 {
-                    #if defined(_DEBUG)
+                    /*#if defined(_DEBUG)
                     wchar_t msg[512];
                     _snwprintf_s(msg, dim(msg),
                             L"FaceWorks rendering error:\n%hs", faceworksErrors.m_msg);
                     DXUTTrace(__FILE__, __LINE__, E_FAIL, msg, true);
                     #endif
-                    GFSDK_FaceWorks_FreeErrorBlob(&faceworksErrors);
+                    GFSDK_FaceWorks_FreeErrorBlob(&faceworksErrors);*/
+                    LogUtil.e(LogUtil.LogType.DEFAULT, String.format("FaceWorks rendering error:\n%hs", faceworksErrors.m_msg));
                 }
             }
             break;
@@ -592,45 +626,45 @@ public class FaceWorkDemo extends NvSampleApp {
                 float curvatureScale = 1.0f / (1.0f / g_curvatureRadiusMinLUT - 1.0f / g_curvatureRadiusMaxLUT);
                 float curvatureBias = 1.0f / (1.0f - g_curvatureRadiusMaxLUT / g_curvatureRadiusMinLUT);
 
-                g_shdmgr.BindCurvature(pd3dContext, curvatureScale, curvatureBias);
+                g_shdmgr.BindCurvature(/*pd3dContext,*/ curvatureScale, curvatureBias);
 
                 for (int i = 0; i < cMeshToDraw; ++i)
                 {
-                    meshesToDraw[i].m_pMesh->Draw(pd3dContext);
+                    m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
                 }
             }
             break;
 
             case RM_ViewThickness:
             {
-                GFSDK_FaceWorks_DeepScatterConfig deepScatterConfigSkin = {};
-                deepScatterConfigSkin.m_radius = max(g_deepScatterRadius, 0.01f);
-                deepScatterConfigSkin.m_shadowProjType = GFSDK_FaceWorks_ParallelProjection;
-                memcpy(&deepScatterConfigSkin.m_shadowProjMatrix, &g_shadowmap.m_matProj, 16 * sizeof(float));
-                deepScatterConfigSkin.m_shadowFilterRadius = g_deepScatterShadowRadius / min(g_shadowmap.m_vecDiam.x, g_shadowmap.m_vecDiam.y);
+                GFSDK_FaceWorks_DeepScatterConfig deepScatterConfigSkin = new GFSDK_FaceWorks_DeepScatterConfig();
+                deepScatterConfigSkin.m_radius = Math.max(g_deepScatterRadius, 0.01f);
+                deepScatterConfigSkin.m_shadowProjType = GFSDK_FaceWorks_ProjectionType.ParallelProjection;
+//                memcpy(&deepScatterConfigSkin.m_shadowProjMatrix, &g_shadowmap.m_matProj, 16 * sizeof(float));
+                deepScatterConfigSkin.m_shadowProjMatrix.load(g_shadowmap.m_matProj);
+                deepScatterConfigSkin.m_shadowFilterRadius = g_deepScatterShadowRadius / Math.min(g_shadowmap.m_vecDiam.x, g_shadowmap.m_vecDiam.y);
 
-                GFSDK_FaceWorks_CBData faceworksCBData = {};
-                GFSDK_FaceWorks_ErrorBlob faceworksErrors = {};
+                GFSDK_FaceWorks_CBData faceworksCBData = new GFSDK_FaceWorks_CBData();
+                GFSDK_FaceWorks_ErrorBlob faceworksErrors = new GFSDK_FaceWorks_ErrorBlob();
 
-                NV(GFSDK_FaceWorks_WriteCBDataForDeepScatter(
-                        &deepScatterConfigSkin, &faceworksCBData, &faceworksErrors));
+                GFSDK_FaceWorks.GFSDK_FaceWorks_WriteCBDataForDeepScatter(deepScatterConfigSkin, faceworksCBData, faceworksErrors);
 
-                if (faceworksErrors.m_msg)
+                if (!StringUtils.isEmpty(faceworksErrors.m_msg))
                 {
-                    #if defined(_DEBUG)
+                    /*#if defined(_DEBUG)
                     wchar_t msg[512];
                     _snwprintf_s(msg, dim(msg),
                             L"FaceWorks rendering error:\n%hs", faceworksErrors.m_msg);
                     DXUTTrace(__FILE__, __LINE__, E_FAIL, msg, true);
-                    #endif
-                    GFSDK_FaceWorks_FreeErrorBlob(&faceworksErrors);
+                    #endif*/
+                    LogUtil.e(LogUtil.LogType.DEFAULT, String.format("FaceWorks rendering error:\n%hs", faceworksErrors.m_msg));
+//                    GFSDK_FaceWorks.GFSDK_FaceWorks_FreeErrorBlob(faceworksErrors);
                 }
 
-                g_shdmgr.BindThickness(pd3dContext, &faceworksCBData);
-
+                g_shdmgr.BindThickness(faceworksCBData);
                 for (int i = 0; i < cMeshToDraw; ++i)
                 {
-                    meshesToDraw[i].m_pMesh->Draw(pd3dContext);
+                    m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
                 }
             }
             break;
@@ -640,35 +674,49 @@ public class FaceWorkDemo extends NvSampleApp {
                 break;
         }
 
-        g_shdmgr.UnbindTess(pd3dContext);
+        GLCheck.checkError();
+        g_shdmgr.UnbindTess();
+        GLCheck.checkError();
 
         // Draw the skybox
-        pd3dContext->RSSetState(g_pRsSolid);
-        g_shdmgr.BindSkybox(pd3dContext, g_pBkgndCur->m_pSrvCubeEnv, matClipToWorldAxes);
-        g_meshFullscreen.Draw(pd3dContext);
-
+//        pd3dContext->RSSetState(g_pRsSolid);
+        g_pRsSolid.run();GLCheck.checkError();
+        /*g_shdmgr.BindSkybox(*//*pd3dContext,*//* g_pBkgndCur.m_pSrvCubeEnv, matClipToWorldAxes);GLCheck.checkError();  TODO
+        gl.glBindVertexArray(g_meshFullscreen);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        gl.glBindVertexArray(0);*/
+//        g_meshFullscreen.Draw(/*pd3dContext*/);
         // Draw hair shaders, with alpha blending
-        pd3dContext->RSSetState(g_pRsSolidDoubleSided);
+        /*pd3dContext->RSSetState(g_pRsSolidDoubleSided);
         pd3dContext->OMSetDepthStencilState(g_pDssNoDepthWrite, 0);
-        pd3dContext->OMSetBlendState(g_pBsAlphaBlend, nullptr, ~0UL);
+        pd3dContext->OMSetBlendState(g_pBsAlphaBlend, nullptr, ~0UL);*/
+        GLCheck.checkError();
+        g_pRsSolidDoubleSided.run();
+        g_pDssNoDepthWrite.run();
+        g_pBsAlphaBlend.run();
+
+        GLCheck.checkError();
         for (int i = 0; i < cMeshToDraw; ++i)
         {
-            if (meshesToDraw[i].m_pMtl->m_shader == SHADER_Hair)
+            if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Hair)
             {
-                g_shdmgr.BindMaterial(pd3dContext, 0, meshesToDraw[i].m_pMtl);
-                meshesToDraw[i].m_pMesh->Draw(pd3dContext);
+                g_shdmgr.BindMaterial(/*pd3dContext,*/ 0, m_meshesToDraw.get(i).m_pMtl);
+                m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
             }
         }
-        pd3dContext->RSSetState(g_pRsSolid);
+        /*pd3dContext->RSSetState(g_pRsSolid);
         pd3dContext->OMSetDepthStencilState(g_pDssDepthTest, 0);
-        pd3dContext->OMSetBlendState(nullptr, nullptr, ~0UL);
+        pd3dContext->OMSetBlendState(nullptr, nullptr, ~0UL);*/
+        g_pRsSolid.run();
+        g_pDssDepthTest.run();
+        gl.glDisable(GLenum.GL_BLEND);
 
         // Now switch to the SRGB back buffer view, for compositing UI
-        V(DXUTSetupD3D11Views(pd3dContext));
+//        V(DXUTSetupD3D11Views(pd3dContext));
 
         // Show the shadow map if desired
 
-        if (g_viewbuf == VIEWBUF_ShadowMap)
+        /*if (g_viewbuf == VIEWBUF_ShadowMap)
         {
             // Copy red channel to RGB channels
             XMFLOAT4X4 matTransformColor(
@@ -700,7 +748,9 @@ public class FaceWorkDemo extends NvSampleApp {
             RenderText();
         }
 
-        g_gpuProfiler.EndFrame(pd3dContext);
+        g_gpuProfiler.EndFrame(pd3dContext);*/
+
+        GLCheck.checkError();
     }
 
     @Override
@@ -728,7 +778,7 @@ public class FaceWorkDemo extends NvSampleApp {
 //        SAFE_DELETE(g_pTxtHelper);
 
         g_sceneDigitalIra.Release();
-        g_sceneTest.Release();
+//        g_sceneTest.Release();
         g_sceneHand.Release();
         g_sceneDragon.Release();
         g_sceneLPSHead.Release();
@@ -741,7 +791,8 @@ public class FaceWorkDemo extends NvSampleApp {
         g_bkgndNight.Release();
         g_bkgndTunnel.Release();
 
-        g_meshFullscreen.dispose();
+        gl.glDeleteVertexArray(0);
+        g_meshFullscreenVB.dispose();
 
         CommonUtil.safeRelease(g_pSrvCurvatureLUT);
         CommonUtil.safeRelease(g_pSrvShadowLUT);
@@ -760,5 +811,81 @@ public class FaceWorkDemo extends NvSampleApp {
         g_vsm.dispose();
 
 //        g_gpuProfiler.Release();
+    }
+
+    void CreateFullscreenMesh()
+    {
+        final float[] verts = {
+                -1, -1, 0, 0, 1,
+                3, -1, 0, 2, 1,
+                -1,  3, 0, 0, -1
+        };
+
+        g_meshFullscreenVB = new BufferGL();
+        g_meshFullscreenVB.initlize(GLenum.GL_ARRAY_BUFFER, verts.length * 4, CacheBuffer.wrap(verts), GLenum.GL_STATIC_DRAW);
+
+        gl.glBindVertexArray(0);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        g_meshFullscreen = gl.glGenVertexArray();
+        gl.glBindVertexArray(g_meshFullscreen);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, g_meshFullscreenVB.getBuffer());
+        gl.glEnableVertexAttribArray(0);
+        gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 20, 0);
+        gl.glEnableVertexAttribArray(1);
+        gl.glVertexAttribPointer(1, 2, GLenum.GL_FLOAT, false, 20, 12);
+        gl.glBindVertexArray(0);
+
+
+        /*// Positions are directly in clip space; normals aren't used.
+        Vertex verts[] =
+                {
+                        // pos                    normal         uv
+                        { XMFLOAT3(-1, -1, 0), XMFLOAT3(), XMFLOAT2(0,  1) },
+                        { XMFLOAT3( 3, -1, 0), XMFLOAT3(), XMFLOAT2(2,  1) },
+                        { XMFLOAT3(-1,  3, 0), XMFLOAT3(), XMFLOAT2(0, -1) },
+                };
+
+        UINT indices[] = { 0, 1, 2 };
+
+        CMesh pMesh = new CMesh();
+        pMesh.m_verts.assign(&verts[0], &verts[dim(verts)]);
+        pMesh->m_indices.assign(&indices[0], &indices[dim(indices)]);
+
+        D3D11_BUFFER_DESC vtxBufferDesc =
+                {
+                        sizeof(Vertex) * dim(verts),
+                        D3D11_USAGE_IMMUTABLE,
+                        D3D11_BIND_VERTEX_BUFFER,
+                        0,	// no cpu access
+                        0,	// no misc flags
+                        0,	// structured buffer stride
+                };
+        D3D11_SUBRESOURCE_DATA vtxBufferData = { &verts[0], 0, 0 };
+
+        V_RETURN(pDevice->CreateBuffer(&vtxBufferDesc, &vtxBufferData, &pMesh->m_pVtxBuffer));
+
+        D3D11_BUFFER_DESC idxBufferDesc =
+                {
+                        sizeof(UINT) * dim(indices),
+                        D3D11_USAGE_IMMUTABLE,
+                        D3D11_BIND_INDEX_BUFFER,
+                        0,	// no cpu access
+                        0,	// no misc flags
+                        0,	// structured buffer stride
+                };
+        D3D11_SUBRESOURCE_DATA idxBufferData = { &indices[0], 0, 0 };
+
+        V_RETURN(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &pMesh->m_pIdxBuffer));
+
+        pMesh->m_vtxStride = sizeof(Vertex);
+        pMesh->m_cIdx = UINT(dim(indices));
+        pMesh->m_primtopo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+        SetDebugName(pMesh->m_pVtxBuffer, "Fullscreen mesh VB");
+        SetDebugName(pMesh->m_pIdxBuffer, "Fullscreen mesh IB");
+
+        return S_OK;*/
     }
 }

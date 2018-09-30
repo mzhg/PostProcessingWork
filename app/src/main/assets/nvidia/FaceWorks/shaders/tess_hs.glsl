@@ -37,7 +37,7 @@
 
 layout (vertices = 3) out;
 
-in TessVSOut
+in VertexThrough
 {
     float3		m_pos		/*: POSITION*/;
     float3		m_normal	/*: NORMAL*/;

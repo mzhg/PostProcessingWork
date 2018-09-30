@@ -9,6 +9,7 @@ import java.util.HashMap;
 
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_CBData;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -106,7 +107,10 @@ final class CShaderManager {
             e.printStackTrace();
         }
         int dot = filename.indexOf('.');
-        GLSLProgram.createFromString(item, shaderProgram, filename.substring(0, dot));
+        String debugName = filename.substring(0, dot);
+        GLSLProgram.createFromString(item, shaderProgram, debugName);
+        shaderProgram.setName(debugName);
+        shaderProgram.printPrograminfo();
         return shaderProgram;
     }
 
@@ -157,10 +161,10 @@ final class CShaderManager {
 
         m_pInputLayout = this::inputLayout;
         m_pCbufDebug = new BufferGL();
-        m_pCbufDebug.initlize(GLenum.GL_UNIFORM_BUFFER, Numeric.divideAndRoundUp(CbufDebug.SIZE, 16), null, GLenum.GL_STREAM_DRAW);
+        m_pCbufDebug.initlize(GLenum.GL_UNIFORM_BUFFER, Numeric.divideAndRoundUp(CbufDebug.SIZE, 16) * 16, null, GLenum.GL_STREAM_DRAW);
 
         m_pCbufFrame = new BufferGL();
-        m_pCbufFrame.initlize(GLenum.GL_UNIFORM_BUFFER, Numeric.divideAndRoundUp(CbufFrame.SIZE, 16), null, GLenum.GL_STREAM_DRAW);
+        m_pCbufFrame.initlize(GLenum.GL_UNIFORM_BUFFER, Numeric.divideAndRoundUp(CbufFrame.SIZE, 16) * 16, null, GLenum.GL_STREAM_DRAW);
 
         m_pCbufShader = new BufferGL();
         m_pCbufShader.initlize(GLenum.GL_UNIFORM_BUFFER, 96, null, GLenum.GL_STREAM_DRAW);
@@ -251,6 +255,7 @@ final class CShaderManager {
         gl.glBindTexture(pSrvShadowLUT.getTarget(), pSrvShadowLUT.getTexture());
 
         gl.glUseProgram(0);
+        GLCheck.checkError();
     }
 
     void BindShadowTextures(
@@ -431,7 +436,7 @@ final class CShaderManager {
 
     void BindSkybox(
 //            ID3D11DeviceContext * pCtx,
-            Texture2D pSrvSkybox,
+            TextureCube pSrvSkybox,
             Matrix4f matClipToWorldAxes){
 //        pCtx->VSSetShader(m_pVsSkybox, null, 0);
 //        pCtx->PSSetShader(m_pPsSkybox, null, 0);
@@ -474,6 +479,7 @@ final class CShaderManager {
         assert(pPs!=null);
 
 //        pCtx->PSSetShader(pPs, null, 0);
+        gl.glUseProgram(0);
         m_programPipeline.enable();
         m_programPipeline.setPS(pPs);
 
@@ -485,9 +491,9 @@ final class CShaderManager {
 //            pCtx->DSSetShader(m_pDsTess, null, 0);
 //            pCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
             m_programPipeline.setVS(m_pVsTess);
-            m_programPipeline.setTE(m_pHsTess);
-            m_programPipeline.setTC(m_pDsTess);
-
+            m_programPipeline.setTC(m_pHsTess);
+            m_programPipeline.setTE(m_pDsTess);
+            gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 3);
         }
         else
         {
@@ -514,6 +520,8 @@ final class CShaderManager {
 //        pCtx->Unmap(m_pCbufShader, 0);
         FloatBuffer buffer = CacheBuffer.wrap(pMtl.m_constants);
         m_pCbufShader.update(0, buffer);
+
+        GLCheck.checkError();
     }
 
     void UnbindTess(){}
@@ -660,7 +668,7 @@ final class CShaderManager {
         DiscardRuntimeCompiledShaders();
     }
 
-    private ShaderProgram CreateSkinShader(int features){
+    private ShaderProgram CreateSkinShader(final int features){
         LogUtil.i(LogUtil.LogType.DEFAULT, String.format("Generating skin shader with feature mask %d", features));
 
         String skin_glsl = null;
@@ -672,13 +680,26 @@ final class CShaderManager {
 
         final String pattern =
                 "%s\n"+
-                "in Vertex o_vtx;\n" +
+                "in VertexThrough\n" +
+                "{" +
+                "float3 m_pos;\n" +
+                "float3 m_normal;\n" +
+                "float2 m_uv;\n" +
+                "float3 m_tangent;\n" +
+                "float m_curvature;\n" +
+                "}_input;\n"+
                 "in float3 o_vecCamera;\n" +
                 "in float4 o_uvzwShadow;\n" +
                 "layout(location=0) out vec3 Out_Color;\n"+
                 "void main()\n"+
                 "{\n"+
-                "	SkinMegashader(o_vtx, o_vecCamera, o_uvzwShadow, Out_Color, %s, %s);\n"+
+                    "Vertex i_vtx;\n" +
+                    "i_vtx.m_pos = _input.m_pos;\n" +
+                    "i_vtx.m_normal = _input.m_normal;\n" +
+                    "i_vtx.m_uv = _input.m_uv;\n" +
+                    "i_vtx.m_tangent = _input.m_tangent;\n" +
+                    "i_vtx.m_curvature = _input.m_curvature;\n" +
+                "	SkinMegashader(i_vtx, o_vecCamera, o_uvzwShadow, Out_Color, %s, %s);\n"+
                 "}\n";
 
         String source = String.format(pattern, skin_glsl, (features & SHDFEAT_SSS)!=0 ? "true" : "false",
@@ -694,7 +715,7 @@ final class CShaderManager {
         return shaderProgram;
     }
 
-    private ShaderProgram CreateEyeShader(int features){
+    private ShaderProgram CreateEyeShader(final int features){
         LogUtil.i(LogUtil.LogType.DEFAULT, String.format("Generating eye shader with feature mask %d", features));
         assert((features & SHDFEAT_PSMask) == features);
 
@@ -707,13 +728,26 @@ final class CShaderManager {
 
         final String pattern =
                 "%s\n"+
-                "in Vertex o_vtx;\n" +
+                "in VertexThrough\n" +
+                "{" +
+                "float3 m_pos;\n" +
+                "float3 m_normal;\n" +
+                "float2 m_uv;\n" +
+                "float3 m_tangent;\n" +
+                "float m_curvature;\n" +
+                "}_input;\n"+
                 "in float3 o_vecCamera;\n" +
                 "in float4 o_uvzwShadow;\n" +
-                "layout(location=0) out vec3 Out_Color;\n"+
+                " out vec3 Out_Color;\n"+
                 "void main()\n"+
                 "{\n"+
-                "	EyeMegashader(o_vtx, o_vecCamera, o_uvzwShadow, Out_Color, %s, %s);\n"+
+                    "Vertex i_vtx;\n" +
+                    "i_vtx.m_pos = _input.m_pos;\n" +
+                    "i_vtx.m_normal = _input.m_normal;\n" +
+                    "i_vtx.m_uv = _input.m_uv;\n" +
+                    "i_vtx.m_tangent = _input.m_tangent;\n" +
+                    "i_vtx.m_curvature = _input.m_curvature;\n" +
+                "	EyeMegashader(i_vtx, o_vecCamera, o_uvzwShadow, Out_Color, %s, %s);\n"+
                 "}\n";
 
         String source = String.format(pattern, eye_glsl, (features & SHDFEAT_SSS)!=0 ? "true" : "false",
@@ -725,7 +759,7 @@ final class CShaderManager {
         item.source = source;
         GLSLProgram.createFromString(item, shaderProgram, "eye" + ((features & SHDFEAT_SSS)!=0 ? "_SSS" : "") + ((features & SHDFEAT_DeepScatter) !=0? "_DeepScatter" : ""));
 
-        m_mapSkinFeaturesToShader.put(features, shaderProgram);
+        m_mapEyeFeaturesToShader.put(features, shaderProgram);
         return shaderProgram;
     }
 }

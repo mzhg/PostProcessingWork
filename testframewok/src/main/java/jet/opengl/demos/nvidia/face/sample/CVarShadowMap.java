@@ -25,8 +25,13 @@ final class CVarShadowMap implements Disposeable{
     float							m_blurRadius = 1.0f;		//
     private GLFuncProvider gl;
     private int m_shadow_fbo;
+    private CShaderManager g_shdmgr;
+    private int g_fullscreen;
 
-    CVarShadowMap(){
+    CVarShadowMap(CShaderManager shdmgr, int fullscreen){
+        g_shdmgr = shdmgr;
+        g_fullscreen = fullscreen;
+
         gl = GLFuncProviderFactory.getGLFuncProvider();
     }
 
@@ -53,10 +58,11 @@ final class CVarShadowMap implements Disposeable{
         gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
         gl.glViewport(0,0, m_size, m_size);
 
-//        g_shdmgr.BindCreateVSM(pCtx, shadow.m_pSrv);
+        g_shdmgr.BindCreateVSM( shadow.m_pSrv);
 //        g_meshFullscreen.Draw(pCtx);
-        // TODO
-
+        gl.glBindVertexArray(g_fullscreen);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        gl.glBindVertexArray(0);
     }
 
     void GaussianBlur(){

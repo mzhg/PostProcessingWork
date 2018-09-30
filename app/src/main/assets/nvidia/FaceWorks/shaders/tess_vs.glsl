@@ -41,7 +41,7 @@ layout(location =2) in float2		In_uv		/*: UV*/;
 layout(location =3) in float3		In_tangent	/*: TANGENT*/;
 layout(location =4) in float		In_curvature /*: CURVATURE*/;
 
-out TessVSOut
+out VertexThrough
 {
     float3		m_pos		/*: POSITION*/;
     float3		m_normal	/*: NORMAL*/;

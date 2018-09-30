@@ -93,7 +93,7 @@ interface CScene {
         try {
             FileLoader old = FileUtils.g_IntenalFileLoader;
             FileUtils.setIntenalFileLoader(g_SceneFileLoader);
-            Texture2D result =  TextureUtils.createTexture2DFromFile(MODEL_PATH + name, true);
+            Texture2D result =  TextureUtils.createTexture2DFromFile(MODEL_PATH + name, true, true);
             FileUtils.setIntenalFileLoader(old);  // reset to defualt.
 //            System.out.printf("Loaded %s, dimension[width = %d, height = %d], format %s, %s, %d mip levels\n",
 //                    name, result.getWidth(), result.getHeight(), TextureUtils.getFormatName(result.getFormat()), "2D", result.getMipLevels());

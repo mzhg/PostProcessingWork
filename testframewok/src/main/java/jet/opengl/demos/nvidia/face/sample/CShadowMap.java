@@ -20,9 +20,9 @@ import jet.opengl.postprocessing.util.LogUtil;
 
 final class CShadowMap implements Disposeable{
     Texture2D   m_pDsv;
-    Texture2D		m_pSrv;
+    Texture2D	m_pSrv;
     /** Shadow map resolution */
-    int								m_size;
+    int			m_size;
     /** Unit vector toward directional light */
     final Vector3f m_vecLight = new Vector3f();
     /** AABB of scene in world space */

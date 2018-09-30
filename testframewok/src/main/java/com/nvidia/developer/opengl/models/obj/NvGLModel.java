@@ -35,6 +35,7 @@ package com.nvidia.developer.opengl.models.obj;
 
 import org.lwjgl.util.vector.Vector3f;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -151,6 +152,9 @@ public class NvGLModel {
 		gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
+	public int getVertexBuffer() { return model_vboID;}
+	public int getIndiceBuffer() { return model_iboID;}
+
 	/**
 	 * Draw the model using the current shader (positions)<p>
 	 * Binds the vertex position array to the given attribute array index and draws the
@@ -216,6 +220,7 @@ public class NvGLModel {
 			gl.glVertexAttribPointer(tangentHandle,  model.getTangentSize(), GLenum.GL_FLOAT, false, model.getCompiledVertexSize() * 4, (model.getCompiledTangentOffset()*4));
 			gl.glEnableVertexAttribArray(tangentHandle);
 	    }
+
 		gl.glDrawElements(GLenum.GL_TRIANGLES, model.getCompiledIndexCount(NvModel.TRIANGLES), GLenum.GL_UNSIGNED_INT, 0);
 
 		gl.glDisableVertexAttribArray(positionHandle);
@@ -226,6 +231,8 @@ public class NvGLModel {
 	    if (tangentHandle >= 0)
 			gl.glDisableVertexAttribArray(tangentHandle);
 	    unbindBuffers();
+
+		GLCheck.checkError();
 	}
 
 	/**

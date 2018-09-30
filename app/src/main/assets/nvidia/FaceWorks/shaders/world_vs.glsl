@@ -34,13 +34,13 @@
 
 #include "common.glsl"
 
-layout(location =0) in float3		m_pos		/*: POSITION*/;
-layout(location =1) in float3		m_normal	/*: NORMAL*/;
-layout(location =2) in float2		m_uv		/*: UV*/;
-layout(location =3) in float3		m_tangent	/*: TANGENT*/;
-layout(location =4) in float		m_curvature /*: CURVATURE*/;
+layout(location =0) in float3		In_pos		/*: POSITION*/;
+layout(location =1) in float3		In_normal	/*: NORMAL*/;
+layout(location =2) in float2		In_uv		/*: UV*/;
+layout(location =3) in float3		In_tangent	/*: TANGENT*/;
+layout(location =4) in float		In_curvature /*: CURVATURE*/;
 
-out TessVSOut
+out VertexThrough
 {
     float3		m_pos		/*: POSITION*/;
     float3		m_normal	/*: NORMAL*/;
@@ -63,12 +63,12 @@ void main(
 	out float4 o_uvzwShadow : UVZW_SHADOW,
 	out float4 o_posClip : SV_Position*/)
 {
-	o_vtx.m_pos = m_pos;
-    o_vtx.m_normal = m_normal;
-    o_vtx.m_uv = m_uv;
-    o_vtx.m_tangent = m_tangent;
-    o_vtx.m_curvature = m_curvature;
-	o_vecCamera = g_posCamera - o_vtx.m_pos;
-	o_uvzwShadow = mul(float4(o_vtx.m_pos, 1.0), g_matWorldToUvzwShadow);
-	gl_Position = mul(float4(o_vtx.m_pos, 1.0), g_matWorldToClip);
+	o_vtx.m_pos = In_pos;
+    o_vtx.m_normal = In_normal;
+    o_vtx.m_uv = In_uv;
+    o_vtx.m_tangent = In_tangent;
+    o_vtx.m_curvature = In_curvature;
+	o_vecCamera = g_posCamera - In_pos;
+	o_uvzwShadow = mul(float4(In_pos, 1.0), g_matWorldToUvzwShadow);
+	gl_Position = mul(float4(In_pos, 1.0), g_matWorldToClip);
 }

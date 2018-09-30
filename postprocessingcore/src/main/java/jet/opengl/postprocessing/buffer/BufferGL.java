@@ -101,8 +101,11 @@ public class BufferGL implements Disposeable{
     public void update(int offset, Buffer data){
         if(GLCheck.CHECK){
             int size = BufferUtils.measureSize(data);
-            if(m_bufferID == 0 || offset < 0 || size < 0 || offset > m_bufferSize || size > m_bufferSize || offset + size > m_bufferSize){
-                throw new IllegalArgumentException();
+            if(m_bufferID == 0)
+                throw new IllegalStateException("The buffer hasn't inilized!");
+
+            if(offset < 0 || size < 0 || offset > m_bufferSize || size > m_bufferSize || offset + size > m_bufferSize){
+                throw new IndexOutOfBoundsException();
             }
         }
 

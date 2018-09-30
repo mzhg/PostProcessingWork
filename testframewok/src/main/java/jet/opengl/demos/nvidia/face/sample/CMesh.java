@@ -136,8 +136,54 @@ final class CMesh implements Disposeable{
         return uvScales[0];
     }
 
-    void Draw(){
-        m_model.drawElements(0, 1, 2, 3);
+    void Draw(int primitive){
+        final int positionHandle = 0;
+        final int normalHandle = 1;
+        final int texcoordHandle = 2;
+        final int tangentHandle = 3;
+        final int curvatureHandle = 4;
+
+//        m_model.drawElements(0, 1, 2, 3);
+        int VB = m_model.getVertexBuffer();
+        int IB = m_model.getIndiceBuffer();
+        NvModel model = m_model.getModel();
+
+        gl.glBindVertexArray(0);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, VB);
+
+        gl.glVertexAttribPointer(positionHandle, model.getPositionSize(), GLenum.GL_FLOAT, false, model.getCompiledVertexSize() * 4, 0);
+        gl.glEnableVertexAttribArray(positionHandle);
+
+        if (normalHandle >= 0) {
+            gl.glVertexAttribPointer(normalHandle, model.getNormalSize(), GLenum.GL_FLOAT, false, model.getCompiledVertexSize() * 4, (model.getCompiledNormalOffset()*4));
+            gl.glEnableVertexAttribArray(normalHandle);
+        }
+
+        if (texcoordHandle >= 0) {
+            gl.glVertexAttribPointer(texcoordHandle, model.getTexCoordSize(), GLenum.GL_FLOAT, false, model.getCompiledVertexSize() * 4, (model.getCompiledTexCoordOffset()*4));
+            gl.glEnableVertexAttribArray(texcoordHandle);
+        }
+
+        if (tangentHandle >= 0) {
+            gl.glVertexAttribPointer(tangentHandle,  model.getTangentSize(), GLenum.GL_FLOAT, false, model.getCompiledVertexSize() * 4, (model.getCompiledTangentOffset()*4));
+            gl.glEnableVertexAttribArray(tangentHandle);
+        }
+
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_curvatureVB);
+        gl.glVertexAttribPointer(curvatureHandle,  1, GLenum.GL_FLOAT, false, 0, 0);
+        gl.glEnableVertexAttribArray(curvatureHandle);
+
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, IB);
+        gl.glDrawElements(primitive, model.getCompiledIndexCount(NvModel.TRIANGLES), GLenum.GL_UNSIGNED_INT, 0);
+
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+
+        gl.glDisableVertexAttribArray(0);
+        gl.glDisableVertexAttribArray(1);
+        gl.glDisableVertexAttribArray(2);
+        gl.glDisableVertexAttribArray(3);
+        gl.glDisableVertexAttribArray(4);
     }
 
     @Override

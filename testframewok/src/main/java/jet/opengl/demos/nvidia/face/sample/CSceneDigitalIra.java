@@ -138,8 +138,8 @@ final class CSceneDigitalIra implements CScene {
 //        XMVECTOR posCamera = posLookAt + XMVectorSet(0.0f, 0.0f, 60.0f, 0.0f);
 //        m_camera.SetViewParams(posCamera, posLookAt);
         m_camera = new NvInputHandler_CameraFly();
-        m_camera.setPosition(new Vector3f(m_meshHead.m_posCenter.x, m_meshHead.m_posCenter.y + 60.0f, m_meshHead.m_posCenter.z));
-
+        m_camera.setPosition(new Vector3f(m_meshHead.m_posCenter.x, m_meshHead.m_posCenter.y + 10, m_meshHead.m_posCenter.z));
+        m_camera.setKeyboardTranslationSpeed(5);
         // Pull out normal map texture sizes for SSS mip level calculations
         m_normalHeadSize = CScene.GetTextureSize(m_pSrvNormalHead);
         m_normalEyeSize = CScene.GetTextureSize(m_pSrvNormalEyeSclera);
@@ -204,6 +204,7 @@ final class CSceneDigitalIra implements CScene {
 //        pMeshesToDraw->assign(&aMtd[0], &aMtd[dim(aMtd)]);
         pMeshesToDraw.add(new MeshToDraw(m_mtlHead, m_meshHead, m_normalHeadSize, m_meshHead.m_uvScale));
         pMeshesToDraw.add(new MeshToDraw(m_mtlEye, m_meshEyeL, m_normalEyeSize, m_meshEyeL.m_uvScale));
+        pMeshesToDraw.add(new MeshToDraw(m_mtlEye, m_meshEyeR, m_normalEyeSize, m_meshEyeL.m_uvScale));
         pMeshesToDraw.add(new MeshToDraw(m_mtlLashes, m_meshLashes));
         pMeshesToDraw.add(new MeshToDraw(m_mtlBrows, m_meshBrows));
     }

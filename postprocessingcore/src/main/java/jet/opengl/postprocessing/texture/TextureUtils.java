@@ -272,6 +272,7 @@ public final class TextureUtils {
 		result.format = gl.glGetTexLevelParameteri(target, 0, GLenum.GL_TEXTURE_INTERNAL_FORMAT);
 		result.target = target;
 		result.textureID = textureID;
+		result.target = cubeTarget;
 
 		boolean immutableFormat         = gl.glGetTexParameteri(cubeTarget, GLenum.GL_TEXTURE_IMMUTABLE_FORMAT) != 0;
 		if(immutableFormat){
