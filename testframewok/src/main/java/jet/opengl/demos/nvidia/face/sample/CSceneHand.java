@@ -57,7 +57,7 @@ final class CSceneHand implements CScene{
 //        XMVECTOR posCamera = posLookAt + XMVectorSet(0.0f, 0.0f, 60.0f, 0.0f);
 //        m_camera.SetViewParams(posCamera, posLookAt);
         m_camera = new NvInputHandler_CameraFly();
-        m_camera.setPosition(new Vector3f(m_meshHand.m_posCenter.x, m_meshHand.m_posCenter.y, m_meshHand.m_posCenter.z + 60));
+        m_camera.setPosition(new Vector3f(m_meshHand.m_posCenter.x, m_meshHand.m_posCenter.y, m_meshHand.m_posCenter.z));
     }
 
     @Override

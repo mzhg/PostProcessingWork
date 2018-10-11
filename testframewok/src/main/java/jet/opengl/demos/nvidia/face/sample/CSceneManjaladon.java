@@ -71,7 +71,7 @@ final class CSceneManjaladon implements CScene{
 //        m_camera.SetViewParams(posCamera, posLookAt);
         m_camera = new NvInputHandler_CameraFly();
         m_camera.setPosition(new Vector3f(m_meshManjaladon.m_posCenter.x, m_meshManjaladon.m_posCenter.y+5, m_meshManjaladon.m_posCenter.z+40));
-
+        m_camera.setKeyboardTranslationSpeed(5);
         // Pull out normal map texture size for SSS mip level calculations
 
         m_normalSize = CScene.GetTextureSize(m_pSrvNormal);

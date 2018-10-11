@@ -383,7 +383,7 @@ public class NvModel {
 			reader.close();
 
 			// free anything that ended up being unused
-			if (!hasNormals) {
+			/*if (!hasNormals) {
 				_normals.clear();
 				_nIndex.clear();
 			}
@@ -391,7 +391,7 @@ public class NvModel {
 			if (!hasTC) {
 				_texCoords.clear();
 				_tIndex.clear();
-			}
+			}*/
 
 			// set the defaults as the worst-case for an obj file
 

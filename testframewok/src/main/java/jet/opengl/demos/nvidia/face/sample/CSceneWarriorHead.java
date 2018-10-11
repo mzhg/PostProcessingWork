@@ -6,6 +6,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 import java.util.List;
 
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.util.CommonUtil;
 
@@ -92,6 +93,8 @@ final class CSceneWarriorHead implements CScene{
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\lashes.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDiffuseLashes));
         m_pSrvDiffuseLashes = CScene.loadTexture("WarriorHead\\lashes.bmp");
+        m_pSrvDiffuseLashes.setWrapS(GLenum.GL_REPEAT);
+        m_pSrvDiffuseLashes.setWrapT(GLenum.GL_REPEAT);
 
         // Create 1x1 spec texture
 
@@ -137,7 +140,8 @@ final class CSceneWarriorHead implements CScene{
 //        XMVECTOR posCamera = posLookAt + XMVectorSet(0.0f, 0.0f, 60.0f, 0.0f);
 //        m_camera.SetViewParams(posCamera, posLookAt);
         m_camera = new NvInputHandler_CameraFly();
-        m_camera.setPosition(new Vector3f(m_meshHead.m_posCenter.x, m_meshHead.m_posCenter.y,m_meshHead.m_posCenter.z + 60));
+        m_camera.setPosition(new Vector3f(m_meshHead.m_posCenter.x, m_meshHead.m_posCenter.y,m_meshHead.m_posCenter.z));
+        m_camera.setKeyboardTranslationSpeed(5);
 
         // Pull out normal map texture sizes for SSS mip level calculations
 

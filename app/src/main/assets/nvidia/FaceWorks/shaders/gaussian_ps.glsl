@@ -43,7 +43,7 @@ layout(binding = CB_SHADER) uniform cbShader
 //Texture2D<float2> g_texSrc : TEX_SOURCE;
 layout(binding = TEX_SOURCE) uniform sampler2D g_texSrc;
 
-in vec2 i_uv;
+in vec2 o_uv;
 //float4 main(in float2 i_uv : UV) : SV_Target
 layout(location=0) out vec4 Out_Color;
 
@@ -91,7 +91,7 @@ void main()
 	{
 		float weight = s_aGaussian21[i].x;
 		float2 offset = s_aGaussian21[i].y * g_vecBlur;
-		sum += weight * texture(g_texSrc, i_uv + offset).xy;  // g_ssBilinearClamp
+		sum += weight * texture(g_texSrc, o_uv + offset).xy;  // g_ssBilinearClamp
 	}
 
 	Out_Color = float4(sum,0,0);

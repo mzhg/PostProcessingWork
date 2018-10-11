@@ -37,14 +37,14 @@
 //Texture2D<float> g_texSource : TEX_SOURCE;
 layout(binding = TEX_SOURCE) uniform sampler2D g_texSource;
 
-in vec2 i_uv;
+in vec2 o_uv;
 //float4 main(in float2 i_uv : UV) : SV_Target
 layout(location=0) out vec4 Out_Color;
 
 //float2 main(in float2 i_uv : UV) : SV_Target
 void main()
 {
-	float z = texture(g_texSource, i_uv).x;   // g_ssPointClamp
+	float z = texture(g_texSource, o_uv).x;   // g_ssPointClamp
 	Out_Color.xy =  float2(z, z*z);
 	Out_Color.zw = float2(0);
 }

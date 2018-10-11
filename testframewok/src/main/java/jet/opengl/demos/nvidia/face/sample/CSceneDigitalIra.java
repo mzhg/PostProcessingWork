@@ -75,11 +75,11 @@ final class CSceneDigitalIra implements CScene {
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\HumanHead_deepscatter.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDeepScatterHead));
-        m_pSrvSpecHead = CScene.loadTexture("DigitalIra\\00_specular_albedo.bmp");
+        m_pSrvDeepScatterHead = CScene.loadTexture("DigitalIra\\HumanHead_deepscatter.bmp");
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\sclera_col.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDiffuseEyeSclera));
-        m_pSrvSpecHead = CScene.loadTexture("DigitalIra\\00_specular_albedo.bmp");
+        m_pSrvDiffuseEyeSclera = CScene.loadTexture("DigitalIra\\sclera_col.bmp");
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\eyeballNormalMap.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvNormalEyeSclera, LT_Mipmap | LT_Linear));

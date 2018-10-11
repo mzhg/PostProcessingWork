@@ -46,8 +46,8 @@ layout(binding=CB_SHADER) uniform  cbShader
 layout(binding = TEX_DIFFUSE0) uniform sampler2D g_texDiffuse;
 
 //in Vertex i_vtx;
-in float3 i_vecCamera/* : CAMERA*/;
-in float4 i_uvzwShadow/* : UVZW_SHADOW*/;
+in float3 o_vecCamera/* : CAMERA*/;
+in float4 o_uvzwShadow/* : UVZW_SHADOW*/;
 
 in VertexThrough
 {
@@ -56,7 +56,7 @@ in VertexThrough
 	float2		m_uv		/*: UV*/;
 	float3		m_tangent	/*: TANGENT*/;
 	float		m_curvature /*: CURVATURE*/;
-};
+}_input;
 
 //float4 main(in float2 i_uv : UV) : SV_Target
 layout(location=0) out vec4 Out_Color;
@@ -69,11 +69,11 @@ void main(
 	out float4 o_rgbaLit : SV_Target*/)
 {
     Vertex i_vtx;
-    i_vtx.m_pos = m_pos;
-    i_vtx.m_normal = m_normal;
-    i_vtx.m_uv = m_uv;
-    i_vtx.m_tangent = m_tangent;
-    i_vtx.m_curvature = m_curvature;
+    i_vtx.m_pos = _input.m_pos;
+    i_vtx.m_normal = _input.m_normal;
+    i_vtx.m_uv = _input.m_uv;
+    i_vtx.m_tangent = _input.m_tangent;
+    i_vtx.m_curvature = _input.m_curvature;
 
     bool front = gl_FrontFacing;
 	float2 uv = i_vtx.m_uv;
@@ -89,10 +89,11 @@ void main(
     dummy.data[0] = float4(0);
     dummy.data[1] = float4(0);
     dummy.data[2] = float4(0);
+    vec3 outColor;
 	LightingMegashader(
 		i_vtx,
-		i_vecCamera,
-		i_uvzwShadow,
+		o_vecCamera,
+		o_uvzwShadow,
 		rgbaDiffuse.rgb,
 		float3(0.0),
 		float3(0.0),
@@ -100,11 +101,11 @@ void main(
 		g_gloss,
 		float3(0.0),
 		dummy,
-		Out_Color.rgb,
+		outColor, //Out_Color.rgb,
 		false,	// useNormalMap
 		false,	// useSSS
 		false);	// useDeepScatter
 
 	// Write texture alpha for transparency
-	Out_Color.a = rgbaDiffuse.a;
+	Out_Color = vec4(outColor, rgbaDiffuse.a);
 }

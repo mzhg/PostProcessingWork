@@ -125,15 +125,15 @@ final class CSceneTest implements CScene{
 
 //        posMin = XMVectorMin(posMin, XMLoadFloat3(&m_meshShadower.m_posMin));
 //        posMax = XMVectorMax(posMax, XMLoadFloat3(&m_meshShadower.m_posMax));
-        Vector3f.min(m_meshPlanes.m_posMin, m_meshShadower.m_posMin, pPosMin);
-        Vector3f.max(m_meshPlanes.m_posMax, m_meshShadower.m_posMax, pPosMax);
+        Vector3f.min(m_meshPlanes.getPosMin(), m_meshShadower.getPosMin(), pPosMin);
+        Vector3f.max(m_meshPlanes.getPosMax(), m_meshShadower.getPosMax(), pPosMax);
 
         for (int i = 0; i < m_aMeshSpheres.length; ++i)
         {
 //            posMin = XMVectorMin(posMin, XMLoadFloat3(&m_aMeshSpheres[i].m_posMin));
 //            posMax = XMVectorMax(posMax, XMLoadFloat3(&m_aMeshSpheres[i].m_posMax));
-            Vector3f.min(pPosMin, m_aMeshSpheres[i].m_posMin, pPosMin);
-            Vector3f.max(pPosMax, m_aMeshSpheres[i].m_posMax, pPosMax);
+            Vector3f.min(pPosMin, m_aMeshSpheres[i].getPosMin(), pPosMin);
+            Vector3f.max(pPosMax, m_aMeshSpheres[i].getPosMax(), pPosMax);
         }
 
 //        XMStoreFloat3(pPosMin, posMin);

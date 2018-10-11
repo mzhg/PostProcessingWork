@@ -37,7 +37,8 @@ final class CShaderManager {
     SHDFEAT_SSS				= 0x02,
     SHDFEAT_DeepScatter		= 0x04,
 
-    SHDFEAT_PSMask			= 0x06;				// Features that affect the pixel shader
+    SHDFEAT_PSMask			= 0x06,				// Features that affect the pixel shader
+    SHDFEAT_Default         = -1;
 
     static final int CB_DEBUG						=(0);
     static final int CB_FRAME						=(1);
@@ -58,6 +59,8 @@ final class CShaderManager {
     static final int TEX_CURVATURE_LUT				=(12);
     static final int TEX_SHADOW_LUT					=(13);
 
+    static final int FEA_DEFUALT = -2;
+
     private static final int SAMP_POINT_CLAMP				=(0);
     private static final int SAMP_BILINEAR_CLAMP			=(1);
     private static final int SAMP_TRILINEAR_REPEAT			=(2);
@@ -65,20 +68,23 @@ final class CShaderManager {
     private static final int SAMP_PCF						=(4);
 
     ShaderProgram m_pPsCopy;
-    ShaderProgram		m_pPsCreateVSM;
-    ShaderProgram	m_pVsCurvature;
-    ShaderProgram		m_pPsCurvature;
-    ShaderProgram		m_pPsThickness;
-    ShaderProgram		m_pPsGaussian;
-    ShaderProgram		m_pPsHair;
-    ShaderProgram	m_pVsScreen;
-    ShaderProgram	m_pVsShadow;
-    ShaderProgram	m_pVsSkybox;
-    ShaderProgram		m_pPsSkybox;
-    ShaderProgram	m_pVsTess;
-    ShaderProgram		m_pHsTess;
-    ShaderProgram	m_pDsTess;
-    ShaderProgram	m_pVsWorld;
+    ShaderProgram m_pPsCreateVSM;
+    ShaderProgram m_pVsCurvature;
+    ShaderProgram m_pPsCurvature;
+    ShaderProgram m_pPsThickness;
+    ShaderProgram m_pPsGaussian;
+    ShaderProgram m_pPsHair;
+    ShaderProgram m_pVsScreen;
+    ShaderProgram m_pVsShadow;
+    ShaderProgram m_pVsSkybox;
+    ShaderProgram m_pPsSkybox;
+    ShaderProgram m_pVsTess;
+    ShaderProgram m_pHsTess;
+    ShaderProgram m_pDsTess;
+    ShaderProgram m_pVsWorld;
+    ShaderProgram m_pPSDefault;
+    ShaderProgram m_pVSDefault;
+    GLSLProgram   m_pDefaultProg;
 
     int	m_pSsPointClamp;
     int	m_pSsBilinearClamp;
@@ -86,7 +92,7 @@ final class CShaderManager {
     int	m_pSsTrilinearRepeatAniso;
     int	m_pSsPCF;
 
-    Runnable		m_pInputLayout;
+    Runnable m_pInputLayout;
 
     BufferGL m_pCbufDebug;
     BufferGL m_pCbufFrame;
@@ -132,6 +138,14 @@ final class CShaderManager {
         m_pDsTess = createShader("tess_ds.glsl", ShaderType.TESS_EVAL);
         m_pPsThickness = createShader("thickness_ps.glsl", ShaderType.FRAGMENT);
         m_pVsWorld = createShader("world_vs.glsl", ShaderType.VERTEX);
+        m_pPSDefault = createShader("default_ps.glsl", ShaderType.FRAGMENT);
+        m_pVSDefault = createShader("default_vs.glsl", ShaderType.VERTEX);
+
+        try {
+            m_pDefaultProg = GLSLProgram.createFromFiles("nvidia/FaceWorks/shaders/world_vs.glsl", "nvidia/FaceWorks/shaders/default_ps.glsl");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         SamplerDesc sampDesc = new SamplerDesc();
         sampDesc.minFilter = GLenum.GL_NEAREST_MIPMAP_NEAREST;
@@ -201,6 +215,7 @@ final class CShaderManager {
 //        pCtx->PSSetSamplers(SAMP_TRILINEAR_REPEAT, 1, &m_pSsTrilinearRepeat);
 //        pCtx->PSSetSamplers(SAMP_TRILINEAR_REPEAT_ANISO, 1, &m_pSsTrilinearRepeatAniso);
 //        pCtx->PSSetSamplers(SAMP_PCF, 1, &m_pSsPCF);
+        gl.glBindSampler(TEX_DIFFUSE0, m_pSsTrilinearRepeatAniso);
 
         // Set the input assembler state
 //        pCtx->IASetInputLayout(m_pInputLayout);
@@ -270,7 +285,11 @@ final class CShaderManager {
         gl.glBindTexture(pSrvVSM.getTarget(), pSrvVSM.getTexture());
     }
 
-    ShaderProgram			GetSkinShader(int features){
+    ShaderProgram	GetSkinShader(int features){
+        if(features == SHDFEAT_Default){
+            return m_pPSDefault;
+        }
+
         features &= SHDFEAT_PSMask;
 
         ShaderProgram i =
@@ -285,7 +304,11 @@ final class CShaderManager {
 
     }
 
-    ShaderProgram			GetEyeShader(int features){
+    ShaderProgram GetEyeShader(int features){
+        if(features == SHDFEAT_Default){
+            return m_pPSDefault;
+        }
+
         features &= SHDFEAT_PSMask;
 
         ShaderProgram i = m_mapEyeFeaturesToShader.get(features);
@@ -460,6 +483,31 @@ final class CShaderManager {
         m_pCbufShader.update(0, buffer);
     }
 
+    void bindDefault(Material pMtl){
+        /*m_programPipeline.setVS(m_pVsWorld);
+        m_programPipeline.setPS(m_pPSDefault);
+        m_programPipeline.setTC(null);
+        m_programPipeline.setTE(null);
+        m_programPipeline.enable();*/
+        m_programPipeline.disable();
+        m_pDefaultProg.enable();
+
+        // Bind textures
+        for (int i = 0; i < pMtl.m_aSrv.length; ++i)
+        {
+            if (pMtl.m_aSrv[i] != null)
+            {
+                gl.glActiveTexture(GLenum.GL_TEXTURE0 + pMtl.m_textureSlots[i]);
+                gl.glBindTexture(pMtl.m_aSrv[i].getTarget(), pMtl.m_aSrv[i].getTexture());
+            }
+//                pCtx->PSSetShaderResources(pMtl->m_textureSlots[i], 1, &pMtl->m_aSrv[i]);
+        }
+
+        // Update constant buffer
+        FloatBuffer buffer = CacheBuffer.wrap(pMtl.m_constants);
+        m_pCbufShader.update(0, buffer);
+    }
+
     void BindMaterial(
 //            ID3D11DeviceContext * pCtx,
             int features,
@@ -484,7 +532,7 @@ final class CShaderManager {
         m_programPipeline.setPS(pPs);
 
         // Determine which vertex/tess shaders to use
-        if ((features & SHDFEAT_Tessellation)!=0)
+        if (features != SHDFEAT_Default  && (features & SHDFEAT_Tessellation)!=0)
         {
 //            pCtx->VSSetShader(m_pVsTess, null, 0);
 //            pCtx->HSSetShader(m_pHsTess, null, 0);
@@ -497,6 +545,8 @@ final class CShaderManager {
         }
         else
         {
+            m_programPipeline.setTE(null);
+            m_programPipeline.setTC(null);
 //            pCtx->VSSetShader(m_pVsWorld, null, 0);
             m_programPipeline.setVS(m_pVsWorld);
         }
@@ -712,6 +762,9 @@ final class CShaderManager {
         GLSLProgram.createFromString(item, shaderProgram, "skin" + ((features & SHDFEAT_SSS)!=0 ? "_SSS" : "") + ((features & SHDFEAT_DeepScatter) !=0? "_DeepScatter" : ""));
 
         m_mapSkinFeaturesToShader.put(features, shaderProgram);
+        shaderProgram.setName(String.format("SkinPS[SSS:%s, DeepScatter:%s]", (features & SHDFEAT_SSS)!=0 ? "true" : "false",
+                (features & SHDFEAT_DeepScatter) !=0? "true" : "false"));
+        shaderProgram.printPrograminfo();
         return shaderProgram;
     }
 
@@ -758,7 +811,9 @@ final class CShaderManager {
         item.type = ShaderType.FRAGMENT;
         item.source = source;
         GLSLProgram.createFromString(item, shaderProgram, "eye" + ((features & SHDFEAT_SSS)!=0 ? "_SSS" : "") + ((features & SHDFEAT_DeepScatter) !=0? "_DeepScatter" : ""));
-
+        shaderProgram.setName(String.format("EyePS[SSS:%s, DeepScatter:%s]", (features & SHDFEAT_SSS)!=0 ? "true" : "false",
+                (features & SHDFEAT_DeepScatter) !=0? "true" : "false"));
+        shaderProgram.printPrograminfo();
         m_mapEyeFeaturesToShader.put(features, shaderProgram);
         return shaderProgram;
     }

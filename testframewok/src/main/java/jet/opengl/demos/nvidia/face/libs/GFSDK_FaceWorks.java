@@ -277,8 +277,8 @@ public final class GFSDK_FaceWorks {
 //                dNy = normal[2][1] - normal[1][1];
 //                dNz = normal[2][2] - normal[1][2];
                 dNx = pNormals[normal2] - pNormals[normal1];
-                dNx = pNormals[normal2+1] - pNormals[normal1+1];
-                dNx = pNormals[normal2+2] - pNormals[normal1+2];
+                dNy = pNormals[normal2+1] - pNormals[normal1+1];
+                dNz = pNormals[normal2+2] - pNormals[normal1+2];
                 curvature = (float) Math.sqrt((dNx*dNx + dNy*dNy + dNz*dNz) / (dPx*dPx + dPy*dPy + dPz*dPz));
                 curvatureMin[indices1] = Math.min(curvatureMin[indices1], curvature);
                 curvatureMin[indices2] = Math.min(curvatureMin[indices2], curvature);
@@ -288,15 +288,15 @@ public final class GFSDK_FaceWorks {
 //                dPx = pos[0][0] - pos[2][0];
 //                dPy = pos[0][1] - pos[2][1];
 //                dPz = pos[0][2] - pos[2][2];
-                dPx = pPositions[pos0] - pPositions[pos2];
+                dPx = pPositions[pos0+0] - pPositions[pos2+0];
                 dPy = pPositions[pos0+1] - pPositions[pos2+1];
                 dPz = pPositions[pos0+2] - pPositions[pos2+2];
 //                dNx = normal[0][0] - normal[2][0];
 //                dNy = normal[0][1] - normal[2][1];
 //                dNz = normal[0][2] - normal[2][2];
-                dNx = pNormals[normal0] - pNormals[normal2];
-                dNx = pNormals[normal0+1] - pNormals[normal2+1];
-                dNx = pNormals[normal0+2] - pNormals[normal2+2];
+                dNx = pNormals[normal0+0] - pNormals[normal2+0];
+                dNy = pNormals[normal0+1] - pNormals[normal2+1];
+                dNz = pNormals[normal0+2] - pNormals[normal2+2];
                 curvature = (float) Math.sqrt((dNx*dNx + dNy*dNy + dNz*dNz) / (dPx*dPx + dPy*dPy + dPz*dPz));
                 curvatureMin[indices2] = Math.min(curvatureMin[indices2], curvature);
                 curvatureMin[indices0] = Math.min(curvatureMin[indices0], curvature);
@@ -528,13 +528,13 @@ public final class GFSDK_FaceWorks {
 //            float dP2x = pos[0][0] - pos[2][0];
 //            float dP2y = pos[0][1] - pos[2][1];
 //            float dP2z = pos[0][2] - pos[2][2];
-            float dP0x = pPositions[pos1] - pPositions[pos0];
+            float dP0x = pPositions[pos1+0] - pPositions[pos0+0];
             float dP0y = pPositions[pos1+1] - pPositions[pos0+1];
             float dP0z = pPositions[pos1+2] - pPositions[pos0+2];
-            float dP1x = pPositions[pos2] - pPositions[pos1];
+            float dP1x = pPositions[pos2+0] - pPositions[pos1+0];
             float dP1y = pPositions[pos2+1] - pPositions[pos1+1];
             float dP1z = pPositions[pos2+2] - pPositions[pos1+2];
-            float dP2x = pPositions[pos0] - pPositions[pos2];
+            float dP2x = pPositions[pos0+0] - pPositions[pos2+0];
             float dP2y = pPositions[pos0+1] - pPositions[pos2+1];
             float dP2z = pPositions[pos0+2] - pPositions[pos2+2];
 
@@ -549,11 +549,11 @@ public final class GFSDK_FaceWorks {
 //            float dUV1y = uv[2][1] - uv[1][1];
 //            float dUV2x = uv[0][0] - uv[2][0];
 //            float dUV2y = uv[0][1] - uv[2][1];
-            float dUV0x = pUVs[uv1] - pUVs[uv0];
+            float dUV0x = pUVs[uv1+0] - pUVs[uv0+0];
             float dUV0y = pUVs[uv1+1] - pUVs[uv0+1];
-            float dUV1x = pUVs[uv2] - pUVs[uv1];
+            float dUV1x = pUVs[uv2+0] - pUVs[uv1+0];
             float dUV1y = pUVs[uv2+1] - pUVs[uv1+1];
-            float dUV2x = pUVs[uv0] - pUVs[uv2];
+            float dUV2x = pUVs[uv0+0] - pUVs[uv2+0];
             float dUV2y = pUVs[uv0+1] - pUVs[uv2+1];
 
             float uvDiameter = (float) Math.sqrt(Math.max(dUV0x*dUV0x + dUV0y*dUV0y,

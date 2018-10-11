@@ -35,10 +35,7 @@
 
 #include "common.glsl"
 layout(location =0) in float3		m_pos		/*: POSITION*/;
-layout(location =1) in float3		m_normal	/*: NORMAL*/;
-layout(location =2) in float2		m_uv		/*: UV*/;
-layout(location =3) in float3		m_tangent	/*: TANGENT*/;
-layout(location =4) in float		m_curvature /*: CURVATURE*/;
+layout(location =1) in float2		m_uv		/*: UV*/;
 
 out float2 o_uv;
 

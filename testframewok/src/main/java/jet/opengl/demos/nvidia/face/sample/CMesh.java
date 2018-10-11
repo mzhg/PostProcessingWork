@@ -21,14 +21,11 @@ import jet.opengl.postprocessing.util.LogUtil;
 
 final class CMesh implements Disposeable{
 
-    int	m_primtopo;
-    final Vector3f m_posMin = new Vector3f(), m_posMax = new Vector3f();		// Bounding box in local space
-    final Vector3f			m_posCenter = new Vector3f();			// Center of bounding box
-    float						m_diameter;				// Diameter of bounding box
-    float						m_uvScale = 1.f;				// Average world-space size of 1 UV unit
+    float	m_uvScale = 1.f;				// Average world-space size of 1 UV unit
     private GLFuncProvider gl;
     private NvGLModel m_model;
     private int m_curvatureVB;
+    final Vector3f m_posCenter = new Vector3f();
 
     CMesh(){
         gl = GLFuncProviderFactory.getGLFuncProvider();
@@ -48,6 +45,8 @@ final class CMesh implements Disposeable{
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
 
         m_model = model;
+
+        Vector3f.mix(m_model.getMinExt(), m_model.getMaxExt(), 0.5f, m_posCenter);
     }
     Vector3f getPosMin(){ return m_model.getMinExt();}
     Vector3f getPosMax(){ return m_model.getMaxExt();}
@@ -170,7 +169,7 @@ final class CMesh implements Disposeable{
         }
 
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_curvatureVB);
-        gl.glVertexAttribPointer(curvatureHandle,  1, GLenum.GL_FLOAT, false, 0, 0);
+        gl.glVertexAttribPointer(curvatureHandle,  1, GLenum.GL_FLOAT, false, 4, 0);
         gl.glEnableVertexAttribArray(curvatureHandle);
 
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, IB);

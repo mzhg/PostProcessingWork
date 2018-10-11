@@ -54,38 +54,36 @@ public class FaceWorkDemo extends NvSampleApp {
 
     static final Vector4f s_rectViewBuffer = new Vector4f(10, 50, 512, 512);
 
-    static final int
-    SHDFEAT_None			= 0x00,
-    SHDFEAT_Tessellation	= 0x01,
-    SHDFEAT_SSS				= 0x02,
-    SHDFEAT_DeepScatter		= 0x04,
-
-    SHDFEAT_PSMask			= 0x06;
-
     // Rendering methods
 
     static final int
     RM_None = 0,
-    RM_SSS = 1,
-    RM_SSSAndDeep = 2,
-    RM_ViewCurvature = 3,
-    RM_ViewThickness = 4,
-    RM_Max = 5;
+    RM_Empty = 1,
+    RM_SSS = 2,
+    RM_SSSAndDeep = 3,
+    RM_ViewCurvature = 4,
+    RM_ViewThickness = 5,
+    RM_Max = 6;
 
-    int g_renderMethod = RM_SSSAndDeep;
+    int g_renderMethod = RM_None;
 
 // Scene resources
 
     final float					g_FOV = 0.5f;		// vertical fov, radians
 
     CSceneDigitalIra			g_sceneDigitalIra = new CSceneDigitalIra();
-    CSceneTest					g_sceneTest = new CSceneTest();
     CSceneHand					g_sceneHand = new CSceneHand();
     CSceneDragon				g_sceneDragon = new CSceneDragon();
     CSceneLPSHead				g_sceneLPSHead = new CSceneLPSHead();
     CSceneManjaladon			g_sceneManjaladon = new CSceneManjaladon();
     CSceneWarriorHead			g_sceneWarriorHead = new CSceneWarriorHead();
     CScene  					g_pSceneCur = null;
+
+    final CScene[]              g_scnes = {
+            g_sceneDigitalIra,     g_sceneHand, g_sceneDragon, g_sceneLPSHead,
+            g_sceneManjaladon,  g_sceneWarriorHead
+    };
+    int                         g_sceneIndex;
 
     CBackground					g_bkgndBlack  = new CBackground();
     CBackground					g_bkgndCharcoal = new CBackground();
@@ -154,18 +152,27 @@ public class FaceWorkDemo extends NvSampleApp {
     @Override
     public void initUI() {
 
-//        RM_None = 0,
-//                RM_SSS = 1,
-//                RM_SSSAndDeep = 2,
-//                RM_ViewCurvature = 3,
-//                RM_ViewThickness = 4,
-        mTweakBar.addEnum("Technique", createControl("g_renderMethod"), new NvTweakEnumi[]{
-                new NvTweakEnumi("None", 0),
-                new NvTweakEnumi("SSS", 1),
-                new NvTweakEnumi("SSSAndDeep", 2),
-                new NvTweakEnumi("ViewCurvature", 3),
-                new NvTweakEnumi("ViewThickness", 4),
-        }, 0);
+        NvTweakEnumi techniqueIndex[] =
+        {
+                new NvTweakEnumi( "None", RM_None ),
+                new NvTweakEnumi( "Empty", RM_Empty ),
+                new NvTweakEnumi( "SSS", RM_SSS ),
+                new NvTweakEnumi( "SSSAndDeep", RM_SSSAndDeep ),
+                new NvTweakEnumi( "ViewCurvature", RM_ViewCurvature ),
+                new NvTweakEnumi( "ViewThickness", RM_ViewThickness ),
+        };
+        mTweakBar.addMenu("Technique:", createControl("g_renderMethod"), techniqueIndex, 0x22);
+
+        NvTweakEnumi[] sceneIndex =
+        {
+            new NvTweakEnumi( "DigitalIra", 0 ),
+            new NvTweakEnumi( "Hand", 1 ),
+            new NvTweakEnumi( "Dragon", 2 ),
+            new NvTweakEnumi( "LPSHead", 3 ),
+            new NvTweakEnumi( "Manjaladon", 4 ),
+            new NvTweakEnumi( "WarriorHead", 5 ),
+        };
+        mTweakBar.addMenu("Scenes:", createControl("g_sceneIndex"), sceneIndex, 0);
 
         mTweakBar.addValue("Tesslation", createControl("g_bTessellation"));
     }
@@ -184,7 +191,6 @@ public class FaceWorkDemo extends NvSampleApp {
         g_sceneLPSHead.Init();
         g_sceneManjaladon.Init();
         g_sceneWarriorHead.Init();
-        setCurrentScene(g_sceneDigitalIra);
 
         // Load backgrounds
         g_bkgndBlack.Init("HDREnvironments\\black_cube.dds", "HDREnvironments\\black_cube.dds", "HDREnvironments\\black_cube.dds");
@@ -340,6 +346,7 @@ public class FaceWorkDemo extends NvSampleApp {
 
     @Override
     public void display() {
+        setCurrentScene(g_scnes[g_sceneIndex]);
 //        g_gpuProfiler.BeginFrame(pd3dContext);
 
         // Set up directional light and shadow map
@@ -488,16 +495,45 @@ public class FaceWorkDemo extends NvSampleApp {
                 g_shadowmap.m_pSrv,
                 g_vsm.m_pSrv);
 
+        gl.glDisable(GLenum.GL_CULL_FACE);
         GLCheck.checkError();
         int features = 0;
         if (g_bTessellation)
-            features |= SHDFEAT_Tessellation;
+            features |= CShaderManager.SHDFEAT_Tessellation;
 
         switch (g_renderMethod)
         {
             case RM_None:
             {
-                gl.glDisable(GLenum.GL_CULL_FACE);
+                // Draw skin shaders
+                for (int i = 0; i < cMeshToDraw; ++i)
+                {
+                    if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Skin)
+                    {
+                        g_shdmgr.bindDefault(m_meshesToDraw.get(i).m_pMtl);
+                        m_meshesToDraw.get(i).m_pMesh.Draw(GLenum.GL_TRIANGLES );
+                    }
+                }
+
+                GLCheck.checkError();
+//                g_gpuProfiler.Timestamp(pd3dContext, GTS_Skin);
+
+                // Draw eye shaders
+                for (int i = 0; i < cMeshToDraw; ++i)
+                {
+                    if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Eye)
+                    {
+                        g_shdmgr.bindDefault(m_meshesToDraw.get(i).m_pMtl);
+                        m_meshesToDraw.get(i).m_pMesh.Draw(GLenum.GL_TRIANGLES );
+                    }
+                }
+
+                GLCheck.checkError();
+//                g_gpuProfiler.Timestamp(pd3dContext, GTS_Eyes);
+            }
+                break;
+            case RM_Empty:
+            {
                 // Note: two loops for skin and eye materials so we can have GPU timestamps around
                 // each shader individually. Gack.
 
@@ -507,7 +543,7 @@ public class FaceWorkDemo extends NvSampleApp {
                     if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Skin)
                     {
                         g_shdmgr.BindMaterial(/*pd3dContext, */features, m_meshesToDraw.get(i).m_pMtl);
-                        m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES );
+                        m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES );
                     }
                 }
 
@@ -520,7 +556,7 @@ public class FaceWorkDemo extends NvSampleApp {
                     if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Eye)
                     {
                         g_shdmgr.BindMaterial(/*pd3dContext,*/ features, m_meshesToDraw.get(i).m_pMtl);
-                        m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES );
+                        m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES );
                     }
                 }
 
@@ -555,9 +591,9 @@ public class FaceWorkDemo extends NvSampleApp {
 
                 deepScatterConfigEye = deepScatterConfigSkin;
 
-                features |= SHDFEAT_SSS;
+                features |= CShaderManager.SHDFEAT_SSS;
                 if (g_renderMethod == RM_SSSAndDeep)
-                    features |= SHDFEAT_DeepScatter;
+                    features |= CShaderManager.SHDFEAT_DeepScatter;
 
                 GFSDK_FaceWorks_ErrorBlob faceworksErrors = new GFSDK_FaceWorks_ErrorBlob();
 
@@ -580,7 +616,7 @@ public class FaceWorkDemo extends NvSampleApp {
                                 deepScatterConfigSkin, /*reinterpret_cast<GFSDK_FaceWorks_CBData *>(m_meshesToDraw.get(i).m_pMtl.m_constants[4])*/cbData, faceworksErrors);
                         System.arraycopy(cbData.data, 0, m_meshesToDraw.get(i).m_pMtl.m_constants, 4, cbData.data.length);
                         g_shdmgr.BindMaterial(/*pd3dContext,*/ features, m_meshesToDraw.get(i).m_pMtl);
-                        m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
+                        m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
                     }
                 }
 //                g_gpuProfiler.Timestamp(pd3dContext, GTS_Skin);
@@ -599,7 +635,7 @@ public class FaceWorkDemo extends NvSampleApp {
                                 deepScatterConfigEye, /*reinterpret_cast<GFSDK_FaceWorks_CBData *>(&m_meshesToDraw.get(i).m_pMtl.m_constants[12])*/cbData, faceworksErrors);
                         System.arraycopy(cbData.data, 0, m_meshesToDraw.get(i).m_pMtl.m_constants, 12, cbData.data.length);
                         g_shdmgr.BindMaterial(features, m_meshesToDraw.get(i).m_pMtl);
-                        m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
+                        m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
                     }
                 }
 //                g_gpuProfiler.Timestamp(pd3dContext, GTS_Eyes);
@@ -630,7 +666,7 @@ public class FaceWorkDemo extends NvSampleApp {
 
                 for (int i = 0; i < cMeshToDraw; ++i)
                 {
-                    m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
+                    m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
                 }
             }
             break;
@@ -664,7 +700,7 @@ public class FaceWorkDemo extends NvSampleApp {
                 g_shdmgr.BindThickness(faceworksCBData);
                 for (int i = 0; i < cMeshToDraw; ++i)
                 {
-                    m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
+                    m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
                 }
             }
             break;
@@ -701,7 +737,7 @@ public class FaceWorkDemo extends NvSampleApp {
             if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Hair)
             {
                 g_shdmgr.BindMaterial(/*pd3dContext,*/ 0, m_meshesToDraw.get(i).m_pMtl);
-                m_meshesToDraw.get(i).m_pMesh.Draw((features & SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
+                m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
             }
         }
         /*pd3dContext->RSSetState(g_pRsSolid);

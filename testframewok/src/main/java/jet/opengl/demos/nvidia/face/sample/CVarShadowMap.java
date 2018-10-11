@@ -71,12 +71,18 @@ final class CVarShadowMap implements Disposeable{
         gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, m_pRtvTemp.getTarget(), m_pRtvTemp.getTexture(), 0);
         gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
 
-//        g_shdmgr.BindGaussian(pCtx, m_pSrv, m_blurRadius, 0.0f);
+        g_shdmgr.BindGaussian(m_pSrv, m_blurRadius, 0.0f);
 //        g_meshFullscreen.Draw(pCtx);  TODO: 2017/9/5
+        gl.glBindVertexArray(g_fullscreen);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        gl.glBindVertexArray(0);
 
         gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, m_pRtv.getTarget(), m_pRtv.getTexture(), 0);
-//        g_shdmgr.BindGaussian(pCtx, m_pSrvTemp, 0.0f, m_blurRadius);
+        g_shdmgr.BindGaussian(m_pSrvTemp, 0.0f, m_blurRadius);
 //        g_meshFullscreen.Draw(pCtx); TODO: 2017/9/5
+        gl.glBindVertexArray(g_fullscreen);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        gl.glBindVertexArray(0);
     }
 
     @Override
