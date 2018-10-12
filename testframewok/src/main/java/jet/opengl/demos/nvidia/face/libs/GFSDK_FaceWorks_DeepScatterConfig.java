@@ -19,4 +19,17 @@ public class GFSDK_FaceWorks_DeepScatterConfig {
     public final Matrix4f m_shadowProjMatrix = new Matrix4f();
     /** Desired filter radius, in shadow texture UV space */
     public float			m_shadowFilterRadius;
+
+    public float            m_shadowNear;
+    public float            m_shadowFar;
+
+    public void set(GFSDK_FaceWorks_DeepScatterConfig o){
+        m_radius = o.m_radius;
+        m_shadowProjType = o.m_shadowProjType;
+        m_shadowProjMatrix.load(o.m_shadowProjMatrix);
+        m_shadowFilterRadius = o.m_shadowFilterRadius;
+
+        m_shadowNear = o.m_shadowNear;
+        m_shadowFar = o.m_shadowFar;
+    }
 }

@@ -44,6 +44,8 @@ layout(binding = CB_SHADER) uniform cbShader
 {
 	float		g_normalStrength;
 	float		g_gloss;
+	float       g_padding0;
+	float       g_padding1;
 
 	GFSDK_FaceWorks_CBData	g_faceworksData;
 };
@@ -72,7 +74,7 @@ void SkinMegashader(
 
 	// Sample textures
 
-	float3 rgbDiffuse = texture(g_texDiffuse, uv).rgb;  // g_ssTrilinearRepeatAniso
+	float3 rgbDiffuse =  texture(g_texDiffuse, uv).rgb;  // g_ssTrilinearRepeatAniso
 	float3 normalTangent = UnpackNormal(texture(g_texNormal, uv).xyz,  //g_ssTrilinearRepeatAniso
 										g_normalStrength);
 	float specReflectance = texture(g_texSpec, uv).x;   //g_ssTrilinearRepeatAniso

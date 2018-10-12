@@ -1164,14 +1164,16 @@ public final class GFSDK_FaceWorks {
                 break;
 
             case PerspectiveProjection:
-                decodeDepthScale = pConfig.m_shadowProjMatrix.m32 / pConfig.m_shadowProjMatrix.m23;  // TODO
-                decodeDepthBias = -pConfig.m_shadowProjMatrix.m22 / pConfig.m_shadowProjMatrix.m23;  // TODO
+                decodeDepthScale = pConfig.m_shadowFar * pConfig.m_shadowNear / (pConfig.m_shadowFar - pConfig.m_shadowNear);
+                decodeDepthBias = pConfig.m_shadowFar / (pConfig.m_shadowFar - pConfig.m_shadowNear);
                 break;
 
             default:
                 assert(false);
                 return GFSDK_FaceWorks_Result.InvalidArgument;
         }
+
+
 
         // Output to user buffer
         pCBDataOut.data[5] = deepScatterFalloff;

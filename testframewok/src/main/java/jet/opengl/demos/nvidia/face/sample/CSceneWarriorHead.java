@@ -72,7 +72,7 @@ final class CSceneWarriorHead implements CScene{
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\normal.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvNormalHead, LT_Mipmap | LT_Linear));
-        m_pSrvNormalHead = CScene.loadTexture("WarriorHead\\normal.bmp");
+        m_pSrvNormalHead = CScene.loadTexture("WarriorHead\\normal.bmp", true);
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\deepscatter.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDeepScatterHead));
@@ -80,7 +80,7 @@ final class CSceneWarriorHead implements CScene{
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\eyeHazel.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDiffuseEyeSclera));
-        m_pSrvDiffuseEyeSclera = CScene.loadTexture("WarriorHead\\eyeHazel.bmp");
+        m_pSrvDiffuseEyeSclera = CScene.loadTexture("WarriorHead\\eye_diffuse.tga" );
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\eyeballNormalMap.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvNormalEyeSclera, LT_Mipmap | LT_Linear));

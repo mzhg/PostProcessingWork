@@ -41,6 +41,9 @@ final class CShadowMap implements Disposeable{
     /** Diameter in world units along shadow XYZ axes */
     final Vector3f m_vecDiam = new Vector3f();
 
+    float m_shadowNear;
+    float m_shadowFar;
+
     private GLFuncProvider gl;
     private int m_shadow_fbo;
 
@@ -161,6 +164,9 @@ final class CShadowMap implements Disposeable{
         // Calculate orthogonal projection matrix to fit the scene bounds
         Matrix4f.ortho(posMinViewX, posMaxViewX, posMinViewY, posMaxViewY, -posMaxViewZ, -posMinViewZ, m_matProj);
         Matrix4f.mul(m_matProj, m_matView, m_matWorldToClip);
+
+        m_shadowNear = -posMaxViewZ;
+        m_shadowFar = -posMinViewZ;
 
         // Calculate matrix that maps to [0, 1] UV space instead of [-1, 1] clip space
         m_matWorldToUvzw.set(

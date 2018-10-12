@@ -14,11 +14,11 @@ import jet.opengl.postprocessing.util.CommonUtil;
  */
 
 final class CSceneDigitalIra implements CScene {
-    CMesh						m_meshHead;
-    CMesh						m_meshEyeL;
-    CMesh						m_meshEyeR;
-    CMesh						m_meshLashes;
-    CMesh						m_meshBrows;
+    CMesh		m_meshHead;
+    CMesh		m_meshEyeL;
+    CMesh		m_meshEyeR;
+    CMesh		m_meshLashes;
+    CMesh		m_meshBrows;
 
     Texture2D   m_pSrvDiffuseHead;
     Texture2D	m_pSrvNormalHead;
@@ -67,7 +67,7 @@ final class CSceneDigitalIra implements CScene {
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\00_specular_normal_tangent.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvNormalHead, LT_Mipmap | LT_Linear));
-        m_pSrvNormalHead = CScene.loadTexture("DigitalIra\\00_specular_normal_tangent.bmp");
+        m_pSrvNormalHead = CScene.loadTexture("DigitalIra\\00_specular_normal_tangent.bmp", true);
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\00_specular_albedo.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvSpecHead));
@@ -83,7 +83,7 @@ final class CSceneDigitalIra implements CScene {
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\eyeballNormalMap.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvNormalEyeSclera, LT_Mipmap | LT_Linear));
-        m_pSrvNormalEyeSclera = CScene.loadTexture("DigitalIra\\eyeballNormalMap.bmp");
+        m_pSrvNormalEyeSclera = CScene.loadTexture("DigitalIra\\eyeballNormalMap.bmp", true);
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\iris.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDiffuseEyeIris));

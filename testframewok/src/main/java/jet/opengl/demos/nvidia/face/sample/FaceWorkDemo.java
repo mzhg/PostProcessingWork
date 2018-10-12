@@ -80,7 +80,7 @@ public class FaceWorkDemo extends NvSampleApp {
     CScene  					g_pSceneCur = null;
 
     final CScene[]              g_scnes = {
-            g_sceneDigitalIra,     g_sceneHand, g_sceneDragon, g_sceneLPSHead,
+            g_sceneDigitalIra,  g_sceneHand, g_sceneDragon, g_sceneLPSHead,
             g_sceneManjaladon,  g_sceneWarriorHead
     };
     int                         g_sceneIndex;
@@ -146,6 +146,8 @@ public class FaceWorkDemo extends NvSampleApp {
     final CbufFrame      m_bufFrame = new CbufFrame();
 
     final List<MeshToDraw>   m_meshesToDraw = new ArrayList<>();
+    private final List<Texture2D> m_visualTextures = new ArrayList<>();
+    int m_visualIndex;  // 0 for none,
 
     private GLFuncProvider gl;
 
@@ -175,6 +177,30 @@ public class FaceWorkDemo extends NvSampleApp {
         mTweakBar.addMenu("Scenes:", createControl("g_sceneIndex"), sceneIndex, 0);
 
         mTweakBar.addValue("Tesslation", createControl("g_bTessellation"));
+
+        mTweakBar.addValue("Visual Texture", createControl("m_visualIndex"), 0, 2);
+
+        final float XM_PI        = 3.141592654f;
+        final float XM_2PI       = 6.283185307f;
+        final float XM_1DIVPI    = 0.318309886f;
+        final float XM_1DIV2PI   = 0.159154943f;
+        final float XM_PIDIV2    = 1.570796327f;
+        final float XM_PIDIV4    = 0.785398163f;
+
+        mTweakBar.addValue("Light yaw", createControl("g_radYawDirectionalLight"), -XM_PI, XM_PI);
+        mTweakBar.addValue("Light pitch", createControl("g_radPitchDirectionalLight"), -XM_PIDIV2, XM_PIDIV2);
+        mTweakBar.addValue("Light brightness", createControl("g_directionalLightBrightness"), 0.0f, 5.0f);
+
+        mTweakBar.addValue("Normal strength", createControl("g_normalStrength"), 0.0f, 2.0f);
+        mTweakBar.addValue("Skin gloss", createControl("g_glossSkin"), 0.0f, 1.0f);
+        mTweakBar.addValue("Eye gloss", createControl("g_glossEye"), 0.0f, 1.0f);
+
+        mTweakBar.addValue("DpSc intensity", createControl("g_deepScatterIntensity"), 0.0f, 1.0f);
+        mTweakBar.addValue("DpSc radius(cm)", createControl("g_deepScatterRadius"), 0.0f, 2.0f);
+        mTweakBar.addValue("DpSc nrml ofs", createControl("g_deepScatterNormalOffset"), -0.002f, 0.0f);
+        mTweakBar.addValue("DpSc shdw R", createControl("g_deepScatterShadowRadius"), 0.0f, 2.0f);
+
+        mTweakBar.addValue("VSM radius (cm)", createControl("g_vsmBlurRadius"), 0.0f, 1.0f);
     }
 
     @Override
@@ -342,6 +368,10 @@ public class FaceWorkDemo extends NvSampleApp {
 
         // Set up directional light
         g_rgbDirectionalLight.set(0.984f, 1.0f, 0.912f);	// Note: linear RGB space
+
+        m_visualTextures.add(null);  // 0 for empty
+        m_visualTextures.add(g_shadowmap.m_pDsv);
+        m_visualTextures.add(g_vsm.m_pRtv);
     }
 
     @Override
@@ -516,7 +546,6 @@ public class FaceWorkDemo extends NvSampleApp {
                 }
 
                 GLCheck.checkError();
-//                g_gpuProfiler.Timestamp(pd3dContext, GTS_Skin);
 
                 // Draw eye shaders
                 for (int i = 0; i < cMeshToDraw; ++i)
@@ -568,7 +597,7 @@ public class FaceWorkDemo extends NvSampleApp {
             case RM_SSS:
             case RM_SSSAndDeep:
             {
-                GFSDK_FaceWorks_SSSConfig sssConfigSkin =new GFSDK_FaceWorks_SSSConfig(), sssConfigEye = new GFSDK_FaceWorks_SSSConfig();
+                final GFSDK_FaceWorks_SSSConfig sssConfigSkin =new GFSDK_FaceWorks_SSSConfig(), sssConfigEye = new GFSDK_FaceWorks_SSSConfig();
                 sssConfigSkin.m_diffusionRadius = Math.max(g_sssBlurRadius, 0.01f);
                 sssConfigSkin.m_diffusionRadiusLUT = 0.27f;
 
@@ -580,16 +609,17 @@ public class FaceWorkDemo extends NvSampleApp {
                 // Filter width is ~6 times the Gaussian sigma
                 sssConfigSkin.m_shadowFilterWidth = Math.max(6.0f * g_vsmBlurRadius, 0.01f);
 
-                sssConfigEye = sssConfigSkin;
+                sssConfigEye.set(sssConfigSkin);
 
-                GFSDK_FaceWorks_DeepScatterConfig deepScatterConfigSkin = new GFSDK_FaceWorks_DeepScatterConfig(), deepScatterConfigEye = new GFSDK_FaceWorks_DeepScatterConfig();
+                final GFSDK_FaceWorks_DeepScatterConfig deepScatterConfigSkin = new GFSDK_FaceWorks_DeepScatterConfig(), deepScatterConfigEye = new GFSDK_FaceWorks_DeepScatterConfig();
                 deepScatterConfigSkin.m_radius = Math.max(g_deepScatterRadius, 0.01f);
                 deepScatterConfigSkin.m_shadowProjType = GFSDK_FaceWorks_ProjectionType.ParallelProjection;
-//                memcpy(&deepScatterConfigSkin.m_shadowProjMatrix, &g_shadowmap.m_matProj, 16 * sizeof(float));
                 deepScatterConfigSkin.m_shadowProjMatrix.load(g_shadowmap.m_matProj);
                 deepScatterConfigSkin.m_shadowFilterRadius = g_deepScatterShadowRadius / Math.min(g_shadowmap.m_vecDiam.x, g_shadowmap.m_vecDiam.y);
+                deepScatterConfigSkin.m_shadowNear =    g_shadowmap.m_shadowNear;
+                deepScatterConfigSkin.m_shadowFar = g_shadowmap.m_shadowFar;
 
-                deepScatterConfigEye = deepScatterConfigSkin;
+                deepScatterConfigEye.set(deepScatterConfigSkin);
 
                 features |= CShaderManager.SHDFEAT_SSS;
                 if (g_renderMethod == RM_SSSAndDeep)
@@ -711,8 +741,6 @@ public class FaceWorkDemo extends NvSampleApp {
         }
 
         GLCheck.checkError();
-        g_shdmgr.UnbindTess();
-        GLCheck.checkError();
 
         // Draw the skybox
 //        pd3dContext->RSSetState(g_pRsSolid);
@@ -740,12 +768,26 @@ public class FaceWorkDemo extends NvSampleApp {
                 m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
             }
         }
+
+        g_shdmgr.UnbindTess();
+
         /*pd3dContext->RSSetState(g_pRsSolid);
         pd3dContext->OMSetDepthStencilState(g_pDssDepthTest, 0);
         pd3dContext->OMSetBlendState(nullptr, nullptr, ~0UL);*/
         g_pRsSolid.run();
         g_pDssDepthTest.run();
         gl.glDisable(GLenum.GL_BLEND);
+
+        if(m_visualIndex != 0){
+            gl.glBindVertexArray(0);
+            gl.glDisable(GLenum.GL_DEPTH_TEST);
+            gl.glDisable(GLenum.GL_CULL_FACE);
+
+            g_shdmgr.BindTexture(m_visualTextures.get(m_visualIndex));
+            gl.glViewport(getGLContext().width()/2, 0, getGLContext().width()/2, getGLContext().height()/2);
+            gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+            gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
+        }
 
         // Now switch to the SRGB back buffer view, for compositing UI
 //        V(DXUTSetupD3D11Views(pd3dContext));
@@ -852,9 +894,9 @@ public class FaceWorkDemo extends NvSampleApp {
     void CreateFullscreenMesh()
     {
         final float[] verts = {
-                -1, -1, 0, 0, 1,
-                3, -1, 0, 2, 1,
-                -1,  3, 0, 0, -1
+                -1, -1, 0, 0, 0,
+                3, -1, 0, 2, 0,
+                -1,  3, 0, 0, 2
         };
 
         g_meshFullscreenVB = new BufferGL();

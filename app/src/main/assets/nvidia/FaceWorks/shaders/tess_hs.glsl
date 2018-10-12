@@ -33,8 +33,8 @@
 //----------------------------------------------------------------------------------
 
 #include "common.glsl"
-#include "tess.glsl"
 
+const float s_tessFactorMax = 3.0;
 layout (vertices = 3) out;
 
 in VertexThrough

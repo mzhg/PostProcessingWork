@@ -8,6 +8,7 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.WritableVector;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -142,6 +143,24 @@ public final class DebugTools {
         return null;
     }
 
+    public static CharSequence loadText(String filename){
+        try(BufferedReader in = new BufferedReader(new FileReader(filename))){
+            StringBuffer out = new StringBuffer();
+            String line;
+            while((line = in.readLine()) != null){
+                out.append(line).append('\n');
+            }
+
+            return out;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     private static File makesureDirectionsExsit(String filename){
         File outFile = new File(filename);
         File parent = outFile.getParentFile();
@@ -242,7 +261,29 @@ public final class DebugTools {
 
         try (FileChannel out = new FileOutputStream(file, append).getChannel()){
             out.write(data);
-            out.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public final static void saveText(CharSequence source, String filename){
+        saveText(source, filename, false);
+    }
+
+    public final static void saveText(CharSequence source, String filename, boolean append){
+        saveText(source, new File(filename), append);
+    }
+
+    public final static void saveText(CharSequence source, File file, boolean append){
+        File parent = file.getParentFile();
+        if(!parent.exists())
+            parent.mkdirs();
+
+        try(BufferedWriter out = new BufferedWriter(new FileWriter(file, append))){
+            out.write(source.toString());
+            out.flush();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {

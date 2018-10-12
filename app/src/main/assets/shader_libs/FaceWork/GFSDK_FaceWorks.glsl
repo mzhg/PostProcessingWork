@@ -389,7 +389,7 @@ float GFSDK_FaceWorks_SharpenShadow(
 	// Use smoothstep to approximate the transfer function of a disc or Gaussian shadow filter
 	float nvsf_scale = nvsf_shadowSharpening * 0.9;
 	float nvsf_bias = -0.5 * nvsf_scale + 0.5;
-	return smoothstep(0, 1, nvsf_shadow * nvsf_scale + nvsf_bias);
+	return smoothstep(0., 1., nvsf_shadow * nvsf_scale + nvsf_bias);
 }
 
 void GFSDK_FaceWorks_CalculateNormalsForAmbientLight(

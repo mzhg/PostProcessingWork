@@ -36,7 +36,7 @@
 #include "tess.glsl"
 
 
-layout(triangles, fractional_odd_spacing, cw) in;
+layout(triangles, fractional_odd_spacing, ccw) in;
 
 in TessHSOut
 {

@@ -5,6 +5,11 @@ import com.nvidia.developer.opengl.models.obj.NvModel;
 
 import org.lwjgl.util.vector.Vector3f;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.StringTokenizer;
+
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks;
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_ErrorBlob;
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_Result;
@@ -13,7 +18,10 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.StackFloat;
 
 /**
  * Created by mazhen'gui on 2017/9/5.
@@ -31,13 +39,47 @@ final class CMesh implements Disposeable{
         gl = GLFuncProviderFactory.getGLFuncProvider();
     }
 
+    static float[] loadCurvatures(String filename){
+        int index = filename.lastIndexOf('.');
+        String txtName = filename.substring(0, index) + "DX.txt";
+        String source =  DebugTools.loadText(txtName).toString();
+        StringTokenizer tokenizer = new StringTokenizer(source, ",\n");
+
+        StackFloat values = new StackFloat(1024);
+        while (tokenizer.hasMoreElements()){
+            String token = tokenizer.nextToken();
+            if(token.equals("inf")){
+                values.push(Float.NaN);
+            }else{
+                values.push(Float.parseFloat(token));
+            }
+
+        }
+
+        return Arrays.copyOf(values.getData(), values.size());
+    }
+
     void loadModel(String filename){
         NvGLModel model = new NvGLModel();
         model.loadModelFromFile(filename);
         model.initBuffers(true);
 
-        float[] curvatures = CalculateCurvature(model.getModel());
+        float[] curvatures = loadCurvatures(filename);  // CalculateCurvature(model.getModel());
         m_uvScale = CalculateUVScale(model.getModel());
+
+        /*int index = filename.lastIndexOf('.');
+        String txtName = filename.substring(0, index) + "GL.txt";
+        StringBuffer out = new StringBuffer(2048);
+        for(int i = 0; i < curvatures.length; i++){
+            out.append(curvatures[i]);
+            if(i > 0 && (i%256) == 0){
+                out.append('\n');
+            }else{
+                out.append(',');
+            }
+        }
+
+        DebugTools.saveText(out, txtName);*/
 
         m_curvatureVB = gl.glGenBuffer();
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_curvatureVB);

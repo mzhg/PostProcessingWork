@@ -23,5 +23,17 @@ public class GFSDK_FaceWorks_SSSConfig {
     /** Pixel size of normal map */
     public int			m_normalMapSize;
     /** Average UV scale of the mesh, i.e. world-space size of UV unit square */
-    public float		m_averageUVScale;		
+    public float		m_averageUVScale;
+
+    public void set(GFSDK_FaceWorks_SSSConfig o){
+        m_diffusionRadius = o.m_diffusionRadius;
+        m_diffusionRadiusLUT = o.m_diffusionRadiusLUT;
+        m_curvatureRadiusMinLUT = o.m_curvatureRadiusMinLUT;
+        m_curvatureRadiusMaxLUT = o.m_curvatureRadiusMaxLUT;
+        m_shadowWidthMinLUT = o.m_shadowWidthMinLUT;
+        m_shadowWidthMaxLUT = o.m_shadowWidthMaxLUT;
+        m_shadowFilterWidth = o.m_shadowFilterWidth;
+        m_normalMapSize = o.m_normalMapSize;
+        m_averageUVScale = o.m_averageUVScale;
+    }
 }

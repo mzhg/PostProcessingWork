@@ -57,6 +57,7 @@ final class CVarShadowMap implements Disposeable{
         gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, m_pRtv.getTexture(), 0);
         gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
         gl.glViewport(0,0, m_size, m_size);
+        gl.glDisable(GLenum.GL_CULL_FACE);
 
         g_shdmgr.BindCreateVSM( shadow.m_pSrv);
 //        g_meshFullscreen.Draw(pCtx);
