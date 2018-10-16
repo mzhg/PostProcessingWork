@@ -144,14 +144,14 @@ final class CShaderManager {
         m_pVsCurvature = createShader("curvature_vs.glsl", ShaderType.VERTEX);
         m_pPsCurvature = createShader("curvature_ps.glsl", ShaderType.FRAGMENT);
         m_pPsGaussian = createShader("gaussian_ps.glsl", ShaderType.FRAGMENT);
-        m_pPsHair = createShader("hair_ps.glsl", ShaderType.FRAGMENT);
+//        m_pPsHair = createShader("hair_ps.glsl", ShaderType.FRAGMENT);
         m_pVsScreen = createShader("screen_vs.glsl", ShaderType.VERTEX);
         m_pVsShadow = createShader("shadow_vs.glsl", ShaderType.VERTEX);
         m_pVsSkybox = createShader("skybox_vs.glsl", ShaderType.VERTEX);
         m_pPsSkybox = createShader("skybox_ps.glsl", ShaderType.FRAGMENT);
-        m_pVsTess = createShader("tess_vs.glsl", ShaderType.VERTEX);
-        m_pHsTess = createShader("tess_hs.glsl", ShaderType.TESS_CONTROL);
-        m_pDsTess = createShader("tess_ds.glsl", ShaderType.TESS_EVAL);
+//        m_pVsTess = createShader("tess_vs.glsl", ShaderType.VERTEX);
+//        m_pHsTess = createShader("tess_hs.glsl", ShaderType.TESS_CONTROL);
+//        m_pDsTess = createShader("tess_ds.glsl", ShaderType.TESS_EVAL);
         m_pPsThickness = createShader("thickness_ps.glsl", ShaderType.FRAGMENT);
         m_pVsWorld = createShader("world_vs.glsl", ShaderType.VERTEX);
         m_pPSDefault = createShader("default_ps.glsl", ShaderType.FRAGMENT);
@@ -609,6 +609,8 @@ final class CShaderManager {
         }
 
         program.enable();
+        if(tesslation)
+            gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 3);
         /*
         // Determine which pixel shader to use
         ShaderProgram pPs;
@@ -890,40 +892,15 @@ final class CShaderManager {
     }*/
 
     private ShaderSourceItem createEyeItem(final int features){
-        String eye_glsl = null;
+        String pattern = null;
         try {
-            eye_glsl = ShaderLoader.loadShaderFile("nvidia/FaceWorks/shaders/eye.glsl", false).toString();
+            pattern = ShaderLoader.loadShaderFile("nvidia/FaceWorks/shaders/eye_shading_ps.frag", false).toString();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        final String pattern =
-                "%s\n"+
-                "in VertexThrough\n" +
-                "{" +
-                "float3 m_pos;\n" +
-                "float3 m_normal;\n" +
-                "float2 m_uv;\n" +
-                "float3 m_tangent;\n" +
-                "float m_curvature;\n" +
-                "}_input;\n"+
-                "in float3 o_vecCamera;\n" +
-                "in float4 o_uvzwShadow;\n" +
-                " out vec3 Out_Color;\n"+
-                "void main()\n"+
-                "{\n"+
-                "Vertex i_vtx;\n" +
-                "i_vtx.m_pos = _input.m_pos;\n" +
-                "i_vtx.m_normal = _input.m_normal;\n" +
-                "i_vtx.m_uv = _input.m_uv;\n" +
-                "i_vtx.m_tangent = _input.m_tangent;\n" +
-                "i_vtx.m_curvature = _input.m_curvature;\n" +
-                "	EyeMegashader(i_vtx, o_vecCamera, o_uvzwShadow, Out_Color, %s, %s);\n"+
-                "}\n";
-
-        String source = String.format(pattern, eye_glsl, (features & SHDFEAT_SSS)!=0 ? "true" : "false",
+        String source = String.format(pattern, (features & SHDFEAT_SSS)!=0 ? "true" : "false",
                 (features & SHDFEAT_DeepScatter) !=0? "true" : "false");
-
 
         ShaderSourceItem item = new ShaderSourceItem();
         item.type = ShaderType.FRAGMENT;

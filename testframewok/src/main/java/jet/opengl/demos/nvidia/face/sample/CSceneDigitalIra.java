@@ -14,11 +14,11 @@ import jet.opengl.postprocessing.util.CommonUtil;
  */
 
 final class CSceneDigitalIra implements CScene {
-    CMesh		m_meshHead;
-    CMesh		m_meshEyeL;
-    CMesh		m_meshEyeR;
-    CMesh		m_meshLashes;
-    CMesh		m_meshBrows;
+    CMeshDebug		m_meshHead;
+    CMeshDebug		m_meshEyeL;
+    CMeshDebug		m_meshEyeR;
+    CMeshDebug		m_meshLashes;
+    CMeshDebug		m_meshBrows;
 
     Texture2D   m_pSrvDiffuseHead;
     Texture2D	m_pSrvNormalHead;
@@ -44,19 +44,19 @@ final class CSceneDigitalIra implements CScene {
     
     @Override
     public void Init() {
-        m_meshHead = new CMesh();
+        m_meshHead = new CMeshDebug();
         m_meshHead.loadModel(MODEL_PATH + "DigitalIra\\HumanHead.obj");
 
-        m_meshEyeL = new CMesh();
+        m_meshEyeL = new CMeshDebug();
         m_meshEyeL.loadModel(MODEL_PATH+"DigitalIra\\EyeL.obj");
 
-        m_meshEyeR = new CMesh();
+        m_meshEyeR = new CMeshDebug();
         m_meshEyeR.loadModel(MODEL_PATH + "DigitalIra\\EyeR.obj");
 
-        m_meshLashes =new CMesh();
+        m_meshLashes =new CMeshDebug();
         m_meshLashes.loadModel(MODEL_PATH + "DigitalIra\\Lashes.obj");
 
-        m_meshBrows = new CMesh();
+        m_meshBrows = new CMeshDebug();
         m_meshBrows.loadModel(MODEL_PATH + "DigitalIra\\Brows.obj");
 
         // Load textures
@@ -67,7 +67,7 @@ final class CSceneDigitalIra implements CScene {
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\00_specular_normal_tangent.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvNormalHead, LT_Mipmap | LT_Linear));
-        m_pSrvNormalHead = CScene.loadTexture("DigitalIra\\00_specular_normal_tangent.bmp", true);
+        m_pSrvNormalHead = CScene.loadTexture("DigitalIra\\00_specular_normal_tangent.bmp", true, false);
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\00_specular_albedo.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvSpecHead));
@@ -83,7 +83,7 @@ final class CSceneDigitalIra implements CScene {
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\eyeballNormalMap.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvNormalEyeSclera, LT_Mipmap | LT_Linear));
-        m_pSrvNormalEyeSclera = CScene.loadTexture("DigitalIra\\eyeballNormalMap.bmp", true);
+        m_pSrvNormalEyeSclera = CScene.loadTexture("DigitalIra\\eyeballNormalMap.bmp", true, false);
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"DigitalIra\\iris.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDiffuseEyeIris));

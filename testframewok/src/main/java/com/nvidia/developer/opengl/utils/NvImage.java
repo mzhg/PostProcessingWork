@@ -17,6 +17,7 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileUtils;
@@ -47,6 +48,7 @@ public class NvImage {
 
     protected static boolean upperLeftOrigin = true;
     protected static boolean m_expandDXT = false;
+    protected static boolean m_srgb = false;
     protected static NvGfxAPIVersion m_gfxAPIVersion = NvGfxAPIVersion.GL4_4;
     protected static FormatInfo[] formatTable = new FormatInfo[]{new FormatInfo("dds", new ReadDDS(), null)};
 
@@ -86,6 +88,10 @@ public class NvImage {
      */
     public static void upperLeftOrigin(boolean ul){
         upperLeftOrigin = ul;
+    }
+
+    public static void loadAsSRGB(boolean flag){
+        m_srgb = flag;
     }
 
     /**
@@ -1015,7 +1021,7 @@ public class NvImage {
         }
     }
 
-    // TODO ¸Ã·½·¨ÐèÒªÑÏ¸ñ²âÊÔ
+    // TODO ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ï¸ï¿½ï¿½ï¿½ï¿½
     private static void flipDxt5Alpha(DXT5AlphaBlock block) {
         byte[][] gBits = new byte[4][4];
 
@@ -1626,13 +1632,18 @@ public class NvImage {
             if (mustExpandDXT) {
                 i._format = GL_RGBA;
                 i._type = GL_UNSIGNED_BYTE;
+                i._internalFormat = GLenum.GL_RGBA8;
             }
+
+            if(m_srgb){
+                i._internalFormat = TextureUtils.convertSRGBFormat(i._internalFormat);
+            }
+
             return true;
         }
 
     }
 
-    // ¸Ã·½·¨ÓÉÎÊÌâ
     protected byte[] expandDXT(byte[] surf, int width, int height, int depth){
         if(depth == 0) depth = 1;
 

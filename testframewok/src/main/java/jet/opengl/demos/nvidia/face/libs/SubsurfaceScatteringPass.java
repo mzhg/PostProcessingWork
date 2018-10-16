@@ -219,5 +219,8 @@ public class SubsurfaceScatteringPass {
         float depth = firstGaussian? 1.0f : Math.min(Math.max(linearToDepth(0.5f * gaussian.getWidth() * sssLevel), 0.0f), 1.0f);
         
     }
-    private float linearToDepth(float z);
+
+    private float linearToDepth(float z){
+        return 0; // todo
+    }
 }

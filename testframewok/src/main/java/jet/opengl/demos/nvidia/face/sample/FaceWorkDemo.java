@@ -528,8 +528,12 @@ public class FaceWorkDemo extends NvSampleApp {
         gl.glDisable(GLenum.GL_CULL_FACE);
         GLCheck.checkError();
         int features = 0;
-        if (g_bTessellation)
-            features |= CShaderManager.SHDFEAT_Tessellation;
+//        if (g_bTessellation)
+//            features |= CShaderManager.SHDFEAT_Tessellation;
+
+        gl.glEnable(GLenum.GL_CULL_FACE);
+        gl.glFrontFace(GLenum.GL_CCW);
+        gl.glCullFace(GLenum.GL_BACK);
 
         switch (g_renderMethod)
         {

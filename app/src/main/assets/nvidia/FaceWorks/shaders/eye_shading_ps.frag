@@ -1,4 +1,4 @@
-#include "skin.glsl"
+#include "eye.glsl"
 
 in VertexThrough
 {
@@ -24,5 +24,5 @@ void main()
     i_vtx.m_tangent = _input.m_tangent;
     i_vtx.m_curvature = _input.m_curvature;
 
-    SkinMegashader(i_vtx, o_vecCamera, o_uvzwShadow, Out_Color, %s, %s);
+    EyeMegashader(i_vtx, o_vecCamera, o_uvzwShadow, Out_Color, %s, %s);
 }

@@ -42,7 +42,6 @@ layout(location =4) in float		In_curvature /*: CURVATURE*/;
 
 out VertexThrough
 {
-    float3		m_pos		/*: POSITION*/;
     float3		m_normal	/*: NORMAL*/;
     float2		m_uv		/*: UV*/;
     float3		m_tangent	/*: TANGENT*/;
@@ -63,7 +62,6 @@ void main(
 	out float4 o_uvzwShadow : UVZW_SHADOW,
 	out float4 o_posClip : SV_Position*/)
 {
-	o_vtx.m_pos = In_pos;
     o_vtx.m_normal = In_normal;
     o_vtx.m_uv = In_uv;
     o_vtx.m_tangent = In_tangent;

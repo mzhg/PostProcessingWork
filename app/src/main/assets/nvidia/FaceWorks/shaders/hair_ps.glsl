@@ -51,7 +51,7 @@ in float4 o_uvzwShadow/* : UVZW_SHADOW*/;
 
 in VertexThrough
 {
-	float3		m_pos		/*: POSITION*/;
+//	float3		m_pos		/*: POSITION*/;
 	float3		m_normal	/*: NORMAL*/;
 	float2		m_uv		/*: UV*/;
 	float3		m_tangent	/*: TANGENT*/;
@@ -69,7 +69,7 @@ void main(
 	out float4 o_rgbaLit : SV_Target*/)
 {
     Vertex i_vtx;
-    i_vtx.m_pos = _input.m_pos;
+//    i_vtx.m_pos = _input.m_pos;
     i_vtx.m_normal = _input.m_normal;
     i_vtx.m_uv = _input.m_uv;
     i_vtx.m_tangent = _input.m_tangent;

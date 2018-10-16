@@ -214,6 +214,8 @@ void LightingMegashader(
 										normalize(cross(normalGeom, i_vtx.m_tangent)),
 										normalGeom);
 
+		matTangentToWorld = transpose(matTangentToWorld);
+
 		normalShade = normalize(mul(normalTangent, matTangentToWorld));
 
 		if (useSSS || useDeepScatter)
@@ -246,7 +248,6 @@ void LightingMegashader(
 	{
 		// Remap shadow to 1/3-as-wide penumbra to match shadow in SSS case.
 		shadow = GFSDK_FaceWorks_SharpenShadow(shadow, g_shadowSharpening);
-
 		// Evaluate diffuse lighting
 		float3 rgbDiffuseLight = EvaluateDiffuseLight(normalGeom, normalShade, shadow);
 		rgbLitDiffuse = rgbDiffuseLight * rgbDiffuse;

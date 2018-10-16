@@ -27,13 +27,11 @@ import jet.opengl.postprocessing.util.StackFloat;
  * Created by mazhen'gui on 2017/9/5.
  */
 
-final class CMesh implements Disposeable{
+final class CMesh extends IRenderable implements Disposeable{
 
-    float	m_uvScale = 1.f;				// Average world-space size of 1 UV unit
     private GLFuncProvider gl;
     private NvGLModel m_model;
     private int m_curvatureVB;
-    final Vector3f m_posCenter = new Vector3f();
 
     CMesh(){
         gl = GLFuncProviderFactory.getGLFuncProvider();

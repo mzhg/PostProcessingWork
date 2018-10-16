@@ -8,7 +8,7 @@ layout(binding=TEX_DIFFUSE0) uniform sampler2D g_texDiffuse;
 
 in VertexThrough
 {
-    float3		m_pos		/*: POSITION*/;
+//    float3		m_pos		/*: POSITION*/;
     float3		m_normal	/*: NORMAL*/;
     float2		m_uv		/*: UV*/;
     float3		m_tangent	/*: TANGENT*/;

@@ -72,7 +72,7 @@ final class CSceneWarriorHead implements CScene{
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\normal.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvNormalHead, LT_Mipmap | LT_Linear));
-        m_pSrvNormalHead = CScene.loadTexture("WarriorHead\\normal.bmp", true);
+        m_pSrvNormalHead = CScene.loadTexture("WarriorHead\\normal.bmp", true, false);
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"WarriorHead\\deepscatter.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, pDeviceContext, &m_pSrvDeepScatterHead));

@@ -39,15 +39,45 @@
 #include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
 #include "resources.h"
 
+#ifndef USE_UNIFORM_VAR
+#define USE_UNIFORM_VAR 0
+#endif
+
 struct Vertex
 {
-	float3		m_pos		/*: POSITION*/;
+//	float3		m_pos		/*: POSITION*/;
 	float3		m_normal	/*: NORMAL*/;
 	float2		m_uv		/*: UV*/;
 	float3		m_tangent	/*: TANGENT*/;
 	float		m_curvature /*: CURVATURE*/;
 };
 
+#if USE_UNIFORM_VAR
+uniform float g_debug;
+uniform float g_debugSlider0;		// Mapped to debug slider in UI
+uniform float g_debugSlider1;		// ...
+uniform float g_debugSlider2;		// ...
+uniform float g_debugSlider3;		// ...
+
+uniform float4x4	g_matWorldToClip;
+uniform float3		g_posCamera;
+
+uniform float3		g_vecDirectionalLight;
+uniform float3		g_rgbDirectionalLight;
+
+uniform float4x4	g_matWorldToUvzwShadow;
+uniform float3x3	g_matWorldToUvzShadowNormal;	// Matrix for transforming normals to shadow map space
+
+uniform float		g_vsmMinVariance;			// Minimum variance for variance shadow maps
+uniform float		g_shadowSharpening;
+uniform float		g_tessScale;				// Scale of adaptive tessellation
+
+uniform float		g_deepScatterIntensity;		// Multiplier on whole deep scattering result
+uniform float		g_deepScatterNormalOffset;	// Normal offset for shadow lookup to calculate thickness
+
+uniform float		g_exposure;					// Exposure multiplier
+
+#else
 //cbuffer cbDebug : CB_DEBUG		// matches struct CbufDebug in util.h
 layout(binding = CB_DEBUG) uniform cbDebug
 {
@@ -80,6 +110,7 @@ layout(binding = CB_FRAME) uniform cbFrame
 
 	float		g_exposure;					// Exposure multiplier
 };
+#endif
 
 #if 0
 TextureCube<float3> g_texCubeDiffuse	: TEX_CUBE_DIFFUSE;

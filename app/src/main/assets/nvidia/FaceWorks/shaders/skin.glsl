@@ -39,6 +39,11 @@
 #include "lighting.glsl"
 #include "../../../shader_libs/FaceWork/GFSDK_FaceWorks.glsl"
 
+#if USE_UNIFORM_VAR
+uniform float g_normalStrength;
+uniform float g_gloss;
+uniform GFSDK_FaceWorks_CBData g_faceworksData;
+#else
 //cbuffer cbShader : CB_SHADER
 layout(binding = CB_SHADER) uniform cbShader
 {
@@ -49,6 +54,7 @@ layout(binding = CB_SHADER) uniform cbShader
 
 	GFSDK_FaceWorks_CBData	g_faceworksData;
 };
+#endif
 
 #if 0
 Texture2D<float3> g_texDiffuse			: TEX_DIFFUSE0;

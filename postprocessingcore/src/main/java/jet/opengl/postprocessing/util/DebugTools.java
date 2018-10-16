@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.InvalidPropertiesFormatException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -159,6 +160,63 @@ public final class DebugTools {
         }
 
         return null;
+    }
+
+    public static HashMap<String, Object> loadFileStreamTxt(String filename){
+        HashMap<String, Object> results = new HashMap<>();
+        try(BufferedReader in = new BufferedReader(new FileReader(filename))){
+            String line;
+            while((line = in.readLine()) != null){
+                if(StringUtils.isBlank(line)){
+                    continue;
+                }
+
+                int sperator = line.indexOf(':');
+                if(sperator == -1){
+                    throw new IllegalArgumentException("Invalid line: " + line);
+                }
+                String key = line.substring(0, sperator).trim();
+                String value =line.substring(sperator + 1).trim();
+                if(value.indexOf('(') < 0){
+                    // single float value
+                    results.put(key, Float.parseFloat(value));
+                }else{
+                    int start = value.indexOf('(');
+                    int end = value.indexOf(')');
+
+                    if(end < start )
+                        throw new InvalidPropertiesFormatException("");
+
+                    Object valueData;
+                    String[] tokens = value.substring(start+1, end).split(",");
+                    if(tokens.length == 4){
+                        Vector4f v = new Vector4f(Float.parseFloat(tokens[0]),Float.parseFloat(tokens[1]),Float.parseFloat(tokens[2]),Float.parseFloat(tokens[3]));
+                        valueData = v;
+                    }else if(tokens.length == 3){
+                        Vector3f v = new Vector3f(Float.parseFloat(tokens[0]),Float.parseFloat(tokens[1]),Float.parseFloat(tokens[2]));
+                        valueData = v;
+                    }else if(tokens.length == 2){
+                        Vector2f v = new Vector2f(Float.parseFloat(tokens[0]),Float.parseFloat(tokens[1]));
+                        valueData = v;
+                    }else {
+                        float[] array = new float[tokens.length];
+                        for(int i = 0; i < tokens.length; i++)
+                            array[i] = Float.parseFloat(tokens[i]);
+
+                        valueData = array;
+                    }
+
+                    results.put(key, valueData);
+                }
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return results;
     }
 
     private static File makesureDirectionsExsit(String filename){

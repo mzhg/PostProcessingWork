@@ -5,6 +5,10 @@ import com.nvidia.developer.opengl.app.NvEGLConfiguration;
 import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
 import com.nvidia.developer.opengl.utils.NvImage;
 
+import org.lwjgl.opengl.EXTTextureCompressionLATC;
+import org.lwjgl.opengl.EXTTextureCompressionS3TC;
+import org.lwjgl.opengles.NVTextureCompressionS3TC;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,6 +18,7 @@ import java.io.InputStream;
 import jet.opengl.demos.labs.scattering.AtmosphereTest;
 import jet.opengl.demos.labs.scattering.Chapman;
 import jet.opengl.demos.nvidia.face.sample.FaceWorkDemo;
+import jet.opengl.demos.nvidia.face.sample.FaceWorkTest;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.demos.postprocessing.LightingVolumeDemo;
@@ -121,6 +126,7 @@ public class DemoApp {
 //        run(new Chapman());
 //        run(new AtmosphereTest());
         run(new FaceWorkDemo());
+//        run(new FaceWorkTest());
     }
 
     private static void testRectVertex(){

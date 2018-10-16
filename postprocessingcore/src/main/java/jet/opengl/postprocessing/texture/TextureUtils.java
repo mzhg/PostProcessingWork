@@ -142,16 +142,20 @@ public final class TextureUtils {
 	}
 
 	public static Texture2D createTexture2DFromFile(String filename, boolean flip,Texture2D out) throws IOException{
-		return createTexture2DFromFile(filename, flip, false, out);
+		return createTexture2DFromFile(filename, flip, false, false, out);
 	}
 
 	public static Texture2D createTexture2DFromFile(String filename, boolean flip) throws IOException {
-		return createTexture2DFromFile(filename, flip, false, null);
+		return createTexture2DFromFile(filename, flip, false, false, null);
 	}
 
-	public static Texture2D createTexture2DFromFile(String filename, boolean flip, boolean genmipmap, Texture2D out) throws IOException{
+	public static Texture2D createTexture2DFromFile(String filename, boolean flip, boolean genmipmap, boolean srgb, Texture2D out) throws IOException{
 		NativeAPI loader = GLFuncProviderFactory.getGLFuncProvider().getNativeAPI();
 		ImageData data = loader.load(filename, flip);
+
+		if(srgb){
+			data.internalFormat = convertSRGBFormat(data.internalFormat);
+		}
 
 		Texture2DDesc desc = new Texture2DDesc(data.width, data.height, data.internalFormat);
 		if(genmipmap){
@@ -162,7 +166,11 @@ public final class TextureUtils {
 	}
 
 	public static Texture2D createTexture2DFromFile(String filename, boolean flip, boolean genmipmap) throws IOException {
-		return createTexture2DFromFile(filename, flip, genmipmap, null);
+		return createTexture2DFromFile(filename, flip, genmipmap, false, null);
+	}
+
+	public static Texture2D createTexture2DFromFile(String filename, boolean flip, boolean genmipmap, boolean srgb) throws IOException {
+		return createTexture2DFromFile(filename, flip, genmipmap, srgb, null);
 	}
 
 	public static void flipY(ByteBuffer bytes, int height){
@@ -1226,6 +1234,15 @@ public final class TextureUtils {
 
 		default:
 			return "Unkown TextureWrap(0x" + Integer.toHexString(wrap) + ")";
+		}
+	}
+
+	public static int convertSRGBFormat(int internalFormat){
+		switch (internalFormat){
+			case GLenum.GL_RGBA8: return GLenum.GL_SRGB8_ALPHA8;
+			case GLenum.GL_RGB8:  return GLenum.GL_SRGB8;
+			default:
+				throw new IllegalArgumentException("Can't convert " + getFormatName(internalFormat) + " to SRGB");
 		}
 	}
 	
