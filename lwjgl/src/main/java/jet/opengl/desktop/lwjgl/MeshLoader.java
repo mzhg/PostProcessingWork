@@ -32,6 +32,10 @@ public class MeshLoader {
         loadRainbow();
     }
 
+    static void loadSSSMesh(){
+
+    }
+
     static void loadLightningXMesh(){
         String root = "E:\\SDK\\Lightning\\Direct3D\\Media\\Lightning\\";
         String[] tokens = {"scene", "chain_target", "seeds"};

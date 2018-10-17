@@ -1,7 +1,7 @@
 #include "SSSS_Common.glsl"
 
-layout(binding=0) uniform sampler2D tex2;
-layout(binding=1) uniform sampler2D depthTex;
+layout(binding=1) uniform sampler2D tex2;
+layout(binding=2) uniform sampler2D depthTex;
 
 layout(location=0) out float4 gaussian;
 layout(location=1) out float4 final;

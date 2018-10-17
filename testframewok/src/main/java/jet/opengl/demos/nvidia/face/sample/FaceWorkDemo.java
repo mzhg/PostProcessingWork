@@ -61,9 +61,10 @@ public class FaceWorkDemo extends NvSampleApp {
     RM_Empty = 1,
     RM_SSS = 2,
     RM_SSSAndDeep = 3,
-    RM_ViewCurvature = 4,
-    RM_ViewThickness = 5,
-    RM_Max = 6;
+    RM_SCREEN_SPACE = 4,
+    RM_ViewCurvature = 5,
+    RM_ViewThickness = 6,
+    RM_Max = 7;
 
     int g_renderMethod = RM_None;
 
@@ -144,6 +145,7 @@ public class FaceWorkDemo extends NvSampleApp {
     final Matrix4f       m_proj = new Matrix4f();
     final Matrix4f       matClipToWorldAxes = new Matrix4f();  // used for sky rendering
     final CbufFrame      m_bufFrame = new CbufFrame();
+    final SSSSRes        m_SSSSRes = new SSSSRes();
 
     final List<MeshToDraw>   m_meshesToDraw = new ArrayList<>();
     private final List<Texture2D> m_visualTextures = new ArrayList<>();
@@ -160,6 +162,7 @@ public class FaceWorkDemo extends NvSampleApp {
                 new NvTweakEnumi( "Empty", RM_Empty ),
                 new NvTweakEnumi( "SSS", RM_SSS ),
                 new NvTweakEnumi( "SSSAndDeep", RM_SSSAndDeep ),
+                new NvTweakEnumi( "Screen Space", RM_SCREEN_SPACE ),
                 new NvTweakEnumi( "ViewCurvature", RM_ViewCurvature ),
                 new NvTweakEnumi( "ViewThickness", RM_ViewThickness ),
         };
@@ -206,6 +209,7 @@ public class FaceWorkDemo extends NvSampleApp {
     @Override
     protected void initRendering() {
         gl = GLFuncProviderFactory.getGLFuncProvider();
+        getGLContext().setSwapInterval(0);
         // Init FaceWorks
         GFSDK_FaceWorks.GFSDK_FaceWorks_Init();
 
@@ -231,11 +235,11 @@ public class FaceWorkDemo extends NvSampleApp {
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"curvatureLUT.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, &g_pSrvCurvatureLUT, LT_Linear));
         GLCheck.checkError();
-        g_pSrvCurvatureLUT = CScene.loadTexture("curvatureLUT.bmp");
+        g_pSrvCurvatureLUT = CScene.loadTexture("curvatureLUT.bmp", false, false);
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"shadowLUT.bmp"));
 //        V_RETURN(LoadTexture(strPath, pDevice, &g_pSrvShadowLUT, LT_None));
-        g_pSrvShadowLUT = CScene.loadTexture("shadowLUT.bmp");
+        g_pSrvShadowLUT = CScene.loadTexture("shadowLUT.bmp", false, false);
 
         // Load shaders
         g_shdmgr.Init(/*pDevice*/);
@@ -474,6 +478,10 @@ public class FaceWorkDemo extends NvSampleApp {
         m_bufFrame.m_deepScatterNormalOffset = g_deepScatterNormalOffset;
         m_bufFrame.m_exposure = g_pBkgndCur.m_exposure;
 
+        m_SSSSRes.worldViewProjection.load(m_bufFrame.m_matWorldToClip);
+        m_SSSSRes.lightViewProjectionNDC.load(m_bufFrame.m_matWorldToUvzwShadow);
+        m_SSSSRes.cameraPosition.set(m_bufFrame.m_posCamera);
+
         g_shdmgr.InitFrame(
 //                pd3dContext,
                 cbDebug,
@@ -502,6 +510,7 @@ public class FaceWorkDemo extends NvSampleApp {
         g_vsm.UpdateFromShadowMap(g_shadowmap);
         g_vsm.GaussianBlur();
         GLCheck.checkError();
+
 //        g_gpuProfiler.Timestamp(pd3dContext, GTS_ShadowMap);
 
         // Bind the non-SRGB render target view, for rendering with tone mapping
@@ -595,6 +604,31 @@ public class FaceWorkDemo extends NvSampleApp {
 
                 GLCheck.checkError();
 //                g_gpuProfiler.Timestamp(pd3dContext, GTS_Eyes);
+            }
+            break;
+
+            case RM_SCREEN_SPACE:
+            {
+                m_SSSSRes.falloffAngle = 1/*(float)Math.cos(Math.toRadians(60))*/;
+                m_SSSSRes.lightAttenuation = 0.0f;
+                m_SSSSRes.lightRange = 200;
+                m_SSSSRes.spotExponent = 32.f;
+                m_SSSSRes.lightDir.set(g_vecDirectionalLight, 0);
+//                Vector4f.scale(m_SSSSRes.lightDir, 100, m_SSSSRes.lightPos);
+
+                // Draw skin shaders
+                for (int i = 0; i < cMeshToDraw; ++i)
+                {
+                    if (m_meshesToDraw.get(i).m_pMtl.m_shader == SHADER.Skin)
+                    {
+                        Texture2D diffuse = m_meshesToDraw.get(i).m_pMtl.m_aSrv[0];
+                        Texture2D normal = m_meshesToDraw.get(i).m_pMtl.m_aSrv[1];
+                        Texture2D shadow = g_shadowmap.m_pSrv;
+//                        g_shdmgr.BindMaterial(/*pd3dContext,*/ features, m_meshesToDraw.get(i).m_pMtl);
+                        g_shdmgr.BindSSSS(diffuse, normal, shadow, m_SSSSRes);
+                        m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
+                    }
+                }
             }
             break;
 

@@ -4,7 +4,6 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
-import org.omg.CORBA.PRIVATE_MEMBER;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -39,7 +38,7 @@ public class SubsurfaceScatteringPass {
     private GLFuncProvider gl;
 
     private static final class Uniforms{
-        static final int SIZE = Vector4f.SIZE * 4;
+        static final int SIZE = Vector4f.SIZE * 5;
         final Vector2f pixelSize = new Vector2f();
         float sssLevel;
         float correction;
@@ -52,6 +51,8 @@ public class SubsurfaceScatteringPass {
         float depth;
         float width;
         float material;
+        float near;
+        float far;
 
         ByteBuffer store(ByteBuffer buf){
             pixelSize.store(buf);
@@ -66,7 +67,11 @@ public class SubsurfaceScatteringPass {
             buf.putFloat(depth);
             buf.putFloat(width);
             buf.putFloat(material);
-            buf.putFloat(0);
+            buf.putFloat(near);
+
+            buf.putFloat(far);
+            buf.putInt(0);
+            buf.putLong(0);
 
             return buf;
         }
@@ -113,6 +118,20 @@ public class SubsurfaceScatteringPass {
 
         uniforms.pixelSize.set(1.0f / width, 1.0f / height);
         setInputVars();
+    }
+
+    public void setDepthRange(float near, float far){
+        uniforms.near = near;
+        uniforms.far = far;
+    }
+
+    private void updateBuffer(){
+        ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(Uniforms.SIZE);
+        uniforms.store(buffer);
+        buffer.flip();
+
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, uniformsBuffer.getBuffer());
+        uniformsBuffer.update(0, buffer);
     }
 
     // Both 'depthResource' and 'stencilResource' can be output in the main
@@ -165,13 +184,10 @@ public class SubsurfaceScatteringPass {
                      List<Gaussian> gaussians,
                 int stencilId){
         uniforms.material = stencilId;
+        updateBuffer();
 
-        ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(Uniforms.SIZE);
-        uniforms.store(buffer);
-        buffer.flip();
-
-        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, uniformsBuffer.getBuffer());
-        uniformsBuffer.update(0, buffer);
+        gl.glBindTextureUnit(1, textures[1].getTexture());
+        gl.glBindTextureUnit(2, depthResource.getTexture());
 
         gl.glClearTexImage(textures[0].getTexture(), 0, TextureUtils.measureFormat(textures[0].getFormat()), TextureUtils.measureDataType(textures[0].getFormat()), null);
         gl.glClearTexImage(textures[1].getTexture(), 0, TextureUtils.measureFormat(textures[1].getFormat()), TextureUtils.measureDataType(textures[1].getFormat()), null);
@@ -216,11 +232,40 @@ public class SubsurfaceScatteringPass {
                           Texture2D depthStencil,
                        Gaussian gaussian,
                   boolean firstGaussian){
+        blurPS.enable();
         float depth = firstGaussian? 1.0f : Math.min(Math.max(linearToDepth(0.5f * gaussian.getWidth() * sssLevel), 0.0f), 1.0f);
-        
+        /*V(effect->GetVariableByName("depth")->AsScalar()->SetFloat(depth));
+        V(effect->GetVariableByName("width")->AsScalar()->SetFloat(gaussian.getWidth()));
+        V(effect->GetVariableByName("weight")->AsVector()->SetFloatVector((float *) gaussian.getWeight()));*/
+        uniforms.depth = depth;
+        uniforms.width = gaussian.getWidth();
+        uniforms.weight.set(gaussian.getWeight());
+        updateBuffer();
+
+        /*V(effect->GetVariableByName("tex1")->AsShaderResource()->SetResource(src));
+        effect->GetTechniqueByName("SubsurfaceScattering")->GetPassByName("Blur")->Apply(0);
+        device->OMSetRenderTargets(1, *renderTarget[1], depthStencil);
+        quad->draw();
+        device->OMSetRenderTargets(0, NULL, NULL);*/
+        gl.glBindTextureUnit(0, src.getTexture());
+        blurPS.enable();
+        renderTargets.setRenderTextures(CommonUtil.toArray(textures[1], depthStencil), null);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+        /*effect->GetTechniqueByName("SubsurfaceScattering")->GetPassByName("BlurAccum")->Apply(0);
+        ID3D10RenderTargetView *rt[] = { dst, final };
+        device->OMSetRenderTargets(2, rt, depthStencil);
+        quad->draw();
+        device->OMSetRenderTargets(0, NULL, NULL);*/
+        blurAccumPS.enable();
+        renderTargets.setRenderTextures(CommonUtil.toArray(dst, finalOut, depthStencil), null);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
     }
 
     private float linearToDepth(float z){
-        return 0; // todo
+        float f = uniforms.far;
+        float n = uniforms.near;
+        float pz = -z;
+        return -2*n*f/(f-n)*(-1/pz) + (f+n)/(f-n);
     }
 }

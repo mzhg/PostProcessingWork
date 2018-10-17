@@ -39,10 +39,7 @@
 #include "tonemap.glsl"
 #include "../../../shader_libs/FaceWork/GFSDK_FaceWorks.glsl"
 
-
-
 // Normal mapping
-
 float3 UnpackNormal(
 	float3 normal,
 	float normalStrength)
@@ -179,7 +176,6 @@ float3 EvaluateSpecularLight(
 
 	return rgbLitSpecular;
 }
-
 
 
 // Master lighting routine

@@ -36,5 +36,4 @@ void main()
     float4 o_uvzwShadow = mul(float4(posVtx.xyz, 1.0), g_matWorldToUvzwShadow);
 
     SkinMegashader(i_vtx, o_vecCamera, o_uvzwShadow, Out_Color, false, false);
-//    Out_Color.xyz = float3(i_vtx.m_curvature);
 }

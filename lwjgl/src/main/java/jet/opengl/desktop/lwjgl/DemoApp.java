@@ -51,6 +51,7 @@ public class DemoApp {
         glconfig.blueBits = config.blueBits;
         glconfig.debugContext = config.debugContext;
         glconfig.multiSamplers = config.multiSamplers;
+        baseApp.setTile(app.getClass().getSimpleName());
         baseApp.registerGLEventListener(app);
         baseApp.registerGLFWListener(new InputAdapter(app, app, app));
         app.setGLContext(baseApp);

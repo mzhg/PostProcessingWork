@@ -92,7 +92,7 @@ public class FaceWorkTest extends NvSampleApp {
         m_prog.setTessScale(21.771534f);
         m_prog.setDeepScatterIntensity(0.5f);
         m_prog.setDeepScatterNormalOffset(1.f);
-        m_prog.setExposure(0);
+        m_prog.setExposure(1);
         Matrix4f mat = new Matrix4f(0.025980f, 0.005954f, -0.014676f, 0,
                 0, -0.021859f, -0.009631f, 0,
                 -0.021882f, 0.007068f, -0.017424f, 0,

@@ -81,6 +81,8 @@ interface CScene {
 
     static TextureCube loadCubeTexture(String name){
         int texture = 0;
+        NvImage.loadAsSRGB(false);
+        NvImage.setDXTExpansion(false);
         try {
             FileLoader old = FileUtils.g_IntenalFileLoader;
             FileUtils.setIntenalFileLoader(g_SceneFileLoader);
@@ -101,7 +103,7 @@ interface CScene {
         try {
             FileLoader old = FileUtils.g_IntenalFileLoader;
             FileUtils.setIntenalFileLoader(g_SceneFileLoader);
-            Texture2D result =  TextureUtils.createTexture2DFromFile(MODEL_PATH + name, false, mipmap, true);
+            Texture2D result =  TextureUtils.createTexture2DFromFile(MODEL_PATH + name, false, mipmap, srgb);
 //            result.setSwizzleRGBA(new int[] {GLenum.GL_BLUE, GLenum.GL_GREEN, GLenum.GL_RED, GLenum.GL_ALPHA});
             FileUtils.setIntenalFileLoader(old);  // reset to defualt.
 //            System.out.printf("Loaded %s, dimension[width = %d, height = %d], format %s, %s, %d mip levels\n",

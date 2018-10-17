@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_CBData;
+import jet.opengl.demos.nvidia.face.libs.SubsurfaceScatteringPass;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -21,9 +22,12 @@ import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
+import jet.opengl.postprocessing.texture.FramebufferGL;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
@@ -74,7 +78,6 @@ final class CShaderManager {
     ShaderProgram m_pVsCurvature;
     ShaderProgram m_pPsCurvature;
     ShaderProgram m_pPsThickness;
-    ShaderProgram m_pPsGaussian;
     ShaderProgram m_pPsHair;
     ShaderProgram m_pVsScreen;
     ShaderProgram m_pVsShadow;
@@ -89,6 +92,8 @@ final class CShaderManager {
     GLSLProgram   m_pDefaultProg;
     GLSLProgram   m_TextureProg;
     GLSLProgram   m_pCreateVSMProg;
+    GLSLProgram   m_pGuassionProg;
+    GLSLProgram   m_pSSSS_SkinProg;
 
     private final HashMap<ShadingDesc, GLSLProgram> m_shadingProg = new HashMap<>();
 
@@ -103,6 +108,11 @@ final class CShaderManager {
     BufferGL m_pCbufDebug;
     BufferGL m_pCbufFrame;
     BufferGL m_pCbufShader;
+    BufferGL m_pCbufSSSSRes;
+
+    Texture2D m_beckmannTex;
+    FramebufferGL m_fbo;
+    SubsurfaceScatteringPass m_SSSS;
 
     private GLFuncProvider gl;
     private GLSLProgramPipeline m_programPipeline;
@@ -136,14 +146,14 @@ final class CShaderManager {
         return item;
     }
 
-    void Init(){
+    void Init(int width, int height){
         gl= GLFuncProviderFactory.getGLFuncProvider();
         m_programPipeline = new GLSLProgramPipeline();
         m_pPsCopy = createShader("copy_ps.glsl", ShaderType.FRAGMENT);
         m_pPsCreateVSM = createShader("create_vsm_ps.glsl", ShaderType.FRAGMENT);
         m_pVsCurvature = createShader("curvature_vs.glsl", ShaderType.VERTEX);
         m_pPsCurvature = createShader("curvature_ps.glsl", ShaderType.FRAGMENT);
-        m_pPsGaussian = createShader("gaussian_ps.glsl", ShaderType.FRAGMENT);
+//        m_pPsGaussian = createShader("gaussian_ps.glsl", ShaderType.FRAGMENT);
 //        m_pPsHair = createShader("hair_ps.glsl", ShaderType.FRAGMENT);
         m_pVsScreen = createShader("screen_vs.glsl", ShaderType.VERTEX);
         m_pVsShadow = createShader("shadow_vs.glsl", ShaderType.VERTEX);
@@ -162,6 +172,8 @@ final class CShaderManager {
             m_pDefaultProg = GLSLProgram.createFromFiles(path+"world_vs.glsl", path+"default_ps.glsl");
             m_TextureProg = GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", "shader_libs/PostProcessingDefaultScreenSpacePS.frag");
             m_pCreateVSMProg = GLSLProgram.createFromFiles(path+"screen_vs.glsl", path+"create_vsm_ps.glsl");
+            m_pGuassionProg = GLSLProgram.createFromFiles(path+"screen_vs.glsl", path+"gaussian_ps.glsl");
+            m_pSSSS_SkinProg = GLSLProgram.createFromFiles(path+"SSSS_SkinVS.vert", path+"SSSS_SkinPS.frag");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -201,6 +213,18 @@ final class CShaderManager {
 
         m_pCbufShader = new BufferGL();
         m_pCbufShader.initlize(GLenum.GL_UNIFORM_BUFFER, 96, null, GLenum.GL_STREAM_DRAW);
+
+        m_pCbufSSSSRes = new BufferGL();
+        m_pCbufSSSSRes.initlize(GLenum.GL_UNIFORM_BUFFER, SSSSRes.SIZE, null, GLenum.GL_STREAM_DRAW);
+
+        m_beckmannTex = CScene.loadTexture("BeckmannMap.png", false, false);
+
+        m_fbo = new FramebufferGL();
+        m_fbo.bind();
+        m_fbo.addTexture2D(new Texture2DDesc(width, height, GLenum.GL_RGBA8), new TextureAttachDesc());
+        m_fbo.addTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH24_STENCIL8), new TextureAttachDesc());
+
+//        m_SSSS = new SubsurfaceScatteringPass(width, height, GLenum.GL_RGBA8, 3, )
     }
 
     void inputLayout(){
@@ -449,12 +473,9 @@ final class CShaderManager {
 //        pCtx->VSSetShader(m_pVsScreen, null, 0);
 //        pCtx->PSSetShader(m_pPsGaussian, null, 0);
 //        pCtx->PSSetShaderResources(TEX_SOURCE, 1, &pSrvSrc);
-        gl.glUseProgram(0);
-        m_programPipeline.enable();
-        m_programPipeline.setVS(m_pVsScreen);
-        m_programPipeline.setPS(m_pPsGaussian);
-        m_programPipeline.setTC(null);
-        m_programPipeline.setTE(null);
+        m_programPipeline.disable();
+        m_pGuassionProg.enable();
+        gl.glBindTextureUnit(TEX_SOURCE, pSrvSrc.getTexture());
 
         // Update constant buffer
 //        HRESULT hr;
@@ -552,6 +573,31 @@ final class CShaderManager {
     }
 
 
+    void BindSSSS(Texture2D diffuse, Texture2D normal, Texture2D shadow, SSSSRes res){
+        m_programPipeline.disable();
+        m_pSSSS_SkinProg.enable();
+
+        gl.glBindTextureUnit(0, diffuse.getTexture());
+        gl.glBindTextureUnit(1, normal.getTexture());
+        gl.glBindTextureUnit(2, shadow.getTexture());
+        gl.glBindTextureUnit(3, m_beckmannTex.getTexture());
+
+        gl.glBindSampler(0, m_pSsTrilinearRepeatAniso);
+        gl.glBindSampler(1, m_pSsTrilinearRepeatAniso);
+        gl.glBindSampler(2, m_pSsPCF);
+        gl.glBindSampler(3, m_pSsBilinearClamp);
+
+        ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(SSSSRes.SIZE);
+        res.store(buffer).flip();
+
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, m_pCbufSSSSRes.getBuffer());
+        m_pCbufSSSSRes.bind();
+        m_pCbufSSSSRes.update(0, buffer);
+    }
+
+    void doSSSS(){
+
+    }
 
     void BindMaterial(
 //            ID3D11DeviceContext * pCtx,
@@ -719,6 +765,7 @@ final class CShaderManager {
 
     void UnbindTess(){
         for(int i = 0; i < 13; i++){
+            gl.glBindTextureUnit(i, 0);
             gl.glBindSampler(i, 0);
         }
     }
@@ -757,10 +804,10 @@ final class CShaderManager {
             m_pPsThickness.dispose();
             m_pPsThickness = null;
         }
-        if (m_pPsGaussian!=null)
+        if (m_pGuassionProg!=null)
         {
-            m_pPsGaussian.dispose();
-            m_pPsGaussian = null;
+            m_pGuassionProg.dispose();
+            m_pGuassionProg = null;
         }
         if (m_pPsHair!=null)
         {
