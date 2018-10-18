@@ -15,25 +15,25 @@ float Fresnel(float3 H, float3 view, float f0) {
     return exponential + f0 * (1.0 - exponential);
 }
 
-float SpecularKSK(sampler2D beckmannTex, float3 normal, float3 light, float3 view) {
+layout(binding = 0) uniform sampler2D g_DiffuseTex;
+layout(binding = 1) uniform sampler2D g_NormalTex;
+layout(binding = 2) uniform sampler2DShadow g_Shadow;
+layout(binding = 3) uniform sampler2D beckmannTex;
+
+float SpecularKSK(float3 normal, float3 light, float3 view) {
     float3 H = view + light;
     float3 halfn = normalize(H);
 
     float ndotl = max(dot(normal, light), 0.0);
     float ndoth = max(dot(normal, halfn), 0.0);
 
-    const float roughness = 0.5;
+    const float roughness = 0.2;
     float ph = pow(2.0 * textureLod(beckmannTex, float2(ndoth, roughness), 0.).r, 10.0);  // LinearSampler
     float f = Fresnel(halfn, view, 0.028);
     float ksk = max(ph * f / dot(H, H), 0.0);
 
     return ndotl * ksk;
 }
-
-layout(binding = 0) uniform sampler2D g_DiffuseTex;
-layout(binding = 1) uniform sampler2D g_NormalTex;
-layout(binding = 2) uniform sampler2DShadow g_Shadow;
-layout(binding = 3) uniform sampler2D beckmannTex;
 
 float Shadow(float3 worldPosition, int i) {
     float4 shadowPosition = mul(float4(worldPosition, 1.0), lightViewProjectionNDC);
@@ -72,9 +72,11 @@ in SceneV2P
     float3 tangentLight;
     float3 normal;
     float3 tangent;
+    float  viewDepth;
 }_input;
 
 layout(location=0) out float4 Out_Color;
+layout(location=1) out float Out_Depth;
 
 //float4 SceneColor(SceneV2P input)
 void main()
@@ -97,14 +99,16 @@ void main()
     float3 tangentView = normalize(view);
 
     float dotNL = max(dot(lightDir.xyz, tangentNormal), 0.);
-    float specular = SpecularKSK(beckmannTex, tangentNormal, lightDir.xyz, tangentView);
+    float specular = SpecularKSK(tangentNormal, lightDir.xyz, tangentView);
 //    specular = min(specular, 0.);
 
     float4 albedo = texture(g_DiffuseTex, _input.texcoord);  // AnisotropicSampler
     float shadow = ShadowPCF(_input.worldPosition, 3, 1.0);
 
-    Out_Color.rgb = albedo.rgb * (0.2 + dotNL + specular) * shadow;
+    Out_Color.rgb = (albedo.rgb * (0.2 + dotNL * 1.5) + specular) * shadow;
     Out_Color.a = 1;
+
+    Out_Depth = _input.viewDepth;
     return;
 
     float4 color = float4(0.0, 0.0, 0.0, 0.0);
@@ -127,7 +131,7 @@ void main()
 
         float3 diffuse = albedo.rgb * max(dot(tangentLight, tangentNormal)/*dot(-lightDir.xyz, _input.normal)*/, 0.0);
 
-        float specular = SpecularKSK(beckmannTex, tangentNormal, tangentLight, tangentView);
+        float specular = SpecularKSK(tangentNormal, tangentLight, tangentView);
 
         color.rgb += /*lights[i].color **/ shadow * attenuation * spot * (diffuse + specular);  // assum the color of light is white.
     }

@@ -10,7 +10,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.RenderTargets;
@@ -90,14 +92,10 @@ public class SubsurfaceScatteringPass {
     // maxdd: limits the effects of the derivative (see article for more
     //        info).
     public SubsurfaceScatteringPass(//ID3D10Device *device,
-                             int width, int height, int format, int samples,Matrix4f projection,
-                             float sssLevel, float correction, float maxdd){
+                             int width, int height, int format, int samples){
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         this.width = width;
         this.height = height;
-        this.projection.load(projection);
-        this.sssLevel = sssLevel;
-        this.correction = correction;
-        this.maxdd = maxdd;
 
         renderTargets = new RenderTargets();
         Texture2DDesc desc = new Texture2DDesc(width, height, format);
@@ -109,7 +107,7 @@ public class SubsurfaceScatteringPass {
 
         try {
             String path = "nvidia/FaceWorks/shaders/";
-            downsamplePS = GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", path+"DownsamplePS.frag");
+//            downsamplePS = GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert", path+"DownsamplePS.frag");
             blurPS = GLSLProgram.createFromFiles(path + "PassZVS.vert", path+"BlurPS.frag");
             blurAccumPS = GLSLProgram.createFromFiles(path + "PassZVS.vert", path+"BlurAccumPS.frag");
         } catch (IOException e) {
@@ -120,9 +118,14 @@ public class SubsurfaceScatteringPass {
         setInputVars();
     }
 
-    public void setDepthRange(float near, float far){
+    public void setInfo(float near, float far, Matrix4f projection,
+                              float sssLevel, float correction, float maxdd){
         uniforms.near = near;
         uniforms.far = far;
+        this.projection.load(projection);
+        this.sssLevel = sssLevel;
+        this.correction = correction;
+        this.maxdd = maxdd;
     }
 
     private void updateBuffer(){
@@ -186,8 +189,12 @@ public class SubsurfaceScatteringPass {
         uniforms.material = stencilId;
         updateBuffer();
 
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glStencilMask(0);
         gl.glBindTextureUnit(1, textures[1].getTexture());
         gl.glBindTextureUnit(2, depthResource.getTexture());
+        gl.glBindVertexArray(0);
 
         gl.glClearTexImage(textures[0].getTexture(), 0, TextureUtils.measureFormat(textures[0].getFormat()), TextureUtils.measureDataType(textures[0].getFormat()), null);
         gl.glClearTexImage(textures[1].getTexture(), 0, TextureUtils.measureFormat(textures[1].getFormat()), TextureUtils.measureDataType(textures[1].getFormat()), null);
@@ -196,6 +203,9 @@ public class SubsurfaceScatteringPass {
         for (int i = 1; i <gaussians.size(); i++) {
             blurPass(textures[0], textures[0], mainRenderTarget, depthStencil, gaussians.get(i), false);
         }
+
+        gl.glDisable(GLenum.GL_STENCIL_TEST);
+        gl.glStencilMask(0xff);
     }
 
     public void setSssLevel(float sssLevel) { this.sssLevel = sssLevel; setInputVars(); }
@@ -249,7 +259,16 @@ public class SubsurfaceScatteringPass {
         device->OMSetRenderTargets(0, NULL, NULL);*/
         gl.glBindTextureUnit(0, src.getTexture());
         blurPS.enable();
+        renderTargets.bind();
         renderTargets.setRenderTextures(CommonUtil.toArray(textures[1], depthStencil), null);
+
+        gl.glEnable(GLenum.GL_STENCIL_TEST);
+        gl.glStencilFuncSeparate(GLenum.GL_FRONT, GLenum.GL_NOTEQUAL, 0, 0xff);
+        gl.glStencilFuncSeparate(GLenum.GL_BACK, GLenum.GL_NEVER, 0, 0xff);
+        gl.glStencilOp(GLenum.GL_KEEP, GLenum.GL_KEEP, GLenum.GL_KEEP);
+        gl.glDisable(GLenum.GL_BLEND);
+        GLCheck.checkError();
+
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 
         /*effect->GetTechniqueByName("SubsurfaceScattering")->GetPassByName("BlurAccum")->Apply(0);
@@ -259,7 +278,16 @@ public class SubsurfaceScatteringPass {
         device->OMSetRenderTargets(0, NULL, NULL);*/
         blurAccumPS.enable();
         renderTargets.setRenderTextures(CommonUtil.toArray(dst, finalOut, depthStencil), null);
+        GLCheck.checkError();
+        gl.glEnable(GLenum.GL_BLEND);
+        gl.glBlendFunci(0, GLenum.GL_ONE, GLenum.GL_ZERO);
+        gl.glBlendFunci(1, GLenum.GL_CONSTANT_COLOR, GLenum.GL_ONE_MINUS_CONSTANT_COLOR);
+        gl.glBlendColor(uniforms.weight.x, uniforms.weight.y, uniforms.weight.z, uniforms.weight.w);
+
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        gl.glDisable(GLenum.GL_BLEND);
+
+        GLCheck.checkError();
     }
 
     private float linearToDepth(float z){

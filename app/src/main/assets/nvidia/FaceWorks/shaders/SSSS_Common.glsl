@@ -1,6 +1,6 @@
 #include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
 
-layout(binding = 0) uniform ShaderRes
+/*layout(binding = 0) uniform ShaderRes
 {
     float2 pixelSize;
     float sssLevel;
@@ -17,7 +17,7 @@ layout(binding = 0) uniform ShaderRes
     float material;
     float near;
     float far;
-};
+};*/
 
 layout(binding = 1) uniform SceneRes
 {

@@ -44,6 +44,9 @@ public class FaceWorkDemo extends NvSampleApp {
     static float	g_specReflectanceHair = 0.05f;
     static float	g_glossHair = 0.25f;
 
+    final float NEAR_PLANE = 0.1f;
+    final float FAR_PLANE = 1e3f;
+
     boolean g_ShowHelp = false;
     boolean g_ShowGUI = true;
     boolean g_ShowText = true;
@@ -242,7 +245,7 @@ public class FaceWorkDemo extends NvSampleApp {
         g_pSrvShadowLUT = CScene.loadTexture("shadowLUT.bmp", false, false);
 
         // Load shaders
-        g_shdmgr.Init(/*pDevice*/);
+        g_shdmgr.Init(/*pDevice*/1280, 720);
 
         // Create depth-stencil states
         /*D3D11_DEPTH_STENCIL_DESC dssDepthTestDesc =
@@ -616,6 +619,7 @@ public class FaceWorkDemo extends NvSampleApp {
                 m_SSSSRes.lightDir.set(g_vecDirectionalLight, 0);
 //                Vector4f.scale(m_SSSSRes.lightDir, 100, m_SSSSRes.lightPos);
 
+                g_shdmgr.BeginSSSS();
                 // Draw skin shaders
                 for (int i = 0; i < cMeshToDraw; ++i)
                 {
@@ -629,6 +633,8 @@ public class FaceWorkDemo extends NvSampleApp {
                         m_meshesToDraw.get(i).m_pMesh.Draw((features & CShaderManager.SHDFEAT_Tessellation)!=0 ? GLenum.GL_PATCHES : GLenum.GL_TRIANGLES);
                     }
                 }
+
+                g_shdmgr.EndSSSS(NEAR_PLANE, FAR_PLANE, m_proj, 40.0f, 800.0f, 0.001f, g_bTessellation);
             }
             break;
 
@@ -874,8 +880,6 @@ public class FaceWorkDemo extends NvSampleApp {
         if(width <=0||height<=0)
             return;
 
-        final float NEAR_PLANE = 0.1f;
-        final float FAR_PLANE = 1e5f;
         Matrix4f.perspective((float)Math.toDegrees(g_FOV), (float)width/height, NEAR_PLANE,
                 FAR_PLANE, m_proj);
     }

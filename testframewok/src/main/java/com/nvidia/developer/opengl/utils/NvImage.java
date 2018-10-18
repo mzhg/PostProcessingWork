@@ -1021,7 +1021,6 @@ public class NvImage {
         }
     }
 
-    // TODO �÷�����Ҫ�ϸ����
     private static void flipDxt5Alpha(DXT5AlphaBlock block) {
         byte[][] gBits = new byte[4][4];
 

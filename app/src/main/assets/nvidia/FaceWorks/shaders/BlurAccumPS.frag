@@ -20,14 +20,20 @@ void main()
         0.006
     );
 
+    const float sssLevel = 1.;
+    const float2 pixelSize = 1.0/float2(1280, 720);
+    const float width = 1280.;
+    const float maxdd = 0.001;
+    const float correction = 1000.;
+
     float2 step = sssLevel * width * pixelSize * float2(0.0, 1.0);
 
     float4 color = texture(tex2, m_f4UVAndScreenPos.xy);   // LinearSampler
     color.rgb *= w[3];
 
-    float depth = texture(depthTex, m_f4UVAndScreenPos.xy).r;   // PointSampler
-    float2 s_y = step / (depth + correction * min(abs(ddy(depth)), maxdd));
-    float2 finalWidth = color.a * s_y; // step = sssLevel * width * pixelSize * float2(0.0, 1.0)
+    float depth = textureLod(depthTex, m_f4UVAndScreenPos.xy, 0.).r;   // PointSampler
+    float2 s_y = float2(sssLevel / (depth + correction * min(abs(ddy(depth)), maxdd)));
+    float2 finalWidth = width * s_y * pixelSize * float2(0.0, 1.0); // step = sssLevel * width * pixelSize * float2(0.0, 1.0)
 
     float2 offset = m_f4UVAndScreenPos.xy - finalWidth;
 //    [unroll]
@@ -37,7 +43,7 @@ void main()
     }
     offset += finalWidth / 3.0;
 //    [unroll]
-    for (i = 4; i < 7; i++) {
+    for (int i = 4; i < 7; i++) {
         color.rgb += w[i] * texture(tex2, offset).rgb;
         offset += finalWidth / 3.0;
     }

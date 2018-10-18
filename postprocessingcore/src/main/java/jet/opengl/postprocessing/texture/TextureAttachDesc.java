@@ -17,5 +17,9 @@ public class TextureAttachDesc {
         this.level = level;
     }
 
+    public TextureAttachDesc(int index){
+        this.index = index;
+    }
+
     public TextureAttachDesc(){}
 }

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_CBData;
+import jet.opengl.demos.nvidia.face.libs.Gaussian;
 import jet.opengl.demos.nvidia.face.libs.SubsurfaceScatteringPass;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLCheck;
@@ -117,35 +118,6 @@ final class CShaderManager {
     private GLFuncProvider gl;
     private GLSLProgramPipeline m_programPipeline;
 
-    private static ShaderProgram createShader(String filename, ShaderType type){
-        ShaderProgram shaderProgram = new ShaderProgram();
-        ShaderSourceItem item = new ShaderSourceItem();
-        item.type = type;
-        try {
-            item.source = ShaderLoader.loadShaderFile("nvidia/FaceWorks/shaders/" + filename, false);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        int dot = filename.indexOf('.');
-        String debugName = filename.substring(0, dot);
-        GLSLProgram.createFromString(item, shaderProgram, debugName);
-        shaderProgram.setName(debugName);
-        shaderProgram.printPrograminfo();
-        return shaderProgram;
-    }
-
-    private static ShaderSourceItem createItem(String filename, ShaderType type){
-        ShaderSourceItem item = new ShaderSourceItem();
-        try {
-            item.source = ShaderLoader.loadShaderFile("nvidia/FaceWorks/shaders/" + filename, false);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        item.type = type;
-        return item;
-    }
-
     void Init(int width, int height){
         gl= GLFuncProviderFactory.getGLFuncProvider();
         m_programPipeline = new GLSLProgramPipeline();
@@ -221,10 +193,13 @@ final class CShaderManager {
 
         m_fbo = new FramebufferGL();
         m_fbo.bind();
-        m_fbo.addTexture2D(new Texture2DDesc(width, height, GLenum.GL_RGBA8), new TextureAttachDesc());
+        m_fbo.addTexture2D(new Texture2DDesc(width, height, GLenum.GL_RGBA8), new TextureAttachDesc(0));
+        m_fbo.addTexture2D(new Texture2DDesc(width, height, GLenum.GL_R32F), new TextureAttachDesc(1));
         m_fbo.addTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH24_STENCIL8), new TextureAttachDesc());
+        int[] buffers = {GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_COLOR_ATTACHMENT1};
+        gl.glDrawBuffers(CacheBuffer.wrap(buffers));
 
-//        m_SSSS = new SubsurfaceScatteringPass(width, height, GLenum.GL_RGBA8, 3, )
+        m_SSSS = new SubsurfaceScatteringPass(width, height, GLenum.GL_RGBA8, 3 );
     }
 
     void inputLayout(){
@@ -572,6 +547,21 @@ final class CShaderManager {
         m_pCbufShader.update(0, buffer);
     }
 
+    void BeginSSSS(){
+        m_fbo.bind();
+        gl.glViewport(0,0, m_fbo.getWidth(), m_fbo.getHeight());
+        gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0.29f,0.29f,0.29f,0.29f));
+        gl.glClearBufferfv(GLenum.GL_COLOR, 1, CacheBuffer.wrap(0.f, 0.f, 0.f, 0.f));
+        gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1f, 0);
+
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glEnable(GLenum.GL_STENCIL_TEST);
+        gl.glStencilOpSeparate(GLenum.GL_FRONT, GLenum.GL_KEEP, GLenum.GL_KEEP, GLenum.GL_INCR);
+        gl.glStencilOpSeparate(GLenum.GL_BACK, GLenum.GL_KEEP, GLenum.GL_KEEP, GLenum.GL_KEEP);
+        gl.glStencilFuncSeparate(GLenum.GL_FRONT, GLenum.GL_ALWAYS, 0, 0xFF);
+        gl.glStencilFuncSeparate(GLenum.GL_BACK, GLenum.GL_NEVER, 0, 0xFF);
+        gl.glStencilMask(0xff);
+    }
 
     void BindSSSS(Texture2D diffuse, Texture2D normal, Texture2D shadow, SSSSRes res){
         m_programPipeline.disable();
@@ -595,8 +585,20 @@ final class CShaderManager {
         m_pCbufSSSSRes.update(0, buffer);
     }
 
-    void doSSSS(){
+    void EndSSSS(float near, float far, Matrix4f proj,float sssLevel, float correction, float maxdd, boolean ssss){
+        if(ssss) {
+            Texture2D dst = (Texture2D) m_fbo.getAttachedTex(0);
+            Texture2D depth = (Texture2D) m_fbo.getAttachedTex(1);
+            Texture2D depthStencil = (Texture2D) m_fbo.getAttachedTex(2);
 
+            m_SSSS.setInfo(near, far, proj, sssLevel, correction, maxdd);
+            m_SSSS.render(dst, dst, depth, depthStencil, Gaussian.SKIN, 1);
+        }
+
+        gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, m_fbo.getFramebuffer());
+        gl.glBindFramebuffer(GLenum.GL_DRAW_FRAMEBUFFER, 0);
+        gl.glReadBuffer(GLenum.GL_COLOR_ATTACHMENT0);
+        gl.glBlitFramebuffer(0, 0, 1280, 720, 0, 0, 1280, 720, GLenum.GL_COLOR_BUFFER_BIT, GLenum.GL_NEAREST);
     }
 
     void BindMaterial(
@@ -953,6 +955,35 @@ final class CShaderManager {
         item.type = ShaderType.FRAGMENT;
         item.source = source;
 
+        return item;
+    }
+
+    private static ShaderProgram createShader(String filename, ShaderType type){
+        ShaderProgram shaderProgram = new ShaderProgram();
+        ShaderSourceItem item = new ShaderSourceItem();
+        item.type = type;
+        try {
+            item.source = ShaderLoader.loadShaderFile("nvidia/FaceWorks/shaders/" + filename, false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        int dot = filename.indexOf('.');
+        String debugName = filename.substring(0, dot);
+        GLSLProgram.createFromString(item, shaderProgram, debugName);
+        shaderProgram.setName(debugName);
+        shaderProgram.printPrograminfo();
+        return shaderProgram;
+    }
+
+    private static ShaderSourceItem createItem(String filename, ShaderType type){
+        ShaderSourceItem item = new ShaderSourceItem();
+        try {
+            item.source = ShaderLoader.loadShaderFile("nvidia/FaceWorks/shaders/" + filename, false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        item.type = type;
         return item;
     }
 

@@ -14,11 +14,16 @@ out SceneV2P
     float3 tangentLight;
     float3 normal;
     float3 tangent;
+    float  viewDepth;
 }_output;
 
 void main()
 {
-    gl_Position = mul(float4(In_pos, 1), worldViewProjection);
+    float4 projPos = mul(float4(In_pos, 1), worldViewProjection);
+    _output.viewDepth = abs(projPos.w);
+    gl_Position = projPos;
+
+
     _output.texcoord = In_uv;
     _output.worldPosition = In_pos.xyz;
     _output.normal = In_normal;
