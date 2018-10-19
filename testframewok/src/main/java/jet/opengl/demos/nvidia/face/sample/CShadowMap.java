@@ -41,9 +41,6 @@ final class CShadowMap implements Disposeable{
     /** Diameter in world units along shadow XYZ axes */
     final Vector3f m_vecDiam = new Vector3f();
 
-    float m_shadowNear;
-    float m_shadowFar;
-
     private GLFuncProvider gl;
     private int m_shadow_fbo;
 
@@ -165,16 +162,17 @@ final class CShadowMap implements Disposeable{
         Matrix4f.ortho(posMinViewX, posMaxViewX, posMinViewY, posMaxViewY, -posMaxViewZ, -posMinViewZ, m_matProj);
         Matrix4f.mul(m_matProj, m_matView, m_matWorldToClip);
 
-        m_shadowNear = -posMaxViewZ;
-        m_shadowFar = -posMinViewZ;
+//        m_shadowNear = -posMaxViewZ;
+//        m_shadowFar = -posMinViewZ;
 
         // Calculate matrix that maps to [0, 1] UV space instead of [-1, 1] clip space
-        m_matWorldToUvzw.set(
-                0.5f,  0,    0, 0,
-                0,    0.5f, 0, 0,
-                0,     0,    0.5f, 0,
-                0.5f,  0.5f, 0.5f, 1);
-        Matrix4f.mul(m_matWorldToUvzw, m_matWorldToClip, m_matWorldToUvzw);
+//        m_matWorldToUvzw.set(
+//                0.5f,  0,    0, 0,
+//                0,    0.5f, 0, 0,
+//                0,     0,    0.5f, 0,
+//                0.5f,  0.5f, 0.5f, 1);
+//        Matrix4f.mul(m_matWorldToUvzw, m_matWorldToClip, m_matWorldToUvzw);
+        m_matWorldToUvzw.load(m_matWorldToClip);
 
         // Calculate inverse transpose matrix for transforming normals
         Matrix4f.getNormalMatrix(m_matWorldToUvzw, m_matWorldToUvzNormal);  // TODO need check

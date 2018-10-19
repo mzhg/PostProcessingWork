@@ -16,7 +16,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 
-final class SkyBoxRender implements Disposeable{
+public final class SkyBoxRender implements Disposeable{
 
 	int m_CubeTexture;
 	int m_CubeSampler;

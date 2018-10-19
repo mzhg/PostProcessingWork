@@ -24,5 +24,10 @@ void main()
     i_vtx.m_tangent = _input.m_tangent;
     i_vtx.m_curvature = _input.m_curvature;
 
-    SkinMegashader(i_vtx, o_vecCamera, o_uvzwShadow, Out_Color, %s, %s);
+//    float4 o_uvzwShadow = mul(float4(_input.m_pos, 1.0), g_matWorldToUvzwShadow);
+
+    float4 i_uvzwShadow = o_uvzwShadow;
+    i_uvzwShadow /= i_uvzwShadow.w;
+    i_uvzwShadow.xyz = i_uvzwShadow.xyz * 0.5 + 0.5;
+    SkinMegashader(i_vtx, o_vecCamera, i_uvzwShadow, Out_Color, %s, %s);
 }

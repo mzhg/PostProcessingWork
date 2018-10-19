@@ -42,6 +42,7 @@ layout(location =4) in float		In_curvature /*: CURVATURE*/;
 
 out VertexThrough
 {
+//    float       m_pos;
     float3		m_normal	/*: NORMAL*/;
     float2		m_uv		/*: UV*/;
     float3		m_tangent	/*: TANGENT*/;
@@ -67,6 +68,8 @@ void main(
     o_vtx.m_tangent = In_tangent;
     o_vtx.m_curvature = In_curvature;
 	o_vecCamera = g_posCamera - In_pos;
+//	o_vtx.m_pos = In_pos;
+
 	o_uvzwShadow = mul(float4(In_pos, 1.0), g_matWorldToUvzwShadow);
 	gl_Position = mul(float4(In_pos, 1.0), g_matWorldToClip);
 }

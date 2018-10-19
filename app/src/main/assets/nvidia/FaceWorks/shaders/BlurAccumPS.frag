@@ -22,7 +22,7 @@ void main()
 
     const float sssLevel = 1.;
     const float2 pixelSize = 1.0/float2(1280, 720);
-    const float width = 1280.;
+    const float width = 3.;
     const float maxdd = 0.001;
     const float correction = 1000.;
 
@@ -33,7 +33,8 @@ void main()
 
     float depth = textureLod(depthTex, m_f4UVAndScreenPos.xy, 0.).r;   // PointSampler
     float2 s_y = float2(sssLevel / (depth + correction * min(abs(ddy(depth)), maxdd)));
-    float2 finalWidth = width * s_y * pixelSize * float2(0.0, 1.0); // step = sssLevel * width * pixelSize * float2(0.0, 1.0)
+//    float2 finalWidth = width * s_y * pixelSize * float2(0.0, 1.0); // step = sssLevel * width * pixelSize * float2(0.0, 1.0)
+    float2 finalWidth = width * s_y * pixelSize * float2(.0, 1.0);
 
     float2 offset = m_f4UVAndScreenPos.xy - finalWidth;
 //    [unroll]

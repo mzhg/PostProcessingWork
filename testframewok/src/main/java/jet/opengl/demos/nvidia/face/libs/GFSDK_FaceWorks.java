@@ -1160,7 +1160,8 @@ public final class GFSDK_FaceWorks {
                 break;	// Nothing to do
 
             case ParallelProjection:
-                decodeDepthScale = -1.0f / pConfig.m_shadowProjMatrix.m22;
+                decodeDepthScale = -2.0f / pConfig.m_shadowProjMatrix.m22;
+//                decodeDepthBias = -pConfig.m_shadowProjMatrix.m32/pConfig.m_shadowProjMatrix.m22;
                 break;
 
             case PerspectiveProjection:

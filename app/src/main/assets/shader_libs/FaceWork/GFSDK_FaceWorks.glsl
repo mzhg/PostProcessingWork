@@ -341,7 +341,7 @@ float3 GFSDK_FaceWorks_EvaluateSSSDirectLight(
 	// Curvature-based scattering
 	float nvsf_NdotLBlurredUnclamped = dot(nvsf_normalBlurred, nvsf_vecToLight);
 	float nvsf_curvatureScaled = nvsf_curvature * nvsf_cb.nvsf_CurvatureScaleBias.x + nvsf_cb.nvsf_CurvatureScaleBias.y;
-	float2 nvsf_uvCurvatureLUT = { nvsf_NdotLBlurredUnclamped * 0.5 + 0.5, nvsf_curvatureScaled, };
+	float2 nvsf_uvCurvatureLUT = float2( nvsf_NdotLBlurredUnclamped * 0.5 + 0.5, nvsf_curvatureScaled );
 //	float3 nvsf_rgbCurvature = nvsf_texCurvatureLUT.Sample(nvsf_ss, nvsf_uvCurvatureLUT).rgb * 0.5 - 0.25;
 	float3 nvsf_rgbCurvature =texture(nvsf_texCurvatureLUT, nvsf_uvCurvatureLUT).rgb * 0.5 - 0.25;
 
@@ -373,11 +373,11 @@ float3 GFSDK_FaceWorks_EvaluateSSSShadow(
 
 	// Shadow penumbra scattering
 	float nvsf_NdotLGeom = saturate(dot(nvsf_normalGeom, nvsf_vecToLight));
-	float2 nvsf_uvShadowLUT =
-	{
+	float2 nvsf_uvShadowLUT = float2
+	(
 		nvsf_shadow,
-		nvsf_NdotLGeom * nvsf_cb.nvsf_ShadowScaleBias.x + nvsf_cb.nvsf_ShadowScaleBias.y,
-	};
+		nvsf_NdotLGeom * nvsf_cb.nvsf_ShadowScaleBias.x + nvsf_cb.nvsf_ShadowScaleBias.y
+	);
 //	return nvsf_texShadowLUT.Sample(nvsf_ss, nvsf_uvShadowLUT).rgb;
 	return texture(nvsf_texShadowLUT, nvsf_uvShadowLUT).rgb;
 }

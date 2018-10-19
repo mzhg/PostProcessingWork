@@ -89,11 +89,15 @@ void main(
     dummy.data[0] = float4(0);
     dummy.data[1] = float4(0);
     dummy.data[2] = float4(0);
+
+    float4 i_uvzwShadow = o_uvzwShadow;
+    i_uvzwShadow /= i_uvzwShadow.w;
+    i_uvzwShadow.xyz = i_uvzwShadow.xyz * 0.5 + 0.5;
     vec3 outColor;
 	LightingMegashader(
 		i_vtx,
 		o_vecCamera,
-		o_uvzwShadow,
+		i_uvzwShadow,
 		rgbaDiffuse.rgb,
 		float3(0.0),
 		float3(0.0),

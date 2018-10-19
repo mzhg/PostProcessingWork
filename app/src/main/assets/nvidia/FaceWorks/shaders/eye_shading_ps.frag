@@ -2,7 +2,6 @@
 
 in VertexThrough
 {
-//    float3		m_pos		/*: POSITION*/;
     float3		m_normal	/*: NORMAL*/;
     float2		m_uv		/*: UV*/;
     float3		m_tangent	/*: TANGENT*/;
@@ -24,5 +23,8 @@ void main()
     i_vtx.m_tangent = _input.m_tangent;
     i_vtx.m_curvature = _input.m_curvature;
 
-    EyeMegashader(i_vtx, o_vecCamera, o_uvzwShadow, Out_Color, %s, %s);
+    float4 i_uvzwShadow = o_uvzwShadow;
+    i_uvzwShadow /= i_uvzwShadow.w;
+    i_uvzwShadow.xyz = i_uvzwShadow.xyz * 0.5 + 0.5;
+    EyeMegashader(i_vtx, o_vecCamera, i_uvzwShadow, Out_Color, %s, %s);
 }

@@ -108,6 +108,7 @@ layout(binding = CB_FRAME) uniform cbFrame
 	float		g_deepScatterIntensity;		// Multiplier on whole deep scattering result
 	float		g_deepScatterNormalOffset;	// Normal offset for shadow lookup to calculate thickness
 
+//    float		g_deepScatterFalloff;
 	float		g_exposure;					// Exposure multiplier
 };
 #endif

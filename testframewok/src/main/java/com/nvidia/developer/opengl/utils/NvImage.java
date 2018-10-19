@@ -1385,7 +1385,7 @@ public class NvImage {
                         break;
 
                     case FOURCC_A16B16G16R16F:
-                        i._format = GL_RGBA;
+                        i._format = GLenum.GL_RGBA;
                         i._internalFormat = GL_RGBA16F;
                         i._type = GL_HALF_FLOAT_ARB;
                         bytesPerElement = 8;

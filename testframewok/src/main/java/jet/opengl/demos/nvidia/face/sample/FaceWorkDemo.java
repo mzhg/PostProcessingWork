@@ -7,6 +7,7 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,6 +17,8 @@ import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_DeepScatterConfig;
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_ErrorBlob;
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_ProjectionType;
 import jet.opengl.demos.nvidia.face.libs.GFSDK_FaceWorks_SSSConfig;
+import jet.opengl.demos.nvidia.waves.samples.SkyBoxRender;
+import jet.opengl.demos.postprocessing.hdr.SkyProgram;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -117,6 +120,8 @@ public class FaceWorkDemo extends NvSampleApp {
 
     CShadowMap					g_shadowmap;
     CVarShadowMap				g_vsm;
+
+    SkyBoxRender                g_skyProg;
 
     Texture2D               	g_pRtvNonSrgb = null;
 
@@ -232,7 +237,9 @@ public class FaceWorkDemo extends NvSampleApp {
         g_bkgndNight.Init("HDREnvironments\\night_env_cubemap.dds", "HDREnvironments\\night_diffuse_cubemap.dds", "HDREnvironments\\night_spec_cubemap.dds");
         g_bkgndTunnel.Init("HDREnvironments\\tunnel_env_cubemap.dds", "HDREnvironments\\tunnel_diffuse_cubemap.dds", "HDREnvironments\\tunnel_spec_cubemap.dds", 0.5f);
         g_pBkgndCur = g_bkgndCharcoal;
+//        g_bkgndForest.m_pSrvCubeDiff.setSwizzleRGBA(new int[]{ GLenum.GL_BLUE, GLenum.GL_GREEN, GLenum.GL_RED, GLenum.GL_ALPHA});
 
+        g_skyProg = new SkyBoxRender();
         // Load textures
 
 //        V_RETURN(DXUTFindDXSDKMediaFileCch(strPath, dim(strPath), L"curvatureLUT.bmp"));
@@ -532,6 +539,13 @@ public class FaceWorkDemo extends NvSampleApp {
         gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
 
+        g_skyProg.setCubemap(g_pBkgndCur.m_pSrvCubeDiff.getTexture());
+        g_skyProg.setProjectionMatrix(m_proj);
+        g_skyProg.setRotateMatrix(g_pSceneCur.Camera().getViewMatrix());
+        g_skyProg.draw();
+
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
+
         g_shdmgr.BindShadowTextures(
 //                pd3dContext,
                 g_shadowmap.m_pSrv,
@@ -660,8 +674,8 @@ public class FaceWorkDemo extends NvSampleApp {
                 deepScatterConfigSkin.m_shadowProjType = GFSDK_FaceWorks_ProjectionType.ParallelProjection;
                 deepScatterConfigSkin.m_shadowProjMatrix.load(g_shadowmap.m_matProj);
                 deepScatterConfigSkin.m_shadowFilterRadius = g_deepScatterShadowRadius / Math.min(g_shadowmap.m_vecDiam.x, g_shadowmap.m_vecDiam.y);
-                deepScatterConfigSkin.m_shadowNear =    g_shadowmap.m_shadowNear;
-                deepScatterConfigSkin.m_shadowFar = g_shadowmap.m_shadowFar;
+                deepScatterConfigSkin.m_shadowNear =    0;
+                deepScatterConfigSkin.m_shadowFar = 1;
 
                 deepScatterConfigEye.set(deepScatterConfigSkin);
 

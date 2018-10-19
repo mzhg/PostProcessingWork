@@ -1,6 +1,5 @@
 package jet.opengl.demos.nvidia.face.sample;
 
-import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.util.CommonUtil;
 

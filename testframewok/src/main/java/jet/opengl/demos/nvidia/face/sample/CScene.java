@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
@@ -80,6 +81,10 @@ interface CScene {
     }
 
     static TextureCube loadCubeTexture(String name){
+        return loadCubeTexture(name, false);
+    }
+
+    static TextureCube loadCubeTexture(String name, boolean mipmap){
         int texture = 0;
         NvImage.loadAsSRGB(false);
         NvImage.setDXTExpansion(false);
@@ -90,6 +95,10 @@ interface CScene {
             FileUtils.setIntenalFileLoader(old);  // reset to defualt.
         } catch (IOException e) {
             e.printStackTrace();
+        }
+
+        if(mipmap){
+            GLFuncProviderFactory.getGLFuncProvider().glGenerateTextureMipmap(texture);
         }
 
         return TextureUtils.createTextureCube(GLenum.GL_TEXTURE_CUBE_MAP, texture);
