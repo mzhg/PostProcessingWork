@@ -162,6 +162,7 @@ float3 EvaluateSpecularLight(
 	float edgeDarken = saturate(5.0 * dot(normalGeom, g_vecDirectionalLight));
 	float3 rgbLitSpecular = g_rgbDirectionalLight * (NdotL * edgeDarken * specResult * shadow);
 
+#if 1
 	// IBL spec - again two-lobe
 	float3 vecReflect = reflect(-vecCamera, normalShade);
 	float gloss0 = gloss;
@@ -173,7 +174,7 @@ float3 EvaluateSpecularLight(
 	float mipLevel1 = -9.0 * gloss1 + 9.0;
 	float3 iblSpec1 = fresnelIBL1 * textureLod(g_texCubeSpec, vecReflect, mipLevel1).xyz;  //g_ssTrilinearRepeat
 	rgbLitSpecular += lerp(iblSpec0, iblSpec1, specLobeBlend);
-
+#endif
 	return rgbLitSpecular;
 }
 

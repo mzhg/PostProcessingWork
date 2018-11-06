@@ -1174,8 +1174,6 @@ public final class GFSDK_FaceWorks {
                 return GFSDK_FaceWorks_Result.InvalidArgument;
         }
 
-
-
         // Output to user buffer
         pCBDataOut.data[5] = deepScatterFalloff;
         pCBDataOut.data[6] = pConfig.m_shadowFilterRadius;

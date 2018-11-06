@@ -8,6 +8,8 @@ import com.nvidia.developer.opengl.utils.NvImage;
 import org.lwjgl.opengl.EXTTextureCompressionLATC;
 import org.lwjgl.opengl.EXTTextureCompressionS3TC;
 import org.lwjgl.opengles.NVTextureCompressionS3TC;
+import org.lwjgl.util.vector.Matrix;
+import org.lwjgl.util.vector.Matrix4f;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,6 +19,7 @@ import java.io.InputStream;
 
 import jet.opengl.demos.labs.scattering.AtmosphereTest;
 import jet.opengl.demos.labs.scattering.Chapman;
+import jet.opengl.demos.labs.skylight.SkyImage;
 import jet.opengl.demos.nvidia.face.sample.FaceWorkDemo;
 import jet.opengl.demos.nvidia.face.sample.FaceWorkTest;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
@@ -126,8 +129,20 @@ public class DemoApp {
 //        run(new TestD3D11());
 //        run(new Chapman());
 //        run(new AtmosphereTest());
-        run(new FaceWorkDemo());
+//        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
+
+        /*Matrix4f orth = Matrix4f.ortho(10, 10, 0, 100, null);
+        float scale = -2/orth.m22;
+        System.out.println("0.1 = " + (0.1 * scale));
+        System.out.println("1 = " +   scale);*/
+
+        SkyImage.main(args);
+        double a = Math.pow(400, -4);
+        double b = Math.pow(700, -4);
+        System.out.println(a/b);
+
+
     }
 
     private static void testRectVertex(){

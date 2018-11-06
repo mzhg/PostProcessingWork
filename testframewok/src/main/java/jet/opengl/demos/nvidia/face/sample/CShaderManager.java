@@ -1,5 +1,7 @@
 package jet.opengl.demos.nvidia.face.sample;
 
+import com.nvidia.developer.opengl.utils.NvImage;
+
 import org.lwjgl.util.vector.Matrix4f;
 
 import java.io.IOException;

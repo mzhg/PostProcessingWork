@@ -6,49 +6,49 @@ import org.lwjgl.util.vector.ReadableVector4f;
 
 import java.util.Arrays;
 
-public class StackFloat {
+public class StackDouble {
 
-	private float[] items;
+	private double[] items;
 	private transient int size;
 
-	public StackFloat() {
-		items = Numeric.EMPTY_FLOAT;
+	public StackDouble() {
+		items = Numeric.EMPTY_DOUBLE;
 	}
 
-	public StackFloat(int capacity) {
+	public StackDouble(int capacity) {
 		capacity = capacity < 1 ? 1 : capacity;
-		items = new float[capacity];
+		items = new double[capacity];
 	}
 
-	public float set(int index, float value) {
+	public double set(int index, double value) {
 		if (index >= size)
 			throw new IndexOutOfBoundsException("index = " + index + ", size = " + size);
 
-		float old = items[index];
+		double old = items[index];
 		items[index] = value;
 
 		return old;
 	}
 	
-	public void addAll(StackFloat ints){
+	public void addAll(StackDouble ints){
 		for(int i = 0; i < ints.size;i++){
 			push(ints.get(i));
 		}
 	}
 	
-	public void copyFrom(StackFloat ints){
+	public void copyFrom(StackDouble ints){
 		size = 0;
 		addAll(ints);
 	}
 
-	public void plus(int index, float value) {
+	public void plus(int index, double value) {
 		if (index < 0 || index >= size)
 			throw new IndexOutOfBoundsException();
 
 		items[index] += value;
 	}
 
-	public void push(float item) {
+	public void push(double item) {
 		if (size == items.length)
 			items = Arrays.copyOf(items, Math.max(16, items.length * 2));
 
@@ -84,32 +84,32 @@ public class StackFloat {
 	public void clear() {
 		size = 0;
 		if (items.length >= 256) {
-			items = Numeric.EMPTY_FLOAT;
+			items = Numeric.EMPTY_DOUBLE;
 		}
 	}
 
-	public float pop() {
+	public double pop() {
 		if (isEmpty())
 			throw new NullPointerException("stack is empty!");
 
 		return items[--size];
 	}
 
-	public float[] getData() {
+	public double[] getData() {
 		return items;
 	}
 
-	public float[] toArray() {
-		float[] tmp = new float[size];
+	public double[] toArray() {
+		double[] tmp = new double[size];
 		System.arraycopy(items, 0, tmp, 0, size);
 		return tmp;
 	}
 
-	public float get(int index) {
+	public double get(int index) {
 		return items[index];
 	}
 
-	public float peer() {
+	public double peer() {
 		if (isEmpty())
 			throw new NullPointerException("stack is empty!");
 
@@ -126,7 +126,7 @@ public class StackFloat {
 		if (size < 0)
 			throw new IllegalArgumentException("size < 0");
 		if (size >= items.length)
-			items = new float[size];
+			items = new double[size];
 		Arrays.fill(items, 0, size, value);
 
 		this.size = size;
@@ -142,8 +142,8 @@ public class StackFloat {
 		this.size = size;
 	}
 	
-	public StackFloat copy(){
-		StackFloat sf = new StackFloat(size);
+	public StackDouble copy(){
+		StackDouble sf = new StackDouble(size);
 		System.arraycopy(items, 0, sf.items, 0, size);
 		return sf;
 	}

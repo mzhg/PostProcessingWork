@@ -217,7 +217,7 @@ float4 UnpackEdges( float _packedVal )
     return saturate( edgesLRTB + g_ASSAOConsts.InvSharpness );
 }
 
-float ScreenSpaceToViewSpaceDepth( float screenDepth )
+float  ( float screenDepth )
 {
     float depthLinearizeMul = g_ASSAOConsts.DepthUnpackConsts.x;
     float depthLinearizeAdd = g_ASSAOConsts.DepthUnpackConsts.y;

@@ -2,6 +2,7 @@ apply plugin: 'java-library'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    compile project(path: ':postprocessingcore')
 }
 
 sourceCompatibility = "7"
