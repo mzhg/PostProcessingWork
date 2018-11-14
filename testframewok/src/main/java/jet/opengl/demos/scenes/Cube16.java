@@ -475,7 +475,7 @@ public class Cube16 implements GLEventListener {
 
 	final class SceneController {
 
-		int lightMode = LIGHT_TYPE_SPOT;
+		int lightMode = LIGHT_TYPE_DIRECTIONAL;
 		int lightPower_;
 		int viewpoint_ = 1;
 
