@@ -15,9 +15,11 @@ uniform float g_ZNear;
 uniform bool g_UseAngleOptimization;
 uniform float g_rSamplingRate;
 
-layout(binding = 0) uniform sampler2D s0;
-layout(binding = 1) uniform sampler2D DepthBufferTexture;
-layout(binding = 2) uniform sampler2D NoiseTexture;
+layout(binding = 0) uniform sampler2D s0;                  // samplerDepthMinMax
+layout(binding = 1) uniform sampler2D DepthBufferTexture;  // samplerPoint
+layout(binding = 2) uniform sampler2D NoiseTexture;        // samplerLinear
+layout(binding = 3) uniform sampler2DShadow DepthTexture;  // samplerPoint_Less
+layout(binding = 4) uniform sampler2DShadow s1;  // samplerPoint_Greater
 
 #define int2 ivec2
 
@@ -36,8 +38,10 @@ void main()
     positionWS.w = 1.0 / positionWS.w;
     positionWS.xyz *= positionWS.w;
     
-    float3 vecForward = normalize( positionWS.xyz - g_EyePosition.xyz );
-    float traceDistance = dot( positionWS.xyz - ( g_EyePosition.xyz + vecForward * g_ZNear ), vecForward );
+    vec3 vecForward = normalize( positionWS.xyz - g_EyePosition.xyz );
+    float traceDistance = // dot( positionWS.xyz - ( g_EyePosition.xyz + vecForward * g_ZNear ), vecForward );
+            length(positionWS.xyz - ( g_EyePosition.xyz + vecForward * g_ZNear ));
+
     traceDistance = clamp( traceDistance, 0.0, 2500.0 ); // Far trace distance
     
     positionWS.xyz = g_EyePosition.xyz + vecForward * g_ZNear;
@@ -57,26 +61,26 @@ void main()
     float step = length( vecForward );
     float scale = step * 0.0005; // Set base brightness factor
     float4 shadowUV;
-    float3 coordinates;
+    vec3 coordinates;
     
     // Calculate coordinate delta ( coordinate step in ligh space )
     float3 curPosition = positionWS.xyz + vecForward * jitter;
     shadowUV = mul( float4( curPosition, 1.0 ), g_ModelLightProj );
     coordinates = shadowUV.xyz / shadowUV.w;
     coordinates.x = ( coordinates.x + 1.0 ) * 0.5;
-    coordinates.y = ( 1.0 - coordinates.y ) * 0.5;
+    coordinates.y = ( 1.0 + coordinates.y ) * 0.5;
     coordinates.z = dot( curPosition - g_LightPosition, g_LightForward );
 
     curPosition = positionWS.xyz + vecForward * ( 1.0 + jitter );
     shadowUV = mul( float4( curPosition, 1.0 ), g_ModelLightProj );
-    float3 coordinateEnd = shadowUV.xyz / shadowUV.w;
+    vec3 coordinateEnd = shadowUV.xyz / shadowUV.w;
     coordinateEnd.x = ( coordinateEnd.x + 1.0 ) * 0.5;
-    coordinateEnd.y = ( 1.0 - coordinateEnd.y ) * 0.5;
+    coordinateEnd.y = ( 1.0 + coordinateEnd.y ) * 0.5;
     coordinateEnd.z = dot( curPosition - g_LightPosition, g_LightForward );
 
-    float3 coordinateDelta = coordinateEnd - coordinates;
+    vec3 coordinateDelta = coordinateEnd - coordinates;
 
-    float2 vecForwardProjection;
+    vec2 vecForwardProjection;
     vecForwardProjection.x = dot( g_LightRight, vecForward );
     vecForwardProjection.y = dot( g_LightUp, vecForward );
 
@@ -91,19 +95,19 @@ void main()
     float isLongStep;
     float longStepScale_1 = longStepScale - 1;
 
-    float longStepsNum = 0; 
-    float realStepsNum = 0;
+    float longStepsNum = 0.;
+    float realStepsNum = 0.;
     
-    for( uint i = 0; i < stepsNum; i++ )
+    for( int i = 0; i < stepsNum; i++ )
     {
-        sampleMinMax = s0.SampleLevel( samplerDepthMinMax, coordinates.xy, 0 ).xy;
+        sampleMinMax = textureLod(s0, coordinates.xy, 0.0 ).xy;    // samplerDepthMinMax
         
         // Use point sampling. Linear sampling can cause the whole coarse step being incorrect
-        sampleFine = DepthTexture.SampleCmpLevelZero( samplerPoint_Less, coordinates.xy, coordinates.z );
+        sampleFine = textureLod(DepthTexture , coordinates.xyz, 0.0 );  // samplerPoint_Less
 
-        float zStart = s1.SampleLevel( samplerPoint, coordinates.xy, 0 );
+        float zStart = textureLod(s1, coordinates.xy, 0.0 );     // samplerPoint
         
-        const float transactionScale = 100.0f;
+        const float transactionScale = 100.0;
         
         // Add some attenuation for smooth light fading out
         float attenuation = ( coordinates.z - zStart ) / ( ( sampleMinMax.y + transactionScale ) - zStart );
@@ -117,7 +121,7 @@ void main()
         attenuation *= attenuation2;
         
         // Use this value to incerase light factor for "indoor" areas
-        float density = s1.SampleCmpLevelZero( samplerPoint_Greater, coordinates.xy, coordinates.z );
+        float density = textureLod(s1 , coordinates.xyz, 0.0 );   // samplerPoint_Greater
         density *= 10.0 * attenuation;
         density += 0.25;
         sampleFine *= density;
@@ -141,7 +145,7 @@ void main()
             light += scale * sampleFine * ( 1.0 + isLongStep * longStepScale_1 ); // longStepScale should be >= 1 if we use a coarse step
 
             coordinates += coordinateDelta * ( 1.0 + isLongStep * longStepScale_1 );
-            i += isLongStep * longStepScale_1;
+            i += int(isLongStep * longStepScale_1);
         }
         else
         {

@@ -14,10 +14,8 @@ import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
-import jet.opengl.postprocessing.texture.TextureDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.Numeric;
-import sun.swing.plaf.GTKKeybindings;
 
 public class VolumeLightProcess implements Disposeable {
     public static final int SHADOW_MIPS	= 4;
@@ -105,10 +103,16 @@ public class VolumeLightProcess implements Disposeable {
     private GLSLProgram m_PropagateMaxDepth;
     private GLSLProgram m_PropagateMinDepth_0;
     private GLSLProgram m_PropagateMinDepth_1;
+    private GLSLProgram m_LightCompute;
+    private GLSLProgram m_EdgeDetection;
+    private GLSLProgram m_GradientBlur;
+    private GLSLProgram m_ImageBlur;
+    private GLSLProgram m_BlendFullscreen;
 
     private GLFuncProvider gl;
     private RenderTargets m_fbo;
     private int  m_dummyVAO;
+    private boolean m_printOnce;
 
     public void initlizeGL(int shadowMapSize){
         gl = GLFuncProviderFactory.getGLFuncProvider();
@@ -208,6 +212,11 @@ public class VolumeLightProcess implements Disposeable {
         return hr;*/
     }
 
+    private void printProgram(GLSLProgram program){
+        if(!m_printOnce)
+            program.printPrograminfo();
+    }
+
     public void renderVolumeLight(Texture2D shadowMap, float lightNear, float lightFar){
         m_fbo.bind();
         gl.glBindVertexArray(m_dummyVAO);
@@ -225,6 +234,7 @@ public class VolumeLightProcess implements Disposeable {
         gl.glBindSampler(0, m_samplerPoint);
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        printProgram(m_LinearDepthProgram);
 
         // 2, Downscale Depth, produce Min and Max mips for optimized tracing
         m_fbo.setRenderTexture(g_pShadowMapTextureScaled[0], null);
@@ -234,6 +244,7 @@ public class VolumeLightProcess implements Disposeable {
         setBufferSizeInv(m_MinMax2x2_1, g_pShadowMapTextureScaled[0].getWidth(), g_pShadowMapTextureScaled[0].getHeight());
         gl.glBindTextureUnit(0, g_pShadowMapTextureWorld.getTexture());
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        printProgram(m_MinMax2x2_1);
 
         for( int i = 0; i < SHADOW_MIPS - 1; i++ ){
             m_fbo.setRenderTexture(g_pShadowMapTextureScaled[i + 1], null);
@@ -245,6 +256,8 @@ public class VolumeLightProcess implements Disposeable {
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         }
 
+        printProgram(m_MinMax2x2_2);
+
         m_fbo.setRenderTexture(g_pShadowMapTextureScaledOpt, null);
         gl.glViewport(0,0,g_pShadowMapTextureScaledOpt.getWidth(), g_pShadowMapTextureScaledOpt.getHeight());
 
@@ -252,6 +265,7 @@ public class VolumeLightProcess implements Disposeable {
         setBufferSizeInv(m_MinMax3x3, g_pShadowMapTextureScaledOpt.getWidth(), g_pShadowMapTextureScaledOpt.getHeight());
         gl.glBindTextureUnit(0, g_pShadowMapTextureScaled[SHADOW_MIPS - 1].getTexture());
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        printProgram(m_MinMax3x3);
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //
@@ -280,7 +294,7 @@ public class VolumeLightProcess implements Disposeable {
         m_PropagateMinDepth_0.enable();
         gl.glBindTextureUnit(0, g_pShadowMapTextureScaled[SHADOW_HOLE_MIP].getTexture());
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
-
+        printProgram(m_PropagateMinDepth_0);
         int oddPass = 0;
 
         for( int i = 0; i < 2; i++, oddPass = 1 - oddPass )
@@ -295,6 +309,8 @@ public class VolumeLightProcess implements Disposeable {
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         }
 
+        printProgram(m_PropagateMinDepth_1);
+
         for( int i = 0; i < 5; i++, oddPass = 1 - oddPass )
         {
 //            pd3dDevice->OMSetRenderTargets( 1, &g_pShadowMapTextureHoleRTV[1 - oddPass], NULL );
@@ -307,8 +323,71 @@ public class VolumeLightProcess implements Disposeable {
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         }
 
+        printProgram(m_PropagateMaxDepth);
+
+        // do the ray marching step to compute the radiance
+        {
+            m_fbo.setRenderTexture(g_pHDRTextureScaled, null);
+            gl.glViewport(0,0,g_pHDRTextureScaled.getWidth(), g_pHDRTextureScaled.getHeight());
+            m_LightCompute.enable();
+            // TODO texture binding
+            // TODO Uniform sampler set up
+
+            printProgram(m_LightCompute);
+        }
+
+        m_fbo.setRenderTexture(g_pDepthBufferTextureWS, null);
+        gl.glViewport(0,0,g_pDepthBufferTextureWS.getWidth(), g_pDepthBufferTextureWS.getHeight());
+        m_LinearDepthProgram.enable();
+        m_LinearDepthProgram.setCameraRange(lightNear, lightFar);  // TODO
+        m_LinearDepthProgram.setSampleIndex(0);
+        // TODO binding depth texture
+        setBufferSizeInv(m_LinearDepthProgram, g_pDepthBufferTextureWS.getWidth(), g_pDepthBufferTextureWS.getHeight());
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        printProgram(m_LinearDepthProgram);
+
+        // Perform edge detection based on the depth discontinuities
+        m_fbo.setRenderTexture(g_pEdgeTextureFS, null);
+        gl.glViewport(0,0,g_pEdgeTextureFS.getWidth(), g_pEdgeTextureFS.getHeight());
+        m_EdgeDetection.enable();
+        gl.glBindTextureUnit(0, g_pDepthBufferTextureWS.getTexture());
+        setBufferSizeInv(m_EdgeDetection, g_pDepthBufferTextureWS.getWidth(), g_pDepthBufferTextureWS.getHeight());
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        printProgram(m_EdgeDetection);
+
+        // Blur the image along the edges
+        m_fbo.setRenderTexture(g_pHDRTextureScaled2, null);
+        gl.glViewport(0,0,g_pHDRTextureScaled2.getWidth(), g_pHDRTextureScaled2.getHeight());
+        m_GradientBlur.enable();
+
+        gl.glBindTextureUnit(0, g_pHDRTextureScaled.getTexture());
+        gl.glBindTextureUnit(1, g_pEdgeTextureFS.getTexture());
+        // TODO don't forget sampler.
+        setBufferSizeInv(m_GradientBlur, g_pDepthBufferTextureWS.getWidth(), g_pDepthBufferTextureWS.getHeight());
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        printProgram(m_GradientBlur);
+
+        // Blur the image with 3x3 kernel
+        m_fbo.setRenderTexture(g_pHDRTextureScaled3, null);
+        gl.glViewport(0,0,g_pHDRTextureScaled3.getWidth(), g_pHDRTextureScaled3.getHeight());
+        gl.glBindTextureUnit(0, g_pHDRTextureScaled2.getTexture());
+        m_ImageBlur.enable();
+        setBufferSizeInv(m_ImageBlur, g_pHDRTextureScaled2.getWidth(), g_pHDRTextureScaled2.getHeight());
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        printProgram(m_ImageBlur);
+
+        // Blend Volume Light with main scene
+        m_fbo.setRenderTexture(g_pHDRTexture, null);
+        gl.glViewport(0,0, g_pHDRTexture.getWidth(), g_pHDRTexture.getHeight());
+        gl.glBindTextureUnit(0, g_pHDRTextureScaled.getTexture());
+//        gl.glBindTextureUnit(1, g_pHDRTextureScaled3.getTexture());
+        m_BlendFullscreen.enable();
+        // TODO here need blend state
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+        printProgram(m_BlendFullscreen);
 
     }
+
 
     private void setBufferSizeInv(GLSLProgram program, float width, float height){
         int index = program.getUniformLocation("g_BufferWidthInv");
@@ -327,12 +406,29 @@ public class VolumeLightProcess implements Disposeable {
             final String quadVertex = "shader_libs/PostProcessingDefaultScreenSpaceVS.vert";
             final String root = "VolumeLight/shaders/";
             m_LinearDepthProgram = new PostProcessingReconstructCameraZProgram(false);
+            m_LinearDepthProgram.setName("LinearDepth");
             m_MinMax2x2_1 = GLSLProgram.createFromFiles(quadVertex, root+"MinMax2x2_1PS.frag");
+            m_MinMax2x2_1.setName("MinMax2x2_1");
             m_MinMax2x2_2 = GLSLProgram.createFromFiles(quadVertex, root+"MinMax2x2_2PS.frag");
+            m_MinMax2x2_2.setName("MinMax2x2_2");
             m_MinMax3x3 = GLSLProgram.createFromFiles(quadVertex, root+"MinMax3x3PS.frag");
+            m_MinMax3x3.setName("MinMax3x3");
             m_PropagateMaxDepth = GLSLProgram.createFromFiles(quadVertex, root+"PropagateMaxDepthPS.frag");
+            m_PropagateMaxDepth.setName("PropagateMaxDepth");
             m_PropagateMinDepth_0 = GLSLProgram.createFromFiles(quadVertex, root+"PropagateMinDepth_0PS.frag");
+            m_PropagateMinDepth_0.setName("PropagateMinDepth_0");
             m_PropagateMinDepth_1 = GLSLProgram.createFromFiles(quadVertex, root+"PropagateMinDepth_1PS.frag");
+            m_PropagateMinDepth_1.setName("PropagateMinDepth_1");
+            m_LightCompute = GLSLProgram.createFromFiles(quadVertex, root+"PS_TracingFullscreen.frag");
+            m_LightCompute.setName("LightCompute");
+            m_EdgeDetection = GLSLProgram.createFromFiles(quadVertex, root+"EdgeDetectionPS.frag");
+            m_EdgeDetection.setName("EdgeDetection");
+            m_GradientBlur = GLSLProgram.createFromFiles(quadVertex, root+"GradientBlurPS.frag");
+            m_GradientBlur.setName("GradientBlur");
+            m_ImageBlur = GLSLProgram.createFromFiles(quadVertex, root+"ImageBlurPS.frag");
+            m_ImageBlur.setName("ImageBlur");
+            m_BlendFullscreen = GLSLProgram.createFromFiles(quadVertex, root+"BlendLightPS.frag");
+            m_BlendFullscreen.setName("BlendFullscreen");
         } catch (IOException e) {
             e.printStackTrace();
         }

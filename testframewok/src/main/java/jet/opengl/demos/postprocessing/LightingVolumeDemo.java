@@ -3,6 +3,7 @@ package jet.opengl.demos.postprocessing;
 import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
+import jet.opengl.demos.nvidia.volumelight.VolumeLightProcess;
 import jet.opengl.demos.scenes.Cube16;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -31,6 +32,8 @@ public class LightingVolumeDemo extends NvSampleApp {
     private LightScatteringInitAttribs m_InitAttribs;
     private LightScatteringFrameAttribs m_LightFrameAttribs;
 
+    private VolumeLightProcess m_volumeLight;
+
     @Override
     protected void initRendering() {
         getGLContext().setSwapInterval(0);
@@ -40,6 +43,9 @@ public class LightingVolumeDemo extends NvSampleApp {
         fullscreenProgram = new FullscreenProgram();
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();
+
+        m_volumeLight = new VolumeLightProcess();
+        m_volumeLight.initlizeGL(m_Scene.getShadowMapResolution());
 
         m_PostProcessing = new PostProcessing();
         m_frameAttribs = new PostProcessingFrameAttribs();
@@ -64,7 +70,11 @@ public class LightingVolumeDemo extends NvSampleApp {
 
     @Override
     protected void reshape(int width, int height) {
+        if(width <= 0 || height <= 0)
+            return;
+
         m_Scene.onResize(width, height);
+        m_volumeLight.onResize(width, height);
 
         m_InitAttribs.m_uiBackBufferWidth = width;
         m_InitAttribs.m_uiBackBufferHeight = height;
@@ -73,6 +83,7 @@ public class LightingVolumeDemo extends NvSampleApp {
     @Override
     public void display() {
         m_Scene.draw();
+//        if(true) return;
 
         {
             // post processing...

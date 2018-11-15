@@ -12,7 +12,7 @@ void main()
 {
     vec4 vColor = texture(s0,  m_f4UVAndScreenPos.xy );   // samplerPointClamp
     float vLum = texture(s1, vec2(0,0) ).r;               // samplerPointClamp
-    vec3 vBloom = texture(s2,  m_f4UVAndScreenPos.xy );  // samplerLinearClamp
+    vec3 vBloom = texture(s2,  m_f4UVAndScreenPos.xy ).rgb;  // samplerLinearClamp
 
     // Tone mapping
     vColor.rgb *= MIDDLE_GRAY / ( vLum + 0.001f );

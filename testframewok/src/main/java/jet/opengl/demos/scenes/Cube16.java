@@ -117,6 +117,8 @@ public class Cube16 implements GLEventListener {
     	
     	mTweakBar = tweakBar;
 	}
+
+	public int getShadowMapResolution() { return m_uiShadowMapResolution;}
 	
 	@Override
 	public void onCreate() {

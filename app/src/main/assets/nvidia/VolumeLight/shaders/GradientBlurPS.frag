@@ -6,12 +6,13 @@ uniform float g_BufferWidthInv;
 uniform float g_BufferHeightInv;
 
 layout(binding = 0) uniform sampler2D s0;
+layout(binding = 1) uniform sampler2D s1;
 
 #define float2 vec2
 
 void main()
 {
-    float2 gradient = texture( s0, m_f4UVAndScreenPos.xy ).xy;   // samplerLinearClamp
+    float2 gradient = texture( s1, m_f4UVAndScreenPos.xy ).xy;   // samplerLinearClamp
     float2 offset;
 
     offset.x = g_BufferWidthInv * gradient.y;
