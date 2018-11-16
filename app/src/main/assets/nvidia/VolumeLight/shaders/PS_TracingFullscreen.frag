@@ -6,7 +6,7 @@ out float Out_Light;
 
 uniform float g_BufferWidthInv;
 uniform float g_BufferHeightInv;
-uniform bool useZOptimizations;
+uniform bool useZOptimizations = true;
 
 uniform mat4 g_MWorldViewProjectionInv;
 uniform mat4 g_ModelLightProj;
@@ -15,11 +15,20 @@ uniform float g_ZNear;
 uniform bool g_UseAngleOptimization;
 uniform float g_rSamplingRate;
 
+uniform vec3 g_LightForward;
+uniform vec3 g_LightPosition;
+uniform vec3 g_LightRight;
+uniform vec3 g_LightUp;
+uniform vec2 g_CoarseDepthTexelSize;
+
 layout(binding = 0) uniform sampler2D s0;                  // samplerDepthMinMax
 layout(binding = 1) uniform sampler2D DepthBufferTexture;  // samplerPoint
 layout(binding = 2) uniform sampler2D NoiseTexture;        // samplerLinear
 layout(binding = 3) uniform sampler2DShadow DepthTexture;  // samplerPoint_Less
 layout(binding = 4) uniform sampler2DShadow s1;  // samplerPoint_Greater
+layout(binding = 5) uniform sampler2D s2;  // samplerPoint
+
+#define MAX_STEPS 2000
 
 #define int2 ivec2
 
@@ -105,7 +114,7 @@ void main()
         // Use point sampling. Linear sampling can cause the whole coarse step being incorrect
         sampleFine = textureLod(DepthTexture , coordinates.xyz, 0.0 );  // samplerPoint_Less
 
-        float zStart = textureLod(s1, coordinates.xy, 0.0 );     // samplerPoint
+        float zStart = textureLod(s2, coordinates.xy, 0.0 ).x;     // samplerPoint
         
         const float transactionScale = 100.0;
         
@@ -152,12 +161,12 @@ void main()
             light += scale * sampleFine;
             coordinates += coordinateDelta;
         }
-    }
 
-    // Do correction for final coarse steps.
-    if( useZOptimizations )
-    {
-        light -= scale * sampleFine * ( i - stepsNum );
+        // Do correction for final coarse steps.
+        if( useZOptimizations )
+        {
+            light -= scale * sampleFine * ( i - stepsNum );
+        }
     }
 
     //return longStepsNum / realStepsNum;

@@ -24,6 +24,7 @@ import jet.opengl.demos.nvidia.face.sample.FaceWorkDemo;
 import jet.opengl.demos.nvidia.face.sample.FaceWorkTest;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
+import jet.opengl.demos.postprocessing.HBAODemo;
 import jet.opengl.demos.postprocessing.LightingVolumeDemo;
 import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
 import jet.opengl.postprocessing.util.FileLoader;

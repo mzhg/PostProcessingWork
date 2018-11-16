@@ -3,6 +3,7 @@ package jet.opengl.demos.postprocessing;
 import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
+import jet.opengl.demos.nvidia.volumelight.VolumeLightParams;
 import jet.opengl.demos.nvidia.volumelight.VolumeLightProcess;
 import jet.opengl.demos.scenes.Cube16;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -33,6 +34,7 @@ public class LightingVolumeDemo extends NvSampleApp {
     private LightScatteringFrameAttribs m_LightFrameAttribs;
 
     private VolumeLightProcess m_volumeLight;
+    private final VolumeLightParams m_volumeParams = new VolumeLightParams();
 
     @Override
     protected void initRendering() {
@@ -82,8 +84,24 @@ public class LightingVolumeDemo extends NvSampleApp {
 
     @Override
     public void display() {
-        m_Scene.draw();
-//        if(true) return;
+        m_Scene.draw(false);
+
+        m_volumeParams.sceneColor = m_Scene.getSceneColor();
+        m_volumeParams.sceneDepth = m_Scene.getSceneDepth();
+        m_volumeParams.cameraNear = m_Scene.getSceneNearPlane();
+        m_volumeParams.cameraFar =  m_Scene.getSceneFarPlane();
+        m_volumeParams.cameraView.load(m_Scene.getViewMat());
+        m_volumeParams.cameraProj.load(m_Scene.getProjMat());
+        m_volumeParams.lightNear = m_Scene.getLightNearPlane();
+        m_volumeParams.lightFar = m_Scene.getLightFarlane();
+        m_volumeParams.lightView.load(m_Scene.getLightViewMat());
+        m_volumeParams.lightProj.load(m_Scene.getLightProjMat());
+        m_volumeParams.shadowMap = m_Scene.getShadowMap();
+
+        m_volumeLight.renderVolumeLight(m_volumeParams);
+        m_Scene.resolve();
+
+        if(true) return;
 
         {
             // post processing...

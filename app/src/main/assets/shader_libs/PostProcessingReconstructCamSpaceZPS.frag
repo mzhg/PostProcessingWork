@@ -13,8 +13,8 @@ uniform sampler2D g_DepthTexture;
 
 uniform float2 g_Uniforms;
 
-#define g_fFarPlaneZ g_Uniforms.x
-#define g_fNearPlaneZ g_Uniforms.y
+#define g_fNearPlaneZ g_Uniforms.x
+#define g_fFarPlaneZ g_Uniforms.y
 
 void main()
 {

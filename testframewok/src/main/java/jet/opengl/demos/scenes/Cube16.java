@@ -38,7 +38,7 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 
-public class Cube16 implements GLEventListener {
+public class Cube16 {
 
 	private final int m_uiShadowMapResolution = 1024;
 
@@ -120,7 +120,6 @@ public class Cube16 implements GLEventListener {
 
 	public int getShadowMapResolution() { return m_uiShadowMapResolution;}
 	
-	@Override
 	public void onCreate() {
 		gl = GLFuncProviderFactory.getGLFuncProvider();
 		Texture2DDesc shadowMapDesc = new Texture2DDesc(m_uiShadowMapResolution, m_uiShadowMapResolution, GLenum.GL_DEPTH_COMPONENT32F);
@@ -154,7 +153,6 @@ public class Cube16 implements GLEventListener {
 		m_pScene = new SceneController(m_Transformer);
 	}
 
-	@Override
 	public void onResize(int width, int height) {
 		if(width == 0 || height == 0)
 			return;
@@ -187,8 +185,11 @@ public class Cube16 implements GLEventListener {
 		GLCheck.checkError();
 	}
 
-	@Override
-	public void draw() {
+	public void draw(){
+		draw(true);
+	}
+
+	public void draw(boolean resovled) {
 		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 		gl.glViewport(0, 0, m_pOffscreenRenderTarget.getWidth(), m_pOffscreenRenderTarget.getHeight());
 		gl.glClearColor(0.350f,  0.350f,  0.350f, 1.0f);
@@ -203,9 +204,14 @@ public class Cube16 implements GLEventListener {
 			showShadownMap();
 			return;
 		}
-		
-		renderTexture(m_pOffscreenRenderTarget);
+
+		if(resovled)
+			renderTexture(m_pOffscreenRenderTarget);
 		m_bPrintProgram = true;
+	}
+
+	public void resolve(){
+		renderTexture(m_pOffscreenRenderTarget);
 	}
 
 	public Texture2D getSceneColor() { return m_pOffscreenRenderTarget;}
@@ -443,7 +449,6 @@ public class Cube16 implements GLEventListener {
 		program.setupUniforms(m_ViewCBStruct);
 	}
 	
-	@Override
 	public void onDestroy() {
 		if(m_pShadowMap != null){
 			m_pShadowMap.dispose();
@@ -471,13 +476,15 @@ public class Cube16 implements GLEventListener {
 	public Vector3f getLightPos()   { return m_LightCBStruct.vLightPos;}
 	public Matrix4f getLightProjMat() { return m_pScene.lightProj;}
 	public Matrix4f getLightViewMat() { return m_LightCBStruct.mLightView;}
+	public float getLightNearPlane(){ return m_LightCBStruct.zNear;}
+	public float getLightFarlane()  { return m_LightCBStruct.zFar;}
 	public int getLightMode() {	return m_pScene.getLightMode();}
 
 	public Texture2D getShadowMap() { return m_pShadowMap;}
 
 	final class SceneController {
 
-		int lightMode = LIGHT_TYPE_DIRECTIONAL;
+		int lightMode = LIGHT_TYPE_SPOT;
 		int lightPower_;
 		int viewpoint_ = 1;
 

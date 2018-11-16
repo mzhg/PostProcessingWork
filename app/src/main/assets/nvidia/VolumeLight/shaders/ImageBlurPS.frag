@@ -7,7 +7,7 @@ uniform float g_BufferHeightInv;
 
 layout(binding = 0) uniform sampler2D s0;
 
-#define float2 vec2
+#define int2 ivec2
 
 void main()
 {

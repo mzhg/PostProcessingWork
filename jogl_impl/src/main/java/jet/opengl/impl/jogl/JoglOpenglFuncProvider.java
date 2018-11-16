@@ -14,6 +14,7 @@ import jet.opengl.postprocessing.common.GLAPI;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.common.GPUMemoryInfo;
 import jet.opengl.postprocessing.texture.NativeAPI;
 import jet.opengl.postprocessing.util.BufferUtils;
 
@@ -1388,6 +1389,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glProgramBinary(int program, int binaryFormat, ByteBuffer binary) {
+
+    }
+
+    @Override
     public void glProgramParameteri(int program, int pname, int value) {
         gl.glProgramParameteri(program, pname, value);
     }
@@ -1954,5 +1960,20 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glBindFragDataLocation(int program, int index, String name) {
         gl.glBindFragDataLocation(program, index, name);
+    }
+
+    @Override
+    public void glClearNamedBufferData(int buffer, int internalformat, int format, int type, Buffer data) {
+        gl.glClearNamedBufferData(buffer, internalformat, format, type, data);
+    }
+
+    @Override
+    public void glClearNamedBufferSubData(int buffer, int internalformat, long offset, long size, int format, int type, Buffer data) {
+        gl.glClearNamedBufferSubData(buffer, internalformat, offset, size, format, type, data);
+    }
+
+    @Override
+    public void glGetMemoryInfo(GPUMemoryInfo info) {
+        throw new UnsupportedOperationException();
     }
 }

@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.volumelight;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -15,6 +16,7 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 
 public class VolumeLightProcess implements Disposeable {
@@ -55,7 +57,7 @@ public class VolumeLightProcess implements Disposeable {
             // of average luminance textures
     public static final int NUM_BLOOM_TEXTURES = 2;
 
-    private Texture2D           g_pHDRTexture;
+//    private Texture2D           g_pHDRTexture;
 //    ID3D10ShaderResourceView*	g_pHDRTextureSRV;
 //    ID3D10RenderTargetView*		g_pHDRTextureRTV;
 
@@ -95,6 +97,10 @@ public class VolumeLightProcess implements Disposeable {
 
     // samplers
     private int m_samplerPoint;
+    private int m_samplerDepthMinMax;
+    private int m_samplerLinear;
+    private int m_samplerPoint_Less;
+    private int m_samplerPoint_Greater;
 
     private PostProcessingReconstructCameraZProgram  m_LinearDepthProgram;
     private GLSLProgram m_MinMax2x2_1;
@@ -213,11 +219,14 @@ public class VolumeLightProcess implements Disposeable {
     }
 
     private void printProgram(GLSLProgram program){
-        if(!m_printOnce)
+        if(!m_printOnce) {
+            GLCheck.checkError();
             program.printPrograminfo();
+        }
     }
 
-    public void renderVolumeLight(Texture2D shadowMap, float lightNear, float lightFar){
+    public void renderVolumeLight(VolumeLightParams params){
+        params.resolve();
         m_fbo.bind();
         gl.glBindVertexArray(m_dummyVAO);
         gl.glDisable(GLenum.GL_DEPTH_TEST);
@@ -228,9 +237,9 @@ public class VolumeLightProcess implements Disposeable {
         m_fbo.setRenderTexture(g_pShadowMapTextureWorld, null);
         gl.glViewport(0,0, g_pShadowMapTextureWorld.getWidth(), g_pShadowMapTextureWorld.getHeight());
         m_LinearDepthProgram.enable();
-        m_LinearDepthProgram.setCameraRange(lightNear, lightFar);
+        m_LinearDepthProgram.setCameraRange(params.lightNear, params.lightFar);
         m_LinearDepthProgram.setSampleIndex(0);
-        gl.glBindTextureUnit(0, shadowMap.getTexture());
+        gl.glBindTextureUnit(0, params.shadowMap.getTexture());
         gl.glBindSampler(0, m_samplerPoint);
 
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
@@ -330,18 +339,63 @@ public class VolumeLightProcess implements Disposeable {
             m_fbo.setRenderTexture(g_pHDRTextureScaled, null);
             gl.glViewport(0,0,g_pHDRTextureScaled.getWidth(), g_pHDRTextureScaled.getHeight());
             m_LightCompute.enable();
-            // TODO texture binding
-            // TODO Uniform sampler set up
+            int index = m_LightCompute.getUniformLocation("g_CoarseDepthTexelSize", m_printOnce);
+            final float LIGHT_SIZE = 2500.f;
+            gl.glUniform2f(index, LIGHT_SIZE/g_pShadowMapTextureScaled[0].getWidth(), LIGHT_SIZE/g_pShadowMapTextureScaled[0].getWidth());
+            index = m_LightCompute.getUniformLocation("g_EyePosition", m_printOnce);
+            gl.glUniform3f(index, params.eyePos.x, params.eyePos.y, params.eyePos.z);
+            index = m_LightCompute.getUniformLocation("g_LightForward", m_printOnce);
+            gl.glUniform3f(index, params.lightForward.x, params.lightForward.y, params.lightForward.z);
+            index = m_LightCompute.getUniformLocation("g_LightPosition", m_printOnce);
+            gl.glUniform3f(index, params.lightPosition.x, params.lightPosition.y, params.lightPosition.z);
+            index = m_LightCompute.getUniformLocation("g_LightRight", m_printOnce);
+            gl.glUniform3f(index, params.lightRight.x, params.lightRight.y, params.lightRight.z);
+            index = m_LightCompute.getUniformLocation("g_LightUp", m_printOnce);
+            gl.glUniform3f(index, params.lightUp.x, params.lightUp.y, params.lightUp.z);
+            index = m_LightCompute.getUniformLocation("g_MWorldViewProjectionInv", m_printOnce);
+            gl.glUniformMatrix4fv(index, false, CacheBuffer.wrap(params.viewProjInv));
+            index = m_LightCompute.getUniformLocation("g_ModelLightProj", m_printOnce);
+            gl.glUniformMatrix4fv(index, false, CacheBuffer.wrap(params.lightViewProj));
+            index = m_LightCompute.getUniformLocation("g_UseAngleOptimization", m_printOnce);
+            gl.glUniform1i(index, 1);
+            index = m_LightCompute.getUniformLocation("g_ZNear", m_printOnce);
+            gl.glUniform1f(index, params.cameraNear);
+            index = m_LightCompute.getUniformLocation("g_rSamplingRate", m_printOnce);
+            gl.glUniform1f(index, 1.0f/params.sampleRate);
+
+            // binding textures
+            gl.glBindTextureUnit(0, g_pShadowMapTextureScaledOpt.getTexture());
+            gl.glBindTextureUnit(1, params.sceneDepth.getTexture());
+            gl.glBindTextureUnit(2, g_pNoiseTexture.getTexture());
+            gl.glBindTextureUnit(3, g_pShadowMapTextureWorld.getTexture());
+            gl.glBindTextureUnit(4, g_pShadowMapTextureHole[1].getTexture());
+            gl.glBindTextureUnit(5, g_pShadowMapTextureHole[1].getTexture());
+
+            gl.glBindSampler(0, m_samplerDepthMinMax);
+            gl.glBindSampler(1, m_samplerPoint);
+            gl.glBindSampler(2, m_samplerLinear);
+            gl.glBindSampler(3, m_samplerPoint_Less);
+            gl.glBindSampler(4, m_samplerPoint_Greater);
+            gl.glBindSampler(5, m_samplerPoint);
+
+            gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 
             printProgram(m_LightCompute);
+
+            for(int i = 1; i < 6; i++){
+                gl.glBindTextureUnit(i, 0);
+                gl.glBindSampler(i, 0);
+            }
         }
 
+        // Convert the depth value from NDC to view space.
         m_fbo.setRenderTexture(g_pDepthBufferTextureWS, null);
         gl.glViewport(0,0,g_pDepthBufferTextureWS.getWidth(), g_pDepthBufferTextureWS.getHeight());
         m_LinearDepthProgram.enable();
-        m_LinearDepthProgram.setCameraRange(lightNear, lightFar);  // TODO
+        m_LinearDepthProgram.setCameraRange(params.cameraNear, params.cameraFar);
         m_LinearDepthProgram.setSampleIndex(0);
-        // TODO binding depth texture
+        gl.glBindTextureUnit(0, params.sceneDepth.getTexture());
+        gl.glBindSampler(0, m_samplerPoint);
         setBufferSizeInv(m_LinearDepthProgram, g_pDepthBufferTextureWS.getWidth(), g_pDepthBufferTextureWS.getHeight());
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         printProgram(m_LinearDepthProgram);
@@ -362,40 +416,51 @@ public class VolumeLightProcess implements Disposeable {
 
         gl.glBindTextureUnit(0, g_pHDRTextureScaled.getTexture());
         gl.glBindTextureUnit(1, g_pEdgeTextureFS.getTexture());
-        // TODO don't forget sampler.
+        gl.glBindSampler(0, m_samplerLinear);
+        gl.glBindSampler(1, m_samplerLinear);
         setBufferSizeInv(m_GradientBlur, g_pDepthBufferTextureWS.getWidth(), g_pDepthBufferTextureWS.getHeight());
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         printProgram(m_GradientBlur);
+        gl.glBindTextureUnit(1, 0);
+        gl.glBindSampler(1, 0);
 
         // Blur the image with 3x3 kernel
         m_fbo.setRenderTexture(g_pHDRTextureScaled3, null);
         gl.glViewport(0,0,g_pHDRTextureScaled3.getWidth(), g_pHDRTextureScaled3.getHeight());
         gl.glBindTextureUnit(0, g_pHDRTextureScaled2.getTexture());
+        gl.glBindSampler(0, m_samplerLinear);
         m_ImageBlur.enable();
         setBufferSizeInv(m_ImageBlur, g_pHDRTextureScaled2.getWidth(), g_pHDRTextureScaled2.getHeight());
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         printProgram(m_ImageBlur);
 
         // Blend Volume Light with main scene
+        Texture2D g_pHDRTexture = params.sceneColor;
         m_fbo.setRenderTexture(g_pHDRTexture, null);
         gl.glViewport(0,0, g_pHDRTexture.getWidth(), g_pHDRTexture.getHeight());
         gl.glBindTextureUnit(0, g_pHDRTextureScaled.getTexture());
+        gl.glBindSampler(0, m_samplerPoint);
 //        gl.glBindTextureUnit(1, g_pHDRTextureScaled3.getTexture());
         m_BlendFullscreen.enable();
-        // TODO here need blend state
+        gl.glEnable(GLenum.GL_BLEND);
+        gl.glBlendFuncSeparate(GLenum.GL_SRC_ALPHA, GLenum.GL_ONE_MINUS_SRC_ALPHA, GLenum.GL_ZERO, GLenum.GL_ZERO);
         gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         printProgram(m_BlendFullscreen);
 
+        gl.glBindSampler(0, 0);
+        gl.glDisable(GLenum.GL_BLEND);
+
+        m_printOnce = true;
     }
 
 
     private void setBufferSizeInv(GLSLProgram program, float width, float height){
-        int index = program.getUniformLocation("g_BufferWidthInv");
+        int index = program.getUniformLocation("g_BufferWidthInv", true);
         if(index >= 0){
             gl.glUniform1f(index, 1f/width);
         }
 
-        index = program.getUniformLocation("g_BufferHeightInv");
+        index = program.getUniformLocation("g_BufferHeightInv", true);
         if(index >= 0){
             gl.glUniform1f(index, 1f/height);
         }
@@ -404,7 +469,7 @@ public class VolumeLightProcess implements Disposeable {
     private void createPrograms(){
         try {
             final String quadVertex = "shader_libs/PostProcessingDefaultScreenSpaceVS.vert";
-            final String root = "VolumeLight/shaders/";
+            final String root = "nvidia/VolumeLight/shaders/";
             m_LinearDepthProgram = new PostProcessingReconstructCameraZProgram(false);
             m_LinearDepthProgram.setName("LinearDepth");
             m_MinMax2x2_1 = GLSLProgram.createFromFiles(quadVertex, root+"MinMax2x2_1PS.frag");
@@ -438,8 +503,28 @@ public class VolumeLightProcess implements Disposeable {
         SamplerDesc desc = new SamplerDesc();
         desc.minFilter = GLenum.GL_NEAREST;
         desc.magFilter = GLenum.GL_NEAREST;
-
         m_samplerPoint = SamplerUtils.createSampler(desc);
+
+        desc.borderColor = -1;
+        desc.wrapR = GLenum.GL_CLAMP_TO_BORDER;
+        desc.wrapS = GLenum.GL_CLAMP_TO_BORDER;
+        desc.wrapT = GLenum.GL_CLAMP_TO_BORDER;
+        m_samplerDepthMinMax = SamplerUtils.createSampler(desc);
+
+        desc.compareFunc = GLenum.GL_LESS;
+        desc.compareMode = GLenum.GL_COMPARE_REF_TO_TEXTURE;
+        desc.borderColor = 0;
+        m_samplerPoint_Less = SamplerUtils.createSampler(desc);
+
+        desc.compareFunc = GLenum.GL_GREATER;
+        desc.compareMode = GLenum.GL_COMPARE_REF_TO_TEXTURE;
+        desc.borderColor = -1;
+        m_samplerPoint_Greater = SamplerUtils.createSampler(desc);
+
+        desc.compareFunc = desc.compareMode = GLenum.GL_NONE;
+        desc.minFilter = GLenum.GL_LINEAR;
+        desc.magFilter = GLenum.GL_LINEAR;
+        m_samplerLinear = SamplerUtils.createSampler(desc);
     }
 
     public void onResize(int width, int height){
@@ -491,7 +576,7 @@ public class VolumeLightProcess implements Disposeable {
         desc.SampleDesc.Count = 1;
         desc.SampleDesc.Quality = 0;
         V_RETURN( pd3dDevice->CreateTexture2D( &desc, NULL, &g_pHDRTexture ) );*/
-        g_pHDRTexture = TextureUtils.createTexture2D(desc, null);
+//        g_pHDRTexture = TextureUtils.createTexture2D(desc, null);
 
         desc.format = GLenum.GL_RG16F;
         desc.width /= g_ScaleRatio;
@@ -625,9 +710,9 @@ public class VolumeLightProcess implements Disposeable {
     void CreateScaledTextures(){
         ReleaseScaledTextures();
 
-        Texture2DDesc desc = new Texture2DDesc();
+        Texture2DDesc desc = new Texture2DDesc(1280, 720, GLenum.GL_RGBA16F);
 //        g_pHDRTexture->GetDesc( &desc );
-        g_pHDRTexture.getDesc(desc);
+//        g_pHDRTexture.getDesc(desc);
         desc.format = GLenum.GL_R16F;
         desc.width /= g_ScaleRatio;
         desc.height /= g_ScaleRatio;
@@ -671,7 +756,7 @@ public class VolumeLightProcess implements Disposeable {
         SAFE_RELEASE( g_pNoiseTexture );
 //        SAFE_RELEASE( g_pNoiseTextureSRV );
 
-        SAFE_RELEASE( g_pHDRTexture );
+//        SAFE_RELEASE( g_pHDRTexture );
 //        SAFE_RELEASE( g_pHDRTextureSRV );
 //        SAFE_RELEASE( g_pHDRTextureRTV );
 

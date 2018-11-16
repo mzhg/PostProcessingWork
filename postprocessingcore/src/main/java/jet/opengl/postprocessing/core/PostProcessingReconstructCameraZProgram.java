@@ -26,7 +26,7 @@ public class PostProcessingReconstructCameraZProgram extends GLSLProgram{
     }
 
     public void setCameraRange(float near, float far){
-        gl.glUniform2f(centerIndex, far, near);
+        gl.glUniform2f(centerIndex, near, far);
     }
 
     public void setSampleIndex(int idx){
