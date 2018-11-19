@@ -3,8 +3,6 @@ package jet.opengl.demos.postprocessing;
 import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
-import jet.opengl.demos.nvidia.volumelight.VolumeLightParams;
-import jet.opengl.demos.nvidia.volumelight.VolumeLightProcess;
 import jet.opengl.demos.scenes.Cube16;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -33,9 +31,6 @@ public class LightingVolumeDemo extends NvSampleApp {
     private LightScatteringInitAttribs m_InitAttribs;
     private LightScatteringFrameAttribs m_LightFrameAttribs;
 
-    private VolumeLightProcess m_volumeLight;
-    private final VolumeLightParams m_volumeParams = new VolumeLightParams();
-
     @Override
     protected void initRendering() {
         getGLContext().setSwapInterval(0);
@@ -45,9 +40,6 @@ public class LightingVolumeDemo extends NvSampleApp {
         fullscreenProgram = new FullscreenProgram();
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();
-
-        m_volumeLight = new VolumeLightProcess();
-        m_volumeLight.initlizeGL(m_Scene.getShadowMapResolution());
 
         m_PostProcessing = new PostProcessing();
         m_frameAttribs = new PostProcessingFrameAttribs();
@@ -76,7 +68,6 @@ public class LightingVolumeDemo extends NvSampleApp {
             return;
 
         m_Scene.onResize(width, height);
-        m_volumeLight.onResize(width, height);
 
         m_InitAttribs.m_uiBackBufferWidth = width;
         m_InitAttribs.m_uiBackBufferHeight = height;
@@ -84,24 +75,7 @@ public class LightingVolumeDemo extends NvSampleApp {
 
     @Override
     public void display() {
-        m_Scene.draw(false);
-
-        m_volumeParams.sceneColor = m_Scene.getSceneColor();
-        m_volumeParams.sceneDepth = m_Scene.getSceneDepth();
-        m_volumeParams.cameraNear = m_Scene.getSceneNearPlane();
-        m_volumeParams.cameraFar =  m_Scene.getSceneFarPlane();
-        m_volumeParams.cameraView.load(m_Scene.getViewMat());
-        m_volumeParams.cameraProj.load(m_Scene.getProjMat());
-        m_volumeParams.lightNear = m_Scene.getLightNearPlane();
-        m_volumeParams.lightFar = m_Scene.getLightFarlane();
-        m_volumeParams.lightView.load(m_Scene.getLightViewMat());
-        m_volumeParams.lightProj.load(m_Scene.getLightProjMat());
-        m_volumeParams.shadowMap = m_Scene.getShadowMap();
-
-        m_volumeLight.renderVolumeLight(m_volumeParams);
-        m_Scene.resolve();
-
-        if(true) return;
+        m_Scene.draw(true);
 
         {
             // post processing...
@@ -129,7 +103,7 @@ public class LightingVolumeDemo extends NvSampleApp {
                 m_LightFrameAttribs.m_f4LightColorAndIntensity.set(0.904016f, 0.843299f, 0.70132f, 200.0f);  // for the direction light.
             }
 
-            m_InitAttribs.m_uiLightType = LightType.values()[m_Scene.getLightMode()];
+            m_InitAttribs.m_uiLightType =m_Scene.getLightMode();
             float fSceneExtent = 100;
             m_LightFrameAttribs.m_fMaxTracingDistance = fSceneExtent * ( m_InitAttribs.m_uiLightType == LightType.DIRECTIONAL  ? 1.5f : 10.f);
             m_LightFrameAttribs.m_fDistanceScaler = 60000.f / m_LightFrameAttribs.m_fMaxTracingDistance;

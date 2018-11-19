@@ -23,6 +23,7 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
@@ -45,9 +46,6 @@ public class Cube16 {
 	public static final int ACCEL_STRUCT_NONE = 0;
 	public static final int ACCEL_STRUCT_MIN_MAX_TREE = 1;
 	public static final int ACCEL_STRUCT_BV_TREE = 2;
-	public static final int LIGHT_TYPE_DIRECTIONAL = 0;
-	public static final int LIGHT_TYPE_SPOT = 1;
-	public static final int LIGHT_TYPE_POINT = 2;
 	public static final int INSCTR_INTGL_EVAL_METHOD_MY_LUT = 0;
 	public static final int INSCTR_INTGL_EVAL_METHOD_SRNN05 = 1;
 	public static final int INSCTR_INTGL_EVAL_METHOD_ANALYTIC = 2;
@@ -60,11 +58,11 @@ public class Cube16 {
 
 	float INSCATTERING_MULTIPLIER = 27.f/3.f;
 
-	static final int SHADOWMAP_RESOLUTION = 1024;
-	static final float LIGHT_RANGE = 50.0f;
-	static final float SPOTLIGHT_FALLOFF_ANGLE = Numeric.PI / 4.0f;
-	static final float SPOTLIGHT_FALLOFF_POWER = 1.0f;
-	static final float DISTANCE = 17.5f;
+	public static final int SHADOWMAP_RESOLUTION = 1024;
+	public static final float LIGHT_RANGE = 50.0f;
+	public static final float SPOTLIGHT_FALLOFF_ANGLE = Numeric.PI / 4.0f;
+	public static final float SPOTLIGHT_FALLOFF_POWER = 1.0f;
+	public static final float DISTANCE = 17.5f;
 	
     float m_fLightIntensity = 12.f;
     
@@ -259,7 +257,7 @@ public class Cube16 {
 		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_RenderTarget);
 		gl.glViewport(0, 0, m_pShadowMap.getWidth(), m_pShadowMap.getHeight());
     	BaseProgram program;
-//    	if(m_pScene.getLightMode() == LIGHT_TYPE_POINT){
+//    	if(m_pScene.getLightMode() == LightType.POINT){
 //    		rtManager.setTexture2DArrayRenderTarget(0, pParaboloidShadowMap_.getTexture());
 //    		rtManager.clearDepthStencilTarget(1, 0);
 //    		GL41.glViewportIndexedf(0, 0, 0, Scene.SHADOWMAP_RESOLUTION, Scene.SHADOWMAP_RESOLUTION);
@@ -343,19 +341,19 @@ public class Cube16 {
         SceneRenderProgram sceneRender;
         switch (m_pScene.getLightMode()) {
         default:
-		case LIGHT_TYPE_DIRECTIONAL:
+		case DIRECTIONAL:
 			if(m_SceneDirectionalProgram == null)
 				m_SceneDirectionalProgram = new SceneRenderProgram(null, LIGHTMODE_DIRECTIONAL);
 			
 			sceneRender = m_SceneDirectionalProgram;
 			break;
-		case LIGHT_TYPE_SPOT:
+		case SPOT:
 			if(m_SceneSpotlightProgram == null)
 				m_SceneSpotlightProgram = new SceneRenderProgram(null, LIGHTMODE_SPOTLIGHT);
 			
 			sceneRender = m_SceneSpotlightProgram;
 			break;
-		case LIGHT_TYPE_POINT:
+		case POINT:
 			if(m_SceneOMNIProgram == null)
 				m_SceneOMNIProgram = new SceneRenderProgram(null, LIGHTMODE_OMNI);
 			
@@ -478,13 +476,14 @@ public class Cube16 {
 	public Matrix4f getLightViewMat() { return m_LightCBStruct.mLightView;}
 	public float getLightNearPlane(){ return m_LightCBStruct.zNear;}
 	public float getLightFarlane()  { return m_LightCBStruct.zFar;}
-	public int getLightMode() {	return m_pScene.getLightMode();}
+	public LightType getLightMode() {	return m_pScene.getLightMode();}
+	public void getLightIntensity(Vector3f out) { m_pScene.getLightIntensity(out);}
 
 	public Texture2D getShadowMap() { return m_pShadowMap;}
 
 	final class SceneController {
 
-		int lightMode = LIGHT_TYPE_SPOT;
+		LightType lightMode = LightType.DIRECTIONAL;
 		int lightPower_;
 		int viewpoint_ = 1;
 
@@ -550,13 +549,13 @@ public class Cube16 {
 			pLight.fLightFalloffCosTheta = (float) Math.cos(SPOTLIGHT_FALLOFF_ANGLE);
 			pLight.fLightFalloffPower = SPOTLIGHT_FALLOFF_POWER;
 			getLightIntensity(pLight.vLightColor);
-			if (lightMode == LIGHT_TYPE_SPOT)
+			if (lightMode == LightType.SPOT)
 			{
 //            pLight.vLightAttenuationFactors = Nv::NvVec4(lightDesc->Spotlight.fAttenuationFactors);
 //				pLight.vLightAttenuationFactors.set(lightAttribs.f4AttenuationFactors);
 //				Vector3f.sub(lightAttribs.f4LightWorldPos, viewAttribs.f4CameraPos,vDirOnLight);
 			}
-			else if (lightMode == LIGHT_TYPE_POINT)
+			else if (lightMode == LightType.POINT)
 			{
 //            pLight.vLightAttenuationFactors = Nv::NvVec4(lightDesc->Omni.fAttenuationFactors);
 //				pLight.vLightAttenuationFactors.set(lightAttribs.f4AttenuationFactors);
@@ -623,7 +622,7 @@ public class Cube16 {
 			final ReadableVector3f rvPos = (ReadableVector3f) (_vPos);
 
 			switch (lightMode) {
-				case LIGHT_TYPE_POINT: {
+				case POINT: {
 					vPos.set(15, 10, 0);
 					Matrix4f.transformVector(lightTransform_, rvPos, vPos);
 					mViewProj.setIdentity();
@@ -633,7 +632,7 @@ public class Cube16 {
 				}
 				break;
 
-				case LIGHT_TYPE_SPOT: {
+				case SPOT: {
 					vPos.set(10, 15, 5);
 					Matrix4f.lookAt(rvPos, vOrigin, vUp, view);
 					Matrix4f.perspective((float) Math.toDegrees(SPOTLIGHT_FALLOFF_ANGLE * 2.0f),
@@ -644,7 +643,7 @@ public class Cube16 {
 				break;
 
 				default:
-				case LIGHT_TYPE_DIRECTIONAL: {
+				case DIRECTIONAL: {
 					vPos.set(10, 15, 5);
 					Matrix4f.lookAt(rvPos, vOrigin, vUp, view);
 					float min = -25.0f;
@@ -661,7 +660,7 @@ public class Cube16 {
 			// Update the scene
 			if (!isPaused_) {
 				time_elapsed_us += (long) (dt * 1000000.0);
-				if (lightMode != LIGHT_TYPE_POINT) {
+				if (lightMode != LightType.POINT) {
 					float angle = dt * SPOTLIGHT_FALLOFF_ANGLE;
 					total_angle += angle;
 					sceneTransform_.setIdentity();
@@ -670,7 +669,7 @@ public class Cube16 {
 					sceneTransform_.setIdentity();
 				}
 
-				if (lightMode == LIGHT_TYPE_POINT) {
+				if (lightMode == LightType.POINT) {
 					final long CYCLE_LENGTH = 60000000;
 					float cyclePhase = (float) (time_elapsed_us % CYCLE_LENGTH) / (float) (CYCLE_LENGTH);
 					lightTransform_.setIdentity();
@@ -698,29 +697,34 @@ public class Cube16 {
 
 		void getLightIntensity(Vector3f intensity) {
 			switch (getLightMode()) {
-				case LIGHT_TYPE_POINT:
+				case POINT:
 					Vector3f.scale(LIGHT_POWER[lightPower_], 25000.0f, intensity);
 					break;
 
-				case LIGHT_TYPE_SPOT:
+				case SPOT:
 					Vector3f.scale(LIGHT_POWER[lightPower_], 50000.0f, intensity);
 					break;
 
 				default:
-				case LIGHT_TYPE_DIRECTIONAL:
+				case DIRECTIONAL:
 					Vector3f.scale(LIGHT_POWER[lightPower_], 250.0f, intensity);
 					break;
 			}
 		}
 
-		int getLightMode() {
+		LightType getLightMode() {
 			return lightMode;
 		}
 
 		void toggleViewpoint() {
 			viewpoint_ = (viewpoint_ + 1) % 4;
 		}
-		void toggleLightMode() { lightMode = (lightMode + 1) % 3;}
+		void toggleLightMode() //{ lightMode = (lightMode + 1) % 3;}
+		{
+			int idx = lightMode.ordinal();
+			idx = (idx + 1) % 3;
+			lightMode = LightType.values()[idx];
+		}
 	}
 
 	final class ObjectCB {

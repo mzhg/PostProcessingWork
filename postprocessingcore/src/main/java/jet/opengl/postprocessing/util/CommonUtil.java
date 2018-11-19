@@ -67,4 +67,20 @@ public final class CommonUtil {
 
         return Numeric.encode(start, start >=0? (end + 1) : end);
     }
+
+    public static String toString(int[][] a){
+        if(a == null || a.length == 0)
+            return "[]";
+
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < a.length; i++){
+            for(int j = 0; a[i] != null && j < a[i].length; j++){
+                sb.append(a[i][j]);
+                sb.append(',');
+            }
+        }
+
+        sb.setLength(sb.length() - 1);
+        return sb.toString();
+    }
 }
