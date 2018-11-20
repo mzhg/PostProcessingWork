@@ -148,9 +148,13 @@ public interface OpenGLProgram extends Disposeable{
      * Print the program states to the console, the method only used for debugging.
      */
     default void printPrograminfo(){
-        System.out.println("----------------------------"+getName() +"-----------------------------------------" );
+        printPrograminfo(getProgram(), getName());
+    }
+
+    static void printPrograminfo(int program, String debugName){
+        System.out.println("----------------------------"+debugName +"-----------------------------------------" );
 //        ProgramProperties props = GLSLUtil.getProperties(getProgram());
-        ProgramResources resources = GLSLUtil.getProgramResources(getProgram());
+        ProgramResources resources = GLSLUtil.getProgramResources(program);
         System.out.println(resources);
     }
 }

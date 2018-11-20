@@ -76,7 +76,7 @@ final class PerVolumeCB implements Writable{
     }*/
 
     void store(BufferGL uniforms){
-        throw new UnsupportedOperationException();
+//        throw new UnsupportedOperationException();
     }
     
     @Override

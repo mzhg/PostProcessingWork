@@ -617,3 +617,12 @@ float3 EvaluatePhaseFunction(float fCosTheta)
 
     return f3RlghInsctr + f3MieInsctr;
 }
+
+float2 GetSRNN05LUTParamLimits()
+{
+    // The first argument of the lookup table is the distance from the point light source to the view ray, multiplied by the scattering coefficient
+    // The second argument is the weird angle which is in the range from 0 t Pi/2, as tan(Pi/2) = +inf
+    return float2(
+        g_fMaxTracingDistance * 2.0 * max(max(g_f4SummTotalBeta.r, g_f4SummTotalBeta.g), g_f4SummTotalBeta.b),
+        PI * 0.5 );
+}

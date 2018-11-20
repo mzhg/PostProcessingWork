@@ -67,7 +67,7 @@ final class PerFrameCB implements Writable{
     }*/
 
 	void store(BufferGL unfiorms){
-		throw new UnsupportedOperationException();
+//		throw new UnsupportedOperationException();
 	}
     
 	@Override

@@ -24,8 +24,6 @@
 #   define THREAD_GROUP_SIZE max(INITIAL_SAMPLE_STEP, 32)
 #endif
 
-#define GroupMemoryBarrierWithGroupSync barrier
-
 layout (rg16ui, binding = 0) uniform uimage2D g_rwtex2DInterpolationSource;
 
 // In my first implementation I used group shared memory to store camera space z

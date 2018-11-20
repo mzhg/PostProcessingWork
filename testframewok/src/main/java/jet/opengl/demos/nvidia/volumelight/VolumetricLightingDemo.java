@@ -4,7 +4,6 @@ import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
@@ -47,7 +46,7 @@ public class VolumetricLightingDemo extends NvSampleApp {
     DebugFlags debugMode_;
     int mediumType_;
 
-    private int m_RenderType = RENDER_TYPE_NONE;
+    private int m_RenderType = RENDER_TYPE_ORIGIN;
     private GLSLProgram m_tonemap;
 
     @Override
@@ -219,8 +218,9 @@ public class VolumetricLightingDemo extends NvSampleApp {
         gl.glBindSampler(0,0);
 
 //        	NV_PERFEVENT(ctx, "Postprocess");
-        gl.glViewport(0, 0, getGLContext().width(), getGLContext().height());
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        gl.glViewport(0, 0, getGLContext().width(), getGLContext().height());
+
         m_tonemap.enable();
         gl.glBindVertexArray(m_DummyVAO);
         gl.glDrawArrays(GLenum.GL_TRIANGLES,0,3);
@@ -388,9 +388,9 @@ public class VolumetricLightingDemo extends NvSampleApp {
         mediumType_ = 0;
 
         // Default context settings
-        contextDesc_.uWidth = 0;
-        contextDesc_.uHeight = 0;
-        contextDesc_.uSamples = 0;
+        contextDesc_.uWidth = getGLContext().width();
+        contextDesc_.uHeight = getGLContext().height();
+        contextDesc_.uSamples = 1;
         contextDesc_.eDownsampleMode = DownsampleMode.FULL;
         contextDesc_.eInternalSampleMode = MultisampleMode.SINGLE;
         contextDesc_.eFilterMode = FilterMode.NONE;

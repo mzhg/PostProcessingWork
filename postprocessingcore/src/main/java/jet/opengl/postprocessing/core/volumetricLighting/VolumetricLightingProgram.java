@@ -154,37 +154,37 @@ final class VolumetricLightingProgram extends GLSLProgram{
 	}*/
 	
 	protected void initUniformIndices(){
-		mAngularRayleighBetaLoc = getUniformLocation("g_f4AngularRayleighBeta");
-		mLightWorldPosLoc = getUniformLocation("g_f4LightWorldPos");
-		mShowLightingOnlyLoc = getUniformLocation("g_bShowLightingOnly");
-		mMaxShadowMapStepLoc = getUniformLocation("g_uiMaxShadowMapStep");
-		mLightScreenPosLoc = getUniformLocation("g_f4LightScreenPos");
-		mFarPlaneZLoc = getUniformLocation("g_fFarPlaneZ");
-		mRefinementThresholdLoc = getUniformLocation("g_fRefinementThreshold");
-		mAngularMieBetaLoc = getUniformLocation("g_f4AngularMieBeta");
-		mLightColorAndIntensityLoc = getUniformLocation("g_f4LightColorAndIntensity");
-		mShowDepthBreaksLoc = getUniformLocation("g_bShowDepthBreaks");
-		mCameraPosLoc = getUniformLocation("g_f4CameraPos");
-		mHG_gLoc = getUniformLocation("g_f4HG_g");
-		mMaxStepsAlongRayLoc = getUniformLocation("g_fMaxStepsAlongRay");
-		mTotalMieBetaLoc = getUniformLocation("g_f4TotalMieBeta");
-		mEpipoleSamplingDensityFactorLoc = getUniformLocation("m_uiEpipoleSamplingDensityFactor");
-		mDirOnLightLoc = getUniformLocation("g_f4DirOnLight");
-		mExposureLoc = getUniformLocation("g_fExposure");
-		mSrcDstMinMaxLevelOffsetLoc = getUniformLocation("g_ui4SrcDstMinMaxLevelOffset");
-		mShadowMapTexelSizeLoc = getUniformLocation("g_f2ShadowMapTexelSize");
-		mMaxTracingDistanceLoc = getUniformLocation("g_fMaxTracingDistance");
-		mSummTotalBetaLoc = getUniformLocation("g_f4SummTotalBeta");
-		mNearPlaneZLoc = getUniformLocation("g_fNearPlaneZ");
-		mWorldToLightProjSpaceLoc = getUniformLocation("g_WorldToLightProjSpace");
-		mTotalRayleighBetaLoc = getUniformLocation("g_f4TotalRayleighBeta");
-		mMinMaxShadowMapResolutionLoc = getUniformLocation("g_uiMinMaxShadowMapResolution");
-		mIsLightOnScreenLoc = getUniformLocation("g_bIsLightOnScreen");
-		mProjLoc = getUniformLocation("g_Proj");
-		mViewProjInvLoc = getUniformLocation("g_ViewProjInv");
-		mSpotLightAxisAndCosAngleLoc = getUniformLocation("g_f4SpotLightAxisAndCosAngle");
-		mCorrectScatteringAtDepthBreaksLoc = getUniformLocation("g_bCorrectScatteringAtDepthBreaks");
-		mCameraUVAndDepthInShadowMapLoc = getUniformLocation("g_f4CameraUVAndDepthInShadowMap");
+		mAngularRayleighBetaLoc = getUniformLocation("g_f4AngularRayleighBeta", true);
+		mLightWorldPosLoc = getUniformLocation("g_f4LightWorldPos", true);
+		mShowLightingOnlyLoc = getUniformLocation("g_bShowLightingOnly", true);
+		mMaxShadowMapStepLoc = getUniformLocation("g_uiMaxShadowMapStep", true);
+		mLightScreenPosLoc = getUniformLocation("g_f4LightScreenPos", true);
+		mFarPlaneZLoc = getUniformLocation("g_fFarPlaneZ", true);
+		mRefinementThresholdLoc = getUniformLocation("g_fRefinementThreshold", true);
+		mAngularMieBetaLoc = getUniformLocation("g_f4AngularMieBeta", true);
+		mLightColorAndIntensityLoc = getUniformLocation("g_f4LightColorAndIntensity", true);
+		mShowDepthBreaksLoc = getUniformLocation("g_bShowDepthBreaks", true);
+		mCameraPosLoc = getUniformLocation("g_f4CameraPos", true);
+		mHG_gLoc = getUniformLocation("g_f4HG_g", true);
+		mMaxStepsAlongRayLoc = getUniformLocation("g_fMaxStepsAlongRay", true);
+		mTotalMieBetaLoc = getUniformLocation("g_f4TotalMieBeta", true);
+		mEpipoleSamplingDensityFactorLoc = getUniformLocation("m_uiEpipoleSamplingDensityFactor", true);
+		mDirOnLightLoc = getUniformLocation("g_f4DirOnLight", true);
+		mExposureLoc = getUniformLocation("g_fExposure", true);
+		mSrcDstMinMaxLevelOffsetLoc = getUniformLocation("g_ui4SrcDstMinMaxLevelOffset", true);
+		mShadowMapTexelSizeLoc = getUniformLocation("g_f2ShadowMapTexelSize", true);
+		mMaxTracingDistanceLoc = getUniformLocation("g_fMaxTracingDistance", true);
+		mSummTotalBetaLoc = getUniformLocation("g_f4SummTotalBeta", true);
+		mNearPlaneZLoc = getUniformLocation("g_fNearPlaneZ", true);
+		mWorldToLightProjSpaceLoc = getUniformLocation("g_WorldToLightProjSpace", true);
+		mTotalRayleighBetaLoc = getUniformLocation("g_f4TotalRayleighBeta", true);
+		mMinMaxShadowMapResolutionLoc = getUniformLocation("g_uiMinMaxShadowMapResolution", true);
+		mIsLightOnScreenLoc = getUniformLocation("g_bIsLightOnScreen", true);
+		mProjLoc = getUniformLocation("g_Proj", true);
+		mViewProjInvLoc = getUniformLocation("g_ViewProjInv", true);
+		mSpotLightAxisAndCosAngleLoc = getUniformLocation("g_f4SpotLightAxisAndCosAngle", true);
+		mCorrectScatteringAtDepthBreaksLoc = getUniformLocation("g_bCorrectScatteringAtDepthBreaks", true);
+		mCameraUVAndDepthInShadowMapLoc = getUniformLocation("g_f4CameraUVAndDepthInShadowMap", true);
 	}
 	
 	void setUniform(SLightAttribs attribs){

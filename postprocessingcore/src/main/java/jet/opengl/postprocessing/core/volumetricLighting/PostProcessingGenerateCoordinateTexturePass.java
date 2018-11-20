@@ -1,5 +1,7 @@
 package jet.opengl.postprocessing.core.volumetricLighting;
 
+import java.nio.FloatBuffer;
+
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -8,6 +10,7 @@ import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
  * Created by mazhen'gui on 2017/5/17.
@@ -67,6 +70,12 @@ final class PostProcessingGenerateCoordinateTexturePass extends PostProcessingRe
         // Set stencil value to 0
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 0.0f, 0);
+
+        final float fInvalidCoordinate = -1e+10f;
+        FloatBuffer invalidCoords = CacheBuffer.wrap(fInvalidCoordinate, fInvalidCoordinate,fInvalidCoordinate,fInvalidCoordinate);
+        // Clear both render targets with values that can't be correct projection space coordinates and camera space Z:
+        gl.glClearBufferfv(GLenum.GL_COLOR, 0, invalidCoords);
+        gl.glClearBufferfv(GLenum.GL_COLOR, 1, invalidCoords);
 
         context.drawFullscreenQuad();
     }

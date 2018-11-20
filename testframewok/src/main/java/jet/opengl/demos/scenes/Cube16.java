@@ -139,7 +139,7 @@ public class Cube16 {
 			GLenum.GL_CLAMP_TO_BORDER,   // TODO : GL ES doen't support GL_CLAMP_TO_BORDER
 			GLenum.GL_CLAMP_TO_BORDER,
 			GLenum.GL_CLAMP_TO_BORDER,
-			0,    // border color
+			-1,    // border color
 			0,    // MaxAnisotropy
 			GLenum.GL_LESS,    // ComparisonFunc
 			GLenum.GL_COMPARE_REF_TO_TEXTURE   // ComparisonMode
@@ -166,7 +166,7 @@ public class Cube16 {
 		}
 		
 
-		final int buffer_format = GLenum.GL_RGBA8;
+		final int buffer_format = GLenum.GL_RGBA16F;
 		Texture2DDesc offscreenDesc = new Texture2DDesc();
 		offscreenDesc.width = width;
 		offscreenDesc.height = height;
@@ -485,9 +485,8 @@ public class Cube16 {
 
 		LightType lightMode = LightType.DIRECTIONAL;
 		int lightPower_;
-		int viewpoint_ = 1;
+		int viewpoint_ = 0;
 
-		Texture2D m_ptex2DShadowMap;
 		final NvInputTransformer m_transformer;
 
 		final Matrix4f sceneTransform_ = new Matrix4f();
@@ -577,21 +576,6 @@ public class Cube16 {
 //			}
 		}
 
-//		void getLightDesc(SLightAttribs attribs){
-//
-//			final Vector4f vLightPos = attribs.f4LightWorldPos;
-//			final Matrix4f mLightView = attribs.mLightViewT;
-//			final Matrix4f mLightProj = attribs.mLightProjT;
-//			final Matrix4f mLightViewProj = attribs.mWorldToLightProjSpaceT;
-//			getLightViewpoint(vLightPos, mLightViewProj);
-//
-//			final float LIGHT_SOURCE_RADIUS = 1.0f;
-//			attribs.f4AttenuationFactors.x = 1.0f;
-//			attribs.f4AttenuationFactors.y = 2.0f / LIGHT_SOURCE_RADIUS;
-//			attribs.f4AttenuationFactors.z = 1.0f / (LIGHT_SOURCE_RADIUS*LIGHT_SOURCE_RADIUS);
-//			attribs.f4AttenuationFactors.w = 0.0f;
-//		}
-
 		void getViewerDesc(ViewCB attribs){
 			final ReadableVector3f vOrigin = Vector3f.ZERO;
 
@@ -601,13 +585,12 @@ public class Cube16 {
 			final Matrix4f mProj     = attribs.mProj;
 
 			final float near = 0.5f;
-			final float far  = 200.0f;
+			final float far  = 100.f;
 
 			Matrix4f.lookAt(vEyePos, vOrigin, VIEWPOINT_UP[viewpoint_], view);
 			Matrix4f.perspective((float)Math.toDegrees(SPOTLIGHT_FALLOFF_ANGLE * 2.0f), (float)m_pOffscreenRenderTarget.getWidth()/m_pOffscreenRenderTarget.getHeight(),
 					near, far, mProj);
 			Matrix4f.mul(mProj, view, mViewProj);
-//			Matrix4f.invert(mViewProj, attribs.mViewProjInvT);
 
 			attribs.vEyePos.set(vEyePos.getX(), vEyePos.getY(), vEyePos.getZ());
 			attribs.zNear = near;

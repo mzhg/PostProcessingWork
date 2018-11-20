@@ -468,7 +468,7 @@ abstract class BaseVLProgram implements OpenGLProgram {
 	
 	@Override
 	public void enable() {
-		gl.glEnable(m_programId);
+		gl.glUseProgram(m_programId);
 		
 		for(int i = 0; i < containCBs.length; i++){
 			if(containCBs[i] && uniformData[i] != null){

@@ -204,7 +204,7 @@ final class RenderVolumeProgram extends BaseVLProgram{
 				new Macro   ("FALLOFFMODE", desc.falloffMode), 
 		};
 
-		return new Pair<String, Macro[]>(filename, ps_macros);
+		return new Pair<>(filename, ps_macros);
 	}
 	
 	@Override

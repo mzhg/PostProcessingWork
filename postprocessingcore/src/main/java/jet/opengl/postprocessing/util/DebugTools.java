@@ -1605,7 +1605,7 @@ public final class DebugTools {
                 for(int j = 0; j < length; j ++){
                     float ogl_value = fsrcValues[j];
                     float dx_value = fdstValues[j];
-                    if(!Numeric.isClose(ogl_value, dx_value, .1f)){  // not same
+                    if(!Numeric.isClose(ogl_value, dx_value, .01f)){  // not same
                         result.add(mkToken(fsrcValues), mkToken(fdstValues), i);
                         break;
                     }else if(ogl_value == igoreValue){
@@ -1987,7 +1987,7 @@ public final class DebugTools {
             resultOut.flush();
             resultOut.close();
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            System.out.println("Couldn't found the file." + e.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }

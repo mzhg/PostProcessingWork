@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.volumelight;
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Writable;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -257,10 +258,6 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
     	}
     }
     
-    public static void main(String[] args) {
-//		CodeGen.genSafeDelete(ContextImp_OpenGL.class);
-	}
-    
     private static Texture2D create(int width, int height, int samples, int format, String debug_name){
     	Texture2DDesc desc = new Texture2DDesc();
     	desc.width = width;
@@ -269,8 +266,10 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
     	desc.format = format;
     	desc.mipLevels = 1;
     	desc.arraySize = 1;
-    	
-    	return TextureUtils.createTexture2D(desc, null);
+
+		Texture2D result = TextureUtils.createTexture2D(desc, null);
+		result.setName(debug_name);
+		return result;
     }
     
     private void setupTextures(RenderVolumeProgram program, int shadowMap, ShadowMapDesc pShadowMapDesc){
@@ -340,7 +339,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	@Override
 	protected Status beginAccumulation_UpdateMediumLUT() {
 //		NV_PERFEVENT(dxCtx, "UpdateMediumLUT");
-
+		GLCheck.checkError();
 		rtManager.bind();
 		rtManager.setRenderTexture(pPhaseLUT_, null);
 		gl.glClearColor(0,0,0,0);
@@ -352,10 +351,11 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		setupUniforms(computePhaseLookup_PS);
     	gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
     	computePhaseLookup_PS.disable();
-    	
+
+    	GLCheck.checkError();
     	if(!mbPrintProgram){
     		printProgram(computePhaseLookup_PS, "UpdateMediumLUT");
-    		saveTextureAsText(pPhaseLUT_, "UpdateMediumLUTGL.txt");
+    		saveTextureAsText(pPhaseLUT_, "UpdateMediumLUTGL_2.txt");
     		System.out.println("------------");
     	}
     	
@@ -393,7 +393,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
     		System.out.println("InternalBufferWidth = " + getInternalBufferWidth());
     		System.out.println("InternalBufferHeight = " + getInternalBufferHeight());
     		
-    		saveTextureAsText(pDepth_, "CopyDepthGL.txt");
+    		saveTextureAsText(pDepth_, "CopyDepthGL_2.txt");
     	}
 		
 		return Status.OK;
@@ -442,10 +442,8 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		
 		rtManager.setRenderTextures(CommonUtil.toArray(pAccumulation_, pDepth_), null);
 		gl.glClearColor(0,0,0,0);
-		gl.glClearDepthf(1.f);
-		
 		gl.glClearStencil(0xFF);
-		gl.glClear(GLenum.GL_STENCIL_BUFFER_BIT | GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
+		gl.glClear(GLenum.GL_STENCIL_BUFFER_BIT | GLenum.GL_COLOR_BUFFER_BIT);
 		gl.glStencilMask(0xFF);
 		
 		// Determine DS/HS permutation
@@ -513,7 +511,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    
 	    if(!mbPrintProgram){
 //	    	saveTextureAsText(pAccumulation_, "Direction_Light_GL0.txt");
-	    	saveTextureAsText(pDepth_, "Direction_Light_DS_GL0.txt");
+	    	saveTextureAsText(pDepth_, "Direction_Light_DS_GL0_2.txt");
 	    }
 	    
 	    //--------------------------------------------------------------------------
@@ -523,7 +521,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    
 	    if(!mbPrintProgram){
 //	    	saveTextureAsText(pAccumulation_, "Direction_Light_GL1.txt");
-	    	saveTextureAsText(pDepth_, "Direction_Light_DS_GL1.txt");
+	    	saveTextureAsText(pDepth_, "Direction_Light_DS_GL1_2.txt");
 	    }
 	    
 	    if(debugFlags_ == DebugFlags.WIREFRAME){
@@ -537,7 +535,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    
 	    if(!mbPrintProgram){
 //	    	saveTextureAsText(pAccumulation_, "Direction_Light_GL2.txt");
-	    	saveTextureAsText(pDepth_, "Direction_Light_DS_GL2.txt");
+	    	saveTextureAsText(pDepth_, "Direction_Light_DS_GL2_2.txt");
 	    }
 	    
 	    //--------------------------------------------------------------------------
@@ -551,12 +549,12 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    
 	    if(!mbPrintProgram){
 //	    	saveTextureAsText(pAccumulation_, "Direction_Light_GL3.txt");
-	    	saveTextureAsText(pDepth_, "Direction_Light_DS_GL3.txt");
+	    	saveTextureAsText(pDepth_, "Direction_Light_DS_GL3_2.txt");
 	    }
 	    
 	    if(!mbPrintProgram){
-	    	saveTextureAsText(pAccumulation_, "Directional_GL.txt");
-	    	saveTextureAsText(pDepth_, "Directional_DS_GL.txt");
+	    	saveTextureAsText(pAccumulation_, "Directional_GL_2.txt");
+	    	saveTextureAsText(pDepth_, "Directional_DS_GL_2.txt");
 	    }
 		return Status.OK;
 	}
@@ -585,8 +583,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    	ComputeLightLUTProgram program = getComputeLightLUTProgram(computeLightLUTDesc, "Generate Light LUT(CALCULATE)");
 	    	program.enable(renderVolume_Textures);
 	    	setupUniforms(program);
-//	    	pLightLUT_P_[0].bindImage(0, GL15.GL_WRITE_ONLY);
-	    	gl.glBindImageTexture(0, pLightLUT_P_[0].getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_P_[0].getFormat());
+	    	bindImage(pLightLUT_P_[0],0, GLenum.GL_WRITE_ONLY);
 			gl.glDispatchCompute(LIGHT_LUT_DEPTH_RESOLUTION / 32, LIGHT_LUT_WDOTV_RESOLUTION / 8, 1);
 			gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	    	
@@ -600,19 +597,17 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    	program = getComputeLightLUTProgram(computeLightLUTDesc, "Generate Light LUT(SUM)");
 	    	program.enable(renderVolume_Textures);
 	    	setupUniforms(program);
-//	    	pLightLUT_P_[1].bindImage(0, GL15.GL_WRITE_ONLY);
-			gl.glBindImageTexture(0, pLightLUT_P_[1].getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_P_[1].getFormat());
+	    	bindImage(pLightLUT_P_[1],0, GLenum.GL_WRITE_ONLY);
 			gl.glDispatchCompute(1, LIGHT_LUT_WDOTV_RESOLUTION / 4, 1);
 			gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	    	
 	    	program.disable();
-//	    	pLightLUT_P_[1].unbind();
-			gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
-	    	
+			bindImage(null,0, GLenum.GL_WRITE_ONLY);
+
 	    	if(!mbPrintProgram){
 				printProgram(program, "ComputeLightLUT Falloff NONE1");
 				
-				saveTextureAsText(pLightLUT_P_[1], "pLightLUT_P_1_GL.txt");
+				saveTextureAsText(pLightLUT_P_[1], "pLightLUT_P_1_GL_2.txt");
 			}
 	    }else if(pLightDesc.eFalloffMode == SpotlightFalloffMode.FIXED){
 	    	// TODO  NV_PERFEVENT(dxCtx, "Generate Light LUT");
@@ -625,13 +620,9 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    	program.enable(renderVolume_Textures);
 	    	setupUniforms(program);
 	    	
-	    	/*pLightLUT_P_[0].bindImage(0, GL15.GL_WRITE_ONLY);
-	    	pLightLUT_S1_[0].bindImage(1, GL15.GL_WRITE_ONLY);
-	    	pLightLUT_S2_[0].bindImage(2, GL15.GL_WRITE_ONLY);*/
-
-			gl.glBindImageTexture(0, pLightLUT_P_[0].getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_P_[0].getFormat());
-			gl.glBindImageTexture(0, pLightLUT_S1_[0].getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_S1_[0].getFormat());
-			gl.glBindImageTexture(0, pLightLUT_S2_[0].getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_S2_[0].getFormat());
+	    	bindImage(pLightLUT_P_[0],0, GLenum.GL_WRITE_ONLY);
+	    	bindImage(pLightLUT_S1_[0],1, GLenum.GL_WRITE_ONLY);
+	    	bindImage(pLightLUT_S2_[0],2, GLenum.GL_WRITE_ONLY);
 
 			gl.glDispatchCompute(LIGHT_LUT_DEPTH_RESOLUTION / 32, LIGHT_LUT_WDOTV_RESOLUTION / 8, 1);
 			gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -649,32 +640,26 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    	program.enable(renderVolume_Textures);
 	    	setupUniforms(program);
 	    	
-	    	/*pLightLUT_P_[1].bindImage(0, GL15.GL_WRITE_ONLY);
-	    	pLightLUT_S1_[1].bindImage(1, GL15.GL_WRITE_ONLY);
-	    	pLightLUT_S2_[1].bindImage(2, GL15.GL_WRITE_ONLY);*/
-
-			gl.glBindImageTexture(0, pLightLUT_P_[1].getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_P_[1].getFormat());
-			gl.glBindImageTexture(0, pLightLUT_S1_[1].getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_S1_[1].getFormat());
-			gl.glBindImageTexture(0, pLightLUT_S2_[1].getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_S2_[1].getFormat());
+	    	bindImage(pLightLUT_P_[1],0, GLenum.GL_WRITE_ONLY);
+	    	bindImage(pLightLUT_S1_[1],1, GLenum.GL_WRITE_ONLY);
+	    	bindImage(pLightLUT_S2_[1],2, GLenum.GL_WRITE_ONLY);
 
 			gl.glDispatchCompute(1, LIGHT_LUT_WDOTV_RESOLUTION / 4, 3);
 			gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	    	
 	    	program.disable();
-	    	/*pLightLUT_P_[1].unbind();
-	    	pLightLUT_S1_[1].unbind();
-	    	pLightLUT_S2_[1].unbind();*/
-			gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_P_[1].getFormat());
-			gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_S1_[1].getFormat());
-			gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, pLightLUT_S2_[1].getFormat());
-	    	
+
+			bindImage(null,0, GLenum.GL_WRITE_ONLY);
+			bindImage(null,1, GLenum.GL_WRITE_ONLY);
+			bindImage(null,2, GLenum.GL_WRITE_ONLY);
+
 	    	if(!mbPrintProgram){
 				printProgram(program, "ComputeLightLUT Falloff FIXED1");
 				System.out.println("programID: " + program);
 				
-				saveTextureAsText(pLightLUT_P_[1], "pLightLUT_P_1_GL.txt");
-				saveTextureAsText(pLightLUT_S1_[1], "pLightLUT_S1_GL.txt");
-				saveTextureAsText(pLightLUT_S2_[1], "pLightLUT_S2_GL.txt");
+				saveTextureAsText(pLightLUT_P_[1], "pLightLUT_P_1_GL_2.txt");
+				saveTextureAsText(pLightLUT_S1_[1], "pLightLUT_S1_GL_2.txt");
+				saveTextureAsText(pLightLUT_S2_[1], "pLightLUT_S2_GL_2.txt");
 			}
 	    }
 	    
@@ -690,6 +675,11 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 //	    GL30.glClearBufferiv(GL11.GL_STENCIL, 0, GLUtil.wrapi1(0xFF));
 //	    rtManager.clearDepthStencilTarget(1, 0);
 //	    rtManager.clearRenderTarget(0, 0);
+
+		if(!mbPrintProgram){
+//	    	saveTextureAsText(pAccumulation_, "SpotLight_GL.txt");
+			saveTextureAsText(pDepth_, "SpotLight_DS_GL0_2.txt");
+		}
 	    
 	 // Determine DS/HS permutation
 	    renderVolumeDesc.shadowMapType = RenderVolumeDesc.SHADOWMAPTYPE_ATLAS;
@@ -722,7 +712,8 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    
 	    if(!mbPrintProgram){
 //	    	saveTextureAsText(pAccumulation_, "SpotLight_GL.txt");
-	    	saveTextureAsText(pDepth_, "SpotLight_DS_GL1.txt");
+	    	saveTextureAsText(pDepth_, "SpotLight_DS_GL1_2.txt");
+	    	saveTextureAsText(shadowMap, "ShadowMap_2.txt");
 	    }
 	    
 	    //--------------------------------------------------------------------------
@@ -733,7 +724,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    
 	    if(!mbPrintProgram){
 //	    	saveTextureAsText(pAccumulation_, "SpotLight_GL.txt");
-	    	saveTextureAsText(pDepth_, "SpotLight_DS_GL2.txt");
+	    	saveTextureAsText(pDepth_, "SpotLight_DS_GL2_2.txt");
 	    }
 	    //--------------------------------------------------------------------------
 	    // Finish the rendering by filling in stenciled gaps
@@ -753,8 +744,8 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    }
 	    
 	    if(!mbPrintProgram){
-	    	saveTextureAsText(pAccumulation_, "SpotLight_GL.txt");
-	    	saveTextureAsText(pDepth_, "SpotLight_DS_GL.txt");
+	    	saveTextureAsText(pAccumulation_, "SpotLight_GL_2.txt");
+	    	saveTextureAsText(pDepth_, "SpotLight_DS_GL_2.txt");
 	    }
 	    
 	    /*if(showFace){  TODO
@@ -852,7 +843,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 			bindImage(null,0, GLenum.GL_WRITE_ONLY);
 	    	
 	    	if(!mbPrintProgram){
-		    	saveTextureAsText(pLightLUT_P_[1], "Omni_LUT_GL.txt");
+		    	saveTextureAsText(pLightLUT_P_[1], "Omni_LUT_GL_2.txt");
 		    }
 		}
 		
@@ -901,8 +892,8 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    
 	    
 	    if(!mbPrintProgram){
-	    	saveTextureAsText(pAccumulation_, "Omni_GL.txt");
-	    	saveTextureAsText(pDepth_, "Omni_DS_GL.txt");
+	    	saveTextureAsText(pAccumulation_, "Omni_GL_2.txt");
+	    	saveTextureAsText(pDepth_, "Omni_DS_GL_2.txt");
 	    }
 	    // TODO reset the OpenGL states to default
 		return Status.OK;
@@ -950,32 +941,24 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		return Status.OK;
 	}
 	
-	private final int[] m_ResolveTargets = new int[2];
-
 	@Override
 	protected Status applyLighting_Resolve(PostprocessDesc pPostprocessDesc) {
 //		NV_PERFEVENT(dxCtx, "Resolve");
 		renderVolume_Textures[0] = pAccumulation_.getTexture();
 		renderVolume_Textures[1] = pDepth_.getTexture();
 		
-		m_ResolveTargets[0] = pResolvedAccumulation_.getTexture();
-		m_ResolveTargets[1] = pResolvedDepth_.getTexture();
-		
 		rtManager.setRenderTextures(CommonUtil.toArray(pResolvedAccumulation_,pResolvedDepth_ ), null);
 		gl.glViewport(0, 0, pResolvedAccumulation_.getWidth(), pResolvedAccumulation_.getHeight());
 		resolve_PS.enable(renderVolume_Textures);
 		setupUniforms(resolve_PS);
-		
-//		pResolvedAccumulation_.bindImage(0, GL15.GL_WRITE_ONLY);
-//		pResolvedDepth_.bindImage(1, GL15.GL_WRITE_ONLY);
 		
 		gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 		
 		resolve_PS.disable();
 		if(!mbPrintProgram){
 			printProgram(resolve_PS, "applyLighting_Resolve");
-			saveTextureAsText(pResolvedAccumulation_, "Resolve_Accum_GL.txt");
-			saveTextureAsText(pResolvedDepth_, "Resolve_Depth_GL.txt");
+			saveTextureAsText(pResolvedAccumulation_, "Resolve_Accum_GL_2.txt");
+			saveTextureAsText(pResolvedDepth_, "Resolve_Depth_GL_2.txt");
 		}
 		
 		pAccumulatedOutput_ =pResolvedAccumulation_;
@@ -990,8 +973,6 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		renderVolume_Textures[2] = pResolvedDepth_.getTexture();
 		renderVolume_Textures[3] = pFilteredDepth_[lastFrameIndex_].getTexture();
 		
-		m_ResolveTargets[0] = pFilteredAccumulation_[nextFrameIndex_].getTexture();
-		m_ResolveTargets[1] = pFilteredDepth_[nextFrameIndex_].getTexture();
 		rtManager.setRenderTextures(CommonUtil.toArray(pFilteredAccumulation_[nextFrameIndex_], pFilteredDepth_[nextFrameIndex_]), null);
 		gl.glViewport(0, 0, pFilteredAccumulation_[nextFrameIndex_].getWidth(), pFilteredAccumulation_[nextFrameIndex_].getHeight());
 		
@@ -1024,7 +1005,9 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 //		rtManager.setTexture2DRenderTargets(sceneTarget, 0);
 		rtManager.bind();
 		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, sceneTarget, 0);
+		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT1, GLenum.GL_TEXTURE_2D, 0, 0);
 		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, GLenum.GL_TEXTURE_2D, 0, 0);
+		gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
 
 		applyDesc.sampleMode = isOutputMSAA() ? RenderVolumeDesc.SAMPLEMODE_MSAA : RenderVolumeDesc.SAMPLEMODE_SINGLE;
 		switch (pPostprocessDesc.eUpsampleQuality)
@@ -1073,7 +1056,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    
 	    if(!mbPrintProgram){
 	    	printProgram(program, "applyLighting_Composite");
-	    	saveTextureAsText(sceneTarget, "Composite_GL.txt");
+	    	saveTextureAsText(sceneTarget, "Composite_GL_2.txt");
 	    }
 	    
 		return Status.OK;
@@ -1354,18 +1337,18 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	}
 	
 	static void saveTextureAsText(TextureGL texture, String filename){
-    	/*try {
+    	try {
 			DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, "E:/textures/VolumetricLighting/" + filename);
 		} catch (IOException e) {
 			e.printStackTrace();
-		}*/
+		}
     }
 	
 	static void saveTextureAsText(int texture, String filename){
-    	/*try {
+    	try {
 			DebugTools.saveTextureAsText(GLenum.GL_TEXTURE_2D, texture, 0, "E:/textures/VolumetricLighting/" + filename);
 		} catch (IOException e) {
 			e.printStackTrace();
-		}*/
+		}
     }
 }

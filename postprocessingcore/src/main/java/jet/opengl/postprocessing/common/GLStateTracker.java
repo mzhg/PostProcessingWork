@@ -8,6 +8,7 @@ import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.ProgramProperties;
+import jet.opengl.postprocessing.shader.ProgramResources;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -168,9 +169,7 @@ public class GLStateTracker {
         if(m_CurrentStates.program == 0){
             LogUtil.i(LogUtil.LogType.DEFAULT, debugName+ ": Current program is null!!!");
         }else {
-            LogUtil.i(LogUtil.LogType.DEFAULT, "----------------------------" + debugName + "-----------------------------------------");
-            ProgramProperties properties = GLSLUtil.getProperties(m_CurrentStates.program);
-            LogUtil.i(LogUtil.LogType.DEFAULT, properties.toString());
+            OpenGLProgram.printPrograminfo(m_CurrentStates.program, debugName);
         }
     }
 

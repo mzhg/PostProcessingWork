@@ -22,11 +22,13 @@ import jet.opengl.demos.labs.scattering.Chapman;
 import jet.opengl.demos.labs.skylight.SkyImage;
 import jet.opengl.demos.nvidia.face.sample.FaceWorkDemo;
 import jet.opengl.demos.nvidia.face.sample.FaceWorkTest;
+import jet.opengl.demos.nvidia.volumelight.VolumetricLightingDemo;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.demos.postprocessing.HBAODemo;
 import jet.opengl.demos.postprocessing.LightingVolumeDemo;
 import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 
@@ -126,12 +128,13 @@ public class DemoApp {
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
-        run(new LightingVolumeDemo());
+//        run(new LightingVolumeDemo());
 //        run(new TestD3D11());
 //        run(new Chapman());
 //        run(new AtmosphereTest());
 //        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
+        run(new VolumetricLightingDemo());
 
         /*Matrix4f orth = Matrix4f.ortho(10, 10, 0, 100, null);
         float scale = -2/orth.m22;
@@ -142,8 +145,6 @@ public class DemoApp {
         double a = Math.pow(400, -4);
         double b = Math.pow(700, -4);
         System.out.println(a/b);
-
-
     }
 
     private static void testRectVertex(){

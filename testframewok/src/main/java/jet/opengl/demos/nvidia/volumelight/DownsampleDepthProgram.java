@@ -1,7 +1,5 @@
 package jet.opengl.demos.nvidia.volumelight;
 
-import java.lang.reflect.Field;
-
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.Macro;

@@ -266,6 +266,7 @@ public final class GLSLUtil {
 		return lines;
 	}
 
+	@Deprecated
 	public static ProgramProperties getProperties(int programId){
 		final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		ProgramProperties property = new ProgramProperties();
