@@ -483,7 +483,7 @@ public class Cube16 {
 
 	final class SceneController {
 
-		LightType lightMode = LightType.DIRECTIONAL;
+		LightType lightMode = LightType.SPOT;
 		int lightPower_;
 		int viewpoint_ = 0;
 

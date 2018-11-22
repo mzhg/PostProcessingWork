@@ -4,12 +4,15 @@ import java.nio.ByteBuffer;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Writable;
 
+import jet.opengl.demos.intel.fluid.utils.UniformGrid;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 final class PerApplyCB implements Writable{
-
+	static final int SIZE = Matrix4f.SIZE + Vector4f.SIZE * 2;
 	// c0
     final Matrix4f mHistoryXform = new Matrix4f();
     // c4
@@ -32,7 +35,23 @@ final class PerApplyCB implements Writable{
     }*/
 
 	void store(BufferGL unfiorms){
-		throw new UnsupportedOperationException();
+		if(unfiorms == null) return;
+
+		ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(SIZE);
+		mHistoryXform.store(buffer);
+		buffer.putFloat(fFilterThreshold);
+		buffer.putFloat(fHistoryFactor);
+		buffer.putLong(0);
+
+		vFogLight.store(buffer);
+		buffer.putFloat(fMultiScattering);
+
+		buffer.flip();
+		if(buffer.remaining() != SIZE)
+			throw new AssertionError();
+
+		unfiorms.bind();
+		unfiorms.update(0, buffer);
 	}
     
 	@Override

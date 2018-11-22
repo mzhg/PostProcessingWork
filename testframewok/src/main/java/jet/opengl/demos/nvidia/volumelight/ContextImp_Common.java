@@ -5,10 +5,19 @@ import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.IOException;
+
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLAPIVersion;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.OpenGLProgram;
+import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
+import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.DebugTools;
 
 
 public abstract class ContextImp_Common implements Disposeable {
@@ -440,5 +449,41 @@ public abstract class ContextImp_Common implements Disposeable {
         }
         cb.vFogLight.set(pPostprocessDesc.vFogLight);
         cb.fMultiScattering = pPostprocessDesc.fMultiscatter;
+    }
+
+    //-------------------------- Helper function declared here for the subclass conversine using.-----------------------
+    protected static Texture2D create(int width, int height, int samples, int format, String debug_name){
+        Texture2DDesc desc = new Texture2DDesc();
+        desc.width = width;
+        desc.height = height;
+        desc.sampleCount = samples;
+        desc.format = format;
+        desc.mipLevels = 1;
+        desc.arraySize = 1;
+
+        Texture2D result = TextureUtils.createTexture2D(desc, null);
+        result.setName(debug_name);
+        return result;
+    }
+
+    protected static void printProgram(OpenGLProgram program, String name){
+        program.setName(name);
+        program.printPrograminfo();
+    }
+
+    static void saveTextureAsText(TextureGL texture, String filename){
+        try {
+            DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, "E:/textures/VolumetricLighting/" + filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    static void saveTextureAsText(int texture, String filename){
+        try {
+            DebugTools.saveTextureAsText(GLenum.GL_TEXTURE_2D, texture, 0, "E:/textures/VolumetricLighting/" + filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

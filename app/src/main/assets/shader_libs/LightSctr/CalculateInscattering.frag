@@ -91,15 +91,6 @@ void TruncateEyeRayToLightCone(in float3 f3EyeVector,
 }
 
 #if INSCTR_INTGL_EVAL_METHOD == INSCTR_INTGL_EVAL_METHOD_SRNN05
-
-float2 GetSRNN05LUTParamLimits()
-{
-    // The first argument of the lookup table is the distance from the point light source to the view ray, multiplied by the scattering coefficient
-    // The second argument is the weird angle which is in the range from 0 t Pi/2, as tan(Pi/2) = +inf
-    return float2(
-        g_fMaxTracingDistance * 2 * max(max(g_f4SummTotalBeta.r, g_f4SummTotalBeta.g), g_f4SummTotalBeta.b),
-        PI/2 );
-}
 float3 GetInsctrIntegral_SRNN05( in float3 f3A1, in float3 f3Tsv, in float fCosGamma, in float fSinGamma, in float fDistFromCamera)
 {
     // f3A1 depends only on the location of the camera and the light source
@@ -187,7 +178,7 @@ float3 CalculateInscattering( in float2 f2RayMarchingSampleLocation,
 // return f3RayTerminationInsctrIntegral;
 #elif INSCTR_INTGL_EVAL_METHOD == INSCTR_INTGL_EVAL_METHOD_SRNN05
 
- float3 f3Tsv = fDistToLight * g_MediaParams.f4SummTotalBeta.rgb;
+ float3 f3Tsv = fDistToLight * g_f4SummTotalBeta.rgb;
  float fSinGamma = max(sqrt( 1 - fCosLV*fCosLV ), 1e-6);
  float3 f3A0 = g_f4SummTotalBeta.rgb * g_f4SummTotalBeta.rgb * 
                //g_LightAttribs.f4LightColorAndIntensity.rgb * g_LightAttribs.f4LightColorAndIntensity.w *
@@ -210,7 +201,7 @@ float3 CalculateInscattering( in float2 f2RayMarchingSampleLocation,
  if( fCosLV > 1 - 1e-6 )
  {
 #if INSCTR_INTGL_EVAL_METHOD == INSCTR_INTGL_EVAL_METHOD_ANALYTIC
-     f3FullyLitInsctrIntegral = 1e+8;
+     f3FullyLitInsctrIntegral = float3(1e+8);
 #endif
      float IsInLight = bIsCamInsideCone ? 
 //                     g_tex2DLightSpaceDepthMap.SampleCmpLevelZero( samComparison, g_LightAttribs.f4CameraUVAndDepthInShadowMap.xy, g_LightAttribs.f4CameraUVAndDepthInShadowMap.z ).x
@@ -373,7 +364,7 @@ float3 CalculateInscattering( in float2 f2RayMarchingSampleLocation,
      // Clamp depth to a very small positive value to not let the shadow rays get clipped at the
      // shadow map far clipping plane
      float fCurrDepthInLightSpace = max(f3CurrShadowMapUVAndDepthInLightSpace.z, 1e-7);
-     float IsInLight = 0;
+     float IsInLight = 0.0;
 
 #if ACCEL_STRUCT > ACCEL_STRUCT_NONE
      if( bUse1DMinMaxMipMap )
@@ -454,7 +445,7 @@ float3 CalculateInscattering( in float2 f2RayMarchingSampleLocation,
 #endif
      {
 //         IsInLight = g_tex2DLightSpaceDepthMap.SampleCmpLevelZero( samComparison, f3CurrShadowMapUVAndDepthInLightSpace.xy, fCurrDepthInLightSpace ).x;
-    	 IsInLight = textureLod(g_tex2DLightSpaceDepthMap, float3(f3CurrShadowMapUVAndDepthInLightSpace.xy, fCurrDepthInLightSpace), 0.0);
+    	 IsInLight = textureLod(g_tex2DLightSpaceDepthMap, float3(f3CurrShadowMapUVAndDepthInLightSpace.xy, fCurrDepthInLightSpace), 0.0).x;
 //    	 IsInLight = max(1.0, IsInLight);
      }
 
@@ -502,7 +493,7 @@ float3 CalculateInscattering( in float2 f2RayMarchingSampleLocation,
          f3DirFromLight /= fDistFromLight;
          float fCosTheta = dot(-f3EyeVector, f3DirFromLight);
          float3 f3Extinction = exp(-(fDistFromCamera+fDistFromLight)*g_f4SummTotalBeta.rgb);
-         f3CurrInscatteringIntegralValue = 0;
+         f3CurrInscatteringIntegralValue = float3(0);
          f3PrevInsctrIntegralValue = f3Extinction * EvaluatePhaseFunction(fCosTheta) * (fDistFromCamera - fPrevDistFromCamera) / fDistFromLightSqr;
          fPrevDistFromCamera = fDistFromCamera;
 #   endif

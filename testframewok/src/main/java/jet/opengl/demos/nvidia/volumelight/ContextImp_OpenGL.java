@@ -3,7 +3,6 @@ package jet.opengl.demos.nvidia.volumelight;
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Writable;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -13,14 +12,11 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
-import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
-import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
@@ -258,20 +254,6 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
     	}
     }
     
-    private static Texture2D create(int width, int height, int samples, int format, String debug_name){
-    	Texture2DDesc desc = new Texture2DDesc();
-    	desc.width = width;
-    	desc.height = height;
-    	desc.sampleCount = samples;
-    	desc.format = format;
-    	desc.mipLevels = 1;
-    	desc.arraySize = 1;
-
-		Texture2D result = TextureUtils.createTexture2D(desc, null);
-		result.setName(debug_name);
-		return result;
-    }
-    
     private void setupTextures(RenderVolumeProgram program, int shadowMap, ShadowMapDesc pShadowMapDesc){
     	if(pShadowMapDesc != null){
     		program.setShadowMap(pShadowMapDesc.eType == ShadowMapLayout.PARABOLOID ? GLenum.GL_TEXTURE_2D_ARRAY : GLenum.GL_TEXTURE_2D,
@@ -298,11 +280,6 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
     	program.setupUniforms(perFrameStruct);
     	program.setupUniforms(perVolumeStruct);
     }
-
-    private void printProgram(OpenGLProgram program, String name){
-		program.setName(name);
-		program.printPrograminfo();
-	}
 	
 	@Override
 	protected Status beginAccumulation_Start(int sceneDepth, ViewerDesc pViewerDesc, MediumDesc pMediumDesc) {
@@ -1335,20 +1312,4 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		gl.glDisable(GLenum.GL_CULL_FACE);
 		gl.glFrontFace(GLenum.GL_CW);
 	}
-	
-	static void saveTextureAsText(TextureGL texture, String filename){
-    	try {
-			DebugTools.saveTextureAsText(texture.getTarget(), texture.getTexture(), 0, "E:/textures/VolumetricLighting/" + filename);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-    }
-	
-	static void saveTextureAsText(int texture, String filename){
-    	try {
-			DebugTools.saveTextureAsText(GLenum.GL_TEXTURE_2D, texture, 0, "E:/textures/VolumetricLighting/" + filename);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-    }
 }

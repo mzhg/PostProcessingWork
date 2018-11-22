@@ -10,64 +10,77 @@ import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Writable;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 
 final class PerFrameCB implements Writable{
+	static final int SIZE = Matrix4f.SIZE * 3 + Vector4f.SIZE * 11;
 
 	final Matrix4f mProj = new Matrix4f();
 	final Matrix4f mViewProj = new Matrix4f();
 	final Matrix4f mViewProj_Inv = new Matrix4f();
 	
 	final Vector2f vOutputViewportSize = new Vector2f();
-	final Vector2f vOutputViewportSize_Inv = new Vector2f();
+	final Vector2f vOutputViewportSize_Inv = new Vector2f();  // 1
 	
 	final Vector2f vViewportSize = new Vector2f();
-	final Vector2f vViewportSize_Inv = new Vector2f();
+	final Vector2f vViewportSize_Inv = new Vector2f();    // 2
 	
-	final Vector3f vEyePosition = new Vector3f();
+	final Vector3f vEyePosition = new Vector3f();   // 3
 	
 	final Vector2f vJitterOffset = new Vector2f();
 	float fZNear;
-    float fZFar;
+    float fZFar;     // 4
     
     final Vector3f vScatterPower = new Vector3f();
-    int uNumPhaseTerms;
+    int uNumPhaseTerms;   // 5
     
-    final Vector3f vSigmaExtinction = new Vector3f();
+    final Vector3f vSigmaExtinction = new Vector3f();  // 6
     
-    final int[][] uPhaseFunc = new int[VLConstant.MAX_PHASE_TERMS][4];
-    final Vector4f[] vPhaseParams = new Vector4f[VLConstant.MAX_PHASE_TERMS];
+    final int[][] uPhaseFunc = new int[VLConstant.MAX_PHASE_TERMS][4];  // 7
+    final Vector4f[] vPhaseParams = new Vector4f[VLConstant.MAX_PHASE_TERMS];  // 8, 9, 10, 11
     
     public PerFrameCB() {
     	for(int i = 0;i < vPhaseParams.length; i++){
 			vPhaseParams[i] = new Vector4f();
 		}
 	}
-    
-    /*void store(UniformBlockData uniforms){
-    	if(uniforms == null)
-    		return;
-    	
-    	uniforms.set("mProj", mProj);
-    	uniforms.set("mViewProj", mViewProj);
-    	uniforms.set("mViewProj_Inv", mViewProj_Inv);
-    	uniforms.set("vOutputViewportSize", vOutputViewportSize);
-    	uniforms.set("vOutputViewportSize_Inv", vOutputViewportSize_Inv);
-    	uniforms.set("vViewportSize", vViewportSize);
-    	uniforms.set("vViewportSize_Inv", vViewportSize_Inv);
-    	uniforms.set("vEyePosition", vEyePosition);
-    	uniforms.set("vJitterOffset", vJitterOffset);
-    	uniforms.set("fZNear", fZNear);
-    	uniforms.set("fZFar", fZFar);
-    	uniforms.set("vScatterPower", vScatterPower);
-    	uniforms.set("uNumPhaseTerms", uNumPhaseTerms);
-    	uniforms.set("vSigmaExtinction", vSigmaExtinction);
-//    	uniforms.set("uPhaseFunc", uPhaseFunc);
-    	uniforms.set("vPhaseParams", vPhaseParams);
-    }*/
 
 	void store(BufferGL unfiorms){
-//		throw new UnsupportedOperationException();
+    	if(unfiorms == null) return;
+
+    	ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(SIZE);
+		mProj.store(buffer);
+		mViewProj.store(buffer);
+		mViewProj_Inv.store(buffer);
+
+		vOutputViewportSize.store(buffer);
+		vOutputViewportSize_Inv.store(buffer);
+
+		vViewportSize.store(buffer);
+		vViewportSize_Inv.store(buffer);
+
+		vEyePosition.store(buffer);  buffer.putInt(0);
+
+		vJitterOffset.store(buffer);  buffer.putFloat(fZNear);  buffer.putFloat(fZFar);
+
+		vScatterPower.store(buffer); buffer.putInt(uNumPhaseTerms);
+
+		vSigmaExtinction.store(buffer); buffer.putInt(0);
+
+		for(int i = 0; i < 4; i++)
+			buffer.putInt(uPhaseFunc[i][0]);
+
+		for (int i = 0; i < vPhaseParams.length; i++)
+			vPhaseParams[i].store(buffer);
+
+		buffer.flip();
+		if(buffer.remaining() != SIZE){
+			throw new AssertionError();
+		}
+
+		unfiorms.bind();
+		unfiorms.update(0, buffer);
 	}
     
 	@Override

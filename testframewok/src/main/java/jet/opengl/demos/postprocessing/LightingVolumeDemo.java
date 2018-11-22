@@ -52,7 +52,7 @@ public class LightingVolumeDemo extends NvSampleApp {
         m_InitAttribs.m_bShowSampling = false;
         m_InitAttribs.m_bStainedGlass = false;
         m_InitAttribs.m_uiAccelStruct = AccelStruct.MIN_MAX_TREE;
-        m_InitAttribs.m_uiInsctrIntglEvalMethod = InscaterringIntegralEvalution.MY_LUT;
+        m_InitAttribs.m_uiInsctrIntglEvalMethod = InscaterringIntegralEvalution.ANALYTIC;
 
         m_LightFrameAttribs = new LightScatteringFrameAttribs();
     }

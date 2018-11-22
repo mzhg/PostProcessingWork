@@ -16,10 +16,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import javax.naming.Name;
+
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.CachaRes;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -264,6 +267,24 @@ public final class GLSLUtil {
 		
 		lines.trimToSize();
 		return lines;
+	}
+
+	public static void assertUniformBuffer(OpenGLProgram program, String name, int index, int bufferSize) {
+		if(!GLCheck.CHECK) return;
+
+		final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+		int buffer_index = gl.glGetUniformBlockIndex(program.getProgram(), name);
+		if(buffer_index >=0){
+			if(buffer_index != index){
+				throw new AssertionError("The uniform buffer["+ name +"] binding index doesn't match the given index, The program name is "+ program.getName());
+			}
+
+			IntBuffer params = CacheBuffer.getCachedIntBuffer(1);
+			gl.glGetActiveUniformBlockiv(program.getProgram(), index, GLenum.GL_UNIFORM_BLOCK_DATA_SIZE, params);
+			if(bufferSize != params.get(0)){
+				throw new AssertionError("The size of uniform buffer["+ name +"] doesn't match the given size, The program name is "+ program.getName());
+			}
+		}
 	}
 
 	@Deprecated

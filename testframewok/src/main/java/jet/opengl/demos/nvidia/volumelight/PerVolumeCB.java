@@ -9,9 +9,10 @@ import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Writable;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 final class PerVolumeCB implements Writable{
-
+    static final int SIZE = Matrix4f.SIZE *(1+4+4+1) + Vector4f.SIZE * 8;
 	// c0+4
     final Matrix4f mLightToWorld = new Matrix4f();
     // c4
@@ -49,34 +50,41 @@ final class PerVolumeCB implements Writable{
     // (Need to do this because HLSL can only stride arrays by full offset)
 //    uint32_t uElementIndex[4][4];
     final int[] uElementIndex = new int[16];
-    
-    /*void store(UniformBlockData uniforms){
-    	if(uniforms == null)
-    		return;
-    	
-    	uniforms.set("mLightToWorld", mLightToWorld);
-    	uniforms.set("fLightFalloffAngle", fLightFalloffAngle);
-    	uniforms.set("fLightFalloffPower", fLightFalloffPower);
-    	uniforms.set("fGridSectionSize", fGridSectionSize);
-    	uniforms.set("fLightToEyeDepth", fLightToEyeDepth);
-    	uniforms.set("fLightZNear", fLightZNear);
-    	uniforms.set("fLightZFar", fLightZFar);
-    	uniforms.set("vAttenuationFactors", vAttenuationFactors);
-    	uniforms.set("mLightProj", mLightProj);
-    	uniforms.set("mLightProj_Inv", mLightProj_Inv);
-    	uniforms.set("vLightDir", vLightDir);
-    	uniforms.set("fDepthBias", fDepthBias);
-    	uniforms.set("vLightPos", vLightPos);
-    	uniforms.set("uMeshResolution", uMeshResolution);
-    	uniforms.set("vLightIntensity", vLightIntensity);
-    	uniforms.set("fTargetRaySize", fTargetRaySize);
-    	uniforms.set("vElementOffsetAndScale", vElementOffsetAndScale);
-    	uniforms.set("vShadowMapDim", vShadowMapDim);
-    	uniforms.set("uElementIndex", uElementIndex);
-    }*/
 
     void store(BufferGL uniforms){
-//        throw new UnsupportedOperationException();
+        if(uniforms == null) return;
+
+        ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(SIZE);
+        mLightToWorld.store(buffer);
+        buffer.putFloat(fLightFalloffAngle);
+        buffer.putFloat(fLightFalloffPower);
+        buffer.putFloat(fGridSectionSize);
+        buffer.putFloat(fLightToEyeDepth);
+
+        buffer.putFloat(fLightZNear);
+        buffer.putFloat(fLightZFar);
+        buffer.putLong(0);
+
+        vAttenuationFactors.store(buffer);
+        CacheBuffer.put(buffer, mLightProj);
+        CacheBuffer.put(buffer, mLightProj_Inv);
+
+        vLightDir.store(buffer); buffer.putFloat(fDepthBias);
+        vLightPos.store(buffer); buffer.putInt(uMeshResolution);
+
+        CacheBuffer.put(buffer, vElementOffsetAndScale);
+        vShadowMapDim.store(buffer);
+
+        for (int i = 0; i < 4; i++){
+            buffer.putInt(uElementIndex[i*4]);
+        }
+
+        buffer.flip();
+        if(buffer.remaining() != SIZE)
+            throw new AssertionError();
+
+        uniforms.bind();
+        uniforms.update(0, buffer);
     }
     
     @Override

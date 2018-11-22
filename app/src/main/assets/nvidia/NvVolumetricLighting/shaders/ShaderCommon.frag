@@ -87,8 +87,8 @@ layout(binding=1) uniform cbFrame 	//: register(b1)
     float3 g_vScatterPower;              //: packoffset(c16);
     uint g_uNumPhaseTerms;       		//: packoffset(c16.w);
     float3 g_vSigmaExtinction;           //: packoffset(c17);
-    uint g_uPhaseFunc[4];				//: packoffset(c18);
-    float4 g_vPhaseParams[4];			//: packoffset(c22);
+    ivec4 g_uPhaseFunc;				//: packoffset(c18);
+    float4 g_vPhaseParams[4];			//: packoffset(c19);
 };
 
 layout(binding=2) uniform cbVolume //: register(b2)
@@ -111,7 +111,7 @@ layout(binding=2) uniform cbVolume //: register(b2)
 	float g_fTargetRaySize;				//	: packoffset(c41.w);
 	float4 g_vElementOffsetAndScale[4];	//	: packoffset(c42); 
 	float4 g_vShadowMapDim;				//	: packoffset(c46);
-	uint g_uElementIndex[4];	    		//  : packoffset(c47);
+	ivec4 g_uElementIndex;	    		//  : packoffset(c47);
 };
 
 layout(binding=3) uniform cbApply //: register(b3)

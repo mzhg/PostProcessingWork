@@ -1,13 +1,17 @@
 package jet.opengl.demos.nvidia.volumelight;
 
-import java.nio.ByteBuffer;
-
 import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Writable;
 
+import java.nio.ByteBuffer;
+
+import jet.opengl.demos.intel.fluid.utils.UniformGrid;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 final class PerContextCB implements Writable{
+	static final int SIZE = Vector4f.SIZE * 3;
 
 	final Vector2f vOutputSize = new Vector2f();
 	final Vector2f vOutputSize_Inv = new Vector2f();
@@ -31,7 +35,24 @@ final class PerContextCB implements Writable{
 	}*/
 
 	void store(BufferGL unfiorms){
-//		throw new UnsupportedOperationException();
+		if(unfiorms == null) return;
+
+		ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(SIZE);
+		vOutputSize.store(buffer);
+		vOutputSize_Inv.store(buffer);
+		vBufferSize.store(buffer);
+		vBufferSize_Inv.store(buffer);
+
+		buffer.putFloat(fResMultiplier);
+		buffer.putInt(uSampleCount);
+		buffer.putLong(0);
+
+		buffer.flip();
+		if(buffer.remaining() != SIZE)
+			throw new AssertionError();
+
+		unfiorms.bind();
+		unfiorms.update(0, buffer);
 	}
 	
 	@Override

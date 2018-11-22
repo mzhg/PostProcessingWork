@@ -128,13 +128,13 @@ public class DemoApp {
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
-//        run(new LightingVolumeDemo());
+        run(new LightingVolumeDemo());
 //        run(new TestD3D11());
 //        run(new Chapman());
 //        run(new AtmosphereTest());
 //        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
-        run(new VolumetricLightingDemo());
+//        run(new VolumetricLightingDemo());
 
         /*Matrix4f orth = Matrix4f.ortho(10, 10, 0, 100, null);
         float scale = -2/orth.m22;

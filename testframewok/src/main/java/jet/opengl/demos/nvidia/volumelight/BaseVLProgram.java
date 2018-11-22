@@ -360,7 +360,10 @@ abstract class BaseVLProgram implements OpenGLProgram {
 	    // (Need to do this because HLSL can only stride arrays by full offset)
 //	    uint32_t uElementIndex[4][4];
 //	    final int[] uElementIndex = new int[16];
-		setElementIndex(data.uElementIndex);
+		for(int i = 0; i < 4; i++){
+			phaseFunc[i] = data.uElementIndex[i*4];
+		}
+		setElementIndex(phaseFunc);
 	}
 
 

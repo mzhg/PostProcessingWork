@@ -41,10 +41,10 @@ Define the shader permutations for code generation
 
 #if (SAMPLEMODE == SAMPLEMODE_SINGLE)
 //Texture2D<float> tDepthMap : register(t0);
-uniform sampler2D tDepthMap;
+layout(binding = 0) uniform sampler2D tDepthMap;
 #elif (SAMPLEMODE == SAMPLEMODE_MSAA)
 //Texture2DMS<float> tDepthMap : register(t0);
-uniform sampler2DMS tDepthMap;
+layout(binding = 0) uniform sampler2DMS tDepthMap;
 #endif
 
 uniform int sampleIndex = 0;

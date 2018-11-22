@@ -126,29 +126,27 @@ void main()
     const int PHASEFUNC_MIEHAZY = 3;
     const int PHASEFUNC_MIEMURKY = 4;
     
-    const int phaseFunc[4] = int[4](1, 2, 3, 4);
-
     for (int i=0; i<g_uNumPhaseTerms; ++i)
 	{
         float3 term_scatter = g_vPhaseParams[i].rgb;
         total_scatter += term_scatter;
-		if (phaseFunc[i] == PHASEFUNC_ISOTROPIC)
+		if (g_uPhaseFunc[i] == PHASEFUNC_ISOTROPIC)
 		{
 			phase_factor += term_scatter*ScatterPhase_Isotropic();
 		}
-		else if (phaseFunc[i] == PHASEFUNC_RAYLEIGH)
+		else if (g_uPhaseFunc[i] == PHASEFUNC_RAYLEIGH)
 		{
 			phase_factor += term_scatter*ScatterPhase_Rayleigh(cos_theta);
 		}
-		else if (phaseFunc[i] == PHASEFUNC_HG)
+		else if (g_uPhaseFunc[i] == PHASEFUNC_HG)
 		{
 			phase_factor += term_scatter*ScatterPhase_HenyeyGreenstein(cos_theta, g_vPhaseParams[i].a);
 		}
-		else if (phaseFunc[i] == PHASEFUNC_MIEHAZY)
+		else if (g_uPhaseFunc[i] == PHASEFUNC_MIEHAZY)
 		{
 			phase_factor += term_scatter*ScatterPhase_MieHazy(cos_theta);
 		}
-		else if (phaseFunc[i] == PHASEFUNC_MIEMURKY)
+		else if (g_uPhaseFunc[i] == PHASEFUNC_MIEMURKY)
 		{
 			phase_factor += term_scatter*ScatterPhase_MieMurky(cos_theta);
 		}
