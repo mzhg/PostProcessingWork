@@ -53,6 +53,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	// shader declars
 //	private final HashMap<ProgramIndex, ApplyProgram> applyPrograms = new HashMap<>();
 	private final HashMap<Object, BaseVLProgram> programsCache = new HashMap<>();
+	private final HashMap<TessellationDesc, TessellationMesh> meshesCache = new HashMap<>();
 	private final RenderVolumeDesc renderVolumeDesc = new RenderVolumeDesc();
 	private final ComputeLightLUTDesc computeLightLUTDesc = new ComputeLightLUTDesc();
 	private final ApplyDesc applyDesc = new ApplyDesc();
@@ -61,11 +62,16 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	private DownsampleDepthProgram downsampleDepth_PS;
 	private ResolvePogram resolve_PS;
 	private TempoalFilterProgram tempoalFilter_PS;
+	private PrecomputedLightLUT_IntelProgram intelProgram;
+	private PrecomputedLightLUT_SRNN05Program srnn05Program;
 	private int dummyVAO;
 	
 	private boolean debug = true;
 	private boolean mbPrintProgram = false;
 	private boolean m_bStaticSceneTest = false;
+
+	private boolean intelLUTNeedUpdate = true;
+	private boolean srnn05LUTNeedUpdate = true;
 	
 	private final Vector4f[] faceColors_ = {
 		new Vector4f(1, 0, 0, 0.5f),
@@ -586,6 +592,9 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 				
 				saveTextureAsText(pLightLUT_P_[1], "pLightLUT_P_1_GL_2.txt");
 			}
+
+			intelLUTNeedUpdate = true;
+	    	srnn05LUTNeedUpdate = true;
 	    }else if(pLightDesc.eFalloffMode == SpotlightFalloffMode.FIXED){
 	    	// TODO  NV_PERFEVENT(dxCtx, "Generate Light LUT");
 	    	computeLightLUTDesc.lightMode = RenderVolumeDesc.LIGHTMODE_SPOTLIGHT;
@@ -638,7 +647,70 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 				saveTextureAsText(pLightLUT_S1_[1], "pLightLUT_S1_GL_2.txt");
 				saveTextureAsText(pLightLUT_S2_[1], "pLightLUT_S2_GL_2.txt");
 			}
-	    }
+
+			intelLUTNeedUpdate = true;
+			srnn05LUTNeedUpdate = true;
+	    }else if(pLightDesc.eFalloffMode == SpotlightFalloffMode.CUSTOM){
+			intelLUTNeedUpdate = true;
+			srnn05LUTNeedUpdate = true;
+		}else if(pLightDesc.eFalloffMode == SpotlightFalloffMode.INTEL){
+	    	if(intelLUTNeedUpdate){
+				if(intelProgram == null){
+					intelProgram = new PrecomputedLightLUT_IntelProgram(this);
+				}
+
+				rtManager.bind();
+				rtManager.setRenderTexture(pLightLUT_P_[1], null);
+				gl.glViewport(0,0,pLightLUT_P_[1].getWidth(), pLightLUT_P_[1].getHeight());
+				gl.glClearColor(0,0,0,0);
+				gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
+				gl.glDisable(GLenum.GL_CULL_FACE);
+
+				intelProgram.enable();
+				setupUniforms(intelProgram);
+				gl.glBindTextureUnit(0, pPhaseLUT_.getTexture());
+				gl.glBindSampler(0, samplerLinear);
+
+				gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+				intelLUTNeedUpdate = false;
+
+				System.out.println("Update the Intel_LightLUT");
+				if(!mbPrintProgram){
+					printProgram(intelProgram, "Intel_LightLUT");
+				}
+			}
+
+			srnn05LUTNeedUpdate = true;
+		}else if(pLightDesc.eFalloffMode == SpotlightFalloffMode.SRNN05){
+
+	    	if(srnn05LUTNeedUpdate) {
+				if (srnn05Program == null) {
+					srnn05Program = new PrecomputedLightLUT_SRNN05Program(this);
+				}
+
+				rtManager.bind();
+				rtManager.setRenderTexture(pLightLUT_P_[1], null);
+				gl.glViewport(0, 0, pLightLUT_P_[1].getWidth(), pLightLUT_P_[1].getHeight());
+				gl.glClearColor(0, 0, 0, 0);
+				gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
+				gl.glDisable(GLenum.GL_CULL_FACE);
+
+				srnn05Program.enable();
+				setupUniforms(srnn05Program);
+				gl.glBindTextureUnit(0, pPhaseLUT_.getTexture());
+				gl.glBindSampler(0, samplerLinear);
+
+				gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+				srnn05LUTNeedUpdate = false;
+				if (!mbPrintProgram) {
+					printProgram(srnn05Program, "SRNN05_LightLUT");
+				}
+			}
+
+			intelLUTNeedUpdate = true;
+		}
 	    
 	    //--------------------------------------------------------------------------
 	    // Draw tessellated grid
@@ -1067,6 +1139,14 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(debugFlags_ == DebugFlags.WIREFRAME){
 			gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
 		}
+
+		if(!contextDesc_.bUseTesslation){
+			// binding VAO
+
+
+		}else{
+
+		}
 		
 		int vtx_count = 4 * resolution * resolution;
 		gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 4);
@@ -1090,8 +1170,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(constCB && pPerVolumeCB != null){
 			perVolumeStruct.store(pPerVolumeCB);
 		}
-		
-//		program.enable(renderVolume_Textures);
+
 		program.enable();
 		setupTextures(program, shadowMap, pShadowMapDesc);
 		setupUniforms(program);
@@ -1099,6 +1178,10 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(debugFlags_ == DebugFlags.WIREFRAME){
 			gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
 		}
+		if(!contextDesc_.bUseTesslation){
+			// binding VAO
+		}
+
 		gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 6);
 		
 		if(!mbPrintProgram){
@@ -1201,13 +1284,25 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	}
 	
 	private RenderVolumeProgram getRenderVolumeShader(RenderVolumeDesc desc){
+		boolean includeTess = desc.includeTesslation;
+		if(!contextDesc_.bUseTesslation)
+			desc.includeTesslation = false;
 		RenderVolumeProgram program = (RenderVolumeProgram) programsCache.get(desc);
+
+
 		if(program == null){
 			RenderVolumeDesc key = new RenderVolumeDesc(desc);
-			program = new RenderVolumeProgram(this, key);
+
+			program = contextDesc_.bUseTesslation ? new RenderVolumeProgram(this, key) : new RenderVolumeCPUProgram(this, key);
 			programsCache.put(key, program);
 		}
-		
+
+		if(!contextDesc_.bUseTesslation) {
+			if(program.getClass() != RenderVolumeCPUProgram.class)
+				throw new AssertionError("Inner error!");
+
+			desc.includeTesslation = includeTess;
+		}
 		return program;
 	}
 	

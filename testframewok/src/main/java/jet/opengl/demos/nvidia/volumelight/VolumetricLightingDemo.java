@@ -323,7 +323,7 @@ public class VolumetricLightingDemo extends NvSampleApp {
                 lightDesc.fZNear = m_Scene.getLightNearPlane();
                 lightDesc.fZFar = m_Scene.getLightFarlane();
 //                lightDesc.vPosition = NVtoNVC(vLightPos);
-                lightDesc.eFalloffMode = SpotlightFalloffMode.FIXED;
+                lightDesc.eFalloffMode = SpotlightFalloffMode.NONE;
                 lightDesc.eAttenuationMode = AttenuationMode.INV_POLYNOMIAL;
                 final float LIGHT_SOURCE_RADIUS = 0.5f; // virtual radius of a spheroid light source
                 lightDesc.fAttenuationFactors[0] = 1.0f;

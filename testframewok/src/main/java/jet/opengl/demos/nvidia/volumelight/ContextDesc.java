@@ -15,7 +15,9 @@ public class ContextDesc {
 	public MultisampleMode eInternalSampleMode;
 	/** Type of filtering to do on the output */
 	public FilterMode eFilterMode;
-	
+	/** Weather to use the hardware tesslation shader. */
+	public boolean bUseTesslation = true;
+
 	public ContextDesc() {}
 	
 	public ContextDesc(ContextDesc o) {
@@ -29,5 +31,6 @@ public class ContextDesc {
 		eDownsampleMode = o.eDownsampleMode;
 		eInternalSampleMode = o.eInternalSampleMode;
 		eFilterMode = o.eFilterMode;
+		bUseTesslation = o.bUseTesslation;
 	}
 }

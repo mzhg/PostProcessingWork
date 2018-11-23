@@ -109,7 +109,7 @@ public class NvVolumetricLighting extends ContextImp_Common implements Disposeab
         samplerLinear = SamplerUtils.createSampler(desc);
 
         rtManager = new RenderTargets();
-        // TODO Create shader objects.
+
         List<Macro> macros = new ArrayList<>();
         macros.add(new Macro("USE_UNIFORM_BLOCK", 1));
         Macro[] arrays = isOutputMSAA() ? BaseVLProgram.sampleModeMSAA : BaseVLProgram.sampleModeSingle;
@@ -432,11 +432,6 @@ public class NvVolumetricLighting extends ContextImp_Common implements Disposeab
         return null;
     }
 
-    @Override
-    public void dispose() {
-
-    }
-
     private void drawFrustumGrid(int resolution, int shadowMap, ShadowMapDesc pShadowMapDesc){
         renderVolumeDesc.meshMode = RenderVolumeDesc.MESHMODE_FRUSTUM_GRID;
         renderVolumeDesc.includeTesslation = true;
@@ -610,6 +605,11 @@ public class NvVolumetricLighting extends ContextImp_Common implements Disposeab
         }
 
         return null;
+    }
+
+    @Override
+    public void dispose() {
+
     }
 
     private void ds_render_volume(int ref, boolean flag){

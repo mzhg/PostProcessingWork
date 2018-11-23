@@ -10,4 +10,7 @@ public enum SpotlightFalloffMode {
 	 FIXED,
 	 /** A_custom(vL, vP) = (A_fixed(vL, vP))^n */
      CUSTOM,
+	/** Use the precomputed method provided by intel demo. */
+	INTEL,
+	SRNN05,
 }

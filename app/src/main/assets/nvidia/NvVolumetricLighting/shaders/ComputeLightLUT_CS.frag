@@ -63,7 +63,7 @@ float3 UnpackLut(float4 v)
 //RWTexture2D<float4> rwLightLUT_S1 : register(u1);
 //RWTexture2D<float4> rwLightLUT_S2 : register(u2);
 
-uniform sampler2D tPhaseLUT;
+layout ( binding = 0) uniform sampler2D tPhaseLUT;
 layout (rgba16f, binding = 0) uniform image2D rwLightLUT_P;
 layout (rgba16f, binding = 1) uniform image2D rwLightLUT_S1;
 layout (rgba16f, binding = 2) uniform image2D rwLightLUT_S2;

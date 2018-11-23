@@ -29,6 +29,7 @@ Constants
 const float PI = 3.1415926535898;
 const float EDGE_FACTOR = 1.0 - (2.0/64.0) * (1.0/64.0);
 const uint MAX_PHASE_TERMS = 4;
+const float g_fMaxTracingDistance = 200.0;
 
 #ifndef USE_UNIFORM_BLOCK
 #define USE_UNIFORM_BLOCK 0
@@ -237,4 +238,127 @@ float3 GetPhaseFactor(sampler2D tex, float cos_theta)
     return g_vScatterPower*
     		//tex.SampleLevel(sBilinear, tc, 0).rgb;
     		textureLod(tex, tc, 0.0).rgb;
+}
+
+float2 GetSRNN05LUTParamLimits()
+{
+    // The first argument of the lookup table is the distance from the point light source to the view ray, multiplied by the scattering coefficient
+    // The second argument is the weird angle which is in the range from 0 t Pi/2, as tan(Pi/2) = +inf
+    return float2(
+        g_fMaxTracingDistance * 2.0 * max(max(g_vScatterPower.r, g_vScatterPower.g), g_vScatterPower.b),
+        PI * 0.5 );
+}
+
+// using the phase functions directly isn't correct, because they are supposed to be
+// integrated over the subtended solid angle. This falls apart as sin(theta)
+// approaches 0 (ie. cos(theta) aproaches +1 or -1).
+// We apply a sliding scale to the functions to compensate for this somewhat.
+
+#define NORMALIZE_PHASE_FUNCTIONS 1
+
+float ScatterPhase_Isotropic()
+{
+    return 1.0 / (4.0 * PI);
+}
+
+float ScatterPhase_Rayleigh(float cosa)
+{
+    float cos_term = cosa*cosa; // ^2
+	float phase_term = (3.0/(16.0*PI)) * (1.0 + cos_term);
+#if NORMALIZE_PHASE_FUNCTIONS
+    cos_term *= cos_term; // ^4
+    return phase_term*(1-cos_term/8.f);
+#else
+    return phase_term;
+#endif
+}
+
+float ScatterPhase_HenyeyGreenstein(float cosa, float g)
+{
+#if NORMALIZE_PHASE_FUNCTIONS
+    // "normalized" Henyey-Greenstein
+    float g_sqr = g*g;
+    float num = (1 - abs(g));
+    float denom = sqrt( max(1-2*g*cosa+g_sqr, 0) );
+    float frac = num/denom;
+    float scale = g_sqr + (1 - g_sqr) / (4*PI);
+    return scale * (frac*frac*frac);
+#else
+    // Classic Henyey-Greenstein
+	float k1 = (1.f-g*g);
+	float k2 = (1.f + g*g - 2.f*g*cosa);
+	return (1.f / (4.f*PI)) * k1 / pow(abs(k2), 1.5f);
+#endif
+}
+
+float ScatterPhase_MieHazy(float cosa)
+{
+    float cos_term = 0.5f*(1+cosa);
+    float cos_term_2 = cos_term*cos_term;           // ^2
+    float cos_term_4 = cos_term_2*cos_term_2;       // ^4
+    float cos_term_8 = cos_term_4*cos_term_4;       // ^8
+	float phase_term = (1.f/(4.f*PI))*(0.5f+(9.f/2.f)*cos_term_8);
+#if NORMALIZE_PHASE_FUNCTIONS
+    return phase_term * (1-cos_term_8/2.0f);
+#else
+    return phase_term;
+#endif
+}
+
+float ScatterPhase_MieMurky(float cosa)
+{
+    float cos_term = 0.5f*(1+cosa);
+    float cos_term_2 = cos_term*cos_term;           // ^2
+    float cos_term_4 = cos_term_2*cos_term_2;       // ^4
+    float cos_term_8 = cos_term_4*cos_term_4;       // ^8
+    float cos_term_16 = cos_term_8*cos_term_8;      // ^16
+    float cos_term_32 = cos_term_16*cos_term_16;    // ^32
+	float phase_term = (1.f/(4.f*PI))*(0.5f+(33.f/2.f)*cos_term_32);
+#if NORMALIZE_PHASE_FUNCTIONS
+    return phase_term * (1-cos_term_32/2.0f);
+#else
+    return phase_term;
+#endif
+}
+
+float3 ComputePhaseFactor(float cos_theta)
+{
+    float3 phase_factor = float3(0,0,0);
+    float3 total_scatter = float3(0,0,0);
+
+	// These must match the PhaseFunctionType enum in NvVolumetricLighting.h
+	const int PHASEFUNC_ISOTROPIC = 0;
+	const int PHASEFUNC_RAYLEIGH = 1;
+	const int PHASEFUNC_HG = 2;
+    const int PHASEFUNC_MIEHAZY = 3;
+    const int PHASEFUNC_MIEMURKY = 4;
+
+    for (int i=0; i<g_uNumPhaseTerms; ++i)
+	{
+        float3 term_scatter = g_vPhaseParams[i].rgb;
+        total_scatter += term_scatter;
+		if (g_uPhaseFunc[i] == PHASEFUNC_ISOTROPIC)
+		{
+			phase_factor += term_scatter*ScatterPhase_Isotropic();
+		}
+		else if (g_uPhaseFunc[i] == PHASEFUNC_RAYLEIGH)
+		{
+			phase_factor += term_scatter*ScatterPhase_Rayleigh(cos_theta);
+		}
+		else if (g_uPhaseFunc[i] == PHASEFUNC_HG)
+		{
+			phase_factor += term_scatter*ScatterPhase_HenyeyGreenstein(cos_theta, g_vPhaseParams[i].a);
+		}
+		else if (g_uPhaseFunc[i] == PHASEFUNC_MIEHAZY)
+		{
+			phase_factor += term_scatter*ScatterPhase_MieHazy(cos_theta);
+		}
+		else if (g_uPhaseFunc[i] == PHASEFUNC_MIEMURKY)
+		{
+			phase_factor += term_scatter*ScatterPhase_MieMurky(cos_theta);
+		}
+    }
+    phase_factor = phase_factor / total_scatter;
+
+    return phase_factor;
 }

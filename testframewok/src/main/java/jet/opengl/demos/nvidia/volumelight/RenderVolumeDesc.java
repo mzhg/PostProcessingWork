@@ -41,7 +41,9 @@ class RenderVolumeDesc {
 	public static final int FALLOFFMODE_NONE = SpotlightFalloffMode.NONE.ordinal();
 	public static final int FALLOFFMODE_FIXED = SpotlightFalloffMode.FIXED.ordinal();
 	public static final int FALLOFFMODE_CUSTOM = SpotlightFalloffMode.CUSTOM.ordinal();
-	
+	public static final int FALLOFFMODE_INTEL = SpotlightFalloffMode.INTEL.ordinal();
+	public static final int FALLOFFMODE_SRNN05 = SpotlightFalloffMode.SRNN05.ordinal();
+
 	public static final int UPSAMPLEMODE_POINT = 1;
 	public static final int UPSAMPLEMODE_BILINEAR = 2;
 	public static final int UPSAMPLEMODE_BILATERAL = 3;

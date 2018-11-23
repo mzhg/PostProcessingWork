@@ -4,9 +4,9 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.util.Pair;
 
-final class RenderVolumeProgram extends BaseVLProgram{
+class RenderVolumeProgram extends BaseVLProgram{
 
-	private RenderVolumeDesc desc;
+	RenderVolumeDesc desc;
 	private final int[] textureIndexs = new int[6];
 	private final int[] textureUnits  = new int[6];
 	public RenderVolumeProgram(ContextImp_OpenGL context, RenderVolumeDesc desc) {
@@ -201,7 +201,9 @@ final class RenderVolumeProgram extends BaseVLProgram{
 				new Macro("FALLOFFMODE_NONE", RenderVolumeDesc.FALLOFFMODE_NONE),
 				new Macro("FALLOFFMODE_FIXED", RenderVolumeDesc.FALLOFFMODE_FIXED),
 				new Macro("FALLOFFMODE_CUSTOM", RenderVolumeDesc.FALLOFFMODE_CUSTOM),
-				new Macro   ("FALLOFFMODE", desc.falloffMode), 
+				new Macro("FALLOFFMODE_INTEL", RenderVolumeDesc.FALLOFFMODE_INTEL),
+				new Macro("FALLOFFMODE_SRNN05", RenderVolumeDesc.FALLOFFMODE_SRNN05),
+				new Macro   ("FALLOFFMODE", desc.falloffMode),
 		};
 
 		return new Pair<>(filename, ps_macros);
