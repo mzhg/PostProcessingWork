@@ -70,7 +70,7 @@ float CalcTessFactor(float3 vStartPos, float3 vEndPos)
     float section_size = length(vEndPos - vStartPos);
 	float3 vWorldPos = 0.5*(vStartPos+vEndPos);
 	float3 vEyeVec = (vWorldPos.xyz - g_vEyePosition);
-	float4 clip_pos = mul( g_mProj, float4(0, 0, length(vEyeVec), 1) );
+	float4 clip_pos = mul( g_mProj, float4(0, 0, -length(vEyeVec), 1) );
 	float projected_size = abs(section_size * g_mProj[1][1] / (clip_pos.w * 0.5));
 	float desired_splits = (projected_size*g_vOutputViewportSize.y)/(g_fTargetRaySize);
 	return min(MAXTESSFACTOR, max(3.0, desired_splits));

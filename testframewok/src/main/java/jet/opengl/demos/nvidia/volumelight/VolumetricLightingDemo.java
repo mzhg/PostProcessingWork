@@ -394,6 +394,7 @@ public class VolumetricLightingDemo extends NvSampleApp {
         contextDesc_.eDownsampleMode = DownsampleMode.FULL;
         contextDesc_.eInternalSampleMode = MultisampleMode.SINGLE;
         contextDesc_.eFilterMode = FilterMode.NONE;
+        contextDesc_.bUseTesslation = false;
 
         //--------------------------------------------------------------------------
         // Default post-process settings

@@ -280,9 +280,9 @@ float ScatterPhase_HenyeyGreenstein(float cosa, float g)
     float g_sqr = g*g;
     float num = (1 - abs(g));
     float denom = sqrt( max(1-2*g*cosa+g_sqr, 0) );
-    float frac = num/denom;
+    float fra = num/denom;
     float scale = g_sqr + (1 - g_sqr) / (4*PI);
-    return scale * (frac*frac*frac);
+    return scale * (fra*fra*fra);
 #else
     // Classic Henyey-Greenstein
 	float k1 = (1.f-g*g);

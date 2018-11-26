@@ -60,15 +60,13 @@ float3 ParaboloidUnproject(float3 P, float zNear, float zFar)
 	return outP*L;
 }
 
-in float4 hClipPos[];
-in float4 hWorldPos[];
-
 out float4 vWorldPos;
 
 void main()
 {
     float3 vClipIn = In_Position;
-    float4 vWorldPos = mul(g_mLightToWorld, float4(vClipIn, 1));
+
+    vWorldPos = mul(g_mLightToWorld, vec4(vClipIn.xy,1, 1));
     vWorldPos /= vWorldPos.w;
 
     if (VOLUMETYPE == VOLUMETYPE_FRUSTUM)
@@ -78,7 +76,6 @@ void main()
             int iCascade = -1;
             float4 vClipPos = float4(0,0,0,1);
 
-//			[unroll]
             for (int i = COARSE_CASCADE;i >= 0; --i)
             {
                 // Try to refetch from finer cascade

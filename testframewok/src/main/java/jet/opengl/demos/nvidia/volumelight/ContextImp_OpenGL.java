@@ -21,6 +21,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.render.debug.FrustumeRender;
+import sun.java2d.loops.ProcessPath;
 
 final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 
@@ -56,6 +57,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	private final HashMap<TessellationDesc, TessellationMesh> meshesCache = new HashMap<>();
 	private final RenderVolumeDesc renderVolumeDesc = new RenderVolumeDesc();
 	private final ComputeLightLUTDesc computeLightLUTDesc = new ComputeLightLUTDesc();
+	private final TessellationDesc    meshDesc = new TessellationDesc();
 	private final ApplyDesc applyDesc = new ApplyDesc();
 	
 	private ComputePhaseLookupProgram computePhaseLookup_PS;
@@ -721,9 +723,6 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    gl.glClearColor(0,0,0,0);
 		gl.glClearStencil(0xFF);
 		gl.glClear(GLenum.GL_STENCIL_BUFFER_BIT|GLenum.GL_COLOR_BUFFER_BIT);
-//	    GL30.glClearBufferiv(GL11.GL_STENCIL, 0, GLUtil.wrapi1(0xFF));
-//	    rtManager.clearDepthStencilTarget(1, 0);
-//	    rtManager.clearRenderTarget(0, 0);
 
 		if(!mbPrintProgram){
 //	    	saveTextureAsText(pAccumulation_, "SpotLight_GL.txt");
@@ -1142,16 +1141,17 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 
 		if(!contextDesc_.bUseTesslation){
 			// binding VAO
+			meshDesc.meshMode = renderVolumeDesc.meshMode;
+			meshDesc.tesslationFactor = 128;
 
-
+			TessellationMesh mesh = getVolumeMesh(meshDesc);
+			mesh.drawMesh();
 		}else{
-
+			int vtx_count = 4 * resolution * resolution;
+			gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 4);
+			gl.glDrawArrays(GLenum.GL_PATCHES, 0, vtx_count);
 		}
-		
-		int vtx_count = 4 * resolution * resolution;
-		gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 4);
-		gl.glDrawArrays(GLenum.GL_PATCHES, 0, vtx_count);
-		
+
 		if(!mbPrintProgram){
 			printProgram(program, "FrustumGrid");
 		}
@@ -1171,6 +1171,9 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 			perVolumeStruct.store(pPerVolumeCB);
 		}
 
+		if(program.getClass() != RenderVolumeProgram.class)
+			throw new AssertionError();
+
 		program.enable();
 		setupTextures(program, shadowMap, pShadowMapDesc);
 		setupUniforms(program);
@@ -1178,12 +1181,9 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(debugFlags_ == DebugFlags.WIREFRAME){
 			gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
 		}
-		if(!contextDesc_.bUseTesslation){
-			// binding VAO
-		}
 
 		gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 6);
-		
+
 		if(!mbPrintProgram){
 			printProgram(program, "FrustumBase");
 		}
@@ -1202,6 +1202,9 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(constCB && pPerVolumeCB != null){
 			perVolumeStruct.store(pPerVolumeCB);
 		}
+
+		if(program.getClass() != RenderVolumeProgram.class)
+			throw new AssertionError();
 		
 		renderVolume_Textures[0] = renderVolume_Textures[1];
 		program.enable();
@@ -1211,7 +1214,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(debugFlags_ == DebugFlags.WIREFRAME){
 			gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
 		}
-		
+
 		int vtx_count = 4*3*(resolution+1) + 6;
 		gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, vtx_count);
 		
@@ -1265,6 +1268,9 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(constCB && pPerVolumeCB != null){
 			perVolumeStruct.store(pPerVolumeCB);
 		}
+
+		if(program.getClass() != RenderVolumeProgram.class)
+			throw new AssertionError();
 		
 //		program.enable(renderVolume_Textures);
 		program.enable();
@@ -1282,25 +1288,38 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 			printProgram(program, "drawQuad");
 		}
 	}
+
+	private TessellationMesh getVolumeMesh(TessellationDesc desc){
+		TessellationMesh mesh = meshesCache.get(desc);
+		if(mesh == null){
+			TessellationDesc key = new TessellationDesc(desc);
+
+			mesh = new TessellationMesh(key);
+			meshesCache.put(key, mesh);
+		}
+
+		return mesh;
+	}
 	
 	private RenderVolumeProgram getRenderVolumeShader(RenderVolumeDesc desc){
-		boolean includeTess = desc.includeTesslation;
+		final boolean includeTess = desc.includeTesslation;
 		if(!contextDesc_.bUseTesslation)
 			desc.includeTesslation = false;
 		RenderVolumeProgram program = (RenderVolumeProgram) programsCache.get(desc);
 
-
 		if(program == null){
 			RenderVolumeDesc key = new RenderVolumeDesc(desc);
 
-			program = contextDesc_.bUseTesslation ? new RenderVolumeProgram(this, key) : new RenderVolumeCPUProgram(this, key);
+			if(includeTess && !contextDesc_.bUseTesslation){
+				program = new RenderVolumeCPUProgram(this, key);
+			}else{
+				program = new RenderVolumeProgram(this, key);
+			}
+
 			programsCache.put(key, program);
 		}
 
 		if(!contextDesc_.bUseTesslation) {
-			if(program.getClass() != RenderVolumeCPUProgram.class)
-				throw new AssertionError("Inner error!");
-
 			desc.includeTesslation = includeTess;
 		}
 		return program;

@@ -1,8 +1,10 @@
 package jet.opengl.demos.nvidia.volumelight;
 
 final class TessellationDesc {
-    private int meshMode;
-    private int tesslationFactor;
+    int meshMode;
+    int tesslationFactor;
+
+    TessellationDesc(){}
 
     TessellationDesc(TessellationDesc other){
         set(other);

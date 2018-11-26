@@ -1,9 +1,9 @@
 package jet.opengl.demos.nvidia.volumelight;
 
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
-import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -30,7 +30,11 @@ public class TessellationMesh {
     public static void main(String[] args){
         DEBUG = true;
 
-        new TessellationMesh(RenderVolumeDesc.MESHMODE_OMNI_VOLUME, 1);
+        new TessellationMesh(RenderVolumeDesc.MESHMODE_FRUSTUM_BASE, 1);
+    }
+
+    public TessellationMesh(TessellationDesc desc){
+        this(desc.meshMode, desc.tesslationFactor);
     }
 
     public TessellationMesh(int type, int resolution){
@@ -53,52 +57,87 @@ public class TessellationMesh {
             case RenderVolumeDesc.MESHMODE_OMNI_VOLUME:
                 generateOMNVolume(resolution);
                 break;
+            default:
+                throw new IllegalArgumentException();
         }
     }
 
-    private void tessellatePlane(Vector2f low, Vector2f upper, int resolution, StackFloat out){
+    public interface VertexInterpolate{
+        void map(ReadableVector3f low, ReadableVector3f upper, float x, float y, Vector3f out);
+    }
 
+    private void tessellatePlane(ReadableVector3f low, ReadableVector3f upper, int resolution, StackFloat outVertices, StackInt outIndices,
+                                 boolean ccw, VertexInterpolate interpolate){
+        final int baseVertex = outVertices.size()/3;
+
+        final Vector3f vClipPos = new Vector3f();
+        for(int j = 0; j < resolution + 1; j++){
+            final float y = (float)j/resolution;
+            for(int i = 0; i < resolution + 1; i++){
+                final float x = (float)i/resolution;
+
+                if(interpolate != null){
+                    interpolate.map(low, upper, x, y, vClipPos);
+                }else{
+                    vClipPos.x = 2*x-1;
+                    vClipPos.y = 2*y-1;
+                    vClipPos.z = 1;
+                }
+
+                outVertices.push(vClipPos);
+            }
+        }
+
+        for(int j = 0; j < resolution; j++){
+            for(int i = 0; i < resolution; i++) {
+                int vertex_index = j * (resolution+1) + i + baseVertex;
+                int vertex_index_right = vertex_index + 1 + baseVertex;
+                int vertex_index_top = vertex_index + resolution + 1+ baseVertex;
+                int vertex_index_right_top = vertex_index_top + 1 + baseVertex;
+
+                if(ccw){
+                    outIndices.push(vertex_index);
+                    outIndices.push(vertex_index_right);
+                    outIndices.push(vertex_index_top);
+
+
+                    outIndices.push(vertex_index_top);
+                    outIndices.push(vertex_index_right);
+                    outIndices.push(vertex_index_right_top);
+
+                }else{
+                    outIndices.push(vertex_index);
+                    outIndices.push(vertex_index_top);
+                    outIndices.push(vertex_index_right);
+
+                    outIndices.push(vertex_index_top);
+                    outIndices.push(vertex_index_right_top);
+                    outIndices.push(vertex_index_right);
+                }
+            }
+        }
     }
 
     // Generate the quad mesh with the given resolution and CW order.
     private void generateFrustumeGrid(int resolution){
         Vector3f vClipPos = new Vector3f();
 
-        m_VertexCount = (resolution + 1) * (resolution + 1);
-        StackFloat verts = new StackFloat(m_VertexCount * 3);
-        for(int j = 0; j < resolution + 1; j++){
-            final float y = (float)j/resolution;
-            for(int i = 0; i < resolution + 1; i++){
-                final float x = (float)i/resolution;
-
-                vClipPos.x = 2 * x - 1;
-                vClipPos.y = 2 * y - 1;
-                vClipPos.z = 1;
-
-                verts.push(vClipPos);
-            }
-        }
-
-        m_IndiceCount = resolution * resolution * 6;
-        StackInt indices = new StackInt(m_IndiceCount);
-        for(int j = 0; j < resolution; j++){
-            for(int i = 0; i < resolution; i++) {
-                int vertex_index = j * resolution + i;
-                int vertex_index_right = vertex_index + 1;
-                int vertex_index_top = vertex_index + resolution;
-                int vertex_index_right_top = vertex_index_top + 1;
-
-                indices.push(vertex_index);
-                indices.push(vertex_index_top);
-                indices.push(vertex_index_right);
-
-                indices.push(vertex_index_top);
-                indices.push(vertex_index_right_top);
-                indices.push(vertex_index_right);
-            }
-        }
-
         if(!DEBUG) {
+            m_VertexCount = (resolution + 1) * (resolution + 1);
+            m_IndiceCount = resolution * resolution * 6;
+            StackFloat verts = new StackFloat(m_VertexCount * 3);
+            StackInt indices = new StackInt(m_IndiceCount);
+
+            final Vector3f low = new Vector3f(-1,-1, 1);
+            final Vector3f upper = new Vector3f(1,1,1);
+            tessellatePlane(low, upper, resolution, verts, indices, true, null);
+
+            if(verts.size()/3 != m_VertexCount)
+                throw new IllegalStateException();
+
+            if(indices.size() != m_IndiceCount)
+                throw new IllegalStateException();
+
             // Create buffers
             m_VAO = gl.glGenVertexArray();
             gl.glBindVertexArray(m_VAO);
@@ -126,6 +165,25 @@ public class TessellationMesh {
         Vector3f vClipPos = new Vector3f();
 
         if(!DEBUG) {
+            StackFloat verts = new StackFloat(4*3*(resolution+1) + 6);
+            m_VertexCount = 4*3*(resolution+1) + 6;
+            m_IndiceCount = 0;
+            for (int i = 0; i < m_VertexCount; i++) {
+                testFrustumeCap(i, resolution, vClipPos);
+                verts.push(vClipPos);
+            }
+
+            // Create buffers
+            m_VAO = gl.glGenVertexArray();
+            gl.glBindVertexArray(m_VAO);
+
+            m_VB = gl.glGenBuffer();
+            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_VB);
+            gl.glBufferData(GLenum.GL_ARRAY_BUFFER, CacheBuffer.wrap(verts.getData(), 0, verts.size()), GLenum.GL_STATIC_DRAW);
+            gl.glEnableVertexAttribArray(0);
+            gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 0, 0);
+
+            gl.glBindVertexArray(0);
 
         }else{
             int vtx_count = 4*3*(resolution+1) + 6;
@@ -197,7 +255,7 @@ public class TessellationMesh {
 
         vClipPos.z = 1.0f;
 //        vClipPos.w = 1.0f;
-
+        if(DEBUG)
         System.out.println(vClipPos.toString());
     }
 
@@ -214,6 +272,7 @@ public class TessellationMesh {
         vClipPos.y *= (id/3 == 0) ? 1.0f : -1.0f;
         vClipPos.z = 1.0f;
 
+        if(DEBUG)
         System.out.println(vClipPos.toString());
     }
 
@@ -278,6 +337,8 @@ public class TessellationMesh {
         }
 
         vClipPos.z =2* vClipPos.z - 1;  // remap dx depth to gl depth.
+
+        if(DEBUG)
         System.out.println(vClipPos.toString());
     }
 
@@ -354,6 +415,6 @@ public class TessellationMesh {
         vClipPos.set(P);
 //        vClipPos.normalise();
 
-        System.out.println(vClipPos.toString());
+        if(DEBUG)System.out.println(vClipPos.toString());
     }
 }
