@@ -71,6 +71,7 @@ final class PerVolumeCB implements Writable{
 
         vLightDir.store(buffer); buffer.putFloat(fDepthBias);
         vLightPos.store(buffer); buffer.putInt(uMeshResolution);
+        vLightIntensity.store(buffer); buffer.putFloat(fTargetRaySize);
 
         CacheBuffer.put(buffer, vElementOffsetAndScale);
         vShadowMapDim.store(buffer);

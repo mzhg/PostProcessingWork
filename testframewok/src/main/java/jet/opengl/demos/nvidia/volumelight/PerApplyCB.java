@@ -1,13 +1,12 @@
 package jet.opengl.demos.nvidia.volumelight;
 
-import java.nio.ByteBuffer;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Writable;
 
-import jet.opengl.demos.intel.fluid.utils.UniformGrid;
+import java.nio.ByteBuffer;
+
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.util.CacheBuffer;
 

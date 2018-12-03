@@ -275,14 +275,16 @@ public final class GLSLUtil {
 		final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		int buffer_index = gl.glGetUniformBlockIndex(program.getProgram(), name);
 		if(buffer_index >=0){
-			if(buffer_index != index){
-				throw new AssertionError("The uniform buffer["+ name +"] binding index doesn't match the given index, The program name is "+ program.getName());
-			}
-
 			IntBuffer params = CacheBuffer.getCachedIntBuffer(1);
-			gl.glGetActiveUniformBlockiv(program.getProgram(), index, GLenum.GL_UNIFORM_BLOCK_DATA_SIZE, params);
+			gl.glGetActiveUniformBlockiv(program.getProgram(), buffer_index, GLenum.GL_UNIFORM_BLOCK_BINDING, params);
+			if(params.get(0) != index)
+				throw new AssertionError("The binding point is not match!");
+
+			gl.glGetActiveUniformBlockiv(program.getProgram(), buffer_index, GLenum.GL_UNIFORM_BLOCK_DATA_SIZE, params);
 			if(bufferSize != params.get(0)){
-				throw new AssertionError("The size of uniform buffer["+ name +"] doesn't match the given size, The program name is "+ program.getName());
+				String msg = String.format("The size[%d] of uniform buffer[%s] doesn't match the given size[%d], The program name is %s",
+						params.get(0), name, bufferSize, program.getName());
+				throw new AssertionError(msg);
 			}
 		}
 	}

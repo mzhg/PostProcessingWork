@@ -12,6 +12,8 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.OpenGLProgram;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
@@ -21,7 +23,6 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.render.debug.FrustumeRender;
-import sun.java2d.loops.ProcessPath;
 
 final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 
@@ -70,7 +71,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	
 	private boolean debug = true;
 	private boolean mbPrintProgram = false;
-	private boolean m_bStaticSceneTest = false;
+	private final boolean m_bStaticSceneTest = false;
 
 	private boolean intelLUTNeedUpdate = true;
 	private boolean srnn05LUTNeedUpdate = true;
@@ -158,6 +159,18 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
     		System.out.println(perFrameStruct);
     		System.out.println(perVolumeStruct);
     	}
+
+		pPerContextCB = new BufferGL();
+		pPerContextCB.initlize(GLenum.GL_UNIFORM_BUFFER, PerContextCB.SIZE, null, GLenum.GL_STREAM_READ);
+
+		pPerApplyCB = new BufferGL();
+		pPerApplyCB.initlize(GLenum.GL_UNIFORM_BUFFER, PerApplyCB.SIZE, null, GLenum.GL_STREAM_READ);
+
+		pPerFrameCB = new BufferGL();
+		pPerFrameCB.initlize(GLenum.GL_UNIFORM_BUFFER, perFrameStruct.SIZE, null, GLenum.GL_STREAM_READ);
+
+		pPerVolumeCB = new BufferGL();
+		pPerVolumeCB.initlize(GLenum.GL_UNIFORM_BUFFER, perVolumeStruct.SIZE, null, GLenum.GL_STREAM_READ);
     	
     	return Status.OK;
     }
@@ -283,11 +296,23 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
     }
     
     private void setupUniforms(BaseVLProgram program){
+		if(USE_UNIFORM_BLOCK) return;
+
     	program.setupUniforms(perApplyStruct);
     	program.setupUniforms(perContextStruct);
     	program.setupUniforms(perFrameStruct);
     	program.setupUniforms(perVolumeStruct);
     }
+
+	private void assertBuffers(OpenGLProgram program){
+		GLCheck.checkError();
+
+		GLSLUtil.assertUniformBuffer(program, "cbContext", 0, PerContextCB.SIZE);
+		GLSLUtil.assertUniformBuffer(program, "cbFrame", 1, PerFrameCB.SIZE);
+		GLSLUtil.assertUniformBuffer(program, "cbVolume", 2, PerVolumeCB.SIZE);
+		GLSLUtil.assertUniformBuffer(program, "cbApply", 3, PerApplyCB.SIZE);
+		GLCheck.checkError();
+	}
 	
 	@Override
 	protected Status beginAccumulation_Start(int sceneDepth, ViewerDesc pViewerDesc, MediumDesc pMediumDesc) {
@@ -313,7 +338,6 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(!mbPrintProgram){
 			System.out.println("PhaseFunc: " + Arrays.toString(perFrameStruct.uPhaseFunc));
 			System.out.println("PhaseParams: " + Arrays.toString(perFrameStruct.vPhaseParams));
-		
 		}
 		
 		gl.glBindVertexArray(dummyVAO);
@@ -331,6 +355,8 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 //		rtManager.clearRenderTarget(0, 0);
 		gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
 		gl.glViewport(0, 0, 1, VLConstant.LIGHT_LUT_WDOTV_RESOLUTION);
+
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, pPerFrameCB.getBuffer());
 		
 		computePhaseLookup_PS.enable();
 		setupUniforms(computePhaseLookup_PS);
@@ -339,6 +365,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 
     	GLCheck.checkError();
     	if(!mbPrintProgram){
+			assertBuffers(computePhaseLookup_PS);
     		printProgram(computePhaseLookup_PS, "UpdateMediumLUT");
     		saveTextureAsText(pPhaseLUT_, "UpdateMediumLUTGL_2.txt");
     		System.out.println("------------");
@@ -367,6 +394,10 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		gl.glViewport(0, 0, getInternalViewportWidth(), getInternalViewportHeight());
 		gl.glEnable(GLenum.GL_DEPTH_TEST);
 		gl.glDepthFunc(GLenum.GL_ALWAYS);
+
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, pPerContextCB.getBuffer());
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, pPerFrameCB.getBuffer());
+
 		downsampleDepth_PS.enable(sceneDepth, samplerPoint);
 		setupUniforms(downsampleDepth_PS);
 		gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
@@ -374,6 +405,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		gl.glDisable(GLenum.GL_DEPTH_TEST);
 		
 		if(!mbPrintProgram){
+			assertBuffers(downsampleDepth_PS);
     		printProgram(downsampleDepth_PS, "CopyDepth");
     		System.out.println("InternalBufferWidth = " + getInternalBufferWidth());
     		System.out.println("InternalBufferHeight = " + getInternalBufferHeight());
@@ -405,7 +437,11 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(pPerVolumeCB != null){
 			perVolumeStruct.store(pPerVolumeCB);
 		}
-		
+
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, pPerContextCB.getBuffer());
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, pPerFrameCB.getBuffer());
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, pPerVolumeCB.getBuffer());
+
 		return Status.OK;
 	}
 	
@@ -979,7 +1015,8 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(pPerApplyCB != null){
 			perApplyStruct.store(pPerApplyCB);
 		}
-		
+
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, pPerApplyCB.getBuffer());
 		gl.glViewport(0, 0, getInternalViewportWidth(), getInternalViewportHeight());
 
 		gl.glDisable(GLenum.GL_DEPTH_TEST);
@@ -1060,18 +1097,18 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		applyDesc.sampleMode = isOutputMSAA() ? RenderVolumeDesc.SAMPLEMODE_MSAA : RenderVolumeDesc.SAMPLEMODE_SINGLE;
 		switch (pPostprocessDesc.eUpsampleQuality)
 	    {
-	    default:
-	    case POINT:
-	    	applyDesc.upsampleMode = RenderVolumeDesc.UPSAMPLEMODE_POINT;
-	        break;
-	    case BILINEAR:
-	    	applyDesc.upsampleMode = RenderVolumeDesc.UPSAMPLEMODE_BILINEAR;
-	        break;
-
-	    case BILATERAL:
-	    	applyDesc.upsampleMode = RenderVolumeDesc.UPSAMPLEMODE_BILATERAL;
-	        break;
+            default:
+            case POINT:
+                applyDesc.upsampleMode = RenderVolumeDesc.UPSAMPLEMODE_POINT;
+                break;
+            case BILINEAR:
+                applyDesc.upsampleMode = RenderVolumeDesc.UPSAMPLEMODE_BILINEAR;
+                break;
+            case BILATERAL:
+                applyDesc.upsampleMode = RenderVolumeDesc.UPSAMPLEMODE_BILATERAL;
+                break;
 	    }
+
 	    if (pPostprocessDesc.bDoFog == false)
 	        applyDesc.fogMode = RenderVolumeDesc.FOGMODE_NONE;
 	    else if (pPostprocessDesc.bIgnoreSkyFog == true)
@@ -1115,6 +1152,12 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		gl.glBindVertexArray(0);
 		mbPrintProgram = true;
 		gl.glDepthMask(true);
+
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, 0);
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, 0);
+		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, 0);
+
 		return Status.OK;
 	}
 	
@@ -1142,7 +1185,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(!contextDesc_.bUseTesslation){
 			// binding VAO
 			meshDesc.meshMode = renderVolumeDesc.meshMode;
-			meshDesc.tesslationFactor = 128;
+			meshDesc.tesslationFactor = 256;//67.30
 
 			TessellationMesh mesh = getVolumeMesh(meshDesc);
 			mesh.drawMesh();
@@ -1186,6 +1229,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 
 		if(!mbPrintProgram){
 			printProgram(program, "FrustumBase");
+			assertBuffers(program);
 		}
 	}
 	
@@ -1220,6 +1264,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		
 		if(!mbPrintProgram){
 			printProgram(program, "FrustumCap");
+			assertBuffers(program);
 		}
 	}
 	
@@ -1253,6 +1298,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		
 		if(!mbPrintProgram){
 			printProgram(program, "OmniVolume");
+			assertBuffers(program);
 		}
 	}
 	
@@ -1286,6 +1332,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		
 		if(!mbPrintProgram){
 			printProgram(program, "drawQuad");
+			assertBuffers(program);
 		}
 	}
 

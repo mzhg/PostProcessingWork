@@ -341,7 +341,7 @@ public class VolumetricLightingDemo extends NvSampleApp {
                 lightDesc.eType = LightType.SPOT;
                 lightDesc.fZNear = m_Scene.getLightNearPlane();
                 lightDesc.fZFar = m_Scene.getLightFarlane();
-                lightDesc.eFalloffMode = SpotlightFalloffMode.FIXED;
+                lightDesc.eFalloffMode = SpotlightFalloffMode.INTEL;
                 lightDesc.fFalloff_Power = Cube16.SPOTLIGHT_FALLOFF_POWER;
                 lightDesc.fFalloff_CosTheta = (float) Math.cos(Cube16.SPOTLIGHT_FALLOFF_ANGLE);
 //                lightDesc.vDirection = NVtoNVC(vLightDirection);

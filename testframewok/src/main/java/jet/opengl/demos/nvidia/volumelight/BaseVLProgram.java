@@ -6,6 +6,7 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation;
@@ -21,6 +22,7 @@ import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Pair;
 
@@ -433,7 +435,7 @@ abstract class BaseVLProgram implements OpenGLProgram {
 		gl.glBindSampler(unit, sampler);
 	}
 	
-	protected static Macro[] combine(Macro[]...args){
+	private static Macro[] combine(Macro[]...args){
 		int length = 0;
 		for(Macro[] array : args){
 			length += array.length;
@@ -630,6 +632,16 @@ abstract class BaseVLProgram implements OpenGLProgram {
 
             ShaderSourceItem cs_item = new ShaderSourceItem();
             cs_item.macros = csMacros;
+			if(ContextImp_Common.USE_UNIFORM_BLOCK){
+				if(cs_item.macros != null){
+					int length = cs_item.macros.length;
+					cs_item.macros = Arrays.copyOf(cs_item.macros, length+1);
+					cs_item.macros[length] = new Macro("USE_UNIFORM_BLOCK", 1);
+				}else{
+					cs_item.macros = CommonUtil.toArray(new Macro("USE_UNIFORM_BLOCK", 1));
+				}
+			}
+
             cs_item.source = cs_source;
             cs_item.type = ShaderType.COMPUTE;
 
@@ -664,6 +676,16 @@ abstract class BaseVLProgram implements OpenGLProgram {
 
 		item.source = loadShader(shaderInfo.first);
 		item.macros = shaderInfo.second;
+		if(ContextImp_Common.USE_UNIFORM_BLOCK){
+			if(item.macros != null){
+				int length = item.macros.length;
+				item.macros = Arrays.copyOf(item.macros, length+1);
+				item.macros[length] = new Macro("USE_UNIFORM_BLOCK", 1);
+			}else{
+				item.macros = CommonUtil.toArray(new Macro("USE_UNIFORM_BLOCK", 1));
+			}
+		}
+
 		item.type = shaderType;
 
 		return item;

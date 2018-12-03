@@ -6,7 +6,6 @@ import org.lwjgl.util.vector.Writable;
 
 import java.nio.ByteBuffer;
 
-import jet.opengl.demos.intel.fluid.utils.UniformGrid;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.util.CacheBuffer;
 

@@ -69,7 +69,7 @@ layout(binding=0) uniform cbContext  // egister(b0)
 	float2 g_vBufferSize;				//: packoffset(c1);
 	float2 g_vBufferSize_Inv;			//: packoffset(c1.z);
 	float g_fResMultiplier;				//: packoffset(c2);
-	uint g_uBufferSamples;				//: packoffset(c2.y);
+	int g_uBufferSamples;				//: packoffset(c2.y);
 };
 
 layout(binding=1) uniform cbFrame 	//: register(b1)
@@ -86,7 +86,7 @@ layout(binding=1) uniform cbFrame 	//: register(b1)
 	float g_fZNear;						//: packoffset(c15.z);
 	float g_fZFar;						//: packoffset(c15.w);
     float3 g_vScatterPower;              //: packoffset(c16);
-    uint g_uNumPhaseTerms;       		//: packoffset(c16.w);
+    int g_uNumPhaseTerms;       		//: packoffset(c16.w);
     float3 g_vSigmaExtinction;           //: packoffset(c17);
     ivec4 g_uPhaseFunc;				//: packoffset(c18);
     float4 g_vPhaseParams[4];			//: packoffset(c19);
@@ -107,7 +107,7 @@ layout(binding=2) uniform cbVolume //: register(b2)
 	float3 g_vLightDir;					//	: packoffset(c39);
 	float g_fGodrayBias;					//	: packoffset(c39.w);
 	float3 g_vLightPos;					//	: packoffset(c40);
-    uint g_uMeshResolution;      		//  : packoffset(c40.w);
+    int g_uMeshResolution;      		//  : packoffset(c40.w);
 	float3 g_vLightIntensity;			//	: packoffset(c41);
 	float g_fTargetRaySize;				//	: packoffset(c41.w);
 	float4 g_vElementOffsetAndScale[4];	//	: packoffset(c42); 
