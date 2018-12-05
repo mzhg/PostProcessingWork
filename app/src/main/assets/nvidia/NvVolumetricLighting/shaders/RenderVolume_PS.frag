@@ -68,7 +68,7 @@
 #   if (SAMPLEMODE == SAMPLEMODE_SINGLE)
 
 //        Texture2D<float> tSceneDepth : register(t2);
-		uniform sampler2D tSceneDepth;
+		layout(binding = 5) uniform sampler2D tSceneDepth;
         float LoadSceneDepth(int2 pos, int s)
         {
  //           return tSceneDepth.Load(int3(pos.xy, 0)).x;
@@ -78,7 +78,7 @@
 #   elif (SAMPLEMODE == SAMPLEMODE_MSAA)
 
 //        Texture2DMS<float> tSceneDepth : register(t2);
-		uniform sampler2DMS tSceneDepth;
+		layout(binding = 5) uniform sampler2DMS tSceneDepth;
         float LoadSceneDepth(int2 pos, int s)
         {
 //            return tSceneDepth.Load(int2(pos.xy), s).x;
@@ -99,10 +99,10 @@
 //Texture2D<float4> tLightLUT_P : register(t5);
 //Texture2D<float4> tLightLUT_S1 : register(t6);
 //Texture2D<float4> tLightLUT_S2 : register(t7);
-uniform sampler2D tPhaseLUT;
-uniform sampler2D tLightLUT_P;
-uniform sampler2D tLightLUT_S1;
-uniform sampler2D tLightLUT_S2;
+layout(binding = 1) uniform sampler2D tPhaseLUT;
+layout(binding = 2) uniform sampler2D tLightLUT_P;
+layout(binding = 3) uniform sampler2D tLightLUT_S1;
+layout(binding = 4) uniform sampler2D tLightLUT_S2;
 
 float GetLutCoord_X(float t, float light_dist)
 {

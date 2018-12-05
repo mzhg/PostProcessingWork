@@ -38,6 +38,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	
 	private Texture2D pDepth_;  // Depth target
 	private Texture2D pPhaseLUT_;
+	private int sceneDepth;
 	private final Texture2D[] pLightLUT_P_ = new Texture2D[2];
 	private final Texture2D[] pLightLUT_S1_ = new Texture2D[2];
 	private final Texture2D[] pLightLUT_S2_ = new Texture2D[2];
@@ -139,7 +140,6 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
     	samplerLinear = SamplerUtils.createSampler(desc);
     	
     	rtManager = new RenderTargets();
-    	// TODO Create shader objects.
     	computePhaseLookup_PS = new ComputePhaseLookupProgram(this);
     	downsampleDepth_PS = new DownsampleDepthProgram(this, isOutputMSAA());
     	resolve_PS = new ResolvePogram(this, isInternalMSAA(), true);
@@ -377,7 +377,8 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	@Override
 	protected Status beginAccumulation_CopyDepth(int sceneDepth) {
 //		NV_PERFEVENT(dxCtx, "CopyDepth");
-		
+
+		this.sceneDepth = sceneDepth;
 		rtManager.setRenderTexture(pDepth_, null);
 		gl.glClearDepthf(1.f);
 		gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
@@ -418,8 +419,8 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 
 	@Override
 	protected Status beginAccumulation_End(int sceneDepth, ViewerDesc pViewerDesc, MediumDesc pMediumDesc) {
-		rtManager.setRenderTexture(pAccumulation_, null);
-		gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0.f, 0.f, 0f, 0));
+//		rtManager.setRenderTexture(pAccumulation_, null);
+//		gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0.f, 0.f, 0f, 0));
 		
 //		NV_PERFEVENT_END(dxCtx);
 		return Status.OK;
@@ -1152,11 +1153,16 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		gl.glBindVertexArray(0);
 		mbPrintProgram = true;
 		gl.glDepthMask(true);
+		gl.glDisable(GLenum.GL_STENCIL_TEST);
+		gl.glDisable(GLenum.GL_BLEND);
+		gl.glDisable(GLenum.GL_CULL_FACE);
+		gl.glFrontFace(GLenum.GL_CCW);
 
 		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
 		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, 0);
 		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, 0);
 		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, 0);
+
 
 		return Status.OK;
 	}

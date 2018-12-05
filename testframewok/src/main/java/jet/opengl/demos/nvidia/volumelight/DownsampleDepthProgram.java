@@ -13,9 +13,7 @@ final class DownsampleDepthProgram extends BaseVLProgram{
 		
 		this.isMSAA = isMSAA;
 		compileProgram();
-		
-		int tDepthMapIndex = gl.glGetUniformLocation(m_programId, "tDepthMap");
-		gl.glProgramUniform1i(m_programId, tDepthMapIndex, 0);
+
 		GLCheck.checkError();
 	}
 	

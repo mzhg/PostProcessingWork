@@ -28,6 +28,7 @@ import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.demos.postprocessing.HBAODemo;
 import jet.opengl.demos.postprocessing.LightingVolumeDemo;
 import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
+import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
@@ -136,15 +137,7 @@ public class DemoApp {
 //        run(new FaceWorkTest());
         run(new VolumetricLightingDemo());
 
-        /*Matrix4f orth = Matrix4f.ortho(10, 10, 0, 100, null);
-        float scale = -2/orth.m22;
-        System.out.println("0.1 = " + (0.1 * scale));
-        System.out.println("1 = " +   scale);*/
-
-        SkyImage.main(args);
-        double a = Math.pow(400, -4);
-        double b = Math.pow(700, -4);
-        System.out.println(a/b);
+        OpenGLProgram
     }
 
     private static void testRectVertex(){

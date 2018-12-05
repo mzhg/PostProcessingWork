@@ -55,10 +55,10 @@ layout(quads, equal_spacing, cw) in;
 
 #if (SHADOWMAPTYPE == SHADOWMAPTYPE_ATLAS)
 // Texture2D<float> tShadowMap : register(t1);
-   uniform sampler2D  tShadowMap;
+layout(binding = 0) uniform sampler2D  tShadowMap;
 #elif (SHADOWMAPTYPE == SHADOWMAPTYPE_ARRAY)
 // Texture2DArray<float> tShadowMap : register(t1);
-   uniform sampler2DArray tShadowMap;
+layout(binding = 0) uniform sampler2DArray tShadowMap;
 #endif
 
 float SampleShadowMap(float2 tex_coord, int cascade)

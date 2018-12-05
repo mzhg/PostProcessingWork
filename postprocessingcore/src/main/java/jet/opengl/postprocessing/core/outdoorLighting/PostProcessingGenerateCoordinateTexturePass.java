@@ -73,7 +73,6 @@ final class PostProcessingGenerateCoordinateTexturePass extends PostProcessingRe
 
         // Clear depth stencil view. Since we use stencil part only, there is no need to clear depth
         // Set stencil value to 0
-
         gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 0.0f, 0);
 
         final float fInvalidCoordinate = -1e+30f;

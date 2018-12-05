@@ -22,66 +22,49 @@ class RenderVolumeProgram extends BaseVLProgram{
 		textureIndexs[4] = gl.glGetUniformLocation(m_programId, "tLightLUT_S2");
 		textureIndexs[5] = gl.glGetUniformLocation(m_programId, "tSceneDepth");
 	
-		int unit = 0;
+		/*int unit = 0;
 		for(int i = 0; i < textureIndexs.length; i++){
 			int idx = textureIndexs[i];
 			if(idx >= 0){
 				textureUnits[i] = unit;
 				gl.glProgramUniform1i(m_programId, idx, unit++);
 			}
-		}
+		}*/
 	}
 	
 	public void setShadowMap(int target, int textureID, int sampler){
 		if(textureIndexs[0] >= 0){
-			bindTexture(target, textureID, sampler, textureUnits[0]);
+			bindTexture(target, textureID, sampler, 0);
 		}
 	}
 	
 	public void setPhaseLUT(int textureID){
 		if(textureIndexs[1] >= 0){
-			bindTexture(GLenum.GL_TEXTURE_2D, textureID, context.samplerLinear, textureUnits[1]);
+			bindTexture(GLenum.GL_TEXTURE_2D, textureID, context.samplerLinear, 1);
 		}
 	}
 	
 	public void setLightLUT_P(int textureID){
 		if(textureIndexs[2] >= 0){
-			bindTexture(GLenum.GL_TEXTURE_2D, textureID, context.samplerLinear, textureUnits[2]);
+			bindTexture(GLenum.GL_TEXTURE_2D, textureID, context.samplerLinear, 2);
 		}
 	}
 	
 	public void setLightLUT_S1(int textureID){
 		if(textureIndexs[3] >= 0){
-			bindTexture(GLenum.GL_TEXTURE_2D, textureID, context.samplerLinear, textureUnits[3]);
+			bindTexture(GLenum.GL_TEXTURE_2D, textureID, context.samplerLinear, 3);
 		}
 	}
 	
 	public void setLightLUT_S2(int textureID){
 		if(textureIndexs[4] >= 0){
-			bindTexture(GLenum.GL_TEXTURE_2D, textureID, context.samplerLinear, textureUnits[4]);
+			bindTexture(GLenum.GL_TEXTURE_2D, textureID, context.samplerLinear, 4);
 		}
 	}
 	
 	public void setSceneDepth(int target, int textureID){
 		if(textureIndexs[5] >= 0){
-			bindTexture(target, textureID, context.samplerLinear, textureUnits[5]);
-		}
-	}
-	
-	@Deprecated
-	public void enable(int[] textureIDs) {
-		super.enable();
-		textureLocation = 0;
-		for(int i = 0; i < textureIndexs.length; i++){
-			int idx = textureIndexs[i];
-			if(idx >= 0){
-				/*GL13.glActiveTexture(GL13.GL_TEXTURE0 + textureLocation);
-				GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureIDs[textureLocation]);
-				GL33.glBindSampler(textureLocation, context.samplerLinear);*/
-
-				bindTexture(GLenum.GL_TEXTURE_2D, textureIDs[textureLocation], context.samplerLinear, textureLocation);
-				textureLocation ++;
-			}
+			bindTexture(target, textureID, context.samplerLinear, 5);
 		}
 	}
 	

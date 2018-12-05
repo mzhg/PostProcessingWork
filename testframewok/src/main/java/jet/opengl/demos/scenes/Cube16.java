@@ -41,8 +41,6 @@ import jet.opengl.postprocessing.util.Numeric;
 
 public class Cube16 {
 
-	private final int m_uiShadowMapResolution = 1024;
-
 	public static final int ACCEL_STRUCT_NONE = 0;
 	public static final int ACCEL_STRUCT_MIN_MAX_TREE = 1;
 	public static final int ACCEL_STRUCT_BV_TREE = 2;
@@ -116,11 +114,11 @@ public class Cube16 {
     	mTweakBar = tweakBar;
 	}
 
-	public int getShadowMapResolution() { return m_uiShadowMapResolution;}
+	public int getShadowMapResolution() { return SHADOWMAP_RESOLUTION;}
 	
 	public void onCreate() {
 		gl = GLFuncProviderFactory.getGLFuncProvider();
-		Texture2DDesc shadowMapDesc = new Texture2DDesc(m_uiShadowMapResolution, m_uiShadowMapResolution, GLenum.GL_DEPTH_COMPONENT32F);
+		Texture2DDesc shadowMapDesc = new Texture2DDesc(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION, GLenum.GL_DEPTH24_STENCIL8);
 		m_pShadowMap = TextureUtils.createTexture2D(shadowMapDesc, null);
 		fullscreenProgram = new FullscreenProgram();
 		
@@ -129,13 +127,13 @@ public class Cube16 {
 		m_RenderTarget = gl.glGenFramebuffer();
 		m_DummyVAO     = gl.glGenVertexArray();
 		
-		posCorrectMat.m22 = -1;
+//		posCorrectMat.m22 = -1;
 //		nvApp.setSwapInterval(0);
 		
 		SamplerDesc SamComparisonDesc = new SamplerDesc
 		(
-			GLenum.GL_LINEAR,
-			GLenum.GL_LINEAR,
+			GLenum.GL_NEAREST,
+			GLenum.GL_NEAREST,
 			GLenum.GL_CLAMP_TO_BORDER,   // TODO : GL ES doen't support GL_CLAMP_TO_BORDER
 			GLenum.GL_CLAMP_TO_BORDER,
 			GLenum.GL_CLAMP_TO_BORDER,
@@ -177,7 +175,7 @@ public class Cube16 {
 
 
 		m_pOffscreenRenderTarget = TextureUtils.createTexture2D(offscreenDesc, null);
-		offscreenDesc.format = GLenum.GL_DEPTH_COMPONENT32F;
+		offscreenDesc.format = GLenum.GL_DEPTH24_STENCIL8;
 		m_pOffscreenDepth = TextureUtils.createTexture2D(offscreenDesc, null);
 
 		GLCheck.checkError();
@@ -282,7 +280,7 @@ public class Cube16 {
 //    	}
 
 		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
-		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, m_pShadowMap.getTarget(), m_pShadowMap.getTexture(), 0);
+		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pShadowMap.getTarget(), m_pShadowMap.getTexture(), 0);
 		gl.glDrawBuffers(GLenum.GL_NONE);
 
 		GLCheck.checkError();
@@ -291,8 +289,7 @@ public class Cube16 {
 
 		program = m_DepthProgram;
     	
-    	FloatBuffer depth = CacheBuffer.wrap(1.0f);
-    	gl.glClearBufferfv(GLenum.GL_DEPTH, 0, depth);
+    	gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
     	
     	program.enable();
     	renderScene(program);
@@ -369,19 +366,22 @@ public class Cube16 {
         
         if(renderToFBO){
 	        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_RenderTarget);
-			gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
 			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, m_pOffscreenRenderTarget.getTarget(), m_pOffscreenRenderTarget.getTexture(), 0);
-			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, m_pOffscreenDepth.getTarget(), m_pOffscreenDepth.getTexture(), 0);
-	        GLCheck.checkError();
+			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pOffscreenDepth.getTarget(), m_pOffscreenDepth.getTexture(), 0);
+			gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
+			GLCheck.checkError();
 	        
 	        FloatBuffer colors = CacheBuffer.getCachedFloatBuffer(4);
 	        colors.put(0).put(0).put(0).put(0).flip();
 			gl.glClearBufferfv(GLenum.GL_COLOR, 0, colors);
-	        FloatBuffer depth = CacheBuffer.wrap(1.0f);
-			gl.glClearBufferfv(GLenum.GL_DEPTH, 0, depth);
+			gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
         }else{
 			gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+			gl.glClearColor(0,0,0,0);
+			gl.glClearDepthf(1.0f);
+			gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
         }
+
 //        sceneRender.enable(shadowmap_srv.getTexture());
 //        shadowmap_srv.bind(0, ss_shadowmap_);
 //        m_pShadowMap.bind(0, m_psamComparison);
@@ -393,7 +393,8 @@ public class Cube16 {
 		gl.glBindSampler(0, 0);
         
         if(!m_bPrintProgram /*&& m_bEnableLightScattering*/){
-        	
+			sceneRender.setName("SceneRender");
+        	sceneRender.printPrograminfo();
 //        	ProgramProperties props = GLSLUtil.getProperties(sceneRender.getProgram());
 //        	System.out.println("SceneRender: ");
 //        	System.out.println(props);
@@ -407,10 +408,12 @@ public class Cube16 {
 	private void renderScene(BaseProgram program){
 //		 NV_PERFEVENT(ctx, "Draw Scene Geometry");
 
+		gl.glDisable(GLenum.GL_STENCIL_TEST);
 		gl.glEnable(GLenum.GL_DEPTH_TEST);
-		gl.glDepthFunc(GLenum.GL_LESS);
+		gl.glDepthFunc(GLenum.GL_LEQUAL);
 		gl.glDepthMask(true);
 		gl.glBindVertexArray(m_DummyVAO);
+		gl.glDisable(GLenum.GL_CULL_FACE);
 		
 		int idx = 0;
 		for(float x : scene_range){
@@ -550,12 +553,16 @@ public class Cube16 {
 			getLightIntensity(pLight.vLightColor);
 			if (lightMode == LightType.SPOT)
 			{
+				pLight.vLightAttenuationFactors.set(1.0f, 2.0f, 1.0f, 0.0f);
+				pLight.vSigmaExtinction.set(0.002096f, 0.0028239999f, 0.00481f);
 //            pLight.vLightAttenuationFactors = Nv::NvVec4(lightDesc->Spotlight.fAttenuationFactors);
 //				pLight.vLightAttenuationFactors.set(lightAttribs.f4AttenuationFactors);
 //				Vector3f.sub(lightAttribs.f4LightWorldPos, viewAttribs.f4CameraPos,vDirOnLight);
 			}
 			else if (lightMode == LightType.POINT)
 			{
+				pLight.vLightAttenuationFactors.set(1.0f, 2.0f, 1.0f, 0.0f);
+				pLight.vSigmaExtinction.set(0.002096f, 0.0028239999f, 0.00481f);
 //            pLight.vLightAttenuationFactors = Nv::NvVec4(lightDesc->Omni.fAttenuationFactors);
 //				pLight.vLightAttenuationFactors.set(lightAttribs.f4AttenuationFactors);
 //				Vector3f.sub(lightAttribs.f4LightWorldPos, viewAttribs.f4CameraPos, vDirOnLight);

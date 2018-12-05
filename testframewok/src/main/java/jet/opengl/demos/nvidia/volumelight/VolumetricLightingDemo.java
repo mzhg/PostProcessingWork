@@ -7,6 +7,7 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
 import jet.opengl.demos.scenes.Cube16;
@@ -17,6 +18,11 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureDataDesc;
+import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.DebugTools;
 
 public class VolumetricLightingDemo extends NvSampleApp {
     private static final int RENDER_TYPE_NONE = 0;
@@ -49,6 +55,13 @@ public class VolumetricLightingDemo extends NvSampleApp {
     private int m_RenderType = RENDER_TYPE_ORIGIN;
     private GLSLProgram m_tonemap;
 
+    private  Texture2D m_StaticColor;
+    private  Texture2D m_StaticDepth;
+    private  Texture2D m_StaticShadow;
+
+    private boolean useStaticData = false;
+    private boolean runOnce;
+
     @Override
     protected void initRendering() {
         getGLContext().setSwapInterval(0);
@@ -62,6 +75,10 @@ public class VolumetricLightingDemo extends NvSampleApp {
         m_volumeLight = new VolumeLightProcess();
         m_volumeLight.initlizeGL(m_Scene.getShadowMapResolution());
 
+
+        m_StaticColor = loadTextureFromBinaryFile("E:/textures/VolumetricLighting/scene.dat", 1280, 720, GLenum.GL_RGBA16F);
+        m_StaticDepth = loadTextureFromBinaryFile("E:/textures/VolumetricLighting/sceneDepth.dat", 1280, 720, GLenum.GL_DEPTH24_STENCIL8);
+        m_StaticShadow = loadTextureFromBinaryFile("E:/textures/VolumetricLighting/shadownMap.dat", 1024, 1024, GLenum.GL_DEPTH24_STENCIL8);
 
         initOriginParams();
     }
@@ -88,7 +105,12 @@ public class VolumetricLightingDemo extends NvSampleApp {
     public void display() {
         m_Scene.draw(m_RenderType == RENDER_TYPE_NONE);
 
+        if(useStaticData&& runOnce) {
+            tonemapping();
+            return;
+        }
 
+        runOnce = true;
         switch (m_RenderType){
             case RENDER_TYPE_NONE:
                 m_volumeParams.sceneColor = m_Scene.getSceneColor();
@@ -107,14 +129,13 @@ public class VolumetricLightingDemo extends NvSampleApp {
                 m_Scene.resolve();
                 break;
             case RENDER_TYPE_ORIGIN:
-                beginAccumulation(m_Scene.getSceneDepth().getTexture());
-                renderVolume(m_Scene.getShadowMap().getTexture());
+                beginAccumulation(useStaticData ? m_StaticDepth.getTexture(): m_Scene.getSceneDepth().getTexture());
+                renderVolume(useStaticData ? m_StaticShadow.getTexture() :  m_Scene.getShadowMap().getTexture());
                 endAccumulation();
-                applyLighting(m_Scene.getSceneColor().getTexture(), m_Scene.getSceneDepth().getTexture());
+                applyLighting(useStaticData ? m_StaticColor.getTexture(): m_Scene.getSceneColor().getTexture(), useStaticData ? m_StaticDepth.getTexture(): m_Scene.getSceneDepth().getTexture());
                 tonemapping();
                 break;
         }
-
 
     }
 
@@ -214,12 +235,13 @@ public class VolumetricLightingDemo extends NvSampleApp {
         gl.glDisable(GLenum.GL_STENCIL_TEST);
         gl.glDisable(GLenum.GL_CULL_FACE);
         gl.glColorMask(true, true, true, true);
-        gl.glBindTextureUnit(0, m_Scene.getSceneColor().getTexture());
+        gl.glBindTextureUnit(0, useStaticData ? m_StaticColor.getTexture():  m_Scene.getSceneColor().getTexture());
         gl.glBindSampler(0,0);
 
 //        	NV_PERFEVENT(ctx, "Postprocess");
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
         gl.glViewport(0, 0, getGLContext().width(), getGLContext().height());
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
 
         m_tonemap.enable();
         gl.glBindVertexArray(m_DummyVAO);
@@ -341,7 +363,7 @@ public class VolumetricLightingDemo extends NvSampleApp {
                 lightDesc.eType = LightType.SPOT;
                 lightDesc.fZNear = m_Scene.getLightNearPlane();
                 lightDesc.fZFar = m_Scene.getLightFarlane();
-                lightDesc.eFalloffMode = SpotlightFalloffMode.INTEL;
+                lightDesc.eFalloffMode = SpotlightFalloffMode.FIXED;
                 lightDesc.fFalloff_Power = Cube16.SPOTLIGHT_FALLOFF_POWER;
                 lightDesc.fFalloff_CosTheta = (float) Math.cos(Cube16.SPOTLIGHT_FALLOFF_ANGLE);
 //                lightDesc.vDirection = NVtoNVC(vLightDirection);
@@ -520,4 +542,21 @@ public class VolumetricLightingDemo extends NvSampleApp {
 
     boolean isCtxValid() { return isCtxValid_;}
     void invalidateCtx() { isCtxValid_ = false;}
+
+    static Texture2D loadTextureFromBinaryFile(String filename, int width, int height, int format){
+        boolean flip = false;
+        Texture2DDesc desc  = new Texture2DDesc(width, height, format);
+        ByteBuffer bytes = DebugTools.loadBinary(filename);
+
+        if(flip){
+            TextureUtils.flipY(bytes, height);
+        }
+        int type = TextureUtils.measureDataType(format);
+        format = TextureUtils.measureFormat(format);
+        TextureDataDesc data = new TextureDataDesc(format, type, bytes);
+
+        Texture2D texture = TextureUtils.createTexture2D(desc, data);
+        return texture;
+
+    }
 }
