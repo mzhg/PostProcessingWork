@@ -7,11 +7,13 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.StackFloat;
 import jet.opengl.postprocessing.util.StackInt;
 
@@ -82,18 +84,6 @@ public class NvModel {
 		for(int i = 0; i < NumPrimTypes; i++)
 			_indices[i] = new StackInt();
 	}
-	
-	/*
-	 * Create a model from OBJ data
-	 * @param data pointer to OBJ file data
-	 * @param scale the target radius to which we want the model scaled, or <0 if no scaling should be done
-	 * @param computeNormals indicate whether per-vertex normals should be estimated and added
-	 * @param computeTangents indicate whether per-vertex tangent vectors should be estimated and added
-	 * @return a new model
-	 */
-	public static NvModel createFromObj(ByteBuffer data, float scale, boolean computeNormals, boolean computeTangents){
-		return null;
-	}
 
 	/**
 	 * This function attempts to determine the type of the filename passed as a
@@ -102,7 +92,7 @@ public class NvModel {
 	 */
 	public void loadModelFromFile(String filename) {
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader(filename));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(FileUtils.open(filename)));
 			float x, y, z, w;
 			int idx[][] = new int[3][3];
 			boolean hasTC = false;

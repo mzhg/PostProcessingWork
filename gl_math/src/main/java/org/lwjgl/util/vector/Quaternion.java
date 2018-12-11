@@ -709,20 +709,15 @@ public class Quaternion extends Vector implements ReadableVector4f, WritableVect
 		out.set(x,y,z,w);
 		return (T)out;
 	}
-	
-	/**
-	 * Turns this rotation into a 3x3 rotation matrix. NOTE: only mutates the
-	 * upper-left 3x3 of the passed Mat4f. Implementation from B. K. P. Horn's
-	 * <u>Robot Vision</u> textbook.
-	 */
-	public Matrix4f toMatrix(Matrix4f mat) {
+
+	public static Matrix4f toMatrix4f(float x, float y, float z, float w, Matrix4f mat){
 		if(mat == null) mat = new Matrix4f();
-		
+
 		final float q0 = w;
 		final float q1 = x;
 		final float q2 = y;
 		final float q3 = z;
-		
+
 		float q00 = q0 * q0;
 		float q11 = q1 * q1;
 		float q22 = q2 * q2;
@@ -746,8 +741,17 @@ public class Quaternion extends Vector implements ReadableVector4f, WritableVect
 		float q23 = q2 * q3;
 		mat.m21 = 2.0f * (q23 - q01);
 		mat.m12 = 2.0f * (q01 + q23);
-		
+
 		return mat;
+	}
+	
+	/**
+	 * Turns this rotation into a 3x3 rotation matrix. NOTE: only mutates the
+	 * upper-left 3x3 of the passed Mat4f. Implementation from B. K. P. Horn's
+	 * <u>Robot Vision</u> textbook.
+	 */
+	public Matrix4f toMatrix(Matrix4f mat) {
+		return toMatrix4f(x, y, z, w, mat);
 	}
 	
 	public Matrix3f toMatrix(Matrix3f mat) {

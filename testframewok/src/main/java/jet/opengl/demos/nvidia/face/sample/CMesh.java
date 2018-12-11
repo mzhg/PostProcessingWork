@@ -19,6 +19,7 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.StackFloat;
@@ -58,10 +59,13 @@ final class CMesh extends IRenderable implements Disposeable{
     }
 
     void loadModel(String filename){
+        FileLoader old = FileUtils.g_IntenalFileLoader;
+        FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
         NvGLModel model = new NvGLModel();
         model.loadModelFromFile(filename);
         model.initBuffers(true);
 
+        FileUtils.setIntenalFileLoader(old);
         float[] curvatures = loadCurvatures(filename);  // CalculateCurvature(model.getModel());
         m_uvScale = CalculateUVScale(model.getModel());
 

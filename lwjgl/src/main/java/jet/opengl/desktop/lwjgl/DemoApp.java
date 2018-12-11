@@ -136,8 +136,6 @@ public class DemoApp {
 //        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
         run(new VolumetricLightingDemo());
-
-        OpenGLProgram
     }
 
     private static void testRectVertex(){
