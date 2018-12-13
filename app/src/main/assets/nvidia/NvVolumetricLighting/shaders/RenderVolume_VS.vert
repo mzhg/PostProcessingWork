@@ -184,10 +184,10 @@ void main()
         P.y = patch_size*patch_row - 1.0f;
 
         int vtx_idx = id % 4;
-        if(vtx_idx != 0)
-        {
-        	vtx_idx = 4 - vtx_idx;
-        }
+//        if(vtx_idx != 0)
+//        {
+//        	vtx_idx = 4 - vtx_idx;
+//        }
         float2 vtx_offset;
         if (vtx_idx == 0)
         {
@@ -213,6 +213,7 @@ void main()
             P.xzy = P.xyz * (((face_idx / 3) == 1) ? float3(1,1,1) : float3(-1,1,1));
          else //if ((face_idx % 3) == 2)
             P.xyz = P.xyz * (((face_idx / 3) == 0) ? float3(1,1,1) : float3(-1,1,1));
+//        vClipPos.z = 2 * vClipPos.z - 1;
         vClipPos = float4(normalize(P.xyz), 1);
     }
     else

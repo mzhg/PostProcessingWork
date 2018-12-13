@@ -67,6 +67,7 @@ public class Cube16 {
 	private Texture2D m_pOffscreenRenderTarget;
 	private Texture2D m_pOffscreenDepth;
 	private Texture2D m_pShadowMap;
+	private Texture2D m_pParaboloidShadowMap;
 
 	private SceneController m_pScene;
 	
@@ -88,6 +89,7 @@ public class Cube16 {
 	private boolean m_bPrintProgram = false;
 	private boolean m_bVisualShadownMap;
 	private VisualDepthTextureProgram m_visTexShader;
+	private VisualDepthTextureProgram m_visTexShader_array;
 	private NvTweakBar mTweakBar;
 	private NvTweakVarBase mSaveSceneTweak;
 	
@@ -120,6 +122,8 @@ public class Cube16 {
 		gl = GLFuncProviderFactory.getGLFuncProvider();
 		Texture2DDesc shadowMapDesc = new Texture2DDesc(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION, GLenum.GL_DEPTH24_STENCIL8);
 		m_pShadowMap = TextureUtils.createTexture2D(shadowMapDesc, null);
+		shadowMapDesc.arraySize = 2;
+		m_pParaboloidShadowMap = TextureUtils.createTexture2D(shadowMapDesc, null);
 		fullscreenProgram = new FullscreenProgram();
 		
 //		m_pScene = new SceneVolume(m_transformer);
@@ -255,39 +259,29 @@ public class Cube16 {
 		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_RenderTarget);
 		gl.glViewport(0, 0, m_pShadowMap.getWidth(), m_pShadowMap.getHeight());
     	BaseProgram program;
-//    	if(m_pScene.getLightMode() == LightType.POINT){
-//    		rtManager.setTexture2DArrayRenderTarget(0, pParaboloidShadowMap_.getTexture());
-//    		rtManager.clearDepthStencilTarget(1, 0);
-//    		GL41.glViewportIndexedf(0, 0, 0, Scene.SHADOWMAP_RESOLUTION, Scene.SHADOWMAP_RESOLUTION);
-//    		GL41.glViewportIndexedf(1, 0, 0, Scene.SHADOWMAP_RESOLUTION, Scene.SHADOWMAP_RESOLUTION);
-//
-//    		GLError.checkError();
-//    		if(depthGSProgram == null)
-//    			depthGSProgram  = new DepthGSProgram(this);
-//    		program = depthGSProgram;
-//
-//    		throw new RuntimeException();
-//    	}else{
-//			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
-//    		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, m_pShadowMap.getTarget(), m_pShadowMap.getTexture(), 0);
-//    		gl.glDrawBuffers(GLenum.GL_NONE);
-//
-//    		GLCheck.checkError();
-//    		if(m_DepthProgram == null)
-//    			m_DepthProgram = new DepthProgram(null);
-//
-//    		program = m_DepthProgram;
-//    	}
+    	if(m_pScene.getLightMode() == LightType.POINT){
+			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
+			gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pParaboloidShadowMap.getTexture(), 0);
+			gl.glDrawBuffers(GLenum.GL_NONE);
 
-		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
-		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pShadowMap.getTarget(), m_pShadowMap.getTexture(), 0);
-		gl.glDrawBuffers(GLenum.GL_NONE);
+    		gl.glViewportIndexedf(0, 0, 0, SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
+			gl.glViewportIndexedf(1, 0, 0, SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
 
-		GLCheck.checkError();
-		if(m_DepthProgram == null)
-			m_DepthProgram = new DepthProgram(null);
+			GLCheck.checkError();
+    		if(m_DepthGSProgram == null)
+				m_DepthGSProgram  = new DepthGSProgram(null);
+    		program = m_DepthGSProgram;
+    	}else{
+			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
+    		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pShadowMap.getTarget(), m_pShadowMap.getTexture(), 0);
+    		gl.glDrawBuffers(GLenum.GL_NONE);
 
-		program = m_DepthProgram;
+    		GLCheck.checkError();
+    		if(m_DepthProgram == null)
+    			m_DepthProgram = new DepthProgram(null);
+
+    		program = m_DepthProgram;
+    	}
     	
     	gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
     	
@@ -300,15 +294,29 @@ public class Cube16 {
 	}
 	
 	private void showShadownMap() {
-		boolean bFirstCreated = false;
     	if(m_visTexShader == null){
 			try {
 				m_visTexShader = new VisualDepthTextureProgram(false);
+                m_visTexShader_array = new VisualDepthTextureProgram(true);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			bFirstCreated = true;
     	}
+
+    	Texture2D shadowMap;
+        VisualDepthTextureProgram visualProgram;
+        float near, far;
+        if(m_pScene.getLightMode() == LightType.POINT){
+            visualProgram = m_visTexShader_array;
+            shadowMap = m_pParaboloidShadowMap;
+			near = 0.5f;
+			far = 100.f;
+        }else{
+            visualProgram = m_visTexShader;
+            shadowMap = m_pShadowMap;
+			near = 0.5f;
+			far = LIGHT_RANGE;
+        }
     	
     	gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 		gl.glViewport(0, 0, nvApp.getGLContext().width(), nvApp.getGLContext().height());
@@ -318,10 +326,10 @@ public class Cube16 {
 		gl.glClearColor(0, 0, 0, 0);
 		gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
 
-        m_visTexShader.enable();
-		m_visTexShader.setUniforms(0.5f, LIGHT_RANGE, 0, 1.0f);
+        visualProgram.enable();
+        visualProgram.setUniforms(near, far, 0, 1.0f);
 		gl.glActiveTexture(GLenum.GL_TEXTURE0);
-		gl.glBindTexture(m_pShadowMap.getTarget(), m_pShadowMap.getTexture());
+		gl.glBindTexture(shadowMap.getTarget(), shadowMap.getTexture());
 		gl.glBindSampler(0, m_psamDefault);
         GLCheck.checkError();
 		gl.glBindVertexArray(m_DummyVAO);
@@ -386,7 +394,12 @@ public class Cube16 {
 //        shadowmap_srv.bind(0, ss_shadowmap_);
 //        m_pShadowMap.bind(0, m_psamComparison);
 		gl.glActiveTexture(GLenum.GL_TEXTURE0);
-		gl.glBindTexture(m_pShadowMap.getTarget(), m_pShadowMap.getTexture());
+		if(m_pScene.getLightMode() == LightType.POINT){
+			gl.glBindTexture(m_pParaboloidShadowMap.getTarget(), m_pParaboloidShadowMap.getTexture());
+		}else{
+			gl.glBindTexture(m_pShadowMap.getTarget(), m_pShadowMap.getTexture());
+		}
+
 		gl.glBindSampler(0, m_psamComparison);
         renderScene(sceneRender);
 //        m_pShadowMap.unbind();
@@ -482,11 +495,11 @@ public class Cube16 {
 	public LightType getLightMode() {	return m_pScene.getLightMode();}
 	public void getLightIntensity(Vector3f out) { m_pScene.getLightIntensity(out);}
 
-	public Texture2D getShadowMap() { return m_pShadowMap;}
+	public Texture2D getShadowMap() { return m_pScene.getLightMode() == LightType.POINT ? m_pParaboloidShadowMap : m_pShadowMap;}
 
 	final class SceneController {
 
-		LightType lightMode = LightType.DIRECTIONAL;
+		LightType lightMode = LightType.POINT;
 		int lightPower_;
 		int viewpoint_ = 0;
 
@@ -604,7 +617,7 @@ public class Cube16 {
 			attribs.zFar  = far;
 		}
 
-		void getLightViewpoint(org.lwjgl.util.vector.Vector _vPos, Matrix4f view, Matrix4f mViewProj) {
+		void getLightViewpoint(Vector3f _vPos, Matrix4f view, Matrix4f mViewProj) {
 			final ReadableVector3f vOrigin = Vector3f.ZERO;
 			final ReadableVector3f vUp = Vector3f.Y_AXIS;
 
@@ -619,6 +632,8 @@ public class Cube16 {
 					mViewProj.m30 = -rvPos.getX();
 					mViewProj.m31 = -rvPos.getY();
 					mViewProj.m32 = -rvPos.getZ();
+
+					view.load(mViewProj);
 				}
 				break;
 
@@ -663,8 +678,8 @@ public class Cube16 {
 					final long CYCLE_LENGTH = 60000000;
 					float cyclePhase = (float) (time_elapsed_us % CYCLE_LENGTH) / (float) (CYCLE_LENGTH);
 					lightTransform_.setIdentity();
-					lightTransform_.m00 = (float) Math.cos(2.0 * Math.PI * 7.0f * cyclePhase);
-					lightTransform_.m11 = (float) Math.cos(2.0 * Math.PI * 3.0f * cyclePhase);
+					lightTransform_.m00 = (float) Math.cos(2.0 * Math.PI * 7.0 * cyclePhase);
+					lightTransform_.m11 = (float) Math.cos(2.0 * Math.PI * 3.0 * cyclePhase);
 				}
 			}
 		}
@@ -899,7 +914,7 @@ public class Cube16 {
 			super(context);
 
 			try {
-				compileProgram("Scenes/Cube16/shaders/scene_VS.vert", "Scenes/Cube16/shaders/scene_GS.vert", "Scenes/Cube16/shaders/Dummy_PS.frag");
+				compileProgram("Scenes/Cube16/shaders/scene_VS.vert", "Scenes/Cube16/shaders/scene_GS.frag", "Scenes/Cube16/shaders/Dummy_PS.frag");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

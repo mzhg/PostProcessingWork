@@ -83,6 +83,7 @@ float3 ParaboloidProject(float3 P, float zNear, float zFar)
 	outP.x = outP.x / (outP.z + 1);
 	outP.y = outP.y / (outP.z + 1);			
 	outP.z = (lenP - zNear) / (zFar - zNear);
+	outP.z = 2 * outP.z - 1;
 	return outP;
 }
 
@@ -90,28 +91,19 @@ void GenerateOmniTriangle(int target, VS_Out vA, VS_Out vB, VS_Out vC/*, inout T
 {
 //    GS_OUTPUT outValue;
     gl_Layer = target;
-    gl_Position = float4(ParaboloidProject(vA.ScreenP.xyz, c_fZNear, c_fZFar), 1);
+    gl_Position = float4(ParaboloidProject(vA.ScreenP.xyz, c_fLightZNear, c_fLightZNFar), 1);
     outValue.P = vA.P;
     outValue.N = vA.N;
-//    outValue.Wz = vA.ScreenZ;
-	gl_ClipDistance[0] = vA.ScreenZ;
-//    output.Append(outValue);
     EmitVertex();
     
-    gl_Position = float4(ParaboloidProject(vB.ScreenP.xyz, c_fZNear, c_fZFar), 1);
+    gl_Position = float4(ParaboloidProject(vB.ScreenP.xyz, c_fLightZNear, c_fLightZNFar), 1);
     outValue.P = vB.P;
     outValue.N = vB.N;
-//    outValue.Wz = vB.ScreenZ;
-	gl_ClipDistance[0] = vB.ScreenZ;
-//    output.Append(outValue);
 	EmitVertex();
 	
-    gl_Position = float4(ParaboloidProject(vC.ScreenP.xyz, c_fZNear, c_fZFar), 1);
+    gl_Position = float4(ParaboloidProject(vC.ScreenP.xyz, c_fLightZNear, c_fLightZNFar), 1);
     outValue.P = vC.P;
     outValue.N = vC.N;
-//    outValue.Wz = vC.ScreenZ;
-    gl_ClipDistance[0] = vC.ScreenZ;
-//    output.Append(outValue);
 	EmitVertex();
 	
     EndPrimitive();
@@ -138,34 +130,24 @@ VS_Out convert(VS_OUTPUT vs_out, float3 ScreenP)
 
 void main()
 {
-	for(int i = 0; i < 2; i++)
-	{
-		float minZ = min(Inputs[0].ScreenZ, min(Inputs[1].ScreenZ, Inputs[2].ScreenZ));
-	    float maxZ = max(Inputs[0].ScreenZ, max(Inputs[1].ScreenZ, Inputs[2].ScreenZ));
-	    
-	    VS_Out input0, input1, input2;
-//	    VS_Out input0 = convert(Inputs[0], gl_in[0].gl_Position.xyz);
-//	    VS_Out input1 = convert(Inputs[1], gl_in[1].gl_Position.xyz);
-//	    VS_Out input2 = convert(Inputs[2], gl_in[2].gl_Position.xyz);
-	    
-	    CONVERT(input0, Inputs[0], gl_in[0].gl_Position.xyz)
-	    CONVERT(input1, Inputs[1], gl_in[1].gl_Position.xyz)
-	    CONVERT(input2, Inputs[2], gl_in[2].gl_Position.xyz)
+	float minZ = min(Inputs[0].ScreenZ, min(Inputs[1].ScreenZ, Inputs[2].ScreenZ));
+    float maxZ = max(Inputs[0].ScreenZ, max(Inputs[1].ScreenZ, Inputs[2].ScreenZ));
 
-	    if (maxZ >= 0)
-	    {
-	        GenerateOmniTriangle(0, input0, input1, input2);
-	    }
+    VS_Out input0, input1, input2;
+    CONVERT(input0, Inputs[0], gl_in[0].gl_Position.xyz)
+    CONVERT(input1, Inputs[1], gl_in[1].gl_Position.xyz)
+    CONVERT(input2, Inputs[2], gl_in[2].gl_Position.xyz)
 
-	    if (minZ <= 0)
-	    {
-	        input0.ScreenZ *= -1.0;
-	        input1.ScreenZ *= -1.0;
-	        input2.ScreenZ *= -1.0;
-	        GenerateOmniTriangle(1, input2, input1, input0);
-	    }
-	    
-	    gl_ViewportIndex = i;
-        gl_Layer = i;
-	}
+    if (maxZ >= 0)
+    {
+        GenerateOmniTriangle(0, input0, input1, input2);
+    }
+
+    if (minZ <= 0)
+    {
+        input0.ScreenZ *= -1.0;
+        input1.ScreenZ *= -1.0;
+        input2.ScreenZ *= -1.0;
+        GenerateOmniTriangle(1, input2, input1, input0);
+    }
 }

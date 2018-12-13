@@ -75,7 +75,7 @@ float SampleShadowMap(float2 tex_coord, int cascade)
 	depth_value = textureLod(tShadowMap, lookup_coord, 0.0).x;
 #elif (SHADOWMAPTYPE == SHADOWMAPTYPE_ARRAY)
 //	depth_value = tShadowMap.SampleLevel( sBilinear, float3( lookup_coord, (float)g_uElementIndex[cascade] ), 0).x;
-	depth_value = textureLod(tShadowMap, float3( lookup_coord, float(g_uElementIndex[cascade]) ), 0.0).x;
+	depth_value = textureLod(tShadowMap, float3( lookup_coord, /*float(g_uElementIndex[cascade])*/ cascade ), 0.0).x;
 #endif
 	return depth_value;
 }
@@ -182,7 +182,7 @@ void main()
         vClipIn.xyz = normalize(vClipIn.xyz);
 		float4 shadowPos = mul(g_mLightProj[0], vWorldPos);
 		shadowPos.xyz = shadowPos.xyz/shadowPos.w;
-		int hemisphereID = (shadowPos.z > -1.0) ? 0 : 1; // TODO
+		int hemisphereID = (shadowPos.z > 0.0) ? 0 : 1; // TODO
 		shadowPos.z = abs(shadowPos.z);
 		shadowPos.xyz = ParaboloidProject(shadowPos.xyz, g_fLightZNear, g_fLightZFar);
 		float2 shadowTC = 0.5f * shadowPos.xy + 0.5f;

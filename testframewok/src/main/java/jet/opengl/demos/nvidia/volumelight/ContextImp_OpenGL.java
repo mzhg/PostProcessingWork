@@ -580,6 +580,43 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    }
 		return Status.OK;
 	}
+
+	private void computeLightLUTOMNI(int attenuationMode){
+		computeLightLUTDesc.lightMode = RenderVolumeDesc.LIGHTMODE_OMNI;
+		computeLightLUTDesc.attenuationMode = attenuationMode;
+		computeLightLUTDesc.computePass = RenderVolumeDesc.COMPUTEPASS_CALCULATE;
+
+		renderVolume_Textures[0] = pPhaseLUT_.getTexture();
+		ComputeLightLUTProgram program = getComputeLightLUTProgram(computeLightLUTDesc, "Generate Light LUT(CALCULATE)");
+		program.enable(renderVolume_Textures);
+		setupUniforms(program);
+		bindImage(pLightLUT_P_[0],0, GLenum.GL_WRITE_ONLY);
+		gl.glDispatchCompute(LIGHT_LUT_DEPTH_RESOLUTION / 32, LIGHT_LUT_WDOTV_RESOLUTION / 8, 1);
+		gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		if(!mbPrintProgram){
+			printProgram(program, "ComputeLightLUT Falloff NONE0");
+			System.out.println("programID: " + program);
+		}
+
+		renderVolume_Textures[0] = pLightLUT_P_[0].getTexture();
+		computeLightLUTDesc.computePass = RenderVolumeDesc.COMPUTEPASS_SUM;
+		program = getComputeLightLUTProgram(computeLightLUTDesc, "Generate Light LUT(SUM)");
+		program.enable(renderVolume_Textures);
+		setupUniforms(program);
+		bindImage(pLightLUT_P_[1],0, GLenum.GL_WRITE_ONLY);
+		gl.glDispatchCompute(1, LIGHT_LUT_WDOTV_RESOLUTION / 4, 1);
+		gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		program.disable();
+		bindImage(null,0, GLenum.GL_WRITE_ONLY);
+
+		if(!mbPrintProgram){
+			printProgram(program, "ComputeLightLUT Falloff NONE1");
+
+			saveTextureAsText(pLightLUT_P_[1], "pLightLUT_P_1_GL_2.txt");
+		}
+	}
 	
 	@Override
 	protected Status renderVolume_DoVolume_Spotlight(int shadowMap, ShadowMapDesc pShadowMapDesc, LightDesc pLightDesc,
@@ -597,40 +634,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    // Create look-up table
 	    if(pLightDesc.eFalloffMode == SpotlightFalloffMode.NONE){
 //	    	NV_PERFEVENT(dxCtx, "Generate Light LUT");
-	    	computeLightLUTDesc.lightMode = RenderVolumeDesc.LIGHTMODE_OMNI;
-	    	computeLightLUTDesc.attenuationMode = pLightDesc.eAttenuationMode.ordinal();
-	    	computeLightLUTDesc.computePass = RenderVolumeDesc.COMPUTEPASS_CALCULATE;
-	    	
-	    	renderVolume_Textures[0] = pPhaseLUT_.getTexture();
-	    	ComputeLightLUTProgram program = getComputeLightLUTProgram(computeLightLUTDesc, "Generate Light LUT(CALCULATE)");
-	    	program.enable(renderVolume_Textures);
-	    	setupUniforms(program);
-	    	bindImage(pLightLUT_P_[0],0, GLenum.GL_WRITE_ONLY);
-			gl.glDispatchCompute(LIGHT_LUT_DEPTH_RESOLUTION / 32, LIGHT_LUT_WDOTV_RESOLUTION / 8, 1);
-			gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-	    	
-	    	if(!mbPrintProgram){
-				printProgram(program, "ComputeLightLUT Falloff NONE0");
-				System.out.println("programID: " + program);
-			}
-	    	
-	    	renderVolume_Textures[0] = pLightLUT_P_[0].getTexture();
-	    	computeLightLUTDesc.computePass = RenderVolumeDesc.COMPUTEPASS_SUM;
-	    	program = getComputeLightLUTProgram(computeLightLUTDesc, "Generate Light LUT(SUM)");
-	    	program.enable(renderVolume_Textures);
-	    	setupUniforms(program);
-	    	bindImage(pLightLUT_P_[1],0, GLenum.GL_WRITE_ONLY);
-			gl.glDispatchCompute(1, LIGHT_LUT_WDOTV_RESOLUTION / 4, 1);
-			gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-	    	
-	    	program.disable();
-			bindImage(null,0, GLenum.GL_WRITE_ONLY);
-
-	    	if(!mbPrintProgram){
-				printProgram(program, "ComputeLightLUT Falloff NONE1");
-				
-				saveTextureAsText(pLightLUT_P_[1], "pLightLUT_P_1_GL_2.txt");
-			}
+			computeLightLUTOMNI(pLightDesc.eAttenuationMode.ordinal());
 
 			intelLUTNeedUpdate = true;
 	    	srnn05LUTNeedUpdate = true;
@@ -899,49 +903,17 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		//--------------------------------------------------------------------------
 	    // Create look-up table
 		{
-			computeLightLUTDesc.lightMode = RenderVolumeDesc.LIGHTMODE_OMNI;
-			computeLightLUTDesc.attenuationMode = pLightDesc.eAttenuationMode.ordinal();
-			computeLightLUTDesc.computePass = RenderVolumeDesc.COMPUTEPASS_CALCULATE;
-			
-	    	renderVolume_Textures[0] = pPhaseLUT_.getTexture();
-	    	ComputeLightLUTProgram program = getComputeLightLUTProgram(computeLightLUTDesc, "Generate Light LUT(CALCULATE)");
-	    	program.enable(renderVolume_Textures);
-	    	setupUniforms(program);
-	    	
-	    	bindImage(pLightLUT_P_[0],0, GLenum.GL_WRITE_ONLY);
-
-	    	gl.glDispatchCompute(LIGHT_LUT_DEPTH_RESOLUTION / 32, LIGHT_LUT_WDOTV_RESOLUTION / 8, 1);
-			gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-	    	
-	    	renderVolume_Textures[0] = pLightLUT_P_[0].getTexture();
-	    	computeLightLUTDesc.computePass = RenderVolumeDesc.COMPUTEPASS_SUM;
-	    	program = getComputeLightLUTProgram(computeLightLUTDesc, "Generate Light LUT(SUM)");
-	    	program.enable(renderVolume_Textures);
-	    	setupUniforms(program);
-	    	
-	    	bindImage(pLightLUT_P_[1],0, GLenum.GL_WRITE_ONLY);
-	    	gl.glDispatchCompute(1, LIGHT_LUT_WDOTV_RESOLUTION / 4, 1);
-			gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-	    	
-	    	program.disable();
-//	    	pLightLUT_P_[1].unbind();
-			bindImage(null,0, GLenum.GL_WRITE_ONLY);
-	    	
-	    	if(!mbPrintProgram){
-		    	saveTextureAsText(pLightLUT_P_[1], "Omni_LUT_GL_2.txt");
-		    }
+			computeLightLUTOMNI(pLightDesc.eAttenuationMode.ordinal());
 		}
 		
 		//--------------------------------------------------------------------------
 	    // Draw tessellated grid
+		rtManager.bind();
 		rtManager.setRenderTextures(CommonUtil.toArray(pAccumulation_, pDepth_), null);
-		gl.glViewport(0, 0, getInternalViewportWidth(), getInternalViewportHeight());
-		gl.glClearStencil(0xFF);
 		gl.glClearColor(0,0,0,0);
-		gl.glClear(GLenum.GL_STENCIL_BUFFER_BIT|GLenum.GL_COLOR_BUFFER_BIT);
-//		rtManager.clearRenderTarget(0, 0);
-		// TODO RSSetState(states.rs.cull_none);
-		// TODO OMSetBlendState(states.bs.additive, nullptr, 0xFFFFFFFF);
+		gl.glClearStencil(0xFF);
+		gl.glClear(GLenum.GL_STENCIL_BUFFER_BIT | GLenum.GL_COLOR_BUFFER_BIT);
+		gl.glStencilMask(0xFF);
 		bs_additive();
 		no_cull_face();
 		
@@ -959,7 +931,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    renderVolumeDesc.lightMode = RenderVolumeDesc.LIGHTMODE_OMNI;
 	    renderVolumeDesc.passMode = RenderVolumeDesc.PASSMODE_GEOMETRY;
 	    renderVolumeDesc.attenuationMode = pLightDesc.eAttenuationMode.ordinal();
-	    renderVolumeDesc.falloffMode = 0 ;// pLightDesc.eFalloffMode.ordinal();
+	    renderVolumeDesc.falloffMode = pLightDesc.eFalloffMode.ordinal();
 	    
 	    renderVolume_Textures[0] = shadowMap;
 	    renderVolume_Textures[1] = pLightLUT_P_[1].getTexture();
@@ -974,8 +946,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 //	    renderVolume_Textures[0] = pDepth_.getTexture(); // TODO
 	    renderVolumeDesc.passMode = RenderVolumeDesc.PASSMODE_FINAL;
 	    drawQuad(shadowMap, pShadowMapDesc);
-	    
-	    
+
 	    if(!mbPrintProgram){
 	    	saveTextureAsText(pAccumulation_, "Omni_GL_2.txt");
 	    	saveTextureAsText(pDepth_, "Omni_DS_GL_2.txt");

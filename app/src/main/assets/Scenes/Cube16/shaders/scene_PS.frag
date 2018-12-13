@@ -59,6 +59,7 @@ float3 ParaboloidProject(float3 P, float zNear, float zFar)
 	outP.x = outP.x / (outP.z + 1);
 	outP.y = outP.y / (outP.z + 1);			
 	outP.z = (lenP - zNear) / (zFar - zNear);
+	outP.z = 2 * outP.z - 1;
 	return outP;
 }
 
@@ -84,7 +85,7 @@ void main()
     const float SHADOW_BIAS = -0.001f;
     float4 shadow_clip = mul(c_mLightViewProj, float4(P,1));
     shadow_clip = shadow_clip / shadow_clip.w;
-    uint hemisphereID = (shadow_clip.z > -1.0) ? 0 : 1;
+    uint hemisphereID = (shadow_clip.z > 0.) ? 0 : 1;
     if (LIGHTMODE == LIGHTMODE_OMNI)
     {
         shadow_clip.z = abs(shadow_clip.z);
@@ -103,10 +104,10 @@ void main()
         {
 #if (LIGHTMODE == LIGHTMODE_OMNI)
 //            total_light += tShadowmapArray.SampleCmpLevelZero(sampShadowmap, float3(shadow_tc, hemisphereID), receiver_depth, int2(ox, oy)).x;
-			total_light += textureOffset(tShadowmapArray, float4(shadow_tc, receiver_depth, hemisphereID), int2(ox, oy));
+			total_light += textureOffset(tShadowmapArray, float4(shadow_tc, hemisphereID, receiver_depth), int2(ox, oy));
 #else
 //            total_light += tShadowmap.SampleCmpLevelZero(sampShadowmap, shadow_tc, receiver_depth, int2(ox, oy)).x;
-			total_light += max(0.0, textureOffset(tShadowmap, float3(shadow_tc, receiver_depth), int2(ox, oy)));
+			total_light += textureOffset(tShadowmap, float3(shadow_tc, receiver_depth), int2(ox, oy));
 #endif
         }
     }

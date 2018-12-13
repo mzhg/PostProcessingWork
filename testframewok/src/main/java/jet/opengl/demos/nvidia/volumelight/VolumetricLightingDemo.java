@@ -112,7 +112,7 @@ public class VolumetricLightingDemo extends NvSampleApp {
 
         runOnce = true;
         switch (m_RenderType){
-            case RENDER_TYPE_NONE:
+            case RENDER_TYPE_RAY_MARCHING:
                 m_volumeParams.sceneColor = m_Scene.getSceneColor();
                 m_volumeParams.sceneDepth = m_Scene.getSceneDepth();
                 m_volumeParams.cameraNear = m_Scene.getSceneNearPlane();
@@ -363,7 +363,7 @@ public class VolumetricLightingDemo extends NvSampleApp {
                 lightDesc.eType = LightType.SPOT;
                 lightDesc.fZNear = m_Scene.getLightNearPlane();
                 lightDesc.fZFar = m_Scene.getLightFarlane();
-                lightDesc.eFalloffMode = SpotlightFalloffMode.FIXED;
+                lightDesc.eFalloffMode = SpotlightFalloffMode.NONE;
                 lightDesc.fFalloff_Power = Cube16.SPOTLIGHT_FALLOFF_POWER;
                 lightDesc.fFalloff_CosTheta = (float) Math.cos(Cube16.SPOTLIGHT_FALLOFF_ANGLE);
 //                lightDesc.vDirection = NVtoNVC(vLightDirection);
@@ -416,7 +416,7 @@ public class VolumetricLightingDemo extends NvSampleApp {
         contextDesc_.eDownsampleMode = DownsampleMode.FULL;
         contextDesc_.eInternalSampleMode = MultisampleMode.SINGLE;
         contextDesc_.eFilterMode = FilterMode.NONE;
-        contextDesc_.bUseTesslation = false;
+        contextDesc_.bUseTesslation = true;
 
         //--------------------------------------------------------------------------
         // Default post-process settings

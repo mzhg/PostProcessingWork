@@ -10,6 +10,8 @@ import org.lwjgl.opengl.EXTTextureCompressionS3TC;
 import org.lwjgl.opengles.NVTextureCompressionS3TC;
 import org.lwjgl.util.vector.Matrix;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector;
+import org.lwjgl.util.vector.Vector3f;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,6 +34,7 @@ import jet.opengl.postprocessing.core.OpenGLProgram;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
+import jet.opengl.postprocessing.util.Numeric;
 
 /**
  * Created by mazhen'gui on 2017/4/12.
@@ -136,6 +139,32 @@ public class DemoApp {
 //        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
         run(new VolumetricLightingDemo());
+    }
+
+    private static void testParaboloidMatrix(){
+        Vector3f lightPos = new Vector3f(10, 15, 00);
+        final float near = 0.5f;
+        final float far = 50.f;
+
+        Vector3f dir = new Vector3f(Numeric.random(-1, 1), Numeric.random(-1, 1), Numeric.random(-1, 1));
+        dir.normalise();
+
+        Vector3f pos1 = Vector3f.scale(dir, 0.2f * far, null);
+        Vector3f pos2 = Vector3f.scale(dir, 0.5f * far, null);
+
+
+    }
+
+    static Vector3f ParaboloidProject(Vector3f P, float zNear, float zFar)
+    {
+        Vector3f outP = new Vector3f();
+        float lenP = Vector3f.length(P);
+//        outP.xyz = P.xyz/lenP;
+        Vector3f.scale(P, 1.0f/lenP, outP);
+        outP.x = outP.x / (outP.z + 1);
+        outP.y = outP.y / (outP.z + 1);
+        outP.z = (lenP - zNear) / (zFar - zNear);
+        return outP;
     }
 
     private static void testRectVertex(){
