@@ -98,18 +98,18 @@ class RenderVolumeDesc {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		
+
 		if(!useQuadVS){
 			result = prime * result + meshMode;
 		}
-		
+
 		if(includeTesslation){
 			result = prime * result + shadowMapType;
 			result = prime * result + cascadeCount;
 			result = prime * result + volumeType;
 			result = prime * result + Float.floatToIntBits(maxtessfactor);
 		}
-		
+
 		if(!debugPS){
 			result = prime * result + attenuationMode;
 			result = prime * result + falloffMode;
@@ -120,7 +120,7 @@ class RenderVolumeDesc {
 		result = prime * result + (includeTesslation ? 1231 : 1237);
 		result = prime * result + (useQuadVS ? 1231 : 1237);
 		result = prime * result + (debugPS ? 1231 : 1237);
-		
+
 		return result;
 	}
 
@@ -133,28 +133,28 @@ class RenderVolumeDesc {
 		if (getClass() != obj.getClass())
 			return false;
 		RenderVolumeDesc other = (RenderVolumeDesc) obj;
-		
+
 		if (useQuadVS != other.useQuadVS)
 			return false;
 		if (includeTesslation != other.includeTesslation)
 			return false;
 		if (debugPS != other.debugPS)
 			return false;
-		
+
 		if(includeTesslation){
 			if (shadowMapType != other.shadowMapType)
 				return false;
-			
+
 			if (cascadeCount != other.cascadeCount)
 				return false;
-			
+
 			if (volumeType != other.volumeType)
 				return false;
-			
+
 			if (Float.floatToIntBits(maxtessfactor) != Float.floatToIntBits(other.maxtessfactor))
 				return false;
 		}
-		
+
 		if(!debugPS){
 			if (attenuationMode != other.attenuationMode)
 				return false;
@@ -167,10 +167,10 @@ class RenderVolumeDesc {
 			if (sampleMode != other.sampleMode)
 				return false;
 		}
-		
+
 		if (!useQuadVS && meshMode != other.meshMode)
 			return false;
 		return true;
 	}
-	
+
 }

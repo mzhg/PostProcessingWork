@@ -114,7 +114,7 @@ void main()
         vClipIn.xyz = normalize(vClipIn.xyz);
         float4 shadowPos = mul(g_mLightProj[0], vWorldPos);
         shadowPos.xyz = shadowPos.xyz/shadowPos.w;
-        int hemisphereID = (shadowPos.z > -1.0) ? 0 : 1; // TODO
+        int hemisphereID = (shadowPos.z > 0.0) ? 0 : 1; // TODO
         shadowPos.z = abs(shadowPos.z);
         shadowPos.xyz = ParaboloidProject(shadowPos.xyz, g_fLightZNear, g_fLightZFar);
         float2 shadowTC = 0.5f * shadowPos.xy + 0.5f;

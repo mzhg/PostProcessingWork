@@ -146,6 +146,7 @@ void main()
         float3 attenuation = float3(distance_attenuation*shadow_term*dot(N, W));
         float3 ambient = float3(0.00001f*saturate(0.5f*(dot(N, L)+1.0f)));
         output_ += c_vLightColor*max(attenuation, ambient)*exp(-c_vSigmaExtinction*light_to_world);
+        output_ = max(vec3(0), output_);
     }
 
     OutColor = float4(output_ * g_CubeColor.rgb, 1);

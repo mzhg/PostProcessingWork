@@ -6,6 +6,7 @@ import com.nvidia.developer.opengl.app.NvInputTransformer;
 import com.nvidia.developer.opengl.app.NvKey;
 import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.ui.NvTweakBar;
 import com.nvidia.developer.opengl.ui.NvTweakVarBase;
 import com.nvidia.developer.opengl.utils.FieldControl;
@@ -216,6 +217,7 @@ public class Cube16 {
 
 	public Texture2D getSceneColor() { return m_pOffscreenRenderTarget;}
 	public Texture2D getSceneDepth() { return m_pOffscreenDepth;}
+	public boolean isVisualShadowMap() { return m_bVisualShadownMap;}
 
 	void renderTexture(Texture2D texture){
 		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
@@ -423,7 +425,7 @@ public class Cube16 {
 
 		gl.glDisable(GLenum.GL_STENCIL_TEST);
 		gl.glEnable(GLenum.GL_DEPTH_TEST);
-		gl.glDepthFunc(GLenum.GL_LEQUAL);
+		gl.glDepthFunc(GLenum.GL_LESS);
 		gl.glDepthMask(true);
 		gl.glBindVertexArray(m_DummyVAO);
 		gl.glDisable(GLenum.GL_CULL_FACE);

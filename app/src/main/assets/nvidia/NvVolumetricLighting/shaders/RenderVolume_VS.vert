@@ -186,8 +186,9 @@ void main()
         int vtx_idx = id % 4;
 //        if(vtx_idx != 0)
 //        {
-//        	vtx_idx = 4 - vtx_idx;
+//            vtx_idx = 4 - vtx_idx;
 //        }
+
         float2 vtx_offset;
         if (vtx_idx == 0)
         {

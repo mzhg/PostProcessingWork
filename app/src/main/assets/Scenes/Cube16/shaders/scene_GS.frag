@@ -140,7 +140,8 @@ void main()
 
     if (maxZ >= 0)
     {
-        GenerateOmniTriangle(0, input0, input1, input2);
+
+        GenerateOmniTriangle(1, input2, input1, input0);
     }
 
     if (minZ <= 0)
@@ -148,6 +149,6 @@ void main()
         input0.ScreenZ *= -1.0;
         input1.ScreenZ *= -1.0;
         input2.ScreenZ *= -1.0;
-        GenerateOmniTriangle(1, input2, input1, input0);
+        GenerateOmniTriangle(0, input0, input1, input2);
     }
 }

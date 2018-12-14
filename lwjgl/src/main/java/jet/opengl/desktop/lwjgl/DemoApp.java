@@ -24,6 +24,7 @@ import jet.opengl.demos.labs.scattering.Chapman;
 import jet.opengl.demos.labs.skylight.SkyImage;
 import jet.opengl.demos.nvidia.face.sample.FaceWorkDemo;
 import jet.opengl.demos.nvidia.face.sample.FaceWorkTest;
+import jet.opengl.demos.nvidia.shadows.ParaboloidShadowDemo;
 import jet.opengl.demos.nvidia.volumelight.VolumetricLightingDemo;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
@@ -121,6 +122,8 @@ public class DemoApp {
             }
         });
 
+        testParaboloidMatrix();
+
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
 //        run(new HBAODemo());
 //        run(new ASSAODemoDebug());
@@ -138,7 +141,8 @@ public class DemoApp {
 //        run(new AtmosphereTest());
 //        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
-        run(new VolumetricLightingDemo());
+//        run(new VolumetricLightingDemo());
+        run(new ParaboloidShadowDemo());
     }
 
     private static void testParaboloidMatrix(){
@@ -146,13 +150,17 @@ public class DemoApp {
         final float near = 0.5f;
         final float far = 50.f;
 
-        Vector3f dir = new Vector3f(Numeric.random(-1, 1), Numeric.random(-1, 1), Numeric.random(-1, 1));
+        Vector3f dir = new Vector3f(Numeric.random(-1, 1), Numeric.random(-1, 1), Numeric.random(0, 1));
         dir.normalise();
 
         Vector3f pos1 = Vector3f.scale(dir, 0.2f * far, null);
         Vector3f pos2 = Vector3f.scale(dir, 0.5f * far, null);
 
+        Vector3f shadowUV1 = ParaboloidProject(pos1, near, far);
+        Vector3f shadowUV2 = ParaboloidProject(pos2, near, far);
 
+        System.out.println("shadowUV1 = " + shadowUV1);
+        System.out.println("shadowUV2 = " + shadowUV2);
     }
 
     static Vector3f ParaboloidProject(Vector3f P, float zNear, float zFar)

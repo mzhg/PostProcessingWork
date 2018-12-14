@@ -188,6 +188,7 @@ void main()
 		float2 shadowTC = 0.5f * shadowPos.xy + 0.5f;
         float depthSample = SampleShadowMap(shadowTC, hemisphereID);
 //        depthSample = max(1.0, depthSample);
+//        depthSample = 0.5 * depthSample + 0.5;
 		float sceneDepth = depthSample*(g_fLightZFar-g_fLightZNear)+g_fLightZNear;
 		vWorldPos = mul( g_mLightProjInv[0], float4(vClipIn.xyz * sceneDepth, 1));
         vWorldPos *= 1.0f / vWorldPos.w;

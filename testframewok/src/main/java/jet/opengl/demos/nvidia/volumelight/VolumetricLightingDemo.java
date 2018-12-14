@@ -105,6 +105,9 @@ public class VolumetricLightingDemo extends NvSampleApp {
     public void display() {
         m_Scene.draw(m_RenderType == RENDER_TYPE_NONE);
 
+        if(m_Scene.isVisualShadowMap())
+            return;
+
         if(useStaticData&& runOnce) {
             tonemapping();
             return;
