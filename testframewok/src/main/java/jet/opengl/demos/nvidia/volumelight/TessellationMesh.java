@@ -8,6 +8,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackFloat;
 import jet.opengl.postprocessing.util.StackInt;
 
@@ -30,7 +31,7 @@ public class TessellationMesh {
     public static void main(String[] args){
         DEBUG = true;
 
-        new TessellationMesh(RenderVolumeDesc.MESHMODE_FRUSTUM_BASE, 1);
+        new TessellationMesh(RenderVolumeDesc.MESHMODE_OMNI_VOLUME, 1);
     }
 
     public TessellationMesh(TessellationDesc desc){
@@ -64,6 +65,15 @@ public class TessellationMesh {
 
     public interface VertexInterpolate{
         void map(ReadableVector3f low, ReadableVector3f upper, float x, float y, Vector3f out);
+    }
+
+    private static void mapSphere(ReadableVector3f low, ReadableVector3f upper, float x, float y, Vector3f out){
+        float theta = Numeric.PI * 2.f * y;
+        float fei = Numeric.PI * x;
+
+        out.x = (float) (Math.sin(fei) * Math.cos(theta));
+        out.y = (float) (Math.sin(fei) * Math.sin(theta));
+        out.z = (float) Math.cos(fei);
     }
 
     private void tessellatePlane(ReadableVector3f low, ReadableVector3f upper, int resolution, StackFloat outVertices, StackInt outIndices,
@@ -199,7 +209,36 @@ public class TessellationMesh {
         Vector3f vClipPos = new Vector3f();
 
         if(!DEBUG) {
+            m_VertexCount = (resolution + 1) * (resolution + 1);
+            m_IndiceCount = resolution * resolution * 6;
+            StackFloat verts = new StackFloat(m_VertexCount * 3);
+            StackInt indices = new StackInt(m_IndiceCount);
 
+            final Vector3f low = new Vector3f(-1,-1, 1);
+            final Vector3f upper = new Vector3f(1,1,1);
+            tessellatePlane(low, upper, resolution, verts, indices, false, TessellationMesh::mapSphere);
+
+            if(verts.size()/3 != m_VertexCount)
+                throw new IllegalStateException();
+
+            if(indices.size() != m_IndiceCount)
+                throw new IllegalStateException();
+
+            // Create buffers
+            m_VAO = gl.glGenVertexArray();
+            gl.glBindVertexArray(m_VAO);
+
+            m_VB = gl.glGenBuffer();
+            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_VB);
+            gl.glBufferData(GLenum.GL_ARRAY_BUFFER, CacheBuffer.wrap(verts.getData(), 0, verts.size()), GLenum.GL_STATIC_DRAW);
+            gl.glEnableVertexAttribArray(0);
+            gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 0, 0);
+
+            m_IB = gl.glGenBuffer();
+            gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, m_IB);
+            gl.glBufferData(GLenum.GL_ELEMENT_ARRAY_BUFFER, CacheBuffer.wrap(indices.getData(), 0, indices.size()), GLenum.GL_STATIC_DRAW);
+
+            gl.glBindVertexArray(0);
         }else{
             int vtx_count = 6 * 4 * resolution * resolution;
             for (int i = 0; i < vtx_count; i++) {

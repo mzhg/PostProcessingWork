@@ -15,7 +15,7 @@ layout(location = 0) in float3 In_Position;
 float SampleShadowMap(float2 tex_coord, int cascade)
 {
 	float depth_value = 1.0f;
-#if 1  // TODO
+#if 0  // TODO
 	float2 lookup_coord = g_vElementOffsetAndScale[cascade].zw * tex_coord + g_vElementOffsetAndScale[cascade].xy;
 #else
 	float2 lookup_coord = tex_coord;
@@ -26,7 +26,7 @@ float SampleShadowMap(float2 tex_coord, int cascade)
 	depth_value = textureLod(tShadowMap, lookup_coord, 0.0).x;
 #elif (SHADOWMAPTYPE == SHADOWMAPTYPE_ARRAY)
 //	depth_value = tShadowMap.SampleLevel( sBilinear, float3( lookup_coord, (float)g_uElementIndex[cascade] ), 0).x;
-	depth_value = textureLod(tShadowMap, float3( lookup_coord, float(g_uElementIndex[cascade]) ), 0.0).x;
+	depth_value = textureLod(tShadowMap, float3( lookup_coord, cascade ), 0.0).x;
 #endif
 	return depth_value;
 }
@@ -112,14 +112,15 @@ void main()
     else if (VOLUMETYPE == VOLUMETYPE_PARABOLOID)
     {
         vClipIn.xyz = normalize(vClipIn.xyz);
+        vWorldPos = mul(g_mLightToWorld, float4(g_fLightZFar*vClipIn.xyz, 1));
+
         float4 shadowPos = mul(g_mLightProj[0], vWorldPos);
         shadowPos.xyz = shadowPos.xyz/shadowPos.w;
-        int hemisphereID = (shadowPos.z > 0.0) ? 0 : 1; // TODO
+        int hemisphereID = (shadowPos.z > 0.0) ? 0 : 1;
         shadowPos.z = abs(shadowPos.z);
         shadowPos.xyz = ParaboloidProject(shadowPos.xyz, g_fLightZNear, g_fLightZFar);
         float2 shadowTC = 0.5f * shadowPos.xy + 0.5f;
         float depthSample = SampleShadowMap(shadowTC, hemisphereID);
-//        depthSample = max(1.0, depthSample);
         float sceneDepth = depthSample*(g_fLightZFar-g_fLightZNear)+g_fLightZNear;
         vWorldPos = mul( g_mLightProjInv[0], float4(vClipIn.xyz * sceneDepth, 1));
         vWorldPos *= 1.0f / vWorldPos.w;

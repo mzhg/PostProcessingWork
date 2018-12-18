@@ -89,6 +89,7 @@ public class Cube16 {
 	
 	private boolean m_bPrintProgram = false;
 	private boolean m_bVisualShadownMap;
+	private int     m_shadowSlice;
 	private VisualDepthTextureProgram m_visTexShader;
 	private VisualDepthTextureProgram m_visTexShader_array;
 	private NvTweakBar mTweakBar;
@@ -110,7 +111,8 @@ public class Cube16 {
 	
 	public void initUI(NvTweakBar tweakBar){
 		tweakBar.addValue("Visualize Depth", new FieldControl(this, "m_bVisualShadownMap"));
-    	
+		tweakBar.addValue("Shadow Slice", new FieldControl(this, "m_shadowSlice"), 0, 1);
+
     	tweakBar.addValue("Animated: ", new FieldControl(m_pScene, "isPaused_"));
     	tweakBar.syncValues();
     	
@@ -290,6 +292,14 @@ public class Cube16 {
     	program.enable();
     	renderScene(program);
     	program.disable();
+
+		if(!m_bPrintProgram /*&& m_bEnableLightScattering*/){
+			program.setName("ShadowRender");
+			program.printPrograminfo();
+//        	ProgramProperties props = GLSLUtil.getProperties(sceneRender.getProgram());
+//        	System.out.println("SceneRender: ");
+//        	System.out.println(props);
+		}
     	
     	gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 		GLCheck.checkError();
@@ -329,7 +339,7 @@ public class Cube16 {
 		gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
 
         visualProgram.enable();
-        visualProgram.setUniforms(near, far, 0, 1.0f);
+        visualProgram.setUniforms(near, far, m_shadowSlice, 1.0f);
 		gl.glActiveTexture(GLenum.GL_TEXTURE0);
 		gl.glBindTexture(shadowMap.getTarget(), shadowMap.getTexture());
 		gl.glBindSampler(0, m_psamDefault);
@@ -576,8 +586,9 @@ public class Cube16 {
 			}
 			else if (lightMode == LightType.POINT)
 			{
-				pLight.vLightAttenuationFactors.set(1.0f, 2.0f, 1.0f, 0.0f);
+				pLight.vLightAttenuationFactors.set(1.0f, 4.0f, 4.0f, 0.0f);
 				pLight.vSigmaExtinction.set(0.002096f, 0.0028239999f, 0.00481f);
+
 //            pLight.vLightAttenuationFactors = Nv::NvVec4(lightDesc->Omni.fAttenuationFactors);
 //				pLight.vLightAttenuationFactors.set(lightAttribs.f4AttenuationFactors);
 //				Vector3f.sub(lightAttribs.f4LightWorldPos, viewAttribs.f4CameraPos, vDirOnLight);

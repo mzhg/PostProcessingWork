@@ -51,6 +51,107 @@ Define the shader permutations for code generation
 //#endif
 //    uint id : SV_VERTEXID )
 
+float4 GenerateOMNIVertexCube()
+{
+    int id = gl_VertexID;
+    int verts_per_face = 4*g_uMeshResolution*g_uMeshResolution;
+    int face_idx = id / verts_per_face;
+    int face_vert_idx = id % verts_per_face;
+
+    const float patch_size = 2.0f / float(g_uMeshResolution);
+    int patch_idx = face_vert_idx / 4;
+    int patch_row = patch_idx / g_uMeshResolution;
+    int patch_col = patch_idx % g_uMeshResolution;
+
+    float3 P;
+    P.x = patch_size*patch_col - 1.0f;
+    P.y = patch_size*patch_row - 1.0f;
+
+    int vtx_idx = id % 4;
+    /*if((face_idx % 3) == 1)
+    {
+        if(vtx_idx != 0)
+            vtx_idx = 4 - vtx_idx;
+    }*/
+
+    float2 vtx_offset;
+    if (vtx_idx == 0)
+    {
+        vtx_offset = float2(0, 0);
+    }
+    else if (vtx_idx == 1)
+    {
+        vtx_offset = float2(1, 0);
+    }
+    else if (vtx_idx == 2)
+    {
+        vtx_offset = float2(1, 1);
+    }
+    else // if (vtx_idx == 3)
+    {
+        vtx_offset = float2(0, 1);
+    }
+    P.xy += patch_size * vtx_offset;
+    P.z = ((face_idx / 3) == 0) ? 1 : -1;
+    if ((face_idx % 3) == 0)  // Right(+) and Left(-) faces
+        P.yzx = P.xyz * (((face_idx / 3) == 0) ? float3(1,1,1) : float3(-1,1,1));
+    else if ((face_idx % 3) == 1)  // Top(+) and Bottom(-) faces
+        P.xzy = P.xyz * (((face_idx / 3) == 1) ? float3(1,1,1) : float3(-1,1,1));
+     else //if ((face_idx % 3) == 2)  // Front(+) and Back(-) faces
+        P.xyz = P.xyz * (((face_idx / 3) == 0) ? float3(1,1,1) : float3(-1,1,1));
+    return float4(normalize(P.xyz), 1);
+}
+
+float4 GenerateOMNIVertexSphere()
+{
+    int id = gl_VertexID;
+    const float patch_size = 2.0 / float(g_uMeshResolution);
+    int patch_idx = id / 4;
+    int patch_row = patch_idx / g_uMeshResolution;
+    int patch_col = patch_idx % g_uMeshResolution;
+
+    float2 vClipPos;
+
+    vClipPos.x = patch_size*patch_col - 1.0f;
+    vClipPos.y = patch_size*patch_row - 1.0f;
+
+    uint vtx_idx = id % 4;
+//    if(vtx_idx != 0)
+//    {
+//        vtx_idx = 4u - vtx_idx;
+//    }
+    float2 vtx_offset;
+    if (vtx_idx == 0)
+    {
+        vtx_offset = float2(0, 0);
+    }
+    else if (vtx_idx == 1)
+    {
+        vtx_offset = float2(1, 0);
+    }
+    else if (vtx_idx == 2)
+    {
+        vtx_offset = float2(1, 1);
+    }
+    else // if (vtx_idx == 3)
+    {
+        vtx_offset = float2(0, 1);
+    }
+    vClipPos.xy += patch_size * vtx_offset;
+
+    vClipPos = vClipPos * 0.5 + 0.5;
+
+    float theta = PI * 2. * vClipPos.y;
+    float fei = PI * vClipPos.x;
+
+    float3 pos;
+    pos.x = sin(fei) * cos(theta);
+    pos.y = sin(fei) * sin(theta);
+    pos.z = cos(fei);
+
+    return float4(pos,1);
+}
+
 out float4 vClipPos;
 out float4 vWorldPos;
 // out float4 vPos;
@@ -170,52 +271,9 @@ void main()
     }
     else if (MESHMODE == MESHMODE_OMNI_VOLUME)
     {
-        int verts_per_face = 4*g_uMeshResolution*g_uMeshResolution;
-        int face_idx = id / verts_per_face;
-        int face_vert_idx = id % verts_per_face;
-
-        const float patch_size = 2.0f / float(g_uMeshResolution);
-        int patch_idx = face_vert_idx / 4;
-        int patch_row = patch_idx / g_uMeshResolution;
-        int patch_col = patch_idx % g_uMeshResolution;
-
-        float3 P;
-        P.x = patch_size*patch_col - 1.0f;
-        P.y = patch_size*patch_row - 1.0f;
-
-        int vtx_idx = id % 4;
-//        if(vtx_idx != 0)
-//        {
-//            vtx_idx = 4 - vtx_idx;
-//        }
-
-        float2 vtx_offset;
-        if (vtx_idx == 0)
-        {
-            vtx_offset = float2(0, 0);
-        }
-        else if (vtx_idx == 1)
-        {
-            vtx_offset = float2(1, 0);
-        }
-        else if (vtx_idx == 2)
-        {
-            vtx_offset = float2(1, 1);
-        }
-        else // if (vtx_idx == 3)
-        {
-            vtx_offset = float2(0, 1);
-        }
-        P.xy += patch_size * vtx_offset;
-        P.z = ((face_idx / 3) == 0) ? 1 : -1;
-        if ((face_idx % 3) == 0)
-            P.yzx = P.xyz * (((face_idx / 3) == 0) ? float3(1,1,1) : float3(-1,1,1));
-        else if ((face_idx % 3) == 1)
-            P.xzy = P.xyz * (((face_idx / 3) == 1) ? float3(1,1,1) : float3(-1,1,1));
-         else //if ((face_idx % 3) == 2)
-            P.xyz = P.xyz * (((face_idx / 3) == 0) ? float3(1,1,1) : float3(-1,1,1));
-//        vClipPos.z = 2 * vClipPos.z - 1;
-        vClipPos = float4(normalize(P.xyz), 1);
+        // TODO Using a sphere to instead the cube box may be avoid the face wind problems.
+//        vClipPos = GenerateOMNIVertexCube();
+        vClipPos = GenerateOMNIVertexSphere();
     }
     else
     {

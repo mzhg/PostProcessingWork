@@ -12,6 +12,7 @@ import org.lwjgl.util.vector.Matrix;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -141,8 +142,8 @@ public class DemoApp {
 //        run(new AtmosphereTest());
 //        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
-//        run(new VolumetricLightingDemo());
-        run(new ParaboloidShadowDemo());
+        run(new VolumetricLightingDemo());
+//        run(new ParaboloidShadowDemo());
     }
 
     private static void testParaboloidMatrix(){
@@ -150,28 +151,41 @@ public class DemoApp {
         final float near = 0.5f;
         final float far = 50.f;
 
-        Vector3f dir = new Vector3f(Numeric.random(-1, 1), Numeric.random(-1, 1), Numeric.random(0, 1));
+        Vector3f dir = new Vector3f(Numeric.random(-1, 1), Numeric.random(-1, 1), Numeric.random(-1, 1));
         dir.normalise();
 
         Vector3f pos1 = Vector3f.scale(dir, 0.2f * far, null);
         Vector3f pos2 = Vector3f.scale(dir, 0.5f * far, null);
 
-        Vector3f shadowUV1 = ParaboloidProject(pos1, near, far);
-        Vector3f shadowUV2 = ParaboloidProject(pos2, near, far);
+        Vector4f shadowUV1 = ParaboloidProject(pos1, near, far);
+        Vector4f shadowUV2 = ParaboloidProject(pos2, near, far);
+
+        float depth1 = shadowUV1.z * (far - near) + near;
+        float depth2 = shadowUV2.z * (far - near) + near;
+        Vector3f constructPos1 = Vector3f.scale(dir, depth1, null);
+        Vector3f constructPos2 = Vector3f.scale(dir, depth2, null);
 
         System.out.println("shadowUV1 = " + shadowUV1);
         System.out.println("shadowUV2 = " + shadowUV2);
+        System.out.println("constructPos1 = " + constructPos1);
+        System.out.println("constructPos2 = " + constructPos2);
+        System.out.println("pos1 = " + pos1);
+        System.out.println("pos2 = " + pos2);
     }
 
-    static Vector3f ParaboloidProject(Vector3f P, float zNear, float zFar)
+    static Vector4f ParaboloidProject(Vector3f P, float zNear, float zFar)
     {
-        Vector3f outP = new Vector3f();
+        Vector4f outP = new Vector4f();
+        outP.w = P.z > 0 ? 1 : 0;
+        float z = P.z;
+        P.z = Math.abs(P.z);
         float lenP = Vector3f.length(P);
 //        outP.xyz = P.xyz/lenP;
         Vector3f.scale(P, 1.0f/lenP, outP);
         outP.x = outP.x / (outP.z + 1);
         outP.y = outP.y / (outP.z + 1);
         outP.z = (lenP - zNear) / (zFar - zNear);
+        P.z = z;
         return outP;
     }
 

@@ -22,7 +22,7 @@ import jet.opengl.postprocessing.util.DebugTools;
 
 public abstract class ContextImp_Common implements Disposeable {
 
-    protected static final boolean USE_UNIFORM_BLOCK = false ;
+    protected static final boolean USE_UNIFORM_BLOCK = true ;
 	// Miscellaneous internal state
     boolean isInitialized_;
     DebugFlags debugFlags_;

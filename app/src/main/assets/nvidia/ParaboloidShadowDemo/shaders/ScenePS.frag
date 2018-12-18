@@ -10,11 +10,12 @@ layout(binding = 0) uniform FrameCB
 
     float g_LightZNear;
     float g_LightZFar;
+//    float g_NormScale;
 };
 
 layout(binding = 0) uniform sampler2DArrayShadow tShadowmapArray;
 
-uniform vec4 g_Color;
+uniform vec4 g_Color = vec4(1);
 
 out vec4 OutColor;
 
@@ -28,6 +29,13 @@ vec3 ParaboloidProject(vec3 P, float zNear, float zFar)
 	outP.z = (lenP - zNear) / (zFar - zNear);
 	outP.z = 2 * outP.z - 1;
 	return outP;
+}
+
+vec3 tonemap(vec3 C)
+{
+	// Filmic -- model film properties
+	C = max(vec3(0), C - 0.004);
+	return (C*(6.2*C+0.5))/(C*(6.2*C+1.7)+0.06);
 }
 
 void main()
@@ -58,14 +66,31 @@ void main()
         }
     }
     float shadow_term = total_light / ((2.0*SHADOW_KERNEL+1.0) * (2.0*SHADOW_KERNEL+1.0));
+    float light_to_world = length(P - g_LightPos.xyz);
+    vec3 L = (g_LightPos.xyz - P) / light_to_world;
+    float lambertTerm = max(dot(N,L), 0.0);
+
+    OutColor = vec4(g_Color.rgb * shadow_term * lambertTerm, 1);
+
+    /*vec3 final_color = vec3(0);
+
+    if (lambertTerm > 0.0)
+    {
+        final_color += light_diffuse * material_diffuse * lambertTerm * tex01_color;
+
+        vec4 E = normalize(Vertex_EyeVec);
+        vec4 R = reflect(-L, N);
+        float specular = pow( max(dot(R, E), 0.0), material_shininess);
+        final_color += light_specular * material_specular * specular;
+    }
 
     const vec4 c_vLightAttenuationFactors = vec4(1.0, 2.0, 1.0, 0.0);
     const vec3 c_vLightColor = vec3(25000.0, 23750.0, 22500.0);
     const vec3 c_vSigmaExtinction = vec3(0.002096, 0.0028239999, 0.00481);
 
     vec3 output_ = vec3(0,0,0);
-    float light_to_world = length(P - g_LightPos.xyz);
-    vec3 W = (g_LightPos.xyz - P)/light_to_world;
+
+    vec3 W = (g_LightPos.xyz - P)/max(light_to_world, 0.00001);
     float distance_attenuation = 1.0f/(c_vLightAttenuationFactors.x + c_vLightAttenuationFactors.y*light_to_world + c_vLightAttenuationFactors.z*light_to_world*light_to_world) + c_vLightAttenuationFactors.w;
 
     vec3 attenuation = vec3(distance_attenuation*shadow_term*dot(N, W));
@@ -74,4 +99,5 @@ void main()
     output_ = max(vec3(0), output_);
 
     OutColor = vec4(output_ * g_Color.rgb, 1);
+    OutColor.rgb = tonemap(OutColor.rgb);*/
 }

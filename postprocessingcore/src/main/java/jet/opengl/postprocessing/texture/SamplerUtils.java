@@ -19,6 +19,10 @@ public final class SamplerUtils {
 	private static final SamplerDesc g_DepthComparisonSampler = new SamplerDesc();
 
 	static {
+		g_DepthComparisonSampler.borderColor = -1;
+		g_DepthComparisonSampler.wrapR = GLenum.GL_CLAMP_TO_BORDER;
+		g_DepthComparisonSampler.wrapS = GLenum.GL_CLAMP_TO_BORDER;
+		g_DepthComparisonSampler.wrapT = GLenum.GL_CLAMP_TO_BORDER;
 		g_DepthComparisonSampler.minFilter = GLenum.GL_NEAREST;
 		g_DepthComparisonSampler.compareFunc = GLenum.GL_LESS;
 		g_DepthComparisonSampler.compareMode = GLenum.GL_COMPARE_REF_TO_TEXTURE;

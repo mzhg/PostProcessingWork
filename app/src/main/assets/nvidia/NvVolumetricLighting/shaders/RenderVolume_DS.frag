@@ -51,7 +51,7 @@ Define the shader permutations for code generation
 
 #define COARSE_CASCADE (CASCADECOUNT-1)
 
-layout(quads, equal_spacing, cw) in;
+layout(quads, equal_spacing,cw) in;
 
 #if (SHADOWMAPTYPE == SHADOWMAPTYPE_ATLAS)
 // Texture2D<float> tShadowMap : register(t1);
@@ -64,7 +64,7 @@ layout(binding = 0) uniform sampler2DArray tShadowMap;
 float SampleShadowMap(float2 tex_coord, int cascade)
 {
 	float depth_value = 1.0f;
-#if 1  // TODO
+#if 0  // TODO
 	float2 lookup_coord = g_vElementOffsetAndScale[cascade].zw * tex_coord + g_vElementOffsetAndScale[cascade].xy;
 #else
 	float2 lookup_coord = tex_coord;
@@ -180,23 +180,18 @@ void main()
 	else if (VOLUMETYPE == VOLUMETYPE_PARABOLOID)
 	{
         vClipIn.xyz = normalize(vClipIn.xyz);
-		float4 shadowPos = mul(g_mLightProj[0], vWorldPos);
+		float4 shadowPos = mul(g_mLightProj[0], vec4(vWorldPos.xyz, 1));
 		shadowPos.xyz = shadowPos.xyz/shadowPos.w;
-		int hemisphereID = (shadowPos.z > 0.0) ? 0 : 1; // TODO
+		int hemisphereID = (shadowPos.z > 0.0) ? 0 : 1;
 		shadowPos.z = abs(shadowPos.z);
 		shadowPos.xyz = ParaboloidProject(shadowPos.xyz, g_fLightZNear, g_fLightZFar);
 		float2 shadowTC = 0.5f * shadowPos.xy + 0.5f;
         float depthSample = SampleShadowMap(shadowTC, hemisphereID);
-//        depthSample = max(1.0, depthSample);
-//        depthSample = 0.5 * depthSample + 0.5;
 		float sceneDepth = depthSample*(g_fLightZFar-g_fLightZNear)+g_fLightZNear;
 		vWorldPos = mul( g_mLightProjInv[0], float4(vClipIn.xyz * sceneDepth, 1));
         vWorldPos *= 1.0f / vWorldPos.w;
 	}
 
 	// Transform world position with viewprojection matrix
-//	output.vWorldPos = vWorldPos;
-//    output.vPos = mul( g_mViewProj, output.vWorldPos );
-//    return output;
 	gl_Position = mul( g_mViewProj, vWorldPos );
 }

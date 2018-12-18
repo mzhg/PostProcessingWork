@@ -56,13 +56,6 @@ out gl_PerVertex
 	float4 gl_Position;
 };
 
-out GS_OUTPUT
-{
-	float4 P;
-	float3 N;
-//	uint Target;
-//	float 
-}outValue;
 
 struct VS_Out
 {
@@ -87,23 +80,19 @@ float3 ParaboloidProject(float3 P, float zNear, float zFar)
 	return outP;
 }
 
-void GenerateOmniTriangle(int target, VS_Out vA, VS_Out vB, VS_Out vC/*, inout TriangleStream<GS_OUTPUT> output*/)
+void GenerateOmniTriangle(int target, vec3 vA, vec3 vB, vec3 vC/*, inout TriangleStream<GS_OUTPUT> output*/)
 {
+//    const float c_fLightZNear = 0.5;
+//    const float c_fLightZNFar = 50.;
 //    GS_OUTPUT outValue;
     gl_Layer = target;
-    gl_Position = float4(ParaboloidProject(vA.ScreenP.xyz, c_fLightZNear, c_fLightZNFar), 1);
-    outValue.P = vA.P;
-    outValue.N = vA.N;
+    gl_Position = float4(ParaboloidProject(vA.xyz, c_fLightZNear, c_fLightZNFar), 1);
     EmitVertex();
     
-    gl_Position = float4(ParaboloidProject(vB.ScreenP.xyz, c_fLightZNear, c_fLightZNFar), 1);
-    outValue.P = vB.P;
-    outValue.N = vB.N;
+    gl_Position = float4(ParaboloidProject(vB.xyz, c_fLightZNear, c_fLightZNFar), 1);
 	EmitVertex();
 	
-    gl_Position = float4(ParaboloidProject(vC.ScreenP.xyz, c_fLightZNear, c_fLightZNFar), 1);
-    outValue.P = vC.P;
-    outValue.N = vC.N;
+    gl_Position = float4(ParaboloidProject(vC.xyz, c_fLightZNear, c_fLightZNFar), 1);
 	EmitVertex();
 	
     EndPrimitive();
@@ -133,22 +122,20 @@ void main()
 	float minZ = min(Inputs[0].ScreenZ, min(Inputs[1].ScreenZ, Inputs[2].ScreenZ));
     float maxZ = max(Inputs[0].ScreenZ, max(Inputs[1].ScreenZ, Inputs[2].ScreenZ));
 
-    VS_Out input0, input1, input2;
-    CONVERT(input0, Inputs[0], gl_in[0].gl_Position.xyz)
-    CONVERT(input1, Inputs[1], gl_in[1].gl_Position.xyz)
-    CONVERT(input2, Inputs[2], gl_in[2].gl_Position.xyz)
+    vec3 pos0 = gl_in[0].gl_Position.xyz;
+    vec3 pos1 = gl_in[1].gl_Position.xyz;
+    vec3 pos2 = gl_in[2].gl_Position.xyz;
 
     if (maxZ >= 0)
     {
-
-        GenerateOmniTriangle(1, input2, input1, input0);
+        GenerateOmniTriangle(0, pos0, pos1, pos2);
     }
 
     if (minZ <= 0)
     {
-        input0.ScreenZ *= -1.0;
-        input1.ScreenZ *= -1.0;
-        input2.ScreenZ *= -1.0;
-        GenerateOmniTriangle(0, input0, input1, input2);
+        pos0.z *= -1.0;
+        pos1.z *= -1.0;
+        pos2.z *= -1.0;
+        GenerateOmniTriangle(1, pos0, pos1, pos2);
     }
 }

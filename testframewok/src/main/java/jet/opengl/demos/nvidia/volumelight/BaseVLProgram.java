@@ -430,8 +430,9 @@ abstract class BaseVLProgram implements OpenGLProgram {
 	}
 	
 	void bindTexture(int target, int textureID, int sampler, int unit){
-		gl.glActiveTexture(GLenum.GL_TEXTURE0 + unit);
-		gl.glBindTexture(target, textureID);
+		/*gl.glActiveTexture(GLenum.GL_TEXTURE0 + unit);
+		gl.glBindTexture(target, textureID);*/
+		gl.glBindTextureUnit(unit, textureID);
 		gl.glBindSampler(unit, sampler);
 	}
 	

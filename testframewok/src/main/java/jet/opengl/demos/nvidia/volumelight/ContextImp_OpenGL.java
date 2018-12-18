@@ -910,13 +910,14 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    // Draw tessellated grid
 		rtManager.bind();
 		rtManager.setRenderTextures(CommonUtil.toArray(pAccumulation_, pDepth_), null);
+		gl.glViewport(0,0, pAccumulation_.getWidth(), pAccumulation_.getHeight());
 		gl.glClearColor(0,0,0,0);
 		gl.glClearStencil(0xFF);
 		gl.glClear(GLenum.GL_STENCIL_BUFFER_BIT | GLenum.GL_COLOR_BUFFER_BIT);
 		gl.glStencilMask(0xFF);
 		bs_additive();
 		no_cull_face();
-		
+
 		// Determine DS/HS permutation
 		renderVolumeDesc.shadowMapType = RenderVolumeDesc.SHADOWMAPTYPE_ARRAY;
 		renderVolumeDesc.cascadeCount = RenderVolumeDesc.CASCADECOUNT_1;
@@ -935,15 +936,13 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 	    
 	    renderVolume_Textures[0] = shadowMap;
 	    renderVolume_Textures[1] = pLightLUT_P_[1].getTexture();
-	    
+
 	    ds_render_volume(0xFF, false);
 	    drawOmniVolume(mesh_resolution, shadowMap, pShadowMapDesc);
 	    
 	    //--------------------------------------------------------------------------
 	    // Finish the rendering by filling in stenciled gaps
-	    ds_finish_volume(0xFF);
-//	    rtManager.setTexture2DRenderTargets(pAccumulation_.getTexture(), 0);
-//	    renderVolume_Textures[0] = pDepth_.getTexture(); // TODO
+		ds_finish_volume(0xFF);
 	    renderVolumeDesc.passMode = RenderVolumeDesc.PASSMODE_FINAL;
 	    drawQuad(shadowMap, pShadowMapDesc);
 
@@ -1134,7 +1133,6 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 2, 0);
 		gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 3, 0);
 
-
 		return Status.OK;
 	}
 	
@@ -1268,11 +1266,22 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		if(debugFlags_ == DebugFlags.WIREFRAME){
 			gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
 		}
+
+		if(!contextDesc_.bUseTesslation){
+			// binding VAO
+			meshDesc.meshMode = renderVolumeDesc.meshMode;
+			meshDesc.tesslationFactor = 256;//67.30
+
+			TessellationMesh mesh = getVolumeMesh(meshDesc);
+			mesh.drawMesh();
+		}else{
+			//		int vtx_count = 6 * 4 * resolution * resolution;
+			int vtx_count = 4 * resolution * resolution;
+			gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 4);
+			gl.glDrawArrays(GLenum.GL_PATCHES, 0, vtx_count);
+		}
 		
-		int vtx_count = 6 * 4 * resolution * resolution;
-		gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 4);
-		gl.glDrawArrays(GLenum.GL_PATCHES, 0, vtx_count);
-		
+
 		if(!mbPrintProgram){
 			printProgram(program, "OmniVolume");
 			assertBuffers(program);
@@ -1301,9 +1310,7 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		setupUniforms(program);
 		
 		no_cull_face();
-//		GL11.glDisable(GL11.GL_CULL_FACE);
-//		GL11.glFrontFace(GL11.GL_CCW);
-		
+
 		gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 		program.disable();
 		
@@ -1417,6 +1424,17 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 
 		gl.glStencilFuncSeparate(GLenum.GL_FRONT, GLenum.GL_NEVER  , ref, 0xFF);
 		gl.glStencilFuncSeparate(GLenum.GL_BACK, GLenum.GL_GREATER , ref, 0xFF);
+		gl.glStencilOp(GLenum.GL_KEEP, GLenum.GL_KEEP, GLenum.GL_KEEP);
+
+		gl.glDepthMask(false);
+		gl.glDisable(GLenum.GL_DEPTH_TEST);
+	}
+
+	private void ds_finish_volume2(int ref){
+		gl.glEnable(GLenum.GL_STENCIL_TEST);
+
+		gl.glStencilFuncSeparate(GLenum.GL_FRONT, GLenum.  GL_GREATER, ref, 0xFF);
+		gl.glStencilFuncSeparate(GLenum.GL_BACK, GLenum.GL_NEVER , ref, 0xFF);
 		gl.glStencilOp(GLenum.GL_KEEP, GLenum.GL_KEEP, GLenum.GL_KEEP);
 
 		gl.glDepthMask(false);

@@ -78,7 +78,6 @@ void main()
 {
 	float3 P = Input.P.xyz / Input.P.w;
     float3 N = normalize(Input.N);
-    float3 Kd = c_vObjectColor;
 
     //return float4(0.5*(N+1), 1);
     
@@ -141,12 +140,18 @@ void main()
     {
         float light_to_world = length(P - c_vLightPos);
         float3 W = (c_vLightPos - P)/light_to_world;
+
+        light_to_world = max(light_to_world, 5.);
         float distance_attenuation = 1.0f/(c_vLightAttenuationFactors.x + c_vLightAttenuationFactors.y*light_to_world + c_vLightAttenuationFactors.z*light_to_world*light_to_world) + c_vLightAttenuationFactors.w;
 
-        float3 attenuation = float3(distance_attenuation*shadow_term*dot(N, W));
+        float3 attenuation = float3(distance_attenuation*shadow_term*max(dot(N, W), 0));
         float3 ambient = float3(0.00001f*saturate(0.5f*(dot(N, L)+1.0f)));
         output_ += c_vLightColor*max(attenuation, ambient)*exp(-c_vSigmaExtinction*light_to_world);
-        output_ = max(vec3(0), output_);
+        /*float light_to_world = length(P - c_vLightPos.xyz);
+        vec3 L = (c_vLightPos.xyz - P) / light_to_world;
+        float lambertTerm = max(dot(N,L), 0.0);
+
+        output_ += shadow_term * lambertTerm;*/
     }
 
     OutColor = float4(output_ * g_CubeColor.rgb, 1);
