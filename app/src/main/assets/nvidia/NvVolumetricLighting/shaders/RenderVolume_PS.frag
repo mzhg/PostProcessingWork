@@ -415,7 +415,7 @@ float3 Integrate_Spotlight(float eye_dist, float3 vW, float3 vV, float3 vL)
 ////////////////////////////////////////////////////////////////////////////////
 // Omni
 
-float3 Integrate_Omni(float eye_dist, float3 vW, float3 vV)
+/*float3 Integrate_Omni(float eye_dist, float3 vW, float3 vV)
 {
     float light_dist = length(vW);
     vW = vW / light_dist;
@@ -423,6 +423,76 @@ float3 Integrate_Omni(float eye_dist, float3 vW, float3 vV)
     tc.x = GetLutCoord_X(eye_dist, light_dist);
     tc.y = GetLutCoord_Y(dot(vW, vV));
     return g_vScatterPower*SampleLut(tLightLUT_P, tc);
+}*/
+
+float3 Integrate_Omni(float eye_dist, float3 vW, float3 vV)
+{
+    float3 vWorldPos = g_vEyePosition.xyz + eye_dist * vV;
+    float3 integral = float3(0);
+#   if(FALLOFFMODE == FALLOFFMODE_INTEL)
+    {
+         //                       Light
+         //                        *                   -
+         //                     .' |\                  |
+         //                   .'   | \                 | fClosestDistToLight
+         //                 .'     |  \                |
+         //               .'       |   \               |
+         //          Cam *--------------*--------->    -
+         //              |<--------|     \
+         //                  \
+         //                  fStartDistFromProjection
+        float3 f3StartPos = g_vEyePosition.xyz;
+        float3 f3ReconstructedPos = vWorldPos;
+        float fDistToLight = length(vW);
+        float3 vW_norm = vW / fDistToLight;
+        float fCosLV = dot(vV, -vW_norm);
+        float fDistToClosestToLightPoint = fDistToLight * fCosLV;
+        float fClosestDistToLight = fDistToLight * sqrt(1.0 - fCosLV*fCosLV);
+        float fV = fClosestDistToLight / g_fMaxTracingDistance;
+
+        float3 f3ClosestPointToLight = g_vEyePosition.xyz + vV * fDistToClosestToLightPoint;
+
+        float fCameraU = GetPrecomputedPtLghtSrcTexU(f3StartPos, vV, f3ClosestPointToLight);
+        float fReconstrPointU = GetPrecomputedPtLghtSrcTexU(f3ReconstructedPos, vV, f3ClosestPointToLight);
+
+        float3 f3CameraInsctrIntegral = // g_tex2DPrecomputedPointLightInsctr.SampleLevel(samLinearClamp, float2(fCameraU, fV), 0);
+                                    textureLod(tLightLUT_P, float2(fCameraU, fV), 0.0).xyz;
+        float3 f3RayTerminationInsctrIntegral = exp(-eye_dist*g_vScatterPower.rgb) * // g_tex2DPrecomputedPointLightInsctr.SampleLevel(samLinearClamp, float2(fReconstrPointU, fV), 0);
+                                    textureLod(tLightLUT_P, float2(fReconstrPointU, fV), 0.0).xyz;
+
+        integral = f3CameraInsctrIntegral - f3RayTerminationInsctrIntegral;
+        integral *= g_vScatterPower;
+    }
+#   elif(FALLOFFMODE == FALLOFFMODE_SRNN05)
+    {
+        float light_dist = length(vW);
+        float3 vW_norm = vW / light_dist;
+        float fCosLV = dot(vV, -vW_norm);
+        float3 f3Tsv = light_dist * g_vScatterPower.rgb;
+        float fSinGamma = max(sqrt( 1 - fCosLV*fCosLV ), 1e-6);
+        float3 f3A0 = g_vScatterPower.rgb * g_vScatterPower.rgb *
+                   //g_LightAttribs.f4LightColorAndIntensity.rgb * g_LightAttribs.f4LightColorAndIntensity.w *
+                   exp(-f3Tsv * fCosLV) /
+                   (2.0*PI * f3Tsv * fSinGamma);
+        float3 f3A1 = f3Tsv * fSinGamma;
+
+        float3 f3CameraInsctrIntegral = f3A0 * GetInsctrIntegral_SRNN05( f3A1, f3Tsv, fCosLV, fSinGamma, 0.0);
+        float3 f3RayTerminationInsctrIntegral = f3A0 * GetInsctrIntegral_SRNN05( f3A1, f3Tsv, fCosLV, fSinGamma, eye_dist);
+
+        integral = f3RayTerminationInsctrIntegral - f3CameraInsctrIntegral;
+    }
+#   else
+    {
+        float light_dist = length(vW);
+        vW = vW / light_dist;
+        float2 tc;
+        tc.x = GetLutCoord_X(eye_dist, light_dist);
+        tc.y = GetLutCoord_Y(dot(vW, vV));
+        integral = g_vScatterPower*SampleLut(tLightLUT_P, tc);
+    }
+#endif
+
+    return integral;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

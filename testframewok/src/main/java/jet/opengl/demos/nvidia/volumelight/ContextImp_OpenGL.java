@@ -902,8 +902,74 @@ final class ContextImp_OpenGL extends ContextImp_Common implements VLConstant{
 		
 		//--------------------------------------------------------------------------
 	    // Create look-up table
-		{
+		// Create look-up table
+		if(pLightDesc.eFalloffMode == SpotlightFalloffMode.NONE){
+//	    	NV_PERFEVENT(dxCtx, "Generate Light LUT");
 			computeLightLUTOMNI(pLightDesc.eAttenuationMode.ordinal());
+
+			intelLUTNeedUpdate = true;
+			srnn05LUTNeedUpdate = true;
+		}else if(pLightDesc.eFalloffMode == SpotlightFalloffMode.FIXED){
+			throw new IllegalStateException("The Omni light doesn't support the Fixed integral.");
+		}else if(pLightDesc.eFalloffMode == SpotlightFalloffMode.CUSTOM){
+			throw new IllegalStateException("The Omni light doesn't support the Custom integral.");
+		}else if(pLightDesc.eFalloffMode == SpotlightFalloffMode.INTEL){
+			if(intelLUTNeedUpdate){
+				if(intelProgram == null){
+					intelProgram = new PrecomputedLightLUT_IntelProgram(this);
+				}
+
+				rtManager.bind();
+				rtManager.setRenderTexture(pLightLUT_P_[1], null);
+				gl.glViewport(0,0,pLightLUT_P_[1].getWidth(), pLightLUT_P_[1].getHeight());
+				gl.glClearColor(0,0,0,0);
+				gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
+				gl.glDisable(GLenum.GL_CULL_FACE);
+
+				intelProgram.enable();
+				setupUniforms(intelProgram);
+				gl.glBindTextureUnit(0, pPhaseLUT_.getTexture());
+				gl.glBindSampler(0, samplerLinear);
+
+				gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+				intelLUTNeedUpdate = false;
+
+				System.out.println("Update the Intel_LightLUT");
+				if(!mbPrintProgram){
+					printProgram(intelProgram, "Intel_LightLUT");
+				}
+			}
+
+			srnn05LUTNeedUpdate = true;
+		}else if(pLightDesc.eFalloffMode == SpotlightFalloffMode.SRNN05){
+
+			if(srnn05LUTNeedUpdate) {
+				if (srnn05Program == null) {
+					srnn05Program = new PrecomputedLightLUT_SRNN05Program(this);
+				}
+
+				rtManager.bind();
+				rtManager.setRenderTexture(pLightLUT_P_[1], null);
+				gl.glViewport(0, 0, pLightLUT_P_[1].getWidth(), pLightLUT_P_[1].getHeight());
+				gl.glClearColor(0, 0, 0, 0);
+				gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
+				gl.glDisable(GLenum.GL_CULL_FACE);
+
+				srnn05Program.enable();
+				setupUniforms(srnn05Program);
+				gl.glBindTextureUnit(0, pPhaseLUT_.getTexture());
+				gl.glBindSampler(0, samplerLinear);
+
+				gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+				srnn05LUTNeedUpdate = false;
+				if (!mbPrintProgram) {
+					printProgram(srnn05Program, "SRNN05_LightLUT");
+				}
+			}
+
+			intelLUTNeedUpdate = true;
 		}
 		
 		//--------------------------------------------------------------------------

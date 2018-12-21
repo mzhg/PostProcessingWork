@@ -48,12 +48,13 @@ void main()
         float2 f2CurrPos = float2(fDistFromProj, -fClosestDistToLight);
         float fDistToLightSqr = dot(f2CurrPos, f2CurrPos);
         float fDistToLight = sqrt(fDistToLightSqr);
+        float attenuation = AttenuationFunc(fDistToLight);
         float fDistToCam = f2CurrPos.x - fStartDistFromProjection;
         float3 f3Extinction = exp( -(fDistToCam + fDistToLight) * g_vSigmaExtinction.rgb );
         float2 f2LightDir = normalize(f2CurrPos);
         float fCosTheta = -f2LightDir.x;
 
-        float3 f3dLInsctr = f3Extinction * ComputePhaseFactor(fCosTheta) * fStepWorldLen / max(fDistToLightSqr,fMaxTracingDistance*fMaxTracingDistance*1e-8);
+        float3 f3dLInsctr = attenuation * f3Extinction * ComputePhaseFactor(fCosTheta) * fStepWorldLen / max(fDistToLightSqr,fMaxTracingDistance*fMaxTracingDistance*1e-8);
         f3InsctrRadinance += f3dLInsctr;
     }
     OutColor.rgb = f3InsctrRadinance;

@@ -348,9 +348,9 @@ public class VolumetricLightingDemo extends NvSampleApp {
                 lightDesc.fZNear = m_Scene.getLightNearPlane();
                 lightDesc.fZFar = m_Scene.getLightFarlane();
 //                lightDesc.vPosition = NVtoNVC(vLightPos);
-                lightDesc.eFalloffMode = SpotlightFalloffMode.NONE;
+                lightDesc.eFalloffMode = SpotlightFalloffMode.INTEL;
                 lightDesc.eAttenuationMode = AttenuationMode.INV_POLYNOMIAL;
-                final float LIGHT_SOURCE_RADIUS = 0.5f; // virtual radius of a spheroid light source
+                final float LIGHT_SOURCE_RADIUS = 25f; // virtual radius of a spheroid light source
                 lightDesc.fAttenuationFactors[0] = 1.0f;
                 lightDesc.fAttenuationFactors[1] = 2.0f / LIGHT_SOURCE_RADIUS;
                 lightDesc.fAttenuationFactors[2] = 1.0f / (LIGHT_SOURCE_RADIUS*LIGHT_SOURCE_RADIUS);
@@ -419,7 +419,7 @@ public class VolumetricLightingDemo extends NvSampleApp {
         contextDesc_.eDownsampleMode = DownsampleMode.FULL;
         contextDesc_.eInternalSampleMode = MultisampleMode.SINGLE;
         contextDesc_.eFilterMode = FilterMode.NONE;
-        contextDesc_.bUseTesslation = true;
+        contextDesc_.bUseTesslation = false;
 
         //--------------------------------------------------------------------------
         // Default post-process settings
