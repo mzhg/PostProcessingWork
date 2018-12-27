@@ -42,6 +42,9 @@ import java.util.Arrays;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StringUtils;
 
@@ -58,7 +61,7 @@ public class NvModelExtGL {
 	private NvMaterialGL[] m_materials = new NvMaterialGL[0];
 
     // Array of all textures used by meshes within the model
-    private int[] m_textures = Numeric.EMPTY_INT;
+    private Texture2D[] m_textures = new Texture2D[0];
 
     // Shader binding locations
     private int m_diffuseTextureLocation;
@@ -90,16 +93,21 @@ public class NvModelExtGL {
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         for (int textureIndex = 0; textureIndex < textureCount; ++textureIndex)
         {
-//            m_textures[textureIndex] = NvImageGL::UploadTextureFromDDSFile(m_pSourceModel->GetTextureName(textureIndex).c_str());
-        	try {
-				m_textures[textureIndex] = (NvImage.uploadTextureFromDDSFile(m_texturePath + m_pSourceModel.GetTextureName(textureIndex)));
+			String textureName = m_pSourceModel.GetTextureName(textureIndex);
+			if(StringUtils.isBlank(textureName))
+				continue;
+
+			try {
+				if(textureName.endsWith(".dds") || textureName.endsWith(".DDS")){
+					int texID = NvImage.uploadTextureFromDDSFile(m_texturePath + textureName);
+					gl.glGenerateTextureMipmap(texID);
+					m_textures[textureIndex] = TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, texID);
+				}else{
+					m_textures[textureIndex] = TextureUtils.createTexture2DFromFile(m_texturePath + textureName,false, true);
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			gl.glActiveTexture(GLenum.GL_TEXTURE0);
-			gl.glBindTexture(GLenum.GL_TEXTURE_2D, m_textures[textureIndex]);
-			gl.glTexParameteri(GLenum.GL_TEXTURE_2D, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
-			gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
         }
  
 		// Get GL usable versions of all the materials in the model
@@ -141,9 +149,9 @@ public class NvModelExtGL {
             {
 			    // We have been given a diffuse texture location in the shader and we have 
 				// a diffuse texture to use, so bind it to the given location
-                int textureId = GetTexture(diffuseTextureIndex);
+                Texture2D texture = GetTexture(diffuseTextureIndex);
 				gl.glActiveTexture(GLenum.GL_TEXTURE0 + m_diffuseTextureLocation);
-				gl.glBindTexture(GLenum.GL_TEXTURE_2D, textureId);
+				gl.glBindTexture(GLenum.GL_TEXTURE_2D, texture.getTexture());
             }
         }
 	}
@@ -246,7 +254,7 @@ public class NvModelExtGL {
     /// Retrieves a texture name from the model
     /// \param[in] textureIndex Index of the texture within the model to retrieve
     /// \return The GL Texture name for the texture at the requested index, if there is one.
-    public int GetTexture(int textureIndex)
+    public Texture2D GetTexture(int textureIndex)
     {
         return m_textures[textureIndex];
     }

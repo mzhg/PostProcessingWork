@@ -20,6 +20,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
+import jet.opengl.demos.gpupro.lpv.LightPropagationVolumeDemo;
 import jet.opengl.demos.labs.scattering.AtmosphereTest;
 import jet.opengl.demos.labs.scattering.Chapman;
 import jet.opengl.demos.labs.skylight.SkyImage;
@@ -142,8 +143,9 @@ public class DemoApp {
 //        run(new AtmosphereTest());
 //        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
-        run(new VolumetricLightingDemo());
+//        run(new VolumetricLightingDemo());
 //        run(new ParaboloidShadowDemo());
+        run(new LightPropagationVolumeDemo());
     }
 
     private static void testParaboloidMatrix(){

@@ -5,6 +5,7 @@ import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 import static jet.opengl.postprocessing.common.GLenum.GL_FRAMEBUFFER;
 import static jet.opengl.postprocessing.common.GLenum.GL_TEXTURE_1D;
@@ -64,6 +65,8 @@ public class FramebufferGL implements Disposeable {
             }
         }
 
+        int[] drawbuffers = new int[textures.length];
+        int count = 0;
         for (int i = 0; i < textures.length; i++)
         {
             TextureGL pTex = textures[i];
@@ -83,7 +86,11 @@ public class FramebufferGL implements Disposeable {
                 case TEXTURE:
                     if (pTex != null)
                     {
-                        gl.glFramebufferTexture(GL_FRAMEBUFFER, measureTextureAttachment(pTex, desc.index), pTex.getTexture(), desc.level);
+                        int index = measureTextureAttachment(pTex, desc.index);
+                        gl.glFramebufferTexture(GL_FRAMEBUFFER, index, pTex.getTexture(), desc.level);
+                        if(index >= GLenum.GL_COLOR_ATTACHMENT0 && index - GLenum.GL_COLOR_ATTACHMENT0 < 8) {
+                            drawbuffers[count++] = index;
+                        }
                         m_AttachCount++;
                     }
                     else
@@ -95,7 +102,11 @@ public class FramebufferGL implements Disposeable {
                     if (pTex != null)
                     {
                         assert(pTex.getTarget() == GL_TEXTURE_1D /*|| pTex.getTarget() == GL_TEXTURE_1D_ARRAY*/);
-                        gl.glFramebufferTexture1D(GL_FRAMEBUFFER, measureTextureAttachment(pTex, desc.index), GL_TEXTURE_1D, pTex.getTexture(), desc.level);
+                        int index = measureTextureAttachment(pTex, desc.index);
+                        gl.glFramebufferTexture1D(GL_FRAMEBUFFER, index, GL_TEXTURE_1D, pTex.getTexture(), desc.level);
+                        if(index >= GLenum.GL_COLOR_ATTACHMENT0 && index - GLenum.GL_COLOR_ATTACHMENT0 < 8) {
+                            drawbuffers[count++] = index;
+                        }
                         m_AttachCount++;
                     }
                     else
@@ -111,14 +122,21 @@ public class FramebufferGL implements Disposeable {
                                 target == GL_TEXTURE_2D_MULTISAMPLE);
                         if (target == GL_TEXTURE_CUBE_MAP)
                         {
-                            for (int j = 0; j < CUBE_FACES.length; j++)
-                            {
-                                gl.glFramebufferTexture2D(GL_FRAMEBUFFER, measureTextureAttachment(pTex, desc.index), CUBE_FACES[j], pTex.getTexture(), desc.level); // TODO
+                            for (int j = 0; j < CUBE_FACES.length; j++) {
+                                int index = measureTextureAttachment(pTex, desc.index);
+                                gl.glFramebufferTexture2D(GL_FRAMEBUFFER, index, CUBE_FACES[j], pTex.getTexture(), desc.level); // TODO
+                                if(index >= GLenum.GL_COLOR_ATTACHMENT0 && index - GLenum.GL_COLOR_ATTACHMENT0 < 8) {
+                                    drawbuffers[count++] = index;
+                                }
                             }
                         }
                         else
                         {
-                            gl.glFramebufferTexture2D(GL_FRAMEBUFFER, measureTextureAttachment(pTex, desc.index), target, pTex.getTexture(), desc.level);
+                            int index = measureTextureAttachment(pTex, desc.index);
+                            gl.glFramebufferTexture2D(GL_FRAMEBUFFER, index, target, pTex.getTexture(), desc.level);
+                            if(index >= GLenum.GL_COLOR_ATTACHMENT0 && index - GLenum.GL_COLOR_ATTACHMENT0 < 8) {
+                                drawbuffers[count++] = index;
+                            }
                         }
                         m_AttachCount++;
                     }
@@ -131,7 +149,11 @@ public class FramebufferGL implements Disposeable {
                     if (pTex != null)
                     {
                         assert(pTex.getTarget() == GL_TEXTURE_3D /*|| pTex.getTarget() == GL_TEXTURE_1D_ARRAY*/);
-                        gl.glFramebufferTexture3D(GL_FRAMEBUFFER, measureTextureAttachment(pTex, desc.index), GL_TEXTURE_3D, pTex.getTexture(), desc.level, desc.layer);
+                        int index = measureTextureAttachment(pTex, desc.index);
+                        gl.glFramebufferTexture3D(GL_FRAMEBUFFER, index, GL_TEXTURE_3D, pTex.getTexture(), desc.level, desc.layer);
+                        if(index >= GLenum.GL_COLOR_ATTACHMENT0 && index - GLenum.GL_COLOR_ATTACHMENT0 < 8) {
+                            drawbuffers[count++] = index;
+                        }
                         m_AttachCount++;
                     }
                     else
@@ -145,7 +167,11 @@ public class FramebufferGL implements Disposeable {
                         int target = pTex.getTarget();
                         assert(target == GL_TEXTURE_3D || target == GL_TEXTURE_2D_ARRAY || target == GL_TEXTURE_1D_ARRAY
                                 || target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY || target == GL_TEXTURE_CUBE_MAP_ARRAY);
-                        gl.glFramebufferTextureLayer(GL_FRAMEBUFFER, measureTextureAttachment(pTex, desc.index), pTex.getTexture(), desc.level, desc.layer);
+                        int index = measureTextureAttachment(pTex, desc.index);
+                        gl.glFramebufferTextureLayer(GL_FRAMEBUFFER, index, pTex.getTexture(), desc.level, desc.layer);
+                        if(index >= GLenum.GL_COLOR_ATTACHMENT0 && index - GLenum.GL_COLOR_ATTACHMENT0 < 8) {
+                            drawbuffers[count++] = index;
+                        }
                         m_AttachCount++;
                     }
                     else
@@ -157,10 +183,21 @@ public class FramebufferGL implements Disposeable {
                     break;
             }
         }
+
+        if(count > 0){
+            gl.glDrawBuffers(CacheBuffer.wrap(drawbuffers, 0, count));
+        }else{
+            gl.glDrawBuffers(GLenum.GL_NONE);
+        }
     }
 
     public TextureGL getAttachedTex(int index){
         return m_AttachedTextures[index];
+    }
+
+    public void addTexture(TextureGL texture, TextureAttachDesc desc){
+        m_Owed[m_AttachCount] = true;
+        addTextures(new TextureGL[]{texture}, new TextureAttachDesc[]{desc});
     }
 
     public Texture2D addTexture2D(Texture2DDesc texDesc, TextureAttachDesc attachDesc){
