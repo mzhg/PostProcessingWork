@@ -15,6 +15,7 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 import jet.opengl.postprocessing.texture.FramebufferGL;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
@@ -532,12 +533,6 @@ import jet.opengl.postprocessing.util.LogUtil;
      * @return
      */
     public ShadowMapParams getShadowMapParams() {return m_ShadowMapParams;}
-
-    public enum LightType{
-        POINT,
-        SPOT,
-        DIRECTION
-    }
 
     public enum ShadowType{
         NONE,

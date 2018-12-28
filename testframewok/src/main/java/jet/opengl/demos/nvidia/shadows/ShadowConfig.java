@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.shadows;
 import org.lwjgl.util.vector.Vector3f;
 
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 
 /**
  * Created by mazhen'gui on 2017/11/3.
@@ -12,7 +13,7 @@ public class ShadowConfig {
     public int shadowMapFormat = GLenum.GL_DEPTH_COMPONENT16;
     public int shadowMapSize = 1024; // The shadow map must be a suqre.
     public int shadowMapSampleCount = 1;
-    public ShadowMapGenerator.LightType lightType = ShadowMapGenerator.LightType.DIRECTION;
+    public LightType lightType = LightType.DIRECTIONAL;
     public final Vector3f lightPos = new Vector3f();
     /** The direction is from light source to target. */
     public final Vector3f lightDir = new Vector3f();
