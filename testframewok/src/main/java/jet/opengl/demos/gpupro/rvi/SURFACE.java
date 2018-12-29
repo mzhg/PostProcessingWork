@@ -1,11 +1,14 @@
 package jet.opengl.demos.gpupro.rvi;
 
-final class SURFACE {
+import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.shader.GLSLProgram;
+
+final class SURFACE implements ICONST{
     DX11_RENDER_TARGET renderTarget;
     RENDER_TARGET_CONFIG renderTargetConfig;
-    renderOrders renderOrder;
+    RenderOrder renderOrder;
     DX11_VERTEX_BUFFER vertexBuffer;
-    DX11_INDEX_BUFFER indexBuffer;
+    BufferGL indexBuffer;
     CAMERA camera;
     int primitiveType;
     int firstIndex;
@@ -15,18 +18,58 @@ final class SURFACE {
     DX11_TEXTURE normalTexture;
     DX11_TEXTURE specularTexture;
     DX11_TEXTURE[] customTextures = new DX11_TEXTURE[NUM_CUSTOM_TEXURES];
-    ILIGHT *light;
-    DX11_RASTERIZER_STATE *rasterizerState;
-    DX11_DEPTH_STENCIL_STATE *depthStencilState;
-    DX11_BLEND_STATE *blendState;
-    DX11_UNIFORM_BUFFER *customUB;
-    DX11_STRUCTURED_BUFFER *customSBs[NUM_CUSTOM_STRUCTURED_BUFFERS];
-    DX11_SHADER *shader;
-    renderModes renderMode;
-    int numInstances;
+    ILIGHT light;
+    Runnable rasterizerState;
+    Runnable depthStencilState;
+    Runnable blendState;
+    BufferGL customUB;
+    DX11_STRUCTURED_BUFFER[] customSBs = new DX11_STRUCTURED_BUFFER[NUM_CUSTOM_STRUCTURED_BUFFERS];
+    GLSLProgram shader;
+    RenderMode renderMode = RenderMode.INDEXED_RM;
+    int numInstances = 1;
     int numThreadGroupsX;
     int numThreadGroupsY;
     int numThreadGroupsZ;
 
     private int ID;
+
+    SURFACE(){}
+
+    SURFACE( SURFACE rhs)
+    {
+        set(rhs);
+    }
+
+    void set(SURFACE surface)
+    {
+        renderTarget = surface.renderTarget;
+        renderTargetConfig = surface.renderTargetConfig;
+        renderOrder = surface.renderOrder;
+        vertexBuffer = surface.vertexBuffer;
+        indexBuffer = surface.indexBuffer;
+        camera = surface.camera;
+        primitiveType = surface.primitiveType;
+        firstIndex = surface.firstIndex;
+        numElements = surface.numElements;
+        material = surface.material;
+        colorTexture = surface.colorTexture;
+        normalTexture = surface.normalTexture;
+        specularTexture = surface.specularTexture;
+        for(int i=0;i<NUM_CUSTOM_TEXURES;i++)
+            customTextures[i] = surface.customTextures[i];
+        light = surface.light;
+        rasterizerState = surface.rasterizerState;
+        depthStencilState = surface.depthStencilState;
+        blendState = surface.blendState;
+        customUB = surface.customUB;
+        for(int i=0;i<NUM_CUSTOM_STRUCTURED_BUFFERS;i++)
+            customSBs[i] = surface.customSBs[i];
+        shader = surface.shader;
+        renderMode = surface.renderMode;
+        numInstances = surface.numInstances;
+        numThreadGroupsX = surface.numThreadGroupsX;
+        numThreadGroupsY = surface.numThreadGroupsY;
+        numThreadGroupsZ = surface.numThreadGroupsZ;
+        ID = surface.ID;
+    }
 }

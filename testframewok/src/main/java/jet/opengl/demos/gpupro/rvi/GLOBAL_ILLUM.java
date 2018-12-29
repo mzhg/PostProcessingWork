@@ -318,14 +318,55 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
 
     @Override
     void AddSurfaces() {
+        Update();
+        if((mode==DEFAULT_GIM)||(mode==INDIRECT_ILLUM_ONLY_GIM))
+        {
+            PerformGridLightingPass();
 
+            // This demo uses 10 light propagation iterations.
+            for(int i=0;i<10;i++)
+                PerformLightPropagatePass(i,FINE_GRID);
+            for(int i=0;i<10;i++)
+                PerformLightPropagatePass(i,COARSE_GRID);
+
+            PerformGlobalIllumPass();
+        }
+        else if(mode==VISUALIZE_GIM)
+            PerformGridVisPass();
+        PerformClearPass();
+        currentLightRTIndices[FINE_GRID] = 0;
+        currentLightRTIndices[COARSE_GRID] = 0;
     }
 
     // configures surface for generating the voxel-grid
-    void SetupGridSurface(SURFACE &surface,GridType gridType);
+    void SetupGridSurface(SURFACE surface,GridType gridType){
+        // Setup passed scene geometry surface to generate the voxel-grid. Actually for each grid
+        // the scene geometry is rendered in 2 orthographic views without depth-testing into a small
+        // (64x64) render-target. Instead of writing out the results in the fragment shader into the
+        // render-target, they are written into a 3D structured buffer.
+        surface.renderTarget = gridRT;
+        surface.renderTargetConfig = gridRTCs[gridType.ordinal()];
+        surface.rasterizerState = gridRS;
+        surface.depthStencilState = gridDSS;
+        surface.blendState = gridBS;
+        surface.customUB = gridUniformBuffer;
+        surface.shader = gridFillShaders[gridType.ordinal()];
+    }
 
     // configures surface for illuminating the voxel-grid
-    void SetupLightGridSurface(SURFACE &surface,GridType gridType);
+    void SetupLightGridSurface(SURFACE surface,GridType gridType){
+        // Setup passed surface to illuminate the voxel-grid. This is done by rendering for each
+        // light a full-screen quad (32x32 pixels) with 32 instances into the corresponding
+        // 32x32x32 2D texture array. By using additive hardware blending the results are combined.
+        if(surface.light == null)
+            return;
+        surface.renderTarget = lightRTs[gridType.ordinal()][0];
+        surface.customUB = gridUniformBuffer;
+        surface.customSBs[gridType.ordinal()] = gridSBs[gridType.ordinal()];
+        surface.numInstances = 32;
+        DX11_RENDERER.getInstance().SetupPostProcessSurface(surface);
+        surface.blendState = blendBS;
+    }
 
     void SetGlobalIllumMode(GlobalIllumMode mode)
     {
@@ -353,7 +394,7 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
     }
 
     private void UpdateGrid(int gridType){
-//        CAMERA *camera = DEMO::renderer->GetCamera(MAIN_CAMERA_ID);
+//        CAMERA *camera = DX11_RENDERER.getInstance().GetCamera(MAIN_CAMERA_ID);
 
         // calculate center of grid
         Vector3f tmpGridPosition = new Vector3f();
@@ -361,13 +402,13 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
         Matrix4f.decompseRigidMatrix(m_View, tmpGridPosition, null, null, direction);
         direction.scale(-1);
         if(gridType==GridType.FINE_GRID.ordinal()) {
-//            tmpGridPosition = camera -> GetPosition() + (camera -> GetDirection() * 0.5f * gridHalfExtents[FINE_GRID]);
+//            tmpGridPosition = camera -> GetPosition() + (camera -> GetDirection() * 0.5f * gridHalfExtents[GridType.FINE_GRID.ordinal()]);
             tmpGridPosition.x += direction.x * 0.5f + gridHalfExtents[gridType];
             tmpGridPosition.y += direction.y * 0.5f + gridHalfExtents[gridType];
             tmpGridPosition.z += direction.z * 0.5f + gridHalfExtents[gridType];
 
         }else {
-//            tmpGridPosition = camera -> GetPosition() + (camera -> GetDirection() * (gridHalfExtents[COARSE_GRID] - 0.5f * gridHalfExtents[FINE_GRID]));
+//            tmpGridPosition = camera -> GetPosition() + (camera -> GetDirection() * (gridHalfExtents[GridType.COARSE_GRID.ordinal()] - 0.5f * gridHalfExtents[GridType.FINE_GRID.ordinal()]));
 
             tmpGridPosition.x += direction.x * (gridHalfExtents[GridType.COARSE_GRID.ordinal()] - 0.5f * gridHalfExtents[GridType.FINE_GRID.ordinal()]);
             tmpGridPosition.y += direction.y * (gridHalfExtents[GridType.COARSE_GRID.ordinal()] - 0.5f * gridHalfExtents[GridType.FINE_GRID.ordinal()]);
@@ -458,39 +499,100 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
         // Propagate virtual point-lights to 6 neighbor grid-cells in the compute shader. In the
         // first iteration no occlusion is used, in order to initially let the light distribute.
         // From the second iteration on we use the geometry occlusion, in order to avoid light leaking.
-        SURFACE surface;
-        surface.renderTarget = lightRTs[gridType][1-currentLightRTIndices[gridType]];
+        SURFACE surface = new SURFACE();
+        surface.renderTarget = lightRTs[gridType.ordinal()][1-currentLightRTIndices[gridType.ordinal()]];
         surface.renderTargetConfig = lightPropagateRTC;
-        surface.renderOrder = GLOBAL_ILLUM_RO;
+        surface.renderOrder = RenderOrder.GLOBAL_ILLUM_RO;
         if((useOcclusion)&&(index>0))
         {
-            surface.shader = lightPropagateShaders[gridType][1];
-            surface.customSBs[gridType] = gridSBs[gridType];
+            surface.shader = lightPropagateShaders[gridType.ordinal()][1];
+            surface.customSBs[gridType.ordinal()] = gridSBs[gridType.ordinal()];
         }
         else
-            surface.shader = lightPropagateShaders[gridType][0];
-        surface.customTextures[0] = lightRTs[gridType][currentLightRTIndices[gridType]]->GetTexture();
-        surface.customTextures[1] = lightRTs[gridType][currentLightRTIndices[gridType]]->GetTexture(1);
-        surface.customTextures[2] = lightRTs[gridType][currentLightRTIndices[gridType]]->GetTexture(2);
-        surface.vertexBuffer = NULL;
-        surface.rasterizerState = NULL;
-        surface.depthStencilState = NULL;
-        surface.blendState = NULL;
-        surface.renderMode = COMPUTE_RM;
+            surface.shader = lightPropagateShaders[gridType.ordinal()][0];
+        surface.customTextures[0] = lightRTs[gridType.ordinal()][currentLightRTIndices[gridType.ordinal()]].GetTexture(0);
+        surface.customTextures[1] = lightRTs[gridType.ordinal()][currentLightRTIndices[gridType.ordinal()]].GetTexture(1);
+        surface.customTextures[2] = lightRTs[gridType.ordinal()][currentLightRTIndices[gridType.ordinal()]].GetTexture(2);
+        surface.vertexBuffer = null;
+        surface.rasterizerState = null;
+        surface.depthStencilState = null;
+        surface.blendState = null;
+        surface.renderMode = RenderMode.COMPUTE_RM;
         surface.numThreadGroupsX = 4;
         surface.numThreadGroupsY = 4;
         surface.numThreadGroupsZ = 4;
-        DEMO::renderer->AddSurface(surface);
+        DX11_RENDERER.getInstance().AddSurface(surface);
 
-        currentLightRTIndices[gridType] = 1-currentLightRTIndices[gridType];
+        currentLightRTIndices[gridType.ordinal()] = 1-currentLightRTIndices[gridType.ordinal()];
     }
 
     // perform actual indirect illumination
-    private void PerformGlobalIllumPass();
+    private void PerformGlobalIllumPass(){
+        // Use normal-/ depth buffer (of GBuffer) to perform actual indirect illumination of each visible pixel.
+        // By using the stencil buffer, we prevent that the sky is illuminated, too.
+        SURFACE surface = new SURFACE();
+        surface.renderTarget = sceneRT;
+        surface.renderTargetConfig = outputRTC;
+        surface.renderOrder = RenderOrder.GLOBAL_ILLUM_RO;
+        surface.camera = DX11_RENDERER.getInstance().GetCamera(MAIN_CAMERA_ID);
+        surface.normalTexture = sceneRT.GetTexture(2); // normalDepth
+        surface.customTextures[0] = lightRTs[GridType.FINE_GRID.ordinal()][currentLightRTIndices[GridType.FINE_GRID.ordinal()]].GetTexture(0);
+        surface.customTextures[1] = lightRTs[GridType.FINE_GRID.ordinal()][currentLightRTIndices[GridType.FINE_GRID.ordinal()]].GetTexture(1);
+        surface.customTextures[2] = lightRTs[GridType.FINE_GRID.ordinal()][currentLightRTIndices[GridType.FINE_GRID.ordinal()]].GetTexture(2);
+        surface.customTextures[3] = lightRTs[GridType.COARSE_GRID.ordinal()][currentLightRTIndices[GridType.COARSE_GRID.ordinal()]].GetTexture(0);
+        surface.customTextures[4] = lightRTs[GridType.COARSE_GRID.ordinal()][currentLightRTIndices[GridType.COARSE_GRID.ordinal()]].GetTexture(1);
+        surface.customTextures[5] = lightRTs[GridType.COARSE_GRID.ordinal()][currentLightRTIndices[GridType.COARSE_GRID.ordinal()]].GetTexture(2);
+        surface.customUB = gridUniformBuffer;
+        DX11_RENDERER.getInstance().SetupPostProcessSurface(surface);
+        surface.depthStencilState = stencilTestDSS;
+        if(mode== GlobalIllumMode.DEFAULT_GIM)
+        {
+            surface.colorTexture = sceneRT.GetTexture(1); // albedoGloss
+            surface.blendState = blendBS;
+            surface.shader = globalIllumShader;
+        }
+        else
+            surface.shader = globalIllumNoTexShader;
+        DX11_RENDERER.getInstance().AddSurface(surface);
+    }
 
     // visualizes voxel-grids
-    private void PerformGridVisPass();
+    private void PerformGridVisPass(){
+        // Use depth buffer (of GBuffer) to reconstruct position of the pixels and extract/ visualize
+        // the corresponding voxels.
+        final int FINE_GRID = GridType.FINE_GRID.ordinal();
+        final int COARSE_GRID = GridType.COARSE_GRID.ordinal();
+        SURFACE surface = new SURFACE();
+        surface.renderTarget = sceneRT;
+        surface.renderTargetConfig = outputRTC;
+        surface.renderOrder =  RenderOrder.GLOBAL_ILLUM_RO;
+        surface.camera = DX11_RENDERER.getInstance().GetCamera(MAIN_CAMERA_ID);
+        surface.normalTexture = sceneRT.GetTexture(2); // normalDepth
+        surface.customSBs[0] = gridSBs[FINE_GRID];
+        surface.customSBs[1] = gridSBs[COARSE_GRID];
+        surface.customUB = gridUniformBuffer;
+        surface.shader = gridVisShader;
+        DX11_RENDERER.getInstance().SetupPostProcessSurface(surface);
+        surface.depthStencilState = stencilTestDSS;
+        DX11_RENDERER.getInstance().AddSurface(surface);
+    }
 
     // clears voxel-grids
-    private void PerformClearPass();
+    private void PerformClearPass(){
+        // Clear voxel-grids in compute shader.
+        SURFACE surface = new SURFACE();
+        surface.renderTarget = clearRT;
+        surface.renderTargetConfig = clearRTC;
+        surface.renderOrder = RenderOrder.GLOBAL_ILLUM_RO;
+        surface.shader = clearShader;
+        surface.vertexBuffer = null;
+        surface.rasterizerState = null;
+        surface.depthStencilState = null;
+        surface.blendState = null;
+        surface.renderMode = RenderMode.COMPUTE_RM;
+        surface.numThreadGroupsX = 4;
+        surface.numThreadGroupsY = 4;
+        surface.numThreadGroupsZ = 4;
+        DX11_RENDERER.getInstance().AddSurface(surface);
+    }
 }

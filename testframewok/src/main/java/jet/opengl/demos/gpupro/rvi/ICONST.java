@@ -9,4 +9,9 @@ interface ICONST {
     int
             CUSTOM_SB0_BP=9,
             CUSTOM_SB1_BP=10;
+
+    /** number of custom textures that can be set in SURFACE */
+    int NUM_CUSTOM_TEXURES = 6;
+    /** number of custom structured-buffers that can be set in SURFACE */
+    int NUM_CUSTOM_STRUCTURED_BUFFERS = 2;
 }
