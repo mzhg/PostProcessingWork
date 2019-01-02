@@ -33,7 +33,7 @@ struct PointCB
 
  layout(binding = LIGHT_UB_BP) uniform POINT_LIGHT_UB  //: register(LIGHT_UB_BP) \
  {
-    PointCB pointUB;
+    PointCB pointLightUB;
  };
 
  struct DirectionalCB
@@ -48,7 +48,7 @@ struct PointCB
 
  layout(binding = LIGHT_UB_BP) uniform DIRECTIONAL_LIGHT_UB
  {
-    DirectionalCB dirUB;
+    DirectionalCB dirLightUB;
  };
 
 #define COLOR_TEX_BP 0

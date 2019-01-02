@@ -219,11 +219,11 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
         // objects used for the light propagation
         {
             // configure corresponding render-target, to perform light propagation in the compute shader
-            RT_CONFIG_DESC desc;
+            RT_CONFIG_DESC desc = new RT_CONFIG_DESC();
             desc.computeTarget = true;
             desc.numColorBuffers = 3;
             lightPropagateRTC = DX11_RENDERER.getInstance().CreateRenderTargetConfig(desc);
-            if(!lightPropagateRTC)
+            if(lightPropagateRTC == null)
                 return false;
 
             lightPropagateShaders[GridType.FINE_GRID.ordinal()][0] = DEMO::resourceManager->LoadShader("shaders/lightPropagate.sdr",1); // (Permutation 1 = FINE_GRID)
@@ -594,5 +594,9 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
         surface.numThreadGroupsY = 4;
         surface.numThreadGroupsZ = 4;
         DX11_RENDERER.getInstance().AddSurface(surface);
+    }
+
+    static GLSLProgram createProgram(String filename, boolean includeGS, boolean isCS){
+//        final String root =
     }
 }

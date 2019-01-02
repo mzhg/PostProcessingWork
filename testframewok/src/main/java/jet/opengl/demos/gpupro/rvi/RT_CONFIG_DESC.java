@@ -2,6 +2,9 @@ package jet.opengl.demos.gpupro.rvi;
 
 import java.util.Arrays;
 
+import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.StringUtils;
+
 final class RT_CONFIG_DESC {
     int firstColorBufferIndex; // index of first render-target to render into
     int numColorBuffers; // number of render-targets to render into
@@ -20,8 +23,7 @@ final class RT_CONFIG_DESC {
         if (numColorBuffers != that.numColorBuffers) return false;
         if (numStructuredBuffers != that.numStructuredBuffers) return false;
         if (computeTarget != that.computeTarget) return false;
-        // Probably incorrect - comparing Object[] arrays with Arrays.equals
-        return Arrays.equals(structuredBuffers, that.structuredBuffers);
+        return CommonUtil.equals(structuredBuffers, that.structuredBuffers);
     }
 
     @Override

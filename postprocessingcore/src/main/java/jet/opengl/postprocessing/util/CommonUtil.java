@@ -18,7 +18,32 @@ public final class CommonUtil {
         }else if(a == null || b== null){
             return false;
         }else{
-            return a.equals(b);
+            return  a== b || a.equals(b);
+        }
+    }
+
+    public static boolean equals(Object[] a, Object[] b){
+        if(a == null && b == null){
+            return true;
+        }else if(a == null || b == null){
+            return false;
+        }else{
+            int lenA = a.length;
+            int lenB = b.length;
+            if(lenA != lenB){
+                return false;
+            }
+
+            if(a == b)
+                return true;
+
+            for(int i = 0; i < lenA; i++){
+                if(!equals(a[i], b[i])){
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 

@@ -1,0 +1,44 @@
+#include "globals.glsl"
+
+layout (lines) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+in VS_OUT
+{
+    float4  position;
+    float2 texCoords/*: TEXCOORD*/;
+}_inputs[];
+
+out GS_OUTPUT
+{
+//  float4 position: SV_POSITION;
+  float2 texCoords/*: TEXCOORD*/;
+	float3 frustumRay/*: FRUSTUM_RAY*/;
+}_output;
+
+void main()
+{
+    // left/ lower vertex
+    gl_Position =  float4(_inputs[0].position.x, _inputs[0].position.y,_inputs[0].position.z,1.0f);
+    _output.texCoords = float2(_inputs[0].texCoords.x,_inputs[0].texCoords.y);
+    _output.frustumRay = cameraUB.frustumRays[0].xyz;
+    EmitVertex();
+
+    // right/ lower vertex
+    gl_Position = float4(_inputs[1].position.x,_inputs[0].position.y,_inputs[0].position.z,1.0f);
+    _output.texCoords = float2(_inputs[1].texCoords.x,_inputs[0].texCoords.y);
+    _output.frustumRay = cameraUB.frustumRays[1].xyz;
+    EmitVertex();
+
+    // left/ upper vertex
+    gl_Position = float4(_inputs[0].position.x,_inputs[1].position.y,_inputs[0].position.z,1.0f);
+    _output.texCoords = float2(_inputs[0].texCoords.x,_inputs[1].texCoords.y);
+    _output.frustumRay = cameraUB.frustumRays[2].xyz;
+    EmitVertex();
+
+    // right/ upper vertex
+    gl_Position = float4(_inputs[1].position.x,_inputs[1].position.y,_inputs[0].position.z,1.0f);
+    _output.texCoords = float2(_inputs[1].texCoords.x,_inputs[1].texCoords.y);
+    _output.frustumRay = cameraUB.frustumRays[3].xyz;
+    EmitVertex();
+}

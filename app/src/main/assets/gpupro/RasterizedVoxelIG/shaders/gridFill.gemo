@@ -1,0 +1,118 @@
+#include "globals.glsl"
+
+/*cbuffer CUSTOM_UB: register(CUSTOM_UB_BP)
+{
+	struct
+	{
+    matrix gridViewProjMatrices[6];
+		float4 gridCellSizes;
+	  float4 gridPositions[2];
+		float4 snappedGridPositions[2];
+	}customUB;
+};*/
+
+struct CustomCB
+{
+    mat4 gridViewProjMatrices[6];
+    float4 gridCellSizes;
+	float4 gridPositions[2];
+    float4 snappedGridPositions[2];
+};
+
+layout(binding = CUSTOM_UB_BP) uniform CUSTOM_UB
+{
+    CustomCB customUB;
+};
+
+in VS_OUTPUT
+{
+	float4 position/*: SV_POSITION*/;
+  float2 texCoords/*: TEXCOORD*/;
+	float3 normal/*: NORMAL*/;
+}_inputs[];
+
+out GS_OUTPUT
+{
+//	float4 position: SV_POSITION;
+	float3 positionWS/*: POS_WS*/;
+  float2 texCoords/*: TEXCOORD*/;
+	float3 normal/*: NORMAL*/;
+}_output;
+
+const float3 viewDirections[3] = float3[3]( float3(0.0f,0.0f,-1.0f), // back to front
+                                    float3(-1.0f,0.0f,0.0f), // right to left
+                                    float3(0.0f,-1.0f,0.0f) ); // top to down
+
+int GetViewIndex(in float3 normal)
+{
+  float3x3 directionMatrix;
+  directionMatrix[0] = -viewDirections[0];
+  directionMatrix[1] = -viewDirections[1];
+  directionMatrix[2] = -viewDirections[2];
+  float3 dotProducts = abs(mul(directionMatrix,normal));
+	float maximum = max (max(dotProducts.x,dotProducts.y), dotProducts.z);
+	int index;
+	if(maximum==dotProducts.x)
+		index = 0;
+  else if(maximum==dotProducts.y)
+		index = 1;
+	else
+		index = 2;
+	return index;
+}
+
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
+//[maxvertexcount(3)]
+//void main(triangle VS_OUTPUT input[3],inout TriangleStream<GS_OUTPUT> outputStream)
+void main()
+{
+	float3 faceNormal = normalize(_inputs[0].normal+_inputs[1].normal+_inputs[2].normal);
+
+	// Get view, at which the current triangle is most visible, in order to achieve highest
+	// possible rasterization of the primitive.
+  int viewIndex = GetViewIndex(faceNormal);
+
+  float4 positions[3];
+  float4 positionWS[3];
+  for(int i=0;i<3;i++)
+  {
+#ifdef FINE_GRID
+      positions[i] = mul(customUB.gridViewProjMatrices[viewIndex],_inputs[i].position);
+#else
+      positions[i] = mul(customUB.gridViewProjMatrices[3+viewIndex],_inputs[i].position);
+#endif
+
+    positionWS[i] = positions[i];
+  }
+  
+  // Bloat triangle in normalized device space with the texel size of the currently bound
+  // render-target. In this way pixels, which would have been discarded due to the low
+  // resolution of the currently bound render-target, will still be rasterized.
+  float2 side0N = normalize(positions[1].xy-positions[0].xy);
+  float2 side1N = normalize(positions[2].xy-positions[1].xy);
+  float2 side2N = normalize(positions[0].xy-positions[2].xy);
+  float texelSize = 1.0f/64.0f;
+  positions[0].xy += normalize(-side0N+side2N)*texelSize;
+  positions[1].xy += normalize(side0N-side1N)*texelSize;
+  positions[2].xy += normalize(side1N-side2N)*texelSize;
+
+    for(int i=0;i<3;i++)
+    {
+        gl_Position = positions[i];
+        _output.positionWS = positionWS[i]; // position in world space
+        _output.texCoords = _inputs[i].texCoords.xy;
+        _output.normal = _inputs[i].normal;
+
+        EmitVertex();
+    }
+
+	
+
+  /*[unroll]
+	for(int j=0;j<3;j++)
+	  outputStream.Append(output[j]);
+
+  outputStream.RestartStrip();*/
+}
