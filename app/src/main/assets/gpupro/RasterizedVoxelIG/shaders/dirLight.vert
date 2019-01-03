@@ -1,3 +1,4 @@
+/*
 #include "globals.glsl"
 
 layout(location = 0) in vec3 In_Position;
@@ -6,7 +7,9 @@ layout(location = 1) in vec2 In_Texcoord;
 out VS_OUT
 {
     float4  position;
-    float2 texCoords/*: TEXCOORD*/;
+    float2 texCoords*/
+/*: TEXCOORD*//*
+;
 }_output;
 
 void main()
@@ -15,4 +18,6 @@ void main()
     gl_Position = mul(cameraUB.projMatrix,positionVS);
     _output.position = gl_Position / gl_Position.w;
     _output.texCoords = In_Texcoord;
-}
+}*/
+
+#include "postQuad.vert"

@@ -1,0 +1,83 @@
+#include "globals.glsl"
+
+/*cbuffer CUSTOM_UB: register(CUSTOM_UB_BP)
+{
+	struct
+	{
+    matrix gridViewProjMatrices[6];
+		float4 gridCellSizes;
+	  float4 gridPositions[2];
+		float4 snappedGridPositions[2];
+	}customUB;
+};*/
+
+struct CustomCB
+{
+    mat4 gridViewProjMatrices[6];
+    float4 gridCellSizes;
+	float4 gridPositions[2];
+    float4 snappedGridPositions[2];
+};
+
+layout(binding = CUSTOM_UB_BP) uniform CUSTOM_UB
+{
+    CustomCB customUB;
+};
+
+in VS_OUTPUT
+{
+	float4 position/*: SV_POSITION*/;
+	flat int instanceID/*: INSTANCE_ID*/;
+}_inputs[];
+
+/*out GS_OUTPUT
+{
+  float4 position*//*: SV_POSITION*//*;
+//  uint rtIndex : SV_RenderTargetArrayIndex;
+}_output;*/
+
+layout (lines) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+//[maxvertexcount(4)]
+//void main(line VS_OUTPUT input[2],inout TriangleStream<GS_OUTPUT> outputStream)
+void main()
+{
+  // generate a quad from input line (2 vertices)
+	// ->generate 1 triangle-strip
+
+  // left/ lower vertex
+	gl_Position =  float4(_inputs[0].position.x,_inputs[0].position.y,_inputs[0].position.z,1.0f);
+	gl_Layer = _inputs[0].instanceID;
+	EmitVertex();
+
+	// right/ lower vertex
+	gl_Position = float4(_inputs[1].position.x,_inputs[0].position.y,_inputs[0].position.z,1.0f);
+	gl_Layer = _inputs[0].instanceID;
+	EmitVertex();
+
+	// left/ upper vertex
+	gl_Position = float4(_inputs[0].position.x,_inputs[1].position.y,_inputs[0].position.z,1.0f);
+	gl_Layer = _inputs[0].instanceID;
+	EmitVertex();
+
+  // right/ upper vertex
+	gl_Position = float4(_inputs[1].position.x,_inputs[1].position.y,_inputs[0].position.z,1.0f);
+	gl_Layer = _inputs[0].instanceID;
+	EmitVertex();
+
+	/*[unroll]
+	for(int i=0;i<4;i++)
+	{
+    output[i].rtIndex = input[0].instanceID; // write 32 instances of quad into 32 slices of 2D texture array
+    outputStream.Append(output[i]);
+	}
+
+	outputStream.RestartStrip();*/
+}
+
+
+
+
+
+

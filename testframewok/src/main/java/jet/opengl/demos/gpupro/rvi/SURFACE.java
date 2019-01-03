@@ -31,7 +31,7 @@ final class SURFACE implements ICONST{
     int numThreadGroupsY;
     int numThreadGroupsZ;
 
-    private int ID;
+    int ID;
 
     SURFACE(){}
 

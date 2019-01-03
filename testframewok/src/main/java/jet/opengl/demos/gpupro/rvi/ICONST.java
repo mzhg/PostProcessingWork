@@ -14,4 +14,11 @@ interface ICONST {
     int NUM_CUSTOM_TEXURES = 6;
     /** number of custom structured-buffers that can be set in SURFACE */
     int NUM_CUSTOM_STRUCTURED_BUFFERS = 2;
+
+    int NUM_PATH_POINT_LIGHTS = 12;
+
+    int SCREEN_WIDTH =1280;
+    int SCREEN_HEIGHT = 720;
+
+    int MAIN_CAMERA_ID = 0;
 }

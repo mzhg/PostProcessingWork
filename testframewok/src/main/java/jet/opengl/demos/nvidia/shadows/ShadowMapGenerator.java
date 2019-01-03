@@ -265,7 +265,7 @@ import jet.opengl.postprocessing.util.LogUtil;
     private void buildShadowMapFrame(){
         if(shadowConfig.lightType == LightType.SPOT){
             buildSpotLightShadowMapFrame();
-        }else if(shadowConfig.lightType == LightType.DIRECTION){
+        }else if(shadowConfig.lightType == LightType.DIRECTIONAL){
             buildDirectionLightShadowMapFrame();
         }else if(shadowConfig.lightType == LightType.POINT){
             buildPointLightShadowMapFrame();

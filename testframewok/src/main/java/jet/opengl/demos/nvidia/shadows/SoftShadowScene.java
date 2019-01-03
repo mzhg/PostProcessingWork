@@ -18,6 +18,7 @@ import java.util.List;
 import jet.opengl.demos.scene.BaseScene;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
@@ -117,7 +118,7 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         GLCheck.checkError();
         m_ShadowConfig.shadowMapFiltering = ShadowMapGenerator.ShadowMapFiltering.PCSS;
         m_ShadowConfig.shadowType = ShadowMapGenerator.ShadowType.SHADOW_MAPPING;
-        m_ShadowConfig.lightType = ShadowMapGenerator.LightType.DIRECTION;
+        m_ShadowConfig.lightType = LightType.DIRECTIONAL;
         m_ShadowConfig.spotHalfAngle = 10;
         m_ShadowConfig.shadowMapSplitting = ShadowMapGenerator.ShadowMapSplitting.NONE;
         m_ShadowConfig.checkCameraFrustumeVisible = false;

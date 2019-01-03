@@ -15,7 +15,7 @@ abstract class ILIGHT {
 
     abstract void Update();
 
-    abstract void SetupShadowMapSurface(/*SURFACE *surface*/);
+    abstract void SetupShadowMapSurface(SURFACE surface);
 
     // adds surface for direct illumination
     abstract void AddLitSurface();

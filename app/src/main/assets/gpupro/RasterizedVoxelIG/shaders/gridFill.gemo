@@ -39,7 +39,7 @@ out GS_OUTPUT
 	float3 normal/*: NORMAL*/;
 }_output;
 
-const float3 viewDirections[3] = float3[3]( float3(0.0f,0.0f,-1.0f), // back to front
+const float3 viewDirections[3] = float3[]( float3(0.0f,0.0f,-1.0f), // back to front
                                     float3(-1.0f,0.0f,0.0f), // right to left
                                     float3(0.0f,-1.0f,0.0f) ); // top to down
 

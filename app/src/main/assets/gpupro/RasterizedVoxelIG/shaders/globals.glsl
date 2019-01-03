@@ -33,7 +33,7 @@ struct PointCB
 
  layout(binding = LIGHT_UB_BP) uniform POINT_LIGHT_UB  //: register(LIGHT_UB_BP) \
  {
-    PointCB pointLightUB;
+    PointCB pointLightUBp;
  };
 
  struct DirectionalCB

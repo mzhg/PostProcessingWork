@@ -95,7 +95,7 @@ public class BoundingBox {
         Vector3f temp = dest._max;
         {
             temp.set(ominx, ominy, ominz);
-            Matrix4f.transformVector(left, temp, temp);
+            Matrix4f.transformCoord(left, temp, temp);
             if(minx > temp.x) minx = temp.x;
             if(miny > temp.y) miny = temp.y;
             if(minz > temp.z) minz = temp.z;
@@ -106,7 +106,7 @@ public class BoundingBox {
 
         {
             temp.set(omaxx, ominy, ominz);
-            Matrix4f.transformVector(left, temp, temp);
+            Matrix4f.transformCoord(left, temp, temp);
             if(minx > temp.x) minx = temp.x;
             if(miny > temp.y) miny = temp.y;
             if(minz > temp.z) minz = temp.z;
@@ -117,7 +117,7 @@ public class BoundingBox {
 
         {
             temp.set(omaxx, omaxy, ominz);
-            Matrix4f.transformVector(left, temp, temp);
+            Matrix4f.transformCoord(left, temp, temp);
             if(minx > temp.x) minx = temp.x;
             if(miny > temp.y) miny = temp.y;
             if(minz > temp.z) minz = temp.z;
@@ -128,7 +128,7 @@ public class BoundingBox {
 
         {
             temp.set(ominx, omaxy, ominz);
-            Matrix4f.transformVector(left, temp, temp);
+            Matrix4f.transformCoord(left, temp, temp);
             if(minx > temp.x) minx = temp.x;
             if(miny > temp.y) miny = temp.y;
             if(minz > temp.z) minz = temp.z;
@@ -139,7 +139,7 @@ public class BoundingBox {
 
         {
             temp.set(ominx, ominy, omaxz);
-            Matrix4f.transformVector(left, temp, temp);
+            Matrix4f.transformCoord(left, temp, temp);
             if(minx > temp.x) minx = temp.x;
             if(miny > temp.y) miny = temp.y;
             if(minz > temp.z) minz = temp.z;
@@ -150,7 +150,7 @@ public class BoundingBox {
 
         {
             temp.set(omaxx, ominy, omaxz);
-            Matrix4f.transformVector(left, temp, temp);
+            Matrix4f.transformCoord(left, temp, temp);
             if(minx > temp.x) minx = temp.x;
             if(miny > temp.y) miny = temp.y;
             if(minz > temp.z) minz = temp.z;
@@ -161,7 +161,7 @@ public class BoundingBox {
 
         {
             temp.set(omaxx, omaxy, omaxz);
-            Matrix4f.transformVector(left, temp, temp);
+            Matrix4f.transformCoord(left, temp, temp);
             if(minx > temp.x) minx = temp.x;
             if(miny > temp.y) miny = temp.y;
             if(minz > temp.z) minz = temp.z;
@@ -172,7 +172,7 @@ public class BoundingBox {
 
         {
             temp.set(ominx, omaxy, omaxz);
-            Matrix4f.transformVector(left, temp, temp);
+            Matrix4f.transformCoord(left, temp, temp);
             if(minx > temp.x) minx = temp.x;
             if(miny > temp.y) miny = temp.y;
             if(minz > temp.z) minz = temp.z;

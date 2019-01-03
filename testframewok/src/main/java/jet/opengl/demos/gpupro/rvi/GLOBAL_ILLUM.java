@@ -9,7 +9,10 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.texture.SamplerUtils;
+import jet.opengl.postprocessing.util.CommonUtil;
 
 // GLOBAL_ILLUM
 //   This post-processor performs "Rasterized Voxel based Dynamic Global Illumination".
@@ -143,7 +146,7 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
             if(gridSBs[GridType.COARSE_GRID.ordinal()] == null)
                 return false;
 
-            RT_CONFIG_DESC desc;
+            RT_CONFIG_DESC desc = new RT_CONFIG_DESC();
             desc.numStructuredBuffers = 1;
             desc.structuredBuffers[0] = gridSBs[GridType.FINE_GRID.ordinal()];
             gridRTCs[GridType.FINE_GRID.ordinal()] = DX11_RENDERER.getInstance().CreateRenderTargetConfig(desc);
@@ -155,10 +158,12 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
             if(gridRTCs[GridType.COARSE_GRID.ordinal()] == null)
                 return false;
 
-            gridFillShaders[GridType.FINE_GRID.ordinal()] = DEMO::resourceManager->LoadShader("shaders/gridFill.sdr",1); // (Permutation 1 = FINE_GRID)
+            gridFillShaders[GridType.FINE_GRID.ordinal()] = //DEMO::resourceManager->LoadShader("shaders/gridFill.sdr",1); // (Permutation 1 = FINE_GRID)
+                            createProgram("gridFill", true, false, CommonUtil.toArray(new Macro("FINE_GRID", 1)));
             if(gridFillShaders[GridType.FINE_GRID.ordinal()] == null)
                 return false;
-            gridFillShaders[GridType.COARSE_GRID.ordinal()] = DEMO::resourceManager->LoadShader("shaders/gridFill.sdr");
+            gridFillShaders[GridType.COARSE_GRID.ordinal()] = //DEMO::resourceManager->LoadShader("shaders/gridFill.sdr");
+                    createProgram("gridFill", true, false, null);
             if(gridFillShaders[GridType.COARSE_GRID.ordinal()] == null)
                 return false;
 
@@ -226,16 +231,20 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
             if(lightPropagateRTC == null)
                 return false;
 
-            lightPropagateShaders[GridType.FINE_GRID.ordinal()][0] = DEMO::resourceManager->LoadShader("shaders/lightPropagate.sdr",1); // (Permutation 1 = FINE_GRID)
+            lightPropagateShaders[GridType.FINE_GRID.ordinal()][0] = //DEMO::resourceManager->LoadShader("shaders/lightPropagate.sdr",1); // (Permutation 1 = FINE_GRID)
+                                    createProgram("lightPropagate", false, true, CommonUtil.toArray(new Macro("FINE_GRID", 1)));
             if(lightPropagateShaders[0]==null)
                 return false;
-            lightPropagateShaders[GridType.FINE_GRID.ordinal()][1] = DEMO::resourceManager->LoadShader("shaders/lightPropagate.sdr",3); // (Permutation 3 = FINE_GRID + USE_OCCLUSION)
+            lightPropagateShaders[GridType.FINE_GRID.ordinal()][1] = //DEMO::resourceManager->LoadShader("shaders/lightPropagate.sdr",3); // (Permutation 3 = FINE_GRID + USE_OCCLUSION)
+                    createProgram("lightPropagate", false, true, CommonUtil.toArray(new Macro("FINE_GRID", 1), new Macro("USE_OCCLUSION", 1)));
             if(lightPropagateShaders[1]==null)
                 return false;
-            lightPropagateShaders[GridType.COARSE_GRID.ordinal()][0] = DEMO::resourceManager->LoadShader("shaders/lightPropagate.sdr");
+            lightPropagateShaders[GridType.COARSE_GRID.ordinal()][0] = //DEMO::resourceManager->LoadShader("shaders/lightPropagate.sdr");
+                    createProgram("lightPropagate", false, true, null);
             if(lightPropagateShaders[0]==null)
                 return false;
-            lightPropagateShaders[GridType.COARSE_GRID.ordinal()][1] = DEMO::resourceManager->LoadShader("shaders/lightPropagate.sdr",2); // (Permutation 2 = USE_OCCLUSION)
+            lightPropagateShaders[GridType.COARSE_GRID.ordinal()][1] = // DEMO::resourceManager->LoadShader("shaders/lightPropagate.sdr",2); // (Permutation 2 = USE_OCCLUSION)
+                    createProgram("lightPropagate", false, true, CommonUtil.toArray(new Macro("USE_OCCLUSION", 1)));
             if(lightPropagateShaders[1]==null)
                 return false;
         }
@@ -243,17 +252,19 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
         // objects used for generating the indirect illumination
         {
             // only render into the accumulation render-target of the GBuffer
-            RT_CONFIG_DESC desc;
+            RT_CONFIG_DESC desc = new RT_CONFIG_DESC();
             desc.numColorBuffers = 1;
             outputRTC = DX11_RENDERER.getInstance().CreateRenderTargetConfig(desc);
-            if(!outputRTC)
+            if(outputRTC == null)
                 return false;
 
-            globalIllumShader = DEMO::resourceManager->LoadShader("shaders/globalIllum.sdr");
-            if(!globalIllumShader)
+            globalIllumShader = // DEMO::resourceManager->LoadShader("shaders/globalIllum.sdr");
+                            createProgram("globalIllum", true, false, null);
+            if(globalIllumShader == null)
                 return false;
-            globalIllumNoTexShader = DEMO::resourceManager->LoadShader("shaders/globalIllum.sdr",1); // (Permutation 1 = NO_TEXTURE)
-            if(!globalIllumNoTexShader)
+            globalIllumNoTexShader = //DEMO::resourceManager->LoadShader("shaders/globalIllum.sdr",1); // (Permutation 1 = NO_TEXTURE)
+                    createProgram("globalIllum", true, false, CommonUtil.toArray(new Macro("NO_TEXTURE", 1)));
+            if(globalIllumNoTexShader == null)
                 return false;
 
             // only illuminate actual scene geometry, not sky
@@ -280,8 +291,9 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
 
         // objects used for visualizing the voxel-grids
         {
-            gridVisShader = DEMO::resourceManager->LoadShader("shaders/gridVis.sdr");
-            if(!gridVisShader)
+            gridVisShader = //DEMO::resourceManager->LoadShader("shaders/gridVis.sdr");
+                    createProgram("gridVis", true, false, null);
+            if(gridVisShader == null)
                 return false;
         }
 
@@ -301,9 +313,9 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
             if(clearRTC == null)
                 return false;
 
-            clearShader = DEMO::resourceManager->LoadShader("shaders/gridClear.sdr");
+            /*clearShader = DEMO::resourceManager->LoadShader("shaders/gridClear.sdr");
             if(clearShader == null)
-                return false;
+                return false;*/
         }
 
         Update();
@@ -319,21 +331,24 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
     @Override
     void AddSurfaces() {
         Update();
-        if((mode==DEFAULT_GIM)||(mode==INDIRECT_ILLUM_ONLY_GIM))
+        if((mode==GlobalIllumMode.DEFAULT_GIM)||(mode==GlobalIllumMode.INDIRECT_ILLUM_ONLY_GIM))
         {
             PerformGridLightingPass();
 
             // This demo uses 10 light propagation iterations.
             for(int i=0;i<10;i++)
-                PerformLightPropagatePass(i,FINE_GRID);
+                PerformLightPropagatePass(i,GridType.FINE_GRID);
             for(int i=0;i<10;i++)
-                PerformLightPropagatePass(i,COARSE_GRID);
+                PerformLightPropagatePass(i,GridType.COARSE_GRID);
 
             PerformGlobalIllumPass();
         }
-        else if(mode==VISUALIZE_GIM)
+        else if(mode==GlobalIllumMode.VISUALIZE_GIM)
             PerformGridVisPass();
         PerformClearPass();
+
+        int FINE_GRID = GridType.FINE_GRID.ordinal();
+        int COARSE_GRID = GridType.COARSE_GRID.ordinal();
         currentLightRTIndices[FINE_GRID] = 0;
         currentLightRTIndices[COARSE_GRID] = 0;
     }
@@ -534,7 +549,7 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
         surface.renderTarget = sceneRT;
         surface.renderTargetConfig = outputRTC;
         surface.renderOrder = RenderOrder.GLOBAL_ILLUM_RO;
-        surface.camera = DX11_RENDERER.getInstance().GetCamera(MAIN_CAMERA_ID);
+//        surface.camera = DX11_RENDERER.getInstance().GetCamera(MAIN_CAMERA_ID);
         surface.normalTexture = sceneRT.GetTexture(2); // normalDepth
         surface.customTextures[0] = lightRTs[GridType.FINE_GRID.ordinal()][currentLightRTIndices[GridType.FINE_GRID.ordinal()]].GetTexture(0);
         surface.customTextures[1] = lightRTs[GridType.FINE_GRID.ordinal()][currentLightRTIndices[GridType.FINE_GRID.ordinal()]].GetTexture(1);
@@ -566,7 +581,7 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
         surface.renderTarget = sceneRT;
         surface.renderTargetConfig = outputRTC;
         surface.renderOrder =  RenderOrder.GLOBAL_ILLUM_RO;
-        surface.camera = DX11_RENDERER.getInstance().GetCamera(MAIN_CAMERA_ID);
+//        surface.camera = DX11_RENDERER.getInstance().GetCamera(MAIN_CAMERA_ID);
         surface.normalTexture = sceneRT.GetTexture(2); // normalDepth
         surface.customSBs[0] = gridSBs[FINE_GRID];
         surface.customSBs[1] = gridSBs[COARSE_GRID];
@@ -596,7 +611,13 @@ final class GLOBAL_ILLUM extends IPOST_PROCESSOR implements ICONST{
         DX11_RENDERER.getInstance().AddSurface(surface);
     }
 
-    static GLSLProgram createProgram(String filename, boolean includeGS, boolean isCS){
-//        final String root =
+    static GLSLProgram createProgram(String filename, boolean includeGS, boolean isCS, Macro[] macros){
+        final String root = "gpupro\\RasterizedVoxelIG\\shaders\\";
+
+        if(isCS){
+            return GLSLProgram.createProgram(root + filename + ".comp", macros);
+        }else {
+            return GLSLProgram.createProgram(root + filename + ".vert", includeGS ? (root + filename + ".vert"): null, root + filename + ".frag", macros);
+        }
     }
 }
