@@ -14,8 +14,7 @@ public interface ID3D11InputLayout {
 
     void unbind();
 
-    public static ID3D11InputLayout createInputLayoutFrom(D3D11_INPUT_ELEMENT_DESC[] descs){
-        final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+    static ID3D11InputLayout createInputLayoutFrom(D3D11_INPUT_ELEMENT_DESC[] descs){
         final int count = descs.length;
         final int[] types = new int[count];
         final int[] sizes = new int[count];

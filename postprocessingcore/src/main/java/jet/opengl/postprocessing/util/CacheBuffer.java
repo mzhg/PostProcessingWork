@@ -635,6 +635,14 @@ public class CacheBuffer {
 		return dest;
 	}
 
+	public static ByteBuffer put(ByteBuffer dest, short[] src){
+		for(int i = 0; i < src.length; i++){
+			dest.putShort(src[i]);
+		}
+
+		return dest;
+	}
+
 	public static ByteBuffer put(ByteBuffer dest, Readable[] src){
 		for(int i = 0; i < src.length; i++){
 			src[i].store(dest);
