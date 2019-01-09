@@ -1,0 +1,235 @@
+//
+// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+
+//--------------------------------------------------------------------------------------
+// File: GenerateVPLs.hlsl
+//
+// HLSL file for the TiledLighting11 sample. VPL generation.
+//--------------------------------------------------------------------------------------
+
+
+#include "CommonHeader.glsl"
+
+
+//-----------------------------------------------------------------------------------------
+// Textures and Buffers
+//-----------------------------------------------------------------------------------------
+/*RWStructuredBuffer<float4>      g_VPLPositionBuffer                 : register( u0 );
+RWStructuredBuffer<VPLData>     g_VPLDataBuffer                     : register( u1 );*/
+
+layout(binding = 0) writeonly buffer Buffer0
+{
+    float4 g_VPLPositionBuffer[];
+};
+
+layout(binding = 1) writeonly buffer Buffer1
+{
+    VPLData g_VPLDataBuffer[];
+};
+
+layout(binding = 0) uniform sampler2D  g_RSMDepthAtlas                     /*: register( t0 )*/;
+layout(binding = 1) uniform sampler2D  g_RSMNormalAtlas                    /*: register( t1 )*/;
+layout(binding = 2) uniform sampler2D  g_RSMDiffuseAtlas                   /*: register( t2 )*/;
+
+//StructuredBuffer<float4x4>      g_invViewProjMatrices               : register( t3 );
+
+layout(binding = 3) readonly buffer Buffer3
+{
+    float4x4 g_invViewProjMatrices[];
+};
+
+#if ( SPOT_LIGHTS == 1 )
+/*Buffer<float4> g_SpotLightBufferCenterAndRadius  : register( t4 );
+Buffer<float4> g_SpotLightBufferColor            : register( t5 );
+Buffer<float4> g_SpotLightBufferSpotParams       : register( t6 );*/
+
+layout(binding = 4) readonly buffer Buffer4
+{
+    float4 g_SpotLightBufferCenterAndRadius[];
+};
+
+layout(binding = 5) readonly buffer Buffer5
+{
+    float4 g_SpotLightBufferColor[];
+};
+
+layout(binding = 6) readonly buffer Buffer6
+{
+    float4 g_SpotLightBufferSpotParams[];
+};
+#else
+/*Buffer<float4> g_PointLightBufferCenterAndRadius : register( t4 );
+Buffer<float4> g_PointLightBufferColor           : register( t5 );*/
+layout(binding = 4) readonly buffer Buffer4
+{
+    float4 g_PointLightBufferCenterAndRadius[];
+};
+
+layout(binding = 5) readonly buffer Buffer5
+{
+    float4 g_PointLightBufferColor[];
+};
+#endif
+
+
+#if ( SPOT_LIGHTS == 1 )
+#define RSM_SIZE        32
+#else
+#define RSM_SIZE        32
+#endif
+
+#define THREAD_SIZE     16
+#define SAMPLE_WIDTH    ( RSM_SIZE / THREAD_SIZE )
+
+//[numthreads( THREAD_SIZE, THREAD_SIZE, 1 )]
+layout(local_size_x = THREAD_SIZE, local_size_y = THREAD_SIZE, local_size_z = 1)in;
+//void GenerateVPLsCS( uint3 globalIdx : SV_DispatchThreadID )
+void ()
+{
+    uint3 globalIdx = gl_GlobalInvocationID;
+    uint2 uv00 = SAMPLE_WIDTH*globalIdx.xy;
+
+#if ( SPOT_LIGHTS == 1 )
+    uint lightIndex = SAMPLE_WIDTH*globalIdx.x / RSM_SIZE;
+#else
+    uint lightIndex = SAMPLE_WIDTH*globalIdx.y / RSM_SIZE;
+    uint faceIndex = SAMPLE_WIDTH*globalIdx.x / RSM_SIZE;
+#endif
+
+    float3 color = float3(0);
+
+    float3 normal = float3(0);
+
+    float4 position = float4(1);
+
+    int2 uv = int2(uv00);
+
+    color = texelFetch(g_RSMDiffuseAtlas, uv, 0).rgb;
+    normal = (2*texelFetch(g_RSMNormalAtlas, uv, 0).rgb)-1;
+
+    float2 viewportUV = uv.xy;
+
+    viewportUV.xy %= RSM_SIZE;
+
+    float depth = texelFetch(g_RSMDepthAtlas, uv, 0).r;
+
+    float x = (2.0f * ((float(viewportUV.x) + 0.5) / RSM_SIZE)) - 1.0;
+    float y = (2.0f * -((float(viewportUV.y) + 0.5) / RSM_SIZE)) + 1.0;
+
+    float4 screenSpacePos = float4( x, y, depth, 1.0 );
+
+#if ( SPOT_LIGHTS == 1 )
+    uint matrixIndex = lightIndex;
+#else
+    uint matrixIndex = (6*lightIndex)+faceIndex;
+#endif
+
+    position = mul( screenSpacePos, g_invViewProjMatrices[ matrixIndex ] );
+
+    position.xyz /= position.w;
+
+
+#if ( SPOT_LIGHTS == 1 )
+
+    float4 SpotParams = g_SpotLightBufferSpotParams[lightIndex];
+    float3 SpotLightDir;
+    SpotLightDir.xy = SpotParams.xy;
+    SpotLightDir.z = sqrt(1 - SpotLightDir.x*SpotLightDir.x - SpotLightDir.y*SpotLightDir.y);
+
+    // the sign bit for cone angle is used to store the sign for the z component of the light dir
+    SpotLightDir.z = (SpotParams.z > 0) ? SpotLightDir.z : -SpotLightDir.z;
+
+    float4 sourceLightCentreAndRadius = g_SpotLightBufferCenterAndRadius[ lightIndex ];
+    float3 lightPos = sourceLightCentreAndRadius.xyz - sourceLightCentreAndRadius.w*SpotLightDir;
+
+#else
+
+    float4 sourceLightCentreAndRadius = g_PointLightBufferCenterAndRadius[ lightIndex ];
+    float3 lightPos = sourceLightCentreAndRadius.xyz;
+
+#endif
+
+    float3 sourceLightDir = position.xyz - lightPos;
+
+    float lightDistance = length( sourceLightDir );
+
+    {
+        float fFalloff = 1.0 - length( sourceLightDir ) / sourceLightCentreAndRadius.w;
+
+        color *= fFalloff;
+
+        float3 normalizedColor = normalize( color );
+        float dotR = dot( normalizedColor, float3( 1, 0, 0 ) );
+        float dotG = dot( normalizedColor, float3( 0, 1, 0 ) );
+        float dotB = dot( normalizedColor, float3( 0, 0, 1 ) );
+
+        float threshold = g_fVPLColorThreshold;
+
+        bool isInterestingColor = dotR > threshold || dotG > threshold || dotB > threshold;
+
+        if ( isInterestingColor )
+        {
+            float4 positionAndRadius;
+
+            float lightStrength = 1.0;
+
+#if ( SPOT_LIGHTS == 1 )
+            positionAndRadius.w = g_fVPLSpotRadius;
+            lightStrength *= g_fVPLSpotStrength;
+#else
+            positionAndRadius.w = g_fVPLPointRadius;
+            lightStrength *= g_fVPLPointStrength;
+#endif
+
+            positionAndRadius.xyz = position.xyz;
+
+#if ( SPOT_LIGHTS == 1 )
+            color = color * g_SpotLightBufferColor[ lightIndex ].rgb * lightStrength;
+#else
+            color = color * g_PointLightBufferColor[ lightIndex ].rgb * lightStrength;
+#endif
+
+            float colorStrength = length( color );
+            if ( colorStrength > g_fVPLBrightnessThreshold )
+            {
+                VPLData data;
+
+                data.Color = float4( color, 1 );
+                data.Direction = float4( normal, 0 );
+
+#if ( SPOT_LIGHTS == 1 )
+
+                data.SourceLightDirection = float4( -SpotLightDir, 0 );
+#else
+                data.SourceLightDirection.xyz = normalize( -sourceLightDir );
+                data.SourceLightDirection.w = 0;
+#endif
+
+                uint index = g_VPLPositionBuffer.IncrementCounter();
+
+                g_VPLPositionBuffer[ index ] = positionAndRadius;
+                g_VPLDataBuffer[ index ] = data;
+            }
+        }
+    }
+}
+

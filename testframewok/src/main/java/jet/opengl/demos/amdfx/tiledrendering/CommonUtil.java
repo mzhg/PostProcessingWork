@@ -32,9 +32,8 @@ import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
-import sun.awt.geom.AreaOp;
 
-class CommonUtil implements ICONST, Disposeable {
+final class CommonUtil implements ICONST, Disposeable {
     /** DebugDrawType */
     static final  int
             DEBUG_DRAW_NONE = 0,

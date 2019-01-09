@@ -32,6 +32,11 @@ public class CFirstPersonCamera {
 		Matrix4f.decompseRigidMatrix(m_View, m_Eye, null, m_Up);
 		m_LookAt.set(vLookatPt);
 	}
+
+	public void SetViewParams(Matrix4f view){
+		m_View.load(view);
+		Matrix4f.decompseRigidMatrix(m_View, m_Eye, m_LookAt, m_Up);
+	}
 	
 	public Matrix4f GetViewMatrix() { return m_View;}
 	public Matrix4f GetProjMatrix() { return m_Proj;}

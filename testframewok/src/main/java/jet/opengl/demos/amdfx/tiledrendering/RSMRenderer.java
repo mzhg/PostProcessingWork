@@ -300,7 +300,7 @@ final class RSMRenderer implements Disposeable, ICONST {
     void OnResizedSwapChain( int width, int height){}
     void OnReleasingSwapChain(){}
 
-    void RenderSpotRSMs( int NumSpotLights, /*const GuiState& CurrentGuiState,*/  Scene Scene,  CommonUtil CommonUtil ){
+    void RenderSpotRSMs( int NumSpotLights, GuiState CurrentGuiState,  Scene Scene,  CommonUtil CommonUtil ){
         /*D3D11_VIEWPORT oldVp[ 8 ];
         UINT numVPs = 1;
         pd3dImmediateContext->RSGetViewports( &numVPs, oldVp );
@@ -358,7 +358,7 @@ final class RSMRenderer implements Disposeable, ICONST {
             gl.glViewport(i * gRSMSpotResolution, 0, gRSMSpotResolution, gRSMSpotResolution);
             m_CameraCallback.onUpdateCamera( SpotLightViewProjArray[i] );
 
-            RenderRSMScene( /*CurrentGuiState,*/ Scene, CommonUtil );
+            RenderRSMScene(CurrentGuiState, Scene, CommonUtil );
         }
 
         /*pd3dImmediateContext->RSSetViewports( 1, oldVp );
@@ -366,7 +366,7 @@ final class RSMRenderer implements Disposeable, ICONST {
         pd3dImmediateContext->OMSetRenderTargets( ARRAYSIZE( pNullRTVs ), pNullRTVs, 0 );*/
     }
 
-    void RenderPointRSMs( int NumPointLights, /*const GuiState& CurrentGuiState,*/ Scene Scene, CommonUtil CommonUtil ){
+    void RenderPointRSMs( int NumPointLights, GuiState CurrentGuiState, Scene Scene, CommonUtil CommonUtil ){
         /*ID3D11DeviceContext* pd3dImmediateContext = DXUTGetD3D11DeviceContext();
 
         D3D11_VIEWPORT oldVp[ 8 ];
@@ -439,7 +439,7 @@ final class RSMRenderer implements Disposeable, ICONST {
                 gl.glViewportIndexedf(0, f * gRSMPointResolution, i * gRSMPointResolution, gRSMPointResolution, gRSMPointResolution);
                 gl.glViewportIndexedf(1, f * gRSMPointResolution, i * gRSMPointResolution, gRSMPointResolution, gRSMPointResolution);
 
-                RenderRSMScene( /*CurrentGuiState,*/ Scene, CommonUtil );
+                RenderRSMScene( CurrentGuiState, Scene, CommonUtil );
             }
         }
 
@@ -556,7 +556,7 @@ final class RSMRenderer implements Disposeable, ICONST {
         throw new UnsupportedOperationException();
     }
 
-    private void RenderRSMScene( /*const GuiState& CurrentGuiState,*/ Scene Scene, CommonUtil CommonUtil ){
+    private void RenderRSMScene( GuiState CurrentGuiState, Scene Scene, CommonUtil CommonUtil ){
         /*ID3D11DeviceContext* pd3dImmediateContext = DXUTGetD3D11DeviceContext();
 
         pd3dImmediateContext->OMSetDepthStencilState( CommonUtil.GetDepthStencilState(DEPTH_STENCIL_STATE_DEPTH_LESS), 0x00 );

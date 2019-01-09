@@ -25,17 +25,19 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileUtils;
+import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StringUtils;
 
 //  This class reads the sdkmesh file format for use by the samples
-public class SDKmesh {
+public class SDKmesh implements Disposeable {
 
 	private static final int NULL = 0;
 	//--------------------------------------------------------------------------------------
@@ -1419,5 +1421,10 @@ public String getMeshPath() { return m_strPath;}
     		return str.substring(0, space);
     	}else
     		return str;
+    }
+
+    @Override
+    public void dispose() {
+        LogUtil.e(LogUtil.LogType.DEFAULT, "This method 'dispose' in Class SDKMesh hasn't implemented!");
     }
 }
