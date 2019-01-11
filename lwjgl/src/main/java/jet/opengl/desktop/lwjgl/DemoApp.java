@@ -29,6 +29,7 @@ import jet.opengl.demos.nvidia.face.sample.FaceWorkTest;
 import jet.opengl.demos.nvidia.shadows.ParaboloidShadowDemo;
 import jet.opengl.demos.nvidia.volumelight.VolumetricLightingDemo;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
+import jet.opengl.demos.nvidia.waves.samples.ScreenWaveDemo;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.demos.postprocessing.HBAODemo;
 import jet.opengl.demos.postprocessing.LightingVolumeDemo;
@@ -145,7 +146,8 @@ public class DemoApp {
 //        run(new FaceWorkTest());
 //        run(new VolumetricLightingDemo());
 //        run(new ParaboloidShadowDemo());
-        run(new LightPropagationVolumeDemo());
+//        run(new LightPropagationVolumeDemo());
+        run(new ScreenWaveDemo());
     }
 
     private static void testParaboloidMatrix(){

@@ -1,6 +1,5 @@
 package jet.opengl.demos.amdfx.tiledrendering;
 
-import com.nvidia.developer.opengl.app.GLEventListener;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
 
@@ -9,15 +8,11 @@ import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import javax.swing.plaf.ProgressBarUI;
-
 import jet.opengl.demos.amdfx.common.CFirstPersonCamera;
 import jet.opengl.postprocessing.buffer.BufferGL;
-import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
