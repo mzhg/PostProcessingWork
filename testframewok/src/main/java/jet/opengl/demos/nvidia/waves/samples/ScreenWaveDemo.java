@@ -2,6 +2,7 @@ package jet.opengl.demos.nvidia.waves.samples;
 
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvInputDeviceType;
+import com.nvidia.developer.opengl.app.NvPointerActionType;
 import com.nvidia.developer.opengl.app.NvPointerEvent;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.models.DrawMode;
@@ -47,8 +48,11 @@ public class ScreenWaveDemo extends NvSampleApp {
     private final SimpleWaveSimulator.Params m_Params = new SimpleWaveSimulator.Params();
     private GLFuncProvider gl;
 
+    private boolean m_IsTouchDwon;
+
     @Override
     protected void initRendering() {
+//        getGLContext().setSwapInterval(0);
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_WaveSimulator2 = new SimpleWaveSimulator();
         m_WaveSimulator = new SimpleWaveSimulator();
@@ -99,9 +103,6 @@ public class ScreenWaveDemo extends NvSampleApp {
         m_count ++;
         if(m_count > m_frequency){
             m_WaveSimulator2.addDrop(Numeric.random(0, 1), Numeric.random(0,1),
-                    Numeric.random(4f/256, 4f/128), 20);
-
-            m_WaveSimulator.addDrop(Numeric.random(0, 1), Numeric.random(0,1),
                     Numeric.random(4f/256, 4f/128), 20);
 
             m_count = 0;
@@ -171,6 +172,19 @@ public class ScreenWaveDemo extends NvSampleApp {
 
     @Override
     public boolean handlePointerInput(NvInputDeviceType device, int action, int modifiers, int count, NvPointerEvent[] points) {
+        float x = points[0].m_x;
+        float y = points[0].m_y;
+
+        if(action == NvPointerActionType.DOWN){
+            m_IsTouchDwon = true;
+        }else if(action == NvPointerActionType.UP){
+            m_IsTouchDwon  = false;
+        }
+
+        if(m_IsTouchDwon)
+            m_WaveSimulator.addDrop(x/getGLContext().width(), 1-y/getGLContext().height(),
+                    Numeric.random(4f/256, 4f/128), Numeric.random(15,25));
+
         return super.handlePointerInput(device, action, modifiers, count, points);
     }
 

@@ -13,7 +13,7 @@ void main()
     m_Texcoord = In_Texcoord;
 
     float height= textureLod(g_HeightMap, m_Texcoord, 0.0).y;
-    vec3 worldPos = vec3(In_Position.x, In_Position.z, height);
+    vec3 worldPos = vec3(In_Position.x, In_Position.z, 0);
 
     vec2 gradient = textureLod(g_GradientMap, m_Texcoord, 0.0).rg;
     m_Normal = normalize(vec3(gradient.x, /*4.0/(1280.0/4.0)*/1, gradient.y));

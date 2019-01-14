@@ -182,6 +182,7 @@ public class SimpleWaveSimulator implements Disposeable {
 
         final float timeStep = 16f/1000f;
         float timeScale = dt/timeStep * params.timeScale;
+//        System.out.println("timeScale = " + timeScale);
         program.setTimeScale(timeScale);
 
         int source = m_PingPop;

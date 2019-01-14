@@ -15,10 +15,20 @@ void main()
     vec3 R = reflect(-L, N);
 
     vec3 specular = pow(max(0.0, dot(R, N)), 10.0) * vec3(1);
+    float maxValue = max(specular.r, max(specular.g, specular.b));
+//    specular /= max(maxValue, 0.00001);
     vec3 T = refract(-V, N, 1.33);
 
-    vec3 refractColor = texture(g_TexMap, m_Texcoord + 0.002 * T.xz).rgb;
+    vec3 refractColor = texture(g_TexMap, m_Texcoord + 0.2 * T.xz).rgb;
 
-    Out_Color = vec4(mix(specular, refractColor, 0.9-clamp(dot(L, N), 0.0, 1.0)), 1);
+    float F0 = (1.33-1)/(1.33+1);
+    F0 = F0 * F0;
+    float fresel =F0 + (1-F0)*(1-max(dot(L, N), 0.0));
+
+    Out_Color = vec4(mix(specular, refractColor, fresel), 1);
+    Out_Color = vec4(refractColor * max(specular, vec3(0.2))*1.2, 1);
+    return;
 //    Out_Color = vec4(specular, 1);
+    Out_Color = vec4(vec3(refractColor + clamp(specular - 0.5, 0.0, 1.0)), 1);
+    Out_Color = vec4(refractColor, 1);
 }
