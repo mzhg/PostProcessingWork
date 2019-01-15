@@ -580,20 +580,19 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 	
 	/**
 	 * Compute the reflection.
-	 * @param l the direction pointing toward the incomming light. Must be a normal vector.
+	 * @param l the direction of the incomming light. Must be a normal vector.
 	 * @param n the normal vector of the point.
 	 * @param r the reflection
 	 * @return
 	 */
 	public static Vector3f reflection(Vector3f l, Vector3f n, Vector3f r){
-		if(r == null) r = new Vector3f();
-		
 		float f = 2 * dot(n, l);
-		r.x = f * n.x - l.x;
+		return Vector3f.linear(l, n, -f, r);
+		/*r.x = f * n.x - l.x;
 		r.y = f * n.y - l.y;
 		r.z = f * n.z - l.z;
 		
-		return r;
+		return r;*/
 	}
 
 	/**

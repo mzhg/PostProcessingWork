@@ -484,7 +484,7 @@ public class Vector2f extends Vector implements Serializable, ReadableVector2f, 
 	
 	/**
 	 * Compute the reflection.
-	 * @param l the direction pointing toward the incomming light. Must be a normal vector.
+	 * @param l the direction of the incomming light. Must be a normal vector.
 	 * @param n the normal vector of the point.
 	 * @param r the reflection
 	 * @return
@@ -493,8 +493,8 @@ public class Vector2f extends Vector implements Serializable, ReadableVector2f, 
 		if(r == null) r = new Vector2f();
 		
 		float f = 2 * dot(n, l);
-		r.x = f * n.x - l.x;
-		r.y = f * n.y - l.y;
+		r.x = l.x - f * n.x;
+		r.y = l.y - f * n.y;
 		
 		return r;
 	}
@@ -582,24 +582,6 @@ public class Vector2f extends Vector implements Serializable, ReadableVector2f, 
 		
 		r.x  = a.getX() + b.getX() * f;
 		r.y  = a.getY() + b.getY() * f;
-		
-		return r;
-	}
-	
-	/**
-	 * r = a + b * f
-	 * @param a
-	 * @param b
-	 * @param f
-	 * @param r
-	 * @return r if r is null, a new Vector3f will create.
-	 */
-	public static Vector2f linear(ReadableVector2f a, float f, ReadableVector2f b, Vector2f r){
-		if(r == null)
-			r = new Vector2f();
-		
-		r.x  = b.getX() + a.getX() * f;
-		r.y  = b.getY() + a.getY() * f;
 		
 		return r;
 	}

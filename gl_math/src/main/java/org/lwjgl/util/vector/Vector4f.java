@@ -645,4 +645,44 @@ public class Vector4f extends Vector implements Serializable, ReadableVector4f, 
 
 		return result;
 	}
+
+	/**
+	 * r = a + b * f
+	 * @param a
+	 * @param b
+	 * @param f
+	 * @param r
+	 * @return r if r is null, a new Vector3f will create.
+	 */
+	public static Vector4f linear(ReadableVector4f a, ReadableVector4f b, float f, Vector4f r){
+		if(r == null)
+			r = new Vector4f();
+
+		r.x  = a.getX() + b.getX() * f;
+		r.y  = a.getY() + b.getY() * f;
+		r.z  = a.getZ() + b.getZ() * f;
+		r.w  = a.getW() + b.getW() * f;
+
+		return r;
+	}
+
+	/**
+	 * r = a * f + b * g
+	 * @param a
+	 * @param b
+	 * @param f
+	 * @param r
+	 * @return r if r is null, a new Vector3f will create.
+	 */
+	public static Vector4f linear(ReadableVector4f a, float f, ReadableVector4f b, float g, Vector4f r){
+		if(r == null)
+			r = new Vector4f();
+
+		r.x  = b.getX() * g + a.getX() * f;
+		r.y  = b.getY() * g + a.getY() * f;
+		r.z  = b.getZ() * g + a.getZ() * f;
+		r.w  = a.getW() * g + b.getW() * f;
+
+		return r;
+	}
 }

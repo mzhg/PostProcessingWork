@@ -127,7 +127,7 @@ public class ScreenWaveDemo extends NvSampleApp {
         gl.glBindTextureUnit(1, m_WaveSimulator.getGradientMap().getTexture());
         gl.glBindTextureUnit(2, m_image.getTexture());
 
-        Matrix4f.ortho(0, m_WaveSimulator.getTextureWidth(), 0, m_WaveSimulator.getTextureHeight(), -100, 100, m_MVP);
+        Matrix4f.ortho(0, m_WaveSimulator.getTextureWidth(), 0, m_WaveSimulator.getTextureHeight(), -1, 1, m_MVP);
         int mvpIndex = m_WaterRender.getUniformLocation("g_MVP");
         gl.glUniformMatrix4fv(mvpIndex, false, CacheBuffer.wrap(m_MVP));
 

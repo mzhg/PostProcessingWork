@@ -1,7 +1,9 @@
 package jet.opengl.postprocessing.util;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -92,6 +94,10 @@ public class FileUtils {
             inputStream.read(bytes);
             return bytes;
         }
+    }
+
+    public static StringBuilder loadText(String filename) throws IOException{
+        return loadText(new FileReader(filename), false, null);
     }
 
     public static StringBuilder loadText(Reader in) throws IOException{
