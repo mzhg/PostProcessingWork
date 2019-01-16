@@ -1,6 +1,5 @@
 package jet.opengl.demos.nvidia.waves.wavelets;
 
-import org.lwjgl.util.vector.ReadableVector;
 import org.lwjgl.util.vector.ReadableVector2f;
 import org.lwjgl.util.vector.Vector2f;
 

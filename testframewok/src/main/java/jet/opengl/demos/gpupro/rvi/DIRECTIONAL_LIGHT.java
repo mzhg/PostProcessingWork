@@ -226,8 +226,6 @@ final class DIRECTIONAL_LIGHT extends ILIGHT implements ICONST{
         this.direction.normalise();
     }
 
-    // 4,18, 14忘打卡
-
     @Override
     void SetupShadowMapSurface(SURFACE surface) {
         surface.renderTarget = DX11_RENDERER.getInstance().GetRenderTarget(SHADOW_MAP_RT_ID);

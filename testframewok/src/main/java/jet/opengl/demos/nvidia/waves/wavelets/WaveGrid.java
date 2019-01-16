@@ -14,7 +14,6 @@ import java.util.ResourceBundle;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Pair;
 import jet.opengl.postprocessing.util.StackFloat;
-import sun.java2d.cmm.Profile;
 
 /**
  @ WaveGrid main class representing water surface.
