@@ -1,0 +1,45 @@
+#include "WavePackets.glsl"
+
+in VS_INPUT_PACKET
+{
+    vec4 vPos;
+    vec4 Att;
+    vec4 Att2;
+}_input[];
+
+out vec2 Tex;
+
+layout (points) in;
+layout (line_strip, max_vertices = 5) out;
+
+void main()
+{
+    if (_input[0].vPos.x <-9000)
+        return;
+    Tex = float2(0,0);
+    float dThickness = _input[0].Att.w;  // envelope size of packet (=depthspread)
+    const float wThickness = _input[0].Att.w; // rectangular constant sidewidth patches (but individual thickness = envelope size)
+    float3 cPos = float3(_input[0].vPos.x, 0, _input[0].vPos.y );	// "dangling patch" center
+    float3 dVec = float3(_input[0].vPos.z, 0, _input[0].vPos.w ); // vector in traveling direction (orthogonal to crest direction)
+    float3 dVec2 =  float3(dVec.z, 0, -dVec.x);					// vector along wave crest (orthogonal to travel direction)
+    float3 p1 = cPos - wThickness*dVec2;						// neighboring packet patches overlap by 50%
+    float3 p2 = cPos - wThickness*dVec2 - dThickness*dVec;
+    float3 p3 = cPos + wThickness*dVec2;
+    float3 p4 = cPos + wThickness*dVec2 - dThickness*dVec;
+    gl_Position = mul(float4(p1,1.0), g_mWorldViewProjection);
+    EmitVertex();
+//    tStream.Append( p0 );
+    gl_Position = mul(float4(p2,1.0), g_mWorldViewProjection);
+    EmitVertex();
+//    tStream.Append( p0 );
+    gl_Position = mul(float4(p4,1.0), g_mWorldViewProjection);
+    EmitVertex();
+//    tStream.Append( p0 );
+    gl_Position = mul(float4(p3,1.0), g_mWorldViewProjection);
+    EmitVertex();
+//    tStream.Append( p0 );
+    gl_Position = mul(float4(p1,1.0), g_mWorldViewProjection);
+    EmitVertex();
+//    tStream.Append( p0 );
+//    tStream.RestartStrip();
+}

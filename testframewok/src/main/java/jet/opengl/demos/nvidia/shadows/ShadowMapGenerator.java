@@ -439,6 +439,31 @@ import jet.opengl.postprocessing.util.LogUtil;
         return true;
     }
 
+    /**
+     * Helper function to build the cube shadow map matrices.
+     * @param lightPos
+     * @param lightNear
+     * @param lightFar
+     * @param proj
+     * @param views
+     */
+    public static void buildCubeShadowMatrices(ReadableVector3f lightPos, float lightNear, float lightFar, Matrix4f proj, Matrix4f[] views){
+        if(proj != null)
+            Matrix4f.perspective(90, 1, lightNear, lightFar, proj);
+
+        if(views != null){
+            float x = lightPos.getX();
+            float y = lightPos.getY();
+            float z = lightPos.getZ();
+            views[0] = Matrix4f.lookAt(x,y,z, x+1, y,z,0,-1,0, views[0]);
+            views[1] = Matrix4f.lookAt(x,y,z, x-1, y,z,0,-1,0, views[1]);
+            views[2] = Matrix4f.lookAt(x,y,z, x, y+1,z,0,0,1, views[2]);
+            views[3] = Matrix4f.lookAt(x,y,z, x, y-1,z,0,0,-1, views[3]);
+            views[4] = Matrix4f.lookAt(x,y,z, x, y,z+1,0,-1,0, views[4]);
+            views[5] = Matrix4f.lookAt(x,y,z, x, y,z-1,0,-1,0, views[5]);
+        }
+    }
+
     public final void invalidShadowCasters(){
         mDirtyFlags |= DIRTY_SHADOW_CONSTRUCTION;
     }
