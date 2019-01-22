@@ -915,4 +915,27 @@ public final class Numeric {
 
 		return initialCapacity;
 	}
+
+	/**
+	 * Random number distribution that produces floating-point values according to a normal distribution, which is described by the following probability density function:
+	 *
+	 *
+	 *
+	 * This distribution produces random numbers around the distribution mean (μ) with a specific standard deviation (σ).
+	 *
+	 * The normal distribution is a common distribution used for many kind of processes, since it is the distribution that the aggregation of a large number of independent random variables approximates to, when all follow the same distribution (no matter which distribution).
+	 *
+	 * The distribution parameters, mean (μ) and stddev (σ), are set on construction.
+	 * @param x
+	 * @param mean
+	 * @param stddev
+	 * @return
+	 */
+	public static float normal_distribution(float x, float mean, float stddev){
+		double factor = 1.0/(stddev * Math.sqrt(2 * Math.PI));
+		double pow = (x-mean)/stddev;
+		pow = -pow * pow * 0.5;
+
+		return (float) (factor * Math.exp(pow));
+	}
 }

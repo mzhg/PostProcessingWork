@@ -23,6 +23,7 @@
 #define float2x2 mat2
 #define float3x3 mat3
 #define float4x4 mat4
+#define matrix   mat4
 #define float4x3 mat4x3
 
 #define half2 vec2

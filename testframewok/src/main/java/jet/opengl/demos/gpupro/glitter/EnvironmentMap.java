@@ -1,6 +1,5 @@
 package jet.opengl.demos.gpupro.glitter;
 
-import java.awt.Image;
 import java.io.IOException;
 
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -9,8 +8,6 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.ImageData;
 import jet.opengl.postprocessing.texture.TextureUtils;
-
-import static jet.opengl.postprocessing.common.GLenum.GL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
 final class EnvironmentMap {
     private int cubeMap;
@@ -36,7 +33,7 @@ final class EnvironmentMap {
 
             try {
                 ImageData data = gl.getNativeAPI().load(faceTextures[i], false);
-                gl.glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, data.internalFormat, data.width, data.height, 0,
+                gl.glTexImage2D(GLenum.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, data.internalFormat, data.width, data.height, 0,
                         TextureUtils.measureFormat(data.internalFormat), TextureUtils.measureDataType(data.internalFormat), data.pixels);
             } catch (IOException e) {
                 e.printStackTrace();

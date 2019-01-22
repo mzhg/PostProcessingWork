@@ -24,6 +24,9 @@ public class BufferGL implements Disposeable{
     private GLFuncProvider gl;
     private boolean m_bInMapping;
 
+    private int m_textureBuffer;
+    private int m_textureFormat;
+
     private String m_name = "BufferGL"; // only for debugging
 
     public void setName(String name){ m_name = name; }
@@ -97,6 +100,22 @@ public class BufferGL implements Disposeable{
         m_usage = usage;
         m_bufferSize = size;
     }
+
+    public void createTextureBuffer(int format){
+        if(m_textureFormat != format){
+            m_textureFormat = format;
+
+            if(m_textureBuffer != 0)
+                gl.glDeleteTexture(m_textureBuffer);
+
+            m_textureBuffer = gl.glGenTexture();
+            gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, m_textureBuffer);
+            gl.glTexBuffer(GLenum.GL_TEXTURE_BUFFER, m_textureFormat, m_textureBuffer);
+            gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER, 0);
+        }
+    }
+
+    public int getTexture()  { return m_textureBuffer;}
 
     public void update(int offset, Buffer data){
         if(GLCheck.CHECK){

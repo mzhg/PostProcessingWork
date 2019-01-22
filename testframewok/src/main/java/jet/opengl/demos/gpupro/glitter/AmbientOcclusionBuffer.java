@@ -10,8 +10,6 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
-import sun.java2d.opengl.WGLGraphicsConfig;
-import sun.misc.Cache;
 
 final class AmbientOcclusionBuffer {
     static final int mWidth = 1280;
