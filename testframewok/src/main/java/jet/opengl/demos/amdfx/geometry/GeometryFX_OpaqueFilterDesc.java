@@ -3,7 +3,6 @@ package jet.opengl.demos.amdfx.geometry;
 import org.lwjgl.util.vector.Matrix4f;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
 
 import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;

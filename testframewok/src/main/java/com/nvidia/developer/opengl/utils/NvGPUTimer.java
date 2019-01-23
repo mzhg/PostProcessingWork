@@ -106,7 +106,7 @@ public class NvGPUTimer {
 	}
 	
 	/**
-	 * Starts the timer (the previous OpenGL call will be the last timed).
+	 * Stop the timer (the previous OpenGL call will be the last timed).
 	 * This must be called from a thread with the OpenGL context bound
 	 */
 	public void stop(){

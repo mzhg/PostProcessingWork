@@ -110,3 +110,44 @@ float asfloat(int i)
 {
     return intBitsToFloat(i);
 }
+
+float f16tof32( in uint value)
+{
+    return unpackHalf2x16(value).x;
+}
+
+float2 f16tof32( in uint2 value)
+{
+    return float2(unpackHalf2x16(value.x).x, unpackHalf2x16(value.y).x);
+}
+
+float3 f16tof32( in uint3 value)
+{
+    return float3(unpackHalf2x16(value.x).x, unpackHalf2x16(value.y).x, unpackHalf2x16(value.z).x);
+}
+
+float4 f16tof32( in uint4 value)
+{
+    return float4(unpackHalf2x16(value.x).x, unpackHalf2x16(value.y).x, unpackHalf2x16(value.z).x, unpackHalf2x16(value.w).x);
+}
+
+uint f32tof16(in float value)
+{
+    return packHalf2x16(vec2(value, 0));
+}
+
+uint2 f32tof16(in vec2 value)
+{
+    return uint2(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)));
+}
+
+uint3 f32tof16(in float3 value)
+{
+    return uint3(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)), packHalf2x16(vec2(value.z, 0)));
+}
+
+
+uint4 f32tof16(in float4 value)
+{
+    return uint4(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)), packHalf2x16(vec2(value.z, 0)), packHalf2x16(vec2(value.w, 0)));
+}

@@ -1,5 +1,7 @@
 package jet.opengl.demos.amdfx.common;
 
+import com.nvidia.developer.opengl.app.NvInputTransformer;
+
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
@@ -35,6 +37,11 @@ public class CFirstPersonCamera {
 
 	public void SetViewParams(Matrix4f view){
 		m_View.load(view);
+		Matrix4f.decompseRigidMatrix(m_View, m_Eye, m_LookAt, m_Up);
+	}
+
+	public void SetViewParams(NvInputTransformer transformer){
+		transformer.getModelViewMat(m_View);
 		Matrix4f.decompseRigidMatrix(m_View, m_Eye, m_LookAt, m_Up);
 	}
 	

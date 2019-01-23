@@ -1,0 +1,34 @@
+#include "GPUQuad.glsl"
+
+// One per quad - gets expanded in the geometry shader
+in GPUQuadVSOut
+{
+    float4 coords /*: coords*/;         // [min.xy, max.xy] in clip space
+    float quadZ /*: quadZ*/;
+    flat int lightIndex /*: lightIndex*/;
+}_inputs[];
+
+// shader below gets put into a '.y' which doesn't appear to work on some implementations.
+ out flat int lightIndex /*: lightIndex*/;
+
+layout(points) in;
+layout(triangle_strip,max_vertices=4) out;
+
+// Takes point output and converts into screen-space quads
+void main()
+{
+    lightIndex = _inputs[0].lightIndex;
+    gl_Position.zw = float2(_inputs[0].quadZ, 1.0f);
+
+    // Branch around empty regions (i.e. light entirely offscreen)
+    if (all(lessThan(_inputs[0].coords.xy ,_inputs[0].coords.zw))) {
+        gl_Position.xy = _inputs[0].coords.xw;      // [-1,  1]
+        EmitVertex();
+        gl_Position.xy = _inputs[0].coords.zw;      // [ 1,  1]
+        EmitVertex();
+        gl_Position.xy = _inputs[0].coords.xy;      // [-1, -1]
+        EmitVertex();
+        gl_Position.xy = _inputs[0].coords.zy;      // [ 1, -1]
+        EmitVertex();
+    }
+}
