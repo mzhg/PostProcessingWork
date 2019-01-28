@@ -94,6 +94,10 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 		set(x, y, z);
 	}
 
+	public Vector3f(float v){
+		x = y = z = v;
+	}
+
 	/* (non-Javadoc)
 	 * @see org.lwjgl.util.vector.WritableVector2f#set(float, float)
 	 */

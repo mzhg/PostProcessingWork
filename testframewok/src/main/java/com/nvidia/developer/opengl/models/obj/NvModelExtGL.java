@@ -174,11 +174,11 @@ public class NvModelExtGL {
     /// Binds the vertex position, UV, normal and tangent arrays to the given attribute array indices and draws the
     /// model with the currently bound shader. Use a negative value for a handle for any attributes that should
     /// not be bound for use in this draw call.
-	/// \param[in] instanceCount if nonzero, draw using instancing and draw the given instance count.  If zero, use non-instanced rendering
-	/// \param[in] positionHandle the vertex attribute array index that represents position in the current shader
-	/// \param[in] normalHandle the vertex attribute array index that represents normals in the current shader
-    /// \param[in] texcoordHandle the vertex attribute array index that represents UVs in the current shader
-    /// \param[in] tangentHandle the vertex attribute array index that represents tangents in the current shader
+	/// @param instanceCount if nonzero, draw using instancing and draw the given instance count.  If zero, use non-instanced rendering
+	/// @param positionHandle the vertex attribute array index that represents position in the current shader
+	/// @param normalHandle the vertex attribute array index that represents normals in the current shader
+    /// @param texcoordHandle the vertex attribute array index that represents UVs in the current shader
+    /// @param tangentHandle the vertex attribute array index that represents tangents in the current shader
 	public void DrawElements(int instanceCount, int positionHandle, int normalHandle /*= -1*/, int texcoordHandle /*= -1*/, int tangentHandle /*= -1*/){
 		int numMeshes = GetMeshCount();
 		for (int meshIndex = 0; meshIndex < numMeshes; ++meshIndex)

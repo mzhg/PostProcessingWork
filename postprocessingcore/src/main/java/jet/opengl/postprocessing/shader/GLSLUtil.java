@@ -3,6 +3,9 @@ package jet.opengl.postprocessing.shader;
 import org.lwjgl.util.vector.Matrix2f;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector2f;
+import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.ReadableVector4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector2i;
 import org.lwjgl.util.vector.Vector3f;
@@ -1061,5 +1064,65 @@ public final class GLSLUtil {
 		static final IntBuffer buf0 = BufferUtils.createIntBuffer(1);
 		static final IntBuffer buf1 = BufferUtils.createIntBuffer(1);
 		static final IntBuffer buf2 = BufferUtils.createIntBuffer(1);
+	}
+
+	public static void setBool(GLSLProgram prog, String name, boolean v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform1i(index, v?1:0);
+	}
+
+	public static void setFloat(GLSLProgram prog, String name, float v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform1f(index, v);
+	}
+
+	public static void setFloat2(GLSLProgram prog, String name, float x, float y){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform2f(index, x, y);
+	}
+
+	public static void setFloat3(GLSLProgram prog, String name, float x, float y, float z){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform3f(index, x,y,z);
+	}
+
+	public static void setFloat4(GLSLProgram prog, String name, float x, float y, float z, float w){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform4f(index, x,y,z, w);
+	}
+
+	public static void setMat4(GLSLProgram prog, String name, Matrix4f v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniformMatrix4fv(index, false, CacheBuffer.wrap(v));
+	}
+
+	public static void setFloat2(GLSLProgram prog, String name, ReadableVector2f v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform2f(index, v.getX(), v.getY());
+	}
+
+	public static void setFloat3(GLSLProgram prog, String name, ReadableVector3f v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform3f(index, v.getX(), v.getY(), v.getZ());
+	}
+
+	public static void setFloat4(GLSLProgram prog, String name, ReadableVector4f v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform4f(index, v.getX(),v.getY(),v.getZ(), v.getW());
+	}
+
+	public static void setInt(GLSLProgram prog, String name, int v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform1i(index, v);
 	}
 }

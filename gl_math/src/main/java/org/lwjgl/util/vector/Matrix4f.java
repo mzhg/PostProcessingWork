@@ -79,6 +79,10 @@ public class Matrix4f extends Matrix implements Serializable {
 		setIdentity();
 	}
 
+	public Matrix4f(float dia){
+		m00 = m11 = m22 = m33 = dia;
+	}
+
 	public Matrix4f(final Matrix4f src) {
 		super();
 		load(src);
