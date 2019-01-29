@@ -3,6 +3,7 @@ package jet.opengl.demos.intel.cput;
 import com.nvidia.developer.opengl.utils.NvImage;
 
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
@@ -400,5 +401,12 @@ public final class CPUTTextureDX11 extends CPUTTexture{
         CPUTSetDebugName( *ppShaderResourceView, fileName );*/
 
         throw new UnsupportedOperationException();
+    }
+
+    public void UpdateData(Buffer pData, int Format, int Type) {
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glBindTexture( GLenum.GL_TEXTURE_2D, mpTexture.getTexture());
+        gl.glTexSubImage2D(GLenum.GL_TEXTURE_2D, 0, 0, 0, mpTexture.getWidth(), mpTexture.getHeight(), Format, Type, pData);
+        gl.glBindTexture( GLenum.GL_TEXTURE_2D, 0);
     }
 }

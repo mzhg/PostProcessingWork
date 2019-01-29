@@ -1,6 +1,7 @@
 package jet.opengl.demos.intel.cput;
 
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.common.Disposeable;
@@ -33,4 +34,6 @@ public abstract class CPUTTexture implements Disposeable{
     public abstract ByteBuffer MapTexture(CPUTRenderParameters params, CPUTMapType type, boolean wait/*=true*/ );
     public abstract void                      UnmapTexture( CPUTRenderParameters params ); // TODO: Store params on Map() and don't require here.
     public String GetName() { return mName; }
+
+    public abstract void UpdateData(Buffer pData, int Format, int Type);
 }

@@ -36,7 +36,7 @@ final class Scene {
     Texture2D brdfLUTTexture;
     SkyBox mainSkyBox;
     int pointLightCount;
-    private boolean loadingError;
+    boolean loadingError;
     private GLFuncProvider gl;
 
     //TODO:: No real reason this should be a pointer, it could be treated like the other objects

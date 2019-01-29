@@ -15,7 +15,7 @@ public abstract class CPUTAssetSet implements Disposeable{
     protected CPUTRenderNode []mppAssetList;
     protected int             mAssetCount;
     protected CPUTNullNode    mpRootNode;
-    protected CameraData      mpFirstCamera;
+    protected CPUTCamera      mpFirstCamera;
     protected int             mCameraCount;
 
     public static CPUTAssetSet CreateAssetSet(String name, String absolutePathAndFilename ) throws IOException{
@@ -34,7 +34,7 @@ public abstract class CPUTAssetSet implements Disposeable{
     }
     public CPUTRenderNode GetRoot() { /*if(mpRootNode){mpRootNode->AddRef();} */return mpRootNode; }
     public void  SetRoot( CPUTNullNode pRoot) { SAFE_RELEASE(mpRootNode); mpRootNode = pRoot; }
-    public CameraData GetFirstCamera() {  return mpFirstCamera; } // TODO: Consider supporting indexed access to each asset type
+    public CPUTCamera GetFirstCamera() {  return mpFirstCamera; } // TODO: Consider supporting indexed access to each asset type
     public void  RenderRecursive(CPUTRenderParameters renderParams){
         if(mpRootNode != null)
         {
@@ -61,6 +61,14 @@ public abstract class CPUTAssetSet implements Disposeable{
         if(mpRootNode != null)
         {
             mpRootNode.RenderRecursive(renderParams, materialIndex);
+        }
+    }
+
+    public void UpdateRecursive( float deltaSeconds )
+    {
+        if(mpRootNode != null)
+        {
+            mpRootNode.UpdateRecursive(deltaSeconds);
         }
     }
 

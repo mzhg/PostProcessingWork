@@ -742,8 +742,7 @@ final class App implements Disposeable {
         }
     }
 
-    private static void HueToRGB(float hue, Vector3f color)
-    {
+    private static void HueToRGB(float hue, Vector3f color) {
         hue *= 6;
         float intPart = (int)Math.floor(hue);
         float fracPart =  hue - intPart; // modff(hue * 6.0f, &intPart);

@@ -1,6 +1,6 @@
 package jet.opengl.demos.intel.coarse;
 
-final class FramebufferFlatElement {
+public final class FramebufferFlatElement {
     int rb;
     int ga;
 }

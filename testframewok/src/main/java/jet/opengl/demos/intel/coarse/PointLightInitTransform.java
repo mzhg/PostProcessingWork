@@ -1,10 +1,10 @@
 package jet.opengl.demos.intel.coarse;
 
 // Host-side world-space initial transform data
-final class PointLightInitTransform {
+public final class PointLightInitTransform {
     // Cylindrical coordinates
-    float radius;
-    float angle;
-    float height;
-    float animationSpeed;
+    public float radius;
+    public float angle;
+    public float height;
+    public float animationSpeed;
 }

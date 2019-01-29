@@ -178,11 +178,11 @@ public class Vector4f extends Vector implements Serializable, ReadableVector4f, 
 	 * @param dest The destination vector, or null if a new vector is to be created
 	 * @return the sum of left and right in dest
 	 */
-	public static Vector4f add(Vector4f left, Vector4f right, Vector4f dest) {
+	public static Vector4f add(ReadableVector4f left, ReadableVector4f right, Vector4f dest) {
 		if (dest == null)
-			return new Vector4f(left.x + right.x, left.y + right.y, left.z + right.z, left.w + right.w);
+			return new Vector4f(left.getX() + right.getX(), left.getY() + right.getY(), left.getZ() + right.getZ(), left.getW() + right.getW());
 		else {
-			dest.set(left.x + right.x, left.y + right.y, left.z + right.z, left.w + right.w);
+			dest.set(left.getX() + right.getX(), left.getY() + right.getY(), left.getZ() + right.getZ(), left.getW() + right.getW());
 			return dest;
 		}
 	}

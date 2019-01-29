@@ -1,5 +1,6 @@
 package jet.opengl.demos.intel.cput;
 
+import com.nvidia.developer.opengl.models.Model;
 import com.nvidia.developer.opengl.utils.BoundingBox;
 
 import org.lwjgl.util.vector.Matrix4f;
@@ -23,9 +24,14 @@ public class CPUTCamera extends CPUTRenderNode {
 
     private final BoundingBox mBoundingBox = new BoundingBox();
     private final Vector4f[] m_corners = new Vector4f[8];
+    private CPUT_PROJECTION_MODE mMode;
 
     public CPUTCamera(){
-        SetPosition(1.0f, 8.0f, 1.0f);
+        this(CPUT_PROJECTION_MODE.CPUT_PERSPECTIVE);
+    }
+
+    public CPUTCamera(CPUT_PROJECTION_MODE mode){
+        mMode = mode;
     }
 
     public final void Update(  ) {

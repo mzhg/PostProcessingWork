@@ -120,15 +120,83 @@ final class RenderManager {
     }
 
     void shutDown(){
-
+//        screen = nullptr;
+        sceneCamera  = null;
+        sceneLocator = null;
     }
 
+    /* This time using volume tiled forward
+    Algorithm steps:
+    //Initialization or view frustrum change
+    0. Determine AABB's for each volume
+    //Update Every frame
+    1. Depth-pre pass :: DONE
+    2. Mark Active tiles :: POSTPONED AS OPTIMIZATION
+    3. Build Tile list ::  POSTPONED AS OPTIMIZATION
+    4. Assign lights to tiles :: DONE (BUT SHOULD BE OPTIMIZED)
+    5. Shading by reading from the active tiles list :: DONE
+    6. Post processing and screen space effects :: DONE
+    */
     //The core rendering loop of the engine. The steps that it follow are indicated on the cpp file
     //but it's just a very vanilla Forward+ clustered renderer with barely any bells and whistled or
     //optimizations. In the future, (the magical land where all projects are complete) I plan on
     //heavily optimizing this part of the program along the lines of the 2014 talk, "beyond porting"
     //But in the mean-time it uses pretty basic an naive openGL.
-    void render(const unsigned int start);
+    void render(int start){
+        //Initiating rendering gui
+        /*ImGui::Begin("Rendering Controls");
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+        if(ImGui::CollapsingHeader("Controls")){
+            ImGui::Text("Strafe: w a s d");
+            ImGui::Text("Rotate Camera: hold left click + mouse");
+            ImGui::Text("Up&Down: q e");
+            ImGui::Text("Reset Camera: r");
+            ImGui::Text("Exit: ESC");
+            ImGui::InputFloat3("Camera Pos", (float*)&sceneCamera->position); //Camera controls
+            ImGui::SliderFloat("Movement speed", &sceneCamera->camSpeed, 0.005f, 1.0f);
+        }*/
+        //Making sure depth testing is enabled
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glDepthMask(true);
+
+        // Directional shadows
+        dirShadowFBO.bind();
+//        dirShadowFBO.clear(GL_DEPTH_BUFFER_BIT, glm::vec3(1.0f));  todo
+        currentScene.drawDirLightShadows(dirShadowShader, /*dirShadowFBO.depthBuffer todo*/0);
+
+        //1.1- Multisampled Depth pre-pass
+        multiSampledFBO.bind();
+//        multiSampledFBO.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, glm::vec3(0.0f));todo
+        currentScene.drawDepthPass(depthPrePassShader);
+
+        //4-Light assignment
+        cullLightsCompShader.enable();
+        GLSLUtil.setMat4(cullLightsCompShader,"viewMatrix", sceneCamera.GetViewMatrix());
+//        cullLightsCompShader.dispatch(1,1,6);
+        gl.glDispatchCompute(gridSizeX, gridSizeY, gridSizeZ);
+        gl.glMemoryBarrier(GLenum.GL_SHADER_STORAGE_BARRIER_BIT);
+
+        //5 - Actual shading;
+        //5.1 - Forward render the scene in the multisampled FBO using the z buffer to discard early
+        gl.glDepthFunc(GLenum.GL_LEQUAL);
+        gl.glDepthMask(false);
+        currentScene.drawFullScene(PBRClusteredShader, skyboxShader);
+
+        //5.2 - resolve the from multisampled to normal resolution for postProcessing
+//        multiSampledFBO.blitTo(simpleFBO, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  todo
+
+        //6 -postprocessing, includes bloom, exposure mapping
+        postProcess(start);
+
+        //Rendering gui scope ends here cannot be done later because the whole frame
+        //is reset in the display buffer swap
+//        ImGui::End();
+
+        //Drawing to the screen by swapping the window's surface with the
+        //final buffer containing all rendering information
+//        screen->swapDisplayBuffer();
+    }
 
     void onResize(int width, int height, int sample){
         m_WindowWidth = width;
@@ -137,7 +205,49 @@ final class RenderManager {
     }
 
     //Internal initialization functions
-    private boolean initFBOs();
+    private boolean initFBOs(){
+        //Init variables
+        int shadowMapResolution = currentScene.getShadowRes();
+        int skyboxRes = currentScene.mainSkyBox.resolution;
+        numLights = currentScene.pointLightCount;
+        boolean stillValid = true;
+
+        //Shadow Framebuffers
+//        pointLightShadowFBOs = new PointShadowBuffer[numLights];  todo
+
+        //Directional light
+//        dirShadowFBO.setupFrameBuffer(shadowMapResolution, shadowMapResolution);  todo
+
+        //Point light
+        for(int i = 0; i < numLights; ++i ){
+//            pointLightShadowFBOs[i].setupFrameBuffer(shadowMapResolution, shadowMapResolution); todo
+        }
+
+        if(!stillValid){
+            LogUtil.i(LogUtil.LogType.DEFAULT, "Error initializing shadow map FBO's!\n");
+            return false;
+        }
+
+        //Rendering buffers
+//        stillValid &= multiSampledFBO.setupFrameBuffer();  todo
+//        stillValid &= captureFBO.setupFrameBuffer(skyboxRes, skyboxRes);  todo
+
+        if(!stillValid){
+            LogUtil.i(LogUtil.LogType.DEFAULT,"Error initializing rendering FBO's!\n");
+            return false;
+        }
+
+        //Post processing buffers
+//        stillValid &= pingPongFBO.setupFrameBuffer();  todo
+//        stillValid &= simpleFBO.setupFrameBuffer();    todo
+
+        if(!stillValid){
+            LogUtil.i(LogUtil.LogType.DEFAULT,"Error initializing postPRocessing FBO's!\n");
+            return false;
+        }
+
+        return stillValid;
+    }
 
     private boolean initSSBOs(){
         //Setting up tile size on both X and Y
@@ -228,7 +338,7 @@ final class RenderManager {
         //Another to represent the offset to the light index list from where to begin reading light indexes from
         //This implementation is straight up from Olsson paper
         {
-            gl.glGenBuffers(1, &lightGridSSBO);
+            lightGridSSBO = gl.glGenBuffer();
             gl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightGridSSBO);
 
             gl.glBufferData(GL_SHADER_STORAGE_BUFFER, numClusters * 2 * /*sizeof(unsigned int)*/4, GL_STATIC_COPY);
@@ -238,7 +348,7 @@ final class RenderManager {
 
         //Setting up simplest ssbo in the world
         {
-            gl.glGenBuffers(1, &lightIndexGlobalCountSSBO);
+            lightIndexGlobalCountSSBO = gl.glGenBuffer();
             gl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightIndexGlobalCountSSBO);
 
             //Every tile takes two unsigned ints one to represent the number of lights in that grid
@@ -251,7 +361,53 @@ final class RenderManager {
         return true;
     }
 
-    private boolean loadShaders();
+    private boolean loadShaders(){
+        boolean stillValid = true;
+        final String root = "gpupro\\hybrid\\shaders\\";
+        final String quadVS = "shader_libs\\PostProcessingDefaultScreenSpaceVS.vert";
+        //Pre-processing
+        buildAABBGridCompShader = GLSLProgram.createProgram(root + "clusterShader.comp", null);
+        cullLightsCompShader = GLSLProgram.createProgram(root + "clusterCullLightShader.comp", null);
+        fillCubeMapShader = GLSLProgram.createProgram(root+ "cubeMapShader.vert", root+ "buildCubeMapShader.frag", null);
+        convolveCubeMap = GLSLProgram.createProgram(root+ "cubeMapShader.vert", root+ "convolveCubemapShader.frag", null);
+        preFilterSpecShader = GLSLProgram.createProgram(root+ "cubeMapShader.vert", root+ "preFilteringShader.frag", null);
+        integrateBRDFShader = GLSLProgram.createProgram(quadVS, root+ "brdfIntegralShader.frag", null);
+
+        if(!stillValid){
+            LogUtil.i(LogUtil.LogType.DEFAULT, "Error loading pre-processing Shaders!\n");
+            return false;
+        }
+        //Rendering
+        depthPrePassShader = GLSLProgram.createProgram(root+"depthPassShader.vert", root+"depthPassShader.frag", null);
+        PBRClusteredShader= GLSLProgram.createProgram(root+"PBRClusteredShader.vert", root+"PBRClusteredShader.frag", null);
+        skyboxShader= GLSLProgram.createProgram(root+ "skyboxShader.vert", root+ "skyboxShader.frag", null);
+        screenSpaceShader= GLSLProgram.createProgram(quadVS, root+ "screenShader.frag", null);
+
+        if(!stillValid){
+            LogUtil.i(LogUtil.LogType.DEFAULT,"Error loading rendering Shaders!\n");
+            return false;
+        }
+
+        //Shadow mapping
+        dirShadowShader= GLSLProgram.createProgram(root+"shadowShader.vert", root+"shadowShader.frag", null);
+        pointShadowShader= GLSLProgram.createProgram(root+"pointShadowShader.vert", root+"pointShadowShader.gemo", root+"pointShadowShader.frag", null);
+
+        if(!stillValid){
+            LogUtil.i(LogUtil.LogType.DEFAULT,"Error loading shadow mapping Shaders!\n");
+            return false;
+        }
+        //Post-processing
+        highPassFilterShader= GLSLProgram.createProgram(quadVS, root+"splitHighShader.frag", null);
+        gaussianBlurShader= GLSLProgram.createProgram(quadVS, root+"blurShader.frag", null);
+
+        if(!stillValid){
+            LogUtil.i(LogUtil.LogType.DEFAULT,"Error loading post-processing Shaders!\n");
+            return false;
+        }
+
+        return stillValid;
+    }
+
     //TODO:: rewrite shadow mapping to be dynamic and fast and make use of cluster shading
     //and some new low driver overhead stuff I've been reading about
     private boolean preProcess(){
@@ -273,23 +429,24 @@ final class RenderManager {
         //Cubemap convolution TODO:: This could probably be moved to a function of the scene or environment maps
         //themselves as a class / static function
         int res = currentScene.irradianceMap.getWidth();
-        captureFBO.resizeFrameBuffer(res);
+//        captureFBO.resizeFrameBuffer(res);  todo
         int environmentID = currentScene.mainSkyBox.skyBoxCubeMap.getTexture();
         convolveCubeMap(environmentID, convolveCubeMap, currentScene.irradianceMap);
 
         //Cubemap prefiltering TODO:: Same as above
-        int captureRBO = captureFBO.depthBuffer;
+        int captureRBO = /* captureFBO.depthBuffer todo */ 0;
         preFilterCubeMap(environmentID, captureRBO, preFilterSpecShader, currentScene.specFilteredMap);
 
         //BRDF lookup texture
         integrateBRDFShader.enable();
         res = currentScene.brdfLUTTexture.getHeight();
-        captureFBO.resizeFrameBuffer(res);
+//        captureFBO.resizeFrameBuffer(res);  todo
         int id = currentScene.brdfLUTTexture.getTexture();
         gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, id, 0);
         gl.glViewport(0, 0, res, res);
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
-        canvas.draw();
+//        canvas.draw();
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
 
         //Making sure that the viewport is the correct size after rendering
         gl.glViewport(0, 0, m_WindowWidth, m_WindowHeight);
@@ -357,18 +514,66 @@ final class RenderManager {
             gl.glViewport(0, 0, mipWidth, mipHeight);
 
             for(int i = 0; i < 6; ++i){
-                GLSLUtil.setMat4(filterShader,"view", captureViews[i]);
+                GLSLUtil.setMat4(filterShader,"view", /*captureViews[i] todo*/ Matrix4f.IDENTITY);
 
                 gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0,
                         GLenum.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                         result.getTexture(), mip);
 
                 gl.glClear(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
-                drawCube();
+//                drawCube();  todo
             }
         }
     }
 
     //Functions used to break up the main render function into more manageable parts.
-    void postProcess(int start);
+    void postProcess(int start){
+        /*if(ImGui::CollapsingHeader("Post-processing")){
+            ImGui::SliderInt("Blur", &sceneCamera->blurAmount, 0, 10);
+            ImGui::SliderFloat("Exposure", &sceneCamera->exposure, 0.1f, 5.0f);
+        }*/
+
+        //TODO:: should be a compute shader
+        pingPongFBO.bind();
+//        pingPongFBO.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, glm::vec3(0.0f));  todo
+//        if( sceneCamera.blurAmount > 0)  todo
+        {
+            //Filtering pixel rgb values > 1.0
+            highPassFilterShader.enable();
+//            canvas.draw(simpleFBO.texColorBuffer);  todo
+        }
+
+        //Applying Gaussian blur in ping pong fashion
+        //TODO:: ALso make it a compute shader
+        gaussianBlurShader.enable();
+//        for (int i = 0; i < sceneCamera->blurAmount; ++i)
+        {
+            //Horizontal pass
+            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, /*simpleFBO.frameBufferID todo*/0);
+            gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT1);
+            GLSLUtil.setBool(gaussianBlurShader,"horizontal", true);
+//            canvas.draw(pingPongFBO.texColorBuffer);  todo
+
+            //Vertical pass
+            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, /*pingPongFBO.frameBufferID todo*/0);
+            GLSLUtil.setBool(gaussianBlurShader,"horizontal", false);
+//            canvas.draw(simpleFBO.blurHighEnd);  todo
+        }
+        //Setting back to default framebuffer (screen) and clearing
+        //No need for depth testing cause we're drawing to a flat quad
+//        screen->bind();  todo
+
+        //Shader setup for postprocessing
+        screenSpaceShader.enable();
+
+        GLSLUtil.setInt(screenSpaceShader,"offset", start);
+        GLSLUtil.setFloat(screenSpaceShader,"exposure", /*sceneCamera->exposure todo*/1);
+        GLSLUtil.setInt(screenSpaceShader,"screenTexture", 0);
+        GLSLUtil.setInt(screenSpaceShader,"bloomBlur", 1);
+        GLSLUtil.setInt(screenSpaceShader,"computeTexture", 2);
+
+        //Merging the blurred high pass image with the low pass values
+        //Also tonemapping and doing other post processing
+//        canvas.draw(simpleFBO.texColorBuffer, pingPongFBO.texColorBuffer);  todo
+    }
 }

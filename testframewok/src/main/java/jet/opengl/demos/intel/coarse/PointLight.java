@@ -7,13 +7,13 @@ import org.lwjgl.util.vector.Vector4f;
 import java.nio.ByteBuffer;
 
 // NOTE: Must match shader equivalent structure
-final class PointLight implements Readable {
-    static final int SIZE = Vector4f.SIZE * 2;
+public final class PointLight implements Readable {
+    public static final int SIZE = Vector4f.SIZE * 2;
 
-    final Vector3f positionView = new Vector3f();
-    float attenuationBegin;
-    final Vector3f color = new Vector3f();
-    float attenuationEnd;
+    public final Vector3f positionView = new Vector3f();
+    public float attenuationBegin;
+    public final Vector3f color = new Vector3f();
+    public float attenuationEnd;
 
     @Override
     public ByteBuffer store(ByteBuffer buf) {
