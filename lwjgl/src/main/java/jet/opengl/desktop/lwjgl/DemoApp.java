@@ -23,6 +23,7 @@ import java.io.InputStream;
 import jet.opengl.demos.gpupro.clustered.HybridRendererDemo;
 import jet.opengl.demos.gpupro.lpv.LightPropagationVolumeDemo;
 import jet.opengl.demos.intel.antialiasing.AntiAliasingDemo;
+import jet.opengl.demos.intel.cloud.CloudSkyDemo;
 import jet.opengl.demos.labs.scattering.AtmosphereTest;
 import jet.opengl.demos.labs.scattering.Chapman;
 import jet.opengl.demos.labs.skylight.SkyImage;
@@ -140,7 +141,7 @@ public class DemoApp {
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
-//        run(new LightingVolumeDemo());
+        run(new LightingVolumeDemo());
 //        run(new TestD3D11());
 //        run(new Chapman());
 //        run(new AtmosphereTest());
@@ -150,7 +151,8 @@ public class DemoApp {
 //        run(new ParaboloidShadowDemo());
 //        run(new LightPropagationVolumeDemo());
 //        run(new AntiAliasingDemo());
-        run(new HybridRendererDemo());
+//        run(new HybridRendererDemo());
+//        run(new CloudSkyDemo());
     }
 
     private static void testParaboloidMatrix(){

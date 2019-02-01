@@ -533,9 +533,7 @@ public class ClusteredShadingSample extends NvSampleApp implements ICONST{
     private void ComputeLighting(CPUTRenderParameters renderParams){
         gl.glBindVertexArray(m_DummyVAO);
 
-        if (mUIConstants.lightCullTechnique == CULL_QUAD ||
-                mUIConstants.lightCullTechnique == CULL_DEFERRED_NONE)
-        {
+        if (mUIConstants.lightCullTechnique == CULL_QUAD || mUIConstants.lightCullTechnique == CULL_DEFERRED_NONE) {
             gl.glDisable(GLenum.GL_DEPTH_TEST);
             gl.glUseProgram(m_DeferredNoCullProgram.getProgram());
             // When quad mode is selected, we stil need to apply the light maps.
@@ -546,8 +544,7 @@ public class ClusteredShadingSample extends NvSampleApp implements ICONST{
             gl.glEnable(GLenum.GL_DEPTH_TEST);
         }
 
-        if( mUIConstants.lightCullTechnique == CULL_QUAD )
-        {
+        if( mUIConstants.lightCullTechnique == CULL_QUAD ) {
             gl.glUseProgram(m_GPUQuadProgram.getProgram());
             SetGLProgramUniforms(m_GPUQuadProgram.getProgram());
 
@@ -561,8 +558,7 @@ public class ClusteredShadingSample extends NvSampleApp implements ICONST{
             gl.glDisable(GLenum.GL_BLEND);
         }
 
-        if (mUIConstants.lightCullTechnique == CULL_COMPUTE_SHADER_TILE )
-        {
+        if (mUIConstants.lightCullTechnique == CULL_COMPUTE_SHADER_TILE ) {
             gl.glUseProgram(m_TiledDeferredCSProgram.getProgram());
             SetGLProgramUniforms(m_TiledDeferredCSProgram.getProgram());
 

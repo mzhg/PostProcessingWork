@@ -511,7 +511,7 @@ public class Cube16 {
 
 	final class SceneController {
 
-		LightType lightMode = LightType.POINT;
+		LightType lightMode = LightType.DIRECTIONAL;
 		int lightPower_;
 		int viewpoint_ = 0;
 
@@ -915,7 +915,7 @@ public class Cube16 {
 			super(context);
 
 			try {
-				compileProgram("Scenes/Cube16/shaders/scene_VS.vert", null, "Scenes/Cube16/shaders/Dummy_PS.frag");
+				compileProgram("Scenes/Cube16/shaders/scene_VS.vert", null, null);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

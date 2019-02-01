@@ -106,7 +106,7 @@ public class GLSLProgram implements OpenGLProgram{
 	 */
 	public void setSourceFromFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
 		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, false);
-		CharSequence fragSrc = ShaderLoader.loadShaderFile(fragFilename, false);
+		CharSequence fragSrc = fragFilename != null? ShaderLoader.loadShaderFile(fragFilename, false) : null;
 		setSourceFromStrings(vertSrc, fragSrc, macros);
 	}
 	
@@ -142,9 +142,10 @@ public class GLSLProgram implements OpenGLProgram{
 	 */
 	protected void setSourceFromStrings(CharSequence vertSrc, CharSequence fragSrc, Macro...macros){
 		ShaderSourceItem vs_item = new ShaderSourceItem(vertSrc, ShaderType.VERTEX);
-		ShaderSourceItem ps_item = new ShaderSourceItem(fragSrc, ShaderType.FRAGMENT);
+		ShaderSourceItem ps_item = fragSrc!=null ? new ShaderSourceItem(fragSrc, ShaderType.FRAGMENT) : null;
 
 		vs_item.macros = macros;
+		if(ps_item != null)
 		ps_item.macros = macros;
 
 		setSourceFromStrings(vs_item, ps_item);
