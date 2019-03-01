@@ -141,11 +141,11 @@ public class DemoApp {
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
-        run(new LightingVolumeDemo());
+//        run(new LightingVolumeDemo());
 //        run(new TestD3D11());
 //        run(new Chapman());
 //        run(new AtmosphereTest());
-//        run(new FaceWorkDemo());
+        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
 //        run(new VolumetricLightingDemo());
 //        run(new ParaboloidShadowDemo());
