@@ -5,16 +5,27 @@ import com.nvidia.developer.opengl.app.NvInputTransformer;
 import com.nvidia.developer.opengl.app.NvPointerActionType;
 import com.nvidia.developer.opengl.app.NvPointerEvent;
 import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
+import java.io.IOException;
+
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.shader.ShaderType;
+import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.DebugTools;
+import jet.opengl.postprocessing.util.FileLoader;
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
+import sun.security.ssl.Debug;
 
 /**
  * Created by mazhen'gui on 2018/2/10.
@@ -45,6 +56,27 @@ public final class Flight404 extends NvSampleApp {
     protected void initRendering() {
         gl = GLFuncProviderFactory.getGLFuncProvider();
 //        getGLContext().setSwapInterval(0);
+
+        /*String filename = "E:\\workspace\\VSProjects\\GraphicsWork\\Media\\DefaultVS.vert";
+        CharSequence source = DebugTools.loadText(filename);
+        try {
+            FileLoader old = FileUtils.g_IntenalFileLoader;
+            FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
+            GLSLProgram.createShaderProgramFromFile(filename, ShaderType.VERTEX);
+            FileUtils.setIntenalFileLoader(old);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }*/
+
+        try {
+            FileLoader old = FileUtils.g_IntenalFileLoader;
+            FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
+            String path = "E:\\workspace\\VSProjects\\GraphicsWork\\Media\\Effects\\";
+            GLSLProgram.createFromFiles(path + "SkyBoxVS.vert", path + "SkyBoxPS.frag");
+            FileUtils.setIntenalFileLoader(old);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         float mTheta =Numeric.PI/4;
         float mPhi = Numeric.PI/3;

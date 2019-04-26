@@ -38,7 +38,7 @@ final class RenderProgram extends GLSLProgram{
     public RenderProgram(String vert){
         final String path = "nvidia/PerlinFire/shaders/";
         try {
-            setSourceFromFiles(path + vert, "Scenes/Cube16/shaders/Dummy_PS.frag");
+            setSourceFromFiles(path + vert, null);
         } catch (IOException e) {
             e.printStackTrace();
         }

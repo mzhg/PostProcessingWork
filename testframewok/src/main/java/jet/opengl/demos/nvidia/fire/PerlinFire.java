@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import jet.opengl.demos.nvidia.lightning.XMesh;
+import jet.opengl.demos.nvidia.shadows.ShadowMapGenerator;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -408,7 +409,7 @@ public final class PerlinFire extends NvSampleApp {
         gl.glActiveTexture(GLenum.GL_TEXTURE1);
         gl.glBindTexture(g_pDepthBuffer.getTarget(), g_pDepthBuffer.getTexture());
         gl.glActiveTexture(GLenum.GL_TEXTURE2);
-        gl.glBindTexture(g_pFireTextureSRV.getTarget(), g_pFireTextureSRV.getTexture());
+        if(g_pFireTextureSRV != null) gl.glBindTexture(g_pFireTextureSRV.getTarget(), g_pFireTextureSRV.getTexture());
         gl.glActiveTexture(GLenum.GL_TEXTURE3);
         gl.glBindTexture(g_pJitterTextureSRV.getTarget(), g_pJitterTextureSRV.getTexture());
         gl.glTexParameteri(g_pJitterTextureSRV.getTarget(), GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_REPEAT);
@@ -616,6 +617,9 @@ public final class PerlinFire extends NvSampleApp {
         final Vector3f vUpDir = new Vector3f();
         final Matrix4f[] cubeViewMatrices = m_uniformData.mCubeViewMatrixs;
         final Matrix4f cubeProjMatrix = m_uniformData.mCubeProjMatrix;
+
+        ShadowMapGenerator.buildCubeShadowMatrices(cubeCenter, 0.2f, 200.0f, cubeProjMatrix, cubeViewMatrices);
+        if(true) return;
 
         Vector3f.add(cubeCenter, Vector3f.X_AXIS, vLookDir);
         vUpDir.set(0.0f, 1.0f, 0.0f);

@@ -2058,6 +2058,12 @@ public class NvImage {
             case DDS10_FORMAT_BC5_SNORM:
                 set_compressed_type_info( GL_COMPRESSED_SIGNED_RG_RGTC2, GL_COMPRESSED_SIGNED_RG_RGTC2, GL_UNSIGNED_BYTE, 16, i, p);
                 break;
+            case DDS10_FORMAT_BC6H_UF16:
+                set_compressed_type_info( GLenum.GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB, GLenum.GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB, GL_UNSIGNED_BYTE, 16, i, p);
+                break;
+            case DDS10_FORMAT_BC6H_SF16:
+                set_compressed_type_info( GLenum.GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB, GLenum.GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB, GL_UNSIGNED_BYTE, 16, i, p);
+                break;
             case DDS10_FORMAT_BC7_UNORM:
                 set_compressed_type_info(GLenum.GL_COMPRESSED_RGBA_BPTC_UNORM_ARB, GLenum.GL_COMPRESSED_RGBA_BPTC_UNORM_ARB, GL_UNSIGNED_BYTE, 16, i, p);// todo
                 break;
@@ -2129,8 +2135,6 @@ public class NvImage {
             case DDS10_FORMAT_R10G10B10_XR_BIAS_A2_UNORM:
             case DDS10_FORMAT_R1_UNORM:
             case DDS10_FORMAT_BC6H_TYPELESS:
-            case DDS10_FORMAT_BC6H_UF16:
-            case DDS10_FORMAT_BC6H_SF16:
 //            case DDS10_FORMAT_BC7_TYPELESS:
 //            case DDS10_FORMAT_BC7_UNORM:
 //            case DDS10_FORMAT_BC7_UNORM_SRGB:

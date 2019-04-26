@@ -104,6 +104,7 @@ public final class SkyBoxRender implements Disposeable{
 		if(m_NeedUpdateMatrix){
 			Matrix4f.mul(m_Projection, m_Rotation, m_MVP);
 			m_SkyBoxProgram.applyMVP(m_MVP);
+			m_NeedUpdateMatrix = false;
 		}
 		
 		// binding texture.
@@ -111,7 +112,7 @@ public final class SkyBoxRender implements Disposeable{
 		gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, m_CubeTexture);
 		
 		// setup the property or sampler.
-		if(m_CubeSampler == 0 && SamplerUtils.isSamplerSupport()){
+		/*if(m_CubeSampler == 0 && SamplerUtils.isSamplerSupport()){
 			SamplerDesc desc = new SamplerDesc();
 			
 			if(m_SelfLoadTexture && m_HasMipmap){
@@ -122,11 +123,12 @@ public final class SkyBoxRender implements Disposeable{
 			// Note: we din't check the mipmap for the cube map
 			// This issue will fixed in the next version.
 			m_CubeSampler = SamplerUtils.createSampler(desc);
-		}
+		}*/
 		
 		if(m_CubeSampler != 0){
 			gl.glBindSampler(0, m_CubeSampler);
 		}else{
+			gl.glBindSampler(0, 0);
 			// The driver doesn't support the sampler object.
 			if(m_SelfLoadTexture){
 				if(!m_HasSetupProperty){
@@ -165,4 +167,6 @@ public final class SkyBoxRender implements Disposeable{
 			m_CubeSampler = 0;
 		}
 	}
+
+	public int getCubeMap() { return m_CubeTexture;}
 }

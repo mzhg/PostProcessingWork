@@ -334,19 +334,17 @@ public class RenderTargets implements Disposeable{
                     int target = pTex.getTarget();
                     assert(target == GLenum.GL_TEXTURE_2D || target == GLenum.GL_TEXTURE_CUBE_MAP || target == GLenum.GL_TEXTURE_RECTANGLE ||
                             target == GLenum.GL_TEXTURE_2D_MULTISAMPLE);
-                    if (!info.attached || info.textureTarget != pTex.getTarget() || info.textureId != pTex.getTexture() || info.level != desc.level)
+
+                    if(target == GLenum.GL_TEXTURE_CUBE_MAP){
+                        if(desc.layer < 0 || desc.layer >= 6)
+                            throw new IllegalArgumentException("Invalid layer for cubemap target.");
+
+                        target = GLenum.GL_TEXTURE_CUBE_MAP_POSITIVE_X + desc.layer;
+                    }
+
+                    if (!info.attached || info.textureTarget != target || info.textureId != pTex.getTexture() || info.level != desc.level)
                     {
-                        if (target == GLenum.GL_TEXTURE_CUBE_MAP)
-                        {
-                            for (int i = 0; i < FramebufferGL.CUBE_FACES.length; i++)
-                            {
-                                gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, attachment, FramebufferGL.CUBE_FACES[i], pTex.getTexture(), desc.level);
-                            }
-                        }
-                        else
-                        {
-                            gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, attachment, target, pTex.getTexture(), desc.level);
-                        }
+                        gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, attachment, target, pTex.getTexture(), desc.level);
 
                         info.attached = true;
                         info.textureTarget = target;

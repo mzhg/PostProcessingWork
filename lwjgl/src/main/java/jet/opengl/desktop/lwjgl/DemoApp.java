@@ -5,12 +5,6 @@ import com.nvidia.developer.opengl.app.NvEGLConfiguration;
 import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
 import com.nvidia.developer.opengl.utils.NvImage;
 
-import org.lwjgl.opengl.EXTTextureCompressionLATC;
-import org.lwjgl.opengl.EXTTextureCompressionS3TC;
-import org.lwjgl.opengles.NVTextureCompressionS3TC;
-import org.lwjgl.util.vector.Matrix;
-import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -20,25 +14,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import jet.opengl.demos.gpupro.clustered.HybridRendererDemo;
-import jet.opengl.demos.gpupro.lpv.LightPropagationVolumeDemo;
-import jet.opengl.demos.intel.antialiasing.AntiAliasingDemo;
-import jet.opengl.demos.intel.cloud.CloudSkyDemo;
-import jet.opengl.demos.labs.scattering.AtmosphereTest;
-import jet.opengl.demos.labs.scattering.Chapman;
-import jet.opengl.demos.labs.skylight.SkyImage;
-import jet.opengl.demos.nvidia.face.sample.FaceWorkDemo;
-import jet.opengl.demos.nvidia.face.sample.FaceWorkTest;
-import jet.opengl.demos.nvidia.shadows.ParaboloidShadowDemo;
-import jet.opengl.demos.nvidia.volumelight.VolumetricLightingDemo;
-import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
-import jet.opengl.demos.nvidia.waves.samples.ScreenWaveDemo;
-import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
-import jet.opengl.demos.postprocessing.HBAODemo;
-import jet.opengl.demos.postprocessing.LightingVolumeDemo;
-import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
-import jet.opengl.postprocessing.core.OpenGLProgram;
-import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.demos.flight404.Flight404;
+import jet.opengl.demos.gpupro.ibl.IndirectLighting;
+import jet.opengl.demos.nvidia.fire.PerlinFire;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
@@ -145,7 +123,7 @@ public class DemoApp {
 //        run(new TestD3D11());
 //        run(new Chapman());
 //        run(new AtmosphereTest());
-        run(new FaceWorkDemo());
+//        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
 //        run(new VolumetricLightingDemo());
 //        run(new ParaboloidShadowDemo());
@@ -153,6 +131,8 @@ public class DemoApp {
 //        run(new AntiAliasingDemo());
 //        run(new HybridRendererDemo());
 //        run(new CloudSkyDemo());
+//        run(new IndirectLighting());
+        run(new PerlinFire());
     }
 
     private static void testParaboloidMatrix(){
