@@ -131,8 +131,8 @@ public class DemoApp {
 //        run(new AntiAliasingDemo());
 //        run(new HybridRendererDemo());
 //        run(new CloudSkyDemo());
-//        run(new IndirectLighting());
-        run(new PerlinFire());
+        run(new IndirectLighting());
+//        run(new PerlinFire());
     }
 
     private static void testParaboloidMatrix(){

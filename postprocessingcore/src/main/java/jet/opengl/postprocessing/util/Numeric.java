@@ -1,5 +1,7 @@
 package jet.opengl.postprocessing.util;
 
+import com.sun.java.swing.plaf.windows.WindowsButtonUI;
+
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.WritableVector3f;
@@ -937,5 +939,37 @@ public final class Numeric {
 		pow = -pow * pow * 0.5;
 
 		return (float) (factor * Math.exp(pow));
+	}
+
+	public static int calculateMipLevels(int width){
+		int levels = 1;
+
+		if(width < 1)
+			throw new IllegalArgumentException("Width can't less 1");
+
+		while (width != 1){
+			width = Math.max(1, width/2);
+			levels ++;
+		}
+
+		return levels;
+	}
+
+	public static int calculateMipLevels(int width, int height){
+		int levels = 1;
+
+		if(width < 1)
+			throw new IllegalArgumentException("Width can't less 1");
+
+		if(height < 1)
+			throw new IllegalArgumentException("height can't less 1");
+
+		while (width != 1 || height != 1){
+			width = Math.max(1, width/2);
+			height = Math.max(1, height/2);
+			levels ++;
+		}
+
+		return levels;
 	}
 }

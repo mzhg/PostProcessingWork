@@ -10,8 +10,6 @@ import org.lwjgl.util.vector.Vector3f;
 import java.io.IOException;
 import java.nio.IntBuffer;
 
-import javax.naming.InitialContext;
-
 import jet.opengl.demos.nvidia.shadows.ShadowMapGenerator;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
@@ -31,16 +29,6 @@ import jet.opengl.postprocessing.util.LogUtil;
 
 public class IrradianceCubeMap implements Disposeable {
 
-    public static class Desc{
-        public boolean sourceFromFile = false;
-        public String sourceFilename;
-        public TextureCube sourceEnvMap;
-
-        public boolean outputToInternalCubeMap = true;
-        public int outputSize = 128;
-        public TextureCube outputEnvMap;
-    }
-
     private TextureCube mInput;
     private TextureCube mOutput;
 
@@ -54,9 +42,9 @@ public class IrradianceCubeMap implements Disposeable {
     private GLFuncProvider gl;
     private boolean mInitlized;
 
-    private final Desc mDesc = new Desc();
+    private final IBLDesc mDesc = new IBLDesc();
 
-    public void generateCubeMap(Desc desc){
+    public void generateCubeMap(IBLDesc desc){
         intlizeResources();
         updateInputs(desc);
         updateOutput(desc);
@@ -139,7 +127,7 @@ public class IrradianceCubeMap implements Disposeable {
         mInitlized = true;
     }
 
-    private void updateInputs(Desc desc){
+    private void updateInputs(IBLDesc desc){
         if(desc.sourceFromFile){
             if(!mDesc.sourceFromFile || !mDesc.sourceFilename.equals(desc.sourceFilename)){
                 SAFE_RELEASE(mInput);
@@ -171,7 +159,7 @@ public class IrradianceCubeMap implements Disposeable {
         }
     }
 
-    private void updateOutput(Desc desc){
+    private void updateOutput(IBLDesc desc){
         if(desc.outputToInternalCubeMap){
             if(desc.outputSize < 0)
                 throw new IllegalArgumentException("Invalid cube map size");
