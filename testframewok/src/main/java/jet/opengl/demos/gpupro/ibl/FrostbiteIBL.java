@@ -84,7 +84,6 @@ public class FrostbiteIBL implements Disposeable {
             mCubeVAO.bind();
             mCubeVAO.draw(GLenum.GL_TRIANGLES);
             mCubeVAO.unbind();
-            LogUtil.i(LogUtil.LogType.DEFAULT, "Generate the Face(" + i+") done!");
         }
 
         gl.glBindTexture(GLenum.GL_TEXTURE_2D, 0);
@@ -121,6 +120,9 @@ public class FrostbiteIBL implements Disposeable {
         int roughness = gl.glGetUniformLocation(mSpecularLDProg.getProgram(), "g_Roughness");
         gl.glUniformMatrix4fv(proj,false, CacheBuffer.wrap(mProj));
 
+        if(roughness < 0)
+            throw new IllegalArgumentException();
+
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(source.getTarget(), source.getTexture());
         gl.glBindSampler(0, mInputSampler);
@@ -130,10 +132,14 @@ public class FrostbiteIBL implements Disposeable {
             throw new IllegalArgumentException();
         }
 
+        int size = destion.getWidth();
         for(int level = 0; level < destion.getMipLevels(); level++){
             float roughnessValue = (float)level/(destion.getMipLevels() - 1);
             roughnessValue *= roughnessValue;
             gl.glUniform1f(roughness, roughnessValue);
+
+            gl.glViewport(0,0, size, size);
+            size = Math.max(1, size/2);
 
             for(int i = 0; i < 6; i++){
                 mAttachDesc.type = AttachType.TEXTURE_2D;
@@ -175,6 +181,13 @@ public class FrostbiteIBL implements Disposeable {
         final boolean isDepthTest = gl.glIsEnabled(GLenum.GL_DEPTH_TEST);
 
         gl.glViewport(0,0, dfg.getWidth(), dfg.getHeight());
+        mAttachDesc.type = AttachType.TEXTURE_2D;
+        mAttachDesc.layer = 0;
+        mAttachDesc.index = 0;
+        mAttachDesc.level = 0;
+        mFbo.bind();
+        mFbo.setRenderTexture(dfg, mAttachDesc);
+
         gl.glDisable(GLenum.GL_DEPTH_TEST);
         mFbo.bind();
         mDFGProg.enable();
@@ -212,7 +225,7 @@ public class FrostbiteIBL implements Disposeable {
         SamplerDesc desc = new SamplerDesc();
         desc.minFilter = desc.magFilter = GLenum.GL_NEAREST;
         desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_CLAMP_TO_EDGE;
-        mInputSampler = SamplerUtils.createSampler(desc);
+        mInputSampler = 0; // SamplerUtils.createSampler(desc);
 
         ShadowMapGenerator.buildCubeShadowMatrices(new Vector3f(0,0,0), 0.1f, 10.0f, mProj,mViews);
         mInitlized = true;

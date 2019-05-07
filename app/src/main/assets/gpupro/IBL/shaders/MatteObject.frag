@@ -15,6 +15,10 @@ layout(binding = 2) uniform sampler2D gEnvBrdf;   //  IntegrateBRDF in UE4 or DF
 
 in vec3 m_Normal;
 
+uniform bool g_EnableDiffuse = true;
+uniform bool g_EnableSpecular = true;
+uniform float g_Roughness = 0.2;
+
 #if ENV_TYPE == ENV_TYPE_UE4
 float ComputeCubemapFromRoughness(float Roughness, float MipCount)
 {
@@ -99,7 +103,8 @@ vec3 evalLightProbeDiffuse(vec3 N, vec3 V, float roughness, vec3 baseColor)
     vec3 diffuseN = getDiffuseDominantDir(N, V, roughness);
 
     vec3 diffuseLighting = textureLod(envMapIrrad, diffuseN, 0.0).rgb;
-    float diffDFG = textureLod(gEnvBrdf, vec2(saturate(dot(N,V)), roughness), 0.0).z;
+    // TODO Here must be use the 1-roughness rather than the roughenss, I don't konw why!!!
+    float diffDFG = textureLod(gEnvBrdf, vec2(saturate(dot(N,V)), 1-roughness), 0.0).z;
 
     return diffuseLighting * diffDFG * baseColor;
 }
@@ -155,7 +160,13 @@ vec3 evalLightProbeLinear2D(vec3 N, vec3 V, float roughness)
 
     // Get the specular component
     vec3 specular = evalLightProbeSpecular(N, R, saturate(dot(N,V)), roughness);
-    return diffuse + specular;
+
+    vec3 color = vec3(0);
+    if(g_EnableDiffuse) color += diffuse;
+    if(g_EnableSpecular) color += specular;
+
+    return color;
+//    return specular;
 }
 #endif
 
@@ -173,12 +184,15 @@ void main()
 #elif ENV_TYPE == ENV_TYPE_UE4
     vec3 V = normalize(g_EyePos - m_PositionWS.xyz);
     vec3 diffuse = textureLod(envMapSpecular, N, gDiffuseMip).rgb;
-    vec3 specular = ApproximateSpecularIBL(vec3(0.04), 0.5, N, V);
-    Out_Color.rgb = diffuse + specular;
+    vec3 specular = ApproximateSpecularIBL(vec3(0.04), g_Roughness, N, V);
+    Out_Color.rgb = vec3(0);
+
+    if(g_EnableDiffuse) Out_Color.rgb += diffuse;
+    if(g_EnableSpecular) Out_Color.rgb += specular;
     Out_Color.a = 1;
 #elif ENV_TYPE == ENV_TYPE_FROSTBITE
     vec3 V = normalize(g_EyePos - m_PositionWS.xyz);
-    Out_Color.rgb = evalLightProbeLinear2D(N, V, 0.5);
+    Out_Color.rgb = evalLightProbeLinear2D(N, V, g_Roughness);
     Out_Color.a = 1;
 #endif
 }

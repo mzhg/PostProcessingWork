@@ -2,16 +2,13 @@
 #include "UE4Common.glsl"
 
 // Appoximation of joint Smith term for GGX
-
 // [Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"]
-
 float Vis_SmithJointApprox( float a2, float NoV, float NoL )
 {
 	float a = sqrt(a2);
 	float Vis_SmithV = NoL * ( NoV * ( 1 - a ) + a );
 	float Vis_SmithL = NoV * ( NoL * ( 1 - a ) + a );
 	return 0.5 / ( Vis_SmithV + Vis_SmithL );
-
 }
 
 vec3 IntegrateBRDF( uvec2 Random, float Roughness, float NoV )

@@ -121,7 +121,7 @@ public class IrradianceCubeMap implements Disposeable {
         SamplerDesc desc = new SamplerDesc();
         desc.minFilter = desc.magFilter = GLenum.GL_NEAREST;
         desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_CLAMP_TO_EDGE;
-        mInputSampler = SamplerUtils.createSampler(desc);
+        mInputSampler = 0; //SamplerUtils.createSampler(desc);
 
         ShadowMapGenerator.buildCubeShadowMatrices(new Vector3f(0,0,0), 0.1f, 10.0f, mProj,mViews);
         mInitlized = true;

@@ -2,7 +2,7 @@
 
 layout(binding = 0) uniform samplerCube gInputTex;
 layout(location = 0) out vec4 Out_Irradiance;
-uniform float g_Roughness;
+uniform float g_Roughness = 0.2;
 
 float evalGGX(float roughness, float NdotH)
 {
@@ -29,9 +29,7 @@ vec4 integrateSpecularLD(vec3 V, vec3 N, float roughness)
     width = textureSize(gInputTex, 0).x;
     mipCount = textureQueryLevels(gInputTex);
 
-    // As if the texture was wrapped around a cube like a cube map
-    // The original algorithm uses cube map dimensions to calculate solid angle, but we don't use cube maps
-    float cubeWidth = width / 4;
+    float cubeWidth = width;
 
     vec3 accBrdf = vec3(0);
     float accBrdfWeight = 0;

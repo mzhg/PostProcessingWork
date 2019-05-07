@@ -2,6 +2,7 @@ package jet.opengl.demos.gpupro.ibl;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.ui.NvTweakEnumi;
+import com.nvidia.developer.opengl.ui.NvTweakVarBase;
 import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix3f;
@@ -17,12 +18,14 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
 
@@ -59,25 +62,44 @@ public class IndirectLighting extends NvSampleApp {
     private TextureCube mUE4Speuclar;
     private Texture2D mUE4PreIntegrateGF;
     private int mUE4DiffuseMip;
+    private boolean mShowUE4GF = false;
 
     // Frostbite resources
     private TextureCube mFBSpecularLD;
     private TextureCube mFBDiffuseLD;
     private Texture2D   mFBDFG;
+    private boolean mShowFBDiffuse;
+    private boolean mShowDFG;
+
+    private boolean mEnableDiffuse = true;
+    private boolean mEnabledSpecular = true;
+    private float mRoughness = 0.1f;
 
     private int mSamplerLinear;
 
     @Override
     public void initUI() {
-        mTweakBar.addValue("Show IrradianceCubeMap", createControl("mShowIrraMap"));
-
         NvTweakEnumi[] envTypes = {
             new NvTweakEnumi("IrradianceMap", ENV_TYPE_IRRAD),
             new NvTweakEnumi("Unreal4", ENV_TYPE_UE4),
             new NvTweakEnumi("Frostbite", ENV_TYPE_FROSTBITE),
         };
-        mTweakBar.addEnum("EnvType", createControl("mEnvType"), envTypes, 0);
+        NvTweakVarBase var = mTweakBar.addEnum("EnvType", createControl("mEnvType"), envTypes, 0);
+
+        mTweakBar.subgroupSwitchStart(var);
+        mTweakBar.subgroupSwitchCase(ENV_TYPE_IRRAD);
+        mTweakBar.addValue("Show IrradianceCubeMap", createControl("mShowIrraMap"));
+        mTweakBar.subgroupSwitchCase(ENV_TYPE_UE4);
         mTweakBar.addValue("Diffuse Mip", createControl("mUE4DiffuseMip"), 0, mFBSpecularLD.getMipLevels());
+        mTweakBar.addValue("Show GF", createControl("mShowUE4GF"));
+        mTweakBar.subgroupSwitchCase(ENV_TYPE_FROSTBITE);
+        mTweakBar.addValue("Show Diffse Map", createControl("mShowFBDiffuse"));
+        mTweakBar.addValue("Show DFG", createControl("mShowDFG"));
+        mTweakBar.subgroupSwitchEnd();
+
+        mTweakBar.addValue("Enable Diffuse", createControl("mEnableDiffuse"));
+        mTweakBar.addValue("Enable Specular", createControl("mEnabledSpecular"));
+        mTweakBar.addValue("Roughness", createControl("mRoughness"), 0.0001f, 1.0f);
     }
 
     @Override
@@ -95,6 +117,10 @@ public class IndirectLighting extends NvSampleApp {
 
             int cubeMap = image.updaloadTexture();
             mOriginEnvMap = TextureUtils.createTextureCube(GLenum.GL_TEXTURE_CUBE_MAP, cubeMap);
+            if(mOriginEnvMap.getMipLevels() == 1){
+                gl.glGenerateTextureMipmap(mOriginEnvMap.getTexture());
+                gl.glTextureParameteri(mOriginEnvMap.getTexture(), GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
+            }
 
             final String root = "gpupro\\IBL\\shaders\\";
             mShadingProg[ENV_TYPE_IRRAD] = GLSLProgram.createFromFiles(root + "MatteObject.vert", root + "MatteObject.frag", new Macro("ENV_TYPE", ENV_TYPE_IRRAD));
@@ -109,7 +135,9 @@ public class IndirectLighting extends NvSampleApp {
         m_transformer.setTranslationVec(new Vector3f(0.0f, 0.0f, -200.2f));
         m_transformer.setRotationVec(new Vector3f(-0.2f, -0.3f, 0));
 
-        mSamplerLinear = SamplerUtils.getDefaultSampler();
+        SamplerDesc desc = new SamplerDesc();
+        desc.minFilter = desc.magFilter = GLenum.GL_NEAREST;
+        mSamplerLinear = SamplerUtils.createSampler(desc);
 
         initFrostbiteResources();
         initIrradianceMap();
@@ -132,7 +160,7 @@ public class IndirectLighting extends NvSampleApp {
         gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, cubeMap);
         gl.glTexStorage2D(GLenum.GL_TEXTURE_CUBE_MAP, mipLevels, format, size, size);
         gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
+        gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_MIN_FILTER, mipLevels > 1 ? GLenum.GL_LINEAR_MIPMAP_LINEAR : GLenum.GL_LINEAR);
         gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_R, GLenum.GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GLenum.GL_TEXTURE_CUBE_MAP, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
@@ -157,7 +185,7 @@ public class IndirectLighting extends NvSampleApp {
     private void initFrostbiteResources(){
         int mipLevels = Numeric.calculateMipLevels(Math.min(mOriginEnvMap.getWidth(), 256));
         mFBSpecularLD = createCubemap(Math.min(mOriginEnvMap.getWidth(), 256), mipLevels, GLenum.GL_RGBA16F);
-        mFBDiffuseLD = createCubemap(Math.min(mOriginEnvMap.getWidth(), 64), 1, GLenum.GL_RGBA16F);
+        mFBDiffuseLD = createCubemap(Math.min(mOriginEnvMap.getWidth(), 32), 1, GLenum.GL_RGBA16F);
 
         Texture2DDesc desc = new Texture2DDesc(128, 128, GLenum.GL_RGBA16F);
         mFBDFG = TextureUtils.createTexture2D(desc, null);
@@ -165,6 +193,12 @@ public class IndirectLighting extends NvSampleApp {
         FrostbiteIBL generator = new FrostbiteIBL();
         generator.generate(mOriginEnvMap, mFBSpecularLD, mFBDiffuseLD, mFBDFG);
         generator.dispose();
+
+        /*try {
+            DebugTools.saveTextureAsImageFile(mFBDFG, "E:/textures/DFG2.png");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }*/
     }
 
     @Override
@@ -180,10 +214,24 @@ public class IndirectLighting extends NvSampleApp {
         Matrix4f.mul(mProj, mView, mMVP);
         Matrix4f.decompseRigidMatrix(mView, mEyePos, null, null);
 
-        if(mShowIrraMap){
-            mSkyBox.setCubemap(mIrraMap.getOutput().getTexture());
-        }else{
-            mSkyBox.setCubemap(mOriginEnvMap.getTexture());
+        switch (mEnvType){
+            case ENV_TYPE_IRRAD:
+                if(mShowIrraMap){
+                    mSkyBox.setCubemap(mIrraMap.getOutput().getTexture());
+                }else{
+                    mSkyBox.setCubemap(mOriginEnvMap.getTexture());
+                }
+                break;
+            case ENV_TYPE_UE4:
+
+                break;
+            case ENV_TYPE_FROSTBITE:
+                if(mShowFBDiffuse){
+                    mSkyBox.setCubemap(mFBDiffuseLD.getTexture());
+                }else{
+                    mSkyBox.setCubemap(mOriginEnvMap.getTexture());
+                }
+                break;
         }
 
         mSkyBox.setRotateMatrix(mView);
@@ -199,12 +247,18 @@ public class IndirectLighting extends NvSampleApp {
         int viewProjMat = mShadingProg[mEnvType].getUniformLocation("g_ViewProj");
         int eyePos = mShadingProg[mEnvType].getUniformLocation("g_EyePos", true);
         int mipmap = mShadingProg[mEnvType].getUniformLocation("gDiffuseMip", true);
+        int enableDiffuse = mShadingProg[mEnvType].getUniformLocation("g_EnableDiffuse", true);
+        int enableSpecular = mShadingProg[mEnvType].getUniformLocation("g_EnableSpecular", true);
+        int roughness = mShadingProg[mEnvType].getUniformLocation("g_Roughness", true);
 
         if(normalMat >=0) gl.glUniformMatrix3fv(normalMat, false, CacheBuffer.wrap(mNormalMat));
         if(viewProjMat >= 0) gl.glUniformMatrix4fv(viewProjMat, false, CacheBuffer.wrap(mMVP));
         if(worldMat >= 0) gl.glUniformMatrix4fv(worldMat, false, CacheBuffer.wrap(Matrix4f.IDENTITY));
         if(eyePos >=0)    gl.glUniform3f(eyePos, mEyePos.x, mEyePos.y, mEyePos.z);
         if(mipmap >= 0)   gl.glUniform1f(mipmap, mUE4DiffuseMip);
+        if(enableDiffuse >=0) gl.glUniform1i(enableDiffuse, mEnableDiffuse?1:0);
+        if(enableSpecular >=0) gl.glUniform1i(enableSpecular, mEnabledSpecular?1:0);
+        if(roughness >=0) gl.glUniform1f(roughness, mRoughness);
 
         switch (mEnvType){
             case ENV_TYPE_IRRAD:

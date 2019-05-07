@@ -60,6 +60,11 @@ public class SpecularIBLUE4 implements Disposeable {
         gl.glViewport(0,0, preIntegrateGF.getWidth(), preIntegrateGF.getHeight());
         gl.glDisable(GLenum.GL_DEPTH_TEST);
         mFbo.bind();
+        mAttachDesc.type = AttachType.TEXTURE_2D;
+        mAttachDesc.layer = 0;
+        mAttachDesc.index = 0;
+        mAttachDesc.level = 0;
+        mFbo.setRenderTexture(preIntegrateGF, mAttachDesc);
         mPreIntegrateGF.enable();
 
         int viewport = gl.glGetUniformLocation(mPreIntegrateGF.getProgram(), "g_Viewport");
@@ -102,9 +107,13 @@ public class SpecularIBLUE4 implements Disposeable {
         gl.glBindSampler(0, mInputSampler);
         mCubeVAO.bind();
 
+        int size = destion.getWidth();
         for(int level = 0; level < destion.getMipLevels(); level++){
-            float roughnessValue = (float) Math.pow(2, (level - destion.getMipLevels()+4)/1.15);
+            float roughnessValue = (float) level/(destion.getMipLevels() - 1);
             gl.glUniform1f(roughness, roughnessValue);
+
+            gl.glViewport(0,0, size, size);
+            size = Math.max(1, size/2);
 
             for(int i = 0; i < 6; i++){
                 mAttachDesc.type = AttachType.TEXTURE_2D;
@@ -152,7 +161,7 @@ public class SpecularIBLUE4 implements Disposeable {
         SamplerDesc desc = new SamplerDesc();
         desc.minFilter = desc.magFilter = GLenum.GL_NEAREST;
         desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_CLAMP_TO_EDGE;
-        mInputSampler = SamplerUtils.createSampler(desc);
+        mInputSampler = 0 ;//SamplerUtils.createSampler(desc);
 
         ShadowMapGenerator.buildCubeShadowMatrices(new Vector3f(0,0,0), 0.1f, 10.0f, mProj,mViews);
         mInitlized = true;

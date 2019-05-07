@@ -35,7 +35,9 @@ vec4 integrateDFG(vec3 N, vec3 V, float roughness)
         {
             LdotH = saturate(dot(L, normalize(V + L)));
             NdotV = saturate(dot(N, V));
-            accumulation.b += disneyDiffuseFresnel(NdotV, NdotL, LdotH, sqrt(roughness));
+            float brdf = disneyDiffuseFresnel(NdotV, NdotL, LdotH, sqrt(roughness));
+            brdf = max(brdf, 0.0);
+            accumulation.b += brdf;
         }
     }
 
@@ -52,8 +54,9 @@ void main()
     // DFG texture will be sampled using
     // texC.x = NdotV
     // texC.y = roughness
-    float Roughness = m_f4UVAndScreenPos.y - 0.5/g_Viewport.y;
-    float NoV = m_f4UVAndScreenPos.x - 0.5/g_Viewport.x;
+    vec2 texC = gl_FragCoord.xy/g_Viewport;
+    float Roughness = texC.y;  // m_f4UVAndScreenPos.y - 0.5/g_Viewport.y;
+    float NoV = texC.x; // m_f4UVAndScreenPos.x - 0.5/g_Viewport.x;
 
     const vec3 N = vec3(0, 0, 1);
 
