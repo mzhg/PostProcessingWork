@@ -89,7 +89,7 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
         // Build the scene
         m_knightMesh = addMeshInstance(knightMesh, null, "Knight");
         m_podiumMesh = addMeshInstance(podiumMesh, null, "Podium");
-        mNVApp.getInputTransformer().setMotionMode(NvCameraMotionType.DUAL_ORBITAL);
+        mNVApp.getInputTransformer().setMotionMode(NvCameraMotionType.FIRST_PERSON);
 
         // Setup the ground plane
         MeshInstance knight = m_knightMesh;
@@ -97,6 +97,20 @@ final class VarianceShadowScene extends BaseScene implements VarianceShadowMapGe
         Vector3f center = knight.getCenter();
         float height = center.y - extents.y;
         setGroundPlane(height, GROUND_PLANE_RADIUS);
+
+        final int knightCount = 10;
+        final float floorSize = 50.0f;
+        final float halfFloorSize = floorSize / 2.0f;
+        for (int row = 0; row < knightCount; ++row) {
+            for (int col = 0; col < knightCount; ++col) {
+                Matrix4f knightModelMatrix = new Matrix4f();
+                knightModelMatrix.m30 = -halfFloorSize + row * 5.0f + 2.5f;
+                knightModelMatrix.m31 = 1.75767496f;
+                knightModelMatrix.m32 = -halfFloorSize + col * 5.0f + 2.5f;
+                knightModelMatrix.scale(5.0f);
+                m_meshInstances.add(new MeshInstance(knightMesh, "KnightMesh" + (row * knightCount + col), knightModelMatrix));
+            }
+        }
 
         // Setup the eye's view parameters
         initCamera(

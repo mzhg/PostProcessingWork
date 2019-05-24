@@ -16,7 +16,9 @@ import java.io.InputStream;
 
 import jet.opengl.demos.flight404.Flight404;
 import jet.opengl.demos.gpupro.ibl.IndirectLighting;
+import jet.opengl.demos.intel.avsm.AVSMDemo;
 import jet.opengl.demos.nvidia.fire.PerlinFire;
+import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
@@ -116,7 +118,7 @@ public class DemoApp {
 //        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
 //        run(new ShaderTest());
-//        run(new SoftShadowDemo());
+        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
@@ -131,7 +133,7 @@ public class DemoApp {
 //        run(new AntiAliasingDemo());
 //        run(new HybridRendererDemo());
 //        run(new CloudSkyDemo());
-        run(new IndirectLighting());
+//        run(new IndirectLighting());
 //        run(new PerlinFire());
     }
 

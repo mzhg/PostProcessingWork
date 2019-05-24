@@ -89,10 +89,10 @@ public class ShadowConfig {
         result = 31 * result + (shadowMapFiltering != null ? shadowMapFiltering.hashCode() : 0);
         result = 31 * result + (shadowMapPattern != null ? shadowMapPattern.hashCode() : 0);
         result = 31 * result + cascadCount;
-        result = 31 * result + Float.hashCode(spotHalfAngle);
-        result = 31 * result + Float.hashCode(lightNear);
-        result = 31 * result + Float.hashCode(lightFar);
-        result = 31 * result + Boolean.hashCode(checkCameraFrustumeVisible);
+        result = 31 * result + Float.floatToIntBits(spotHalfAngle);
+        result = 31 * result + Float.floatToIntBits(lightNear);
+        result = 31 * result + Float.floatToIntBits(lightFar);
+        result = 31 * result + (checkCameraFrustumeVisible?1231 : 1237);  // Copyed from the Boolean.hash() function.
         return result;
     }
 }
