@@ -5,6 +5,11 @@ import com.nvidia.developer.opengl.app.NvEGLConfiguration;
 import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
 import com.nvidia.developer.opengl.utils.NvImage;
 
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL21;
+import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -13,6 +18,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 import jet.opengl.demos.flight404.Flight404;
 import jet.opengl.demos.gpupro.ibl.IndirectLighting;
@@ -51,6 +57,7 @@ public class DemoApp {
         baseApp.setTile(app.getClass().getSimpleName());
         baseApp.registerGLEventListener(app);
         baseApp.registerGLFWListener(new InputAdapter(app, app, app));
+//        baseApp.runTask(DemoApp::testFramebufferRead);
         app.setGLContext(baseApp);
         baseApp.start();
     }
@@ -117,8 +124,8 @@ public class DemoApp {
 //        testRectVertex();
 //        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
-//        run(new ShaderTest());
-        run(new SoftShadowDemo());
+        run(new ShaderTest());
+//        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
@@ -204,5 +211,28 @@ public class DemoApp {
         }
     }
 
+    private static void testFramebufferRead(){
+        int texture = GL11.glGenTextures();
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
+        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL30.GL_R32F, 2, 2, 0, GL11.GL_RED, GL11.GL_FLOAT, new float[]{5,6,7,8});
 
+        int framebuffer = GL30.glGenFramebuffers();
+        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer);
+        GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D, texture, 0);
+
+        GL11.glReadBuffer(GL30.GL_COLOR_ATTACHMENT0);
+
+        int buffer = GL15.glGenBuffers();
+        GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, buffer);
+        GL15.glBufferData(GL21.GL_PIXEL_PACK_BUFFER, 16, GL15.GL_DYNAMIC_COPY);
+
+        GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, buffer);
+
+        GL11.glReadPixels(0, 0, 2, 2, GL11.GL_RED, GL11.GL_FLOAT, 0);
+
+        float[] values = new float[4];
+        GL15.glGetBufferSubData(GL21.GL_PIXEL_PACK_BUFFER, 0,values);
+
+        System.out.println("Test Read pixels = " + Arrays.toString(values));
+    }
 }
