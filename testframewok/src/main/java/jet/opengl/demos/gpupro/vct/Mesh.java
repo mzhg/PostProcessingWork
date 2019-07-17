@@ -19,9 +19,11 @@ class Mesh implements Disposeable {
     Mesh(NvGLModel model) {mModel = model;}
 
      void draw(){
-        if(mShape != null)
+        if(mShape != null) {
+            mShape.bind();
             mShape.draw(GLenum.GL_TRIANGLES);
-        else if(mModel != null)
+            mShape.unbind();
+        }else if(mModel != null)
             mModel.drawElements(0, 1);
         else if(mSelfShape != 0){
             final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();

@@ -8,12 +8,15 @@ import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
 
+import jet.opengl.demos.intel.fluid.render.TextureStage;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.FramebufferGL;
+import jet.opengl.postprocessing.texture.SamplerDesc;
+import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3D;
 import jet.opengl.postprocessing.texture.Texture3DDesc;
@@ -69,6 +72,8 @@ final class VoxelConeTracingRenderer {
     private final Matrix4f voxelCamera = new Matrix4f();
     private GLSLProgram voxelizationMaterial;
     private Texture3D voxelTexture = null;
+    private int vovelSampler = 0;
+    private int defualtSampler = 0;
 
     private FramebufferGL vvfbo1, vvfbo2;
     private GLSLProgram worldPositionMaterial, voxelVisualizationMaterial;
@@ -80,6 +85,7 @@ final class VoxelConeTracingRenderer {
     private GLVAO cubeShape;
 
     private GLFuncProvider gl;
+    private boolean m_printOnce = false;
 
     void onCreate(){
         gl = GLFuncProviderFactory.getGLFuncProvider();
@@ -90,12 +96,14 @@ final class VoxelConeTracingRenderer {
         String root = "gpupro/VoxelConeTracing/shaders/";
         try {
             voxelConeTracingMaterial = GLSLProgram.createFromFiles(root + "voxel_cone_tracing.vert", root + "voxel_cone_tracing.frag");
+            voxelConeTracingMaterial.setName("VoxelConTracing");
         } catch (IOException e) {
             e.printStackTrace();
         }
 //        voxelCamera = OrthographicCamera(viewportWidth / float(viewportHeight));
         initVoxelization();
 
+        defualtSampler = SamplerUtils.getDefaultSampler();
     }
 
     /// <summary> Initializes rendering. </summary>
@@ -108,7 +116,8 @@ final class VoxelConeTracingRenderer {
                 RenderingMode renderingMode /*= RenderingMode::VOXEL_CONE_TRACING*/){
         // Voxelize.
         boolean voxelizeNow = voxelizationQueued || (automaticallyVoxelize && voxelizationSparsity > 0 && ++ticksSinceLastVoxelization >= voxelizationSparsity);
-        if (voxelizeNow) {
+        if (voxelizeNow)
+        {
             voxelize(renderingScene, true);
             ticksSinceLastVoxelization = 0;
             voxelizationQueued = false;
@@ -123,19 +132,28 @@ final class VoxelConeTracingRenderer {
                 renderScene(renderingScene, viewportWidth, viewportHeight);
                 break;
         }
+
+        m_printOnce = true;
     }
 
     private void initVoxelization(){
         String root = "gpupro/VoxelConeTracing/shaders/";
         voxelizationMaterial = //MaterialStore::getInstance().findMaterialWithName("voxelization");
             GLSLProgram.createProgram(root+"voxelization.vert", root + "voxelization.geom", root + "voxelization.frag", null);
+        voxelizationMaterial.setName("voxelization");
 
 //        assert(voxelizationMaterial != nullptr);
 
 //	const std::vector<GLfloat> texture3D(4 * voxelTextureSize * voxelTextureSize * voxelTextureSize, 0.0f);
 //        voxelTexture = new Texture3D(texture3D, voxelTextureSize, voxelTextureSize, voxelTextureSize, true);
-        Texture3DDesc desc = new Texture3DDesc(voxelTextureSize, voxelTextureSize, voxelTextureSize, (int)(Math.log(voxelTextureSize) + 1), GLenum.GL_RGBA8);
+        Texture3DDesc desc = new Texture3DDesc(voxelTextureSize, voxelTextureSize, voxelTextureSize, 7, GLenum.GL_RGBA8);
         voxelTexture = TextureUtils.createTexture3D(desc, null);
+
+        SamplerDesc samplerDesc = new SamplerDesc();
+        samplerDesc.minFilter = GLenum.GL_LINEAR_MIPMAP_LINEAR;
+        samplerDesc.magFilter = GLenum.GL_NEAREST;
+        samplerDesc.wrapR = samplerDesc.wrapS = samplerDesc.wrapT = GLenum.GL_CLAMP_TO_BORDER;
+        vovelSampler = SamplerUtils.createSampler(samplerDesc);
 
         GLCheck.checkError();
     }
@@ -169,13 +187,15 @@ final class VoxelConeTracingRenderer {
         // Render.
 //        renderQueue(renderingScene.renderers, material->program, true);
         renderingScene.renderScene(material);
+        gl.glGenerateTextureMipmap(voxelTexture.getTexture());
         if (automaticallyRegenerateMipmap || regenerateMipmapQueued) {
-            gl.glGenerateTextureMipmap(voxelTexture.getTexture());
+//            gl.glGenerateTextureMipmap(voxelTexture.getTexture());
             regenerateMipmapQueued = false;
         }
         gl.glColorMask(true, true, true, true);
 
         GLCheck.checkError();
+        if(!m_printOnce) material.printPrograminfo();
     }
 
     // ----------------
@@ -187,10 +207,13 @@ final class VoxelConeTracingRenderer {
         worldPositionMaterial = GLSLProgram.createProgram(root + "world_position.vert", root + "world_position.frag", null);
         voxelVisualizationMaterial = GLSLProgram.createProgram(root + "voxel_visualization.vert", root + "voxel_visualization.frag", null);
 
+        worldPositionMaterial.setName("World Position");
+        voxelVisualizationMaterial.setName("Voxel Visualization");
+
         assert(worldPositionMaterial != null);
         assert(voxelVisualizationMaterial != null);
 
-        Texture2DDesc colorDesc = new Texture2DDesc(viewportWidth, viewportHeight, GLenum.GL_RGB16F);
+        Texture2DDesc colorDesc = new Texture2DDesc(viewportWidth, viewportHeight, GLenum.GL_RGBA16F);
         Texture2DDesc depthDesc = new Texture2DDesc(viewportWidth, viewportHeight, GLenum.GL_DEPTH_COMPONENT24);
 
         TextureGL[] attachments0 = {
@@ -200,7 +223,7 @@ final class VoxelConeTracingRenderer {
 
         TextureGL[] attachments1 = {
                 TextureUtils.createTexture2D(colorDesc, null),
-                attachments0[1]
+                TextureUtils.createTexture2D(depthDesc, null)
         };
 
         TextureAttachDesc[] attachDescs = {
@@ -216,16 +239,16 @@ final class VoxelConeTracingRenderer {
 
         vvfbo2 = new FramebufferGL();
         vvfbo2.bind();
-        vvfbo1.addTextures(attachments1, attachDescs);
+        vvfbo2.addTextures(attachments1, attachDescs);
 
         // Rendering cube.
         cubeShape = //ObjLoader::loadObjFile("Assets\\Models\\cube.obj");
-                ModelGenerator.genCube(1, true, false,false).genVAO();
+                ModelGenerator.genCube(2f, false, false,false).genVAO();
 //        assert(cubeShape.meshes.size() == 1);
         cubeMeshRenderer = new MeshRenderer(new Mesh(cubeShape));
 
         // Rendering quad.
-        quad = ModelGenerator.genRect(-1,-1,1,1, true).genVAO();
+        quad = ModelGenerator.genRect(-1,-1,1,1, false).genVAO();
         quadMeshRenderer = new MeshRenderer(new Mesh(quad));
     }
 
@@ -240,16 +263,18 @@ final class VoxelConeTracingRenderer {
         uploadCamera(renderingScene, program);
 
         // Settings.
+        gl.glColorMask(true, true, true, true);
         gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         gl.glClearDepthf(1.0f);
         gl.glEnable(GLenum.GL_CULL_FACE);
         gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_BLEND);
 
         // Back.
         gl.glCullFace(GLenum.GL_FRONT);
 //        glBindFramebuffer(GL_FRAMEBUFFER, vvfbo1->frameBuffer);
         vvfbo1.bind();
-        gl.glViewport(0, 0, vvfbo1.getWidth(), vvfbo1.getHeight());
+        vvfbo1.setViewPort();
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
         cubeMeshRenderer.render(program);
 
@@ -260,6 +285,8 @@ final class VoxelConeTracingRenderer {
         gl.glViewport(0, 0, vvfbo2.getWidth(), vvfbo2.getHeight());
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
         cubeMeshRenderer.render(program);
+
+        if(!m_printOnce)program.printPrograminfo();
 
         // -------------------------------------------------------
         // Render 3D texture to screen.
@@ -284,19 +311,23 @@ final class VoxelConeTracingRenderer {
         gl.glBindTextureUnit(1, vvfbo2.getAttachedTex(0).getTexture());
         gl.glBindTextureUnit(2, voxelTexture.getTexture());
 
-        int index = program.getUniformLocation("textureBack");
-        if(index >=0 ) gl.glUniform1i(index, 0);
-
-        index = program.getUniformLocation("textureFront");
-        if(index >=0 ) gl.glUniform1i(index, 1);
-
-        index = program.getUniformLocation("texture3D");
-        if(index >=0 ) gl.glUniform1i(index, 2);
+        gl.glBindSampler(0, defualtSampler);
+        gl.glBindSampler(1, defualtSampler);
+        gl.glBindSampler(2, vovelSampler);
 
         // Render.
         gl.glViewport(0, 0, viewportWidth, viewportHeight);
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT | GLenum.GL_DEPTH_BUFFER_BIT);
+        gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
         quadMeshRenderer.render(program);
+
+        if(!m_printOnce) program.printPrograminfo();
+
+        for(int i = 0; i < 3;i++){
+            gl.glBindTextureUnit(i, 0);
+            gl.glBindSampler(0, 0);
+        }
     }
 
     // ----------------
@@ -328,9 +359,17 @@ final class VoxelConeTracingRenderer {
         uploadLighting(renderingScene, material);
         uploadRenderingSettings(material);
 
+        gl.glBindTextureUnit(0, voxelTexture.getTexture());
+        gl.glBindSampler(0, vovelSampler);
+
         // Render.
 //        renderQueue(renderingScene.renderers, material->program, true);
         renderingScene.renderScene(material);
+
+        gl.glBindTextureUnit(0, 0);
+        gl.glBindSampler(0, 0);
+
+        if(!m_printOnce) material.printPrograminfo();
     }
 
 //    void renderQueue(RenderingQueue renderingQueue, GLSLProgram program, bool uploadMaterialSettings = false) const;

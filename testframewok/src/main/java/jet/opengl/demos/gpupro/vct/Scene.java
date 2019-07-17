@@ -75,7 +75,7 @@ abstract class Scene {
         int VB = gl.glGenBuffer();
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, VB);
 
-        FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(3 * 4);
+        FloatBuffer buffer = CacheBuffer.getCachedFloatBuffer(3 * 8);
         v0.store(buffer);normal.store(buffer);
         v1.store(buffer);normal.store(buffer);
         v2.store(buffer);normal.store(buffer);
@@ -133,6 +133,7 @@ abstract class Scene {
             builder.setCenterToOrigin(true);
             builder.setPostionLocation(0);
             builder.setNormalLocation(1);
+            builder.setAutoGenTexCoord(false);
             builder.setGenTexCoord(false);
 
             GLVAO sphere = new QuadricMesh(builder, new QuadricSphere(1)).getModel().genVAO();
@@ -147,8 +148,8 @@ abstract class Scene {
     static Mesh loadObj(String filename){
         Mesh mesh = g_ObjMeshes.get(filename);
         if(mesh == null){
-            FileLoader old = FileUtils.g_IntenalFileLoader;
-            FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
+//            FileLoader old = FileUtils.g_IntenalFileLoader;
+//            FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
 
             NvGLModel model = new NvGLModel();
             model.loadModelFromFile(filename);
@@ -156,7 +157,7 @@ abstract class Scene {
 
             mesh = new Mesh(model);
             g_ObjMeshes.put(filename, mesh);
-            FileUtils.setIntenalFileLoader(old);
+//            FileUtils.setIntenalFileLoader(old);
         }
 
         return mesh;

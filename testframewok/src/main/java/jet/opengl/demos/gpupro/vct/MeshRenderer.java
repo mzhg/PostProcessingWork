@@ -4,9 +4,11 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Transform;
 
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 
 /** A renderer that can be used to render a mesh. */
 final class MeshRenderer {
+    private static final String MODEL_MATRIX_NAME = "M";
 
     boolean enabled = true;
     boolean tweakable = false; // Automatically adds a window for this mesh renderer.
@@ -29,7 +31,8 @@ final class MeshRenderer {
     void render(GLSLProgram program){
         transform.getMatrix(combinedModel);
 
-        // TODO setup the model matrix.
+        GLSLUtil.setMat4(program, MODEL_MATRIX_NAME, combinedModel);
+
         if(materialSetting != null)
             materialSetting.Upload(program, false);
 

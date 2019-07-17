@@ -4,6 +4,6 @@
 
 in vec3 worldPosition;
 
-out vec4 color;
+out vec3 color;
 
 void main(){ color.rgb = worldPosition; }

@@ -2,6 +2,7 @@ package jet.opengl.demos.gpupro.vct;
 
 import org.lwjgl.util.vector.Vector3f;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.shader.GLSLProgram;
@@ -18,5 +19,7 @@ final class PointLight {
 
         idx = gl.glGetUniformLocation(program.getProgram(), ("pointLights[" + index + "].color"));
         if(idx >=0) gl.glUniform3f(idx, color.x, color.y, color.z);
+
+        GLCheck.checkError();
     }
 }

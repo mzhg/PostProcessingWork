@@ -22,6 +22,7 @@ import java.util.Arrays;
 
 import jet.opengl.demos.flight404.Flight404;
 import jet.opengl.demos.gpupro.ibl.IndirectLighting;
+import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
 import jet.opengl.demos.intel.avsm.AVSMDemo;
 import jet.opengl.demos.nvidia.fire.PerlinFire;
 import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
@@ -140,7 +141,7 @@ public class DemoApp {
 //        run(new AntiAliasingDemo());
 //        run(new HybridRendererDemo());
 //        run(new CloudSkyDemo());
-        run(new IndirectLighting());
+        run(new VoxelConeTracingDemo());
 //        run(new PerlinFire());
     }
 

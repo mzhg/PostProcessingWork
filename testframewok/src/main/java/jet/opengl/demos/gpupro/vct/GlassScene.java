@@ -1,5 +1,6 @@
 package jet.opengl.demos.gpupro.vct;
 
+import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvInputTransformer;
 
 import org.lwjgl.util.vector.Quaternion;
@@ -15,7 +16,7 @@ final class GlassScene extends Scene{
 
         Mesh[] corners = buildConrer();
         Mesh lightCube = createSphere();
-        Mesh buddha = loadObj("gpupro\\VoxelConeTracing\\Models\\teapot.obj");
+        Mesh buddha = loadObj("gpupro\\VoxelConeTracing\\Models\\bunny.obj");
         Mesh backWall = loadObj("gpupro\\VoxelConeTracing\\Models\\quadn.obj");
 
         MeshRenderer cornerBox0 = new MeshRenderer(corners[0], MaterialSetting.Green());
@@ -27,9 +28,9 @@ final class GlassScene extends Scene{
 
         MeshRenderer lightMesh = new MeshRenderer(lightCube,MaterialSetting.Emissive());
 
-        MeshRenderer buddhaRenderer = new MeshRenderer(buddha, MaterialSetting.White());
-        buddhaRenderer.transform.setScale(1.8f, 1.8f, 1.8f);
         Quaternion quat = new Quaternion();
+        /*MeshRenderer buddhaRenderer = new MeshRenderer(buddha, MaterialSetting.White());
+        buddhaRenderer.transform.setScale(1.8f, 1.8f, 1.8f);
         quat.setFromAxisAngle(0,1, 0, 2.4f);
         buddhaRenderer.transform.setRotation(quat.x, quat.y, quat.z, quat.w);
         buddhaRenderer.transform.setPosition(0, -0.13f, 0.05f);// glm::vec3(0, 0.0, 0);
@@ -43,7 +44,7 @@ final class GlassScene extends Scene{
         buddhaMaterialSetting.refractiveIndex = 1.21f;
         buddhaMaterialSetting.specularReflectivity = 1.00f;
         buddhaMaterialSetting.diffuseReflectivity = 0.0f;
-        buddhaMaterialSetting.specularDiffusion = 1.9f;
+        buddhaMaterialSetting.specularDiffusion = 1.9f;*/
 
         // Light cube.
         lightMesh.materialSetting.diffuseColor.x = 1.0f;
@@ -66,7 +67,7 @@ final class GlassScene extends Scene{
         renderers.add(cornerBox4);
         renderers.add(cornerBox5);
         renderers.add(lightMesh);       m_lightIndex = renderers.size() - 1;
-        renderers.add(buddhaRenderer);  m_buddhaIndex = renderers.size() - 1;
+//        renderers.add(buddhaRenderer);  m_buddhaIndex = renderers.size() - 1;
         renderers.add(bwr);
 
         // Lighting.
@@ -74,6 +75,9 @@ final class GlassScene extends Scene{
         p.color.set(0.63f, 0.47f, 0.51f);
         p.position.set(0, 0, 0.925f);
         pointLights.add(p);
+
+        transformer.setTranslation(0,0,-0.925f);
+        transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
     }
 
     @Override
@@ -97,9 +101,9 @@ final class GlassScene extends Scene{
         pointLights.get(0).position.set(0.45f * x + 0.20f * x, 0.45f*y, 0.45f*z+0.20f*z);
         lightMesh.materialSetting.diffuseColor.set(pointLights.get(0).color);
 
-        Quaternion quat = new Quaternion();
+        /*Quaternion quat = new Quaternion();
         quat.setFromAxisAngle(0,1, 0, m_elpsedTime);
-        renderers.get(m_buddhaIndex).transform.setRotation(quat.x, quat.y, quat.z, quat.w);
+        renderers.get(m_buddhaIndex).transform.setRotation(quat.x, quat.y, quat.z, quat.w);*/
 
         transformer.getModelViewMat(view);
 

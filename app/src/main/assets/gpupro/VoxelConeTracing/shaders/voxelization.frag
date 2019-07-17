@@ -1,5 +1,5 @@
 // Lit (diffuse) fragment voxelization shader.
-// Author:	Fredrik Präntare <prantare@gmail.com> 
+// Author:	Fredrik Prï¿½ntare <prantare@gmail.com> 
 // Date:	11/26/2016
 #version 450 core
 
@@ -34,7 +34,7 @@ uniform Material material;
 uniform PointLight pointLights[MAX_LIGHTS];
 uniform int numberOfLights;
 uniform vec3 cameraPosition;
-layout(RGBA8) uniform image3D texture3D;
+layout(binding=0, RGBA8) uniform image3D texture3D;
 
 in vec3 worldPositionFrag;
 in vec3 normalFrag;

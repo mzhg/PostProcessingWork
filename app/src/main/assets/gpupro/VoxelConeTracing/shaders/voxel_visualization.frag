@@ -1,14 +1,14 @@
 // A simple fragment shader path tracer used to visualize 3D textures.
-// Author:	Fredrik Präntare <prantare@gmail.com>
+// Author:	Fredrik Prï¿½ntare <prantare@gmail.com>
 // Date:	11/26/2016
 #version 450 core
 
-#define INV_STEP_LENGTH (1.0f/STEP_LENGTH)
 #define STEP_LENGTH 0.005f
+#define INV_STEP_LENGTH (1.0f/STEP_LENGTH)
 
-uniform sampler2D textureBack; // Unit cube back FBO.
-uniform sampler2D textureFront; // Unit cube front FBO.
-uniform sampler3D texture3D; // Texture in which voxelization is stored.
+layout(binding =0) uniform sampler2D textureBack; // Unit cube back FBO.
+layout(binding =1) uniform sampler2D textureFront; // Unit cube front FBO.
+layout(binding =2) uniform sampler3D texture3D; // Texture in which voxelization is stored.
 uniform vec3 cameraPosition; // World camera position.
 uniform int state = 0; // Decides mipmap sample level.
 
@@ -24,6 +24,7 @@ bool isInsideCube(vec3 p, float e) { return abs(p.x) < 1 + e && abs(p.y) < 1 + e
 void main() {
 	const float mipmapLevel = state;
 
+	vec2 uv = 2 * textureCoordinateFrag - 1;
 	// Initialize ray.
 	const vec3 origin = isInsideCube(cameraPosition, 0.2f) ? 
 		cameraPosition : texture(textureFront, textureCoordinateFrag).xyz;
@@ -37,7 +38,9 @@ void main() {
 		const vec3 currentPoint = origin + STEP_LENGTH * step * direction;
 		vec3 coordinate = scaleAndBias(currentPoint);
 		vec4 currentSample = textureLod(texture3D, scaleAndBias(currentPoint), mipmapLevel);
-		color += (1.0f - color.a) * currentSample;
+		color +=  currentSample;
+		if(color.a >= 1.0)
+			break;
 	} 
 	color.rgb = pow(color.rgb, vec3(1.0 / 2.2));
 }

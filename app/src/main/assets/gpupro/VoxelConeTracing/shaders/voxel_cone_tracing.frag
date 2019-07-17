@@ -73,7 +73,7 @@ uniform PointLight pointLights[MAX_LIGHTS];
 uniform int numberOfLights; // Number of lights currently uploaded.
 uniform vec3 cameraPosition; // World campera position.
 uniform int state; // Only used for testing / debugging.
-uniform sampler3D texture3D; // Voxelization texture.
+layout(binding = 0) uniform sampler3D texture3D; // Voxelization texture.
 
 in vec3 worldPositionFrag;
 in vec3 normalFrag;
@@ -145,7 +145,8 @@ vec3 traceDiffuseVoxelCone(const vec3 from, vec3 direction){
 		float level = log2(l);
 		float ll = (level + 1) * (level + 1);
 		vec4 voxel = textureLod(texture3D, c, min(MIPMAP_HARDCAP, level));
-		acc += 0.075 * ll * voxel * pow(1 - voxel.a, 2);
+		acc.rgb += 0.075 * ll * voxel.rgb * pow(1 - voxel.a, 2);
+		acc.a += voxel.a;
 		dist += ll * VOXEL_SIZE * 2;
 	}
 	return pow(acc.rgb * 2.0, vec3(1.5));

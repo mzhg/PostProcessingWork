@@ -2,6 +2,7 @@ package jet.opengl.demos.gpupro.vct;
 
 import org.lwjgl.util.vector.Vector3f;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.shader.GLSLProgram;
@@ -49,6 +50,8 @@ final class MaterialSetting {
         if(index >= 0) gl.glUniform1f(index, transparency);
         index = gl.glGetUniformLocation(program, refractiveIndexName);
         if(index >= 0) gl.glUniform1f(index, refractiveIndex);
+
+        GLCheck.checkError();
     }
 
     boolean IsEmissive() { return emissivity > 0.00001f; }
