@@ -112,7 +112,7 @@ abstract class Scene {
             final Vector3f v7 = new Vector3f(+scale,+scale,-scale);
 
             // Generating the cube faces.
-            corner_vaos[0] = createMesh(v0, v1, v2, v3, new Vector3f(0,0,-1));  // Front face
+            corner_vaos[0] = createMesh(v1, v0, v3, v2, new Vector3f(0,0,-1));  // Front face
             corner_vaos[1] = createMesh(v4, v5, v6, v7, new Vector3f(0,0,+1));  // Back face
             corner_vaos[2] = createMesh(v0, v4, v2, v6, new Vector3f(+1,0,0));  // Left face
             corner_vaos[3] = createMesh(v5, v1, v7, v3, new Vector3f(-1,0,0));  // Right face
