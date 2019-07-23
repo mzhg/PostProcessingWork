@@ -7,7 +7,7 @@ package jet.opengl.postprocessing.core.volumetricLighting;
 public class LightScatteringInitAttribs {
 
     public int m_uiInitialSampleStepInSlice = 16;
-    public int m_uiNumEpipolarSlices = 512;
+    public int m_uiNumEpipolarSlices = 1024;
     public int m_uiMaxSamplesInSlice = 256;
     public boolean m_bOptimizeSampleLocations = true;
     public LightType m_uiLightType;

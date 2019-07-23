@@ -26,6 +26,8 @@ import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
 import jet.opengl.demos.intel.avsm.AVSMDemo;
 import jet.opengl.demos.nvidia.fire.PerlinFire;
 import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
+import jet.opengl.demos.postprocessing.LightingVolumeDemo;
+import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
@@ -123,7 +125,7 @@ public class DemoApp {
 //        run(new ASSAODemoDebug());
 //        run(SSAODemoDX11.newInstance());
 //        testRectVertex();
-//        run(new OutdoorLightScatteringSample());
+        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
 //        run(new ShaderTest());
 //        run(new SoftShadowDemo());
@@ -141,7 +143,7 @@ public class DemoApp {
 //        run(new AntiAliasingDemo());
 //        run(new HybridRendererDemo());
 //        run(new CloudSkyDemo());
-        run(new VoxelConeTracingDemo());
+//        run(new VoxelConeTracingDemo());
 //        run(new PerlinFire());
     }
 

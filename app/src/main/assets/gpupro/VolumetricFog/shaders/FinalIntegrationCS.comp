@@ -1,0 +1,40 @@
+#include "Common.glsl"
+layout(binding=0) uniform sampler3D LightScattering;
+
+//RWTexture3D<float4> RWIntegratedLightScattering;
+layout(binding = 0, rgba32f) uniform image3D RWIntegratedLightScattering;
+layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = 1)in;
+
+void main()
+{
+    uint3 GridCoordinate = DispatchThreadId;
+
+    float3 AccumulatedLighting = float3(0);
+    float AccumulatedTransmittance = 1.0f;
+    float3 PreviousSliceWorldPosition = View.WorldCameraOrigin;
+
+    for (uint LayerIndex = 0; LayerIndex < VolumetricFog.GridSizeInt.z; LayerIndex++)
+    {
+        uint3 LayerCoordinate = uint3(GridCoordinate.xy, LayerIndex);
+        float4 ScatteringAndExtinction = DecodeHDR(LightScattering[LayerCoordinate]);
+
+        float3 LayerWorldPosition = ComputeCellWorldPosition(LayerCoordinate, .5f);
+        float StepLength = length(LayerWorldPosition - PreviousSliceWorldPosition);
+        PreviousSliceWorldPosition = LayerWorldPosition;
+
+        float Transmittance = exp(-ScatteringAndExtinction.w * StepLength);
+
+// See "Physically Based and Unified Volumetric Rendering in Frostbite"
+#define ENERGY_CONSERVING_INTEGRATION 1
+#if ENERGY_CONSERVING_INTEGRATION
+        float3 ScatteringIntegratedOverSlice = (ScatteringAndExtinction.rgb - ScatteringAndExtinction.rgb * Transmittance) / max(ScatteringAndExtinction.w, .00001f);
+        AccumulatedLighting += ScatteringIntegratedOverSlice * AccumulatedTransmittance;
+#else
+        AccumulatedLighting += ScatteringAndExtinction.rgb * AccumulatedTransmittance * StepLength;
+#endif
+
+        AccumulatedTransmittance *= Transmittance;
+
+        RWIntegratedLightScattering[LayerCoordinate] = float4(AccumulatedLighting, AccumulatedTransmittance);
+    }
+}

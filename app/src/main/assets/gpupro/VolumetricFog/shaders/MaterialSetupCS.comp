@@ -1,0 +1,45 @@
+#include "Common.glsl"
+
+#ifndef THREADGROUP_SIZE
+#define THREADGROUP_SIZE 1
+#endif
+
+uniform float3 GlobalAlbedo;
+uniform float3 GlobalEmissive;
+uniform float GlobalExtinctionScale;
+
+layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = THREADGROUP_SIZE)in;
+
+void main()
+{
+    uint3 GridCoordinate = gl_GlobalInvocationID;
+
+    // Center of the voxel
+    float VoxelOffset = .5f;
+
+    float3 WorldPosition = ComputeCellWorldPosition(GridCoordinate, VoxelOffset);
+
+    float GlobalDensityFirst = FogStruct_ExponentialFogParameters3.x * exp2(-FogStruct_ExponentialFogParameters.y * (WorldPosition.z - FogStruct_ExponentialFogParameters3.y));
+    float GlobalDensitySecond = FogStruct_ExponentialFogParameters2.z * exp2(-FogStruct_ExponentialFogParameters2.y * (WorldPosition.z - FogStruct_ExponentialFogParameters2.w));
+    float GlobalDensity = GlobalDensityFirst + GlobalDensitySecond;
+
+    float3 Albedo = GlobalAlbedo;
+
+    // Exponential height fog interprets density differently, match its behavior
+    float MatchHeightFogFactor = .5f;
+    float Extinction = max(GlobalDensity * GlobalExtinctionScale * MatchHeightFogFactor, 0);
+
+    float3 Scattering = Albedo * Extinction;
+    float Absorption = max(Extinction - Luminance(Scattering), 0.0f);
+
+//    if (all((int3)GridCoordinate < VolumetricFog.GridSizeInt))
+    int3 VolumetricFog_GridSizeInt= int3(VolumetricFog_GridSize);
+    int3 GridCoordinateInt = int3(GridCoordinate);
+    if(all(lessThan(GridCoordinateInt, VolumetricFog_GridSizeInt)))
+    {
+//        RWVBufferA[GridCoordinate] = float4(Scattering, Absorption);
+//        RWVBufferB[GridCoordinate] = float4(GlobalEmissive, 0);
+        imageStore(RWVBufferA, GridCoordinateInt, float4(Scattering, Absorption));
+        imageStore(RWVBufferB, GridCoordinateInt, float4(GlobalEmissive, 0));
+    }
+}
