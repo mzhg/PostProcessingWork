@@ -3,18 +3,41 @@
 //RWTexture3D<float4> RWVBufferA;
 //RWTexture3D<float4> RWVBufferB;
 
-uniform vec3 Volumetric_FogGridZParams;
+#ifndef DISTANCE_FIELD_SKY_OCCLUSION
+#define DISTANCE_FIELD_SKY_OCCLUSION 0
+#endif
+
+#define PI 3.1415926
+
+uniform vec3 VolumetricFog_GridZParams;
 uniform vec3 VolumetricFog_GridSize;
 uniform vec3 View_PreViewTranslation;
 uniform vec4 FogStruct_ExponentialFogParameters;
 uniform vec4 FogStruct_ExponentialFogParameters2;
 uniform vec4 FogStruct_ExponentialFogParameters3;
+uniform float g_CameraNear;
+uniform float g_CameraFar;
+uniform mat4  g_ViewProj;
 
+float ConvertToDeviceZ(float depth)
+{
+    vec4 clipPos = g_ViewProj * vec4(0,0, depth, 1);
+    return clipPos.z / clipPos.w;
+}
 
 float ComputeDepthFromZSlice(float ZSlice)
 {
     float SliceDepth = (exp2(ZSlice / VolumetricFog_GridZParams.z) - VolumetricFog_GridZParams.y) / VolumetricFog_GridZParams.x;
     return SliceDepth;
+}
+
+float Luminance(in vec3 rgb)
+{
+    float R = rgb.x;
+    float G = rgb.y;
+    float B = rgb.z;
+
+    return R*0.299 + G*0.587 + B*0.114;
 }
 
 uniform float4x4 UnjitteredClipToTranslatedWorld;
@@ -44,7 +67,7 @@ float3 RaleighScattering()
     float ParticleDiameter = 60;
     float ParticleRefractiveIndex = 1.3f;
 
-    float3 ScaleDependentPortion = pow(ParticleDiameter, 6) / pow(Wavelengths, 4);
+    float3 ScaleDependentPortion = pow(ParticleDiameter, 6) / pow(Wavelengths, float3(4));
     float RefractiveIndexPortion = (ParticleRefractiveIndex * ParticleRefractiveIndex - 1) / (ParticleRefractiveIndex * ParticleRefractiveIndex + 2);
     return (2 * pow(PI, 5) * RefractiveIndexPortion * RefractiveIndexPortion) * ScaleDependentPortion / 3.0f;
 }
@@ -111,6 +134,7 @@ float4 DecodeHDR(float4 Color)
     //return float4(Color.rgb * rcp((Color.r*(-0.299) + Color.g*(-0.587) + Color.b*(-0.114)) * Exposure + 1.0), Color.a);
 }
 
+#if DISTANCE_FIELD_SKY_OCCLUSION
 float HemisphereConeTraceAgainstGlobalDistanceFieldClipmap(
 uint ClipmapIndex,
 float3 WorldShadingPosition,
@@ -156,7 +180,7 @@ float HemisphereConeTraceAgainstGlobalDistanceField(float3 WorldShadingPosition,
 //    BRANCH
     if (DistanceFromClipmap > AOGlobalMaxOcclusionDistance)
     {
-        MinVisibility = HemisphereConeTraceAgainstGlobalDistanceFieldClipmap((uint)0, WorldShadingPosition, ConeDirection, TanConeHalfAngle);
+        MinVisibility = HemisphereConeTraceAgainstGlobalDistanceFieldClipmap(0, WorldShadingPosition, ConeDirection, TanConeHalfAngle);
     }
     else
     {
@@ -165,7 +189,7 @@ float HemisphereConeTraceAgainstGlobalDistanceField(float3 WorldShadingPosition,
 //        BRANCH
         if (DistanceFromClipmap > AOGlobalMaxOcclusionDistance)
         {
-            MinVisibility = HemisphereConeTraceAgainstGlobalDistanceFieldClipmap((uint)1, WorldShadingPosition, ConeDirection, TanConeHalfAngle);
+            MinVisibility = HemisphereConeTraceAgainstGlobalDistanceFieldClipmap(1, WorldShadingPosition, ConeDirection, TanConeHalfAngle);
         }
         else
         {
@@ -186,6 +210,8 @@ float HemisphereConeTraceAgainstGlobalDistanceField(float3 WorldShadingPosition,
 
     return MinVisibility;
 }
+
+#endif
 
 float SkyLightUseStaticShadowing;
 
@@ -212,15 +238,16 @@ float ComputeSkyVisibility(float3 WorldPosition, float3 BrickTextureUVs)
     return Visibility;
 }
 
-float4x4 DirectionalLightFunctionWorldToShadow;
-Texture2D LightFunctionTexture;
-SamplerState LightFunctionSampler;
+uniform float4x4 DirectionalLightFunctionWorldToShadow;
+uniform sampler2D LightFunctionTexture;
+//SamplerState LightFunctionSampler;
 
 float GetLightFunction(float3 WorldPosition)
 {
     float4 HomogeneousShadowPosition = mul(float4(WorldPosition, 1), DirectionalLightFunctionWorldToShadow);
     float2 LightFunctionUV = HomogeneousShadowPosition.xy * .5f + .5f;
-    LightFunctionUV.y = 1 - LightFunctionUV.y;
+//    LightFunctionUV.y = 1 - LightFunctionUV.y;
 
-    return Texture2DSampleLevel(LightFunctionTexture, LightFunctionSampler, LightFunctionUV, 0).x;
+//    return Texture2DSampleLevel(LightFunctionTexture, LightFunctionSampler, LightFunctionUV, 0).x;
+    return textureLod(LightFunctionTexture, LightFunctionUV, 0.0).x;
 }

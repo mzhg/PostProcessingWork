@@ -23,6 +23,7 @@ import java.util.Arrays;
 import jet.opengl.demos.flight404.Flight404;
 import jet.opengl.demos.gpupro.ibl.IndirectLighting;
 import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
+import jet.opengl.demos.gpupro.volumetricfog.VolumetricFogDemo;
 import jet.opengl.demos.intel.avsm.AVSMDemo;
 import jet.opengl.demos.nvidia.fire.PerlinFire;
 import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
@@ -125,7 +126,7 @@ public class DemoApp {
 //        run(new ASSAODemoDebug());
 //        run(SSAODemoDX11.newInstance());
 //        testRectVertex();
-        run(new OutdoorLightScatteringSample());
+//        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
 //        run(new ShaderTest());
 //        run(new SoftShadowDemo());
@@ -145,6 +146,7 @@ public class DemoApp {
 //        run(new CloudSkyDemo());
 //        run(new VoxelConeTracingDemo());
 //        run(new PerlinFire());
+        run(new VolumetricFogDemo());
     }
 
     private static void testParaboloidMatrix(){

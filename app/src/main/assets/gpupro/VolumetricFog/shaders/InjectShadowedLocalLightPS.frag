@@ -1,6 +1,6 @@
 #include "Common.glsl"
 
-in int LayerIndex;
+in flat int LayerIndex;
 out float4 OutScattering;
 
 void main()

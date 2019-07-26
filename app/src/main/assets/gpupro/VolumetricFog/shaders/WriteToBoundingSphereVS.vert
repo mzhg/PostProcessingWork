@@ -7,7 +7,7 @@ uniform float4x4 ViewToVolumeClip;
 
 layout(location = 1) in vec2 InUV;
 
-out int LayerIndex;
+out flat int LayerIndex;
 
 void main()
 {

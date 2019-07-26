@@ -972,4 +972,12 @@ public final class Numeric {
 
 		return levels;
 	}
+
+	public static double exp2(double x){
+		return Math.pow(2, x);
+	}
+
+	public static double log2(double x){
+		return Math.log(x)/ Math.log(2);
+	}
 }

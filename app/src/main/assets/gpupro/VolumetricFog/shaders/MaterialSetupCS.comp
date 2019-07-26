@@ -8,6 +8,9 @@ uniform float3 GlobalAlbedo;
 uniform float3 GlobalEmissive;
 uniform float GlobalExtinctionScale;
 
+layout(binding = 0, rgba16f) uniform image3D RWVBufferA;
+layout(binding = 1, rgba16f) uniform image3D RWVBufferB;
+
 layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = THREADGROUP_SIZE)in;
 
 void main()
@@ -17,10 +20,17 @@ void main()
     // Center of the voxel
     float VoxelOffset = .5f;
 
-    float3 WorldPosition = ComputeCellWorldPosition(GridCoordinate, VoxelOffset);
+    float3 WorldPosition = ComputeCellWorldPosition(GridCoordinate, float3(VoxelOffset, VoxelOffset, VoxelOffset));
+
+    // FogStruct_ExponentialFogParameters3.x : Fog Density
+    // FogStruct_ExponentialFogParameters3.y : Start distance to the camera.
+    // FogStruct_ExponentialFogParameters.y :may be the Fog Height falloff
+    // FogStruct_ExponentialFogParameters2.z : Extinction Scale
+    // FogStruct_ExponentialFogParameters2.y : View distance to the camera.
+    // FogStruct_ExponentialFogParameters2.y : Static Lighting Scattering Intensity.
 
     float GlobalDensityFirst = FogStruct_ExponentialFogParameters3.x * exp2(-FogStruct_ExponentialFogParameters.y * (WorldPosition.z - FogStruct_ExponentialFogParameters3.y));
-    float GlobalDensitySecond = FogStruct_ExponentialFogParameters2.z * exp2(-FogStruct_ExponentialFogParameters2.y * (WorldPosition.z - FogStruct_ExponentialFogParameters2.w));
+    float GlobalDensitySecond =0; // FogStruct_ExponentialFogParameters2.z * exp2(-FogStruct_ExponentialFogParameters2.y * (WorldPosition.z - FogStruct_ExponentialFogParameters2.w));
     float GlobalDensity = GlobalDensityFirst + GlobalDensitySecond;
 
     float3 Albedo = GlobalAlbedo;
