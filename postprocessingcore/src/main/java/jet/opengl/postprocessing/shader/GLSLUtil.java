@@ -1102,6 +1102,12 @@ public final class GLSLUtil {
 			GLFuncProviderFactory.getGLFuncProvider().glUniformMatrix4fv(index, false, CacheBuffer.wrap(v));
 	}
 
+	public static void setMat4(GLSLProgram prog, String name, Matrix4f[] v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniformMatrix4fv(index, false, CacheBuffer.wrap(v));
+	}
+
 	public static void setFloat2(GLSLProgram prog, String name, ReadableVector2f v){
 		int index = prog.getUniformLocation(name, true);
 		if(index >=0)
@@ -1120,9 +1126,22 @@ public final class GLSLUtil {
 			GLFuncProviderFactory.getGLFuncProvider().glUniform4f(index, v.getX(),v.getY(),v.getZ(), v.getW());
 	}
 
+	public static void setFloat4(GLSLProgram prog, String name, ReadableVector4f[] v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0){
+			GLFuncProviderFactory.getGLFuncProvider().glUniform4fv(index, CacheBuffer.wrap(v));
+		}
+	}
+
 	public static void setInt(GLSLProgram prog, String name, int v){
 		int index = prog.getUniformLocation(name, true);
 		if(index >=0)
 			GLFuncProviderFactory.getGLFuncProvider().glUniform1i(index, v);
+	}
+
+	public static void setUInt(GLSLProgram prog, String name, int v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform1ui(index, v);
 	}
 }

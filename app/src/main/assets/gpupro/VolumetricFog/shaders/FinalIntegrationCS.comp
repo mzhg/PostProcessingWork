@@ -2,23 +2,26 @@
 layout(binding=0) uniform sampler3D LightScattering;
 
 //RWTexture3D<float4> RWIntegratedLightScattering;
-layout(binding = 0, rgba32f) uniform image3D RWIntegratedLightScattering;
+layout(binding = 0, rgba16f) uniform image3D RWIntegratedLightScattering;
 layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = 1)in;
+
+uniform float3 WorldCameraOrigin;
 
 void main()
 {
-    uint3 GridCoordinate = DispatchThreadId;
+    uint3 GridCoordinate = gl_GlobalInvocationID;
 
     float3 AccumulatedLighting = float3(0);
     float AccumulatedTransmittance = 1.0f;
-    float3 PreviousSliceWorldPosition = View.WorldCameraOrigin;
+    float3 PreviousSliceWorldPosition = WorldCameraOrigin;
+    int3 VolumetricFog_GridSizeInt= int3(VolumetricFog_GridSize);
 
-    for (uint LayerIndex = 0; LayerIndex < VolumetricFog.GridSizeInt.z; LayerIndex++)
+    for (uint LayerIndex = 0; LayerIndex < VolumetricFog_GridSizeInt.z; LayerIndex++)
     {
         uint3 LayerCoordinate = uint3(GridCoordinate.xy, LayerIndex);
-        float4 ScatteringAndExtinction = DecodeHDR(LightScattering[LayerCoordinate]);
+        float4 ScatteringAndExtinction = DecodeHDR(texelFetch(LightScattering, int3(LayerCoordinate), 0));
 
-        float3 LayerWorldPosition = ComputeCellWorldPosition(LayerCoordinate, .5f);
+        float3 LayerWorldPosition = ComputeCellWorldPosition(LayerCoordinate, float3(.5f));
         float StepLength = length(LayerWorldPosition - PreviousSliceWorldPosition);
         PreviousSliceWorldPosition = LayerWorldPosition;
 
@@ -35,6 +38,7 @@ void main()
 
         AccumulatedTransmittance *= Transmittance;
 
-        RWIntegratedLightScattering[LayerCoordinate] = float4(AccumulatedLighting, AccumulatedTransmittance);
+//        RWIntegratedLightScattering[LayerCoordinate] = float4(AccumulatedLighting, AccumulatedTransmittance);
+        imageStore(RWIntegratedLightScattering, int3(LayerCoordinate), float4(AccumulatedLighting, AccumulatedTransmittance));
     }
 }

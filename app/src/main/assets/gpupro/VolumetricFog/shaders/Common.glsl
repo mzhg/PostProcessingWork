@@ -19,6 +19,8 @@ uniform float g_CameraNear;
 uniform float g_CameraFar;
 uniform mat4  g_ViewProj;
 
+#define Texture3DSampleLevel(tex, uv, lod) textureLod(tex, uv, lod)
+
 float ConvertToDeviceZ(float depth)
 {
     vec4 clipPos = g_ViewProj * vec4(0,0, depth, 1);
@@ -40,8 +42,28 @@ float Luminance(in vec3 rgb)
     return R*0.299 + G*0.587 + B*0.114;
 }
 
+float4 MakePositiveFinite(float4 v)
+{
+    bool4 test = isinf(v);
+    float4 result;
+    result.x = test.x ? 0.0 : v.x;
+    result.y = test.y ? 0.0 : v.y;
+    result.z = test.z ? 0.0 : v.z;
+    result.w = test.w ? 0.0 : v.w;
+
+    return result;
+}
+
+float Square(float x) { return x * x;}
+
 uniform float4x4 UnjitteredClipToTranslatedWorld;
 uniform float4x4 UnjitteredPrevWorldToClip;
+uniform float HistoryWeight = 0.9;
+
+uniform uint HistoryMissSuperSampleCount;
+uniform float4 FrameJitterOffsets[16];
+uniform float InverseSquaredLightDistanceBiasScale;
+uniform float PhaseG;
 
 float3 ComputeCellWorldPosition(uint3 GridCoordinate, float3 CellOffset, out float SceneDepth)
 {
@@ -250,4 +272,35 @@ float GetLightFunction(float3 WorldPosition)
 
 //    return Texture2DSampleLevel(LightFunctionTexture, LightFunctionSampler, LightFunctionUV, 0).x;
     return textureLod(LightFunctionTexture, LightFunctionUV, 0.0).x;
+}
+
+float ComputeNormalizedZSliceFromDepth(float SceneDepth)
+{
+    return log2(SceneDepth * VolumetricFog_GridZParams.x + VolumetricFog_GridZParams.y) * VolumetricFog_GridZParams.z / VolumetricFog_GridSize.z;
+}
+
+float3 ComputeVolumeUV(float3 WorldPosition, float4x4 WorldToClip)
+{
+    float4 NDCPosition = mul(float4(WorldPosition, 1), WorldToClip);
+    NDCPosition.xy /= NDCPosition.w;
+    return float3(NDCPosition.xy * float2(.5f) + .5f, ComputeNormalizedZSliceFromDepth(NDCPosition.w));
+}
+
+#ifndef SUPPORT_VOLUMETRIC_FOG
+#define SUPPORT_VOLUMETRIC_FOG 0
+#endif
+
+float4 CombineVolumetricFog(float4 GlobalFog, float3 VolumeUV)
+{
+    float4 VolumetricFogLookup = float4(0, 0, 0, 1);
+#if SUPPORT_VOLUMETRIC_FOG
+    if (FogStruct.ApplyVolumetricFog > 0)
+    {
+        VolumetricFogLookup = Texture3DSampleLevel(FogStruct.IntegratedLightScattering, SharedIntegratedLightScatteringSampler, VolumeUV, 0);
+    }
+#endif
+    // Visualize depth distribution
+    //VolumetricFogLookup.rgb += .1f * frac(min(ZSlice, 1.0f) / View.VolumetricFogInvGridSize.z);
+    return float4(VolumetricFogLookup.rgb + GlobalFog.rgb * VolumetricFogLookup.a, VolumetricFogLookup.a * GlobalFog.a);
+
 }

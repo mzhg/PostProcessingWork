@@ -34,6 +34,7 @@ final class MaterialSetupCS extends GLSLProgram {
         GLSLUtil.setFloat4(this, "FogStruct_ExponentialFogParameters3", params.ExponentialFogParameters3);
         GLSLUtil.setFloat3(this, "GlobalAlbedo", params.GlobalAlbedo);
         GLSLUtil.setFloat3(this, "GlobalEmissive", params.GlobalEmissive);
+        GLSLUtil.setFloat(this, "GlobalExtinctionScale", params.GlobalExtinctionScale);
         GLSLUtil.setFloat3(this, "View_PreViewTranslation", params.View_PreViewTranslation);
         GLSLUtil.setFloat3(this, "VolumetricFog_GridSize", params.VolumetricFog_GridSize);
         GLSLUtil.setFloat3(this, "VolumetricFog_GridZParams", params.VolumetricFog_GridZParams);

@@ -13,6 +13,11 @@ layout(binding = 1, rgba16f) uniform image3D RWVBufferB;
 
 layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = THREADGROUP_SIZE)in;
 
+// FogStruct.ExponentialFogParameters: FogDensity * exp2(-FogHeightFalloff * (CameraWorldPosition.z - FogHeight)) in x, FogHeightFalloff in y, CosTerminatorAngle in z, StartDistance in w.
+// FogStruct.ExponentialFogParameters2: FogDensitySecond * exp2(-FogHeightFalloffSecond * (CameraWorldPosition.z - FogHeightSecond)) in x, FogHeightFalloffSecond in y, FogDensitySecond in z, FogHeightSecond in w
+// FogStruct.ExponentialFogParameters3: FogDensity in x, FogHeight in y, whether to use cubemap fog color in z, FogCutoffDistance in w.
+// FogStruct.FogInscatteringTextureParameters: mip distance scale in x, bias in y, num mips in z
+
 void main()
 {
     uint3 GridCoordinate = gl_GlobalInvocationID;

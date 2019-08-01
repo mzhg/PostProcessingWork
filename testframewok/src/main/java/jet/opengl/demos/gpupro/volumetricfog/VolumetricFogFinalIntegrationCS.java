@@ -22,5 +22,6 @@ final class VolumetricFogFinalIntegrationCS extends GLSLProgram {
 
         ShaderSourceItem item = new ShaderSourceItem(source, ShaderType.COMPUTE);
         item.macros = CommonUtil.toArray(new Macro("THREADGROUP_SIZE", threadSize));
+        setSourceFromStrings(item);
     }
 }

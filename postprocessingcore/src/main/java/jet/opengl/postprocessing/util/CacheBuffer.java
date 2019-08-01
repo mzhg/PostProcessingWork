@@ -5,6 +5,8 @@ import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Readable;
+import org.lwjgl.util.vector.ReadableVector2f;
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.ReadableVector4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
@@ -477,7 +479,7 @@ public class CacheBuffer {
 		return buffer;
 	}
 
-	public static FloatBuffer wrap(Vector2f[] vec){
+	public static FloatBuffer wrap(ReadableVector2f[] vec){
 		int size = vec == null ? 0 : vec.length;
 		FloatBuffer buffer = getCachedFloatBuffer(size * 2);
 		for(int i = 0; i < size; i++){
@@ -491,7 +493,7 @@ public class CacheBuffer {
 		return buffer;
 	}
 	
-	public static FloatBuffer wrap(Vector3f[] vec){
+	public static FloatBuffer wrap(ReadableVector3f[] vec){
 		int size = vec == null ? 0 : vec.length;
 		FloatBuffer buffer = getCachedFloatBuffer(size * 3);
 		for(int i = 0; i < size; i++){
@@ -505,7 +507,7 @@ public class CacheBuffer {
 		return buffer;
 	}
 
-	public static FloatBuffer wrap(Vector4f[] vec){
+	public static FloatBuffer wrap(ReadableVector4f[] vec){
 		int size = vec == null ? 0 : vec.length;
 		FloatBuffer buffer = getCachedFloatBuffer(size * 4);
 		for(int i = 0; i < size; i++){

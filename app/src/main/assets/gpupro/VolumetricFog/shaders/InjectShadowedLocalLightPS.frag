@@ -1,4 +1,9 @@
 #include "Common.glsl"
+#include "LightingCommon.glsl"
+
+#ifndef INVERSE_SQUARED_FALLOFF
+#define INVERSE_SQUARED_FALLOFF 1
+#endif
 
 in flat int LayerIndex;
 out float4 OutScattering;
@@ -8,12 +13,13 @@ void main()
     OutScattering = float4(0);
 
     uint3 GridCoordinate = uint3(gl_FragCoord.xy, LayerIndex);
+    uint3 GridSizeInt = uint3(VolumetricFog_GridSize);
 
     // Somehow pixels are being rasterized outside of the viewport on a 970 GTX, perhaps due to use of a geometry shader bypassing the viewport scissor.
     // This triggers the HistoryMissSuperSampleCount path causing significant overhead for shading off-screen pixels.
-    if (all(GridCoordinate < VolumetricFog.GridSizeInt))
+    if (all(lessThan(GridCoordinate, GridSizeInt)))
     {
-        FDeferredLightData LightData;
+        /*FDeferredLightData LightData;
         LightData.Position = DeferredLightUniforms.Position;
         LightData.InvRadius = DeferredLightUniforms.InvRadius;
         LightData.Color = DeferredLightUniforms.Color;
@@ -34,11 +40,11 @@ void main()
         LightData.bInverseSquared = INVERSE_SQUARED_FALLOFF;
         LightData.bRadialLight = true;
         LightData.bSpotLight = LightData.SpotAngles.x > -2.0f;
-        LightData.bRectLight = false;
+        LightData.bRectLight = false;*/
 
-        FRectTexture RectTexture = InitRectTexture(DeferredLightUniforms.SourceTexture);
+//        FRectTexture RectTexture = InitRectTexture(DeferredLightUniforms.SourceTexture);
 
-        float VolumetricScatteringIntensity = DeferredLightUniforms.VolumetricScatteringIntensity;
+        float VolumetricScatteringIntensity = LightData.VolumetricScatteringIntensity;
 
         float3 L = float3(0);
         float3 ToLight = float3(0);
@@ -47,7 +53,7 @@ void main()
 
 #if USE_TEMPORAL_REPROJECTION
 
-        float3 HistoryUV = ComputeVolumeUV(ComputeCellWorldPosition(GridCoordinate, .5f), UnjitteredPrevWorldToClip);
+        float3 HistoryUV = ComputeVolumeUV(ComputeCellWorldPosition(GridCoordinate, float3(.5f)), UnjitteredPrevWorldToClip);
         float HistoryAlpha = HistoryWeight;
 
 //        FLATTEN
@@ -55,7 +61,6 @@ void main()
         {
             HistoryAlpha = 0;
         }
-
         NumSuperSamples = HistoryAlpha < .001f ? HistoryMissSuperSampleCount : 1;
 
 #endif
@@ -67,26 +72,26 @@ void main()
 
             float SceneDepth;
             float3 WorldPosition = ComputeCellWorldPosition(GridCoordinate, CellOffset, SceneDepth);
-            float3 CameraVector = normalize(WorldPosition - View.WorldCameraOrigin);
+            float3 CameraVector = normalize(WorldPosition - WorldCameraOrigin);
 
             float CellRadius = length(WorldPosition - ComputeCellWorldPosition(GridCoordinate + uint3(1, 1, 1), CellOffset));
             // Bias the inverse squared light falloff based on voxel size to prevent aliasing near the light source
             float DistanceBias = max(CellRadius * InverseSquaredLightDistanceBiasScale, 1);
 
-            float3 LightColor = DeferredLightUniforms.Color;
+            float3 LightColor = LightData.Color;
             float LightMask = GetLocalLightAttenuation(WorldPosition, LightData, ToLight, L);
 
             float Lighting;
-            if( LightData.bRectLight )
+            /*if( LightData.bRectLight )  TODO Can't goto this brach
             {
                 FRect Rect = GetRect(ToLight, LightData);
 
                 Lighting = IntegrateLight(Rect, RectTexture);
             }
-            else
+            else*/
             {
                 FCapsuleLight Capsule = GetCapsule(ToLight, LightData);
-                Capsule.DistBiasSqr = Pow2(DistanceBias);
+                Capsule.DistBiasSqr = DistanceBias * DistanceBias;
 
                 Lighting = IntegrateLight(Capsule, LightData.bInverseSquared);
             }

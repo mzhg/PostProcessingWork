@@ -3,6 +3,8 @@ package jet.opengl.demos.gpupro.volumetricfog;
 import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
+import org.lwjgl.util.vector.Vector3f;
+
 import jet.opengl.demos.scenes.Cube16;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -44,7 +46,6 @@ public class VolumetricFogDemo extends NvSampleApp {
             return;
 
         m_Scene.onResize(width, height);
-
     }
 
     @Override
@@ -58,15 +59,17 @@ public class VolumetricFogDemo extends NvSampleApp {
             // Apply the DOF Bokeh and render result to scene_rt2
             m_Params.sceneColor = m_Scene.getSceneColor();
             m_Params.sceneDepth = m_Scene.getSceneDepth();
-//            m_frameAttribs.cameraNear = m_Scene.getSceneNearPlane();
-//            m_frameAttribs.cameraFar =  m_Scene.getSceneFarPlane();
+            m_Params.cameraNear = m_Scene.getSceneNearPlane();
+            m_Params.cameraFar =  m_Scene.getSceneFarPlane();
 //            m_frameAttribs.outputTexture = null;
 //            m_frameAttribs.viewport.set(0,0, getGLContext().width(), getGLContext().height());
-//            m_frameAttribs.viewMat = m_Scene.getViewMat();
-//            m_frameAttribs.projMat = m_Scene.getProjMat();
+            m_Params.view = m_Scene.getViewMat();
+            m_Params.proj = m_Scene.getProjMat();
 //            m_frameAttribs.fov =     m_Scene.getFovInRadian();
 
             m_Params.shadowMap = m_Scene.getShadowMap();
+            m_Params.addPointLight(m_Scene.getLightPos(), m_Scene.getLightFarlane(), new Vector3f(0.904016f, 0.843299f, 0.70132f), 1,
+                    m_Scene.getCubeLightViewMats(), m_Scene.getLightProjMat(), m_Scene.getShadowMap());
 //            m_frameAttribs.lightDirection = m_Scene.getLightDir();
 //            m_frameAttribs.lightPos = m_Scene.getLightPos();
 //            m_frameAttribs.lightProjMat = m_Scene.getLightProjMat();

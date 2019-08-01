@@ -502,6 +502,16 @@ public class Cube16 {
 	public Vector3f getLightPos()   { return m_LightCBStruct.vLightPos;}
 	public Matrix4f getLightProjMat() { return m_pScene.lightProj;}
 	public Matrix4f getLightViewMat() { return m_LightCBStruct.mLightView;}
+	public Matrix4f[] getCubeLightViewMats(){
+		if(m_pScene.lightMode == LightType.POINT){
+			Matrix4f[] vies = new Matrix4f[6];
+			for(int i = 0; i < vies.length; i++) vies[i] = new Matrix4f();
+
+			return vies;
+		}
+
+		return null;
+	}
 	public float getLightNearPlane(){ return m_LightCBStruct.zNear;}
 	public float getLightFarlane()  { return m_LightCBStruct.zFar;}
 	public LightType getLightMode() {	return m_pScene.getLightMode();}
@@ -509,9 +519,10 @@ public class Cube16 {
 
 	public Texture2D getShadowMap() { return m_pScene.getLightMode() == LightType.POINT ? m_pParaboloidShadowMap : m_pShadowMap;}
 
+	public void setLightType(LightType type) {m_pScene.lightMode = type;}
 	final class SceneController {
 
-		LightType lightMode = LightType.DIRECTIONAL;
+		LightType lightMode = LightType.POINT;
 		int lightPower_;
 		int viewpoint_ = 0;
 
