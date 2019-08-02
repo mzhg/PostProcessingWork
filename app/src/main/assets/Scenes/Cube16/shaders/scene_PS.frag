@@ -38,16 +38,24 @@ Define the shader permutations for code generation
 
 #include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
 
+#ifndef CUBE_SHADOW_MAP
+#define CUBE_SHADOW_MAP 0
+#endif
+
 #if (LIGHTMODE == LIGHTMODE_DIRECTIONAL || LIGHTMODE == LIGHTMODE_SPOTLIGHT)
 //    Texture2D<float> tShadowmap : register(t0); 
 	uniform sampler2DShadow  tShadowmap;
 #elif (LIGHTMODE == LIGHTMODE_OMNI)
 //    Texture2DArray <float1> tShadowmapArray : register(t0);
+
+#if CUBE_SHADOW_MAP
+    uniform samplerCube tShadowmapArray;
+#else
 	uniform sampler2DArrayShadow tShadowmapArray;
+#endif
 #endif
 
 #include "Uniforms.frag"
-
 ////////////////////////////////////////////////////////////////////////////////
 // Pixel Shader
 
@@ -82,6 +90,12 @@ void main()
     //return float4(0.5*(N+1), 1);
     
     const float SHADOW_BIAS = -0.001f;
+#if CUBE_SHADOW_MAP
+    vec3 dir = P - c_vLightPos;
+    float receiver_depth = length(dir) / c_fLightZNFar;
+
+    float shadow_term =receiver_depth >=1 ? 1: float(textureLod(tShadowmapArray, dir, 0.0) > receiver_depth);
+#else
     float4 shadow_clip = mul(c_mLightViewProj, float4(P,1));
     shadow_clip = shadow_clip / shadow_clip.w;
     uint hemisphereID = (shadow_clip.z > 0.) ? 0 : 1;
@@ -111,6 +125,7 @@ void main()
         }
     }
     float shadow_term = total_light / ((2.0*SHADOW_KERNEL+1.0) * (2.0*SHADOW_KERNEL+1.0));
+#endif
 
     float3 output_ = float3(0,0,0);
     float3 L = -c_vLightDirection;

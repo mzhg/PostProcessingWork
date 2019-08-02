@@ -27,6 +27,7 @@ import jet.opengl.demos.gpupro.volumetricfog.VolumetricFogDemo;
 import jet.opengl.demos.intel.avsm.AVSMDemo;
 import jet.opengl.demos.nvidia.fire.PerlinFire;
 import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
+import jet.opengl.demos.nvidia.volumelight.VolumetricLightingDemo;
 import jet.opengl.demos.postprocessing.LightingVolumeDemo;
 import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
 import jet.opengl.postprocessing.util.FileLoader;

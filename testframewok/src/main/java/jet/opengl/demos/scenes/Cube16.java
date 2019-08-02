@@ -1,12 +1,10 @@
 package jet.opengl.demos.scenes;
 
-import com.nvidia.developer.opengl.app.GLEventListener;
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvInputTransformer;
 import com.nvidia.developer.opengl.app.NvKey;
 import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
-import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.ui.NvTweakBar;
 import com.nvidia.developer.opengl.ui.NvTweakVarBase;
 import com.nvidia.developer.opengl.utils.FieldControl;
@@ -20,6 +18,7 @@ import org.lwjgl.util.vector.WritableVector3f;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
+import jet.opengl.demos.nvidia.shadows.ShadowMapGenerator;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -36,6 +35,8 @@ import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureCube;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
@@ -69,7 +70,8 @@ public class Cube16 {
 	private Texture2D m_pOffscreenDepth;
 	private Texture2D m_pShadowMap;
 	private Texture2D m_pParaboloidShadowMap;
-
+	private TextureCube m_CubeShadowMap;
+	private Texture2D m_CubeShadowViews;
 	private SceneController m_pScene;
 	
 	private int m_RenderTarget;
@@ -77,6 +79,7 @@ public class Cube16 {
 	
 	private DepthProgram m_DepthProgram;
 	private DepthGSProgram m_DepthGSProgram;
+	private DepthCubeGSProgram m_DepthCubeGSProgram;
 	
 	private SceneRenderProgram m_SceneDirectionalProgram;
 	private SceneRenderProgram m_SceneSpotlightProgram;
@@ -103,15 +106,23 @@ public class Cube16 {
 	private int m_psamComparison;
 	private int m_psamDefault;
 	private GLFuncProvider gl;
+	private final boolean m_EnableCubeShadow;
+	private Matrix4f[] m_CubeViews;
+	private Matrix4f m_CubeProj;
 	
 	public Cube16(NvSampleApp context){
+		this(context, false);
+	}
+
+	public Cube16(NvSampleApp context, boolean cubeShadow){
 		m_Transformer = context.getInputTransformer();
 		nvApp = context;
+		m_EnableCubeShadow = cubeShadow;
 	}
 	
 	public void initUI(NvTweakBar tweakBar){
 		tweakBar.addValue("Visualize Depth", new FieldControl(this, "m_bVisualShadownMap"));
-		tweakBar.addValue("Shadow Slice", new FieldControl(this, "m_shadowSlice"), 0, 1);
+		tweakBar.addValue("Shadow Slice", new FieldControl(this, "m_shadowSlice"), 0, m_EnableCubeShadow ? 5 : 1);
 
     	tweakBar.addValue("Animated: ", new FieldControl(m_pScene, "isPaused_"));
     	tweakBar.syncValues();
@@ -125,8 +136,27 @@ public class Cube16 {
 		gl = GLFuncProviderFactory.getGLFuncProvider();
 		Texture2DDesc shadowMapDesc = new Texture2DDesc(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION, GLenum.GL_DEPTH24_STENCIL8);
 		m_pShadowMap = TextureUtils.createTexture2D(shadowMapDesc, null);
-		shadowMapDesc.arraySize = 2;
-		m_pParaboloidShadowMap = TextureUtils.createTexture2D(shadowMapDesc, null);
+
+		if(m_EnableCubeShadow){
+			int cubemap = gl.glGenTexture();
+			gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, cubemap);
+			gl.glTexStorage2D(GLenum.GL_TEXTURE_CUBE_MAP, 1, GLenum.GL_DEPTH_COMPONENT32F, SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
+
+			m_CubeShadowMap = TextureUtils.createTextureCube(GLenum.GL_TEXTURE_CUBE_MAP, cubemap);
+			m_CubeShadowViews = TextureUtils.createTextureView(m_CubeShadowMap, GLenum.GL_TEXTURE_2D_ARRAY, 0, 1, 0, 6);
+
+			gl.glBindTexture(GLenum.GL_TEXTURE_CUBE_MAP, 0);
+
+			m_CubeProj = new Matrix4f();
+			m_CubeViews = new Matrix4f[6];
+			for(int i=0;i<6;i++) m_CubeViews[i] = new Matrix4f();
+
+			m_DepthCubeGSProgram = new DepthCubeGSProgram(null);
+		}else {
+			shadowMapDesc.arraySize = 2;
+			m_pParaboloidShadowMap = TextureUtils.createTexture2D(shadowMapDesc, null);
+			m_DepthGSProgram = new DepthGSProgram(null);
+		}
 		fullscreenProgram = new FullscreenProgram();
 		
 //		m_pScene = new SceneVolume(m_transformer);
@@ -220,6 +250,7 @@ public class Cube16 {
 	public Texture2D getSceneColor() { return m_pOffscreenRenderTarget;}
 	public Texture2D getSceneDepth() { return m_pOffscreenDepth;}
 	public boolean isVisualShadowMap() { return m_bVisualShadownMap;}
+	public boolean isCubeShadow()    { return m_EnableCubeShadow;}
 
 	void renderTexture(Texture2D texture){
 		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
@@ -265,29 +296,36 @@ public class Cube16 {
     	BaseProgram program;
     	if(m_pScene.getLightMode() == LightType.POINT){
 			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
-			gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pParaboloidShadowMap.getTexture(), 0);
-			gl.glDrawBuffers(GLenum.GL_NONE);
+			if(m_EnableCubeShadow){
+				gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, m_CubeShadowMap.getTexture(), 0);
+				gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
+			}else {
+				gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pParaboloidShadowMap.getTexture(), 0);
+				gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
+			}
 
-    		gl.glViewportIndexedf(0, 0, 0, SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
-			gl.glViewportIndexedf(1, 0, 0, SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
+			gl.glDrawBuffers(GLenum.GL_NONE);
+    		gl.glViewport(0, 0, SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
 
 			GLCheck.checkError();
-    		if(m_DepthGSProgram == null)
-				m_DepthGSProgram  = new DepthGSProgram(null);
-    		program = m_DepthGSProgram;
+			if(m_EnableCubeShadow){
+				m_DepthCubeGSProgram.setCubeProjViews(m_CubeViews, m_CubeProj);
+				m_DepthCubeGSProgram.setCameraPosRange(m_ViewCBStruct.vEyePos, LIGHT_RANGE);
+				program = m_DepthCubeGSProgram;
+			}else {
+				program = m_DepthGSProgram;
+			}
     	}else{
 			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
     		gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pShadowMap.getTarget(), m_pShadowMap.getTexture(), 0);
     		gl.glDrawBuffers(GLenum.GL_NONE);
-
+			gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
     		GLCheck.checkError();
     		if(m_DepthProgram == null)
     			m_DepthProgram = new DepthProgram(null);
 
     		program = m_DepthProgram;
     	}
-    	
-    	gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
     	
     	program.enable();
     	renderScene(program);
@@ -318,9 +356,17 @@ public class Cube16 {
     	Texture2D shadowMap;
         VisualDepthTextureProgram visualProgram;
         float near, far;
+        int maxSlice = 1;
         if(m_pScene.getLightMode() == LightType.POINT){
             visualProgram = m_visTexShader_array;
-            shadowMap = m_pParaboloidShadowMap;
+            if(m_EnableCubeShadow){
+            	maxSlice = 5;
+            	shadowMap = m_CubeShadowViews;
+			}else{
+            	maxSlice = 1;
+				shadowMap = m_pParaboloidShadowMap;
+			}
+
 			near = 0.5f;
 			far = 100.f;
         }else{
@@ -328,6 +374,7 @@ public class Cube16 {
             shadowMap = m_pShadowMap;
 			near = 0.5f;
 			far = LIGHT_RANGE;
+			maxSlice = 0;
         }
     	
     	gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
@@ -337,6 +384,8 @@ public class Cube16 {
 		gl.glDisable(GLenum.GL_STENCIL_TEST);
 		gl.glClearColor(0, 0, 0, 0);
 		gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
+
+		m_shadowSlice = Numeric.clamp(m_shadowSlice, 0, maxSlice);
 
         visualProgram.enable();
         visualProgram.setUniforms(near, far, m_shadowSlice, 1.0f);
@@ -407,12 +456,13 @@ public class Cube16 {
 //        m_pShadowMap.bind(0, m_psamComparison);
 		gl.glActiveTexture(GLenum.GL_TEXTURE0);
 		if(m_pScene.getLightMode() == LightType.POINT){
-			gl.glBindTexture(m_pParaboloidShadowMap.getTarget(), m_pParaboloidShadowMap.getTexture());
+			TextureGL shadowMap = m_EnableCubeShadow ? m_CubeShadowMap : m_pParaboloidShadowMap;
+			gl.glBindTexture(shadowMap.getTarget(), shadowMap.getTexture());
 		}else{
 			gl.glBindTexture(m_pShadowMap.getTarget(), m_pShadowMap.getTexture());
 		}
 
-		gl.glBindSampler(0, m_psamComparison);
+		gl.glBindSampler(0, m_EnableCubeShadow ? m_psamDefault : m_psamComparison);
         renderScene(sceneRender);
 //        m_pShadowMap.unbind();
 		gl.glBindSampler(0, 0);
@@ -504,10 +554,7 @@ public class Cube16 {
 	public Matrix4f getLightViewMat() { return m_LightCBStruct.mLightView;}
 	public Matrix4f[] getCubeLightViewMats(){
 		if(m_pScene.lightMode == LightType.POINT){
-			Matrix4f[] vies = new Matrix4f[6];
-			for(int i = 0; i < vies.length; i++) vies[i] = new Matrix4f();
-
-			return vies;
+			return m_CubeViews;
 		}
 
 		return null;
@@ -652,12 +699,19 @@ public class Cube16 {
 				case POINT: {
 					vPos.set(15, 10, 0);
 					Matrix4f.transformVector(lightTransform_, rvPos, vPos);
-					mViewProj.setIdentity();
-					mViewProj.m30 = -rvPos.getX();
-					mViewProj.m31 = -rvPos.getY();
-					mViewProj.m32 = -rvPos.getZ();
+					if(m_EnableCubeShadow){
+						mViewProj.setIdentity();
+						view.setIdentity();
 
-					view.load(mViewProj);
+						ShadowMapGenerator.buildCubeShadowMatrices(_vPos, 0.5f, LIGHT_RANGE, m_CubeProj, m_CubeViews);
+					}else{
+						mViewProj.setIdentity();
+						mViewProj.m30 = -rvPos.getX();
+						mViewProj.m31 = -rvPos.getY();
+						mViewProj.m32 = -rvPos.getZ();
+
+						view.load(mViewProj);
+					}
 				}
 				break;
 
@@ -906,6 +960,7 @@ public class Cube16 {
 					new Macro("LIGHTMODE_SPOTLIGHT", LIGHTMODE_SPOTLIGHT),
 					new Macro("LIGHTMODE_OMNI", LIGHTMODE_OMNI),
 					new Macro("LIGHTMODE", method),
+					new Macro("CUBE_SHADOW_MAP", m_EnableCubeShadow ? 1 : 0),
 			};
 
 			try {
@@ -942,6 +997,31 @@ public class Cube16 {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+	}
+
+	final class DepthCubeGSProgram extends BaseProgram{
+		public DepthCubeGSProgram(SceneController context) {
+			super(context);
+
+			try {
+				compileProgram("Scenes/Cube16/shaders/scene_VS.vert", "Scenes/Cube16/shaders/CubeShadow_GS.frag", "Scenes/Cube16/shaders/CubeShadow_PS.frag");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		void setCubeProjViews(Matrix4f[] views, Matrix4f proj){
+			int index = getUniformLocation("g_LightViews");
+			gl.glProgramUniformMatrix4fv(getProgram(), index, false, CacheBuffer.wrap(views));
+
+			index = getUniformLocation("g_LightProj");
+			gl.glProgramUniformMatrix4fv(getProgram(), index, false, CacheBuffer.wrap(proj));
+		}
+
+		void setCameraPosRange(Vector3f lightPos, float range){
+			int index = getUniformLocation("g_CameraPos");
+			gl.glProgramUniform4f(getProgram(), index, lightPos.x, lightPos.y, lightPos.z, range);
 		}
 	}
 }

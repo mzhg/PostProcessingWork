@@ -23,24 +23,30 @@ struct LocalLightingData
     float4 DirectionalLightShadowmapMinMax[NUM_DIRECTIONAL_LIGHT_CASCADES];
     float4 DirectionalLightShadowmapAtlasBufferSize;
 
-    bool HasDirectionalLight;
-    bool DirectionalLightUseStaticShadowing;
-    int NumDirectionalLightCascades;
-    float CascadeEndDepths[NUM_DIRECTIONAL_LIGHT_CASCADES];
     float3 DirectionalLightColor;
     float DirectionalLightVolumetricScatteringIntensity;
     float3 DirectionalLightDirection;
     float DirectionalLightDepthBias;
 
-    uint LightGridPixelSizeShift;
-    float3 LightGridZParams;
     int3 CulledGridSize;
-    uint NumLocalLights;
-    uint NumCulledLightsGrid[12];
-    uint DirectionalLightShadowMapChannelMask;
-    float2 DirectionalLightDistanceFadeMAD;
-    uint CulledLightDataGrid[4];
+    uint LightGridPixelSizeShift;
+
     float4 ForwardLocalLightBuffer[10];
+
+    bool HasDirectionalLight;
+    bool DirectionalLightUseStaticShadowing;
+    int NumDirectionalLightCascades;
+    uint NumLocalLights;
+
+    float3 LightGridZParams;
+    float CascadeEndDepths[4];
+
+//    uint NumCulledLightsGrid[12];
+
+    float2 DirectionalLightDistanceFadeMAD;
+    uint DirectionalLightShadowMapChannelMask;
+//    uint CulledLightDataGrid[4];
+
 };
 
 layout(binding = 0) uniform _ForwardLightData
@@ -101,13 +107,13 @@ uint ComputeLightGridCellIndex(uint2 PixelPos, float SceneDepth)
     return ComputeLightGridCellIndex(PixelPos, SceneDepth, 0);
 }
 
-    #ifndef NUM_CULLED_LIGHTS_GRID_STRIDE
-    #define NUM_CULLED_LIGHTS_GRID_STRIDE 0
-    #endif
+#ifndef NUM_CULLED_LIGHTS_GRID_STRIDE
+#define NUM_CULLED_LIGHTS_GRID_STRIDE 0
+#endif
 
-    #ifndef LOCAL_LIGHT_DATA_STRIDE
-    #define LOCAL_LIGHT_DATA_STRIDE 0
-    #endif
+#ifndef LOCAL_LIGHT_DATA_STRIDE
+#define LOCAL_LIGHT_DATA_STRIDE 0
+#endif
 
 uint GetNumLocalLights(uint EyeIndex)
 {
@@ -133,8 +139,8 @@ FCulledLightsGridData GetCulledLightsGrid(uint GridIndex, uint EyeIndex)
     {
         #endif
 
-        Result.NumLocalLights = min(ForwardLightData.NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], ForwardLightData.NumLocalLights);
-        Result.DataStartIndex = ForwardLightData.NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1];
+        Result.NumLocalLights = ForwardLightData.NumLocalLights; //min(ForwardLightData.NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], ForwardLightData.NumLocalLights);
+        Result.DataStartIndex = 0;  //ForwardLightData.NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1];
 
         #if INSTANCED_STEREO
     }
@@ -205,7 +211,7 @@ FLocalLightData GetLocalLightData(uint GridIndex, uint EyeIndex)
     {
         #endif
 
-        uint LocalLightIndex = ForwardLightData.CulledLightDataGrid[GridIndex];
+        uint LocalLightIndex = 0; //ForwardLightData.CulledLightDataGrid[GridIndex];
         uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
         Result.LightPositionAndInvRadius = ForwardLightData.ForwardLocalLightBuffer[LocalLightBaseIndex + 0];
         Result.LightColorAndFalloffExponent = ForwardLightData.ForwardLocalLightBuffer[LocalLightBaseIndex + 1];
@@ -244,7 +250,7 @@ float ComputeDirectionalLightStaticShadowing(float3 WorldPosition)
         float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
 
         // Treat as unshadowed if the voxel is outside of the shadow map
-        if (all(ShadowUVs >= 0 && ShadowUVs <= 1))
+        if (all(greaterThanEqual(ShadowUVs, 0)) && all(lessThanEqual(ShadowUVs, 1)))
         {
 #define FILTER_STATIC_SHADOWING 0
 #if FILTER_STATIC_SHADOWING

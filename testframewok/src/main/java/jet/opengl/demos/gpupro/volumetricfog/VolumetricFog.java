@@ -20,6 +20,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.volumetricLighting.LightType;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture3D;
 import jet.opengl.postprocessing.texture.Texture3DDesc;
@@ -29,6 +30,9 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 
 class VolumetricFog implements Disposeable {
+
+    static final float WORLD_MAX = 2097152.0f;				/* Maximum size of the world */
+    static final float HALF_WORLD_MAX = (WORLD_MAX * 0.5f);		/* Half the*/
 
     private MaterialSetupCS materialSetupCS;
 //    private InjectShadowedLocalLightProgram injectProg;
@@ -56,6 +60,7 @@ class VolumetricFog implements Disposeable {
     private final InjectLocalLightParameters injectLocalLightParams = new InjectLocalLightParameters();
     private final FDeferredLightData lightData = new FDeferredLightData();
     private final LightScatteringParameters lightScatteringParams = new LightScatteringParameters();
+    private final LocalLightData localLightData = new LocalLightData(1);
 
     private GLFuncProvider gl;
     private int m_FBO;
@@ -68,6 +73,17 @@ class VolumetricFog implements Disposeable {
 
     private Matrix4f m_UnjitteredPrevWorldToClip;
 
+    private TextureGL m_DirectionShadowMap;
+    private TextureGL m_DirectionStaticShadowMap;
+
+    private int m_forwardRenderBuffer;
+
+    private int m_ViewWidth, m_ViewHeight;
+
+    public void onResize(int width, int height){
+        m_ViewWidth = width;
+        m_ViewHeight = height;
+    }
 
     private int frameNumber;
     public void renderVolumetricFog(Params params){
@@ -291,16 +307,20 @@ class VolumetricFog implements Disposeable {
             LightScatteringParameters scatteringParams = buildLightScattering(IntegrationData);
             program.apply(scatteringParams);
 
-            // TODO Setup parameters.
+            LocalLightData localLightData = buildLocalLightData();
+            ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(localLightData.size);
+            localLightData.store(buffer).flip();
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_forwardRenderBuffer);
+            gl.glBufferSubData(GLenum.GL_UNIFORM_BUFFER,0, buffer);
             // TODO binding textures.
-
-            if(!m_princeOnce) program.printPrograminfo();
 
             final int numGroupX = Numeric.divideAndRoundUp(volumetricFogGridSize.x, VolumetricFogGridInjectionGroupSize);
             final int numGroupY = Numeric.divideAndRoundUp(volumetricFogGridSize.y, VolumetricFogGridInjectionGroupSize);
             final int numGroupZ = Numeric.divideAndRoundUp(volumetricFogGridSize.z, VolumetricFogGridInjectionGroupSize);
 
             gl.glDispatchCompute(numGroupX, numGroupY, numGroupZ);
+
+            if(!m_princeOnce) program.printPrograminfo();
         }
 
 //        const FRDGTexture* IntegratedLightScattering = GraphBuilder.CreateTexture(VolumeDesc, TEXT("IntegratedLightScattering"));
@@ -334,7 +354,18 @@ class VolumetricFog implements Disposeable {
             final int numGroupZ = Numeric.divideAndRoundUp(volumetricFogGridSize.z, VolumetricFogIntegrationGroupSize);
 
             finalIntegrationCS.enable();
-            // TODO setup the uniforms.
+
+            GLSLUtil.setMat4(finalIntegrationCS, "UnjitteredClipToTranslatedWorld", materialParams.UnjitteredClipToTranslatedWorld);
+            GLSLUtil.setFloat3(finalIntegrationCS, "View_PreViewTranslation", materialParams.View_PreViewTranslation);
+            GLSLUtil.setFloat3(finalIntegrationCS, "VolumetricFog_GridSize", materialParams.VolumetricFog_GridSize);
+            GLSLUtil.setFloat3(finalIntegrationCS, "VolumetricFog_GridZParams", materialParams.VolumetricFog_GridZParams);
+            GLSLUtil.setFloat3(finalIntegrationCS, "WorldCameraOrigin", injectLocalLightParams.WorldCameraOrigin);
+            GLSLUtil.setMat4(finalIntegrationCS, "g_ViewProj", materialParams.g_ViewProj);
+
+            // TODO binding textures.
+            gl.glDispatchCompute(numGroupX, numGroupY, numGroupZ);
+
+            if(!m_princeOnce)finalIntegrationCS.printPrograminfo();
         }
 
         if(bUseTemporalReprojection){
@@ -582,6 +613,11 @@ class VolumetricFog implements Disposeable {
 
             finalIntegrationCS = new VolumetricFogFinalIntegrationCS(prefix, VolumetricFogIntegrationGroupSize);
             finalIntegrationCS.setName("FinalIntegrationCS");
+
+            m_forwardRenderBuffer = gl.glGenBuffer();
+            gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, m_forwardRenderBuffer);
+            gl.glBufferData(GLenum.GL_UNIFORM_BUFFER, localLightData.size(), GLenum.GL_DYNAMIC_DRAW);
+            gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, 0);
         }
     }
 
@@ -815,7 +851,6 @@ class VolumetricFog implements Disposeable {
         lightData.ContactShadowLengthInWS = false;
         lightData.bInverseSquared = source.type == LightType.DIRECTIONAL;
         lightData.bRadialLight = true;
-        lightData.bRadialLight = true;
         lightData.bSpotLight = lightData.SpotAngles.x > -2.0f;
         lightData.bRectLight = false;
 
@@ -842,6 +877,128 @@ class VolumetricFog implements Disposeable {
         result.g_ViewProj = materialParams.g_ViewProj;
 
         return result;
+    }
+
+    private LocalLightData buildLocalLightData(){
+        final LocalLightData result = localLightData;
+        result.DirectionalLightWorldToStaticShadow.setIdentity();
+        result.DirectionalLightStaticShadowBufferSize.set(0,0,0,0);
+
+        int NumLocalLightsFinal = 0;
+        boolean bDirectionLightHandled =false;
+        for(int lightIndex = 0; lightIndex < params.lightInfos.size(); lightIndex++){
+            LightInfo light = params.lightInfos.get(lightIndex);
+            if(light.type == LightType.DIRECTIONAL){
+                if(bDirectionLightHandled)
+                    throw new UnsupportedOperationException("Can't include the two direction light.");
+
+                result.HasDirectionalLight = true;
+                result.DirectionalLightColor.set(light.color);
+                result.DirectionalLightVolumetricScatteringIntensity = 1;  //LightProxy->GetVolumetricScatteringIntensity();
+                result.DirectionalLightDirection.set(light.direction);
+                result.DirectionalLightShadowMapChannelMask = 0;
+                result.DirectionalLightDistanceFadeMAD.set(1, 0); // TODO
+                Matrix4f.mul(light.proj, light.view, result.DirectionalLightWorldToShadowMatrix[0]);
+                result.CascadeEndDepths[0] = 1;
+
+//                result.DirectionalLightShadowmapAtlas = ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
+                result.DirectionalLightDepthBias = 0.0001f;
+                float shadowmapSizeX = light.shadowmap.getWidth();
+                float shadowmapSizeY = light.shadowmap.getHeight();
+                result.DirectionalLightShadowmapAtlasBufferSize.set(shadowmapSizeX, shadowmapSizeY, 1.0f / shadowmapSizeX, 1.0f / shadowmapSizeY);
+
+                m_DirectionShadowMap = light.shadowmap;
+                m_DirectionStaticShadowMap = null;  // TODO we havn't the static shadow map so far.
+
+                bDirectionLightHandled = true;
+            }else{ // Point or Spot light.
+
+                if(light.shadowmap!=null){
+                    // The light that cast shadow map has handle in the previouse pass.
+                    continue;
+                }
+
+                Vector4f LightPositionAndInvRadius = result.ForwardLocalLightBuffer[NumLocalLightsFinal * 5 + 0];
+                Vector4f LightColorAndFalloffExponent = result.ForwardLocalLightBuffer[NumLocalLightsFinal * 5 + 1];
+                Vector4f LightDirectionAndShadowMapChannelMask = result.ForwardLocalLightBuffer[NumLocalLightsFinal * 5 + 3];
+                Vector4f SpotAnglesAndSourceRadiusPacked = result.ForwardLocalLightBuffer[NumLocalLightsFinal * 5 + 2];
+                Vector4f LightTangentAndSoftSourceRadius = result.ForwardLocalLightBuffer[NumLocalLightsFinal * 5 + 4];
+
+                LightPositionAndInvRadius.set(light.position, 1.0f/light.range);
+                LightColorAndFalloffExponent.set(light.color, 1);
+                LightDirectionAndShadowMapChannelMask.set(light.direction, 0/**((float*)&ShadowMapChannelMaskPacked)*/);
+                if(light.type == LightType.POINT){
+                    SpotAnglesAndSourceRadiusPacked.set(-2, -1, 1, 0);
+                }else{   //Spot light
+                    final float ClampedInnerConeAngle = Numeric.clamp(light.spotAngle* 0.8f,0.0f,(float)Math.toRadians(89.0f));
+                    final float ClampedOuterConeAngle = Numeric.clamp(light.spotAngle,ClampedInnerConeAngle + 0.001f,(float)Math.toRadians(89.0f)+0.01f);
+                    float CosOuterCone = (float) Math.cos(ClampedOuterConeAngle);
+                    float CosInnerCone = (float) Math.cos(ClampedInnerConeAngle);
+                    float InvCosConeDifference = 1.0f / (CosInnerCone - CosOuterCone);
+                    SpotAnglesAndSourceRadiusPacked.set(CosOuterCone, InvCosConeDifference, 1, 0);
+                }
+                LightTangentAndSoftSourceRadius.set(0.0f, 0.0f, 1.0f, 0.1f);
+
+                /*float VolumetricScatteringIntensity = LightProxy->GetVolumetricScatteringIntensity();
+                if (LightNeedsSeparateInjectionIntoVolumetricFog(LightSceneInfo, VisibleLightInfos[LightSceneInfo->Id]))
+                {
+                    // Disable this lights forward shading volumetric scattering contribution
+                    VolumetricScatteringIntensity = 0;
+                }*/
+
+                // Pack both values into a single float to keep float4 alignment
+                final short SourceLength16f = Numeric.convertFloatToHFloat(1); /*FFloat16(LightParameters.SourceLength)*/;
+                final short VolumetricScatteringIntensity16f = Numeric.convertFloatToHFloat(1); // FFloat16(VolumetricScatteringIntensity);
+                final int PackedWInt = Numeric.encode(SourceLength16f, VolumetricScatteringIntensity16f); //   ((uint32)SourceLength16f.Encoded) | ((uint32)VolumetricScatteringIntensity16f.Encoded << 16);
+//                SpotAnglesAndSourceRadiusPacked.W = *(float*)&PackedWInt;
+                SpotAnglesAndSourceRadiusPacked.w = Float.intBitsToFloat(PackedWInt);
+
+                NumLocalLightsFinal++;
+            }
+        }
+
+//                const FIntPoint LightGridSizeXY = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), GLightGridPixelSize);
+        final int LightGridSizeX = Numeric.divideAndRoundUp(m_ViewWidth, params.GLightGridPixelSize);
+        final int LightGridSizeY = Numeric.divideAndRoundUp(m_ViewHeight, params.GLightGridPixelSize);
+        result.NumLocalLights = NumLocalLightsFinal;
+//        result.NumReflectionCaptures = View.NumBoxReflectionCaptures + View.NumSphereReflectionCaptures;
+//        result.NumGridCells = LightGridSizeXY.X * LightGridSizeXY.Y * GLightGridSizeZ;
+        result.CulledGridSize.set(LightGridSizeX, LightGridSizeY, params.GLightGridSizeZ);
+//        result.MaxCulledLightsPerCell = GMaxCulledLightsPerCell;
+        result.LightGridPixelSizeShift = (int)Math.floor(Numeric.log2(params.GLightGridPixelSize));
+
+        /*const FSphere BoundingSphere = LightProxy->GetBoundingSphere();  todo
+        const float Distance = View.ViewMatrices.GetViewMatrix().TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
+        FurthestLight = FMath::Max(FurthestLight, Distance);*/
+        float FurthestLight =  params.cameraFar;
+        // Clamp far plane to something reasonable
+        float FarPlane = FurthestLight; //Math.min(Math.max(FurthestLight, View.FurthestReflectionCaptureDistance), HALF_WORLD_MAX / 5.0f);
+//        FVector ZParams = GetLightGridZParams(View.NearClippingDistance, FarPlane + 10.f);
+//        result.LightGridZParams = ZParams;
+        GetLightGridZParams(params.cameraNear, FarPlane, result.LightGridZParams);
+
+        return result;
+    }
+
+    private void GetLightGridZParams(float NearPlane, float FarPlane, Vector3f result)
+    {
+        // S = distribution scale
+        // B, O are solved for given the z distances of the first+last slice, and the # of slices.
+        //
+        // slice = log2(z*B + O) * S
+
+        // Don't spend lots of resolution right in front of the near plane
+        double NearOffset = .095 * 100;
+        // Space out the slices so they aren't all clustered at the near plane
+        float S = 4.05f;
+
+        double N = NearPlane + NearOffset;
+        double F = FarPlane;
+
+        float O = (float) ((F - N * Numeric.exp2((params.GLightGridSizeZ - 1) / S)) / (F - N));
+        float B = (float) ((1 - O) / N);
+
+        result.set(B, O, S);
     }
 
     private static final class FPermutationDomain{
@@ -920,6 +1077,11 @@ class VolumetricFog implements Disposeable {
         public float GVolumetricFogHistoryWeight = 0.9f;
 
         public float GVolumetricFogScatteringDistribution = 0.2f;
+        /** Size of a cell in the light grid, in pixels. */
+        public int GLightGridPixelSize = 64;
+
+        /** Number of Z slices in the light grid. */
+        public int GLightGridSizeZ = 32;
 
         public void resetLights(){
             lightInfos.clear();

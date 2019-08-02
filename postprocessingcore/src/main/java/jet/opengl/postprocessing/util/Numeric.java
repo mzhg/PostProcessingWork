@@ -499,7 +499,7 @@ public final class Numeric {
 	 */
 
 	static public final float clamp(float amt, float low, float high) {
-		return (amt < low) ? low : ((amt > high) ? high : amt);
+		return (amt <= low) ? low : ((amt >= high) ? high : amt);
 	}
 	
 	/**
@@ -515,7 +515,7 @@ public final class Numeric {
 	 */
 
 	static public final int clamp(int amt, int low, int high) {
-		return (amt < low) ? low : ((amt > high) ? high : amt);
+		return (amt <= low) ? low : ((amt >= high) ? high : amt);
 	}
 	
 	/**

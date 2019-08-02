@@ -1,0 +1,89 @@
+// This code contains NVIDIA Confidential Information and is disclosed
+// under the Mutual Non-Disclosure Agreement.
+//
+// Notice
+// ALL NVIDIA DESIGN SPECIFICATIONS AND CODE ("MATERIALS") ARE PROVIDED "AS IS" NVIDIA MAKES
+// NO REPRESENTATIONS, WARRANTIES, EXPRESSED, IMPLIED, STATUTORY, OR OTHERWISE WITH RESPECT TO
+// THE MATERIALS, AND EXPRESSLY DISCLAIMS ANY IMPLIED WARRANTIES OF NONINFRINGEMENT,
+// MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+//
+// NVIDIA Corporation assumes no responsibility for the consequences of use of such
+// information or for any infringement of patents or other rights of third parties that may
+// result from its use. No license is granted by implication or otherwise under any patent
+// or patent rights of NVIDIA Corporation. No third party distribution is allowed unless
+// expressly authorized by NVIDIA.  Details are subject to change without notice.
+// This code supersedes and replaces all information previously supplied.
+// NVIDIA Corporation products are not authorized for use as critical
+// components in life support devices or systems without express written approval of
+// NVIDIA Corporation.
+//
+// Copyright (c) 2003 - 2016 NVIDIA Corporation. All rights reserved.
+//
+// NVIDIA Corporation and its licensors retain all intellectual property and proprietary
+// rights in and to this software and related documentation and any modifications thereto.
+// Any use, reproduction, disclosure or distribution of this software and related
+// documentation without an express license agreement from NVIDIA Corporation is
+// strictly prohibited.
+//
+
+/*
+Define the shader permutations for code generation
+%% MUX_BEGIN %%
+
+%% MUX_END %%
+*/
+#include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
+
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 18) out;  // six triangle output.
+
+#include "Uniforms.frag"
+
+in VS_OUTPUT
+{
+    float4 P;  // TEXCOORD0
+    float3 N;  // NORMAL0;
+    float ScreenZ;
+}Inputs[];
+
+in gl_PerVertex
+{
+    float4 gl_Position;
+}gl_in[];
+
+out gl_PerVertex
+{
+    float4 gl_Position;
+};
+
+uniform mat4 g_LightViews[6];
+uniform mat4 g_LightProj;
+
+out vec3 m_WorldPos;
+
+void main()
+{
+
+    vec3 pos0 = Inputs[0].P.xyz;
+    vec3 pos1 = Inputs[1].P.xyz;
+    vec3 pos2 = Inputs[2].P.xyz;
+
+    for(int i = 0; i < 6; i++)
+    {
+        mat4 ProjView = g_LightProj * g_LightViews[i];
+        gl_Layer = i;
+        gl_Position = ProjView * vec4(pos0, 1);
+        m_WorldPos = pos0;
+        EmitVertex();
+
+        gl_Position = ProjView * vec4(pos1, 1);
+        m_WorldPos = pos1;
+        EmitVertex();
+
+        gl_Position = ProjView * vec4(pos2, 1);
+        m_WorldPos = pos2;
+        EmitVertex();
+
+        EndPrimitive();
+    }
+}

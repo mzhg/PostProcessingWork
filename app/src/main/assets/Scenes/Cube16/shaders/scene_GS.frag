@@ -79,7 +79,6 @@ float3 ParaboloidProject(float3 P, float zNear, float zFar)
 	outP.y = outP.y / (outP.z + 1);			
 	outP.z = (lenP - zNear) / (zFar - zNear);
 	outP.z = 2 * outP.z - 1;
-	outP.z = 0;
 	return outP;
 }
 
@@ -132,12 +131,12 @@ void main()
     vec3 pos1 = gl_in[1].gl_Position.xyz;
     vec3 pos2 = gl_in[2].gl_Position.xyz;
 
-//    if (maxZ >= 0)
+    if (maxZ >= 0)
     {
         GenerateOmniTriangle(0, pos0, pos1, pos2);
     }
 
-//    if (minZ <= 0)
+    if (minZ <= 0)
     {
         pos0.z *= -1.0;
         pos1.z *= -1.0;

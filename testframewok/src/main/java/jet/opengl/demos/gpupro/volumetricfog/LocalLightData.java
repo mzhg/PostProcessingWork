@@ -1,12 +1,17 @@
 package jet.opengl.demos.gpupro.volumetricfog;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector3i;
 import org.lwjgl.util.vector.Vector4f;
 
-final class LocalLightData {
+import java.nio.ByteBuffer;
+
+import jet.opengl.postprocessing.util.CacheBuffer;
+
+final class LocalLightData implements Readable {
     final Matrix4f DirectionalLightWorldToStaticShadow = new Matrix4f();
     final Vector4f DirectionalLightStaticShadowBufferSize = new Vector4f();
 
@@ -14,40 +19,76 @@ final class LocalLightData {
     final Vector4f[] DirectionalLightShadowmapMinMax;
     final Vector4f DirectionalLightShadowmapAtlasBufferSize= new Vector4f();
 
-    boolean HasDirectionalLight;
-    boolean DirectionalLightUseStaticShadowing;
-    int NumDirectionalLightCascades;
-    final float[] CascadeEndDepths;
     final Vector3f DirectionalLightColor = new Vector3f();
     float DirectionalLightVolumetricScatteringIntensity;
     final Vector3f DirectionalLightDirection = new Vector3f();
     float DirectionalLightDepthBias;
 
-    int LightGridPixelSizeShift;
-    final Vector3f LightGridZParams = new Vector3f();
     final Vector3i CulledGridSize = new Vector3i();
-    int NumLocalLights;
-    final int[] NumCulledLightsGrid;
-    int DirectionalLightShadowMapChannelMask;
-    final Vector2f DirectionalLightDistanceFadeMAD = new Vector2f();
-    final int[] CulledLightDataGrid;
-    final Vector4f[] ForwardLocalLightBuffer;
+    int LightGridPixelSizeShift;
 
-    LocalLightData(int numCascade, int numLocalLights){
+    final Vector4f[] ForwardLocalLightBuffer = new Vector4f[10];
+
+    boolean HasDirectionalLight;
+    boolean DirectionalLightUseStaticShadowing;
+    final int NumDirectionalLightCascades;
+    int NumLocalLights;
+
+    final Vector3f LightGridZParams = new Vector3f();
+    final float[] CascadeEndDepths = new float[4];
+
+    final Vector2f DirectionalLightDistanceFadeMAD= new Vector2f();
+    int DirectionalLightShadowMapChannelMask;
+    final int size;
+
+    LocalLightData(int numCascade){
         this.NumDirectionalLightCascades = numCascade;
-        this.NumLocalLights = numLocalLights;
 
         DirectionalLightWorldToShadowMatrix = new Matrix4f[numCascade];
         DirectionalLightShadowmapMinMax = new Vector4f[numCascade];
-        CascadeEndDepths = new float[numCascade];
-
-        NumCulledLightsGrid = new int[numLocalLights];
-        CulledLightDataGrid = new int[numLocalLights];
-        ForwardLocalLightBuffer = new Vector4f[5];
 
         for(int i = 0; i < numCascade; i++) {
             DirectionalLightWorldToShadowMatrix[i] = new Matrix4f();
             DirectionalLightShadowmapMinMax[i] = new Vector4f();
         }
+
+        size = Vector4f.SIZE * (numCascade+19)+Matrix4f.SIZE * (numCascade+1);
+
+        for(int i = 0; i < ForwardLocalLightBuffer.length; i++){
+            ForwardLocalLightBuffer[i] = new Vector4f();
+        }
+    }
+
+    @Override
+    public ByteBuffer store(ByteBuffer buf) {
+        DirectionalLightWorldToStaticShadow.store(buf);
+        DirectionalLightStaticShadowBufferSize.store(buf);
+        CacheBuffer.put(buf, DirectionalLightWorldToShadowMatrix);
+        CacheBuffer.put(buf, DirectionalLightShadowmapMinMax);
+        DirectionalLightShadowmapAtlasBufferSize.store(buf);
+        DirectionalLightColor.store(buf);
+        buf.putFloat(DirectionalLightVolumetricScatteringIntensity);
+        DirectionalLightDirection.store(buf);
+        buf.putFloat(DirectionalLightDepthBias);
+        CulledGridSize.store(buf);
+        buf.putInt(LightGridPixelSizeShift);
+        CacheBuffer.put(buf, ForwardLocalLightBuffer);
+        buf.putInt(HasDirectionalLight?1:0);
+        buf.putInt(DirectionalLightUseStaticShadowing?1:0);
+        buf.putInt(NumDirectionalLightCascades);
+        buf.putInt(NumLocalLights);
+
+        LightGridZParams.store(buf);
+        buf.putInt(0);
+        CacheBuffer.put(buf, CascadeEndDepths);
+
+        DirectionalLightDistanceFadeMAD.store(buf);
+        buf.putInt(DirectionalLightShadowMapChannelMask);
+        buf.putInt(size);
+        return buf;
+    }
+
+    public final int size(){
+        return size;
     }
 }

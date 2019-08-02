@@ -46,6 +46,7 @@ public class VolumetricFogDemo extends NvSampleApp {
             return;
 
         m_Scene.onResize(width, height);
+        m_PostProcessing.onResize(width, height);
     }
 
     @Override

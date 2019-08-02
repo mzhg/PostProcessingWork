@@ -66,8 +66,9 @@ public class VolumetricLightingDemo extends NvSampleApp {
     protected void initRendering() {
         getGLContext().setSwapInterval(0);
         m_Scene = new Cube16(this);
-
         m_Scene.onCreate();
+        m_Scene.setLightType(LightType.POINT);
+
         fullscreenProgram = new FullscreenProgram();
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();
