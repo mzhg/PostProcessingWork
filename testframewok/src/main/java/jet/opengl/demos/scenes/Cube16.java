@@ -297,9 +297,12 @@ public class Cube16 {
     	if(m_pScene.getLightMode() == LightType.POINT){
 			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, GLenum.GL_TEXTURE_2D, 0, 0);
 			if(m_EnableCubeShadow){
+				gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, 0, 0);  // de-tachenemt
 				gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, m_CubeShadowMap.getTexture(), 0);
-				gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
+				gl.glClearBufferfv(GLenum.GL_DEPTH, 0, CacheBuffer.wrap(1.f));
+				GLCheck.checkError();
 			}else {
+				gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, 0, 0);  // de-tachenemt
 				gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pParaboloidShadowMap.getTexture(), 0);
 				gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
 			}
@@ -338,8 +341,9 @@ public class Cube16 {
 //        	System.out.println("SceneRender: ");
 //        	System.out.println(props);
 		}
-    	
+
     	gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+
 		GLCheck.checkError();
 	}
 	
@@ -436,6 +440,7 @@ public class Cube16 {
         if(renderToFBO){
 	        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, m_RenderTarget);
 			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, m_pOffscreenRenderTarget.getTarget(), m_pOffscreenRenderTarget.getTexture(), 0);
+			gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_ATTACHMENT, 0, 0);  // de-tachenemt
 			gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, m_pOffscreenDepth.getTarget(), m_pOffscreenDepth.getTexture(), 0);
 			gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
 			GLCheck.checkError();
@@ -557,14 +562,20 @@ public class Cube16 {
 			return m_CubeViews;
 		}
 
-		return null;
+		throw new IllegalStateException("Not a point light");
 	}
 	public float getLightNearPlane(){ return m_LightCBStruct.zNear;}
 	public float getLightFarlane()  { return m_LightCBStruct.zFar;}
 	public LightType getLightMode() {	return m_pScene.getLightMode();}
 	public void getLightIntensity(Vector3f out) { m_pScene.getLightIntensity(out);}
 
-	public Texture2D getShadowMap() { return m_pScene.getLightMode() == LightType.POINT ? m_pParaboloidShadowMap : m_pShadowMap;}
+	public TextureGL getShadowMap() {
+		if(m_pScene.getLightMode() == LightType.POINT){
+			return m_EnableCubeShadow ? m_CubeShadowMap : m_pParaboloidShadowMap;
+		}else{
+			return m_pShadowMap;
+		}
+	}
 
 	public void setLightType(LightType type) {m_pScene.lightMode = type;}
 	final class SceneController {
@@ -1005,7 +1016,7 @@ public class Cube16 {
 			super(context);
 
 			try {
-				compileProgram("Scenes/Cube16/shaders/scene_VS.vert", "Scenes/Cube16/shaders/CubeShadow_GS.frag", "Scenes/Cube16/shaders/CubeShadow_PS.frag");
+				compileProgram("Scenes/Cube16/shaders/scene_VS.vert", "Scenes/Cube16/shaders/CubeShadow_GS.gemo", "Scenes/Cube16/shaders/CubeShadow_PS.frag");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

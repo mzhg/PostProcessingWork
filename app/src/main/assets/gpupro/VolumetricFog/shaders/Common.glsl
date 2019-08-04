@@ -19,6 +19,8 @@ uniform float g_CameraNear;
 uniform float g_CameraFar;
 uniform mat4  g_ViewProj;
 
+#define USE_PUNCTUAL_LIGHT  1
+
 #define Texture3DSampleLevel(tex, uv, lod) textureLod(tex, uv, lod)
 
 float ConvertToDeviceZ(float depth)
@@ -31,6 +33,10 @@ float ComputeDepthFromZSlice(float ZSlice)
 {
     float SliceDepth = (exp2(ZSlice / VolumetricFog_GridZParams.z) - VolumetricFog_GridZParams.y) / VolumetricFog_GridZParams.x;
     return SliceDepth;
+}
+
+int ComputeZSliceFromDepth(float SceneDepth, float Offset){
+    return int(log2(SceneDepth*VolumetricFog_GridZParams.x+VolumetricFog_GridZParams.y)*VolumetricFog_GridZParams.z + Offset);
 }
 
 float Luminance(in vec3 rgb)
@@ -81,6 +87,21 @@ float3 ComputeCellWorldPosition(uint3 GridCoordinate, float3 CellOffset)
 {
     float Unused;
     return ComputeCellWorldPosition(GridCoordinate, CellOffset, Unused);
+}
+
+uniform vec3 g_CameraRange;  // xy: camera near and for; z : 0 for the orth, otherwise for the perspective.
+// ClipPosDevice range are [0,1]
+int3 ComputeCellGrid(float3 ClipPosDevice, float3 CellOffset)
+{
+    int3 GridCoordinate;
+    GridCoordinate.xy = int2(ClipPosDevice.xy * VolumetricFog_GridSize.xy + CellOffset.xy);
+
+    float mZFar = g_CameraFar;
+    float mZNear = g_CameraNear;
+    float SceneDepth = mZFar*mZNear/(mZFar-ClipPosDevice.z*(mZFar-mZNear));;
+    GridCoordinate.z = ComputeZSliceFromDepth(SceneDepth, CellOffset.z);
+
+    return GridCoordinate;
 }
 
 float3 RaleighScattering()
@@ -261,7 +282,7 @@ float ComputeSkyVisibility(float3 WorldPosition, float3 BrickTextureUVs)
 }
 
 uniform float4x4 DirectionalLightFunctionWorldToShadow;
-uniform sampler2D LightFunctionTexture;
+layout(binding = 5) uniform sampler2D LightFunctionTexture;
 //SamplerState LightFunctionSampler;
 
 float GetLightFunction(float3 WorldPosition)

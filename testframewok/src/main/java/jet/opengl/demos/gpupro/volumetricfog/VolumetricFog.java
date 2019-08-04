@@ -21,9 +21,12 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.texture.SamplerDesc;
+import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture3D;
 import jet.opengl.postprocessing.texture.Texture3DDesc;
+import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -67,6 +70,8 @@ class VolumetricFog implements Disposeable {
     private int m_GCircleRasterizeVertexBuffer;
     private int m_GCircleRasterizeIndexBuffer;
     private int m_lightDataBuffer;
+    private int m_pLinearSampler;
+    private int m_pComapreSampler;
 
     static final int NumVertices = 8;
     final String prefix = "gpupro/VolumetricFog/shaders/";
@@ -102,7 +107,6 @@ class VolumetricFog implements Disposeable {
         Vector3i volumetricFogGridSize = getVolumetricFogGridSize(viewWith, viewHeight);
         ReadableVector3f GridZParams = GetVolumetricFogGridZParams(params.NearClippingDistance, params.VolumetricFogDistance, volumetricFogGridSize.z);
 
-        //@DW - graph todo
         //SCOPED_DRAW_EVENT(RHICmdList, VolumetricFog);
 
         ReadableVector3f FrameJitterOffsetValue = VolumetricFogTemporalRandom(frameNumber);
@@ -121,7 +125,7 @@ class VolumetricFog implements Disposeable {
                     && View.ViewState*/;
 
         IntegrationData.bTemporalHistoryIsValid =
-                bUseTemporalReprojection
+                bUseTemporalReprojection && hasHistory;
                         /*&& !View.bCameraCut   todo
                         && !View.bPrevTransformsReset
                         && ViewFamily.bRealtimeUpdate
@@ -312,7 +316,26 @@ class VolumetricFog implements Disposeable {
             localLightData.store(buffer).flip();
             gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_forwardRenderBuffer);
             gl.glBufferSubData(GLenum.GL_UNIFORM_BUFFER,0, buffer);
-            // TODO binding textures.
+
+            if(!m_princeOnce)
+                GLSLUtil.assertUniformBuffer(program, "_ForwardLightData",0, localLightData.size);
+
+            gl.glBindTextureUnit(3, m_DirectionShadowMap != null ? m_DirectionShadowMap.getTexture() : 0); // DirectionalLightShadowmapAtlas
+            gl.glBindSampler(3, m_pLinearSampler);
+            gl.glBindTextureUnit(5, LightFunctionTexture != null ? LightFunctionTexture.getTexture() : 0); // LightFunctionTexture
+            gl.glBindSampler(5, m_pLinearSampler);
+            if(history >=0){
+                TextureGL LightScatteringHistory = pTex3DLightScattering[history];
+                gl.glBindTextureUnit(6,  LightScatteringHistory.getTexture()); // LightScatteringHistory
+                gl.glBindSampler(6, m_pLinearSampler);
+            }else{
+                gl.glBindTextureUnit(6,  0); // LightScatteringHistory
+            }
+
+            gl.glBindImageTexture(0, LocalShadowedLightScattering!= null ? LocalShadowedLightScattering.getTexture():0, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(1, IntegrationData.VBufferARenderTarget.getTexture(), 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(2, IntegrationData.VBufferBRenderTarget.getTexture(), 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(3, IntegrationData.LightScatteringRenderTarget.getTexture(), 0,false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA16F);
 
             final int numGroupX = Numeric.divideAndRoundUp(volumetricFogGridSize.x, VolumetricFogGridInjectionGroupSize);
             final int numGroupY = Numeric.divideAndRoundUp(volumetricFogGridSize.y, VolumetricFogGridInjectionGroupSize);
@@ -321,11 +344,22 @@ class VolumetricFog implements Disposeable {
             gl.glDispatchCompute(numGroupX, numGroupY, numGroupZ);
 
             if(!m_princeOnce) program.printPrograminfo();
+
+            gl.glBindTextureUnit(3,  0);
+            gl.glBindTextureUnit(5,  0);
+            gl.glBindTextureUnit(6,  0);
+            gl.glBindSampler(3, 0);
+            gl.glBindSampler(5, 0);
+
+            gl.glBindImageTexture(0, 0, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(1, 0, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(2, 0, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(3, 0, 0,false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA16F);
         }
 
 //        const FRDGTexture* IntegratedLightScattering = GraphBuilder.CreateTexture(VolumeDesc, TEXT("IntegratedLightScattering"));
 //			const FRDGTextureUAV* IntegratedLightScatteringUAV = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(IntegratedLightScattering));
-        Texture3D IntegratedLightScattering = pTex3DFinalLightScattering;
+        Texture3D IntegratedLightScattering = IntegrationData.LightScatteringRenderTarget;
         Texture3D IntegratedLightScatteringUAV = pTex3DFinalLightScattering;
         {
             /*FVolumetricFogFinalIntegrationCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FVolumetricFogFinalIntegrationCS::FParameters>();
@@ -362,8 +396,15 @@ class VolumetricFog implements Disposeable {
             GLSLUtil.setFloat3(finalIntegrationCS, "WorldCameraOrigin", injectLocalLightParams.WorldCameraOrigin);
             GLSLUtil.setMat4(finalIntegrationCS, "g_ViewProj", materialParams.g_ViewProj);
 
-            // TODO binding textures.
+            gl.glBindTextureUnit(0, IntegratedLightScattering.getTexture());
+            gl.glBindSampler(0, m_pLinearSampler);
+            gl.glBindImageTexture(0, IntegratedLightScatteringUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, IntegratedLightScatteringUAV.getFormat());
+
             gl.glDispatchCompute(numGroupX, numGroupY, numGroupZ);
+
+            gl.glBindTextureUnit(0, 0);
+            gl.glBindSampler(0, 0);
+            gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, IntegratedLightScatteringUAV.getFormat());
 
             if(!m_princeOnce)finalIntegrationCS.printPrograminfo();
         }
@@ -498,11 +539,27 @@ class VolumetricFog implements Disposeable {
             gl.glViewport(0,0, OutLocalShadowedLightScattering.getWidth(), OutLocalShadowedLightScattering.getHeight());
             gl.glDrawBuffers(GLenum.GL_COLOR_ATTACHMENT0);
 
+            // Apply rendering states.
+            gl.glDisable(GLenum.GL_CULL_FACE);
+            gl.glDisable(GLenum.GL_DEPTH_TEST);
+            gl.glEnable(GLenum.GL_BLEND);
+            gl.glBlendFuncSeparate(GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ZERO, GLenum.GL_ONE);
+            // Applying the Vertex inputs.
+            gl.glBindVertexArray(0);
+            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_GCircleRasterizeVertexBuffer);
+            gl.glEnableVertexAttribArray(0);
+            gl.glVertexAttribPointer(0, 2, GLenum.GL_FLOAT, false, Vector4f.SIZE, 0);
+            gl.glEnableVertexAttribArray(1);
+            gl.glVertexAttribPointer(1, 2, GLenum.GL_FLOAT, false, Vector4f.SIZE, 8);
+            gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, m_GCircleRasterizeIndexBuffer);
+
             for (int LightIndex = 0; LightIndex < params.lightInfos.size(); LightIndex++)
             {
 //				const FLightSceneInfo* LightSceneInfo = LightsToInject[LightIndex];
                 LightInfo LightSceneInfo = params.lightInfos.get(LightIndex);
 //                FProjectedShadowInfo* ProjectedShadowInfo = GetShadowForInjectionIntoVolumetricFog(LightSceneInfo->Proxy, VisibleLightInfos[LightSceneInfo->Id]);
+                if(LightSceneInfo.shadowmap == null)
+                    continue;
 
 				final boolean bInverseSquared = true; //LightSceneInfo->Proxy->IsInverseSquared();
                 final boolean bDynamicallyShadowed = true; //ProjectedShadowInfo != NULL;
@@ -536,7 +593,21 @@ class VolumetricFog implements Disposeable {
                     gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_lightDataBuffer);
                     gl.glBufferSubData(GLenum.GL_UNIFORM_BUFFER, 0, buffer);
 
-                    // todo shadow texture.
+                    if(!m_princeOnce){
+                        GLSLUtil.assertUniformBuffer(injectLocalLightProgram, "LightData22", 0, FDeferredLightData.SIZE);
+                    }
+
+                    TextureGL shadowMap = LightSceneInfo.shadowmap;
+                    if(shadowMap instanceof Texture2D){
+                        gl.glBindTextureUnit(0, LightSceneInfo.shadowmap.getTexture());
+                        gl.glBindSampler(0, m_pLinearSampler);
+                        gl.glBindTextureUnit(1, 0);  // no cube shadow
+                    }else if(shadowMap instanceof TextureCube){
+                        gl.glBindTextureUnit(0, 0); // no 2D shadow
+                        gl.glBindTextureUnit(1, LightSceneInfo.shadowmap.getTexture());
+                        gl.glBindSampler(1, m_pComapreSampler);
+                    }
+                    gl.glBindTextureUnit(2, 0);  // todo non static texture.
                     /*FGraphicsPipelineStateInitializer GraphicsPSOInit;
                     RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
                     GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
@@ -544,25 +615,11 @@ class VolumetricFog implements Disposeable {
                     // Accumulate the contribution of multiple lights
                     GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI();*/
 
-                    // Apply rendering states.
-                    gl.glDisable(GLenum.GL_CULL_FACE);
-                    gl.glDisable(GLenum.GL_DEPTH_TEST);
-                    gl.glEnable(GLenum.GL_BLEND);
-                    gl.glBlendFuncSeparate(GLenum.GL_ONE, GLenum.GL_ONE, GLenum.GL_ZERO, GLenum.GL_ONE);
-
                     /*GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GScreenVertexDeclaration.VertexDeclarationRHI;
                     GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
                     GraphicsPSOInit.BoundShaderState.GeometryShaderRHI = GETSAFERHISHADER_GEOMETRY(*GeometryShader);
                     GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
                     GraphicsPSOInit.PrimitiveType = PT_TriangleList;*/
-
-                    // Applying the Vertex inputs.
-                    gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, m_GCircleRasterizeVertexBuffer);
-                    gl.glEnableVertexAttribArray(0);
-                    gl.glVertexAttribPointer(0, 2, GLenum.GL_FLOAT, false, Vector4f.SIZE, 0);
-                    gl.glEnableVertexAttribArray(1);
-                    gl.glVertexAttribPointer(1, 2, GLenum.GL_FLOAT, false, Vector4f.SIZE, 8);
-                    gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, m_GCircleRasterizeIndexBuffer);
 
                     /*SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
                     PixelShader->SetParameters(RHICmdList, View, IntegrationData, LightSceneInfo, FogInfo, ProjectedShadowInfo, bDynamicallyShadowed);
@@ -579,11 +636,6 @@ class VolumetricFog implements Disposeable {
 //                    RHICmdList.DrawIndexedPrimitive(GCircleRasterizeIndexBuffer.IndexBufferRHI, 0, 0, FCircleRasterizeVertexBuffer::NumVertices, 0, NumTriangles, NumInstances);
                     gl.glDrawElementsInstanced(GLenum.GL_TRIANGLES, 3*NumTriangles, GLenum.GL_UNSIGNED_SHORT, 0, NumInstances);
 
-                    gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
-                    gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
-                    gl.glDisableVertexAttribArray(0);
-                    gl.glDisableVertexAttribArray(1);
-
                     if(!m_princeOnce)
                         injectLocalLightProgram.printPrograminfo();
 
@@ -591,6 +643,17 @@ class VolumetricFog implements Disposeable {
 
                     return OutLocalShadowedLightScattering;
                 }
+            }
+
+            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+            gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+            gl.glDisableVertexAttribArray(0);
+            gl.glDisableVertexAttribArray(1);
+            gl.glDisable(GLenum.GL_BLEND);
+
+            for(int i =0 ;i < 2; i++){
+                gl.glBindTextureUnit(i, 0);
+                gl.glBindSampler(i, 0);
             }
         }
 
@@ -605,6 +668,12 @@ class VolumetricFog implements Disposeable {
         if(gl == null) {
             gl = GLFuncProviderFactory.getGLFuncProvider();
             m_FBO = gl.glGenFramebuffer();
+
+            SamplerDesc linearDesc = new SamplerDesc();
+            linearDesc.wrapR = linearDesc.wrapS = linearDesc.wrapT = GLenum.GL_CLAMP_TO_BORDER;
+            linearDesc.borderColor = -1;  // White
+            m_pLinearSampler = SamplerUtils.createSampler(linearDesc);
+            m_pComapreSampler = SamplerUtils.getDepthComparisonSampler();
         }
 
         if(materialSetupCS == null){
@@ -884,6 +953,8 @@ class VolumetricFog implements Disposeable {
         result.DirectionalLightWorldToStaticShadow.setIdentity();
         result.DirectionalLightStaticShadowBufferSize.set(0,0,0,0);
 
+        m_DirectionShadowMap = null;
+
         int NumLocalLightsFinal = 0;
         boolean bDirectionLightHandled =false;
         for(int lightIndex = 0; lightIndex < params.lightInfos.size(); lightIndex++){
@@ -1036,7 +1107,7 @@ class VolumetricFog implements Disposeable {
     public static final class Params{
         public Texture2D sceneColor;
         public Texture2D sceneDepth;
-        public Texture2D shadowMap;
+        public TextureGL shadowMap;
         public float cameraNear;
         public float cameraFar;
 

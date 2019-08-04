@@ -25,7 +25,7 @@ public class VolumetricFogDemo extends NvSampleApp {
     @Override
     protected void initRendering() {
         getGLContext().setSwapInterval(0);
-        m_Scene = new Cube16(this);
+        m_Scene = new Cube16(this, true);
 
         m_Scene.onCreate();
         fullscreenProgram = new FullscreenProgram();
@@ -51,7 +51,11 @@ public class VolumetricFogDemo extends NvSampleApp {
 
     @Override
     public void display() {
-        m_Scene.draw(true);
+        boolean resolved = false;
+
+        m_Scene.draw(resolved);
+
+        if(resolved)return;
 
         {
             // post processing...

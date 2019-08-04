@@ -4,7 +4,7 @@
 	ShadowProjectionCommon.usf: Contains functions that uniformly filter a depth buffer.
 =============================================================================*/
 
-uniform sampler2D ShadowDepthTexture;
+layout(binding = 0) uniform sampler2D ShadowDepthTexture;
 //SamplerState ShadowDepthTextureSampler;
 // xy:unused, z:SoftTransitionScale
 uniform float3 SoftTransitionScale;
@@ -14,8 +14,7 @@ uniform float4 ShadowBufferSize;
 #if 1  //FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 
 /** Cube map texture. */
-uniform samplerCube ShadowDepthCubeTexture;
-uniform samplerCubeShadow ShadowDepthCubeTexture2;
+layout(binding = 1) uniform samplerCubeShadow ShadowDepthCubeTexture2;
 
 /*#if OPENGL_PROFILE || COMPILER_VULKAN || COMPILER_SWITCH
 // This is required on GLSL based languages as the standard does NOT allow having a texture being used with both a Comparison and regular SamplerState

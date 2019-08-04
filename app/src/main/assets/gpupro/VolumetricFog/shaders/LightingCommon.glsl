@@ -208,7 +208,7 @@ uniform float2 DepthBiasParameters;
 uniform bool bStaticallyShadowed;
 
 /** Shadow depth map computed for static geometry by Lightmass. */
-uniform sampler2D StaticShadowDepthTexture;
+layout(binding = 2) uniform sampler2D StaticShadowDepthTexture;
 //SamplerState StaticShadowDepthTextureSampler;
 
 /** Transform used for static shadowing by spot and directional lights. */

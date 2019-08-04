@@ -4,11 +4,12 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.TextureGL;
 
 public class VolumeLightParams {
     public Texture2D sceneColor;
     public Texture2D sceneDepth;
-    public Texture2D shadowMap;
+    public TextureGL shadowMap;
 
     public float cameraNear, cameraFar;
     public float lightNear, lightFar;

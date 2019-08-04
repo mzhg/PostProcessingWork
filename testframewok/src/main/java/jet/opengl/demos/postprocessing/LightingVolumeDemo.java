@@ -15,6 +15,7 @@ import jet.opengl.postprocessing.core.volumetricLighting.LightScatteringFrameAtt
 import jet.opengl.postprocessing.core.volumetricLighting.LightScatteringInitAttribs;
 import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
+import jet.opengl.postprocessing.texture.Texture2D;
 
 /**
  * Created by mazhen'gui on 2017-05-15 15:56:59.
@@ -92,7 +93,7 @@ public class LightingVolumeDemo extends NvSampleApp {
             m_frameAttribs.projMat = m_Scene.getProjMat();
             m_frameAttribs.fov =     m_Scene.getFovInRadian();
 
-            m_frameAttribs.shadowMapTexture = m_Scene.getShadowMap();
+            m_frameAttribs.shadowMapTexture = (Texture2D) m_Scene.getShadowMap();
             m_frameAttribs.lightDirection = m_Scene.getLightDir();
             m_frameAttribs.lightPos = m_Scene.getLightPos();
             m_frameAttribs.lightProjMat = m_Scene.getLightProjMat();

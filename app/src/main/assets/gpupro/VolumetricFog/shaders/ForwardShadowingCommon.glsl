@@ -236,8 +236,8 @@ FLocalLightData GetLocalLightData(uint GridIndex, uint EyeIndex)
     return Result;
 }
 
-uniform sampler2D DirectionalLightStaticShadowmap;
-uniform sampler2D DirectionalLightShadowmapAtlas;
+layout(binding = 4) uniform sampler2D DirectionalLightStaticShadowmap;
+layout(binding = 3) uniform sampler2D DirectionalLightShadowmapAtlas;
 
 float ComputeDirectionalLightStaticShadowing(float3 WorldPosition)
 {

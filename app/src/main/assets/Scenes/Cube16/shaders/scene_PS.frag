@@ -93,8 +93,8 @@ void main()
 #if CUBE_SHADOW_MAP
     vec3 dir = P - c_vLightPos;
     float receiver_depth = length(dir) / c_fLightZNFar;
-
-    float shadow_term =receiver_depth >=1 ? 1: float(textureLod(tShadowmapArray, dir, 0.0) > receiver_depth);
+    receiver_depth -= 0.0001;
+    float shadow_term =receiver_depth >=1 ? 1: float(textureLod(tShadowmapArray, dir, 0.0).x > receiver_depth);
 #else
     float4 shadow_clip = mul(c_mLightViewProj, float4(P,1));
     shadow_clip = shadow_clip / shadow_clip.w;
