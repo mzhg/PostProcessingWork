@@ -25,8 +25,13 @@ uniform mat4  g_ViewProj;
 
 float ConvertToDeviceZ(float depth)
 {
-    vec4 clipPos = g_ViewProj * vec4(0,0, depth, 1);
-    return clipPos.z / clipPos.w;
+//    vec4 clipPos = g_ViewProj * vec4(0,0, depth, 1);
+//    return clipPos.z / clipPos.w;
+
+    depth = -depth;
+    float invDiff = 1.0/(g_CameraFar-g_CameraNear);
+    float DeviceZ = -2 * invDiff * depth - (g_CameraFar + g_CameraNear) * invDiff;
+    return DeviceZ;
 }
 
 float ComputeDepthFromZSlice(float ZSlice)

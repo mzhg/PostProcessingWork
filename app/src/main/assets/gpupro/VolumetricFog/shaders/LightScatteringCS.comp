@@ -67,7 +67,7 @@ void main()
                 ShadowFactor *= ComputeDirectionalLightDynamicShadowing(WorldPosition, SceneDepth);
             }
 
-            ShadowFactor *= GetLightFunction(WorldPosition);
+//            ShadowFactor *= GetLightFunction(WorldPosition);
 
             float3 DirectionalLightColor = ForwardLightData.DirectionalLightColor;
 

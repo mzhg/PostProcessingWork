@@ -13,12 +13,15 @@ void main()
     float4 Color = textureLod(g_SceneColor, m_f4UVAndScreenPos.xy, 0.0);
     float3 ClipPos = float3(m_f4UVAndScreenPos.xy, depth);
 
-    int3 GridCoordinate = ComputeCellGrid(ClipPos, float3(.5));
+    int3 GridCoordinate = ComputeCellGrid(ClipPos, float3(.0));
     float4 Scattering = texelFetch(g_ScatteringTex, GridCoordinate, 0);
 
     /*ClipPos = ClipPos * 2 - 1;
     float4 worldPos = UnjitteredClipToTranslatedWorld * float4(ClipPos, 1);
     float distance = length(WorldCameraOrigin, worldPos.xyz/worldPos);*/
 
-    OutColor = Color * Scattering.w + Scattering.rgb;
+//    OutColor.rgb = Color.rgb * (1 - Scattering.w) + Scattering.rgb;
+//    OutColor.rgb = Color.rgb * Scattering.w + Scattering.rgb;
+    OutColor.rgb = Color.rgb + Scattering.rgb;
+    OutColor.a = Color.a;
 }

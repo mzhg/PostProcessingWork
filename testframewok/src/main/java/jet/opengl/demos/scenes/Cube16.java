@@ -463,11 +463,13 @@ public class Cube16 {
 		if(m_pScene.getLightMode() == LightType.POINT){
 			TextureGL shadowMap = m_EnableCubeShadow ? m_CubeShadowMap : m_pParaboloidShadowMap;
 			gl.glBindTexture(shadowMap.getTarget(), shadowMap.getTexture());
+			gl.glBindSampler(0, m_EnableCubeShadow ? m_psamDefault : m_psamComparison);
 		}else{
 			gl.glBindTexture(m_pShadowMap.getTarget(), m_pShadowMap.getTexture());
+			gl.glBindSampler(0, m_psamComparison);
 		}
 
-		gl.glBindSampler(0, m_EnableCubeShadow ? m_psamDefault : m_psamComparison);
+
         renderScene(sceneRender);
 //        m_pShadowMap.unbind();
 		gl.glBindSampler(0, 0);

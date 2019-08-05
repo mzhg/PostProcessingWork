@@ -50,5 +50,7 @@ final class InjectShadowedLocalLightProgram extends GLSLProgram {
         GLSLUtil.setFloat3(this, "VolumetricFog_GridZParams", params.VolumetricFog_GridZParams);
         GLSLUtil.setFloat3(this, "WorldCameraOrigin", params.WorldCameraOrigin);
         GLSLUtil.setBool(this, "bStaticallyShadowed", params.bStaticallyShadowed);
+        GLSLUtil.setFloat(this, "g_CameraFar", params.cameraFar);
+        GLSLUtil.setFloat(this, "g_CameraNear", params.cameraNear);
     }
 }

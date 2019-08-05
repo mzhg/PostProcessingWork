@@ -8,8 +8,8 @@ uniform float3 GlobalAlbedo;
 uniform float3 GlobalEmissive;
 uniform float GlobalExtinctionScale;
 
-layout(binding = 0, rgba16f) uniform image3D RWVBufferA;
-layout(binding = 1, rgba16f) uniform image3D RWVBufferB;
+layout(binding = 0, rgba16f) uniform writeonly image3D RWVBufferA;
+layout(binding = 1, rgba16f) uniform writeonly image3D RWVBufferB;
 
 layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = THREADGROUP_SIZE)in;
 

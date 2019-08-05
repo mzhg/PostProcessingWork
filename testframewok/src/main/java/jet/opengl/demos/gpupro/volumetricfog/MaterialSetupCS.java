@@ -40,6 +40,8 @@ final class MaterialSetupCS extends GLSLProgram {
         GLSLUtil.setFloat3(this, "VolumetricFog_GridZParams", params.VolumetricFog_GridZParams);
         GLSLUtil.setMat4(this, "g_ViewProj", params.g_ViewProj);
         GLSLUtil.setMat4(this, "UnjitteredClipToTranslatedWorld", params.UnjitteredClipToTranslatedWorld);
+        GLSLUtil.setFloat(this, "g_CameraFar", params.cameraFar);
+        GLSLUtil.setFloat(this, "g_CameraNear", params.cameraNear);
 
         gl.glBindImageTexture(0, integrationParameterData.VBufferARenderTarget.getTexture(),0, false, 0, GLenum.GL_WRITE_ONLY, integrationParameterData.VBufferARenderTarget.getFormat());
         gl.glBindImageTexture(1, integrationParameterData.VBufferBRenderTarget.getTexture(),0, false, 0, GLenum.GL_WRITE_ONLY, integrationParameterData.VBufferBRenderTarget.getFormat());

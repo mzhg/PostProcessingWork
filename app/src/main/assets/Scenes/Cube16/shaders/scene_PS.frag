@@ -90,7 +90,7 @@ void main()
     //return float4(0.5*(N+1), 1);
     
     const float SHADOW_BIAS = -0.001f;
-#if CUBE_SHADOW_MAP
+#if (CUBE_SHADOW_MAP && LIGHTMODE == LIGHTMODE_OMNI)
     vec3 dir = P - c_vLightPos;
     float receiver_depth = length(dir) / c_fLightZNFar;
     receiver_depth -= 0.0001;

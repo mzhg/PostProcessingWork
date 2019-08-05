@@ -39,4 +39,5 @@ class InjectLocalLightParameters {
     final Matrix4f WorldToStaticShadowMatrix = new Matrix4f();
     final Matrix4f g_ViewProj = new Matrix4f();
     boolean bStaticallyShadowed;
+    float cameraNear, cameraFar;
 }

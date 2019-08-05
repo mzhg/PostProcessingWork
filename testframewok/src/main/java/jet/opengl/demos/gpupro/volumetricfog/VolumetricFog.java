@@ -1,5 +1,7 @@
 package jet.opengl.demos.gpupro.volumetricfog;
 
+import com.nvidia.developer.opengl.utils.BoundingBox;
+
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
@@ -14,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import jet.opengl.demos.intel.va.VaBoundingSphere;
+import jet.opengl.demos.nvidia.shadows.ShadowMapGenerator;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -43,6 +46,7 @@ class VolumetricFog implements Disposeable {
     private HashMap<IntegratedKey, VolumetricFogLightScatteringCS> lightScatteringCS = new HashMap<>();
 
     private VolumetricFogFinalIntegrationCS finalIntegrationCS;
+    private VolumetricFogShadingProgram shadingProgram;
 
     private Texture3D VBufferA;
     private Texture3D VBufferB;
@@ -180,6 +184,12 @@ class VolumetricFog implements Disposeable {
         IntegrationData.VBufferARenderTarget = VBufferA;
         IntegrationData.VBufferBRenderTarget = VBufferB;
 
+        gl.glClearTexImage(VBufferA.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
+        gl.glClearTexImage(VBufferB.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
+        gl.glClearTexImage(pTex3DLightScattering[0].getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
+        gl.glClearTexImage(pTex3DLightScattering[1].getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
+        gl.glClearTexImage(pTex3DFinalLightScattering.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
+
         {
             /*FVolumetricFogMaterialSetupCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FVolumetricFogMaterialSetupCS::FParameters>();
             PassParameters->GlobalAlbedo = FogInfo.VolumetricFogAlbedo;
@@ -311,6 +321,9 @@ class VolumetricFog implements Disposeable {
             LightScatteringParameters scatteringParams = buildLightScattering(IntegrationData);
             program.apply(scatteringParams);
 
+            GLSLUtil.setFloat(program, "g_CameraFar", params.cameraFar);
+            GLSLUtil.setFloat(program, "g_CameraNear", params.cameraNear);
+
             LocalLightData localLightData = buildLocalLightData();
             ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(localLightData.size);
             localLightData.store(buffer).flip();
@@ -395,6 +408,8 @@ class VolumetricFog implements Disposeable {
             GLSLUtil.setFloat3(finalIntegrationCS, "VolumetricFog_GridZParams", materialParams.VolumetricFog_GridZParams);
             GLSLUtil.setFloat3(finalIntegrationCS, "WorldCameraOrigin", injectLocalLightParams.WorldCameraOrigin);
             GLSLUtil.setMat4(finalIntegrationCS, "g_ViewProj", materialParams.g_ViewProj);
+            GLSLUtil.setFloat(finalIntegrationCS, "g_CameraFar", materialParams.cameraFar);
+            GLSLUtil.setFloat(finalIntegrationCS, "g_CameraNear", materialParams.cameraNear);
 
             gl.glBindTextureUnit(0, IntegratedLightScattering.getTexture());
             gl.glBindSampler(0, m_pLinearSampler);
@@ -409,6 +424,8 @@ class VolumetricFog implements Disposeable {
             if(!m_princeOnce)finalIntegrationCS.printPrograminfo();
         }
 
+        shadingScene(IntegratedLightScatteringUAV);
+
         if(bUseTemporalReprojection){
             if(m_UnjitteredPrevWorldToClip == null){
                 m_UnjitteredPrevWorldToClip = new Matrix4f();
@@ -419,6 +436,36 @@ class VolumetricFog implements Disposeable {
 
         m_princeOnce = true;
         recordHistory();
+    }
+
+    private void shadingScene(Texture3D finalLightScattering){
+        gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        gl.glViewport(0,0, m_ViewWidth, m_ViewHeight);
+
+        shadingProgram.enable();
+        GLSLUtil.setFloat3(shadingProgram, "VolumetricFog_GridSize", materialParams.VolumetricFog_GridSize);
+        GLSLUtil.setFloat3(shadingProgram, "VolumetricFog_GridZParams", materialParams.VolumetricFog_GridZParams);
+        GLSLUtil.setFloat(shadingProgram, "g_CameraFar", params.cameraFar);
+        GLSLUtil.setFloat(shadingProgram, "g_CameraNear", params.cameraNear);
+
+        gl.glBindTextureUnit(0, params.sceneDepth.getTexture());
+        gl.glBindTextureUnit(1, params.sceneColor.getTexture());
+        gl.glBindTextureUnit(2, finalLightScattering.getTexture());
+        gl.glBindSampler(0, m_pLinearSampler);
+        gl.glBindSampler(1, m_pLinearSampler);
+        gl.glBindSampler(2, m_pLinearSampler);
+
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+        for(int i = 0; i < 3; i++){
+            gl.glBindTextureUnit(i,0);
+            gl.glBindSampler(i, 0);
+        }
+
+        if(!m_princeOnce) shadingProgram.printPrograminfo();
     }
 
     private boolean RenderLightFunctionForVolumetricFog(Vector3i volumetricFogGridSize, float volumetricFogDistance, Matrix4f lightFunctionWorldToShadow, TextureGL lightFunctionTexture) {
@@ -522,6 +569,7 @@ class VolumetricFog implements Disposeable {
             }
 
             Texture3D OutLocalShadowedLightScattering = pTex3DLocalShadowedLightScattering;
+            gl.glClearTexImage(OutLocalShadowedLightScattering.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
 
             /*FRenderTargetParameters* PassParameters = GraphBuilder.AllocParameters<FRenderTargetParameters>();
             PassParameters->RenderTargets[0] = FRenderTargetBinding(OutLocalShadowedLightScattering, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::ENoAction);
@@ -606,6 +654,8 @@ class VolumetricFog implements Disposeable {
                         gl.glBindTextureUnit(0, 0); // no 2D shadow
                         gl.glBindTextureUnit(1, LightSceneInfo.shadowmap.getTexture());
                         gl.glBindSampler(1, m_pComapreSampler);
+                        gl.glBindTextureUnit(3, LightSceneInfo.shadowmap.getTexture());
+                        gl.glBindSampler(3, m_pComapreSampler);
                     }
                     gl.glBindTextureUnit(2, 0);  // todo non static texture.
                     /*FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -682,6 +732,9 @@ class VolumetricFog implements Disposeable {
 
             finalIntegrationCS = new VolumetricFogFinalIntegrationCS(prefix, VolumetricFogIntegrationGroupSize);
             finalIntegrationCS.setName("FinalIntegrationCS");
+
+            shadingProgram = new VolumetricFogShadingProgram(prefix);
+            shadingProgram.setName("VolumetricFogShading");
 
             m_forwardRenderBuffer = gl.glGenBuffer();
             gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, m_forwardRenderBuffer);
@@ -851,6 +904,8 @@ class VolumetricFog implements Disposeable {
         materialParams.GlobalAlbedo.set(params.GlobalAlbedo);
         materialParams.GlobalEmissive.set(params.GlobalEmissive);
         materialParams.GlobalExtinctionScale = params.GlobalExtinctionScale;
+        materialParams.cameraFar = params.cameraFar;
+        materialParams.cameraNear = params.cameraNear;
 
         return materialParams;
     }
@@ -889,6 +944,8 @@ class VolumetricFog implements Disposeable {
         params.ViewSpaceBoundingSphere.w = light.boundingSphere.Radius;
         params.g_ViewProj.load(materialParams.g_ViewProj);
         params.bStaticallyShadowed = false;
+        params.cameraFar = this.params.cameraFar;
+        params.cameraNear = this.params.cameraNear;
 
         return params;
     }
@@ -1171,6 +1228,20 @@ class VolumetricFog implements Disposeable {
             info.shadowmap = shadowmap;
 
             lightInfos.add(info);
+        }
+
+        public void addDirectionLight(ReadableVector3f dir, ReadableVector3f color, float intensity, Matrix4f view, Matrix4f proj, TextureGL shadowmap){
+            LightInfo info = new LightInfo();
+            info.color.set(color);
+            info.type = LightType.POINT;
+            info.direction.set(dir);
+            info.intensity = intensity;
+            info.view = view;
+            info.proj = proj;
+            BoundingBox box = new BoundingBox();
+            ShadowMapGenerator.calculateCameraViewBoundingBox(view, proj, box);
+            info.boundingSphere = new VaBoundingSphere(box.center(null), box.radius());
+            info.shadowmap = shadowmap;
         }
 
         private List<LightInfo> lightInfos = new ArrayList<>();

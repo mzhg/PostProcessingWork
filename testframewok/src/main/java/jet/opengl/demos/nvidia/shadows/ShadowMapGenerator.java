@@ -366,6 +366,28 @@ import jet.opengl.postprocessing.util.LogUtil;
         }
     }
 
+    public static void calculateCameraViewBoundingBox(Matrix4f view, Matrix4f proj, BoundingBox out){
+        Matrix4f viewProj = Matrix4f.mul(proj, view, null);
+        viewProj.invert();
+
+        out.init();
+
+        Vector3f f3PlaneCornerProjSpace = new Vector3f();
+        Matrix4f cameraProjToWorld = viewProj;
+
+        for(int iClipPlaneCorner=0; iClipPlaneCorner < 8; ++iClipPlaneCorner) {
+            f3PlaneCornerProjSpace.set((iClipPlaneCorner & 0x01) != 0 ? +1.f : -1.f,
+                    (iClipPlaneCorner & 0x02) != 0 ? +1.f : -1.f,
+                    // Since we use complimentary depth buffering,
+                    // far plane has depth 0
+                    (iClipPlaneCorner & 0x04) != 0 ? 1.f : -1.f);
+
+            Matrix4f.transformCoord(cameraProjToWorld, f3PlaneCornerProjSpace, f3PlaneCornerProjSpace);  // Transform the position from projection to world space
+
+            out.expandBy(f3PlaneCornerProjSpace);
+        }
+    }
+
     @Deprecated
     protected final void calculateLightViewBoundingBox(BoundingBox worldPos, Matrix4f lightView, BoundingBox out){
         if(m_corners[0] == null){

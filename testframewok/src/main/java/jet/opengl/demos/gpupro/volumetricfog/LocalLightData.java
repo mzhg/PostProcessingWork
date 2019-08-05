@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 final class LocalLightData implements Readable {
+
     final Matrix4f DirectionalLightWorldToStaticShadow = new Matrix4f();
     final Vector4f DirectionalLightStaticShadowBufferSize = new Vector4f();
 

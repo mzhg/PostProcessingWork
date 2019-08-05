@@ -23,28 +23,28 @@ struct LocalLightingData
     float4 DirectionalLightShadowmapMinMax[NUM_DIRECTIONAL_LIGHT_CASCADES];
     float4 DirectionalLightShadowmapAtlasBufferSize;
 
-    float3 DirectionalLightColor;
-    float DirectionalLightVolumetricScatteringIntensity;
-    float3 DirectionalLightDirection;
-    float DirectionalLightDepthBias;
+    float4 DirectionalLightColor;
+//    float DirectionalLightVolumetricScatteringIntensity;
+    float4 DirectionalLightDirection;
+//    float DirectionalLightDepthBias;
 
-    int3 CulledGridSize;
-    uint LightGridPixelSizeShift;
+    uint4 CulledGridSize;
+//    uint LightGridPixelSizeShift;
 
     float4 ForwardLocalLightBuffer[10];
 
-    bool HasDirectionalLight;
-    bool DirectionalLightUseStaticShadowing;
-    int NumDirectionalLightCascades;
+    uint HasDirectionalLight;
+    uint DirectionalLightUseStaticShadowing;
+    uint NumDirectionalLightCascades;
     uint NumLocalLights;
 
-    float3 LightGridZParams;
-    float CascadeEndDepths[4];
+    float4 LightGridZParams;
+    float4 CascadeEndDepths;
 
 //    uint NumCulledLightsGrid[12];
 
     float2 DirectionalLightDistanceFadeMAD;
-    uint DirectionalLightShadowMapChannelMask;
+//    uint DirectionalLightShadowMapChannelMask;
 //    uint CulledLightDataGrid[4];
 
 };
@@ -325,7 +325,7 @@ float ComputeDirectionalLightDynamicShadowing(float3 WorldPosition, float SceneD
 #else
                 // Sample the shadowmap depth and determine if this voxel is shadowed
                 float ShadowDepth = Texture2DSampleLevel(DirectionalLightShadowmapAtlas, ShadowUVs, 0).x;
-                ShadowFactor = float(HomogeneousShadowPosition.z < ShadowDepth - ForwardLightData.DirectionalLightDepthBias.x);
+                ShadowFactor = float(HomogeneousShadowPosition.z < ShadowDepth /*- ForwardLightData.DirectionalLightDepthBias.x*/);
 #endif
             }
         }

@@ -15,6 +15,7 @@ uniform float4 ShadowBufferSize;
 
 /** Cube map texture. */
 layout(binding = 1) uniform samplerCubeShadow ShadowDepthCubeTexture2;
+layout(binding = 3) uniform samplerCube ShadowDepthCubeTexture;
 
 /*#if OPENGL_PROFILE || COMPILER_VULKAN || COMPILER_SWITCH
 // This is required on GLSL based languages as the standard does NOT allow having a texture being used with both a Comparison and regular SamplerState
@@ -160,6 +161,11 @@ float CubemapHardwarePCF(float3 WorldPosition, float3 LightPosition, float Light
 
     float3 LightVector = LightPosition - WorldPosition.xyz;
     float Distance = length(LightVector);
+
+    float receiver_depth = Distance / 50.0;
+    receiver_depth -= 0.0001;
+    float shadow_term =receiver_depth >=1 ? 1: float(textureLod(ShadowDepthCubeTexture, -LightVector, 0.0).x > receiver_depth);
+    return shadow_term;
 
 //    BRANCH
     // Skip pixels outside of the light's influence
