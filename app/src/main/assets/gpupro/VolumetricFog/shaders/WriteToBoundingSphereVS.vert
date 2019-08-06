@@ -11,7 +11,7 @@ out flat int LayerIndex;
 
 void main()
 {
-    float SliceDepth = ComputeDepthFromZSlice(gl_InstanceID + MinZ);
+    float SliceDepth = -ComputeDepthFromZSlice(gl_InstanceID + MinZ);
     float SliceDepthOffset = abs(SliceDepth - ViewSpaceBoundingSphere.z);
 
     if (SliceDepthOffset < ViewSpaceBoundingSphere.w)

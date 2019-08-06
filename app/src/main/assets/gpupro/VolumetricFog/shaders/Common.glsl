@@ -17,7 +17,7 @@ uniform vec4 FogStruct_ExponentialFogParameters2;
 uniform vec4 FogStruct_ExponentialFogParameters3;
 uniform float g_CameraNear;
 uniform float g_CameraFar;
-uniform mat4  g_ViewProj;
+uniform mat4  g_ViewProj;  // TODO It is a proj.
 
 #define USE_PUNCTUAL_LIGHT  1
 
@@ -25,12 +25,11 @@ uniform mat4  g_ViewProj;
 
 float ConvertToDeviceZ(float depth)
 {
-//    vec4 clipPos = g_ViewProj * vec4(0,0, depth, 1);
-//    return clipPos.z / clipPos.w;
+    vec4 clipPos = g_ViewProj * vec4(0,0, depth, 1);
+    return clipPos.z / clipPos.w;
 
-    depth = -depth;
     float invDiff = 1.0/(g_CameraFar-g_CameraNear);
-    float DeviceZ = -2 * invDiff * depth - (g_CameraFar + g_CameraNear) * invDiff;
+    float DeviceZ = (-(g_CameraFar + g_CameraNear) * invDiff * depth - 2 * g_CameraFar * g_CameraNear * invDiff)/(-depth);
     return DeviceZ;
 }
 
@@ -40,8 +39,8 @@ float ComputeDepthFromZSlice(float ZSlice)
     return SliceDepth;
 }
 
-int ComputeZSliceFromDepth(float SceneDepth, float Offset){
-    return int(log2(SceneDepth*VolumetricFog_GridZParams.x+VolumetricFog_GridZParams.y)*VolumetricFog_GridZParams.z + Offset);
+float ComputeZSliceFromDepth(float SceneDepth, float Offset){
+    return log2(SceneDepth*VolumetricFog_GridZParams.x+VolumetricFog_GridZParams.y)*VolumetricFog_GridZParams.z + Offset;
 }
 
 float Luminance(in vec3 rgb)
@@ -83,7 +82,7 @@ float3 ComputeCellWorldPosition(uint3 GridCoordinate, float3 CellOffset, out flo
 
     SceneDepth = ComputeDepthFromZSlice(GridCoordinate.z + CellOffset.z);
 
-    float TileDeviceZ = ConvertToDeviceZ(SceneDepth);
+    float TileDeviceZ = ConvertToDeviceZ(-SceneDepth);
     float4 CenterPosition = mul(float4(VolumeNDC, TileDeviceZ, 1), UnjitteredClipToTranslatedWorld);
     return CenterPosition.xyz / CenterPosition.w - View_PreViewTranslation;
 }
@@ -96,10 +95,10 @@ float3 ComputeCellWorldPosition(uint3 GridCoordinate, float3 CellOffset)
 
 uniform vec3 g_CameraRange;  // xy: camera near and for; z : 0 for the orth, otherwise for the perspective.
 // ClipPosDevice range are [0,1]
-int3 ComputeCellGrid(float3 ClipPosDevice, float3 CellOffset)
+float3 ComputeCellGrid(float3 ClipPosDevice, float3 CellOffset)
 {
-    int3 GridCoordinate;
-    GridCoordinate.xy = int2(ClipPosDevice.xy * VolumetricFog_GridSize.xy + CellOffset.xy);
+    float3 GridCoordinate;
+    GridCoordinate.xy = ClipPosDevice.xy * VolumetricFog_GridSize.xy + CellOffset.xy;
 
     float mZFar = g_CameraFar;
     float mZNear = g_CameraNear;

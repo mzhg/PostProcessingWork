@@ -113,7 +113,7 @@ inout float3 L)
 
     if (LightData.bSpotLight)
     {
-        LightMask *= SpotAttenuation(L, -LightData.Direction, LightData.SpotAngles);
+        LightMask *= SpotAttenuation(L, LightData.Direction, LightData.SpotAngles);
     }
 
     if( LightData.bRectLight )
@@ -247,7 +247,10 @@ float ComputeVolumeShadowing(float3 WorldPositionForLighting, bool bPointLight, 
             // This path is used for directional lights and spot lights, which only require a single projection
             // Transform the world position into shadowmap space
             float4 HomogeneousShadowPosition = mul(float4(WorldPositionForLighting, 1), WorldToStaticShadowMatrix);
-            float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+            HomogeneousShadowPosition.xyz /= HomogeneousShadowPosition.w;
+            HomogeneousShadowPosition.xyz = HomogeneousShadowPosition.xyz * 0.5 + 0.5;
+            //            float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+            float2 ShadowUVs = HomogeneousShadowPosition.xy;
 
             // Treat as unshadowed if the voxel is outside of the shadow map
             if (all(greaterThanEqual(ShadowUVs, float2(0))) && all(lessThanEqual(ShadowUVs, float2(1))))
@@ -287,14 +290,16 @@ float ComputeVolumeShadowing(float3 WorldPositionForLighting, bool bPointLight, 
     {
         // Transform the world position into shadowmap space
         float4 HomogeneousShadowPosition = mul(float4(WorldPositionForLighting, 1), WorldToShadowMatrix);
-        float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+        HomogeneousShadowPosition.xyz /= HomogeneousShadowPosition.w;
+        HomogeneousShadowPosition.xyz = HomogeneousShadowPosition.xyz * 0.5 + 0.5;
+        float2 ShadowUVs = HomogeneousShadowPosition.xy;
 
         // Treat as unshadowed if the voxel is outside of the shadow map
         if (all(greaterThanEqual(ShadowUVs , ShadowmapMinMax.xy)) && all(lessThanEqual(ShadowUVs, ShadowmapMinMax.zw)))
         {
             // Sample the shadowmap depth and determine if this voxel is shadowed
             float ShadowDepth = Texture2DSampleLevel(ShadowDepthTexture, ShadowUVs, 0).x;
-            DynamicShadowFactor = float(HomogeneousShadowPosition.z < ShadowDepth) - DepthBiasParameters.x;
+            DynamicShadowFactor = float(HomogeneousShadowPosition.z < ShadowDepth-DepthBiasParameters.x) ;
         }
     }
 

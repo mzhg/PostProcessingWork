@@ -5,20 +5,36 @@ import java.io.IOException;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.shader.ShaderLoader;
+import jet.opengl.postprocessing.shader.ShaderSourceItem;
+import jet.opengl.postprocessing.shader.ShaderType;
 
 final class InjectShadowedLocalLightProgram extends GLSLProgram {
     InjectShadowedLocalLightProgram(String prefx, boolean bDynamicallyShadowed, boolean bInverseSquared, boolean bTemporalReprojection){
-        try {
-            Macro[] macros = {
-                new Macro("DYNAMICALLY_SHADOWED", bDynamicallyShadowed?1:0),
-                new Macro("INVERSE_SQUARED_FALLOFF", bInverseSquared?1:0),
-                new Macro("USE_TEMPORAL_REPROJECTION", bTemporalReprojection?1:0),
-            };
+        CharSequence vert_source = null;
+        CharSequence gemo_source = null;
+        CharSequence frag_source = null;
 
-            setSourceFromFiles(prefx+"WriteToBoundingSphereVS.vert", prefx+"InjectShadowedLocalLightPS.frag", macros);
+        try {
+            vert_source = ShaderLoader.loadShaderFile(prefx + "WriteToBoundingSphereVS.vert", false);
+            gemo_source = ShaderLoader.loadShaderFile(prefx + "WriteToSliceMainGS.gemo", false);
+            frag_source = ShaderLoader.loadShaderFile(prefx + "InjectShadowedLocalLightPS.frag", false);
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        Macro[] macros = {
+                new Macro("DYNAMICALLY_SHADOWED", bDynamicallyShadowed?1:0),
+                new Macro("INVERSE_SQUARED_FALLOFF", bInverseSquared?1:0),
+                new Macro("USE_TEMPORAL_REPROJECTION", bTemporalReprojection?1:0),
+        };
+
+        ShaderSourceItem vs_item = new ShaderSourceItem(vert_source, ShaderType.VERTEX);
+        ShaderSourceItem gemo_item = new ShaderSourceItem(gemo_source, ShaderType.GEOMETRY);
+        ShaderSourceItem frag_item = new ShaderSourceItem(frag_source, ShaderType.FRAGMENT);
+        frag_item.macros = macros;
+
+        setSourceFromStrings(vs_item, gemo_item, frag_item);
     }
 
     void applyUniforms(InjectLocalLightParameters params){

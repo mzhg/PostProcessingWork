@@ -50,6 +50,8 @@ void main()
 //    if (all((int3)GridCoordinate < VolumetricFog.GridSizeInt))
     int3 VolumetricFog_GridSizeInt= int3(VolumetricFog_GridSize);
     int3 GridCoordinateInt = int3(GridCoordinate);
+//    Scattering = float3(1);
+//    Absorption = 0;
     if(all(lessThan(GridCoordinateInt, VolumetricFog_GridSizeInt)))
     {
 //        RWVBufferA[GridCoordinate] = float4(Scattering, Absorption);

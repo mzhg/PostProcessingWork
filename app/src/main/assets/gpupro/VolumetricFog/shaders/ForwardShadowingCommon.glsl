@@ -74,9 +74,9 @@ LightGridData GetLightGridData(uint EyeIndex)
     {
         #endif
 
-        Result.LightGridPixelSizeShift = ForwardLightData.LightGridPixelSizeShift;
-        Result.LightGridZParams = ForwardLightData.LightGridZParams;
-        Result.CulledGridSize = ForwardLightData.CulledGridSize;
+        Result.LightGridPixelSizeShift = ForwardLightData.CulledGridSize.w;
+        Result.LightGridZParams = ForwardLightData.LightGridZParams.xyz;
+        Result.CulledGridSize = int3(ForwardLightData.CulledGridSize.xyz);
 
         #if INSTANCED_STEREO
     }
@@ -173,10 +173,10 @@ FDirectionalLightData GetDirectionalLightData(uint EyeIndex)
         #endif
 
         Result.HasDirectionalLight = uint(ForwardLightData.HasDirectionalLight);
-        Result.DirectionalLightShadowMapChannelMask = ForwardLightData.DirectionalLightShadowMapChannelMask;
+        Result.DirectionalLightShadowMapChannelMask = 0; //ForwardLightData.DirectionalLightShadowMapChannelMask;
         Result.DirectionalLightDistanceFadeMAD = ForwardLightData.DirectionalLightDistanceFadeMAD;
-        Result.DirectionalLightColor = ForwardLightData.DirectionalLightColor;
-        Result.DirectionalLightDirection = ForwardLightData.DirectionalLightDirection;
+        Result.DirectionalLightColor = ForwardLightData.DirectionalLightColor.xyz;
+        Result.DirectionalLightDirection = ForwardLightData.DirectionalLightDirection.xyz;
 
         #if INSTANCED_STEREO
     }
@@ -279,7 +279,7 @@ float ComputeDirectionalLightStaticShadowing(float3 WorldPosition)
 }
 
 #ifndef FILTER_DIRECTIONAL_LIGHT_SHADOWING
-#define FILTER_DIRECTIONAL_LIGHT_SHADOWING 0
+#define FILTER_DIRECTIONAL_LIGHT_SHADOWING 1
 #endif
 
 float ComputeDirectionalLightDynamicShadowing(float3 WorldPosition, float SceneDepth)
@@ -303,7 +303,10 @@ float ComputeDirectionalLightDynamicShadowing(float3 WorldPosition, float SceneD
         {
             // Transform the world position into shadowmap space
             float4 HomogeneousShadowPosition = mul(float4(WorldPosition, 1), ForwardLightData.DirectionalLightWorldToShadowMatrix[CascadeIndex]);
-            float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+            HomogeneousShadowPosition /= HomogeneousShadowPosition.w;
+            HomogeneousShadowPosition.xyz = HomogeneousShadowPosition.xyz * 0.5 + 0.5;
+//            float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+            float2 ShadowUVs = HomogeneousShadowPosition.xy;
             float4 ShadowmapMinMax = ForwardLightData.DirectionalLightShadowmapMinMax[CascadeIndex];
 
             // Treat as unshadowed if the voxel is outside of the shadow map
@@ -325,7 +328,7 @@ float ComputeDirectionalLightDynamicShadowing(float3 WorldPosition, float SceneD
 #else
                 // Sample the shadowmap depth and determine if this voxel is shadowed
                 float ShadowDepth = Texture2DSampleLevel(DirectionalLightShadowmapAtlas, ShadowUVs, 0).x;
-                ShadowFactor = float(HomogeneousShadowPosition.z < ShadowDepth /*- ForwardLightData.DirectionalLightDepthBias.x*/);
+                ShadowFactor = float(HomogeneousShadowPosition.z < ShadowDepth-ForwardLightData.DirectionalLightDirection.w);
 #endif
             }
         }

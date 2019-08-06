@@ -57,7 +57,7 @@ void main()
         float3 CameraVector = (WorldPosition - WorldCameraOrigin) / CameraVectorLength;
 
 //        BRANCH
-        if (ForwardLightData.HasDirectionalLight)
+        if (ForwardLightData.HasDirectionalLight != 0)
         {
             float ShadowFactor = 1;
 
@@ -68,19 +68,18 @@ void main()
             }
 
 //            ShadowFactor *= GetLightFunction(WorldPosition);
-
-            float3 DirectionalLightColor = ForwardLightData.DirectionalLightColor;
+            float3 DirectionalLightColor = ForwardLightData.DirectionalLightColor.rgb;
 
             if (UseHeightFogColors)
             {
                 // Attempt to maintain intensity ratio between sky and sun
-                DirectionalLightColor = HeightFogDirectionalLightInscatteringColor * Luminance(ForwardLightData.DirectionalLightColor);
+                DirectionalLightColor = HeightFogDirectionalLightInscatteringColor * Luminance(ForwardLightData.DirectionalLightColor.rgb);
             }
 
             LightScattering += DirectionalLightColor
             * (ShadowFactor
-            * ForwardLightData.DirectionalLightVolumetricScatteringIntensity
-            * PhaseFunction(PhaseG, dot(ForwardLightData.DirectionalLightDirection, -CameraVector)));
+            * ForwardLightData.DirectionalLightColor.w  // DirectionalLightVolumetricScatteringIntensity
+            * PhaseFunction(PhaseG, dot(ForwardLightData.DirectionalLightDirection.xyz, -CameraVector)));
         }
 
         float3 BrickTextureUVs = float3(0);

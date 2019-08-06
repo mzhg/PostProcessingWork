@@ -315,16 +315,16 @@ float Manual1x1PCF(float2 ShadowPosition, FPCFSamplerSettings Settings)
 float ManualPCF(float2 ShadowPosition, FPCFSamplerSettings Settings)
 {
 
-    #if SHADOW_QUALITY == 1
+#if SHADOW_QUALITY == 1
     return ManualNoFiltering(ShadowPosition, Settings);
-    #endif
+#endif  // End SHADOW_QUALITY==1
 
-    #if SHADOW_QUALITY == 2
+#if SHADOW_QUALITY == 2
     // low quality, 2x2 samples, using and not using gather4
     return Manual1x1PCF(ShadowPosition, Settings);
-    #endif
+#endif  // End SHADOW_QUALITY==2
 
-    #if SHADOW_QUALITY == 3
+#if SHADOW_QUALITY == 3
     // medium quality, 4x4 samples, using and not using gather4
     {
         float2 TexelPos = ShadowPosition * Settings.ShadowBufferSize.xy - 0.5f;	// bias to be consistent with texture filtering hardware
@@ -351,9 +351,9 @@ float ManualPCF(float2 ShadowPosition, FPCFSamplerSettings Settings)
             #endif // FEATURE_GATHER4
         }
     }
-        #endif
+#endif   // End SHADOW_QUALITY==3
 
-        #if FEATURE_GATHER4
+#if FEATURE_GATHER4
     // high quality, 6x6 samples, using gather4
     {
         float2 TexelPos = ShadowPosition * Settings.ShadowBufferSize.xy - 0.5f;	// bias to be consistent with texture filtering hardware
@@ -387,7 +387,7 @@ float ManualPCF(float2 ShadowPosition, FPCFSamplerSettings Settings)
         return 0.04f * Results;
     }
 
-        #else // FEATURE_GATHER4
+#else // FEATURE_GATHER4
 
     // high quality, 7x7 samples, not using gather4 (todo: ideally we make this 6x6 to get same results with gather code)
     {

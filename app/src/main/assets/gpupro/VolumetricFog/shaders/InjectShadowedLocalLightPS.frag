@@ -5,45 +5,19 @@
 #define INVERSE_SQUARED_FALLOFF 1
 #endif
 
-in flat int LayerIndex;
 out float4 OutScattering;
 
 void main()
 {
     OutScattering = float4(0);
 
-    uint3 GridCoordinate = uint3(gl_FragCoord.xy, LayerIndex);
+    uint3 GridCoordinate = uint3(gl_FragCoord.xy, gl_Layer);
     uint3 GridSizeInt = uint3(VolumetricFog_GridSize);
 
     // Somehow pixels are being rasterized outside of the viewport on a 970 GTX, perhaps due to use of a geometry shader bypassing the viewport scissor.
     // This triggers the HistoryMissSuperSampleCount path causing significant overhead for shading off-screen pixels.
     if (all(lessThan(GridCoordinate, GridSizeInt)))
     {
-        /*FDeferredLightData LightData;
-        LightData.Position = DeferredLightUniforms.Position;
-        LightData.InvRadius = DeferredLightUniforms.InvRadius;
-        LightData.Color = DeferredLightUniforms.Color;
-        LightData.FalloffExponent = DeferredLightUniforms.FalloffExponent;
-        LightData.Direction = DeferredLightUniforms.Direction;
-        LightData.Tangent = DeferredLightUniforms.Tangent;
-        LightData.SpotAngles = DeferredLightUniforms.SpotAngles;
-        LightData.SourceRadius = DeferredLightUniforms.SourceRadius;
-        LightData.SourceLength = DeferredLightUniforms.SourceLength;
-        LightData.SoftSourceRadius = DeferredLightUniforms.SoftSourceRadius;
-        LightData.SpecularScale = DeferredLightUniforms.SpecularScale;
-        LightData.ContactShadowLength = abs(DeferredLightUniforms.ContactShadowLength);
-        LightData.ContactShadowLengthInWS = DeferredLightUniforms.ContactShadowLength < 0.0f;
-        LightData.DistanceFadeMAD = DeferredLightUniforms.DistanceFadeMAD;
-        LightData.ShadowMapChannelMask = DeferredLightUniforms.ShadowMapChannelMask;
-        LightData.ShadowedBits = DeferredLightUniforms.ShadowedBits;
-
-        LightData.bInverseSquared = INVERSE_SQUARED_FALLOFF;
-        LightData.bRadialLight = true;
-        LightData.bSpotLight = LightData.SpotAngles.x > -2.0f;
-        LightData.bRectLight = false;*/
-
-//        FRectTexture RectTexture = InitRectTexture(DeferredLightUniforms.SourceTexture);
-
         float VolumetricScatteringIntensity = LightData.VolumetricScatteringIntensity;
 
         float3 L = float3(0);
@@ -57,9 +31,9 @@ void main()
         float HistoryAlpha = HistoryWeight;
 
 //        FLATTEN
-        if (any(lessThan(HistoryUV, float3(0,0,0))) || any(lessThan(HistoryUV, float3(1,1,1))))
+        if (any(lessThan(HistoryUV, float3(0,0,0))) || any(greaterThan(HistoryUV, float3(1,1,1))))
         {
-            HistoryAlpha = 0;
+//            HistoryAlpha = 0;
         }
         NumSuperSamples = HistoryAlpha < .001f ? HistoryMissSuperSampleCount : 1;
 
@@ -105,7 +79,6 @@ void main()
             }
 
             OutScattering.rgb += LightColor * (PhaseFunction(PhaseG, dot(L, -CameraVector)) * CombinedAttenuation * ShadowFactor * VolumetricScatteringIntensity);
-
             // To debug culling
             //OutScattering.rgb += DeferredLightUniforms.Color * .0000001f;
         }

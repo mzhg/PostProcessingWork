@@ -76,6 +76,7 @@ class VolumetricFog implements Disposeable {
     private int m_lightDataBuffer;
     private int m_pLinearSampler;
     private int m_pComapreSampler;
+    private int m_pPointSampler;
 
     static final int NumVertices = 8;
     final String prefix = "gpupro/VolumetricFog/shaders/";
@@ -331,10 +332,13 @@ class VolumetricFog implements Disposeable {
             gl.glBufferSubData(GLenum.GL_UNIFORM_BUFFER,0, buffer);
 
             if(!m_princeOnce)
+            {
                 GLSLUtil.assertUniformBuffer(program, "_ForwardLightData",0, localLightData.size);
+                if(m_DirectionShadowMap == null)System.out.println("m_DirectionShadowMap is null" );
+            }
 
             gl.glBindTextureUnit(3, m_DirectionShadowMap != null ? m_DirectionShadowMap.getTexture() : 0); // DirectionalLightShadowmapAtlas
-            gl.glBindSampler(3, m_pLinearSampler);
+            gl.glBindSampler(3, m_pPointSampler);
             gl.glBindTextureUnit(5, LightFunctionTexture != null ? LightFunctionTexture.getTexture() : 0); // LightFunctionTexture
             gl.glBindSampler(5, m_pLinearSampler);
             if(history >=0){
@@ -441,9 +445,12 @@ class VolumetricFog implements Disposeable {
     private void shadingScene(Texture3D finalLightScattering){
         gl.glDisable(GLenum.GL_CULL_FACE);
         gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_BLEND);
 
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
         gl.glViewport(0,0, m_ViewWidth, m_ViewHeight);
+        gl.glClearColor(0,0,0,0);
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
 
         shadingProgram.enable();
         GLSLUtil.setFloat3(shadingProgram, "VolumetricFog_GridSize", materialParams.VolumetricFog_GridSize);
@@ -652,10 +659,10 @@ class VolumetricFog implements Disposeable {
                         gl.glBindTextureUnit(1, 0);  // no cube shadow
                     }else if(shadowMap instanceof TextureCube){
                         gl.glBindTextureUnit(0, 0); // no 2D shadow
-                        gl.glBindTextureUnit(1, LightSceneInfo.shadowmap.getTexture());
+                        gl.glBindTextureUnit(1, LightSceneInfo.shadowmap.getTexture());  // Shadow
                         gl.glBindSampler(1, m_pComapreSampler);
                         gl.glBindTextureUnit(3, LightSceneInfo.shadowmap.getTexture());
-                        gl.glBindSampler(3, m_pComapreSampler);
+                        gl.glBindSampler(3, m_pLinearSampler);
                     }
                     gl.glBindTextureUnit(2, 0);  // todo non static texture.
                     /*FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -724,6 +731,9 @@ class VolumetricFog implements Disposeable {
             linearDesc.borderColor = -1;  // White
             m_pLinearSampler = SamplerUtils.createSampler(linearDesc);
             m_pComapreSampler = SamplerUtils.getDepthComparisonSampler();
+
+            linearDesc.magFilter = linearDesc.minFilter = GLenum.GL_NEAREST;
+            m_pPointSampler = SamplerUtils.createSampler(linearDesc);
         }
 
         if(materialSetupCS == null){
@@ -898,8 +908,9 @@ class VolumetricFog implements Disposeable {
         materialParams.ExponentialFogParameters3.x = params.fogDensity;
         materialParams.ExponentialFogParameters3.y = params.startDistance;
 
-        Matrix4f.mul(params.proj, params.view, materialParams.g_ViewProj);
-        Matrix4f.invert(materialParams.g_ViewProj, materialParams.UnjitteredClipToTranslatedWorld);
+        materialParams.g_ViewProj.load(params.proj);
+        Matrix4f.mul(params.proj, params.view, materialParams.UnjitteredClipToTranslatedWorld);
+        materialParams.UnjitteredClipToTranslatedWorld.invert();
 
         materialParams.GlobalAlbedo.set(params.GlobalAlbedo);
         materialParams.GlobalEmissive.set(params.GlobalEmissive);
@@ -940,7 +951,7 @@ class VolumetricFog implements Disposeable {
         params.ViewForward.scale(-1);
 
         Matrix4f.transformVector(this.params.view, light.boundingSphere.Center, params.ViewSpaceBoundingSphere);
-        params.ViewSpaceBoundingSphere.z *= -1;
+//        params.ViewSpaceBoundingSphere.z *= -1;
         params.ViewSpaceBoundingSphere.w = light.boundingSphere.Radius;
         params.g_ViewProj.load(materialParams.g_ViewProj);
         params.bStaticallyShadowed = false;
@@ -958,26 +969,32 @@ class VolumetricFog implements Disposeable {
         lightData.Color.set(source.color);
         lightData.FalloffExponent = 1;
         lightData.Direction.set(source.direction);
-        lightData.VolumetricScatteringIntensity = 1;
+        lightData.VolumetricScatteringIntensity = source.intensity;
         lightData.Tangent.set(1,0,0);
         lightData.SoftSourceRadius = 0.01f;
 
-        final float ClampedInnerConeAngle = Numeric.clamp(source.spotAngle* 0.8f,0.0f,(float)Math.toRadians(89.0f));
-        final float ClampedOuterConeAngle = Numeric.clamp(source.spotAngle,ClampedInnerConeAngle + 0.001f,(float)Math.toRadians(89.0f)+0.01f);
-        float CosOuterCone = (float) Math.cos(ClampedOuterConeAngle);
-        float CosInnerCone = (float) Math.cos(ClampedInnerConeAngle);
-        float InvCosConeDifference = 1.0f / (CosInnerCone - CosOuterCone);
-        lightData.SpotAngles.set(CosOuterCone, InvCosConeDifference);
+        if(source.type == LightType.SPOT){
+            final float ClampedInnerConeAngle = Numeric.clamp(source.spotAngle* 0.8f,0.0f,(float)Math.toRadians(89.0f));
+            final float ClampedOuterConeAngle = Numeric.clamp(source.spotAngle,ClampedInnerConeAngle + 0.001f,(float)Math.toRadians(89.0f)+0.01f);
+            float CosOuterCone = (float) Math.cos(ClampedOuterConeAngle);
+            float CosInnerCone = (float) Math.cos(ClampedInnerConeAngle);
+            float InvCosConeDifference = 1.0f / (CosInnerCone - CosOuterCone);
+            lightData.SpotAngles.set(CosOuterCone, InvCosConeDifference);
+            lightData.bSpotLight = true;
+        }else{
+            lightData.SpotAngles.set(-2, -1);
+            lightData.bSpotLight = false;
+        }
+
         lightData.SourceRadius = 0.1f;
-        lightData.SourceLength = 0.5f;
+        lightData.SourceLength = 0;
         lightData.SpecularScale = 1;
         lightData.ContactShadowLength = 0.1f;
         lightData.DistanceFadeMAD.set(1,0);
         lightData.ShadowMapChannelMask.set(0,0,0,0);
         lightData.ContactShadowLengthInWS = false;
-        lightData.bInverseSquared = source.type == LightType.DIRECTIONAL;
+        lightData.bInverseSquared = (source.type != LightType.DIRECTIONAL);
         lightData.bRadialLight = true;
-        lightData.bSpotLight = lightData.SpotAngles.x > -2.0f;
         lightData.bRectLight = false;
 
         return lightData;
@@ -1022,12 +1039,13 @@ class VolumetricFog implements Disposeable {
 
                 result.HasDirectionalLight = true;
                 result.DirectionalLightColor.set(light.color);
-                result.DirectionalLightVolumetricScatteringIntensity = 1;  //LightProxy->GetVolumetricScatteringIntensity();
+                result.DirectionalLightVolumetricScatteringIntensity = light.intensity;  //LightProxy->GetVolumetricScatteringIntensity();
                 result.DirectionalLightDirection.set(light.direction);
                 result.DirectionalLightShadowMapChannelMask = 0;
                 result.DirectionalLightDistanceFadeMAD.set(1, 0); // TODO
                 Matrix4f.mul(light.proj, light.view, result.DirectionalLightWorldToShadowMatrix[0]);
-                result.CascadeEndDepths[0] = 1;
+                result.CascadeEndDepths[0] = params.cameraFar;
+                result.DirectionalLightShadowmapMinMax[0].set(0,0,1,1);
 
 //                result.DirectionalLightShadowmapAtlas = ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
                 result.DirectionalLightDepthBias = 0.0001f;
@@ -1040,6 +1058,7 @@ class VolumetricFog implements Disposeable {
 
                 bDirectionLightHandled = true;
             }else{ // Point or Spot light.
+                result.HasDirectionalLight = false;
 
                 if(light.shadowmap!=null){
                     // The light that cast shadow map has handle in the previouse pass.
@@ -1233,7 +1252,7 @@ class VolumetricFog implements Disposeable {
         public void addDirectionLight(ReadableVector3f dir, ReadableVector3f color, float intensity, Matrix4f view, Matrix4f proj, TextureGL shadowmap){
             LightInfo info = new LightInfo();
             info.color.set(color);
-            info.type = LightType.POINT;
+            info.type = LightType.DIRECTIONAL;
             info.direction.set(dir);
             info.intensity = intensity;
             info.view = view;
@@ -1242,6 +1261,26 @@ class VolumetricFog implements Disposeable {
             ShadowMapGenerator.calculateCameraViewBoundingBox(view, proj, box);
             info.boundingSphere = new VaBoundingSphere(box.center(null), box.radius());
             info.shadowmap = shadowmap;
+
+            lightInfos.add(info);
+        }
+
+        public void addSpotLight(ReadableVector3f position, float range,float outerAngle,
+                                 ReadableVector3f dir, ReadableVector3f color, float intensity, Matrix4f view, Matrix4f proj, TextureGL shadowmap){
+            LightInfo info = new LightInfo();
+            info.color.set(color);
+            info.position.set(position);
+            info.direction.set(dir);
+            info.spotAngle = outerAngle;
+            info.type = LightType.SPOT;
+            info.range = range;
+            info.intensity = intensity;
+            info.view = view;
+            info.proj = proj;
+            info.boundingSphere = new VaBoundingSphere(position, range);
+            info.shadowmap = shadowmap;
+
+            lightInfos.add(info);
         }
 
         private List<LightInfo> lightInfos = new ArrayList<>();
