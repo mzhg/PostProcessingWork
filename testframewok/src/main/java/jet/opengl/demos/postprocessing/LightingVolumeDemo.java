@@ -38,6 +38,7 @@ public class LightingVolumeDemo extends NvSampleApp {
         m_Scene = new Cube16(this);
 
         m_Scene.onCreate();
+        m_Scene.setLightType(LightType.DIRECTIONAL);
         fullscreenProgram = new FullscreenProgram();
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();

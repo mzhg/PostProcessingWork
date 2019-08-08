@@ -43,8 +43,8 @@ final class MaterialSetupCS extends GLSLProgram {
         GLSLUtil.setFloat(this, "g_CameraFar", params.cameraFar);
         GLSLUtil.setFloat(this, "g_CameraNear", params.cameraNear);
 
-        gl.glBindImageTexture(0, integrationParameterData.VBufferARenderTarget.getTexture(),0, false, 0, GLenum.GL_WRITE_ONLY, integrationParameterData.VBufferARenderTarget.getFormat());
-        gl.glBindImageTexture(1, integrationParameterData.VBufferBRenderTarget.getTexture(),0, false, 0, GLenum.GL_WRITE_ONLY, integrationParameterData.VBufferBRenderTarget.getFormat());
+        gl.glBindImageTexture(0, integrationParameterData.VBufferARenderTarget.getTexture(),0, true, 0, GLenum.GL_WRITE_ONLY, integrationParameterData.VBufferARenderTarget.getFormat());
+        gl.glBindImageTexture(1, integrationParameterData.VBufferBRenderTarget.getTexture(),0, true, 0, GLenum.GL_WRITE_ONLY, integrationParameterData.VBufferBRenderTarget.getFormat());
     }
 
     void unbind(){

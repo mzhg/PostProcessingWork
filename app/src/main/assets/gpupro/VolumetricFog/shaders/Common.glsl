@@ -43,6 +43,11 @@ float ComputeZSliceFromDepth(float SceneDepth, float Offset){
     return log2(SceneDepth*VolumetricFog_GridZParams.x+VolumetricFog_GridZParams.y)*VolumetricFog_GridZParams.z + Offset;
 }
 
+float ComputeNormalizedZSliceFromDepth(float SceneDepth)
+{
+    return log2(SceneDepth * VolumetricFog_GridZParams.x + VolumetricFog_GridZParams.y) * VolumetricFog_GridZParams.z / VolumetricFog_GridSize.z;
+}
+
 float Luminance(in vec3 rgb)
 {
     float R = rgb.x;
@@ -56,12 +61,12 @@ float4 MakePositiveFinite(float4 v)
 {
     bool4 test = isinf(v);
     float4 result;
-    result.x = test.x ? 0.0 : v.x;
-    result.y = test.y ? 0.0 : v.y;
-    result.z = test.z ? 0.0 : v.z;
-    result.w = test.w ? 0.0 : v.w;
+    result.x = test.x ? 0.0 : max(0.0, v.x);
+    result.y = test.y ? 0.0 : max(0.0, v.y);
+    result.z = test.z ? 0.0 : max(0.0, v.z);
+    result.w = test.w ? 0.0 : max(0.0, v.w);
 
-    return result;
+    return min(float4(256*256), result);
 }
 
 float Square(float x) { return x * x;}
@@ -297,11 +302,6 @@ float GetLightFunction(float3 WorldPosition)
 
 //    return Texture2DSampleLevel(LightFunctionTexture, LightFunctionSampler, LightFunctionUV, 0).x;
     return textureLod(LightFunctionTexture, LightFunctionUV, 0.0).x;
-}
-
-float ComputeNormalizedZSliceFromDepth(float SceneDepth)
-{
-    return log2(SceneDepth * VolumetricFog_GridZParams.x + VolumetricFog_GridZParams.y) * VolumetricFog_GridZParams.z / VolumetricFog_GridSize.z;
 }
 
 float3 ComputeVolumeUV(float3 WorldPosition, float4x4 WorldToClip)

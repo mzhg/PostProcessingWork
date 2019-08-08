@@ -36,6 +36,17 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 
 class VolumetricFog implements Disposeable {
+    public static final int VISUAL_ACCUMULATION = 0;
+    public static final int VISUAL_BLEND = 1;
+    public static final int VISUAL_SCATTERING =2;
+
+    public enum ScatteringTexture{
+        DENSITY,
+        GLOBAL_EMISSIVE,
+        LOCAL_SHADOWED,
+        LIGHT_SCATTERING,
+        FINAL_SCATTERING
+    }
 
     static final float WORLD_MAX = 2097152.0f;				/* Maximum size of the world */
     static final float HALF_WORLD_MAX = (WORLD_MAX * 0.5f);		/* Half the*/
@@ -44,6 +55,7 @@ class VolumetricFog implements Disposeable {
 //    private InjectShadowedLocalLightProgram injectProg;
     private HashMap<FPermutationDomain, InjectShadowedLocalLightProgram> injectProgs = new HashMap<>();
     private HashMap<IntegratedKey, VolumetricFogLightScatteringCS> lightScatteringCS = new HashMap<>();
+    private List<LightInfo> m_localShadowedLights = new ArrayList<>();
 
     private VolumetricFogFinalIntegrationCS finalIntegrationCS;
     private VolumetricFogShadingProgram shadingProgram;
@@ -77,11 +89,12 @@ class VolumetricFog implements Disposeable {
     private int m_pLinearSampler;
     private int m_pComapreSampler;
     private int m_pPointSampler;
+    private int m_pLinearSamplerBorder;
 
     static final int NumVertices = 8;
     final String prefix = "gpupro/VolumetricFog/shaders/";
 
-    private Matrix4f m_UnjitteredPrevWorldToClip;
+    private final Matrix4f m_UnjitteredPrevWorldToClip = new Matrix4f();
 
     private TextureGL m_DirectionShadowMap;
     private TextureGL m_DirectionStaticShadowMap;
@@ -95,13 +108,18 @@ class VolumetricFog implements Disposeable {
         m_ViewHeight = height;
     }
 
-    private int frameNumber;
+    private int frameNumber = 10;
     public void renderVolumetricFog(Params params){
         this.params = params;
         frameNumber++;
 
         final int curr = current();
         final int history = history();
+
+        if(!m_princeOnce){
+            // The first frame
+            Matrix4f.mul(params.proj, params.view, m_UnjitteredPrevWorldToClip);
+        }
 
 //        final int current
 
@@ -187,8 +205,7 @@ class VolumetricFog implements Disposeable {
 
         gl.glClearTexImage(VBufferA.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
         gl.glClearTexImage(VBufferB.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
-        gl.glClearTexImage(pTex3DLightScattering[0].getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
-        gl.glClearTexImage(pTex3DLightScattering[1].getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
+        gl.glClearTexImage(pTex3DLightScattering[curr].getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
         gl.glClearTexImage(pTex3DFinalLightScattering.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, null);
 
         {
@@ -337,6 +354,8 @@ class VolumetricFog implements Disposeable {
                 if(m_DirectionShadowMap == null)System.out.println("m_DirectionShadowMap is null" );
             }
 
+            gl.glBindTextureUnit(0, m_DirectionShadowMap != null ? m_DirectionShadowMap.getTexture() : 0);  // ShadowDepthTexture
+            gl.glBindSampler(0, m_pLinearSamplerBorder);
             gl.glBindTextureUnit(3, m_DirectionShadowMap != null ? m_DirectionShadowMap.getTexture() : 0); // DirectionalLightShadowmapAtlas
             gl.glBindSampler(3, m_pPointSampler);
             gl.glBindTextureUnit(5, LightFunctionTexture != null ? LightFunctionTexture.getTexture() : 0); // LightFunctionTexture
@@ -349,10 +368,10 @@ class VolumetricFog implements Disposeable {
                 gl.glBindTextureUnit(6,  0); // LightScatteringHistory
             }
 
-            gl.glBindImageTexture(0, LocalShadowedLightScattering!= null ? LocalShadowedLightScattering.getTexture():0, 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
-            gl.glBindImageTexture(1, IntegrationData.VBufferARenderTarget.getTexture(), 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
-            gl.glBindImageTexture(2, IntegrationData.VBufferBRenderTarget.getTexture(), 0,false, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
-            gl.glBindImageTexture(3, IntegrationData.LightScatteringRenderTarget.getTexture(), 0,false, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(0, LocalShadowedLightScattering!= null ? LocalShadowedLightScattering.getTexture():0, 0,true, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(1, IntegrationData.VBufferARenderTarget.getTexture(), 0,true, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(2, IntegrationData.VBufferBRenderTarget.getTexture(), 0,true, 0, GLenum.GL_READ_ONLY, GLenum.GL_RGBA16F);
+            gl.glBindImageTexture(3, IntegrationData.LightScatteringRenderTarget.getTexture(), 0,true, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA16F);
 
             final int numGroupX = Numeric.divideAndRoundUp(volumetricFogGridSize.x, VolumetricFogGridInjectionGroupSize);
             final int numGroupY = Numeric.divideAndRoundUp(volumetricFogGridSize.y, VolumetricFogGridInjectionGroupSize);
@@ -362,9 +381,11 @@ class VolumetricFog implements Disposeable {
 
             if(!m_princeOnce) program.printPrograminfo();
 
+            gl.glBindTextureUnit(0,  0);
             gl.glBindTextureUnit(3,  0);
             gl.glBindTextureUnit(5,  0);
             gl.glBindTextureUnit(6,  0);
+            gl.glBindSampler(0, 0);
             gl.glBindSampler(3, 0);
             gl.glBindSampler(5, 0);
 
@@ -402,9 +423,10 @@ class VolumetricFog implements Disposeable {
 
             final int numGroupX = Numeric.divideAndRoundUp(volumetricFogGridSize.x, VolumetricFogIntegrationGroupSize);
             final int numGroupY = Numeric.divideAndRoundUp(volumetricFogGridSize.y, VolumetricFogIntegrationGroupSize);
-            final int numGroupZ = Numeric.divideAndRoundUp(volumetricFogGridSize.z, VolumetricFogIntegrationGroupSize);
 
             finalIntegrationCS.enable();
+//            FloatBuffer zeros = CacheBuffer.wrap(0f,0f,0f,0f);
+//            gl.glClearTexImage(IntegratedLightScatteringUAV.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, zeros);
 
             GLSLUtil.setMat4(finalIntegrationCS, "UnjitteredClipToTranslatedWorld", materialParams.UnjitteredClipToTranslatedWorld);
             GLSLUtil.setFloat3(finalIntegrationCS, "View_PreViewTranslation", materialParams.View_PreViewTranslation);
@@ -417,25 +439,38 @@ class VolumetricFog implements Disposeable {
 
             gl.glBindTextureUnit(0, IntegratedLightScattering.getTexture());
             gl.glBindSampler(0, m_pLinearSampler);
-            gl.glBindImageTexture(0, IntegratedLightScatteringUAV.getTexture(), 0, false, 0, GLenum.GL_WRITE_ONLY, IntegratedLightScatteringUAV.getFormat());
+            gl.glBindImageTexture(0, IntegratedLightScatteringUAV.getTexture(), 0, true, 0, GLenum.GL_WRITE_ONLY, IntegratedLightScatteringUAV.getFormat());
 
-            gl.glDispatchCompute(numGroupX, numGroupY, numGroupZ);
+            if(IntegratedLightScattering == IntegratedLightScatteringUAV)
+                throw new RuntimeException();
+
+            gl.glDispatchCompute(numGroupX, numGroupY, 1);
 
             gl.glBindTextureUnit(0, 0);
             gl.glBindSampler(0, 0);
-            gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_WRITE_ONLY, IntegratedLightScatteringUAV.getFormat());
+            gl.glBindImageTexture(0, 0, 0, true, 0, GLenum.GL_WRITE_ONLY, IntegratedLightScatteringUAV.getFormat());
 
             if(!m_princeOnce)finalIntegrationCS.printPrograminfo();
         }
 
-        shadingScene(IntegratedLightScatteringUAV);
+        Texture3D[] visualTextures = {
+            VBufferA,
+            VBufferB,
+            LocalShadowedLightScattering,
+            pTex3DLightScattering[curr],
+            IntegratedLightScatteringUAV
+        };
+
+        if(params.VisualMode == VISUAL_SCATTERING){
+            shadingScene(visualTextures[params.VisualTexture.ordinal()]);
+        }else{
+            shadingScene(IntegratedLightScatteringUAV);
+        }
+
 
         if(bUseTemporalReprojection){
-            if(m_UnjitteredPrevWorldToClip == null){
-                m_UnjitteredPrevWorldToClip = new Matrix4f();
-            }
-
-            m_UnjitteredPrevWorldToClip.load(materialParams.UnjitteredClipToTranslatedWorld);
+            // for the next frame
+            Matrix4f.mul(params.proj, params.view, m_UnjitteredPrevWorldToClip);
         }
 
         m_princeOnce = true;
@@ -457,6 +492,9 @@ class VolumetricFog implements Disposeable {
         GLSLUtil.setFloat3(shadingProgram, "VolumetricFog_GridZParams", materialParams.VolumetricFog_GridZParams);
         GLSLUtil.setFloat(shadingProgram, "g_CameraFar", params.cameraFar);
         GLSLUtil.setFloat(shadingProgram, "g_CameraNear", params.cameraNear);
+        GLSLUtil.setInt(shadingProgram, "g_VisualMode", params.VisualMode);
+        GLSLUtil.setInt(shadingProgram, "g_ScatteringSlice", params.VisualSlice);
+        GLSLUtil.setInt(shadingProgram, "g_Tonemap", params.Tonemapping ? 1 : 0);
 
         gl.glBindTextureUnit(0, params.sceneDepth.getTexture());
         gl.glBindTextureUnit(1, params.sceneColor.getTexture());
@@ -613,7 +651,7 @@ class VolumetricFog implements Disposeable {
 //				const FLightSceneInfo* LightSceneInfo = LightsToInject[LightIndex];
                 LightInfo LightSceneInfo = params.lightInfos.get(LightIndex);
 //                FProjectedShadowInfo* ProjectedShadowInfo = GetShadowForInjectionIntoVolumetricFog(LightSceneInfo->Proxy, VisibleLightInfos[LightSceneInfo->Id]);
-                if(LightSceneInfo.shadowmap == null)
+                if(LightSceneInfo.shadowmap == null || LightSceneInfo.type == LightType.DIRECTIONAL)
                     continue;
 
 				final boolean bInverseSquared = true; //LightSceneInfo->Proxy->IsInverseSquared();
@@ -697,8 +735,6 @@ class VolumetricFog implements Disposeable {
                         injectLocalLightProgram.printPrograminfo();
 
                     GLCheck.checkError();
-
-                    return OutLocalShadowedLightScattering;
                 }
             }
 
@@ -707,11 +743,14 @@ class VolumetricFog implements Disposeable {
             gl.glDisableVertexAttribArray(0);
             gl.glDisableVertexAttribArray(1);
             gl.glDisable(GLenum.GL_BLEND);
+            gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 
-            for(int i =0 ;i < 2; i++){
+            for(int i =0 ;i < 4; i++){
                 gl.glBindTextureUnit(i, 0);
                 gl.glBindSampler(i, 0);
             }
+
+            return OutLocalShadowedLightScattering;
         }
 
         return null;
@@ -727,13 +766,17 @@ class VolumetricFog implements Disposeable {
             m_FBO = gl.glGenFramebuffer();
 
             SamplerDesc linearDesc = new SamplerDesc();
-            linearDesc.wrapR = linearDesc.wrapS = linearDesc.wrapT = GLenum.GL_CLAMP_TO_BORDER;
-            linearDesc.borderColor = -1;  // White
+            linearDesc.wrapR = linearDesc.wrapS = linearDesc.wrapT = GLenum.GL_CLAMP_TO_EDGE;
+            linearDesc.borderColor = 0xFFFFFFFF;  // White
             m_pLinearSampler = SamplerUtils.createSampler(linearDesc);
             m_pComapreSampler = SamplerUtils.getDepthComparisonSampler();
 
             linearDesc.magFilter = linearDesc.minFilter = GLenum.GL_NEAREST;
+            linearDesc.wrapR = linearDesc.wrapS = linearDesc.wrapT = GLenum.GL_CLAMP_TO_BORDER;
             m_pPointSampler = SamplerUtils.createSampler(linearDesc);
+
+            linearDesc.magFilter = linearDesc.minFilter = GLenum.GL_LINEAR;
+            m_pLinearSamplerBorder = SamplerUtils.createSampler(linearDesc);
         }
 
         if(materialSetupCS == null){
@@ -903,10 +946,12 @@ class VolumetricFog implements Disposeable {
         // FogStruct_ExponentialFogParameters2.z : Extinction Scale
         // FogStruct_ExponentialFogParameters2.y : View distance to the camera.
         // FogStruct_ExponentialFogParameters2.y : Static Lighting Scattering Intensity.
-
-        materialParams.ExponentialFogParameters.y = params.fogHeightFalloffset;
-        materialParams.ExponentialFogParameters3.x = params.fogDensity;
-        materialParams.ExponentialFogParameters3.y = params.startDistance;
+        // TODO See detial in the FogRender.cpp
+//        final float factor = 1.0f/1000;  //TODO In UE4 the scale been used.
+        final float factor = 1;
+        materialParams.ExponentialFogParameters.y = Numeric.clamp(params.fogHeightFalloffset, 0, 2) * factor;
+        materialParams.ExponentialFogParameters3.x = Numeric.clamp(params.fogDensity, 0.001f, 0.05f) * factor;
+        materialParams.ExponentialFogParameters3.y = Math.max(0, params.startDistance);
 
         materialParams.g_ViewProj.load(params.proj);
         Matrix4f.mul(params.proj, params.view, materialParams.UnjitteredClipToTranslatedWorld);
@@ -945,7 +990,7 @@ class VolumetricFog implements Disposeable {
         params.ShadowmapMinMax.set(0,0,1,1);
         params.StaticShadowBufferSize.set(0,0); // no static shadow
         params.UnjitteredClipToTranslatedWorld.load(materialParams.UnjitteredClipToTranslatedWorld);
-        params.UnjitteredPrevWorldToClip.load(m_UnjitteredPrevWorldToClip != null ? m_UnjitteredPrevWorldToClip : params.UnjitteredClipToTranslatedWorld);
+        params.UnjitteredPrevWorldToClip = m_UnjitteredPrevWorldToClip;
         params.ViewToVolumeClip.load(this.params.proj);
         Matrix4f.decompseRigidMatrix(this.params.view, params.WorldCameraOrigin, null, null, params.ViewForward);
         params.ViewForward.scale(-1);
@@ -1010,13 +1055,14 @@ class VolumetricFog implements Disposeable {
         result.InverseSquaredLightDistanceBiasScale = params.GInverseSquaredLightDistanceBiasScale;
         result.PhaseG = params.GVolumetricFogScatteringDistribution;
         result.UnjitteredClipToTranslatedWorld = materialParams.UnjitteredClipToTranslatedWorld;
-        result.UnjitteredPrevWorldToClip = (m_UnjitteredPrevWorldToClip != null ? m_UnjitteredPrevWorldToClip : injectLocalLightParams.UnjitteredClipToTranslatedWorld);
+        result.UnjitteredPrevWorldToClip = m_UnjitteredPrevWorldToClip;
         result.UseDirectionalLightShadowing = true;
         result.UseHeightFogColors = false;
         result.View_PreViewTranslation = materialParams.View_PreViewTranslation;
         result.VolumetricFog_GridSize = materialParams.VolumetricFog_GridSize;
         result.VolumetricFog_GridZParams = materialParams.VolumetricFog_GridZParams;
         result.WorldCameraOrigin = injectLocalLightParams.WorldCameraOrigin;
+        Matrix4f.decompseRigidMatrix(params.view, result.WorldCameraOrigin, null, null);
         result.g_ViewProj = materialParams.g_ViewProj;
 
         return result;
@@ -1127,6 +1173,8 @@ class VolumetricFog implements Disposeable {
         return result;
     }
 
+    public boolean isPrintProgram()  {return !m_princeOnce;}
+
     private void GetLightGridZParams(float NearPlane, float FarPlane, Vector3f result)
     {
         // S = distribution scale
@@ -1187,11 +1235,14 @@ class VolumetricFog implements Disposeable {
         public float cameraNear;
         public float cameraFar;
 
-        public float fogHeightFalloffset = 1;
-
+        /** Height density factor, controls how the density increases as height decreases.
+         * Smaller values make the visible transition larger.
+         * Ranged [0.001, 2.0] in UE4 */
+        public float fogHeightFalloffset = 0.02f;
+        /** Global density factor for this fog. Ranged [0.001, 0.05] */
         public float fogDensity = 0.02f;
-
-        public float startDistance = 10;
+        /** Height offset, relative to the actor position Z. */
+        public float startDistance = 0;
 
         public Matrix4f view;
         public Matrix4f proj;
@@ -1229,6 +1280,16 @@ class VolumetricFog implements Disposeable {
 
         /** Number of Z slices in the light grid. */
         public int GLightGridSizeZ = 32;
+
+        public int VisualMode = VISUAL_BLEND;
+
+        public boolean Tonemapping = false;
+
+        public  int VisualSlice = 0;
+
+        public ScatteringTexture VisualTexture = ScatteringTexture.FINAL_SCATTERING;
+
+        public final Vector3f FogInscatteringColor = new Vector3f(0.0f, 0.427f,1f);
 
         public void resetLights(){
             lightInfos.clear();

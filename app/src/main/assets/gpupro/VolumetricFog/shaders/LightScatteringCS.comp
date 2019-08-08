@@ -14,10 +14,10 @@ uniform uint2 VolumetricFog_FogGridToPixelXY;
 #define ALLOW_SKY_LIGHTING 0
 #endif
 
-layout(binding = 0, rgba16f) uniform readonly image3D LocalShadowedLightScattering;
-layout(binding = 1, rgba16f) uniform readonly image3D VBufferA;
-layout(binding = 2, rgba16f) uniform readonly image3D VBufferB;
-layout(binding = 3, rgba16f) uniform writeonly image3D RWLightScattering;
+layout(binding = 0, rgba16f) uniform image3D LocalShadowedLightScattering;
+layout(binding = 1, rgba16f) uniform image3D VBufferA;
+layout(binding = 2, rgba16f) uniform image3D VBufferB;
+layout(binding = 3, rgba16f) uniform image3D RWLightScattering;
 
 
 layout(binding = 6) uniform sampler3D LightScatteringHistory;
@@ -29,6 +29,7 @@ void main()
     uint3 GridCoordinate = gl_GlobalInvocationID;
     float3 LightScattering = float3(0);
     uint NumSuperSamples = 1;
+    uint3 VolumetricFog_GridSizeInt= uint3(VolumetricFog_GridSize);
 
 #if USE_TEMPORAL_REPROJECTION
     float3 HistoryUV = ComputeVolumeUV(ComputeCellWorldPosition(GridCoordinate, float3(.5f)), UnjitteredPrevWorldToClip);
@@ -42,7 +43,6 @@ void main()
 
     // Supersample if the history was outside the camera frustum
     // The compute shader is dispatched with extra threads, make sure those don't supersample
-    uint3 VolumetricFog_GridSizeInt= uint3(VolumetricFog_GridSize);
     NumSuperSamples = HistoryAlpha < .001f && all(lessThan(GridCoordinate, VolumetricFog_GridSizeInt)) ? HistoryMissSuperSampleCount : 1;
 #endif
 
@@ -76,10 +76,12 @@ void main()
                 DirectionalLightColor = HeightFogDirectionalLightInscatteringColor * Luminance(ForwardLightData.DirectionalLightColor.rgb);
             }
 
-            LightScattering += DirectionalLightColor
+            float3 Scattering = DirectionalLightColor
             * (ShadowFactor
             * ForwardLightData.DirectionalLightColor.w  // DirectionalLightVolumetricScatteringIntensity
             * PhaseFunction(PhaseG, dot(ForwardLightData.DirectionalLightDirection.xyz, -CameraVector)));
+
+            LightScattering += max(Scattering, float3(0));
         }
 
         float3 BrickTextureUVs = float3(0);
@@ -226,7 +228,7 @@ void main()
 
     if (all(lessThan(GridCoordinate, VolumetricFog_GridSizeInt)))
     {
-        ScatteringAndExtinction = MakePositiveFinite(ScatteringAndExtinction);
+//        ScatteringAndExtinction = MakePositiveFinite(ScatteringAndExtinction);
 //        RWLightScattering[GridCoordinate] = ScatteringAndExtinction;
         imageStore(RWLightScattering, int3(GridCoordinate), ScatteringAndExtinction);
     }

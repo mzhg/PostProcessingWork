@@ -26,7 +26,7 @@ class InjectLocalLightParameters {
 //    Uniform [sampler2D name=StaticShadowDepthTexture, location=34, value = 0]
 
     final Matrix4f UnjitteredClipToTranslatedWorld = new Matrix4f();
-    final Matrix4f UnjitteredPrevWorldToClip = new Matrix4f();
+    Matrix4f UnjitteredPrevWorldToClip;
     final Matrix4f ViewToVolumeClip = new Matrix4f();
     final Vector3f ViewForward = new Vector3f();
     final Vector3f View_PreViewTranslation = new Vector3f();

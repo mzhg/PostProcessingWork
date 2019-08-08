@@ -397,7 +397,7 @@ public class NvBFText implements NvUITextAlign, Disposeable {
     	if (m_hMode== LEFT)
             return; // nothing to do.
 
-        LogUtil.i(LogUtil.LogType.NV_FRAMEWROK, "Adjusting glyphs for alignment...");
+//        LogUtil.i(LogUtil.LogType.NV_FRAMEWROK, "Adjusting glyphs for alignment...");
         final boolean center = (m_hMode== CENTER);
         BFVert []vp = m_data;
         int t = 0;
@@ -405,7 +405,7 @@ public class NvBFText implements NvUITextAlign, Disposeable {
         for (int i=0; i<m_numLines; i++)
         {
             final int max = m_calcLineChars[i];
-            LogUtil.i(LogUtil.LogType.NV_FRAMEWROK, String.format("line %d, char count %d.", i, max));
+//            LogUtil.i(LogUtil.LogType.NV_FRAMEWROK, String.format("line %d, char count %d.", i, max));
             float w = m_calcLineWidth[i];
             if (center)
                 w *= 0.5f;

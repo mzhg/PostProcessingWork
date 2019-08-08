@@ -238,6 +238,7 @@ FLocalLightData GetLocalLightData(uint GridIndex, uint EyeIndex)
 
 layout(binding = 4) uniform sampler2D DirectionalLightStaticShadowmap;
 layout(binding = 3) uniform sampler2D DirectionalLightShadowmapAtlas;
+uniform mat4 DirectionalLightWorldToShadowMatrix;
 
 float ComputeDirectionalLightStaticShadowing(float3 WorldPosition)
 {
@@ -279,7 +280,7 @@ float ComputeDirectionalLightStaticShadowing(float3 WorldPosition)
 }
 
 #ifndef FILTER_DIRECTIONAL_LIGHT_SHADOWING
-#define FILTER_DIRECTIONAL_LIGHT_SHADOWING 1
+#define FILTER_DIRECTIONAL_LIGHT_SHADOWING 0
 #endif
 
 float ComputeDirectionalLightDynamicShadowing(float3 WorldPosition, float SceneDepth)
@@ -305,6 +306,7 @@ float ComputeDirectionalLightDynamicShadowing(float3 WorldPosition, float SceneD
             float4 HomogeneousShadowPosition = mul(float4(WorldPosition, 1), ForwardLightData.DirectionalLightWorldToShadowMatrix[CascadeIndex]);
             HomogeneousShadowPosition /= HomogeneousShadowPosition.w;
             HomogeneousShadowPosition.xyz = HomogeneousShadowPosition.xyz * 0.5 + 0.5;
+//            HomogeneousShadowPosition.z = clamp(HomogeneousShadowPosition.z, 0.0, 1.0);
 //            float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
             float2 ShadowUVs = HomogeneousShadowPosition.xy;
             float4 ShadowmapMinMax = ForwardLightData.DirectionalLightShadowmapMinMax[CascadeIndex];
@@ -334,5 +336,5 @@ float ComputeDirectionalLightDynamicShadowing(float3 WorldPosition, float SceneD
         }
     }
 
-    return ShadowFactor;
+    return max(ShadowFactor, 0.2);
 }

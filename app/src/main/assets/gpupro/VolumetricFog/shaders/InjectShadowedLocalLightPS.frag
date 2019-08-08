@@ -6,7 +6,6 @@
 #endif
 
 out float4 OutScattering;
-
 void main()
 {
     OutScattering = float4(0);
@@ -26,17 +25,15 @@ void main()
         uint NumSuperSamples = 1;
 
 #if USE_TEMPORAL_REPROJECTION
-
         float3 HistoryUV = ComputeVolumeUV(ComputeCellWorldPosition(GridCoordinate, float3(.5f)), UnjitteredPrevWorldToClip);
         float HistoryAlpha = HistoryWeight;
 
 //        FLATTEN
         if (any(lessThan(HistoryUV, float3(0,0,0))) || any(greaterThan(HistoryUV, float3(1,1,1))))
         {
-//            HistoryAlpha = 0;
+            HistoryAlpha = 0;
         }
         NumSuperSamples = HistoryAlpha < .001f ? HistoryMissSuperSampleCount : 1;
-
 #endif
 
         for (uint SampleIndex = 0; SampleIndex < NumSuperSamples; SampleIndex++)
@@ -68,6 +65,8 @@ void main()
                 Capsule.DistBiasSqr = DistanceBias * DistanceBias;
 
                 Lighting = IntegrateLight(Capsule, LightData.bInverseSquared);
+                // TODO here directly make the Lighting to 1 may be get a better result.
+//                Lighting = 1;
             }
 
             float CombinedAttenuation = Lighting * LightMask;

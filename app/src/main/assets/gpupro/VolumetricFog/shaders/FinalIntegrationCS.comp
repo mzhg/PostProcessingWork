@@ -18,6 +18,7 @@ void main()
 
     for (uint LayerIndex = 0; LayerIndex < VolumetricFog_GridSizeInt.z; LayerIndex++)
     {
+//        float3 AccumulatedLighting = float3(0);
         uint3 LayerCoordinate = uint3(GridCoordinate.xy, LayerIndex);
         float4 ScatteringAndExtinction = DecodeHDR(texelFetch(LightScattering, int3(LayerCoordinate), 0));
 

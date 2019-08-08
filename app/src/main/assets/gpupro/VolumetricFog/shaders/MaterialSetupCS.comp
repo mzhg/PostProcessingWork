@@ -6,7 +6,7 @@
 
 uniform float3 GlobalAlbedo;
 uniform float3 GlobalEmissive;
-uniform float GlobalExtinctionScale;
+uniform float GlobalExtinctionScale;  // 0.01-10
 
 layout(binding = 0, rgba16f) uniform writeonly image3D RWVBufferA;
 layout(binding = 1, rgba16f) uniform writeonly image3D RWVBufferB;
@@ -27,9 +27,9 @@ void main()
 
     float3 WorldPosition = ComputeCellWorldPosition(GridCoordinate, float3(VoxelOffset, VoxelOffset, VoxelOffset));
 
-    // FogStruct_ExponentialFogParameters3.x : Fog Density
-    // FogStruct_ExponentialFogParameters3.y : Start distance to the camera.
-    // FogStruct_ExponentialFogParameters.y :may be the Fog Height falloff
+    // FogStruct_ExponentialFogParameters3.x : Fog Density  [0, 0.05]
+    // FogStruct_ExponentialFogParameters3.y : Fog Height.
+    // FogStruct_ExponentialFogParameters.y :FogHeightFalloff [0.001, 2]
     // FogStruct_ExponentialFogParameters2.z : Extinction Scale
     // FogStruct_ExponentialFogParameters2.y : View distance to the camera.
     // FogStruct_ExponentialFogParameters2.y : Static Lighting Scattering Intensity.
@@ -50,8 +50,8 @@ void main()
 //    if (all((int3)GridCoordinate < VolumetricFog.GridSizeInt))
     int3 VolumetricFog_GridSizeInt= int3(VolumetricFog_GridSize);
     int3 GridCoordinateInt = int3(GridCoordinate);
-//    Scattering = float3(1);
-//    Absorption = 0;
+//    Scattering = float3(0.5);
+//    Absorption = 0.3;
     if(all(lessThan(GridCoordinateInt, VolumetricFog_GridSizeInt)))
     {
 //        RWVBufferA[GridCoordinate] = float4(Scattering, Absorption);

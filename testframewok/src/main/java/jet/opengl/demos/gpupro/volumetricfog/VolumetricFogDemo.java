@@ -2,6 +2,7 @@ package jet.opengl.demos.gpupro.volumetricfog;
 
 import com.nvidia.developer.opengl.app.NvKeyActionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.ui.NvTweakEnumi;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -28,13 +29,14 @@ public class VolumetricFogDemo extends NvSampleApp {
 
     private boolean m_EnableVolumetricFog = true;
     private float m_intensity = 1;
+    private final Vector3f m_scatteringColor = new Vector3f(1,1,1);
 
     @Override
     protected void initRendering() {
-        getGLContext().setSwapInterval(0);
+        getGLContext().setSwapInterval(1);
         m_Scene = new Cube16(this, true);
         m_Scene.onCreate();
-        m_Scene.setLightType(LightType.DIRECTIONAL);
+        m_Scene.setLightType(LightType.SPOT);
         fullscreenProgram = new FullscreenProgram();
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();
@@ -48,8 +50,8 @@ public class VolumetricFogDemo extends NvSampleApp {
             System.out.printf("SceneDepth = %f, slice = %d\n", sceneDepth, (int)slice);
         }*/
 
-        g_CameraFar = 310;
-        g_CameraNear = 0.05f;
+        g_CameraFar = 100;
+        g_CameraNear = 0.5f;
         g_CameraPos.set(0, 0, -17.5f);
 
         Matrix4f.lookAt(g_CameraPos, Vector3f.ZERO, Vector3f.Y_AXIS, g_View);
@@ -67,9 +69,20 @@ public class VolumetricFogDemo extends NvSampleApp {
                     Vector3f worldPos = ComputeCellWorldPosition(grid, new Vector3f(0.5f));
                     Vector4f clipPos = Matrix4f.transform(g_ProjView, new Vector4f(worldPos, 1), null);
                     clipPos.scale(1/clipPos.w);
-                    if(Math.abs(clipPos.x) <= 1 && Math.abs(clipPos.y) <= 1 && Math.abs(clipPos.z) <=1){
-                        validCount++;
+//                    if(Math.abs(clipPos.x) <= 1 && Math.abs(clipPos.y) <= 1 && Math.abs(clipPos.z) <=1){
+//                        validCount++;
+//                    }
+
+                    clipPos.x = clipPos.x * 0.5f + 0.5f;
+                    clipPos.y = clipPos.y * 0.5f + 0.5f;
+                    clipPos.z = clipPos.z * 0.5f + 0.5f;
+                    Vector3i Grid = ComputeGridCoordinate(clipPos);
+                    if(Grid.x == i && Grid.y == j && Grid.z ==k){
+                        validCount ++;
                     }
+
+//                    if(totalCount < 100)
+//                        System.out.println("grid = " + grid + ", Grid = " + Grid);
 
                     if(totalCount > 0){
                         if(clipPos.z < lastClipZ){
@@ -90,7 +103,7 @@ public class VolumetricFogDemo extends NvSampleApp {
     private static float g_CameraNear;
 
     private static final Vector3f g_CameraPos = new Vector3f();
-    private static final Vector3f VolumetricFog_GridZParams = new Vector3f(0.010035428f, 0.9036599f, 32.0f);
+    private static final Vector3f VolumetricFog_GridZParams = new Vector3f(0.03238098f, 0.6761902f, 32.0f);
     private static final Vector3f VolumetricFog_GridSize = new Vector3f(80.0f, 45.0f, 64.0f);
     private static final Matrix4f g_Proj = new Matrix4f();
     private static final Matrix4f g_View = new Matrix4f();
@@ -137,12 +150,49 @@ public class VolumetricFogDemo extends NvSampleApp {
         return new Vector3f(CenterPosition);
     }
 
+    private static Vector3i ComputeGridCoordinate(Vector4f clipPos){
+        Vector3i  GridCoordinate = new Vector3i();
+        GridCoordinate.x = (int) (clipPos.x * VolumetricFog_GridSize.x);
+        GridCoordinate.y = (int) (clipPos.y * VolumetricFog_GridSize.y);
+
+        float mZFar = g_CameraFar;
+        float mZNear = g_CameraNear;
+        float SceneDepth = mZFar*mZNear/(mZFar-clipPos.z*(mZFar-mZNear));;
+        GridCoordinate.z = (int) ComputeZSliceFromDepth(SceneDepth, 0);
+
+        return GridCoordinate;
+    }
+
     @Override
     public void initUI() {
+        if(m_Scene.getLightMode() == LightType.DIRECTIONAL){
+            m_intensity = 6;
+        }
+
         mTweakBar.addValue("Enable Volumetric Fog", createControl("m_EnableVolumetricFog"));
-        mTweakBar.addValue("Scattering Intensity", createControl("m_intensity"), 0.1f, 10);
+        mTweakBar.addValue("Scattering Intensity", createControl("m_intensity"), 0.1f, 100);
+
+        mTweakBar.addValue("Scattering Red", createControl("x", m_scatteringColor), 0.0f, 1.0f);
+        mTweakBar.addValue("Scattering Green", createControl("y", m_scatteringColor), 0.0f, 1.0f);
+        mTweakBar.addValue("Scattering Blue", createControl("z", m_scatteringColor), 0.0f, 1.0f);
+
+        mTweakBar.addValue("Visual Slice", createControl("m_VisualSlice"), 0, 63);
+
+        NvTweakEnumi[] visualTextures = {
+            new NvTweakEnumi("DENSITY", 0),
+            new NvTweakEnumi("GLOBAL_EMISSIVE", 1),
+            new NvTweakEnumi("LOCAL_SHADOWED", 2),
+            new NvTweakEnumi("LIGHT_SCATTERING", 3),
+            new NvTweakEnumi("FINAL_SCATTERING", 4),
+        };
+
+        mTweakBar.addEnum("Visual Texture", createControl("m_VisualTexture"), visualTextures, 0);
+
         m_Scene.initUI(mTweakBar);
     }
+
+    private int m_VisualSlice = 0;
+    private int m_VisualTexture = 0;
 
     @Override
     protected void reshape(int width, int height) {
@@ -163,13 +213,27 @@ public class VolumetricFogDemo extends NvSampleApp {
             // post processing...
             gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
             gl.glDisable(GLenum.GL_DEPTH_TEST);
+            if(m_PostProcessing.isPrintProgram()){
+                System.out.println("CameraView:");
+                System.out.println(m_Scene.getViewMat());
+                System.out.println("CameraProj:");
+                System.out.println(m_Scene.getProjMat());
+            }
+
             // Apply the DOF Bokeh and render result to scene_rt2
             m_Params.sceneColor = m_Scene.getSceneColor();
             m_Params.sceneDepth = m_Scene.getSceneDepth();
             m_Params.cameraNear = m_Scene.getSceneNearPlane();
             m_Params.cameraFar =  m_Scene.getSceneFarPlane();
-            m_Params.NearClippingDistance = 0.1f;
-            m_Params.VolumetricFogDistance = m_Params.cameraFar+200;
+            m_Params.NearClippingDistance = m_Params.cameraNear;
+            m_Params.VolumetricFogDistance = m_Params.cameraFar;
+            m_Params.GVolumetricFogTemporalReprojection = false;
+            m_Params.GVolumetricFogGridPixelSize = 16;
+            m_Params.VisualTexture = VolumetricFog.ScatteringTexture.values()[m_VisualTexture];
+            m_Params.VisualSlice = m_VisualSlice;
+            m_Params.VisualMode = VolumetricFog.VISUAL_BLEND;
+//            m_Params.GlobalEmissive.set(0.001f, 0.001f, 0.001f);
+            m_Params.Tonemapping = true;
 //            m_frameAttribs.outputTexture = null;
 //            m_frameAttribs.viewport.set(0,0, getGLContext().width(), getGLContext().height());
             m_Params.view = m_Scene.getViewMat();
@@ -180,16 +244,16 @@ public class VolumetricFogDemo extends NvSampleApp {
             m_Params.resetLights();
             switch (m_Scene.getLightMode()){
                 case DIRECTIONAL:
-                    m_Params.addDirectionLight(m_Scene.getLightDir(), Vector3f.ONE, m_intensity,
+                    m_Params.addDirectionLight(m_Scene.getLightDir(), m_scatteringColor, m_intensity,
                             m_Scene.getLightViewMat(), m_Scene.getLightProjMat(), m_Scene.getShadowMap());
                     break;
                 case POINT:
-                    m_Params.addPointLight(m_Scene.getLightPos(), m_Scene.getLightFarlane(), new Vector3f(0.904016f, 0.843299f, 0.70132f), m_intensity,
+                    m_Params.addPointLight(m_Scene.getLightPos(), m_Scene.getLightFarlane(), m_scatteringColor, m_intensity,
                             m_Scene.getCubeLightViewMats(), m_Scene.getLightProjMat(), m_Scene.getShadowMap());
                     break;
                 case SPOT:
                     m_Params.addSpotLight(m_Scene.getLightPos(), m_Scene.getLightFarlane(), m_Scene.getFovInRadian(),
-                            m_Scene.getLightDir(), Vector3f.ONE, m_intensity,
+                            m_Scene.getLightDir(), m_scatteringColor, m_intensity,
                             m_Scene.getLightViewMat(), m_Scene.getLightProjMat(), m_Scene.getShadowMap());
                     break;
             }
@@ -211,6 +275,8 @@ public class VolumetricFogDemo extends NvSampleApp {
 //            m_LightFrameAttribs.m_fDistanceScaler = 60000.f / m_LightFrameAttribs.m_fMaxTracingDistance;
 //            m_LightFrameAttribs.m_bShowLightingOnly = false;
 
+            m_Params.GVolumetricFogTemporalReprojection = true;
+            m_Params.GVolumetricFogHistoryWeight = 0.97f;
             m_PostProcessing.renderVolumetricFog(m_Params);
         }
     }

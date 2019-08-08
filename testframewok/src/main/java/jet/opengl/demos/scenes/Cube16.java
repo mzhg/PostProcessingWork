@@ -59,7 +59,7 @@ public class Cube16 {
 	float INSCATTERING_MULTIPLIER = 27.f/3.f;
 
 	public static final int SHADOWMAP_RESOLUTION = 1024;
-	public static final float LIGHT_RANGE = 50.0f;
+	public static final float LIGHT_RANGE = 2000.f;
 	public static final float SPOTLIGHT_FALLOFF_ANGLE = Numeric.PI / 4.0f;
 	public static final float SPOTLIGHT_FALLOFF_POWER = 1.0f;
 	public static final float DISTANCE = 17.5f;
@@ -251,6 +251,7 @@ public class Cube16 {
 	public Texture2D getSceneDepth() { return m_pOffscreenDepth;}
 	public boolean isVisualShadowMap() { return m_bVisualShadownMap;}
 	public boolean isCubeShadow()    { return m_EnableCubeShadow;}
+	public boolean isPrintProgram()  {return !m_bPrintProgram;}
 
 	void renderTexture(Texture2D texture){
 		gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
@@ -468,7 +469,6 @@ public class Cube16 {
 			gl.glBindTexture(m_pShadowMap.getTarget(), m_pShadowMap.getTexture());
 			gl.glBindSampler(0, m_psamComparison);
 		}
-
 
         renderScene(sceneRender);
 //        m_pShadowMap.unbind();
@@ -689,7 +689,7 @@ public class Cube16 {
 			final Matrix4f mProj     = attribs.mProj;
 
 			final float near = 0.5f;
-			final float far  = 100.f;
+			final float far  = 1000.f;
 
 			Matrix4f.lookAt(vEyePos, vOrigin, VIEWPOINT_UP[viewpoint_], view);
 			Matrix4f.perspective((float)Math.toDegrees(SPOTLIGHT_FALLOFF_ANGLE * 2.0f), (float)m_pOffscreenRenderTarget.getWidth()/m_pOffscreenRenderTarget.getHeight(),
