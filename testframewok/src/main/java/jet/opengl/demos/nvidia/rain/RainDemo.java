@@ -2,7 +2,6 @@ package jet.opengl.demos.nvidia.rain;
 
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -26,6 +25,7 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.NvImage;
 
 import static jet.opengl.postprocessing.util.Numeric.random;
 

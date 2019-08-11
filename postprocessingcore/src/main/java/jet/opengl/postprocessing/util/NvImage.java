@@ -1,4 +1,4 @@
-package com.nvidia.developer.opengl.utils;
+package jet.opengl.postprocessing.util;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -18,11 +18,6 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.TextureUtils;
-import jet.opengl.postprocessing.util.CachaRes;
-import jet.opengl.postprocessing.util.CacheBuffer;
-import jet.opengl.postprocessing.util.FileUtils;
-import jet.opengl.postprocessing.util.LogUtil;
-import jet.opengl.postprocessing.util.Numeric;
 
 /**
  * GL-based image loading, representation and handling

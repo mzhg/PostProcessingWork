@@ -2,8 +2,6 @@ package jet.opengl.desktop.lwjgl;
 
 import com.nvidia.developer.opengl.app.NvAppBase;
 import com.nvidia.developer.opengl.app.NvEGLConfiguration;
-import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
@@ -33,6 +31,8 @@ import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.NvGfxAPIVersion;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/4/12.

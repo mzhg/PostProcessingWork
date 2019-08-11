@@ -3,8 +3,6 @@ package jet.opengl.demos.nvidia.shadows;
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvCameraXformType;
 import com.nvidia.developer.opengl.app.NvInputTransformer;
-import com.nvidia.developer.opengl.utils.BoundingBox;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -20,8 +18,10 @@ import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/11/4.

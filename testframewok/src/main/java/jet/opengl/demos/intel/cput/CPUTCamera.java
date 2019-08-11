@@ -1,11 +1,10 @@
 package jet.opengl.demos.intel.cput;
 
-import com.nvidia.developer.opengl.models.Model;
-import com.nvidia.developer.opengl.utils.BoundingBox;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
+
+import jet.opengl.postprocessing.util.BoundingBox;
 
 /**
  * Created by mazhen'gui on 2017/11/14.

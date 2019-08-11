@@ -1,4 +1,4 @@
-package com.nvidia.developer.opengl.utils;
+package jet.opengl.postprocessing.util;
 
 /** 16 bit 565 BGR color. */
 final class Color16 {

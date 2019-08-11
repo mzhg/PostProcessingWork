@@ -1,11 +1,11 @@
 package nv.visualFX.cloth.libs;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
+
+import jet.opengl.postprocessing.util.BoundingBox;
 
 /**
  * class representing a rigid euclidean transform as a quaternion and a vector<p></p>

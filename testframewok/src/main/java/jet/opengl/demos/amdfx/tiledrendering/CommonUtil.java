@@ -3,7 +3,6 @@ package jet.opengl.demos.amdfx.tiledrendering;
 import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.models.ModelGenerator;
 import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Readable;
@@ -32,6 +31,7 @@ import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.NvImage;
 
 final class CommonUtil implements ICONST, Disposeable {
     /** DebugDrawType */

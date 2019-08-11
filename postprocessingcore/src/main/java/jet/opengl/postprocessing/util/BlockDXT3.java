@@ -1,4 +1,4 @@
-package com.nvidia.developer.opengl.utils;
+package jet.opengl.postprocessing.util;
 
 final class BlockDXT3 {
 

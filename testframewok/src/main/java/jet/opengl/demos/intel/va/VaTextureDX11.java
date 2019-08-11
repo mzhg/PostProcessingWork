@@ -1,7 +1,5 @@
 package jet.opengl.demos.intel.va;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Vector4i;
 
@@ -16,6 +14,7 @@ import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/11/17.

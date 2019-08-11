@@ -33,8 +33,6 @@
 //----------------------------------------------------------------------------------
 package com.nvidia.developer.opengl.ui;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -42,6 +40,7 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.NvImage;
 import jet.opengl.postprocessing.util.StringUtils;
 
 /**

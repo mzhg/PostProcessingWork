@@ -1,7 +1,5 @@
 package jet.opengl.demos.scenes.outdoor;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
@@ -27,6 +25,7 @@ import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.NvImage;
 import jet.opengl.postprocessing.util.StackFloat;
 import jet.opengl.postprocessing.util.StackInt;
 

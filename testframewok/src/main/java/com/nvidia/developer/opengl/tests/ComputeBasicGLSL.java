@@ -2,7 +2,6 @@ package com.nvidia.developer.opengl.tests;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.utils.FieldControl;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 
@@ -16,6 +15,7 @@ import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderType;
+import jet.opengl.postprocessing.util.NvImage;
 
 public class ComputeBasicGLSL extends NvSampleApp{
 

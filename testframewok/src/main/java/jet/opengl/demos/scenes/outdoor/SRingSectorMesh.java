@@ -1,6 +1,6 @@
 package jet.opengl.demos.scenes.outdoor;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
+import jet.opengl.postprocessing.util.BoundingBox;
 
 final class SRingSectorMesh {
 

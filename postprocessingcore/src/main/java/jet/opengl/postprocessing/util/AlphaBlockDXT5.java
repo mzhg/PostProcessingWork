@@ -1,6 +1,4 @@
-package com.nvidia.developer.opengl.utils;
-
-import jet.opengl.postprocessing.util.Numeric;
+package jet.opengl.postprocessing.util;
 
 final class AlphaBlockDXT5 {
 

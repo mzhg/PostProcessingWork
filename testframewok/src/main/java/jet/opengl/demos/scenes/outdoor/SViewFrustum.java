@@ -1,9 +1,9 @@
 package jet.opengl.demos.scenes.outdoor;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector4f;
+
+import jet.opengl.postprocessing.util.BoundingBox;
 
 final class SViewFrustum {
 

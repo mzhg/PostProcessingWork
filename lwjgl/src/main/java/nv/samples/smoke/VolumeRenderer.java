@@ -1,25 +1,21 @@
 package nv.samples.smoke;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
-import org.lwjgl.util.vector.Matrix;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
 
-import jet.opengl.demos.intel.cput.CPUTBufferDX11;
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.NvImage;
 
 final class VolumeRenderer implements Disposeable{
     static final int

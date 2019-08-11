@@ -6,7 +6,6 @@ import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.models.ModelGenerator;
 import com.nvidia.developer.opengl.ui.NvTweakEnumi;
 import com.nvidia.developer.opengl.ui.NvTweakVarBase;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -29,6 +28,7 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/9/1.

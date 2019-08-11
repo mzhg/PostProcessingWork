@@ -1,7 +1,5 @@
 package com.nvidia.developer.opengl.app;
 
-import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,6 +8,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.NvGfxAPIVersion;
 
 /**
  * A basic app framework, including mainloop, setup and input processing.

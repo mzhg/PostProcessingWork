@@ -1,7 +1,5 @@
 package jet.opengl.demos.nvidia.waves.samples;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -21,6 +19,7 @@ import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.NvImage;
 
 /*public*/ class CTerrain {
 	

@@ -3,7 +3,6 @@ package jet.opengl.demos.gpupro.ibl;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.ui.NvTweakEnumi;
 import com.nvidia.developer.opengl.ui.NvTweakVarBase;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Matrix4f;
@@ -28,6 +27,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.NvImage;
 
 public class IndirectLighting extends NvSampleApp {
 

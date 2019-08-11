@@ -1,7 +1,6 @@
 package jet.opengl.demos.nvidia.face.sample;
 
 import com.nvidia.developer.opengl.app.NvInputHandler_CameraFly;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Vector3f;
 
@@ -23,6 +22,7 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/9/7.

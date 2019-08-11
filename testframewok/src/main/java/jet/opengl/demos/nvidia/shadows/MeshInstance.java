@@ -1,9 +1,9 @@
 package jet.opengl.demos.nvidia.shadows;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+
+import jet.opengl.postprocessing.util.BoundingBox;
 
 final class MeshInstance {
 

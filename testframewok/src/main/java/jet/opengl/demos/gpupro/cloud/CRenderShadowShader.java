@@ -1,9 +1,10 @@
 package jet.opengl.demos.gpupro.cloud;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+
+import jet.opengl.postprocessing.util.BoundingBox;
 
 /**
  * Created by mazhen'gui on 2017/7/6.

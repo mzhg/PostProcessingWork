@@ -32,8 +32,6 @@
 //----------------------------------------------------------------------------------
 package com.nvidia.developer.opengl.models.obj;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
@@ -46,6 +44,7 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.NvImage;
 import jet.opengl.postprocessing.util.StringUtils;
 
 public class NvModelExtGL {

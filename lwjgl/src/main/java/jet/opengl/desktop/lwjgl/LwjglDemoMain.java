@@ -3,8 +3,6 @@ package jet.opengl.desktop.lwjgl;
 import com.nvidia.developer.opengl.app.GLEventListener;
 import com.nvidia.developer.opengl.app.NvAppBase;
 import com.nvidia.developer.opengl.app.NvEGLConfiguration;
-import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -39,6 +37,8 @@ import javax.swing.event.ListSelectionListener;
 
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
+import jet.opengl.postprocessing.util.NvGfxAPIVersion;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/10/10.

@@ -1,14 +1,14 @@
 package jet.opengl.demos.intel.avsm;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
+import jet.opengl.postprocessing.util.BoundingBox;
+
 /**
  * Created by mazhen'gui on 2017/10/9.
  */
-
 final class Utils {
 
     static void ComputeFrustumExtents(Matrix4f projToView, BoundingBox out){

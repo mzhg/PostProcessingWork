@@ -234,7 +234,7 @@ public class ChapterChoosen {
         randomChapter();
         randomSection();
 
-        /** 2019年6月3日19点58分, Cho
+        /** 2019-6-3-19-58, Cho
           Chanpter 11: Global Illumination
           Chanpter 20: 20.6 Object- and Texture-Space Shading
          Choose both.

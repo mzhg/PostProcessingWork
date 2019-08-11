@@ -3,7 +3,6 @@ package jet.opengl.demos.nvidia.waves.samples;
 import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.models.Model;
 import com.nvidia.developer.opengl.models.ModelGenerator;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 
@@ -13,8 +12,8 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
+import jet.opengl.postprocessing.util.NvImage;
 
 public final class SkyBoxRender implements Disposeable{
 

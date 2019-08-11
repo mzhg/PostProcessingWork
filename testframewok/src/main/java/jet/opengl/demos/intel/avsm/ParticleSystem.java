@@ -1,7 +1,5 @@
 package jet.opengl.demos.intel.avsm;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -18,6 +16,7 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
+import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;

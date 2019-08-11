@@ -3,7 +3,6 @@ package jet.opengl.demos.nvidia.waves.samples;
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.utils.FieldControl;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
@@ -32,6 +31,7 @@ import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/7/27.

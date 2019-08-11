@@ -33,8 +33,6 @@
 //----------------------------------------------------------------------------------
 package com.nvidia.developer.opengl.ui;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import org.lwjgl.util.vector.Vector2f;
 
 import java.io.IOException;
@@ -45,6 +43,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.NvImage;
 import jet.opengl.postprocessing.util.StringUtils;
 
 //structure encapsulating a given loaded font

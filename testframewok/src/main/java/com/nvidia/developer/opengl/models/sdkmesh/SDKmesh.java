@@ -10,8 +10,6 @@
 //--------------------------------------------------------------------------------------
 package com.nvidia.developer.opengl.models.sdkmesh;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -34,6 +32,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.NvImage;
 import jet.opengl.postprocessing.util.StringUtils;
 
 //  This class reads the sdkmesh file format for use by the samples

@@ -7,7 +7,6 @@ import com.nvidia.developer.opengl.models.sdkmesh.SDKMeshVertexBufferHeader;
 import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
 import com.nvidia.developer.opengl.models.sdkmesh.SDKmeshMaterial;
 import com.nvidia.developer.opengl.models.sdkmesh.VertexElement9;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
@@ -19,6 +18,7 @@ import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.NvImage;
 import jet.opengl.postprocessing.util.StringUtils;
 
 /**

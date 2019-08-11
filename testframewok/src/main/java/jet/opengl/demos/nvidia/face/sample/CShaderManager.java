@@ -1,7 +1,5 @@
 package jet.opengl.demos.nvidia.face.sample;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import org.lwjgl.util.vector.Matrix4f;
 
 import java.io.IOException;
@@ -24,7 +22,6 @@ import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
-import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
 import jet.opengl.postprocessing.texture.FramebufferGL;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
@@ -33,7 +30,6 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.util.CacheBuffer;
-import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
 /**

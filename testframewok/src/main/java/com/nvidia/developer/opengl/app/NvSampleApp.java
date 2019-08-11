@@ -53,8 +53,6 @@ import com.nvidia.developer.opengl.ui.NvUITextAlign;
 import com.nvidia.developer.opengl.ui.NvUIValueText;
 import com.nvidia.developer.opengl.ui.NvUIWindow;
 import com.nvidia.developer.opengl.utils.FieldControl;
-import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
-import com.nvidia.developer.opengl.utils.NvImage;
 import com.nvidia.developer.opengl.utils.NvStopWatch;
 
 import java.util.HashMap;
@@ -64,6 +62,8 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.NvGfxAPIVersion;
+import jet.opengl.postprocessing.util.NvImage;
 import jet.opengl.postprocessing.util.StringUtils;
 
 /**

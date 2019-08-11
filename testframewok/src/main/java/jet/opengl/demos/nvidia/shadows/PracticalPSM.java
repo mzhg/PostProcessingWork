@@ -1,7 +1,5 @@
 package jet.opengl.demos.nvidia.shadows;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
@@ -13,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import jet.opengl.demos.scene.CameraData;
+import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackInt;
 

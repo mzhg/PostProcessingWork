@@ -2,7 +2,6 @@ package jet.opengl.demos.intel.avsm;
 
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.utils.NvGPUTimer;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -34,6 +33,7 @@ import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.shader.VisualDepthTextureProgram;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/11/11.

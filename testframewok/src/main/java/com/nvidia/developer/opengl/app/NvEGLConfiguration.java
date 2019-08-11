@@ -1,7 +1,7 @@
 package com.nvidia.developer.opengl.app;
 
 
-import com.nvidia.developer.opengl.utils.NvGfxAPIVersion;
+import jet.opengl.postprocessing.util.NvGfxAPIVersion;
 
 /** Cross-platform OpenGL Context APIs and information */
 public class NvEGLConfiguration {

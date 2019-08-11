@@ -2,7 +2,6 @@ package jet.opengl.demos.intel.coarse;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
 import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -11,9 +10,9 @@ import java.io.IOException;
 
 import jet.opengl.demos.amdfx.common.CFirstPersonCamera;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.NvImage;
 
 public class DeferredCoarsePixelShading extends NvSampleApp {
 

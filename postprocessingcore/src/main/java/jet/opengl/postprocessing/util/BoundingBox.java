@@ -1,11 +1,9 @@
-package com.nvidia.developer.opengl.utils;
+package jet.opengl.postprocessing.util;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
-
-import jet.opengl.postprocessing.util.Numeric;
 
 /** General purpose axis-aligned bounding box class for enclosing objects/vertices.
  * Bounds leaf objects in a scene such as osg::Drawable objects. Used for frustum

@@ -1,6 +1,5 @@
 package jet.opengl.demos.gpupro.volumetricfog;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
@@ -32,6 +31,7 @@ import jet.opengl.postprocessing.texture.Texture3DDesc;
 import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 

@@ -31,7 +31,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //----------------------------------------------------------------------------------
-package com.nvidia.developer.opengl.utils;
+package jet.opengl.postprocessing.util;
 
 /** Uncompressed 4x4 color block. */
 final class ColorBlock {

@@ -1,6 +1,5 @@
 package jet.opengl.demos.nvidia.shadows;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
 import com.nvidia.developer.opengl.utils.ShadowmapGenerateProgram;
 
 import org.lwjgl.util.vector.Matrix4f;
@@ -20,6 +19,7 @@ import jet.opengl.postprocessing.texture.FramebufferGL;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
 

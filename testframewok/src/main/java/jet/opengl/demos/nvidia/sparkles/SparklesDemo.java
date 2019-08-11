@@ -1,7 +1,6 @@
 package jet.opengl.demos.nvidia.sparkles;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Readable;
@@ -28,6 +27,7 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileUtils;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/10/21.

@@ -5,7 +5,6 @@ import com.nvidia.developer.opengl.app.NvInputTransformer;
 import com.nvidia.developer.opengl.app.NvPointerActionType;
 import com.nvidia.developer.opengl.app.NvPointerEvent;
 import com.nvidia.developer.opengl.app.NvSampleApp;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
@@ -18,14 +17,9 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
-import jet.opengl.postprocessing.shader.GLSLUtil;
-import jet.opengl.postprocessing.shader.ShaderType;
-import jet.opengl.postprocessing.texture.TextureUtils;
-import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
-import sun.security.ssl.Debug;
 
 /**
  * Created by mazhen'gui on 2018/2/10.

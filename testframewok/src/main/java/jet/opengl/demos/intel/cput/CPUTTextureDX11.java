@@ -1,7 +1,5 @@
 package jet.opengl.demos.intel.cput;
 
-import com.nvidia.developer.opengl.utils.NvImage;
-
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -15,6 +13,7 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.FileUtils;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/11/14.

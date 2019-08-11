@@ -2,7 +2,6 @@ package jet.opengl.demos.gpupro.ibl;
 
 import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.models.ModelGenerator;
-import com.nvidia.developer.opengl.utils.NvImage;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -20,12 +19,12 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.AttachType;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.SamplerDesc;
-import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.NvImage;
 
 public class IrradianceCubeMap implements Disposeable {
 

@@ -2,8 +2,6 @@ package jet.opengl.demos.nvidia.waves.samples;
 
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
-import com.nvidia.developer.opengl.utils.NvImage;
-import jet.opengl.postprocessing.util.Pool;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
@@ -21,6 +19,8 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.NvImage;
+import jet.opengl.postprocessing.util.Pool;
 
 public final class OceanWaveDemo extends NvSampleApp{
 	static final int FRESNEL_TEX_SIZE = 256;

@@ -1,11 +1,11 @@
 package jet.opengl.demos.nvidia.shadows;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
-
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.util.List;
+
+import jet.opengl.postprocessing.util.BoundingBox;
 
 /**
  * Created by mazhen'gui on 2017/11/8.

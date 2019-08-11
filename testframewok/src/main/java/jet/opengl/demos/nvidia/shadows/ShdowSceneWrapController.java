@@ -1,9 +1,10 @@
 package jet.opengl.demos.nvidia.shadows;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
 import com.nvidia.developer.opengl.utils.ShadowmapGenerateProgram;
 
 import java.util.List;
+
+import jet.opengl.postprocessing.util.BoundingBox;
 
 /**
  * Created by mazhen'gui on 2017/11/9.

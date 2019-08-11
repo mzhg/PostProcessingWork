@@ -1,7 +1,5 @@
 package jet.opengl.demos.intel.cput;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
@@ -11,6 +9,7 @@ import java.io.IOException;
 
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.FileUtils;
 

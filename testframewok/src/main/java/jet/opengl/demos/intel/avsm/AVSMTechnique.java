@@ -1,7 +1,5 @@
 package jet.opengl.demos.intel.avsm;
 
-import com.nvidia.developer.opengl.utils.BoundingBox;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
@@ -35,6 +33,7 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
@@ -140,7 +139,7 @@ final class AVSMTechnique implements Disposeable{
     int mDefaultSampler;
 
     // AVSM
-    private final BoundingBox       mTmpBox = new BoundingBox();
+    private final BoundingBox mTmpBox = new BoundingBox();
     private final Vector4i          mAVSMShadowViewport = new Vector4i();
     private int                     mAVSMNodeCount;
     private int                     mShaderIdx;

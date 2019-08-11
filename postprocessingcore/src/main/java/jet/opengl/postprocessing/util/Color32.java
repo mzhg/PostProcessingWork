@@ -1,6 +1,4 @@
-package com.nvidia.developer.opengl.utils;
-
-import jet.opengl.postprocessing.util.Numeric;
+package jet.opengl.postprocessing.util;
 
 /** 32 bit color stored as RGBA */
 final class Color32 {

@@ -1,3 +1,4 @@
+package jet.opengl.postprocessing.util;
 //----------------------------------------------------------------------------------
 // File:        NvGfxAPIVersion.java
 // SDK Version: v1.2 
@@ -16,6 +17,7 @@
 //    documentation and/or other materials provided with the distribution.
 //  * Neither the name of NVIDIA CORPORATION nor the names of its
 //    contributors may be used to endorse or promote products derived
+
 //    from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
@@ -31,7 +33,6 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //----------------------------------------------------------------------------------
-package com.nvidia.developer.opengl.utils;
 public enum NvGfxAPIVersion implements Comparable<NvGfxAPIVersion>{
     GLES2(2,0, true), GLES3_0(3,0, true), GLES3_1(3,1, true),
 	GLES3_2(3, 2, true),
