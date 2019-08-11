@@ -1,0 +1,158 @@
+// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	DistanceFieldGlobalIllumination.usf
+=============================================================================*/
+
+//#include "Common.ush"
+//#include "DeferredShadingCommon.ush"
+#include "DistanceFieldLightingShared.glsl"
+#include "DistanceFieldAOShared.glsl"
+//#include "DynamicLightingCommon.glsl"
+#include "DistanceFieldShadowingShared.glsl"
+
+float RayTraceThroughGlobalObjects(
+	float3 RayStartPosition,
+	float3 RayDirection,
+	float RayLength,
+	float TanConeAngle,
+	float ConeEndRayTime)
+{
+	float MaxSphereRadius = 100;
+
+	float3 WorldRayStart = RayStartPosition;
+	float3 WorldRayEnd = RayStartPosition + RayDirection * RayLength;
+	float MaxRayTime = RayLength;
+
+	float MinVisibility = 1;
+
+	for (uint ObjectIndex = 0; ObjectIndex < NumSceneObjects && MinVisibility > 0; ObjectIndex++)
+	{
+		float3 LocalPositionExtent = LoadGlobalObjectLocalPositionExtent(ObjectIndex);
+		float4x4 WorldToVolume = LoadGlobalObjectWorldToVolume(ObjectIndex);
+		float4 UVScaleAndVolumeScale = LoadGlobalObjectUVScale(ObjectIndex);
+		float3 UVAdd = LoadGlobalObjectUVAdd(ObjectIndex);
+		float2 DistanceFieldMAD = LoadObjectDistanceFieldMAD(ObjectIndex);
+
+		float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
+		float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
+		float3 VolumeRayDirection = VolumeRayEnd - VolumeRayStart;
+		float VolumeRayLength = length(VolumeRayDirection);
+		VolumeRayDirection /= VolumeRayLength;
+		float VolumeMaxSphereRadius = MaxSphereRadius / UVScaleAndVolumeScale.w;
+		float VolumeConeEndRayTime = ConeEndRayTime / UVScaleAndVolumeScale.w;
+		float ConeEndNormalization = 1.0f / (VolumeRayLength - VolumeConeEndRayTime);
+
+		float4 SphereCenterAndRadius = LoadGlobalObjectPositionAndRadius(ObjectIndex);
+		float ObjectCenterDistanceAlongRay = max(dot(SphereCenterAndRadius.xyz - WorldRayStart, WorldRayEnd - WorldRayStart), 0);
+		// Expand the intersection box by the radius of the cone at the distance of the object along the cone
+		float LocalConeRadiusAtObject = min(TanConeAngle * ObjectCenterDistanceAlongRay / UVScaleAndVolumeScale.w, VolumeMaxSphereRadius);
+
+		float2 IntersectionTimes = LineBoxIntersect(VolumeRayStart, VolumeRayEnd, -LocalPositionExtent - LocalConeRadiusAtObject, LocalPositionExtent + LocalConeRadiusAtObject);
+
+		BRANCH
+		if (IntersectionTimes.x < IntersectionTimes.y && IntersectionTimes.x < 1)
+		{
+			float SampleRayTime = IntersectionTimes.x * VolumeRayLength;
+			uint MaxSteps = 32;
+			float MinStepSize = 1.0f / (4 * MaxSteps);
+
+			uint StepIndex = 0;
+
+			LOOP
+			for (; StepIndex < MaxSteps; StepIndex++)
+			{
+				float3 SampleVolumePosition = VolumeRayStart + VolumeRayDirection * SampleRayTime;
+				float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
+				float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
+				float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
+				float DistanceField = SampleMeshDistanceField(VolumeUV, DistanceFieldMAD).x + DistanceToClamped;
+
+				float SphereRadius = clamp(TanConeAngle * SampleRayTime, 0, VolumeMaxSphereRadius);
+
+				if (SampleRayTime > VolumeConeEndRayTime)
+				{
+					// 0 at VolumeRayLength, 1 at VolumeConeEndRayTime
+					float ConeEndAlpha = saturate((VolumeRayLength - SampleRayTime) * ConeEndNormalization);
+					// Reduce the intersection sphere radius to 0 at the end of the cone
+					SphereRadius = ConeEndAlpha * TanConeAngle * VolumeConeEndRayTime;
+				}
+
+				//SphereRadius = 0;
+
+				MinVisibility = min(MinVisibility, saturate(DistanceField / SphereRadius));
+
+				float StepDistance = max(DistanceField, MinStepSize);
+				SampleRayTime += StepDistance;
+
+				// Terminate the trace if we reached a negative area or went past the end of the ray
+				if (DistanceField <= 0
+					|| SampleRayTime > IntersectionTimes.y * VolumeRayLength)
+				{
+					break;
+				}
+			}
+
+			if (StepIndex == MaxSteps)
+			{
+				MinVisibility = 0;
+			}
+		}
+	}
+
+	return MinVisibility;
+}
+
+Buffer<float> RecordConeData;
+RWBuffer<float4> RWStepBentNormal;
+
+/**  *//*
+[numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
+void ComputeStepBentNormalCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID)*/
+COMP_SIZE(FINAL_GATHER_THREADGROUP_SIZE, 1, 1);
+void main()
+{
+    uint3 GroupId = gl_WorkGroupID;
+    uint3 DispatchThreadId = gl_GlobalInvocationID;
+    uint3 GroupThreadId = gl_LocalInvocationID;
+
+	uint StartIndex = SavedStartIndex[0];
+	uint NumRecords = ScatterDrawParameters[1];
+
+	uint RecordIndex = StartIndex + DispatchThreadId.x;
+
+	float3 Irradiance = 0;
+
+	if (RecordIndex < NumRecords)
+	{
+		uint RelativeRecordIndex = DispatchThreadId.x;
+		float3 WorldNormal = IrradianceCacheNormal[RecordIndex].xyz;
+
+		float3 TangentX;
+		float3 TangentY;
+		FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
+
+		for (uint StepIndex = 0; StepIndex < NUM_VISIBILITY_STEPS; StepIndex++)
+		{
+			float3 UnoccludedDirection = 0;
+
+			for (uint ConeIndex = 0; ConeIndex < NUM_CONE_DIRECTIONS; ConeIndex++)
+			{
+				float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
+				float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * WorldNormal;
+
+				uint RecordConeDataIndex = (RelativeRecordIndex * NUM_CONE_DIRECTIONS + ConeIndex) * RECORD_CONE_DATA_STRIDE;
+				float ConeVisibility = RecordConeData[RecordConeDataIndex + StepIndex];
+				UnoccludedDirection += ConeVisibility * RotatedConeDirection;
+			}
+
+			float InvNumSamples = 1.0f / (float)NUM_CONE_DIRECTIONS;
+			UnoccludedDirection = UnoccludedDirection * (BentNormalNormalizeFactor * InvNumSamples);
+
+			RWStepBentNormal[RelativeRecordIndex * NUM_VISIBILITY_STEPS + StepIndex] = float4(UnoccludedDirection, 0);
+		}
+	}
+}

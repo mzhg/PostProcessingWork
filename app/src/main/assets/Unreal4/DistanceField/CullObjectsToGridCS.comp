@@ -1,0 +1,90 @@
+// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	GlobalDistanceField.usf
+=============================================================================*/
+
+//#include "Common.ush"
+//#include "DeferredShadingCommon.ush"
+#include "DistanceFieldLightingShared.glsl"
+#include "DistanceFieldAOShared.glsl"
+#include "GlobalDistanceFieldShared.glsl"
+//#include "HeightfieldLightingShared.ush"
+
+#ifndef CULLOBJECTS_THREADGROUP_SIZE
+#define CULLOBJECTS_THREADGROUP_SIZE 1
+#endif
+
+uniform uint ClipmapIndex;
+uniform float3 VolumeTexelSize;
+uniform float3 UpdateRegionVolumeMin;
+uniform float UpdateRegionVolumeStep;
+uniform uint3 CullGridDimension;
+
+layout(binding = 0, r16ui) uniform uimageBuffer RWCullGridObjectNum;
+layout(binding = 1, r16ui) uniform uimageBuffer RWCullGridObjectArray;
+
+#ifndef CULL_GRID_TILE_SIZE
+#define CULL_GRID_TILE_SIZE 1
+#endif
+
+#ifndef MAX_GRID_CULLED_DF_OBJECTS
+#define MAX_GRID_CULLED_DF_OBJECTS 0
+#endif
+
+#define GRID_CULL_THREADGORUP_TOTALSIZE 256
+
+uint ComputeCullTileIndex(uint3 GridCoordinate)
+{
+	return (GridCoordinate.z * CullGridDimension.y + GridCoordinate.y) * CullGridDimension.x + GridCoordinate.x;
+}
+
+/*[numthreads(GRID_CULL_THREADGORUP_TOTALSIZE, 1, 1)]
+void CullObjectsToGridCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID)*/
+layout(local_size_x = GRID_CULL_THREADGORUP_TOTALSIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+    uint3 GroupId = gl_WorkGroupID;
+	uint ThreadIndex = gl_WorkGroupSize.x;
+	uint CullTileIndex = ComputeCullTileIndex(GroupId);
+
+	if (ThreadIndex == 0 && all(lessThan(GroupId, CullGridDimension)))
+	{
+		// Clear array num to 0 for all cull grid cells
+		RWCullGridObjectNum[CullTileIndex] = 0;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	if (all(lessThan(GroupId, CullGridDimension)))
+	{
+		uint NumCulledObjects = GetCulledNumObjects();
+		float GlobalVolumeExtent = GlobalVolumeCenterAndExtent[ClipmapIndex].w;
+		float3 TileBoxExtent = .5f * CULL_GRID_TILE_SIZE * VolumeTexelSize * GlobalVolumeExtent * 2;
+		float3 TileBoxCenter = UpdateRegionVolumeMin + ((GroupId.xyz + .5f) * CULL_GRID_TILE_SIZE + .5f) * VolumeTexelSize * GlobalVolumeExtent * 2;
+
+		for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumCulledObjects; ObjectIndex += GRID_CULL_THREADGORUP_TOTALSIZE)
+		{
+			float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
+			//float BoxDistance = ComputeDistanceFromBoxToPoint(TileBoxCenter - TileBoxExtent, TileBoxCenter + TileBoxExtent, ObjectPositionAndRadius.xyz);
+			float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(TileBoxCenter, TileBoxExtent, ObjectPositionAndRadius.xyz);
+			float CombinedDistance = ObjectPositionAndRadius.w + AOGlobalMaxSphereQueryRadius;
+
+			if (BoxDistanceSq < CombinedDistance * CombinedDistance)
+			{
+				uint DestIndex;
+				// Allocate space in the array for one more object
+				InterlockedAdd(RWCullGridObjectNum[CullTileIndex], 1U, DestIndex);
+
+				if (DestIndex < MAX_GRID_CULLED_DF_OBJECTS)
+				{
+					// Write the intersecting object index into the array
+					RWCullGridObjectArray[CullTileIndex * MAX_GRID_CULLED_DF_OBJECTS + DestIndex] = ObjectIndex;
+				}
+			}
+		}
+	}
+}

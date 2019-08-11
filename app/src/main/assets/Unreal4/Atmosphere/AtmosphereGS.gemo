@@ -1,0 +1,26 @@
+
+in flat int LayerIndex[];
+in vec4 m_f4UVAndScreenPos;
+
+in gl_PerVertex {
+    vec4 gl_Position;
+}gl_in[];
+
+out gl_PerVertex{
+    vec4 gl_Position;
+};
+
+out vec2 OutTexCoord;
+
+void main()
+{
+    for(int i = 0; i < 3; i++)
+    {
+        gl_Position = gl_in[i].gl_Position;
+        gl_Layer = LayerIndex[i];
+        OutTexCoord =m_f4UVAndScreenPos.xy;
+        EmitVertex();
+    }
+
+    EndPrimitive();
+}

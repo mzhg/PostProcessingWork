@@ -1,0 +1,27 @@
+// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	GlobalDistanceField.usf
+=============================================================================*/
+
+//#include "Common.ush"
+//#include "DeferredShadingCommon.ush"
+#include "DistanceFieldLightingShared.glsl"
+#include "DistanceFieldAOShared.glsl"
+#include "GlobalDistanceFieldShared.glsl"
+//#include "HeightfieldLightingShared.ush"
+
+RWTexture2D<float4> RWIrradianceTexture;
+COMP_SIZE(SCREEN_GRID_IRRADIANCE_THREADGROUP_SIZE_X, SCREEN_GRID_IRRADIANCE_THREADGROUP_SIZE_X, 1);
+
+void main()
+{
+    uint3 GroupId = gl_WorkGroupID;
+    uint3 DispatchThreadId = gl_GlobalInvocationID;
+    uint3 GroupThreadId = gl_LocalInvocationID;
+
+    uint2 OutputCoordinate = DispatchThreadId.xy;
+    uint InputBaseIndex = OutputCoordinate.y * ScreenGridConeVisibilitySize.x + OutputCoordinate.x;
+
+    RWIrradianceTexture[OutputCoordinate] = SurfelIrradiance[InputBaseIndex] + HeightfieldIrradiance[InputBaseIndex];
+}

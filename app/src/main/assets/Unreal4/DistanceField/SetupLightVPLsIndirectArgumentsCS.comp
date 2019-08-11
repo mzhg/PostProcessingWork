@@ -1,0 +1,35 @@
+// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	DistanceFieldGlobalIllumination.usf
+=============================================================================*/
+
+//#include "Common.ush"
+//#include "DeferredShadingCommon.ush"
+#include "DistanceFieldLightingShared.glsl"
+#include "DistanceFieldAOShared.glsl"
+//#include "DynamicLightingCommon.glsl"
+#include "DistanceFieldShadowingShared.glsl"
+
+#ifndef LIGHT_VPLS_THREADGROUP_SIZE
+#define LIGHT_VPLS_THREADGROUP_SIZE 1
+#endif
+
+uint ObjectProcessStride;
+
+/*[numthreads(1, 1, 1)]
+void SetupLightVPLsIndirectArgumentsCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID)*/
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint NumGroups = (GetCulledNumObjects() + ObjectProcessStride - 1) / ObjectProcessStride;
+
+	// One group per object
+	RWDispatchParameters[0] = NumGroups;
+	RWDispatchParameters[1] = 1;
+	RWDispatchParameters[2] = 1;
+}

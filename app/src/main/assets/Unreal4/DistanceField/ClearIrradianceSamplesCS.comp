@@ -1,0 +1,19 @@
+//RWBuffer<float4> RWSurfelIrradiance;
+//RWBuffer<float4> RWHeightfieldIrradiance;
+
+layout(binding = 0) uniform imageBuffer RWSurfelIrradiance;
+layout(binding = 1) uniform imageBuffer RWHeightfieldIrradiance;
+
+/*[numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
+void ClearIrradianceSamplesCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID)*/
+COMP_SIZE(FINAL_GATHER_THREADGROUP_SIZE, 1, 1);
+void main()
+{
+	uint RelativeRecordIndex = DispatchThreadId.x;
+
+	RWSurfelIrradiance[RelativeRecordIndex] = 0;
+	RWHeightfieldIrradiance[RelativeRecordIndex] = 0;
+}

@@ -1,0 +1,15 @@
+uint DebugId;
+//RWBuffer<uint> RWDebugBuffer;
+layout(binding = 0, r16ui) uniform uimageBuffer RWDebugBuffer;
+
+/*[numthreads(1, 1, 1)]
+void TrackGPUProgressCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID)*/
+    layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+	RWDebugBuffer[0] = DebugId;
+}

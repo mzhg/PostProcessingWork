@@ -1,0 +1,69 @@
+// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	GlobalDistanceField.usf
+=============================================================================*/
+
+//#include "Common.ush"
+//#include "DeferredShadingCommon.ush"
+#include "DistanceFieldLightingShared.glsl"
+#include "DistanceFieldAOShared.glsl"
+#include "GlobalDistanceFieldShared.glsl"
+//#include "HeightfieldLightingShared.ush"
+
+COMP_SIZE(FINAL_GATHER_THREADGROUP_SIZE, 1, 1);
+void main()
+{
+    uint3 GroupId = gl_WorkGroupID;
+    uint3 DispatchThreadId = gl_GlobalInvocationID;
+    uint3 GroupThreadId = gl_LocalInvocationID;
+
+    uint2 OutputCoordinate = GroupId.xy;
+    float2 BaseLevelScreenUV = GetBaseLevelScreenUVFromScreenGrid(OutputCoordinate);
+    uint ThreadIndex = GroupThreadId.x;
+
+    float3 Irradiance = 0;
+
+    if (all(OutputCoordinate < ScreenGridConeVisibilitySize))
+    {
+        float3 WorldNormal;
+        float SceneDepth;
+        GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth);
+
+        float3 TangentX;
+        float3 TangentY;
+        FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
+
+        uint StepBentNormalBaseIndex = OutputCoordinate.y * ScreenGridConeVisibilitySize.x + OutputCoordinate.x;
+
+        float2 ScreenUV = GetScreenUVFromScreenGrid(OutputCoordinate);
+        float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+
+        float3 OpaqueWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld).xyz;
+        uint2 TileCoordinate = ComputeTileCoordinateFromScreenGrid(OutputCoordinate);
+
+        Irradiance = GatherIrradianceFromVPLs(OpaqueWorldPosition, WorldNormal, StepBentNormalBaseIndex, TileCoordinate, ThreadIndex);
+    }
+
+    SharedThreadIrradiance[ThreadIndex] = Irradiance;
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if (ThreadIndex == 0)
+    {
+        float3 Irradiance = 0;
+
+        for (uint i = 0; i < FINAL_GATHER_THREADGROUP_SIZE; i++)
+        {
+            Irradiance += SharedThreadIrradiance[i];
+        }
+
+        //float3 Irradiance = SharedThreadIrradiance[0];
+
+        if (all(OutputCoordinate < ScreenGridConeVisibilitySize))
+        {
+            uint OutputIndex = OutputCoordinate.y * ScreenGridConeVisibilitySize.x + OutputCoordinate.x;
+            RWSurfelIrradiance[OutputIndex] = float4(Irradiance, 0);
+        }
+    }
+}

@@ -1,0 +1,58 @@
+#include "Common.glsl"
+
+layout(binding = 0, r16ui) uniform imageBuffer RWNextCulledLightData;
+layout(binding = 0) uniform samplerBuffer StartOffsetGrid;
+layout(binding = 1) uniform samplerBuffer CulledLightLinks;
+
+void CompactReverseLinkedList(uint GridIndex, uint SceneMax)
+{
+	uint NumCulledLights = 0;
+	uint StartLinkOffset = StartOffsetGrid[GridIndex];
+	uint LinkOffset = StartLinkOffset;
+
+	// Traverse the linked list to count how many culled indices we have
+	while (LinkOffset != 0xFFFFFFFF && NumCulledLights < SceneMax)
+	{
+		NumCulledLights++;
+		LinkOffset = CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 1];
+	}
+
+	uint CulledLightDataStart;
+	InterlockedAdd(RWNextCulledLightData[0], NumCulledLights, CulledLightDataStart);
+	RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0] = NumCulledLights;
+	RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = CulledLightDataStart;
+
+	LinkOffset = StartLinkOffset;
+	uint CulledLightIndex = 0;
+
+	while (LinkOffset != 0xFFFFFFFF && CulledLightIndex < NumCulledLights)
+	{
+		// Reverse the order as we write them out, which restores the original order before the reverse linked list was built
+		// Reflection captures are order dependent
+		RWCulledLightDataGrid[CulledLightDataStart + NumCulledLights - CulledLightIndex - 1] = CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 0];
+		CulledLightIndex++;
+		LinkOffset = CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 1];
+	}
+}
+
+layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = THREADGROUP_SIZE) in;
+/*[numthreads(THREADGROUP_SIZE, THREADGROUP_SIZE, THREADGROUP_SIZE)]
+void LightGridCompactCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+	uint3 GroupThreadId : SV_GroupThreadID)*/
+void main()
+{
+	uint3 GridCoordinate = gl_GlobalInvocationID;
+
+	if (all(GridCoordinate < ForwardLightData.CulledGridSize))
+	{
+		uint GridIndex = (GridCoordinate.z * ForwardLightData.CulledGridSize.y + GridCoordinate.y) * ForwardLightData.CulledGridSize.x + GridCoordinate.x;
+
+		// Compact lights
+		CompactReverseLinkedList(GridIndex, ForwardLightData.NumLocalLights);
+
+		// Compact reflection captures
+		CompactReverseLinkedList(ForwardLightData.NumGridCells + GridIndex, ForwardLightData.NumReflectionCaptures);
+	}
+}

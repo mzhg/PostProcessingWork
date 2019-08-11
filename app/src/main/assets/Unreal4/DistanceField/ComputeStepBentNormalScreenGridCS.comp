@@ -1,0 +1,65 @@
+// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	GlobalDistanceField.usf
+=============================================================================*/
+
+//#include "Common.ush"
+//#include "DeferredShadingCommon.ush"
+#include "DistanceFieldLightingShared.glsl"
+#include "DistanceFieldAOShared.glsl"
+#include "GlobalDistanceFieldShared.glsl"
+//#include "HeightfieldLightingShared.ush"
+
+#ifndef SCREEN_GRID_IRRADIANCE_THREADGROUP_SIZE_X
+#define SCREEN_GRID_IRRADIANCE_THREADGROUP_SIZE_X 1
+#endif
+
+Buffer<float> ConeDepthVisibilityFunction;
+
+/**  */
+/*[numthreads(SCREEN_GRID_IRRADIANCE_THREADGROUP_SIZE_X, SCREEN_GRID_IRRADIANCE_THREADGROUP_SIZE_X, 1)]
+void ComputeStepBentNormalScreenGridCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID)*/
+COMP_SIZE(SCREEN_GRID_IRRADIANCE_THREADGROUP_SIZE_X, SCREEN_GRID_IRRADIANCE_THREADGROUP_SIZE_X, 1);
+void main()
+{
+    uint3 GroupId = gl_WorkGroupID;
+    uint3 DispatchThreadId = gl_GlobalInvocationID;
+    uint3 GroupThreadId = gl_LocalInvocationID;
+
+	uint2 OutputCoordinate = DispatchThreadId.xy;
+	float2 BaseLevelScreenUV = GetBaseLevelScreenUVFromScreenGrid(OutputCoordinate);
+
+	float3 WorldNormal;
+	float SceneDepth;
+	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth);
+
+	float3 TangentX;
+	float3 TangentY;
+	FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
+
+	uint OutputBaseIndex = OutputCoordinate.y * ScreenGridConeVisibilitySize.x + OutputCoordinate.x;
+	uint InputBaseIndex = OutputBaseIndex * NUM_CONE_DIRECTIONS;
+
+	//@todo - more threads
+	for (uint StepIndex = 0; StepIndex < NUM_VISIBILITY_STEPS; StepIndex++)
+	{
+		float3 UnoccludedDirection = 0;
+
+		for (uint ConeIndex = 0; ConeIndex < NUM_CONE_DIRECTIONS; ConeIndex++)
+		{
+			float ConeVisibility = ConeDepthVisibilityFunction[(InputBaseIndex + ConeIndex) * NUM_VISIBILITY_STEPS + StepIndex];
+			float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
+			float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * WorldNormal;
+			UnoccludedDirection += ConeVisibility * RotatedConeDirection;
+		}
+
+		float InvNumSamples = 1.0f / (float)NUM_CONE_DIRECTIONS;
+		UnoccludedDirection = UnoccludedDirection * (BentNormalNormalizeFactor * InvNumSamples);
+
+		RWStepBentNormal[OutputBaseIndex * NUM_VISIBILITY_STEPS + StepIndex] = float4(UnoccludedDirection, 0);
+	}
+}
