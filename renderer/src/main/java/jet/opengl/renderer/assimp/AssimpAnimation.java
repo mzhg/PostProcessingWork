@@ -13,9 +13,9 @@ public class AssimpAnimation {
     float mTicksPerSecond;
 
     int mBoneName;
-    List<VectorKey> mPositionKeys;
-    List<VectorKey> mScallingKeys;
-    List<QuatKey>   mRotationKeys;
+    VectorKey[] mPositionKeys;
+    VectorKey[] mScalingKeys;
+    QuatKey[]   mRotationKeys;
 
     void interpolate(float time, Transform transform){
 

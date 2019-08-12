@@ -49,4 +49,8 @@ public class GLFuncProviderFactory {
             throw new NullPointerException("You should call initlizeGLFuncProvider(GLAPI api) before this!");
         return g_GLFuncProviderImpl;
     }
+
+    public static boolean isInitlized(){
+        return g_GLFuncProviderImpl != null;
+    }
 }

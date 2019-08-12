@@ -1,6 +1,7 @@
 package jet.opengl.renderer.assimp;
 
 import org.lwjgl.assimp.AIVector3D;
+import org.lwjgl.assimp.AIVectorKey;
 import org.lwjgl.util.vector.Vector3f;
 
 final class VectorKey implements Comparable<VectorKey>{

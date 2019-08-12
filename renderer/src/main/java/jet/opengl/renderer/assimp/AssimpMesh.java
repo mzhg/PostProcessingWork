@@ -14,8 +14,8 @@ import jet.opengl.postprocessing.util.Pair;
 import jet.opengl.postprocessing.util.StackInt;
 
 public class AssimpMesh {
-    private StackInt mBones;
-    private int mMaterilIndex;
+    final StackInt mBones = new StackInt();
+    int mMaterilIndex;
     private BufferGL mVertexBuffer;
     private BufferGL mIndexBuffer;
     private Runnable mInputLayout;
@@ -28,7 +28,7 @@ public class AssimpMesh {
     private int mWeightCount;
 
     private float mUVScale;  // for the skin rendering.
-    private final Matrix4f mNodeTransform = new Matrix4f();
+    final Matrix4f mNodeTransform = new Matrix4f();
     private AssimpAsset mAsset;
     private List<BlendShapeDeformer> mBlendShape;
 
@@ -43,11 +43,19 @@ public class AssimpMesh {
     private final BoundingBox mBoundingBox = new BoundingBox();
 
     private boolean mEnabled = true;
-    private String mName;
+    String mName;
 
     private final MeshFormat mMeshFormat = new MeshFormat();
 
+    public AssimpMesh(AssimpAsset asset){
+        mAsset = asset;
+    }
+
     public void createMesh(AIMesh mesh, Map<String, Pair<AIBone, Integer>> paresedBones, BoundingBox boundingBox, boolean generateCurvature){
+
+    }
+
+    public void createMesh(List<AIMesh> mesh, Map<String, Pair<AIBone, Integer>> paresedBones, BoundingBox boundingBox, boolean generateCurvature){
 
     }
 }
