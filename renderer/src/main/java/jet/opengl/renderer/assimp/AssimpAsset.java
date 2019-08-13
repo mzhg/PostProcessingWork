@@ -20,12 +20,13 @@ import org.lwjgl.assimp.AIVectorKey;
 import org.lwjgl.assimp.Assimp;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.Transform;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,11 +41,11 @@ import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.util.BoundingBox;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Pair;
-import sun.util.resources.cldr.zh.CalendarData_zh_Hans_HK;
 
 public class AssimpAsset implements Disposeable {
 
@@ -67,9 +68,32 @@ public class AssimpAsset implements Disposeable {
     private float mTimeline;
     private boolean mGenerateCurvature;
     private boolean mCombineMesh;
+    private Matrix4f[] mKeyframes;
+    private boolean [] mHandled;
+    private final Transform mTempTransform = new Transform();
 
     private String mModelFilename;
     private GLFuncProvider gl;
+
+    final VertexLocation mVertexLocation = new VertexLocation();
+
+    // When true, the vertex data will be combined in one VAO that can't changed in runtime.
+    private final boolean mStaticMesh;
+
+    public AssimpAsset(){
+        this(true);
+    }
+
+    public AssimpAsset(boolean staticMesh){
+        mStaticMesh = staticMesh;
+    }
+
+    public void setVertexLocation(VertexLocation location){
+        mVertexLocation.set(location);
+    }
+
+    public boolean isStaticMesh() { return mStaticMesh;}
+
 
     void load(String filename, BoundingBox boundingBox) throws IOException{
         load(filename, boundingBox, false);
@@ -395,8 +419,14 @@ public class AssimpAsset implements Disposeable {
         // Parses the animations.
         final int numAnimations = scene.mNumAnimations();
         final PointerBuffer animationBuffers = scene.mAnimations();
-        if(numAnimations > 0)
+        if(numAnimations > 0) {
             mAnimations = new AssimpAnimation[numAnimations];
+            mKeyframes = new Matrix4f[numAnimations];
+            mHandled = new boolean[numAnimations];
+
+            for(int i = 0; i < numAnimations; i++)
+                mKeyframes[i] = new Matrix4f();
+        }
 
         for(int animationIndex =0; animationIndex < numAnimations; animationIndex++){
             AIAnimation anim = AIAnimation.create(animationBuffers.get(animationIndex));
@@ -607,6 +637,77 @@ public class AssimpAsset implements Disposeable {
     }
 
 //    private void setBlendShape(int meshid, int bid, )
+    /** Set the specular reflectance for the given material by the materialIndex, if materialIndex == -1, set the values to all materials. */
+    public void setSpecular(ReadableVector3f f0, float roughness, int materialIndex){
+        if(materialIndex>=0){
+            mMaterials[materialIndex].mSpecularColor.set(f0, 1);
+            mMaterials[materialIndex].mRoughness = roughness;
+        }else{
+            for(int i = 0; i < CommonUtil.length(mMaterials); i++){
+                mMaterials[i].mSpecularColor.set(f0, 1);
+                mMaterials[i].mRoughness = roughness;
+            }
+        }
+    }
+
+    public AssimpMaterial getMaterial(int index){
+        return mMaterials[index];
+    }
+
+    /** Specify the materils. */
+    public void setMaterials(AssimpMaterial[] materials, boolean releaseBefore){
+        if(releaseBefore){
+            for(int i = 0; i < CommonUtil.length(mMaterials); i++){
+                if(mMaterials[i] != null){
+                    mMaterials[i].dispose();
+                }
+            }
+        }
+
+        mMaterials = materials;
+    }
+
+    private void updateBlendShape(){}
+
+    // Update the animations if contained.
+    public void update(float deltaTime){
+        if(mHasBlendShape)
+            updateBlendShape();
+
+        final int numAnimations = CommonUtil.length(mAnimations);
+        if(numAnimations == 0)
+            return;
+
+
+        for(int i =0; i < numAnimations; i++){
+            mKeyframes[i].setIdentity();
+            mHandled[i] = false;
+        }
+
+        mTimeline += deltaTime;
+        for(int i = 0; i < numAnimations; i++){
+            mAnimations[i].interpolate(mTimeline, mTempTransform);
+            mTempTransform.getMatrix(mKeyframes[mAnimations[i].mBoneName]);
+        }
+
+        //Resolve the bone matrix
+        final int numBones = CommonUtil.length(mBones);
+        for(int i =0; i < numBones; i++){
+            recurseUpdateBone(i, mKeyframes, mHandled);
+        }
+    }
+
+    public void apply(int meshIndex){
+        mMeshes[meshIndex].apply();
+    }
+
+    public int getMaterialCount(){
+        return CommonUtil.length(mMaterials);
+    }
+
+    public int getMeshCount(){
+        return CommonUtil.length(mMeshes);
+    }
 
     @Override
     public void dispose() {

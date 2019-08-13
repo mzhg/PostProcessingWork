@@ -5,6 +5,13 @@ public class Transform {
     private float scaleX = 1, scaleY = 1, scaleZ = 1;
     private float rotX, rotY, rotZ, rotW = 1;
 
+    public void setIdentity(){
+        x=y=z=0;
+        scaleX = scaleY=scaleZ = 1;
+        rotX = rotY = rotZ = 0;
+        rotW = 1;
+    }
+
     public void setPosition(float x, float y, float z){
         this.x = x;
         this.y = y;
@@ -32,6 +39,13 @@ public class Transform {
         rotY = y;
         rotZ = z;
         rotW = w;
+    }
+
+    public void setRotation(Quaternion quat){
+        rotX = quat.x;
+        rotY = quat.y;
+        rotZ = quat.z;
+        rotW = quat.w;
     }
 
     public Matrix4f getMatrix(Matrix4f mat){

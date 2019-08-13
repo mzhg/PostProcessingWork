@@ -3,14 +3,18 @@ package jet.opengl.renderer.assimp;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 
+import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.NvImage;
 
-public class AssimpMaterial {
+public class AssimpMaterial implements Disposeable {
 
     final Texture2D[] mTextures = new Texture2D[AssimpTextureType.values().length];
     final int[] mSamplers = new int[AssimpTextureType.values().length];
@@ -40,6 +44,27 @@ public class AssimpMaterial {
             }
             texCache.put(filename, tex);
             return tex;
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if(GLFuncProviderFactory.isInitlized()){
+            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+            for(int i = 0; i < mTextures.length; i++){
+                if(mTextures[i] != null){
+                    mTextures[i].dispose();
+                    mTextures[i] = null;
+                }
+
+                if(mSamplers[i] != 0){
+                    gl.glDeleteSampler(mSamplers[i]);
+                    mSamplers[i] = 0;
+                }
+            }
+        }else{
+            Arrays.fill(mTextures, null);
+            Arrays.fill(mSamplers, 0);
         }
     }
 }

@@ -108,4 +108,8 @@ public final class CommonUtil {
         sb.setLength(sb.length() - 1);
         return sb.toString();
     }
+
+    public static int length(Object[] a){
+        return a != null ? a.length : 0;
+    }
 }
