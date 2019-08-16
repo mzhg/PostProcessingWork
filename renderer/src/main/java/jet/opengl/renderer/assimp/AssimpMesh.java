@@ -234,29 +234,29 @@ public class AssimpMesh {
         m_VertexAttribs[ATT_POSITION].mVertexData = createBuffer(GLenum.GL_ARRAY_BUFFER, positionBuffers, vertexCount * Vector3f.SIZE);
 
         // Create Normal buffer.
+        m_VertexAttribs[ATT_NORMAL] = new VertexAttrib();
         if(normalFormat != 0){
-            m_VertexAttribs[ATT_NORMAL] = new VertexAttrib();
             m_VertexAttribs[ATT_NORMAL].internalFormat = normalFormat;
             m_VertexAttribs[ATT_NORMAL].mVertexData = createBuffer(GLenum.GL_ARRAY_BUFFER, normalBuffers, vertexCount * Vector3f.SIZE);
         }
 
         // Create tangent buffer.
+        m_VertexAttribs[ATT_TANGENT] = new VertexAttrib();
         if(tangentFormat != 0){
-            m_VertexAttribs[ATT_TANGENT] = new VertexAttrib();
             m_VertexAttribs[ATT_TANGENT].internalFormat = tangentFormat;
             m_VertexAttribs[ATT_TANGENT].mVertexData = createBuffer(GLenum.GL_ARRAY_BUFFER, tangentBuffers, vertexCount * Vector3f.SIZE);
         }
 
         // Create tangent buffer.
+        m_VertexAttribs[ATT_COLOR] = new VertexAttrib();
         if(colorFormat != 0){
-            m_VertexAttribs[ATT_COLOR] = new VertexAttrib();
             m_VertexAttribs[ATT_COLOR].internalFormat = tangentFormat;
             m_VertexAttribs[ATT_COLOR].mVertexData = createBufferC(GLenum.GL_ARRAY_BUFFER, colorBuffers, vertexCount * Vector4f.SIZE);
         }
 
         // Create tangent buffer.
+        m_VertexAttribs[ATT_TEXCOORD] = new VertexAttrib();
         if(texcoordFormat != 0){
-            m_VertexAttribs[ATT_TEXCOORD] = new VertexAttrib();
             m_VertexAttribs[ATT_TEXCOORD].internalFormat = texcoordFormat;
 
             if(texcoordFormat == GLenum.GL_RGB32F){
@@ -285,6 +285,8 @@ public class AssimpMesh {
         }
 
         // fill the wieght buffers.
+        m_VertexAttribs[ATT_BONT_WEIGHT0] = new VertexAttrib();
+        m_VertexAttribs[ATT_BONT_WEIGHT1] = new VertexAttrib();
         if(maxWeight > 0){
             BufferGL[] results = createBuffer(meshes.get(0), paresedBones, maxWeight, vertexWeights);
 
