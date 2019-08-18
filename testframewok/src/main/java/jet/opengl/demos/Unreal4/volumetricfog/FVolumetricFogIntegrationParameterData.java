@@ -1,8 +1,6 @@
-package jet.opengl.demos.gpupro.volumetricfog;
+package jet.opengl.demos.Unreal4.volumetricfog;
 
 import org.lwjgl.util.vector.Vector4f;
-
-import java.util.ArrayList;
 
 import jet.opengl.postprocessing.texture.Texture3D;
 

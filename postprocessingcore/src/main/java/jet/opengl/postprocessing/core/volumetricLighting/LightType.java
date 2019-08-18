@@ -7,5 +7,7 @@ package jet.opengl.postprocessing.core.volumetricLighting;
 public enum LightType {
     DIRECTIONAL,
     SPOT,
-    POINT
+    POINT,
+
+    RECT,
 }

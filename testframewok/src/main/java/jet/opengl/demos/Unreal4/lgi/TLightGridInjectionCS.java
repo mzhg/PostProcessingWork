@@ -1,27 +1,30 @@
-package jet.opengl.demos.gpupro.volumetricfog;
+package jet.opengl.demos.Unreal4.lgi;
 
 import java.io.IOException;
 
+import jet.opengl.postprocessing.shader.GLSLException;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderLoader;
 import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
-import jet.opengl.postprocessing.util.CommonUtil;
 
-final class VolumetricFogFinalIntegrationCS extends GLSLProgram {
+final class TLightGridInjectionCS extends GLSLProgram {
 
-    VolumetricFogFinalIntegrationCS(String prefix, int threadSize){
+    TLightGridInjectionCS(String prefix, int threadGroupSize, boolean bLightLinkedListCulling){
         CharSequence source = null;
 
         try {
-            source = ShaderLoader.loadShaderFile(prefix + "FinalIntegrationCS.comp", false);
+            source = ShaderLoader.loadShaderFile(prefix + "LightGridInjectionCS.comp", false);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         ShaderSourceItem item = new ShaderSourceItem(source, ShaderType.COMPUTE);
-        item.macros = CommonUtil.toArray(new Macro("THREADGROUP_SIZE", threadSize));
+        item.macros = new Macro[]{
+                new Macro("THREADGROUP_SIZE", threadGroupSize),
+                new Macro("USE_LINKED_CULL_LIST", bLightLinkedListCulling?1:0),
+        };
         setSourceFromStrings(item);
     }
 }

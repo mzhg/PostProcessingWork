@@ -1,4 +1,4 @@
-package jet.opengl.demos.gpupro.volumetricfog;
+package jet.opengl.demos.Unreal4.volumetricfog;
 
 
 import org.lwjgl.util.vector.Matrix4f;
@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import jet.opengl.demos.Unreal4.UE4LightCollections;
+import jet.opengl.demos.Unreal4.UE4LightInfo;
 import jet.opengl.demos.intel.va.VaBoundingSphere;
 import jet.opengl.demos.nvidia.shadows.ShadowMapGenerator;
 import jet.opengl.postprocessing.common.Disposeable;
@@ -55,7 +57,7 @@ class VolumetricFog implements Disposeable {
 //    private InjectShadowedLocalLightProgram injectProg;
     private HashMap<FPermutationDomain, InjectShadowedLocalLightProgram> injectProgs = new HashMap<>();
     private HashMap<IntegratedKey, VolumetricFogLightScatteringCS> lightScatteringCS = new HashMap<>();
-    private List<LightInfo> m_localShadowedLights = new ArrayList<>();
+    private List<UE4LightInfo> m_localShadowedLights = new ArrayList<>();
 
     private VolumetricFogFinalIntegrationCS finalIntegrationCS;
     private VolumetricFogShadingProgram shadingProgram;
@@ -649,7 +651,7 @@ class VolumetricFog implements Disposeable {
             for (int LightIndex = 0; LightIndex < params.lightInfos.size(); LightIndex++)
             {
 //				const FLightSceneInfo* LightSceneInfo = LightsToInject[LightIndex];
-                LightInfo LightSceneInfo = params.lightInfos.get(LightIndex);
+                UE4LightInfo LightSceneInfo = params.lightInfos.get(LightIndex);
 //                FProjectedShadowInfo* ProjectedShadowInfo = GetShadowForInjectionIntoVolumetricFog(LightSceneInfo->Proxy, VisibleLightInfos[LightSceneInfo->Id]);
                 if(LightSceneInfo.shadowmap == null || LightSceneInfo.type == LightType.DIRECTIONAL)
                     continue;
@@ -967,7 +969,7 @@ class VolumetricFog implements Disposeable {
     }
 
     private InjectLocalLightParameters buildInjectLocalLightParameters(int lightIndex, FVolumetricFogIntegrationParameterData IntegrationData, int minZ){
-        final LightInfo light = this.params.lightInfos.get(lightIndex);
+        final UE4LightInfo light = this.params.lightInfos.get(lightIndex);
         final InjectLocalLightParameters params = injectLocalLightParams;
         float MaxSubjectZ = light.range;
         float MinSubjectZ = 0;
@@ -1007,7 +1009,7 @@ class VolumetricFog implements Disposeable {
     }
 
     private FDeferredLightData buildLightData(int lightIndex){
-        final LightInfo source = this.params.lightInfos.get(lightIndex);
+        final UE4LightInfo source = this.params.lightInfos.get(lightIndex);
 
         lightData.Position.set(source.position);
         lightData.InvRadius = 1.f/source.range;
@@ -1078,7 +1080,7 @@ class VolumetricFog implements Disposeable {
         int NumLocalLightsFinal = 0;
         boolean bDirectionLightHandled =false;
         for(int lightIndex = 0; lightIndex < params.lightInfos.size(); lightIndex++){
-            LightInfo light = params.lightInfos.get(lightIndex);
+            UE4LightInfo light = params.lightInfos.get(lightIndex);
             if(light.type == LightType.DIRECTIONAL){
                 if(bDirectionLightHandled)
                     throw new UnsupportedOperationException("Can't include the two direction light.");
@@ -1140,8 +1142,8 @@ class VolumetricFog implements Disposeable {
                 }*/
 
                 // Pack both values into a single float to keep float4 alignment
-                final short SourceLength16f = Numeric.convertFloatToHFloat(1); /*FFloat16(LightParameters.SourceLength)*/;
-                final short VolumetricScatteringIntensity16f = Numeric.convertFloatToHFloat(1); // FFloat16(VolumetricScatteringIntensity);
+                final short SourceLength16f = Numeric.convertFloatToHFloat(light.SourceLength); /*FFloat16(LightParameters.SourceLength)*/;
+                final short VolumetricScatteringIntensity16f = Numeric.convertFloatToHFloat(light.VolumetricScatteringIntensity); // FFloat16(VolumetricScatteringIntensity);
                 final int PackedWInt = Numeric.encode(SourceLength16f, VolumetricScatteringIntensity16f); //   ((uint32)SourceLength16f.Encoded) | ((uint32)VolumetricScatteringIntensity16f.Encoded << 16);
 //                SpotAnglesAndSourceRadiusPacked.W = *(float*)&PackedWInt;
                 SpotAnglesAndSourceRadiusPacked.w = Float.intBitsToFloat(PackedWInt);
@@ -1228,7 +1230,7 @@ class VolumetricFog implements Disposeable {
         }
     }
 
-    public static final class Params{
+    public static final class Params extends UE4LightCollections {
         public Texture2D sceneColor;
         public Texture2D sceneDepth;
         public TextureGL shadowMap;
@@ -1291,59 +1293,6 @@ class VolumetricFog implements Disposeable {
 
         public final Vector3f FogInscatteringColor = new Vector3f(0.0f, 0.427f,1f);
 
-        public void resetLights(){
-            lightInfos.clear();
-        }
 
-        public void addPointLight(ReadableVector3f position, float range, ReadableVector3f color, float intensity, Matrix4f[] view, Matrix4f proj, TextureGL shadowmap){
-            LightInfo info = new LightInfo();
-            info.color.set(color);
-            info.position.set(position);
-            info.type = LightType.POINT;
-            info.range = range;
-            info.intensity = intensity;
-            info.cubeViews = view;
-            info.proj = proj;
-            info.boundingSphere = new VaBoundingSphere(position, range);
-            info.shadowmap = shadowmap;
-
-            lightInfos.add(info);
-        }
-
-        public void addDirectionLight(ReadableVector3f dir, ReadableVector3f color, float intensity, Matrix4f view, Matrix4f proj, TextureGL shadowmap){
-            LightInfo info = new LightInfo();
-            info.color.set(color);
-            info.type = LightType.DIRECTIONAL;
-            info.direction.set(dir);
-            info.intensity = intensity;
-            info.view = view;
-            info.proj = proj;
-            BoundingBox box = new BoundingBox();
-            ShadowMapGenerator.calculateCameraViewBoundingBox(view, proj, box);
-            info.boundingSphere = new VaBoundingSphere(box.center(null), box.radius());
-            info.shadowmap = shadowmap;
-
-            lightInfos.add(info);
-        }
-
-        public void addSpotLight(ReadableVector3f position, float range,float outerAngle,
-                                 ReadableVector3f dir, ReadableVector3f color, float intensity, Matrix4f view, Matrix4f proj, TextureGL shadowmap){
-            LightInfo info = new LightInfo();
-            info.color.set(color);
-            info.position.set(position);
-            info.direction.set(dir);
-            info.spotAngle = outerAngle;
-            info.type = LightType.SPOT;
-            info.range = range;
-            info.intensity = intensity;
-            info.view = view;
-            info.proj = proj;
-            info.boundingSphere = new VaBoundingSphere(position, range);
-            info.shadowmap = shadowmap;
-
-            lightInfos.add(info);
-        }
-
-        private List<LightInfo> lightInfos = new ArrayList<>();
     }
 }

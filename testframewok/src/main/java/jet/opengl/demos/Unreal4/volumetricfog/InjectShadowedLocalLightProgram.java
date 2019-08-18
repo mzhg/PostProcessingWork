@@ -1,4 +1,4 @@
-package jet.opengl.demos.gpupro.volumetricfog;
+package jet.opengl.demos.Unreal4.volumetricfog;
 
 import java.io.IOException;
 

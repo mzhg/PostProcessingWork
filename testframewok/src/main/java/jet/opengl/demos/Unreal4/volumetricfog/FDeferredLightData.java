@@ -1,4 +1,4 @@
-package jet.opengl.demos.gpupro.volumetricfog;
+package jet.opengl.demos.Unreal4.volumetricfog;
 
 import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector2f;

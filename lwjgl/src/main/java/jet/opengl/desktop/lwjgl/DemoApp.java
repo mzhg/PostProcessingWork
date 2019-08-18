@@ -5,7 +5,6 @@ import com.nvidia.developer.opengl.app.NvEGLConfiguration;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
-import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Vector3f;
@@ -18,16 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import jet.opengl.demos.flight404.Flight404;
-import jet.opengl.demos.gpupro.ibl.IndirectLighting;
-import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
-import jet.opengl.demos.gpupro.volumetricfog.VolumetricFogDemo;
-import jet.opengl.demos.intel.avsm.AVSMDemo;
-import jet.opengl.demos.nvidia.fire.PerlinFire;
-import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
-import jet.opengl.demos.nvidia.volumelight.VolumetricLightingDemo;
-import jet.opengl.demos.postprocessing.LightingVolumeDemo;
-import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
+import jet.opengl.demos.Unreal4.volumetricfog.VolumetricFogDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
