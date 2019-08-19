@@ -9,6 +9,7 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector3i;
 import org.lwjgl.util.vector.Vector4f;
 
+import jet.opengl.demos.Unreal4.lgi.LightGridInjection;
 import jet.opengl.demos.scenes.Cube16;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -30,6 +31,9 @@ public class VolumetricFogDemo extends NvSampleApp {
     private boolean m_EnableVolumetricFog = true;
     private float m_intensity = 1;
     private final Vector3f m_scatteringColor = new Vector3f(1,1,1);
+
+    private LightGridInjection m_LightInjection;
+    private final LightGridInjection.Params m_LightParams = new LightGridInjection.Params();
 
     @Override
     protected void initRendering() {

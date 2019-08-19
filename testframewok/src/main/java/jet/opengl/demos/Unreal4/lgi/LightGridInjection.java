@@ -2,23 +2,50 @@ package jet.opengl.demos.Unreal4.lgi;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import javafx.scene.effect.Light;
 import jet.opengl.demos.Unreal4.FForwardLightData;
 import jet.opengl.demos.Unreal4.FForwardLocalLightData;
+import jet.opengl.demos.Unreal4.TextureBuffer;
+import jet.opengl.demos.Unreal4.UE4Engine;
 import jet.opengl.demos.Unreal4.UE4LightCollections;
 import jet.opengl.demos.Unreal4.UE4LightInfo;
+import jet.opengl.demos.Unreal4.UE4View;
 import jet.opengl.demos.intel.va.VaBoundingSphere;
+import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 import jet.opengl.postprocessing.texture.TextureGL;
+import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
 public class LightGridInjection {
 
+    private static final String SHADER_PATH = UE4Engine.SHADER_PATH + "LightGridInjection/";
+
     private static final int INDEX_NONE = -1;
+    int NumCulledLightsGridStride = 2;
+    int NumCulledGridPrimitiveTypes = 2;
+    int LightLinkStride = 2;
+
+    private static final int LightGridInjectionGroupSize = 4;
+
+    private final TextureBuffer CulledLightLinks = new TextureBuffer("CulledLightLinks");
+    private final TextureBuffer NextCulledLightLink = new TextureBuffer("NextCulledLightLink");
+    private final TextureBuffer StartOffsetGrid = new TextureBuffer("StartOffsetGrid");
+    private final TextureBuffer NextCulledLightData = new TextureBuffer("NextCulledLightData");
+
+    private FLightGridCompactCS mLightGridCompactCS;
+    private TLightGridInjectionCS mLightGridInjectionCS0;
+    private TLightGridInjectionCS mLightGridInjectionCS1;
+
+    private boolean m_printOnce;
 
     public static final class Params extends UE4LightCollections {
         /** "Size of a cell in the light grid, in pixels.  r.Forward.LightGridPixelSize" */
@@ -31,7 +58,7 @@ public class LightGridInjection {
         public int GMaxCulledLightsPerCell = 32;
 
         /** Uses a reverse linked list to store culled lights, removing the fixed limit on how many lights can affect a cell - it becomes a global limit instead. r.Forward.LightLinkedListCulling*/
-        public int GLightLinkedListCulling = 1;
+        public boolean GLightLinkedListCulling = true;
 
         /** Whether to run compute light culling pass. 0: off, 1: on (default), r.LightCulling.Quality */
         public boolean GLightCullingQuality = true;
@@ -39,14 +66,14 @@ public class LightGridInjection {
         public Matrix4f view;
         public Matrix4f proj;
 
+        public int ViewWidth, ViewHeight;
+
         public float cameraFar, cameraNear;
         public TextureGL shadowmap;
     }
 
     private Params mParams;
-    private final FForwardLightData ForwardLightData = new FForwardLightData(1);
-
-    public void computeLightGrid(Params params){
+    public void computeLightGrid(Params params, UE4View View){
         mParams = params;
 
 //        QUICK_SCOPE_CYCLE_COUNTER(STAT_ComputeLightGrid);
@@ -79,8 +106,8 @@ public class LightGridInjection {
 //        for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
         {
 //            FViewInfo& View = Views[ViewIndex];
-//            FForwardLightData& ForwardLightData = View.ForwardLightingResources->ForwardLightData;
-//            ForwardLightData = FForwardLightData();
+            FForwardLightData ForwardLightData = View.ForwardLightingResources.ForwardLightData;
+            ForwardLightData.reset();
 
 //            TArray<FForwardLocalLightData, SceneRenderingAllocator> ForwardLocalLightData;
             ArrayList<FForwardLocalLightData> ForwardLocalLightData = new ArrayList<>();
@@ -249,12 +276,276 @@ public class LightGridInjection {
                         }
                     }
                 }
+
+                /*
+                // Pack both values into a single float to keep float4 alignment
+				const FFloat16 SimpleLightSourceLength16f = FFloat16(0);
+                FLightingChannels SimpleLightLightingChannels;
+                // Put simple lights in all lighting channels
+                SimpleLightLightingChannels.bChannel0 = SimpleLightLightingChannels.bChannel1 = SimpleLightLightingChannels.bChannel2 = true;
+				const uint32 SimpleLightLightingChannelMask = GetLightingChannelMaskForStruct(SimpleLightLightingChannels);
+
+                for (int32 SimpleLightIndex = 0; SimpleLightIndex < SimpleLights.InstanceData.Num(); SimpleLightIndex++)
+                {
+                    ForwardLocalLightData.AddUninitialized(1);
+                    FForwardLocalLightData& LightData = ForwardLocalLightData.Last();
+
+					const FSimpleLightEntry& SimpleLight = SimpleLights.InstanceData[SimpleLightIndex];
+					const FSimpleLightPerViewEntry& SimpleLightPerViewData = SimpleLights.GetViewDependentData(SimpleLightIndex, ViewIndex, Views.Num());
+                    LightData.LightPositionAndInvRadius = FVector4(SimpleLightPerViewData.Position, 1.0f / FMath::Max(SimpleLight.Radius, KINDA_SMALL_NUMBER));
+                    LightData.LightColorAndFalloffExponent = FVector4(SimpleLight.Color, SimpleLight.Exponent);
+
+                    // No shadowmap channels for simple lights
+                    uint32 ShadowMapChannelMask = 0;
+                    ShadowMapChannelMask |= SimpleLightLightingChannelMask << 8;
+
+                    LightData.LightDirectionAndShadowMapChannelMask = FVector4(FVector(1, 0, 0), *((float*)&ShadowMapChannelMask));
+
+                    // Pack both values into a single float to keep float4 alignment
+					const FFloat16 VolumetricScatteringIntensity16f = FFloat16(SimpleLight.VolumetricScatteringIntensity);
+					const uint32 PackedWInt = ((uint32)SimpleLightSourceLength16f.Encoded) | ((uint32)VolumetricScatteringIntensity16f.Encoded << 16);
+
+                    LightData.SpotAnglesAndSourceRadiusPacked = FVector4(-2, 1, 0, *(float*)&PackedWInt);
+                    LightData.LightTangentAndSoftSourceRadius = FVector4(1.0f, 0.0f, 0.0f, 0.0f);
+                }*/
             }
+
+            // Store off the number of lights before we add a fake entry
+			final int NumLocalLightsFinal = ForwardLocalLightData.size();
+
+            if (ForwardLocalLightData.size() == 0)
+            {
+                // Make sure the buffer gets created even though we're not going to read from it in the shader, for platforms like PS4 that assert on null resources being bound
+                ForwardLocalLightData.add(new FForwardLocalLightData());
+            }
+
+            { // TODO Create and fill the ForwardLocalLightData
+				final int NumBytesRequired = ForwardLocalLightData.size() * ForwardLocalLightData.get(0).sizeInBytes();
+
+                if (View.ForwardLightingResources.ForwardLocalLightBuffer.NumBytes < NumBytesRequired)
+                {
+                    View.ForwardLightingResources.ForwardLocalLightBuffer.Release();
+                    View.ForwardLightingResources.ForwardLocalLightBuffer.Initialize(Vector4f.SIZE, NumBytesRequired / Vector4f.SIZE, GLenum.GL_RGBA32F, UE4Engine.BUF_Volatile);
+                }
+
+                ForwardLightData.ForwardLocalLightBuffer = View.ForwardLightingResources.ForwardLocalLightBuffer;
+//                View.ForwardLightingResources.ForwardLocalLightBuffer.Lock();  TODO
+//                FPlatformMemory::Memcpy(View.ForwardLightingResources->ForwardLocalLightBuffer.MappedBuffer, ForwardLocalLightData.GetData(), ForwardLocalLightData.Num() * ForwardLocalLightData.GetTypeSize());
+//                View.ForwardLightingResources.ForwardLocalLightBuffer.Unlock();
+            }
+
+//			const FIntPoint LightGridSizeXY = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), GLightGridPixelSize);
+            final int LightGridSizeX = Numeric.divideAndRoundUp(mParams.ViewWidth, mParams.GLightGridPixelSize);
+            final int LightGridSizeY = Numeric.divideAndRoundUp(mParams.ViewHeight, mParams.GLightGridPixelSize);
+            ForwardLightData.NumLocalLights = NumLocalLightsFinal;
+            ForwardLightData.NumReflectionCaptures = 0; //View.NumBoxReflectionCaptures + View.NumSphereReflectionCaptures;
+            ForwardLightData.NumGridCells = LightGridSizeX * LightGridSizeY * mParams.GLightGridSizeZ;
+            ForwardLightData.CulledGridSize.set(LightGridSizeX, LightGridSizeY, mParams.GLightGridSizeZ);
+            ForwardLightData.MaxCulledLightsPerCell = mParams.GMaxCulledLightsPerCell;
+            ForwardLightData.LightGridPixelSizeShift = (int)Numeric.log2(mParams.GLightGridPixelSize);
+
+            // Clamp far plane to something reasonable
+            float FarPlane = Math.min(Math.max(FurthestLight, View.FurthestReflectionCaptureDistance), UE4Engine.HALF_WORLD_MAX / 5.0f);
+            Vector3f ZParams = GetLightGridZParams(View.NearClippingDistance, FarPlane + 10.f);
+            ForwardLightData.LightGridZParams.set(ZParams);
+
+			final long NumIndexableLights = 2048; //CHANGE_LIGHTINDEXTYPE_SIZE && !bAllowFormatConversion ? (1llu << (sizeof(FLightIndexType32) * 8llu)) : (1llu << (sizeof(FLightIndexType) * 8llu));
+
+            if (ForwardLocalLightData.size() > NumIndexableLights)
+            {
+                /*static bool bWarned = false;
+                if (!bWarned)
+                {
+                    UE_LOG(LogRenderer, Warning, TEXT("Exceeded indexable light count, glitches will be visible (%u / %llu)"), ForwardLocalLightData.Num(), NumIndexableLights);
+                    bWarned = true;
+                }*/
+
+                LogUtil.i(LogUtil.LogType.DEFAULT, String.format("Exceeded indexable light count, glitches will be visible (%d / %d)", ForwardLocalLightData.size(), (int)NumIndexableLights));
+            }
+
+        }
+
+        final int PF_R32_UINT = GLenum.GL_R32UI;
+        final int PF_R16_UINT = GLenum.GL_R16UI;
+
+        //            const SIZE_T LightIndexTypeSize = CHANGE_LIGHTINDEXTYPE_SIZE && !bAllowFormatConversion ? sizeof(FLightIndexType32) : sizeof(FLightIndexType);
+        final int LightIndexTypeSize = 4;
+
+//       for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+        {
+//                FViewInfo& View = Views[ViewIndex];
+            FForwardLightData ForwardLightData = View.ForwardLightingResources.ForwardLightData;
+
+//            const FIntPoint LightGridSizeXY = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), GLightGridPixelSize);
+            final int LightGridSizeX = Numeric.divideAndRoundUp(View.ViewRect.width, mParams.GLightGridPixelSize);
+            final int LightGridSizeY = Numeric.divideAndRoundUp(View.ViewRect.height, mParams.GLightGridPixelSize);
+
+            final int NumCells = LightGridSizeX * LightGridSizeY * mParams.GLightGridSizeZ * NumCulledGridPrimitiveTypes;
+
+            if (View.ForwardLightingResources.NumCulledLightsGrid.NumBytes != NumCells * NumCulledLightsGridStride * 4/*sizeof(uint32)*/)
+            {
+//                UE_CLOG(NumCells * NumCulledLightsGridStride * sizeof(uint32) > 256llu * (1llu << 20llu), LogRenderer, Warning,
+//                        TEXT("Attempt to allocate large FRWBuffer (not supported by Metal): View.ForwardLightingResources->NumCulledLightsGrid %u Bytes, LightGridSize %dx%dx%d, NumCulledGridPrimitiveTypes %d, NumCells %d, NumCulledLightsGridStride %d, View Resolution %dx%d"),
+//                        NumCells * NumCulledLightsGridStride * sizeof(uint32), LightGridSizeXY.X, LightGridSizeXY.Y, GLightGridSizeZ, NumCulledGridPrimitiveTypes, NumCells, NumCulledLightsGridStride, View.ViewRect.Size().X, View.ViewRect.Size().Y);
+
+                View.ForwardLightingResources.NumCulledLightsGrid.Initialize(/*sizeof(uint32)*/4, NumCells * NumCulledLightsGridStride, PF_R32_UINT);
+            }
+
+            if (View.ForwardLightingResources.CulledLightDataGrid.NumBytes != NumCells *mParams.GMaxCulledLightsPerCell  * LightIndexTypeSize)
+            {
+//                UE_CLOG(NumCells * GMaxCulledLightsPerCell * sizeof(FLightIndexType) > 256llu * (1llu << 20llu), LogRenderer, Warning,
+//                        TEXT("Attempt to allocate large FRWBuffer (not supported by Metal): View.ForwardLightingResources->CulledLightDataGrid %u Bytes, LightGridSize %dx%dx%d, NumCulledGridPrimitiveTypes %d, NumCells %d, GMaxCulledLightsPerCell %d, View Resolution %dx%d"),
+//                        NumCells * GMaxCulledLightsPerCell * sizeof(FLightIndexType), LightGridSizeXY.X, LightGridSizeXY.Y, GLightGridSizeZ, NumCulledGridPrimitiveTypes, NumCells, GMaxCulledLightsPerCell, View.ViewRect.Size().X, View.ViewRect.Size().Y);
+
+                View.ForwardLightingResources.CulledLightDataGrid.Initialize(LightIndexTypeSize, NumCells * mParams.GMaxCulledLightsPerCell, LightIndexTypeSize == 2 ? PF_R16_UINT : PF_R32_UINT);
+            }
+
+//            final boolean bShouldCacheTemporaryBuffers = View.ViewState != nullptr;
+//            FForwardLightingCullingResources LocalCullingResources;
+//            FForwardLightingCullingResources& ForwardLightingCullingResources = bShouldCacheTemporaryBuffers ? View.ViewState->ForwardLightingCullingResources : LocalCullingResources;
+
+            final int CulledLightLinksElements = NumCells * mParams.GMaxCulledLightsPerCell * LightLinkStride;
+            if (CulledLightLinks.NumBytes != (CulledLightLinksElements * /*sizeof(uint32)*/4)
+                    || (/*GFastVRamConfig.bDirty &&*/ CulledLightLinks.NumBytes > 0))
+            {
+//                UE_CLOG(CulledLightLinksElements * sizeof(uint32) > 256llu * (1llu << 20llu), LogRenderer, Warning,
+//                        TEXT("Attempt to allocate large FRWBuffer (not supported by Metal): ForwardLightingCullingResources.CulledLightLinks %u Bytes, LightGridSize %dx%dx%d, NumCulledGridPrimitiveTypes %d, NumCells %d, GMaxCulledLightsPerCell %d, LightLinkStride %d, View Resolution %dx%d"),
+//                        CulledLightLinksElements * sizeof(uint32), LightGridSizeXY.X, LightGridSizeXY.Y, GLightGridSizeZ, NumCulledGridPrimitiveTypes, NumCells, GMaxCulledLightsPerCell, LightLinkStride, View.ViewRect.Size().X, View.ViewRect.Size().Y);
+
+				final int FastVRamFlag = 0; //GFastVRamConfig.ForwardLightingCullingResources | (IsTransientResourceBufferAliasingEnabled() ? BUF_Transient : BUF_None);
+                CulledLightLinks.Initialize(/*sizeof(uint32)*/4, CulledLightLinksElements, PF_R32_UINT, FastVRamFlag);
+                NextCulledLightLink.Initialize(/*sizeof(uint32)*/4, 1, PF_R32_UINT, FastVRamFlag);
+                StartOffsetGrid.Initialize(/*sizeof(uint32)*/4, NumCells, PF_R32_UINT, FastVRamFlag);
+                NextCulledLightData.Initialize(/*sizeof(uint32)*/4, 1, PF_R32_UINT, FastVRamFlag);
+            }
+
+            ForwardLightData.NumCulledLightsGrid = View.ForwardLightingResources.NumCulledLightsGrid;
+            ForwardLightData.CulledLightDataGrid = View.ForwardLightingResources.CulledLightDataGrid;
+
+            // TODO
+//            View.ForwardLightingResources.ForwardLightDataUniformBuffer = TUniformBufferRef<FForwardLightData>::CreateUniformBufferImmediate(ForwardLightData, UniformBuffer_SingleFrame);
+
+            /*if (IsTransientResourceBufferAliasingEnabled())
+            {
+                // Acquire resources
+                ForwardLightingCullingResources.CulledLightLinks.AcquireTransientResource();
+                ForwardLightingCullingResources.NextCulledLightLink.AcquireTransientResource();
+                ForwardLightingCullingResources.StartOffsetGrid.AcquireTransientResource();
+                ForwardLightingCullingResources.NextCulledLightData.AcquireTransientResource();
+            }*/
+
+//            const FIntVector NumGroups = FIntVector::DivideAndRoundUp(FIntVector(LightGridSizeXY.X, LightGridSizeXY.Y, GLightGridSizeZ), LightGridInjectionGroupSize);
+            final int NumGroupX = Numeric.divideAndRoundUp(LightGridSizeX, LightGridInjectionGroupSize);
+            final int NumGroupY = Numeric.divideAndRoundUp(LightGridSizeY, LightGridInjectionGroupSize);
+            final int NumGroupZ = Numeric.divideAndRoundUp(mParams.GLightGridSizeZ, LightGridInjectionGroupSize);
+
+            GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+
+            {
+                /*SCOPED_DRAW_EVENTF(RHICmdList, CullLights, TEXT("CullLights %ux%ux%u NumLights %u NumCaptures %u"),
+                        ForwardLightData.CulledGridSize.X,
+                        ForwardLightData.CulledGridSize.Y,
+                        ForwardLightData.CulledGridSize.Z,
+                        ForwardLightData.NumLocalLights,
+                        ForwardLightData.NumReflectionCaptures);*/
+
+                /*TArray<FUnorderedAccessViewRHIParamRef, TInlineAllocator<6>> OutUAVs;  todo UVAs
+                OutUAVs.Add(View.ForwardLightingResources->NumCulledLightsGrid.UAV);
+                OutUAVs.Add(View.ForwardLightingResources->CulledLightDataGrid.UAV);
+                OutUAVs.Add(ForwardLightingCullingResources.NextCulledLightLink.UAV);
+                OutUAVs.Add(ForwardLightingCullingResources.StartOffsetGrid.UAV);
+                OutUAVs.Add(ForwardLightingCullingResources.CulledLightLinks.UAV);
+                OutUAVs.Add(ForwardLightingCullingResources.NextCulledLightData.UAV);
+                RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EGfxToCompute, OutUAVs.GetData(), OutUAVs.Num());*/
+
+                if (mParams.GLightLinkedListCulling)
+                {
+//                    ClearUAV(RHICmdList, ForwardLightingCullingResources.StartOffsetGrid, 0xFFFFFFFF);
+//                    ClearUAV(RHICmdList, ForwardLightingCullingResources.NextCulledLightLink, 0);
+//                    ClearUAV(RHICmdList, ForwardLightingCullingResources.NextCulledLightData, 0);
+
+                    gl.glClearNamedBufferData(StartOffsetGrid.getBuffer(), StartOffsetGrid.InternalFormat, GLenum.GL_UNSIGNED_INT, GLenum.GL_RED, CacheBuffer.wrap(0xFFFFFFFF));
+                    gl.glClearNamedBufferData(NextCulledLightLink.getBuffer(), NextCulledLightLink.InternalFormat, GLenum.GL_UNSIGNED_INT, GLenum.GL_RED, null);
+                    gl.glClearNamedBufferData(NextCulledLightData.getBuffer(), NextCulledLightData.InternalFormat, GLenum.GL_UNSIGNED_INT, GLenum.GL_RED, null);
+
+                    /*TShaderMapRef<TLightGridInjectionCS<true> > ComputeShader(View.ShaderMap);
+                    RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+                    ComputeShader->SetParameters(RHICmdList, View, ForwardLightingCullingResources);
+                    DispatchComputeShader(RHICmdList, *ComputeShader, NumGroups.X, NumGroups.Y, NumGroups.Z);
+                    ComputeShader->UnsetParameters(RHICmdList, View, ForwardLightingCullingResources);*/
+                    //TODO Shader and parameters.
+                    if(mLightGridInjectionCS1 == null){
+                        mLightGridInjectionCS1 = new TLightGridInjectionCS(SHADER_PATH, LightGridInjectionGroupSize, true);
+                        mLightGridInjectionCS1.setName("LightGridInjectionCS1");
+                    }
+                    mLightGridInjectionCS1.enable();
+                    gl.glDispatchCompute(NumGroupX, NumGroupY, NumGroupZ);
+
+                    if(!m_printOnce)
+                        mLightGridInjectionCS1.printPrograminfo();
+                }
+                else
+                {
+//                    ClearUAV(RHICmdList, View.ForwardLightingResources->NumCulledLightsGrid, 0);
+
+                    gl.glClearNamedBufferData(NextCulledLightData.getBuffer(), NextCulledLightData.InternalFormat, GLenum.GL_UNSIGNED_INT, GLenum.GL_RED, null);
+                   /* TShaderMapRef<TLightGridInjectionCS<false> > ComputeShader(View.ShaderMap);
+                    RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+                    ComputeShader->SetParameters(RHICmdList, View, ForwardLightingCullingResources);
+                    DispatchComputeShader(RHICmdList, *ComputeShader, NumGroups.X, NumGroups.Y, NumGroups.Z);
+                    ComputeShader->UnsetParameters(RHICmdList, View, ForwardLightingCullingResources);*/
+
+                    if(mLightGridInjectionCS0 == null){
+                        mLightGridInjectionCS0 = new TLightGridInjectionCS(SHADER_PATH, LightGridInjectionGroupSize, false);
+                        mLightGridInjectionCS0.setName("LightGridInjectionCS0");
+                    }
+                    mLightGridInjectionCS0.enable();
+
+                    //TODO Shader and parameters.
+                    gl.glDispatchCompute(NumGroupX, NumGroupY, NumGroupZ);
+
+                    if(!m_printOnce)
+                        mLightGridInjectionCS0.printPrograminfo();
+                }
+            }
+
+            if (mParams.GLightLinkedListCulling) {
+//                SCOPED_DRAW_EVENT(RHICmdList, Compact);
+
+                /*TShaderMapRef<FLightGridCompactCS> ComputeShader(View.ShaderMap);
+                RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+                ComputeShader->SetParameters(RHICmdList, View, ForwardLightingCullingResources);
+                DispatchComputeShader(RHICmdList, *ComputeShader, NumGroups.X, NumGroups.Y, NumGroups.Z);
+                ComputeShader->UnsetParameters(RHICmdList, View, ForwardLightingCullingResources);*/
+                if(mLightGridCompactCS == null){
+                    mLightGridCompactCS = new FLightGridCompactCS(SHADER_PATH, LightGridInjectionGroupSize, UE4Engine.GMaxNumReflectionCaptures);
+                    mLightGridCompactCS.setName("LightGridCompactCS");
+                }
+
+                mLightGridCompactCS.enable();
+                //TODO Shader and parameters.
+                gl.glDispatchCompute(NumGroupX, NumGroupY, NumGroupZ);
+
+                if(!m_printOnce)
+                    mLightGridCompactCS.printPrograminfo();
+            }
+
+            /*if (IsTransientResourceBufferAliasingEnabled())
+            {
+                ForwardLightingCullingResources.CulledLightLinks.DiscardTransientResource();
+                ForwardLightingCullingResources.NextCulledLightLink.DiscardTransientResource();
+                ForwardLightingCullingResources.StartOffsetGrid.DiscardTransientResource();
+                ForwardLightingCullingResources.NextCulledLightData.DiscardTransientResource();
+            }*/
+        }
+
+        if(!m_printOnce){
+            GLCheck.checkError();
+            m_printOnce = true;
         }
     }
 
-    private Vector3f GetLightGridZParams(float NearPlane, float FarPlane)
-    {
+    private Vector3f GetLightGridZParams(float NearPlane, float FarPlane) {
         // S = distribution scale
         // B, O are solved for given the z distances of the first+last slice, and the # of slices.
         //

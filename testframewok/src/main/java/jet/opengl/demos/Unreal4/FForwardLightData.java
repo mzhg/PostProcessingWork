@@ -27,7 +27,7 @@ public class FForwardLightData implements Readable {
     public final Vector3i CulledGridSize = new Vector3i();
     public int LightGridPixelSizeShift;
 
-    public final Vector4f[] ForwardLocalLightBuffer = new Vector4f[10];
+//    public final Vector4f[] ForwardLocalLightBuffer = new Vector4f[10];
 
     public boolean HasDirectionalLight;
     public boolean DirectionalLightUseStaticShadowing;
@@ -41,6 +41,14 @@ public class FForwardLightData implements Readable {
     public int DirectionalLightShadowMapChannelMask;
     public final int size;
 
+    public int NumGridCells;
+    public int MaxCulledLightsPerCell;
+    public int NumReflectionCaptures;
+
+    public TextureBuffer ForwardLocalLightBuffer;
+    public TextureBuffer NumCulledLightsGrid;
+    public TextureBuffer CulledLightDataGrid;
+
     public FForwardLightData(int numCascade){
         this.NumDirectionalLightCascades = numCascade;
 
@@ -52,11 +60,15 @@ public class FForwardLightData implements Readable {
             DirectionalLightShadowmapMinMax[i] = new Vector4f();
         }
 
-        size = Vector4f.SIZE * (numCascade+19)+Matrix4f.SIZE * (numCascade+1);
+        size = Vector4f.SIZE * (numCascade+19 - 10)+Matrix4f.SIZE * (numCascade+1);
 
-        for(int i = 0; i < ForwardLocalLightBuffer.length; i++){
-            ForwardLocalLightBuffer[i] = new Vector4f();
-        }
+//        for(int i = 0; i < ForwardLocalLightBuffer.length; i++){
+//            ForwardLocalLightBuffer[i] = new Vector4f();
+//        }
+    }
+
+    public void reset(){
+
     }
 
     @Override
@@ -72,7 +84,7 @@ public class FForwardLightData implements Readable {
         buf.putFloat(DirectionalLightDepthBias);
         CulledGridSize.store(buf);
         buf.putInt(LightGridPixelSizeShift);
-        CacheBuffer.put(buf, ForwardLocalLightBuffer);
+//        CacheBuffer.put(buf, ForwardLocalLightBuffer);
         buf.putInt(HasDirectionalLight?1:0);
         buf.putInt(DirectionalLightUseStaticShadowing?1:0);
         buf.putInt(NumDirectionalLightCascades);
@@ -88,7 +100,7 @@ public class FForwardLightData implements Readable {
         return buf;
     }
 
-    public final int size(){
+    public final int sizeInBytes(){
         return size;
     }
 }

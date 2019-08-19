@@ -16,8 +16,7 @@ struct UE4View
     float4x4 TranslatedWorldToView;
     float4 ViewSizeAndInvSize;
     float3 PreViewTranslation;
-
-}
+};
 
 layout(binding = 0) uniform ViewBuffer
 {

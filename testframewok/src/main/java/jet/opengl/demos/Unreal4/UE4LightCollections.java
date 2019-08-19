@@ -17,6 +17,13 @@ public class UE4LightCollections {
         lightInfos.clear();
     }
 
+    public void load(UE4LightCollections ohs){
+        if(this == ohs) return;
+
+        lightInfos.clear();
+        lightInfos.addAll(ohs.lightInfos);
+    }
+
     public void addPointLight(ReadableVector3f position, float range, ReadableVector3f color, float intensity, Matrix4f[] view, Matrix4f proj, TextureGL shadowmap){
         UE4LightInfo info = new UE4LightInfo();
         info.color.set(color);
