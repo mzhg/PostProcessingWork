@@ -1,11 +1,14 @@
 #include "Common.glsl"
 
-layout(binding = 0, r16ui) uniform imageBuffer RWNumCulledLightsGrid;
-layout(binding = 1, r16ui) uniform imageBuffer RWCulledLightDataGrid;
+//layout(binding = 2, r16ui) uniform uimageBuffer RWNextCulledLightLink;
+layout(binding = 2) uniform atomic_uint RWNextCulledLightLink;
 
-layout(binding = 2, r16ui) uniform imageBuffer RWNextCulledLightLink;
-layout(binding = 3, r16ui) uniform imageBuffer RWStartOffsetGrid;
-layout(binding = 4, r16ui) uniform imageBuffer RWCulledLightLinks;
+layout(binding = 3, r32ui) uniform uimageBuffer RWStartOffsetGrid;
+layout(binding = 4, rg16ui) uniform uimageBuffer RWCulledLightLinks;
+
+#ifndef USE_LINKED_CULL_LIST
+#error "Not declare the macro 'USE_LINKED_CULL_LIST'"
+#endif
 
 float ComputeDepthFromZSlice(uint ZSlice)
 {
@@ -41,16 +44,16 @@ void ComputeCellViewAABB(uint3 GridCoordinate, out float3 ViewTileMin, out float
 	float2 UnitPlaneTileMin = GridCoordinate.xy * TileSize + UnitPlaneMin;
 	float2 UnitPlaneTileMax = (GridCoordinate.xy + 1) * TileSize + UnitPlaneMin;
 
-	float MinTileZ = ComputeDepthFromZSlice(GridCoordinate.z);
-	float MaxTileZ = ComputeDepthFromZSlice(GridCoordinate.z + 1);
+	float MaxTileZ = -ComputeDepthFromZSlice(GridCoordinate.z);
+	float MinTileZ  = -ComputeDepthFromZSlice(GridCoordinate.z + 1);
 
-	float MinTileDeviceZ = ConvertToDeviceZ(-MinTileZ);
+	float MinTileDeviceZ = ConvertToDeviceZ(MinTileZ);
 	float4 MinDepthCorner0 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MinTileDeviceZ, 1), View.ClipToView);
 	float4 MinDepthCorner1 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MinTileDeviceZ, 1), View.ClipToView);
 	float4 MinDepthCorner2 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMax.y, MinTileDeviceZ, 1), View.ClipToView);
 	float4 MinDepthCorner3 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMin.y, MinTileDeviceZ, 1), View.ClipToView);
 
-	float MaxTileDeviceZ = ConvertToDeviceZ(-MaxTileZ);
+	float MaxTileDeviceZ = ConvertToDeviceZ(MaxTileZ);
 	float4 MaxDepthCorner0 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MaxTileDeviceZ, 1), View.ClipToView);
 	float4 MaxDepthCorner1 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MaxTileDeviceZ, 1), View.ClipToView);
 	float4 MaxDepthCorner2 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMax.y, MaxTileDeviceZ, 1), View.ClipToView);
@@ -132,18 +135,18 @@ void main()
 		for (uint LocalLightIndex = 0; LocalLightIndex < ForwardLightData.NumLocalLights; LocalLightIndex++)
 		{
 			uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
-			float4 LightPositionAndInvRadius = ForwardLightData.ForwardLocalLightBuffer[LocalLightBaseIndex + 0];
+			float4 LightPositionAndInvRadius = ForwardLocalLightBuffer[LocalLightBaseIndex + 0];
 			float LightRadius = 1.0f / LightPositionAndInvRadius.w;
 			bool bPassSpotlightTest = true;
 
 			#define REFINE_SPOTLIGHT_BOUNDS 1
 			#if REFINE_SPOTLIGHT_BOUNDS
-				float CosOuterCone = ForwardLightData.ForwardLocalLightBuffer[LocalLightBaseIndex + 3].x;
+				float CosOuterCone = ForwardLocalLightBuffer[LocalLightBaseIndex + 3].x;
 
 				if (CosOuterCone > -2.0f)
 				{
 					float2 CosSinAngle = float2(CosOuterCone, sqrt(1 - CosOuterCone * CosOuterCone));
-					float3 LightDirection = ForwardLightData.ForwardLocalLightBuffer[LocalLightBaseIndex + 2].xyz;
+					float3 LightDirection = ForwardLocalLightBuffer[LocalLightBaseIndex + 2].xyz;
 
 					bPassSpotlightTest = IntersectConeWithSphere(LightPositionAndInvRadius.xyz, LightDirection, LightRadius, CosSinAngle, WorldTileBoundingSphere);
 
@@ -170,14 +173,18 @@ void main()
 			{
 				#if USE_LINKED_CULL_LIST
 					uint NextLink;
-					InterlockedAdd(RWNextCulledLightLink[0], 1U, NextLink);
+//					InterlockedAdd(RWNextCulledLightLink[0], 1U, NextLink);
+					NextLink = atomicCounterIncrement(RWNextCulledLightLink);
 
 					if (NextLink < NumAvailableLinks)
 					{
 						uint PreviousLink;
-						InterlockedExchange(RWStartOffsetGrid[GridIndex], NextLink, PreviousLink);
-						RWCulledLightLinks[NextLink * LIGHT_LINK_STRIDE + 0] = LocalLightIndex;
-						RWCulledLightLinks[NextLink * LIGHT_LINK_STRIDE + 1] = PreviousLink;
+//						InterlockedExchange(RWStartOffsetGrid[GridIndex], NextLink, PreviousLink);
+						PreviousLink = imageAtomicExchange(RWStartOffsetGrid, int(GridIndex), NextLink);
+//						RWCulledLightLinks[NextLink * LIGHT_LINK_STRIDE + 0] = LocalLightIndex;
+//						RWCulledLightLinks[NextLink * LIGHT_LINK_STRIDE + 1] = PreviousLink;
+						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 0), uint4(LocalLightIndex, 0, 0, 0));
+						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 1), uint4(PreviousLink, 0, 0, 0));
 					}
 
 				#else
@@ -205,14 +212,18 @@ void main()
 			{
 				#if USE_LINKED_CULL_LIST
 					uint NextLink;
-					InterlockedAdd(RWNextCulledLightLink[0], 1U, NextLink);
+//					InterlockedAdd(RWNextCulledLightLink[0], 1U, NextLink);
+					NextLink = atomicCounterIncrement(RWNextCulledLightLink);
 
 					if (NextLink < NumAvailableLinks)
 					{
 						uint PreviousLink;
-						InterlockedExchange(RWStartOffsetGrid[ForwardLightData.NumGridCells + GridIndex], NextLink, PreviousLink);
-						RWCulledLightLinks[NextLink * LIGHT_LINK_STRIDE + 0] = ReflectionCaptureIndex;
-						RWCulledLightLinks[NextLink * LIGHT_LINK_STRIDE + 1] = PreviousLink;
+//						InterlockedExchange(RWStartOffsetGrid[ForwardLightData.NumGridCells + GridIndex], NextLink, PreviousLink);
+						PreviousLink = imageAtomicExchange(RWStartOffsetGrid, int(ForwardLightData.NumGridCells + GridIndex), NextLink);
+//						RWCulledLightLinks[NextLink * LIGHT_LINK_STRIDE + 0] = ReflectionCaptureIndex;
+//						RWCulledLightLinks[NextLink * LIGHT_LINK_STRIDE + 1] = PreviousLink;
+						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 0), uint4(ReflectionCaptureIndex, 0, 0, 0));
+						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 1), uint4(PreviousLink, 0, 0, 0));
 					}
 
 				#else
@@ -227,7 +238,7 @@ void main()
 				#endif
 			}
 		}
-#else
+#else   // CULL_LIGHTS
 
 //		LOOP
 		for (uint LocalLightIndex = 0; LocalLightIndex < ForwardLightData.NumLocalLights; LocalLightIndex++)

@@ -1,7 +1,10 @@
 package jet.opengl.demos.Unreal4.lgi;
 
+import org.lwjgl.util.vector.Vector4f;
+
 import java.io.IOException;
 
+import jet.opengl.demos.Unreal4.FForwardLocalLightData;
 import jet.opengl.postprocessing.shader.GLSLException;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
@@ -24,6 +27,9 @@ final class TLightGridInjectionCS extends GLSLProgram {
         item.macros = new Macro[]{
                 new Macro("THREADGROUP_SIZE", threadGroupSize),
                 new Macro("USE_LINKED_CULL_LIST", bLightLinkedListCulling?1:0),
+                new Macro("LOCAL_LIGHT_DATA_STRIDE", FForwardLocalLightData.SIZE/ Vector4f.SIZE),
+                new Macro("LIGHT_LINK_STRIDE", 2),
+
         };
         setSourceFromStrings(item);
     }

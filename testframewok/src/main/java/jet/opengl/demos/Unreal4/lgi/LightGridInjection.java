@@ -63,12 +63,6 @@ public class LightGridInjection {
         /** Whether to run compute light culling pass. 0: off, 1: on (default), r.LightCulling.Quality */
         public boolean GLightCullingQuality = true;
 
-        public Matrix4f view;
-        public Matrix4f proj;
-
-        public int ViewWidth, ViewHeight;
-
-        public float cameraFar, cameraNear;
         public TextureGL shadowmap;
     }
 
@@ -211,7 +205,7 @@ public class LightGridInjection {
 
                             VaBoundingSphere  BoundingSphere = LightSceneInfoCompact.boundingSphere; // LightProxy -> GetBoundingSphere();
                             final float Distance = //View.ViewMatrices.GetViewMatrix().TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
-                                    -(params.view.m02 * BoundingSphere.Center.x + params.view.m12 * BoundingSphere.Center.y + params.view.m22 * BoundingSphere.Center.y) + BoundingSphere.Radius;
+                                    -(View.ViewMatrix.m02 * BoundingSphere.Center.x + View.ViewMatrix.m12 * BoundingSphere.Center.y + View.ViewMatrix.m22 * BoundingSphere.Center.y) + BoundingSphere.Radius;
 
                             FurthestLight = Math.max (FurthestLight, Distance);
                         } else if (LightSceneInfoCompact.type == LightType.DIRECTIONAL /*&& ViewFamily.EngineShowFlags.DirectionalLights*/) {
@@ -232,7 +226,7 @@ public class LightGridInjection {
 
                                 ForwardLightData.NumDirectionalLightCascades = 1;
                                 Matrix4f.mul(LightSceneInfoCompact.proj, LightSceneInfoCompact.view, ForwardLightData.DirectionalLightWorldToShadowMatrix[0]);
-                                ForwardLightData.CascadeEndDepths[0] = mParams.cameraFar;
+                                ForwardLightData.CascadeEndDepths[0] = View.FarClippingDistance;
                                 ForwardLightData.DirectionalLightShadowmapMinMax[0].set(0,0,1,1);
 
 //                result.DirectionalLightShadowmapAtlas = ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
@@ -335,8 +329,8 @@ public class LightGridInjection {
             }
 
 //			const FIntPoint LightGridSizeXY = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), GLightGridPixelSize);
-            final int LightGridSizeX = Numeric.divideAndRoundUp(mParams.ViewWidth, mParams.GLightGridPixelSize);
-            final int LightGridSizeY = Numeric.divideAndRoundUp(mParams.ViewHeight, mParams.GLightGridPixelSize);
+            final int LightGridSizeX = Numeric.divideAndRoundUp(View.ViewRect.width, mParams.GLightGridPixelSize);
+            final int LightGridSizeY = Numeric.divideAndRoundUp(View.ViewRect.height, mParams.GLightGridPixelSize);
             ForwardLightData.NumLocalLights = NumLocalLightsFinal;
             ForwardLightData.NumReflectionCaptures = 0; //View.NumBoxReflectionCaptures + View.NumSphereReflectionCaptures;
             ForwardLightData.NumGridCells = LightGridSizeX * LightGridSizeY * mParams.GLightGridSizeZ;
@@ -463,10 +457,10 @@ public class LightGridInjection {
 //                    ClearUAV(RHICmdList, ForwardLightingCullingResources.StartOffsetGrid, 0xFFFFFFFF);
 //                    ClearUAV(RHICmdList, ForwardLightingCullingResources.NextCulledLightLink, 0);
 //                    ClearUAV(RHICmdList, ForwardLightingCullingResources.NextCulledLightData, 0);
-
-                    gl.glClearNamedBufferData(StartOffsetGrid.getBuffer(), StartOffsetGrid.InternalFormat, GLenum.GL_UNSIGNED_INT, GLenum.GL_RED, CacheBuffer.wrap(0xFFFFFFFF));
-                    gl.glClearNamedBufferData(NextCulledLightLink.getBuffer(), NextCulledLightLink.InternalFormat, GLenum.GL_UNSIGNED_INT, GLenum.GL_RED, null);
-                    gl.glClearNamedBufferData(NextCulledLightData.getBuffer(), NextCulledLightData.InternalFormat, GLenum.GL_UNSIGNED_INT, GLenum.GL_RED, null);
+                    GLCheck.checkError();
+                    gl.glClearNamedBufferData(StartOffsetGrid.getBuffer(), StartOffsetGrid.InternalFormat, GLenum.GL_RED, GLenum.GL_UNSIGNED_INT, CacheBuffer.wrap(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF));
+                    gl.glClearNamedBufferData(NextCulledLightLink.getBuffer(), NextCulledLightLink.InternalFormat, GLenum.GL_RED, GLenum.GL_UNSIGNED_INT, null);
+                    gl.glClearNamedBufferData(NextCulledLightData.getBuffer(), NextCulledLightData.InternalFormat, GLenum.GL_RED, GLenum.GL_UNSIGNED_INT, null);
 
                     /*TShaderMapRef<TLightGridInjectionCS<true> > ComputeShader(View.ShaderMap);
                     RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());

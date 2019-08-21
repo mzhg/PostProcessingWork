@@ -1,26 +1,34 @@
 #include "Common.glsl"
 
-layout(binding = 0, r16ui) uniform imageBuffer RWNextCulledLightData;
-layout(binding = 0) uniform samplerBuffer StartOffsetGrid;
-layout(binding = 1) uniform samplerBuffer CulledLightLinks;
+layout(binding = 2) uniform atomic_uint RWNextCulledLightData;
+
+layout(binding = 2) uniform usamplerBuffer StartOffsetGrid;
+layout(binding = 3) uniform usamplerBuffer CulledLightLinks;
 
 void CompactReverseLinkedList(uint GridIndex, uint SceneMax)
 {
 	uint NumCulledLights = 0;
-	uint StartLinkOffset = StartOffsetGrid[GridIndex];
+	uint StartLinkOffset = //StartOffsetGrid[GridIndex];
+							texelFetch(StartOffsetGrid, int(GridIndex)).x;
+
 	uint LinkOffset = StartLinkOffset;
 
 	// Traverse the linked list to count how many culled indices we have
 	while (LinkOffset != 0xFFFFFFFF && NumCulledLights < SceneMax)
 	{
 		NumCulledLights++;
-		LinkOffset = CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 1];
+		LinkOffset = // CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 1];
+						texelFetch(CulledLightLinks, int(LinkOffset * LIGHT_LINK_STRIDE + 1)).x;
 	}
 
 	uint CulledLightDataStart;
-	InterlockedAdd(RWNextCulledLightData[0], NumCulledLights, CulledLightDataStart);
-	RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0] = NumCulledLights;
-	RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = CulledLightDataStart;
+//	InterlockedAdd(RWNextCulledLightData[0], NumCulledLights, CulledLightDataStart);
+	CulledLightDataStart = atomicAdd(RWNextCulledLightData, NumCulledLights);
+//	RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0] = NumCulledLights;
+//	RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = CulledLightDataStart;
+
+	imageStore(RWNumCulledLightsGrid, int(GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 0, uint4(NumCulledLights, 0, 0, 0));
+	imageStore(RWNumCulledLightsGrid, int(GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 1, uint4(CulledLightDataStart, 0, 0, 0));
 
 	LinkOffset = StartLinkOffset;
 	uint CulledLightIndex = 0;
@@ -29,9 +37,14 @@ void CompactReverseLinkedList(uint GridIndex, uint SceneMax)
 	{
 		// Reverse the order as we write them out, which restores the original order before the reverse linked list was built
 		// Reflection captures are order dependent
-		RWCulledLightDataGrid[CulledLightDataStart + NumCulledLights - CulledLightIndex - 1] = CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 0];
+//		RWCulledLightDataGrid[CulledLightDataStart + NumCulledLights - CulledLightIndex - 1] = CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 0];
+
+		uint4 value = texelFetch(CulledLightLinks, int(LinkOffset * LIGHT_LINK_STRIDE + 0));
+		imageStore(RWCulledLightDataGrid, int(CulledLightDataStart + NumCulledLights - CulledLightIndex - 1), value);
+
 		CulledLightIndex++;
-		LinkOffset = CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 1];
+		LinkOffset = // CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 1];
+						texelFetch(CulledLightLinks, int(LinkOffset * LIGHT_LINK_STRIDE + 1)).x;
 	}
 }
 
@@ -45,7 +58,7 @@ void main()
 {
 	uint3 GridCoordinate = gl_GlobalInvocationID;
 
-	if (all(GridCoordinate < ForwardLightData.CulledGridSize))
+	if (all(lessThan(GridCoordinate, ForwardLightData.CulledGridSize)))
 	{
 		uint GridIndex = (GridCoordinate.z * ForwardLightData.CulledGridSize.y + GridCoordinate.y) * ForwardLightData.CulledGridSize.x + GridCoordinate.x;
 

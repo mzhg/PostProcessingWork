@@ -9,6 +9,7 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector3i;
 import org.lwjgl.util.vector.Vector4f;
 
+import jet.opengl.demos.Unreal4.UE4View;
 import jet.opengl.demos.Unreal4.lgi.LightGridInjection;
 import jet.opengl.demos.scenes.Cube16;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -34,6 +35,7 @@ public class VolumetricFogDemo extends NvSampleApp {
 
     private LightGridInjection m_LightInjection;
     private final LightGridInjection.Params m_LightParams = new LightGridInjection.Params();
+    private UE4View mView;
 
     @Override
     protected void initRendering() {
@@ -45,7 +47,9 @@ public class VolumetricFogDemo extends NvSampleApp {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();
 
+        mView = UE4View.getInstance();
         m_PostProcessing = new VolumetricFog();
+        m_LightInjection = new LightGridInjection();
 
         /*for(int slize = 0; slize < 64; slize++){
             float sceneDepth = ComputeDepthFromZSlice(slize);
@@ -279,6 +283,9 @@ public class VolumetricFogDemo extends NvSampleApp {
 //            m_LightFrameAttribs.m_fDistanceScaler = 60000.f / m_LightFrameAttribs.m_fMaxTracingDistance;
 //            m_LightFrameAttribs.m_bShowLightingOnly = false;
 
+            mView.updateViews(getGLContext().width(), getGLContext().height(), m_Params.view, m_Params.proj, m_Params.cameraFar, m_Params.cameraNear);
+            m_LightParams.load(m_Params);
+//            m_LightInjection.computeLightGrid(m_LightParams, mView);
             m_Params.GVolumetricFogTemporalReprojection = true;
             m_Params.GVolumetricFogHistoryWeight = 0.97f;
             m_PostProcessing.renderVolumetricFog(m_Params);

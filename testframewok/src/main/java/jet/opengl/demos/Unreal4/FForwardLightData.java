@@ -9,8 +9,6 @@ import org.lwjgl.util.vector.Vector4f;
 
 import java.nio.ByteBuffer;
 
-import jet.opengl.postprocessing.util.CacheBuffer;
-
 public class FForwardLightData implements Readable {
     public final Matrix4f DirectionalLightWorldToStaticShadow = new Matrix4f();
     public final Vector4f DirectionalLightStaticShadowBufferSize = new Vector4f();
@@ -37,13 +35,13 @@ public class FForwardLightData implements Readable {
     public final Vector3f LightGridZParams = new Vector3f();
     public final float[] CascadeEndDepths = new float[4];
 
-    public final Vector2f DirectionalLightDistanceFadeMAD= new Vector2f();
     public int DirectionalLightShadowMapChannelMask;
-    public final int size;
-
     public int NumGridCells;
     public int MaxCulledLightsPerCell;
     public int NumReflectionCaptures;
+
+    public final Vector2f DirectionalLightDistanceFadeMAD= new Vector2f();
+    public final int size;
 
     public TextureBuffer ForwardLocalLightBuffer;
     public TextureBuffer NumCulledLightsGrid;
@@ -73,30 +71,7 @@ public class FForwardLightData implements Readable {
 
     @Override
     public ByteBuffer store(ByteBuffer buf) {
-        DirectionalLightWorldToStaticShadow.store(buf);
-        DirectionalLightStaticShadowBufferSize.store(buf);
-        CacheBuffer.put(buf, DirectionalLightWorldToShadowMatrix);
-        CacheBuffer.put(buf, DirectionalLightShadowmapMinMax);
-        DirectionalLightShadowmapAtlasBufferSize.store(buf);
-        DirectionalLightColor.store(buf);
-        buf.putFloat(DirectionalLightVolumetricScatteringIntensity);
-        DirectionalLightDirection.store(buf);
-        buf.putFloat(DirectionalLightDepthBias);
-        CulledGridSize.store(buf);
-        buf.putInt(LightGridPixelSizeShift);
-//        CacheBuffer.put(buf, ForwardLocalLightBuffer);
-        buf.putInt(HasDirectionalLight?1:0);
-        buf.putInt(DirectionalLightUseStaticShadowing?1:0);
-        buf.putInt(NumDirectionalLightCascades);
-        buf.putInt(NumLocalLights);
 
-        LightGridZParams.store(buf);
-        buf.putInt(0);
-        CacheBuffer.put(buf, CascadeEndDepths);
-
-        DirectionalLightDistanceFadeMAD.store(buf);
-        buf.putInt(DirectionalLightShadowMapChannelMask);
-        buf.putInt(size);
         return buf;
     }
 

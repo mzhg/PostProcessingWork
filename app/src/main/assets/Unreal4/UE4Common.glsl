@@ -18,10 +18,14 @@ struct UE4View
     float3 PreViewTranslation;
 };
 
-layout(binding = 0) uniform ViewBuffer
+layout(binding = 8) uniform ViewBuffer
 {
     UE4View View;
 };
+
+#ifndef NUM_DIRECTIONAL_LIGHT_CASCADES
+#define NUM_DIRECTIONAL_LIGHT_CASCADES 1
+#endif
 
 struct LocalLightingData
 {
@@ -40,7 +44,7 @@ struct LocalLightingData
     uint3 CulledGridSize;
     uint LightGridPixelSizeShift;
 
-    float4 ForwardLocalLightBuffer[10];
+//    float4 ForwardLocalLightBuffer[10];
 
     uint HasDirectionalLight;
     uint DirectionalLightUseStaticShadowing;
@@ -50,20 +54,36 @@ struct LocalLightingData
     float4 LightGridZParams;
     float4 CascadeEndDepths;
 
+    uint DirectionalLightShadowMapChannelMask;
     uint NumGridCells;
     uint MaxCulledLightsPerCell;
-
-//    uint NumCulledLightsGrid[12];
+    uint NumReflectionCaptures;
 
     float2 DirectionalLightDistanceFadeMAD;
-//    uint DirectionalLightShadowMapChannelMask;
-//    uint CulledLightDataGrid[4];
-
 };
 
-layout(binding = 1) uniform _ForwardLightData
+layout(binding = 9) uniform _ForwardLightData
 {
     LocalLightingData ForwardLightData;
+};
+
+#ifndef NUM_MAX_REFLECTION_CAPTURES
+#define NUM_MAX_REFLECTION_CAPTURES 4
+#endif
+
+struct UE4ReflectionCapture
+{
+    float4 PositionAndRadius[NUM_MAX_REFLECTION_CAPTURES];
+};
+
+layout(binding = 10) uniform _ReflectionCapture
+{
+    UE4ReflectionCapture ReflectionCapture;
+};
+
+layout(binding = 11) readonly buffer _ForwardLocalLightBuffer
+{
+    float4 ForwardLocalLightBuffer[];
 };
 
 float ConvertToDeviceZ(float depth)
