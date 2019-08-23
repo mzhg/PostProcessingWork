@@ -39,7 +39,7 @@ public class VolumetricFogDemo extends NvSampleApp {
 
     @Override
     protected void initRendering() {
-        getGLContext().setSwapInterval(1);
+        getGLContext().setSwapInterval(0);
         m_Scene = new Cube16(this, true);
         m_Scene.onCreate();
         m_Scene.setLightType(LightType.SPOT);
@@ -285,7 +285,7 @@ public class VolumetricFogDemo extends NvSampleApp {
 
             mView.updateViews(getGLContext().width(), getGLContext().height(), m_Params.view, m_Params.proj, m_Params.cameraFar, m_Params.cameraNear);
             m_LightParams.load(m_Params);
-//            m_LightInjection.computeLightGrid(m_LightParams, mView);
+            m_LightInjection.computeLightGrid(m_LightParams, mView);
             m_Params.GVolumetricFogTemporalReprojection = true;
             m_Params.GVolumetricFogHistoryWeight = 0.97f;
             m_PostProcessing.renderVolumetricFog(m_Params);

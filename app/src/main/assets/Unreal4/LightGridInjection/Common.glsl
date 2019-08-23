@@ -16,6 +16,7 @@ void writeCullLightTo(uimageBuffer dest, uint destIndex, uint first, uint second
     imageStore(dest, int(destIndex) * LIGHT_LINK_STRIDE + 1, uint4(second, 0, 0, 0));
 }
 
+/*
 uint atomicAdd(atomic_uint buf, uint value)
 {
     uint result = atomicCounter(buf);
@@ -27,4 +28,4 @@ uint atomicAdd(atomic_uint buf, uint value)
     }
 
     return result;
-}
+}*/

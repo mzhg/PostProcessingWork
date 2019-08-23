@@ -1,5 +1,7 @@
 package jet.opengl.postprocessing.util;
 
+import java.util.Arrays;
+
 /**
  * Created by mazhen'gui on 2017/5/20.
  */
@@ -23,6 +25,12 @@ public class RecycledPool<T> {
 
         m_index = ((++m_index) % dataArray.length);
         return obj;
+    }
+
+    public void ensureCapacity(int capacity){
+        if(capacity > dataArray.length){
+            dataArray = Arrays.copyOf(dataArray, capacity);
+        }
     }
 
     public interface ObjectCreater<T>{

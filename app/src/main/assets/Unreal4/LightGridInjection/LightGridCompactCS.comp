@@ -1,9 +1,12 @@
 #include "Common.glsl"
 
-layout(binding = 2) uniform atomic_uint RWNextCulledLightData;
+layout(binding = 0) buffer _RWNextCulledLightData
+{
+	uint RWNextCulledLightData;
+};
 
-layout(binding = 2) uniform usamplerBuffer StartOffsetGrid;
-layout(binding = 3) uniform usamplerBuffer CulledLightLinks;
+layout(binding = 1) uniform usamplerBuffer StartOffsetGrid;
+layout(binding = 2) uniform usamplerBuffer CulledLightLinks;
 
 void CompactReverseLinkedList(uint GridIndex, uint SceneMax)
 {

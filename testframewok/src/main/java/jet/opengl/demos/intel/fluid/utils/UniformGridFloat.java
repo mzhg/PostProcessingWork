@@ -3,10 +3,7 @@ package jet.opengl.demos.intel.fluid.utils;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
-import java.util.ArrayList;
-
 import jet.opengl.postprocessing.util.Numeric;
-import jet.opengl.postprocessing.util.RecycledPool;
 import jet.opengl.postprocessing.util.StackFloat;
 
 /**

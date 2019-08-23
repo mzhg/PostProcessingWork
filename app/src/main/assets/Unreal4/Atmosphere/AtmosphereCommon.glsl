@@ -104,9 +104,9 @@ const int InscatterNuNum = 8;
 	// these are only used for the precomputation shader; which doesn't have a view UB
 	layout(binding = 0) uniform sampler2D AtmosphereTransmittanceTexture;
 //	SamplerState AtmosphereTransmittanceTextureSampler;
-	layout(binding = 0) uniform sampler2D AtmosphereIrradianceTexture;
+	layout(binding = 1) uniform sampler2D AtmosphereIrradianceTexture;
 //	SamplerState AtmosphereIrradianceTextureSampler;
-	layout(binding = 0) uniform sampler3D AtmosphereInscatterTexture;
+	layout(binding = 2) uniform sampler3D AtmosphereInscatterTexture;
 //	SamplerState AtmosphereInscatterTextureSampler;
 	#define ATMOSPHERIC_TEXTURE_PREFIX
 #endif
@@ -361,7 +361,7 @@ float3 AnalyticTransmittance(float R, float Mu, float D)
     return exp(- BetaRayleighScattering * OpticalDepthWithDistance(View.AtmosphericFogHeightScaleRayleigh, R, Mu, D) - BetaMieExtinction * OpticalDepthWithDistance(HeightScaleMie, R, Mu, D));
 }
 
-static const float HeightOffset = 0.01f;
+const float HeightOffset = 0.01f;
 
 /** inscattered light along ray x+tv, when sun in direction s (=S[L]-T(x,x0)S[L]|x0) */
 float3 GetInscatterColor(float FogDepth, float3 X, float T, float3 V, float3 S, float Radius, float Mu, out float3 Attenuation, bool bIsSceneGeometry)
@@ -620,7 +620,7 @@ float4 GetAtmosphericFog(float3 ViewPosition, float3 ViewVector, float SceneDept
 	}
 #else
 	#if MATERIAL_ATMOSPHERIC_FOG || ATMOSPHERIC_NO_SUN_DISK // Material doesn't need to render the sun disk
-		float3 Sun = 0.f;
+		float3 Sun = float3(0.0);
 	#else
 		float3 Sun = GetSunColor(ViewPosition, T, V, View.AtmosphericFogSunDirection, Radius, Mu); //L0
 	#endif

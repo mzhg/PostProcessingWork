@@ -1,8 +1,11 @@
 package jet.opengl.demos.Unreal4;
 
+import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector4f;
 
-public class FForwardLocalLightData {
+import java.nio.ByteBuffer;
+
+public class FForwardLocalLightData implements Readable {
 
     public static final int SIZE = Vector4f.SIZE * 5;
 
@@ -14,5 +17,16 @@ public class FForwardLocalLightData {
 
     public int sizeInBytes(){
         return SIZE;
+    }
+
+    @Override
+    public ByteBuffer store(ByteBuffer buf) {
+        LightPositionAndInvRadius.store(buf);
+        LightColorAndFalloffExponent.store(buf);
+        LightDirectionAndShadowMapChannelMask.store(buf);
+        SpotAnglesAndSourceRadiusPacked.store(buf);
+        LightTangentAndSoftSourceRadius.store(buf);
+        
+        return buf;
     }
 }

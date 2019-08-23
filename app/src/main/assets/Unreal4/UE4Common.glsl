@@ -24,7 +24,7 @@ layout(binding = 8) uniform ViewBuffer
 };
 
 #ifndef NUM_DIRECTIONAL_LIGHT_CASCADES
-#define NUM_DIRECTIONAL_LIGHT_CASCADES 1
+#define NUM_DIRECTIONAL_LIGHT_CASCADES 4
 #endif
 
 struct LocalLightingData
@@ -81,10 +81,9 @@ layout(binding = 10) uniform _ReflectionCapture
     UE4ReflectionCapture ReflectionCapture;
 };
 
-layout(binding = 11) readonly buffer _ForwardLocalLightBuffer
-{
-    float4 ForwardLocalLightBuffer[];
-};
+layout(binding = 11) uniform samplerBuffer ForwardLocalLightBuffer;
+layout(binding = 12) uniform usamplerBuffer NumCulledLightsGrid;  // R32UI
+layout(binding = 13) uniform usamplerBuffer CulledLightDataGrid;  // R32UI
 
 float ConvertToDeviceZ(float depth)
 {

@@ -1,5 +1,7 @@
 package jet.opengl.demos.Unreal4;
 
+import java.nio.Buffer;
+
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -58,17 +60,32 @@ public class TextureBuffer {
         gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, 0);
     }
 
+    public void update(int offset, Buffer buffer){
+        if(mInilized){
+            if(GLFuncProviderFactory.isInitlized()){
+                if(offset < 0)
+                    throw new IllegalArgumentException("invalid offset: " + offset);
+                GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+
+                gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, mBuffer);
+                gl.glBufferSubData(GLenum.GL_TEXTURE_BUFFER, offset, buffer);
+                gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, 0);
+            }
+        }
+    }
+
     public int getTexture() { return mTexture;}
     public int getBuffer()  {return mBuffer;}
 
     public void Release(){
         if(mInilized){
-            mInilized = false;
-
             if(GLFuncProviderFactory.isInitlized()){
                 GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
                 gl.glDeleteBuffer(mBuffer);
                 gl.glDeleteTexture(mTexture);
+                mInilized = false;
+                NumBytes = 0;
+                InternalFormat = 0;
             }
         }
     }

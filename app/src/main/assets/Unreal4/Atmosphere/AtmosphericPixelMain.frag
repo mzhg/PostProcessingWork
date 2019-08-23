@@ -16,7 +16,7 @@ layout(location = 0) out float4 OutColor;
 
 void main()
 {
-   OutColor = GetAtmosphericFog(View.WorldCameraOrigin, ScreenVector.xyz, CalcSceneDepth(OutTexCoord), float3(0, 0, 0));
+   OutColor = GetAtmosphericFog(View.WorldCameraOrigin, OutScreenVector.xyz, CalcSceneDepth(OutTexCoord), float3(0, 0, 0));
 #if !ATMOSPHERIC_NO_LIGHT_SHAFT
    	float LightShaftMask = Texture2DSample(OcclusionTexture, /*OcclusionTextureSampler,*/ OutTexCoord).x;
    	OutColor.rgb = OutColor.rgb * LightShaftMask;

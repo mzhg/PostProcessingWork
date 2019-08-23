@@ -8,8 +8,13 @@ import org.lwjgl.util.vector.Vector3i;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 public class FForwardLightData implements Readable {
+    public static final int SIZE = 544;
+
     public final Matrix4f DirectionalLightWorldToStaticShadow = new Matrix4f();
     public final Vector4f DirectionalLightStaticShadowBufferSize = new Vector4f();
 
@@ -65,17 +70,77 @@ public class FForwardLightData implements Readable {
 //        }
     }
 
-    public void reset(){
-
-    }
-
     @Override
     public ByteBuffer store(ByteBuffer buf) {
+        DirectionalLightWorldToStaticShadow.store(buf);
+        DirectionalLightStaticShadowBufferSize.store(buf);
 
+        CacheBuffer.put(buf, DirectionalLightWorldToShadowMatrix);
+        CacheBuffer.put(buf, DirectionalLightShadowmapMinMax);
+        DirectionalLightShadowmapAtlasBufferSize.store(buf);
+
+        DirectionalLightColor.store(buf);
+        buf.putFloat(DirectionalLightVolumetricScatteringIntensity);
+        DirectionalLightDirection.store(buf);
+        buf.putFloat(DirectionalLightDepthBias);
+
+        CulledGridSize.store(buf);
+        buf.putInt(LightGridPixelSizeShift);
+
+        buf.putInt(HasDirectionalLight?1:0);
+        buf.putInt(DirectionalLightUseStaticShadowing?1:0);
+        buf.putInt(NumDirectionalLightCascades);
+        buf.putInt(NumLocalLights);
+
+        LightGridZParams.store(buf); buf.putInt(0);
+        CacheBuffer.put(buf, CascadeEndDepths);
+
+        buf.putInt(DirectionalLightShadowMapChannelMask);
+        buf.putInt(NumGridCells);
+        buf.putInt(MaxCulledLightsPerCell);
+        buf.putInt(NumReflectionCaptures);
+
+        DirectionalLightDistanceFadeMAD.store(buf);  buf.putLong(0);
         return buf;
     }
 
+    public void reset(){
+        DirectionalLightWorldToStaticShadow.setIdentity();
+        DirectionalLightStaticShadowBufferSize.set(0,0,0,0);
+        for(int i = 0; i < DirectionalLightWorldToShadowMatrix.length; i++)
+            DirectionalLightWorldToShadowMatrix[i].setIdentity();
+
+        for(int i = 0; i < DirectionalLightShadowmapMinMax.length;i++)
+            DirectionalLightShadowmapMinMax[i].set(0,0,0,0);
+
+        DirectionalLightShadowmapAtlasBufferSize.set(0,0,0,0);
+        DirectionalLightColor.set(0,0,0);
+        DirectionalLightVolumetricScatteringIntensity = 0;
+        DirectionalLightDirection.set(0,0,0);
+        DirectionalLightDepthBias = 0;
+
+        CulledGridSize.set(0,0,0);
+        LightGridPixelSizeShift = 0;
+
+//    public final Vector4f[] ForwardLocalLightBuffer = new Vector4f[10];
+
+        HasDirectionalLight = false;
+        DirectionalLightUseStaticShadowing = false;
+        NumDirectionalLightCascades = 0;
+        NumLocalLights = 0;
+
+        LightGridZParams.set(0,0,0);
+        Arrays.fill(CascadeEndDepths, 0);
+
+        DirectionalLightShadowMapChannelMask = 0;
+        NumGridCells = 0;
+        MaxCulledLightsPerCell = 0;
+        NumReflectionCaptures = 0;
+
+        DirectionalLightDistanceFadeMAD.set(0,0);
+    }
+
     public final int sizeInBytes(){
-        return size;
+        return SIZE;
     }
 }

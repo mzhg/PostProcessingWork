@@ -17,7 +17,6 @@ import java.util.List;
 import jet.opengl.demos.Unreal4.UE4LightCollections;
 import jet.opengl.demos.Unreal4.UE4LightInfo;
 import jet.opengl.demos.intel.va.VaBoundingSphere;
-import jet.opengl.demos.nvidia.shadows.ShadowMapGenerator;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -33,7 +32,6 @@ import jet.opengl.postprocessing.texture.Texture3DDesc;
 import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
-import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 

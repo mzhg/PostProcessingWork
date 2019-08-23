@@ -653,7 +653,7 @@ public class CacheBuffer {
 		return dest;
 	}
 
-	public static ByteBuffer put(ByteBuffer dest, List<Readable> src){
+	public static<T extends Readable> ByteBuffer put(ByteBuffer dest, List<T> src){
 		for(int i = 0; i < src.size(); i++){
 			src.get(i).store(dest);   // todo may be have perforamce issue for the LinkedList.
 		}
