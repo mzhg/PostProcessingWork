@@ -17,4 +17,7 @@ public final class UE4Engine {
     public static final String SHADER_PATH = "Unreal4/";
 
     public static final int GMaxNumReflectionCaptures = 341;
+
+    /** Must match global distance field shaders. */
+    public static final int GMaxGlobalDistanceFieldClipmaps = 4;
 }

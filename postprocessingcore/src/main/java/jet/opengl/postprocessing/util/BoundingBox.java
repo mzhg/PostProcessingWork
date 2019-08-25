@@ -4,6 +4,7 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
+import org.lwjgl.util.vector.WritableVector3f;
 
 /** General purpose axis-aligned bounding box class for enclosing objects/vertices.
  * Bounds leaf objects in a scene such as osg::Drawable objects. Used for frustum
@@ -188,6 +189,12 @@ public class BoundingBox {
     public Vector3f center(Vector3f center)
     {
         return Vector3f.mix(_min, _max, 0.5f, center);
+    }
+
+    public void center(WritableVector3f center){
+        center.setX((_min.x + _max.x) * 0.5f);
+        center.setY((_min.y + _max.y) * 0.5f);
+        center.setZ((_min.z + _max.z) * 0.5f);
     }
 
     /** Calculates and returns the bounding box radius. */

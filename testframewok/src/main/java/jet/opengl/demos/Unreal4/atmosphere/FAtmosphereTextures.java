@@ -1,7 +1,6 @@
 package jet.opengl.demos.Unreal4.atmosphere;
 
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
@@ -110,11 +109,11 @@ final class FAtmosphereTextures {
     }
 
     public void ReleaseDynamicRHI() {
-        AtmosphereTransmittance.dispose();
-        AtmosphereIrradiance.dispose();
+//        AtmosphereTransmittance.dispose();
+//        AtmosphereIrradiance.dispose();
         AtmosphereDeltaE.dispose();
 
-        AtmosphereInscatter.dispose();
+//        AtmosphereInscatter.dispose();
         AtmosphereDeltaSR.dispose();
         AtmosphereDeltaSM.dispose();
         AtmosphereDeltaJ.dispose();

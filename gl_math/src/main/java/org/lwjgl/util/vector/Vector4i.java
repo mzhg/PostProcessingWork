@@ -28,6 +28,12 @@ public class Vector4i implements Readable, Writable {
 		this.z = z;
 		this.w = w;
 	}
+
+	public void set(Vector3i v){
+		x = v.x;
+		y = v.y;
+		z = v.z;
+	}
 	
 	public void set(Vector4i v){
 		x = v.x;

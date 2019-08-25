@@ -36,6 +36,35 @@ final class FAtmosphericFogSceneInfo {
     AP_CopyInscatterFBack = 13,
     AP_MAX = 14;
 
+    static final String SHADER_PATH = UE4Engine.SHADER_PATH + "Atmosphere/";
+
+    private static final String FAtmospherePrecomputeVS = "shader_libs/PostProcessingDefaultScreenSpaceVS.vert";
+    private static final String FAtmosphereTransmittancePS = SHADER_PATH + "AtmospherePrecomputeTransmittancePS.frag";
+    private static final String FAtmosphereIrradiance1PS = SHADER_PATH + "AtmospherePrecomputeIrradiance1PS.frag";
+    private static final String FAtmospherePrecomputeInscatterVS = SHADER_PATH + "AtmospherePrecomputeMainVS.vert";
+    private static final String FAtmosphereGS = SHADER_PATH + "AtmosphereGS.gemo";
+    private static final String FAtmosphereInscatter1PS = SHADER_PATH + "Inscatter1PS.gemo";
+    private static final String FAtmosphereCopyInscatter1PS = SHADER_PATH + "CopyInscatter1PS.frag";
+    private static final String FAtmosphereInscatterSPS = SHADER_PATH + "InscatterSPS.frag";
+    private static final String FAtmosphereIrradianceNPS = SHADER_PATH + "AtmospherePrecomputeIrradianceNPS.frag";
+    private static final String FAtmosphereInscatterNPS = SHADER_PATH + "InscatterNPS.frag";
+    private static final String FAtmosphereCopyIrradiancePS = SHADER_PATH + "AtmospherePrecomputeCopyIrradiancePS.frag";
+    private static final String FAtmosphereCopyInscatterNPS = SHADER_PATH + "CopyInscatterNPS.frag";
+    private static final String FAtmosphereCopyInscatterFPS = SHADER_PATH + "CopyInscatterFPS.frag";
+    private static final String FAtmosphereCopyInscatterFBackPS = SHADER_PATH + "CopyInscatterFBackPS.frag";
+
+    private GLSLProgram mFAtmosphereTransmittancePS;
+    private GLSLProgram mFAtmosphereIrradiance1PS;
+    private GLSLProgram mFAtmosphereInscatter1PS;
+    private GLSLProgram mFAtmosphereCopyInscatter1PS;
+    private GLSLProgram mFAtmosphereInscatterSPS;
+    private GLSLProgram mFAtmosphereIrradianceNPS;
+    private GLSLProgram mFAtmosphereInscatterNPS;
+    private GLSLProgram mFAtmosphereCopyIrradiancePS;
+    private GLSLProgram mFAtmosphereCopyInscatterNPS;
+    private GLSLProgram mFAtmosphereCopyInscatterFPS;
+    private GLSLProgram mFAtmosphereCopyInscatterFBackPS;
+
     public static final float RadiusGround = 6360;
     public static final float RadiusAtmosphere = 6420;
 
@@ -219,7 +248,7 @@ final class FAtmosphericFogSceneInfo {
                 // Delete render targets
 //                delete AtmosphereTextures;
                 AtmosphereTextures.ReleaseDynamicRHI();
-                AtmosphereTextures = null;
+//                AtmosphereTextures = null;
 
                 // Save to bulk data is done
                 bPrecomputationFinished = true;
@@ -284,35 +313,6 @@ final class FAtmosphericFogSceneInfo {
 
         return (float)R;
     }
-
-    private static final String SHADER_PATH = UE4Engine.SHADER_PATH + "Atmosphere/";
-
-    private static final String FAtmospherePrecomputeVS = "shader_libs/PostProcessingDefaultScreenSpaceVS.vert";
-    private static final String FAtmosphereTransmittancePS = SHADER_PATH + "AtmospherePrecomputeTransmittancePS.frag";
-    private static final String FAtmosphereIrradiance1PS = SHADER_PATH + "AtmospherePrecomputeIrradiance1PS.frag";
-    private static final String FAtmospherePrecomputeInscatterVS = SHADER_PATH + "AtmospherePrecomputeMainVS.vert";
-    private static final String FAtmosphereGS = SHADER_PATH + "AtmosphereGS.gemo";
-    private static final String FAtmosphereInscatter1PS = SHADER_PATH + "Inscatter1PS.gemo";
-    private static final String FAtmosphereCopyInscatter1PS = SHADER_PATH + "CopyInscatter1PS.frag";
-    private static final String FAtmosphereInscatterSPS = SHADER_PATH + "InscatterSPS.frag";
-    private static final String FAtmosphereIrradianceNPS = SHADER_PATH + "AtmospherePrecomputeIrradianceNPS.frag";
-    private static final String FAtmosphereInscatterNPS = SHADER_PATH + "InscatterNPS.frag";
-    private static final String FAtmosphereCopyIrradiancePS = SHADER_PATH + "AtmospherePrecomputeCopyIrradiancePS.frag";
-    private static final String FAtmosphereCopyInscatterNPS = SHADER_PATH + "CopyInscatterNPS.frag";
-    private static final String FAtmosphereCopyInscatterFPS = SHADER_PATH + "CopyInscatterFPS.frag";
-    private static final String FAtmosphereCopyInscatterFBackPS = SHADER_PATH + "CopyInscatterFBackPS.frag";
-
-    private GLSLProgram mFAtmosphereTransmittancePS;
-    private GLSLProgram mFAtmosphereIrradiance1PS;
-    private GLSLProgram mFAtmosphereInscatter1PS;
-    private GLSLProgram mFAtmosphereCopyInscatter1PS;
-    private GLSLProgram mFAtmosphereInscatterSPS;
-    private GLSLProgram mFAtmosphereIrradianceNPS;
-    private GLSLProgram mFAtmosphereInscatterNPS;
-    private GLSLProgram mFAtmosphereCopyIrradiancePS;
-    private GLSLProgram mFAtmosphereCopyInscatterNPS;
-    private GLSLProgram mFAtmosphereCopyInscatterFPS;
-    private GLSLProgram mFAtmosphereCopyInscatterFBackPS;
 
     private void RenderAtmosphereShaders(/*FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, const FViewInfo& View, const FIntRect& ViewRect*/){
         final GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();

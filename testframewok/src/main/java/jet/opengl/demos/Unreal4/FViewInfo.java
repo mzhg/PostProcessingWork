@@ -1,6 +1,7 @@
 package jet.opengl.demos.Unreal4;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector3f;
 
 import java.nio.ByteBuffer;
 
@@ -12,7 +13,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Recti;
 
-public class UE4View {
+public class FViewInfo {
     private static final int FLAG_VIEW_BUFFER = 1;
     private static final int FLAG_VIEW_FORWARD_LIGHT = 2;
 
@@ -24,6 +25,7 @@ public class UE4View {
     public FForwardLightingResources ForwardLightingResources;
 
     public BufferGL ViewBuffer;
+    public FSceneViewState ViewState;
 
     private int mFlags;
 
@@ -31,6 +33,8 @@ public class UE4View {
     public final Matrix4f ClipToView = new Matrix4f();
     public final Matrix4f TranslatedWorldToView = new Matrix4f();
     public final Matrix4f ViewToTranslatedWorld = new Matrix4f();
+
+    public final Vector3f ViewOrigin = new Vector3f();
 
     public final Recti ViewRect = new Recti();
 
@@ -47,6 +51,8 @@ public class UE4View {
         Matrix4f.invert(ViewToClip, ClipToView);
         Matrix4f.invert(TranslatedWorldToView, ViewToTranslatedWorld);
 
+        Matrix4f.decompseRigidMatrix(TranslatedWorldToView, ViewOrigin, null, null);
+
         mFlags |= FLAG_VIEW_BUFFER;
         updateViewBuffer();
     }
@@ -56,6 +62,10 @@ public class UE4View {
         mFlags |= FLAG_VIEW_FORWARD_LIGHT;
 
         _updateForwardLightData();
+    }
+
+    public boolean IsPerspectiveProjection(){
+        return true;
     }
 
     private void _updateForwardLightData(){
@@ -130,15 +140,15 @@ public class UE4View {
         gl.glBindTextureUnit(13, ForwardLightingResources.CulledLightDataGrid != null ? ForwardLightingResources.CulledLightDataGrid.getTexture() : 0);
     }
 
-    private UE4View(){
+    private FViewInfo(){
         ForwardLightingResources = new FForwardLightingResources();
     }
 
-    private static UE4View g_Instance;
+    private static FViewInfo g_Instance;
 
-    public static UE4View getInstance(){
+    public static FViewInfo getInstance(){
         if(g_Instance == null)
-            g_Instance = new UE4View();
+            g_Instance = new FViewInfo();
 
         return g_Instance;
     }

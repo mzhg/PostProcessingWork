@@ -1,7 +1,6 @@
 package jet.opengl.demos.Unreal4.lgi;
 
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -15,8 +14,7 @@ import jet.opengl.demos.Unreal4.TextureBuffer;
 import jet.opengl.demos.Unreal4.UE4Engine;
 import jet.opengl.demos.Unreal4.UE4LightCollections;
 import jet.opengl.demos.Unreal4.UE4LightInfo;
-import jet.opengl.demos.Unreal4.UE4View;
-import jet.opengl.demos.intel.fluid.scene.Light;
+import jet.opengl.demos.Unreal4.FViewInfo;
 import jet.opengl.demos.intel.va.VaBoundingSphere;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -74,7 +72,7 @@ public class LightGridInjection {
     }
 
     private Params mParams;
-    public void computeLightGrid(Params params, UE4View View){
+    public void computeLightGrid(Params params, FViewInfo View){
         if(!GLFuncProviderFactory.isInitlized())
             return;
 

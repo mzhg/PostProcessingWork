@@ -23,7 +23,21 @@ public class Texture3D extends TextureGL{
 	public final int getWidth() {return width;}
 	public final int getHeight() { return height;}
 	public final int getDepth()  { return depth;}
-	
+
+	public Texture3DDesc getDesc() { return getDesc(null);}
+
+	public Texture3DDesc getDesc(Texture3DDesc out){
+		if(out == null)
+			out = new Texture3DDesc();
+		out.format = format;
+		out.height = height;
+		out.mipLevels = getMipLevels();
+		out.width = width;
+		out.depth = depth;
+
+		return out;
+	}
+
 	/**
      * Sets the wrap parameter for texture coordinate r.<p>
      * @param mode

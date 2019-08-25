@@ -9,7 +9,7 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector3i;
 import org.lwjgl.util.vector.Vector4f;
 
-import jet.opengl.demos.Unreal4.UE4View;
+import jet.opengl.demos.Unreal4.FViewInfo;
 import jet.opengl.demos.Unreal4.lgi.LightGridInjection;
 import jet.opengl.demos.scenes.Cube16;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -35,7 +35,7 @@ public class VolumetricFogDemo extends NvSampleApp {
 
     private LightGridInjection m_LightInjection;
     private final LightGridInjection.Params m_LightParams = new LightGridInjection.Params();
-    private UE4View mView;
+    private FViewInfo mView;
 
     @Override
     protected void initRendering() {
@@ -47,7 +47,7 @@ public class VolumetricFogDemo extends NvSampleApp {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();
 
-        mView = UE4View.getInstance();
+        mView = FViewInfo.getInstance();
         m_PostProcessing = new VolumetricFog();
         m_LightInjection = new LightGridInjection();
 

@@ -113,6 +113,9 @@ public final class DebugTools {
         }
     }
 
+    /**
+     * Loa the binary data from a file by the given filename. Return null if the given file isn't exsit.
+     */
     public static ByteBuffer loadBinary(String filename){
         try(FileInputStream inputStream = new FileInputStream(filename)){
             byte[] bytes = new byte[inputStream.available()];
@@ -122,7 +125,7 @@ public final class DebugTools {
             byteBuffer.put(bytes).flip();
             return byteBuffer;
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            return null;
         } catch (IOException e) {
             e.printStackTrace();
         }
