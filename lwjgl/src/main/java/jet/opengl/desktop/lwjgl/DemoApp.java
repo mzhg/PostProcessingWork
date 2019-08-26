@@ -17,7 +17,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import jet.opengl.demos.Unreal4.volumetricfog.VolumetricFogDemo;
+import jet.opengl.demos.nvidia.fire.PerlinFire;
+import jet.opengl.demos.unreal4.VolumetricFogDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
