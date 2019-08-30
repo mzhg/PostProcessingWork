@@ -5,7 +5,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
-import jet.opengl.postprocessing.core.RenderTexturePool;
+import jet.opengl.postprocessing.texture.RenderTexturePool;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.ProgramProperties;
 import jet.opengl.postprocessing.texture.Texture2D;

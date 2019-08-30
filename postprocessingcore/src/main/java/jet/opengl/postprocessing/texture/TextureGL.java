@@ -14,6 +14,12 @@ public abstract class TextureGL implements Disposeable {
 	
 	int format;
     int mipLevels;
+
+    // If the texture created from the RenderTexturePool, the below variables will be used.
+    int refCount = 0;
+    boolean isCached = false;
+
+    public final boolean isCached() { return isCached;}
 	
     public TextureGL() {}
 	public TextureGL(String name) {this.name = name;}
@@ -28,6 +34,10 @@ public abstract class TextureGL implements Disposeable {
     public int getSampleCount() { return 1;}
 	public void setName(String name) {this.name = name;}
 	public String getName() { return name;}
+
+	public long computeMemorySize(){
+    	return textureID == 0 ? 0 : TextureUtils.getTextureMemorySize(target, textureID, 0, mipLevels);
+	}
 
 	/*
     public void bindImage(int unit, int access, int format){
@@ -67,6 +77,11 @@ public abstract class TextureGL implements Disposeable {
     
 	@Override
 	public void dispose() {
+		if(isCached){
+			RenderTexturePool.getInstance().freeUnusedResource(this);
+			return;
+		}
+
 		if(textureID != 0){
 			GLFuncProviderFactory.getGLFuncProvider().glDeleteTextures(textureID);
 			textureID = 0;

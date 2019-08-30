@@ -12,7 +12,7 @@ import jet.opengl.renderer.Unreal4.UE4Engine;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.core.RenderTexturePool;
+import jet.opengl.postprocessing.texture.RenderTexturePool;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.texture.Texture3DDesc;

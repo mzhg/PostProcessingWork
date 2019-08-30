@@ -7,7 +7,7 @@ import jet.opengl.postprocessing.core.PostProcessingParameters;
 import jet.opengl.postprocessing.core.PostProcessingRenderContext;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPassOutputTarget;
-import jet.opengl.postprocessing.core.RenderTexturePool;
+import jet.opengl.postprocessing.texture.RenderTexturePool;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 

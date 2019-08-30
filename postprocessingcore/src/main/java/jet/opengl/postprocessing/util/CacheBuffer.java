@@ -40,6 +40,7 @@ public class CacheBuffer {
 	private static int g_MatCount = 0;
 	private static int g_Vec4Count = 0;
 	private static int g_Vec3Count = 0;
+	private static int g_QuatCount = 0;
 
 	public static final ThreadLocal<Pool<Matrix4f>> g_MatPool = new ThreadLocal<Pool<Matrix4f>>(){
 		@Override
@@ -86,7 +87,7 @@ public class CacheBuffer {
 			return new Pool<Quaternion>(new Pool.PoolObjectCreator<Quaternion>() {
 				@Override
 				public Quaternion newObject() {
-//					g_Vec3Count++;
+//					g_QuatCount++;
 					return new Quaternion();
 				}
 			});

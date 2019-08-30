@@ -1,16 +1,12 @@
-package jet.opengl.postprocessing.core;
+package jet.opengl.postprocessing.texture;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
-import jet.opengl.postprocessing.texture.Texture2D;
-import jet.opengl.postprocessing.texture.Texture2DDesc;
-import jet.opengl.postprocessing.texture.Texture3D;
-import jet.opengl.postprocessing.texture.Texture3DDesc;
-import jet.opengl.postprocessing.texture.TextureGL;
-import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -49,12 +45,17 @@ public final class RenderTexturePool {
             }
 
             Texture2D texture2D = TextureUtils.createTexture2D(desc, null);
+            texture2D.isCached = true;
+            texture2D.refCount++;
             m_CreatedTextures.add(texture2D);
             LogUtil.i(LogUtil.LogType.DEFAULT, "Create a new Texture in the RenderTexturePool. Created Texture Count: " + m_CreatedTextures.size());
             return texture2D;
         }else{
 //            LogUtil.i(LogUtil.LogType.DEFAULT, "Retrive a Texture from the RenderTexturePool." );
-            return (Texture2D) texture2DList.remove(texture2DList.size() - 1);
+            Texture2D result = (Texture2D) texture2DList.remove(texture2DList.size() - 1);
+            result.refCount ++;
+
+            return result;
         }
     }
 
@@ -66,17 +67,22 @@ public final class RenderTexturePool {
             }
 
             Texture3D texture3D = TextureUtils.createTexture3D(desc, null);
+            texture3D.isCached = true;
+            texture3D.refCount++;
             m_CreatedTextures.add(texture3D);
             LogUtil.i(LogUtil.LogType.DEFAULT, "Create a new Texture in the RenderTexturePool. Created Texture Count: " + m_CreatedTextures.size());
             return texture3D;
         }else{
 //            LogUtil.i(LogUtil.LogType.DEFAULT, "Retrive a Texture from the RenderTexturePool." );
-            return (Texture3D) texture2DList.remove(texture2DList.size() - 1);
+            Texture3D result =  (Texture3D) texture2DList.remove(texture2DList.size() - 1);
+            result.refCount ++;
+
+            return result;
         }
     }
 
     public void freeUnusedResource(TextureGL tex){
-        if(tex == null){
+        if(tex == null || !tex.isCached){
             LogUtil.i(LogUtil.LogType.DEFAULT, "Couldn't put the null texture into the RenderTexturePool");
             return;
         }
@@ -103,9 +109,59 @@ public final class RenderTexturePool {
                 }
             }
 
+            tex.refCount --;
+            if(tex.refCount < 0)
+                throw new IllegalStateException("Inner error!");
+
             texture2DList.add(tex);
         }else{
             LogUtil.e(LogUtil.LogType.DEFAULT, "Couldn't put the external texture into the RenderTexturePool");
+        }
+    }
+
+    public boolean releaseTexture(TextureGL tex){
+        if(tex == null){
+            return false;
+        }
+
+        if(!tex.isCached){
+            tex.dispose();
+            return true;
+        }
+
+        if(m_CreatedTextures.contains(tex)){
+            Object key = null;
+            if(tex instanceof  Texture2D){
+                key = ((Texture2D)tex).getDesc();
+            }else if(tex instanceof  Texture3D){
+                key = ((Texture3D)tex).getDesc();
+            }else{
+                throw new IllegalArgumentException();
+            }
+
+            if(tex.refCount > 1){
+                LogUtil.w(LogUtil.LogType.DEFAULT, "There are more than 1 ref count in the texture(" + tex.getName()+")");
+            }
+
+            m_CreatedTextures.remove(tex);
+            List<TextureGL> texture2DList = m_RenderTexturePool.get(key);
+            if(texture2DList != null){
+                texture2DList.remove(tex);
+            }
+
+            if(GLFuncProviderFactory.isInitlized()){
+                GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+                gl.glDeleteTexture(tex.textureID);
+            }
+
+            tex.refCount = 0;
+            tex.isCached = false;
+            tex.textureID = 0;
+
+            return true;
+        }else{
+            LogUtil.e(LogUtil.LogType.DEFAULT, "Couldn't found the cached texture("+tex.getName()+"), this may be a bug！！！");
+            return false;
         }
     }
 }

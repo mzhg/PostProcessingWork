@@ -1,5 +1,7 @@
 package jet.opengl.postprocessing.core;
 
+import jet.opengl.postprocessing.texture.RenderTexturePool;
+
 /**
  * Created by mazhen'gui on 2017/5/11.
  */

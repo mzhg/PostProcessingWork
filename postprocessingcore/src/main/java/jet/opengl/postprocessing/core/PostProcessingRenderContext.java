@@ -21,6 +21,7 @@ import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
 import jet.opengl.postprocessing.texture.AttachType;
 import jet.opengl.postprocessing.texture.RenderTargets;
+import jet.opengl.postprocessing.texture.RenderTexturePool;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3D;

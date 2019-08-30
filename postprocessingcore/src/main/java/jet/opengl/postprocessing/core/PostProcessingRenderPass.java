@@ -6,6 +6,7 @@ import java.util.List;
 
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLStateTracker;
+import jet.opengl.postprocessing.texture.RenderTexturePool;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;

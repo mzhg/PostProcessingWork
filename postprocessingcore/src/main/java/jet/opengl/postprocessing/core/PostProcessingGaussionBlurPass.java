@@ -3,6 +3,7 @@ package jet.opengl.postprocessing.core;
 import java.io.IOException;
 import java.util.HashMap;
 
+import jet.opengl.postprocessing.texture.RenderTexturePool;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 

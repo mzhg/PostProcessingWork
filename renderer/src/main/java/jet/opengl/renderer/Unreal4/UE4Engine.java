@@ -20,4 +20,6 @@ public final class UE4Engine {
 
     /** Must match global distance field shaders. */
     public static final int GMaxGlobalDistanceFieldClipmaps = 4;
+
+    public static final int GMaxForwardShadowCascades = MAX_CASCADE;
 }

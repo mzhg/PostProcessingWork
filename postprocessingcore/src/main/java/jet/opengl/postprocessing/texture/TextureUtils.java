@@ -62,39 +62,55 @@ public final class TextureUtils {
 	}
 	
 	private TextureUtils(){}
+
+	/**
+	 * Binding the texture currently and returns the bytes of the texture by the given miplevels.
+	 * @param target
+	 * @param textureID
+	 * @param baseLevel
+	 * @param levelCount
+	 * @return
+	 */
+	public static long getTextureMemorySize(int target, int textureID, int baseLevel, int levelCount){
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+		gl.glBindTexture(target, textureID);
+
+		long totalSize = 0;
+
+		for(int level = baseLevel; level < levelCount + baseLevel; level++){
+			int width = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_WIDTH);
+			int height = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_HEIGHT);
+			int depth = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_DEPTH);
+			if(width == 0 && height == 0 && depth == 0)
+				return totalSize;
+
+			int red_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_RED_SIZE);
+			int green_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_GREEN_SIZE);
+			int blue_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_BLUE_SIZE);
+			int alpha_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_ALPHA_SIZE);
+			int depth_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_DEPTH_SIZE);
+			int stencil_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_STENCIL_SIZE);
+
+			int totalBytes = Math.max(width, 1) * Math.max(height, 1) * Math.max(depth, 1) *
+					(red_bits + green_bits + blue_bits + alpha_bits + depth_bits + stencil_bits) /8;
+
+			totalSize += totalBytes;
+		}
+
+		return totalSize;
+	}
 	
 	/** Get the texture image Data. Call this method would change the texture binding.*/
 	public static ByteBuffer getTextureData(int target, int textureID, int level, boolean fromCache){
+		int totalBytes = (int)getTextureMemorySize(target, textureID, level, 1);
+		if(totalBytes == 0)
+			return fromCache ? CacheBuffer.getCachedByteBuffer(0) : BufferUtils.createByteBuffer(0);
+
+		ByteBuffer result = fromCache ?  CacheBuffer.getCachedByteBuffer(totalBytes) : BufferUtils.createByteBuffer(totalBytes);
+
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		gl.glBindBuffer(GLenum.GL_PIXEL_PACK_BUFFER, 0);
-		gl.glBindTexture(target, textureID);
-		GLCheck.checkError();
-		int width = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_WIDTH);
-		int height = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_HEIGHT);
-		int depth = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_DEPTH);
-		if(width == 0 && height == 0 && depth == 0)
-			return fromCache ? CacheBuffer.getCachedByteBuffer(0) : BufferUtils.createByteBuffer(0);
-		
-		int red_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_RED_SIZE);
-		int green_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_GREEN_SIZE);
-		int blue_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_BLUE_SIZE);
-		int alpha_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_ALPHA_SIZE);
-		int depth_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_DEPTH_SIZE);
-		int stencil_bits = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_STENCIL_SIZE);
 		int internalFormat = gl.glGetTexLevelParameteri(target, level, GLenum.GL_TEXTURE_INTERNAL_FORMAT);
-		
-//		System.out.println("red_bits = " + red_bits);
-//		System.out.println("green_bits = " + green_bits);
-//		System.out.println("blue_bits = " + blue_bits);
-//		System.out.println("alpha_bits = " + alpha_bits);
-		
-		GLCheck.checkError();
-		
-		int totalBytes = Math.max(width, 1) * Math.max(height, 1) * Math.max(depth, 1) * 
-				(red_bits + green_bits + blue_bits + alpha_bits + depth_bits + stencil_bits) /8;
-//		totalBytes = Math.min(2048 * 2048 * 2, totalBytes);
-		
-		ByteBuffer result = fromCache ?  CacheBuffer.getCachedByteBuffer(totalBytes) : BufferUtils.createByteBuffer(totalBytes);
 		int type = measureDataType(internalFormat);
 		int format = measureFormat(internalFormat);
 //		System.out.println("internalFormat = " + internalFormat);
