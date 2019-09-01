@@ -139,4 +139,15 @@ public class StackInt {
 		System.arraycopy(items, 0, sf.items, 0, size);
 		return sf;
 	}
+
+	public void moveTo(StackInt dest){
+		if(this == dest)
+			return;
+
+		dest.size = size;
+		dest.items = items;
+
+		size = 0;
+		items = Numeric.EMPTY_INT;
+	}
 }

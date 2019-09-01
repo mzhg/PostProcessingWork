@@ -17,7 +17,7 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.Numeric;
 
-final class FAtmosphericFogSceneInfo {
+public final class FAtmosphericFogSceneInfo {
 
     public static final int
     AP_Transmittance = 0,

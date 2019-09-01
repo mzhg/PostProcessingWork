@@ -980,4 +980,32 @@ public final class Numeric {
 	public static double log2(double x){
 		return Math.log(x)/ Math.log(2);
 	}
+
+	public static final int countTrailingZeros(int value)
+	{
+		if (value == 0)
+		{
+			return 32;
+		}
+		/*unsigned long BitIndex;	// 0-based, where the LSB is 0 and MSB is 31
+		_BitScanForward( &BitIndex, Value );	// Scans from LSB to MSB
+		return BitIndex;*/
+
+		int index = 0;
+
+		while (value != 0 && (value & 1) == 0){
+			value = value >> 1;
+			index ++;
+		}
+
+		if(value == 0)
+			return 32;  // never occor!
+		else
+			return index;
+	}
+
+	public static final int countLeadingZeros(int value){
+
+		throw new UnsupportedOperationException();
+	}
 }

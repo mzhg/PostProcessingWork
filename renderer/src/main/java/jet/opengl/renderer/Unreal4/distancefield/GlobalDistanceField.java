@@ -6,7 +6,7 @@ import org.lwjgl.util.vector.Vector4f;
 
 import java.util.List;
 
-import jet.opengl.renderer.Unreal4.FScene;
+import jet.opengl.renderer.Unreal4.scenes.FScene;
 import jet.opengl.renderer.Unreal4.FViewInfo;
 import jet.opengl.renderer.Unreal4.UE4Engine;
 import jet.opengl.postprocessing.common.GLFuncProvider;

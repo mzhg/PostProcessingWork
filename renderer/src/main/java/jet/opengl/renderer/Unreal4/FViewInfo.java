@@ -12,6 +12,7 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Recti;
+import jet.opengl.renderer.Unreal4.scenes.FSceneViewState;
 
 public class FViewInfo {
     private static final int FLAG_VIEW_BUFFER = 1;

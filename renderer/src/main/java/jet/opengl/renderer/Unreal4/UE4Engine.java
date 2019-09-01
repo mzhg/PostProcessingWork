@@ -22,4 +22,30 @@ public final class UE4Engine {
     public static final int GMaxGlobalDistanceFieldClipmaps = 4;
 
     public static final int GMaxForwardShadowCascades = MAX_CASCADE;
+    public static final int INDEX_NONE = -1;
+
+    public static final boolean CHECKING = true;
+
+    public static void check(Object obj){
+        if(CHECKING){
+            if(obj == null){
+                throw new NullPointerException();
+            }
+        }
+    }
+
+    public static void check(boolean condition){
+        if(CHECKING){
+            if(!condition){
+                throw new IllegalStateException();
+            }
+        }
+    }
+
+    public static void ensure(boolean condition){
+        if(!condition){
+            throw new IllegalStateException();
+        }
+    }
+
 }

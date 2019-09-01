@@ -1,4 +1,4 @@
-package jet.opengl.renderer.Unreal4;
+package jet.opengl.renderer.Unreal4.scenes;
 
 // SceneView.h
 

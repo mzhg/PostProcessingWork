@@ -1,8 +1,11 @@
 package jet.opengl.renderer.Unreal4;
 
+import org.lwjgl.util.vector.ReadableVector4f;
+
 import java.util.ArrayList;
 
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.renderer.Unreal4.scenes.FSceneViewState;
 import jet.opengl.renderer.Unreal4.utils.FRenderQueryPool;
 
 /**
@@ -22,16 +25,21 @@ public final class FOcclusionQueryBatcher implements Disposeable {
     public boolean HasBatches() { return (NumBatchedPrimitives > 0); }
 
     /** Renders the current batch and resets the batch state. */
-    void Flush(FRHICommandList& RHICmdList);
+    void Flush(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Batches a primitive's occlusion query for rendering.
-     * @param Bounds - The primitive's bounds.
+     * @param BoundsOrigin - The primitive's bounds.
      */
-    FRenderQueryRHIParamRef BatchPrimitive(const FVector& BoundsOrigin, const FVector& BoundsBoxExtent, FGlobalDynamicVertexBuffer& DynamicVertexBuffer);
+    public int BatchPrimitive(ReadableVector4f BoundsOrigin, ReadableVector4f BoundsBoxExtent/*, FGlobalDynamicVertexBuffer& DynamicVertexBuffer*/){
+        throw new UnsupportedOperationException();
+    }
+
     public int GetNumBatchOcclusionQueries()
     {
-        return BatchOcclusionQueries.Num();
+        return BatchOcclusionQueries.size();
     }
 
     @Override

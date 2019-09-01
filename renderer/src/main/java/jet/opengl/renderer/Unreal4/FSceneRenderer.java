@@ -9,6 +9,8 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.renderer.Unreal4.api.ERHIFeatureLevel;
 import jet.opengl.renderer.Unreal4.api.EShaderPlatform;
 import jet.opengl.renderer.Unreal4.api.RHIDefinitions;
+import jet.opengl.renderer.Unreal4.scenes.FScene;
+import jet.opengl.renderer.Unreal4.scenes.FSceneViewFamily;
 
 /**
  * Used as the scope for scene rendering functions.
@@ -16,7 +18,7 @@ import jet.opengl.renderer.Unreal4.api.RHIDefinitions;
  * The rendering thread calls Render(), and deletes the scene renderer when it returns.
  */
 public abstract class FSceneRenderer implements Disposeable {
-    final static EShaderPlatform[] GShaderPlatformForFeatureLevel = {
+    public final static EShaderPlatform[] GShaderPlatformForFeatureLevel = {
             EShaderPlatform.SP_OPENGL_SM5,
             EShaderPlatform.SP_OPENGL_SM5,
             EShaderPlatform.SP_OPENGL_SM5,

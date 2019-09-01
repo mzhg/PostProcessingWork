@@ -5,4 +5,5 @@ public interface ERHIFeatureLevel {
     int ES3_1 = 1;
     int SM4 = 2;
     int SM5 = 3;
+    int Num = 4;
 }

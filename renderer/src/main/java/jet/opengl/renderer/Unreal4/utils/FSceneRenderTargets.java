@@ -1,21 +1,27 @@
 package jet.opengl.renderer.Unreal4.utils;
 
 import org.lwjgl.util.vector.Vector2i;
+import org.lwjgl.util.vector.Vector4f;
 
 import java.util.ArrayList;
 
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.renderer.Unreal4.FSceneRenderer;
-import jet.opengl.renderer.Unreal4.FSceneViewFamily;
-import jet.opengl.renderer.Unreal4.FTranslucenyPrimCount;
+import jet.opengl.renderer.Unreal4.scenes.FSceneViewFamily;
+import jet.opengl.renderer.Unreal4.FViewInfo;
+import jet.opengl.renderer.Unreal4.UE4Engine;
+import jet.opengl.renderer.Unreal4.api.ERHIFeatureLevel;
 import jet.opengl.renderer.Unreal4.api.ERenderTargetLoadAction;
 import jet.opengl.renderer.Unreal4.api.EShadingPath;
+import jet.opengl.renderer.Unreal4.api.ESimpleRenderTargetMode;
 import jet.opengl.renderer.Unreal4.api.ETranslucencyVolumeCascade;
+import jet.opengl.renderer.Unreal4.api.FExclusiveDepthStencil;
 import jet.opengl.renderer.Unreal4.api.FRHIRenderPassInfo;
 import jet.opengl.renderer.Unreal4.api.FRHIRenderTargetView;
-import jet.opengl.renderer.Unreal4.api.RHIDefinitions;
 
 public class FSceneRenderTargets {
     /** Number of cube map shadow depth surfaces that will be created and used for rendering one pass point light shadows. */
@@ -126,23 +132,23 @@ public class FSceneRenderTargets {
     private final Vector2i SeparateTranslucencyBufferSize = new Vector2i();
     private float SeparateTranslucencyScale;
     /** e.g. 2 */
-    private int SmallColorDepthDownsampleFactor;
+    private int SmallColorDepthDownsampleFactor = 2;
     /** Whether to use SmallDepthZ for occlusion queries. */
-    private boolean bUseDownsizedOcclusionQueries;
+    private boolean bUseDownsizedOcclusionQueries = true;
     /** To detect a change of the CVar r.GBufferFormat */
     private int CurrentGBufferFormat;
     /** To detect a change of the CVar r.SceneColorFormat */
     private int CurrentSceneColorFormat;
     /** To detect a change of the mobile scene color format */
-    private int CurrentMobileSceneColorFormat;
+    private int CurrentMobileSceneColorFormat = GLenum.GL_NONE;
     /** Whether render targets were allocated with static lighting allowed. */
-    private boolean bAllowStaticLighting;
+    private boolean bAllowStaticLighting = true;
     /** To detect a change of the CVar r.Shadow.MaxResolution */
     private int CurrentMaxShadowResolution;
     /** To detect a change of the CVar r.Shadow.RsmResolution*/
     private int CurrentRSMResolution;
     /** To detect a change of the CVar r.TranslucencyLightingVolumeDim */
-    private int CurrentTranslucencyLightingVolumeDim;
+    private int CurrentTranslucencyLightingVolumeDim = 64;
     /** To detect a change of the CVar r.MobileHDR / r.MobileHDR32bppMode */
     private int CurrentMobile32bpp;
     /** To detect a change of the CVar r.MobileMSAA or r.MSAA */
@@ -152,9 +158,9 @@ public class FSceneRenderTargets {
     /** To detect a change of the CVar r.LightPropagationVolume */
     private boolean bCurrentLightPropagationVolume;
     /** Feature level we were initialized for */
-    private int CurrentFeatureLevel;
+    private int CurrentFeatureLevel = ERHIFeatureLevel.Num;
     /** Shading path that we are currently drawing through. Set when calling Allocate at the start of a scene render. */
-    private EShadingPath CurrentShadingPath;
+    private EShadingPath CurrentShadingPath = EShadingPath.Unkown;
 
     private boolean bRequireSceneColorAlpha;
 
@@ -171,13 +177,13 @@ public class FSceneRenderTargets {
     private boolean bSnapshot;
 
     /** Clear color value, defaults to FClearValueBinding::Black */
-    FClearValueBinding DefaultColorClear;
+    private FClearValueBinding DefaultColorClear = FClearValueBinding.Black;
 
     /** Clear depth value, defaults to FClearValueBinding::DepthFar */
-    FClearValueBinding DefaultDepthClear;
+    private FClearValueBinding DefaultDepthClear = FClearValueBinding.DepthFar;
 
     /** Helpers to track the bound index of the quad overdraw UAV. Needed because UAVs overlap RTs in DX11 */
-    private int QuadOverdrawIndex;
+    private int QuadOverdrawIndex = UE4Engine.INDEX_NONE;
 
     /** All outstanding snapshots */
     private final ArrayList<FSceneRenderTargets> Snapshots = new ArrayList<>();
@@ -214,7 +220,7 @@ public class FSceneRenderTargets {
     public TextureGL LightAccumulation;
 
     // Reflection Environment: Bringing back light accumulation buffer to apply indirect reflections
-    public TextureGL DirectionalOcclusion;
+    public Texture2D DirectionalOcclusion;
 
     // Scene depth and stencil.
     public Texture2D SceneDepthZ;
@@ -224,11 +230,11 @@ public class FSceneRenderTargets {
 
     public TextureGL LightingChannels;
     // Mobile without frame buffer fetch (to get depth from alpha).
-    public TextureGL SceneAlphaCopy;
+    public Texture2D SceneAlphaCopy;
     // Auxiliary scene depth target. The scene depth is resolved to this surface when targeting SM4.
     public Texture2D AuxiliarySceneDepthZ;
     // Quarter-sized version of the scene depths
-    public TextureGL SmallDepthZ;
+    public Texture2D SmallDepthZ;
 
     // GBuffer: Geometry Buffer rendered in base pass for deferred shading, only available between AllocGBufferTargets() and FreeGBufferTargets()
     public Texture2D GBufferA;
@@ -289,6 +295,42 @@ public class FSceneRenderTargets {
     // todo: free ScreenSpaceAO so pool can reuse
     public boolean bCustomDepthIsValid;
 
+    protected   FSceneRenderTargets(){}
+
+    protected FSceneRenderTargets(FViewInfo InView, FSceneRenderTargets SnapshotSource){
+        throw new UnsupportedOperationException();
+    }
+
+    /** Singletons. At the moment parallel tasks get their snapshot from the rhicmdlist */
+    public static FSceneRenderTargets Get(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
+
+//    public static FSceneRenderTargets Get(/*FRHICommandListImmediate& RHICmdList*/);
+//    public static FSceneRenderTargets Get(/*FRHIAsyncComputeCommandListImmediate& RHICmdList*/);
+
+    // this is a placeholder, the context should come from somewhere. This is very unsafe, please don't use it!
+    public static FSceneRenderTargets GetGlobalUnsafe(){
+        throw new UnsupportedOperationException();
+    }
+    // As above but relaxed checks and always gives the global FSceneRenderTargets. The intention here is that it is only used for constants that don't change during a frame. This is very unsafe, please don't use it!
+    public static FSceneRenderTargets Get_FrameConstantsOnly(){
+        throw new UnsupportedOperationException();
+    }
+
+    /** Create a snapshot on the scene allocator */
+    public FSceneRenderTargets CreateSnapshot(FViewInfo InView){
+        throw new UnsupportedOperationException();
+    }
+    /** Set a snapshot on the TargetCmdList */
+    public void SetSnapshotOnCmdList(/*FRHICommandList& TargetCmdList*/){
+        throw new UnsupportedOperationException();
+    }
+    /** Destruct all snapshots */
+    public void DestroyAllSnapshots(){
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * Checks that scene render targets are ready for rendering a view family of the given dimensions.
      * If the allocated render targets are too small, they are reallocated.
@@ -312,68 +354,146 @@ public class FSceneRenderTargets {
         throw new UnsupportedOperationException();
     }
 
-    public void SetQuadOverdrawUAV(/*FRHICommandList& RHICmdList,*/ boolean bBindQuadOverdrawBuffers, FRHISetRenderTargetsInfo Info){
+    public void SetQuadOverdrawUAV(/*FRHICommandList& RHICmdList,*/ boolean bBindQuadOverdrawBuffers, boolean bClearQuadOverdrawBuffers, FRHIRenderPassInfo Info){
         throw new UnsupportedOperationException();
     }
 
-    public void SetQuadOverdrawUAV(FRHICommandList& RHICmdList, bool bBindQuadOverdrawBuffers, bool bClearQuadOverdrawBuffers, FRHIRenderPassInfo& Info);
-    public void BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, FExclusiveDepthStencil::Type DepthStencilAccess, bool bBindQuadOverdrawBuffers, bool bClearQuadOverdrawBuffers = false, const FLinearColor& ClearColor = FLinearColor(0, 0, 0, 1), bool bIsWireframe=false);
-    public void FinishGBufferPassAndResolve(FRHICommandListImmediate& RHICmdList);
+
+    public void BindVirtualTextureFeedbackUAV(FRHIRenderPassInfo RPInfo){
+        throw new UnsupportedOperationException();
+    }
+
+    public void BeginRenderingGBuffer(/*FRHICommandList& RHICmdList,*/ ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, int DepthStencilAccess, boolean bBindQuadOverdrawBuffers, boolean bClearQuadOverdrawBuffers /*= false*/, Vector4f ClearColor /*= FLinearColor(0, 0, 0, 1)*/, boolean bIsWireframe/*=false*/){
+        throw new UnsupportedOperationException();
+    }
+
+    public void FinishGBufferPassAndResolve(/*FRHICommandListImmediate& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Sets the scene color target and restores its contents if necessary
      */
-    public void BeginRenderingSceneColor(FRHICommandList& FRHICommandListImmediate, ESimpleRenderTargetMode RenderTargetMode = ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil DepthStencilAccess = FExclusiveDepthStencil::DepthWrite_StencilWrite, bool bTransitionWritable = true);
-    public void FinishRenderingSceneColor(FRHICommandList& RHICmdList);
+    public final void BeginRenderingSceneColor(){
+        BeginRenderingSceneColor(ESimpleRenderTargetMode.EUninitializedColorExistingDepth, FExclusiveDepthStencil.DepthWrite_StencilWrite, true);
+    }
+
+    /**
+     * Sets the scene color target and restores its contents if necessary
+     */
+    public final void BeginRenderingSceneColor(/*FRHICommandList& FRHICommandListImmediate,*/ ESimpleRenderTargetMode RenderTargetMode /*= ESimpleRenderTargetMode::EUninitializedColorExistingDepth*/){
+        BeginRenderingSceneColor(RenderTargetMode, FExclusiveDepthStencil.DepthWrite_StencilWrite, true);
+    }
+
+    /**
+     * Sets the scene color target and restores its contents if necessary
+     */
+    public final void BeginRenderingSceneColor(/*FRHICommandList& FRHICommandListImmediate,*/ ESimpleRenderTargetMode RenderTargetMode /*= ESimpleRenderTargetMode::EUninitializedColorExistingDepth*/, int DepthStencilAccess /*=FExclusiveDepthStencil::DepthWrite_StencilWrite*/){
+        BeginRenderingSceneColor(RenderTargetMode, DepthStencilAccess, true);
+    }
+
+    /**
+     * Sets the scene color target and restores its contents if necessary
+     */
+    public void BeginRenderingSceneColor(/*FRHICommandList& FRHICommandListImmediate,*/ ESimpleRenderTargetMode RenderTargetMode /*= ESimpleRenderTargetMode::EUninitializedColorExistingDepth*/, int DepthStencilAccess /*=FExclusiveDepthStencil::DepthWrite_StencilWrite*/, boolean bTransitionWritable /*= true*/){
+        throw new UnsupportedOperationException();
+    }
+    public void FinishRenderingSceneColor(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
     // @return true: call FinishRenderingCustomDepth after rendering, false: don't render it, feature is disabled
-    public boolean BeginRenderingCustomDepth(FRHICommandListImmediate& RHICmdList, bool bPrimitives);
+    public boolean BeginRenderingCustomDepth(/*FRHICommandListImmediate& RHICmdList,*/ boolean bPrimitives){
+        throw new UnsupportedOperationException();
+    }
     // only call if BeginRenderingCustomDepth() returned true
-    public void FinishRenderingCustomDepth(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
+    public void FinishRenderingCustomDepth(/*FRHICommandListImmediate& RHICmdList,*/ FResolveRect ResolveRect /*= FResolveRect()*/){
+        throw new UnsupportedOperationException();
+    }
 
     /** Binds the appropriate shadow depth cube map for rendering. */
-    public void BeginRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution);
+    public void BeginRenderingCubeShadowDepth(/*FRHICommandList& RHICmdList,*/ int ShadowResolution){
+        throw new UnsupportedOperationException();
+    }
 
     /** Begin rendering translucency in the scene color. */
-    public void BeginRenderingTranslucency(FRHICommandList& RHICmdList, const class FViewInfo& View, const FSceneRenderer& Renderer, bool bFirstTimeThisFrame = true);
-    public void FinishRenderingTranslucency(FRHICommandList& RHICmdList);
+    public void BeginRenderingTranslucency(/*FRHICommandList& RHICmdList,*/ FViewInfo View, FSceneRenderer Renderer, boolean bFirstTimeThisFrame /*= true*/){
+        throw new UnsupportedOperationException();
+    }
+
+    public void FinishRenderingTranslucency(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
     /** Begin rendering translucency in a separate (offscreen) buffer. This can be any translucency pass. */
-    public void BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, const FSceneRenderer& Renderer, bool bFirstTimeThisFrame);
-    public void ResolveSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View);
+    public void BeginRenderingSeparateTranslucency(/*FRHICommandList& RHICmdList,*/ FViewInfo View, FSceneRenderer Renderer, boolean bFirstTimeThisFrame){
+        throw new UnsupportedOperationException();
+    }
+
+    public void ResolveSeparateTranslucency(/*FRHICommandList& RHICmdList,*/ FViewInfo View){
+        throw new UnsupportedOperationException();
+    }
 
     public void FreeSeparateTranslucency()
     {
-        SeparateTranslucencyRT.SafeRelease();
-        check(!SeparateTranslucencyRT);
+//        SeparateTranslucencyRT.SafeRelease();
+//        check(!SeparateTranslucencyRT);
+
+        if(SeparateTranslucencyRT != null){
+            SeparateTranslucencyRT.dispose();
+            SeparateTranslucencyRT = null;
+        }
     }
 
     public void FreeDownsampledTranslucencyDepth()
     {
-        if (DownsampledTranslucencyDepthRT.GetReference())
+        /*if (DownsampledTranslucencyDepthRT.GetReference())
         {
             DownsampledTranslucencyDepthRT.SafeRelease();
+        }*/
+
+        if(DownsampledTranslucencyDepthRT != null){
+            DownsampledTranslucencyDepthRT.dispose();
+            DownsampledTranslucencyDepthRT = null;
         }
     }
 
-    public void ResolveSceneDepthTexture(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect);
-    public void ResolveSceneDepthToAuxiliaryTexture(FRHICommandList& RHICmdList);
+    public void ResolveSceneDepthTexture(/*FRHICommandList& RHICmdList,*/ FResolveRect ResolveRect){
 
-    public void BeginRenderingPrePass(FRHICommandList& RHICmdList, bool bPerformClear);
-    public void FinishRenderingPrePass(FRHICommandListImmediate& RHICmdList);
+    }
 
-    public void BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
-    public void FinishRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
+    public void ResolveSceneDepthToAuxiliaryTexture(/*FRHICommandList& RHICmdList*/){
 
-    public void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite = false);
-    public void FinishRenderingLightAttenuation(FRHICommandList& RHICmdList);
+    }
 
-    public void SetDefaultColorClear(const FClearValueBinding ColorClear)
+    public void BeginRenderingPrePass(/*FRHICommandList& RHICmdList,*/ boolean bPerformClear){
+
+    }
+    public void FinishRenderingPrePass(/*FRHICommandListImmediate& RHICmdList*/){
+
+    }
+
+    public void BeginRenderingSceneAlphaCopy(/*FRHICommandListImmediate& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
+    public void FinishRenderingSceneAlphaCopy(/*FRHICommandListImmediate& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
+
+    public void BeginRenderingLightAttenuation(/*FRHICommandList& RHICmdList,*/ boolean bClearToWhite /*= false*/){
+        throw new UnsupportedOperationException();
+    }
+
+    public void FinishRenderingLightAttenuation(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
+
+    public void SetDefaultColorClear(FClearValueBinding ColorClear)
     {
         DefaultColorClear = ColorClear;
     }
 
-    public void SetDefaultDepthClear(const FClearValueBinding DepthClear)
+    public void SetDefaultDepthClear(FClearValueBinding DepthClear)
     {
         DefaultDepthClear = DepthClear;
     }
@@ -383,43 +503,53 @@ public class FSceneRenderTargets {
         return DefaultDepthClear;
     }
 
-    public void GetSeparateTranslucencyDimensions(FIntPoint& OutScaledSize, float& OutScale) const
+    public float GetSeparateTranslucencyDimensions(Vector2i OutScaledSize/*, float& OutScale*/)
     {
-        OutScaledSize = SeparateTranslucencyBufferSize;
-        OutScale = SeparateTranslucencyScale;
+        OutScaledSize.set(SeparateTranslucencyBufferSize);
+        return SeparateTranslucencyScale;
     }
 
     /** Separate translucency buffer can be downsampled or not (as it is used to store the AfterDOF translucency) */
-    public TextureGL GetSeparateTranslucency(FRHICommandList& RHICmdList, FIntPoint Size);
+    public TextureGL GetSeparateTranslucency(/*FRHICommandList& RHICmdList, */Vector2i Size){
+        throw new UnsupportedOperationException();
+    }
 
     public boolean IsDownsampledTranslucencyDepthValid()
     {
-        return DownsampledTranslucencyDepthRT != nullptr;
+        return DownsampledTranslucencyDepthRT != null;
     }
 
-    public TextureGL GetDownsampledTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size);
+    public TextureGL GetDownsampledTranslucencyDepth(/*FRHICommandList& RHICmdList,*/ Vector2i Size){
+        throw new UnsupportedOperationException();
+    }
 
     public TextureGL GetDownsampledTranslucencyDepthSurface()
     {
-        return (const FTexture2DRHIRef&)DownsampledTranslucencyDepthRT->GetRenderTargetItem().TargetableTexture;
+        return DownsampledTranslucencyDepthRT; //(const FTexture2DRHIRef&)DownsampledTranslucencyDepthRT->GetRenderTargetItem().TargetableTexture;
     }
 
     /**
      * Cleans up editor primitive targets that we no longer need
      */
-    public void CleanUpEditorPrimitiveTargets();
+    public void CleanUpEditorPrimitiveTargets(){
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Affects the render quality of the editor 3d objects. MSAA is needed if >1
      * @return clamped to reasonable numbers
      */
-    public int GetEditorMSAACompositingSampleCount() const;
+    public int GetEditorMSAACompositingSampleCount() {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Affects the render quality of the scene. MSAA is needed if >1
      * @return clamped to reasonable numbers
      */
-    public static short GetNumSceneColorMSAASamples(/*ERHIFeatureLevel::Type*/int InFeatureLevel);
+    public static short GetNumSceneColorMSAASamples(/*ERHIFeatureLevel::Type*/int InFeatureLevel){
+        throw new UnsupportedOperationException();
+    }
 
     public boolean IsStaticLightingAllowed() { return bAllowStaticLighting; }
 
@@ -427,22 +557,32 @@ public class FSceneRenderTargets {
      * Gets the editor primitives color target/shader resource.  This may recreate the target
      * if the msaa settings dont match
      */
-    public Texture2D GetEditorPrimitivesColor(/*FRHICommandList& RHICmdList*/);
+    public Texture2D GetEditorPrimitivesColor(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Gets the editor primitives depth target/shader resource.  This may recreate the target
      * if the msaa settings dont match
      */
-    public Texture2D GetEditorPrimitivesDepth(/*FRHICommandList& RHICmdList*/);
+    public Texture2D GetEditorPrimitivesDepth(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
 
     // FRenderResource interface.
-    public void ReleaseDynamicRHI()
+    public void ReleaseDynamicRHI(){
+        throw new UnsupportedOperationException();
+    }
 
     // Texture Accessors -----------
 
-    public TextureGL GetSceneColorTexture()
-    public TextureGL GetSceneColorTextureUAV();
+    public TextureGL GetSceneColorTexture(){
+        throw new UnsupportedOperationException();
+    }
+    public TextureGL GetSceneColorTextureUAV(){
+        throw new UnsupportedOperationException();
+    }
 
     public Texture2D GetSceneAlphaCopyTexture()  {
 //        return (const FTexture2DRHIRef&)SceneAlphaCopy->GetRenderTargetItem().ShaderResourceTexture;
@@ -479,128 +619,196 @@ public class FSceneRenderTargets {
         return GetLightAttenuation();
     }
 
-	const FTextureRHIRef& GetSceneColorSurface() const;
-	const FTexture2DRHIRef& GetSceneAlphaCopySurface() const						{ return (const FTexture2DRHIRef&)SceneAlphaCopy->GetRenderTargetItem().TargetableTexture; }
-	const FTexture2DRHIRef& GetSceneDepthSurface() const							{ return (const FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture; }
-	const FTexture2DRHIRef& GetSmallDepthSurface() const							{ return (const FTexture2DRHIRef&)SmallDepthZ->GetRenderTargetItem().TargetableTexture; }
-	const FTexture2DRHIRef& GetOptionalShadowDepthColorSurface(FRHICommandList& RHICmdList, int32 Width, int32 Height) const;
-	const FTexture2DRHIRef& GetLightAttenuationSurface() const					{ return (const FTexture2DRHIRef&)GetLightAttenuation()->GetRenderTargetItem().TargetableTexture; }
-	const FTexture2DRHIRef& GetAuxiliarySceneDepthSurface() const
-    {
-        check(!GSupportsDepthFetchDuringDepthTest);
-        return (const FTexture2DRHIRef&)AuxiliarySceneDepthZ->GetRenderTargetItem().TargetableTexture;
+    public Texture2D GetSceneColorSurface() {
+        throw new UnsupportedOperationException();
+    }
+    public Texture2D GetSceneAlphaCopySurface() 						{ return SceneAlphaCopy; /*(const FTexture2DRHIRef&)SceneAlphaCopy->GetRenderTargetItem().TargetableTexture;*/ }
+    public Texture2D GetSceneDepthSurface() 							{ return SceneDepthZ; /*(const FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture;*/ }
+    public Texture2D GetSmallDepthSurface() 							{ return SmallDepthZ; /*(const FTexture2DRHIRef&)SmallDepthZ->GetRenderTargetItem().TargetableTexture;*/ }
+    public Texture2D GetOptionalShadowDepthColorSurface(/*FRHICommandList& RHICmdList,*/ int Width, int Height) {
+        throw new UnsupportedOperationException();
     }
 
-	const FTexture2DRHIRef& GetDirectionalOcclusionTexture() const
+    public Texture2D GetLightAttenuationSurface() 					{ return GetLightAttenuation(); /*(const FTexture2DRHIRef&)GetLightAttenuation()->GetRenderTargetItem().TargetableTexture;*/ }
+    public Texture2D GetAuxiliarySceneDepthSurface()
     {
-        return (const FTexture2DRHIRef&)DirectionalOcclusion->GetRenderTargetItem().TargetableTexture;
+//        check(!GSupportsDepthFetchDuringDepthTest);
+        return AuxiliarySceneDepthZ; //(const FTexture2DRHIRef&)AuxiliarySceneDepthZ->GetRenderTargetItem().TargetableTexture;
     }
 
-    int32 GetQuadOverdrawIndex() const { return QuadOverdrawIndex; }
+    public Texture2D GetDirectionalOcclusionTexture()
+    {
+        return DirectionalOcclusion; //(const FTexture2DRHIRef&)DirectionalOcclusion->GetRenderTargetItem().TargetableTexture;
+    }
+
+    public int GetQuadOverdrawIndex() { return QuadOverdrawIndex; }
 
     // @return can be 0 if the feature is disabled
-    IPooledRenderTarget* RequestCustomDepth(FRHICommandListImmediate& RHICmdList, bool bPrimitives);
+    public Texture2D RequestCustomDepth(/*FRHICommandListImmediate& RHICmdList,*/ boolean bPrimitives){
+        throw new UnsupportedOperationException();
+    }
 
-    static bool IsCustomDepthPassWritingStencil();
+    public static boolean IsCustomDepthPassWritingStencil(){
+        throw new UnsupportedOperationException();
+    }
 
     // ---
 
     /** */
-    bool UseDownsizedOcclusionQueries() const { return bUseDownsizedOcclusionQueries; }
+    public boolean UseDownsizedOcclusionQueries() { return bUseDownsizedOcclusionQueries; }
 
     // ---
 
-    template<int32 NumRenderTargets>
-    static void ClearVolumeTextures(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, FTextureRHIParamRef* RenderTargets, const FLinearColor* ClearColors);
+//    template<int32 NumRenderTargets>
+//    static void ClearVolumeTextures(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, FTextureRHIParamRef* RenderTargets, const FLinearColor* ClearColors);
 
-    void ClearTranslucentVolumeLighting(FRHICommandListImmediate& RHICmdList, int32 ViewIndex);
+    public void ClearTranslucentVolumeLighting(/*FRHICommandListImmediate& RHICmdList,*/ int ViewIndex){
+        throw new UnsupportedOperationException();
+    }
 
     /** Get the current translucent ambient lighting volume texture. Can vary depending on whether volume filtering is enabled */
-    IPooledRenderTarget* GetTranslucencyVolumeAmbient(ETranslucencyVolumeCascade Cascade, int32 ViewIndex = 0) { return TranslucencyLightingVolumeAmbient[SelectTranslucencyVolumeTarget(Cascade) + ViewIndex * NumTranslucentVolumeRenderTargetSets].GetReference(); }
+    public TextureGL GetTranslucencyVolumeAmbient(int Cascade, boolean GUseTranslucencyVolumeBlur, int ViewIndex /*= 0*/)
+    {
+        return TranslucencyLightingVolumeAmbient.get(SelectTranslucencyVolumeTarget(Cascade, GUseTranslucencyVolumeBlur) + ViewIndex * NumTranslucentVolumeRenderTargetSets);
+    }
 
     /** Get the current translucent directional lighting volume texture. Can vary depending on whether volume filtering is enabled */
-    IPooledRenderTarget* GetTranslucencyVolumeDirectional(ETranslucencyVolumeCascade Cascade, int32 ViewIndex = 0) { return TranslucencyLightingVolumeDirectional[SelectTranslucencyVolumeTarget(Cascade) + ViewIndex * NumTranslucentVolumeRenderTargetSets].GetReference(); }
+    public TextureGL GetTranslucencyVolumeDirectional(int Cascade, boolean GUseTranslucencyVolumeBlur, int ViewIndex /*= 0*/) {
+        return TranslucencyLightingVolumeDirectional.get(SelectTranslucencyVolumeTarget(Cascade, GUseTranslucencyVolumeBlur) + ViewIndex * NumTranslucentVolumeRenderTargetSets);
+    }
 
     /** Returns the size of most screen space render targets e.g. SceneColor, SceneDepth, GBuffer, ... might be different from final RT or output Size because of ScreenPercentage use. */
-    FIntPoint GetBufferSizeXY() const { return BufferSize; }
+    public Vector2i GetBufferSizeXY() { return BufferSize; }
     /** */
-    uint32 GetSmallColorDepthDownsampleFactor() const { return SmallColorDepthDownsampleFactor; }
+    public int GetSmallColorDepthDownsampleFactor() { return SmallColorDepthDownsampleFactor; }
     /** Returns an index in the range [0, NumCubeShadowDepthSurfaces) given an input resolution. */
-    int32 GetCubeShadowDepthZIndex(int32 ShadowResolution) const;
+    public int GetCubeShadowDepthZIndex(int ShadowResolution) {
+        throw new UnsupportedOperationException();
+    }
     /** Returns the appropriate resolution for a given cube shadow index. */
-    int32 GetCubeShadowDepthZResolution(int32 ShadowIndex) const;
+    public int GetCubeShadowDepthZResolution(int ShadowIndex) {
+        throw new UnsupportedOperationException();
+    }
     /** Returns the size of the shadow depth buffer, taking into account platform limitations and game specific resolution limits. */
-    FIntPoint GetShadowDepthTextureResolution() const;
+    public Vector2i GetShadowDepthTextureResolution() {
+        throw new UnsupportedOperationException();
+    }
     // @return >= 1x1 <= GMaxShadowDepthBufferSizeX x GMaxShadowDepthBufferSizeY
-    FIntPoint GetPreShadowCacheTextureResolution() const;
-    FIntPoint GetTranslucentShadowDepthTextureResolution() const;
-    int32 GetTranslucentShadowDownsampleFactor() const { return 2; }
+    public Vector2i GetPreShadowCacheTextureResolution()  {
+        throw new UnsupportedOperationException();
+    }
+    public Vector2i GetTranslucentShadowDepthTextureResolution()  {
+        throw new UnsupportedOperationException();
+    }
+
+    public int GetTranslucentShadowDownsampleFactor()  { return 2; }
 
     /** Returns the size of the RSM buffer, taking into account platform limitations and game specific resolution limits. */
-    inline int32 GetReflectiveShadowMapResolution() const { return CurrentRSMResolution; }
+    public int GetReflectiveShadowMapResolution() { return CurrentRSMResolution; }
 
-    int32 GetNumGBufferTargets() const;
+    public int GetNumGBufferTargets() {
+        throw new UnsupportedOperationException();
+    }
 
-    int32 GetMSAACount() const { return CurrentMSAACount; }
+    public int GetMSAACount()  { return CurrentMSAACount; }
 
-    bool HasLightAttenuation() const { return LightAttenuation.IsValid(); }
+    public boolean HasLightAttenuation() { return LightAttenuation != null; }
 
     // ---
 
     // needs to be called between AllocSceneColor() and ReleaseSceneColor()
-	const TRefCountPtr<IPooledRenderTarget>& GetSceneColor() const;
+	public Texture2D GetSceneColor(){
+        throw new UnsupportedOperationException();
+    }
 
-    TRefCountPtr<IPooledRenderTarget>& GetSceneColor();
+//    TRefCountPtr<IPooledRenderTarget>& GetSceneColor();
 
-    EPixelFormat GetSceneColorFormat(ERHIFeatureLevel::Type InFeatureLevel) const;
-    EPixelFormat GetSceneColorFormat() const;
-    EPixelFormat GetDesiredMobileSceneColorFormat() const;
-    EPixelFormat GetMobileSceneColorFormat() const;
+    public int GetSceneColorFormat(int InFeatureLevel) {
+        throw new UnsupportedOperationException();
+    }
+    public int GetSceneColorFormat() {
+        throw new UnsupportedOperationException();
+    }
+    public int GetDesiredMobileSceneColorFormat() {
+        throw new UnsupportedOperationException();
+    }
+    public int GetMobileSceneColorFormat() {
+        throw new UnsupportedOperationException();
+    }
 
 
     // changes depending at which part of the frame this is called
-    bool IsSceneColorAllocated() const;
+    public boolean IsSceneColorAllocated() {
+        throw new UnsupportedOperationException();
+    }
 
-    void SetSceneColor(IPooledRenderTarget* In);
+    public void SetSceneColor(TextureGL In){
+        throw new UnsupportedOperationException();
+    }
 
     // ---
 
-    void SetLightAttenuation(IPooledRenderTarget* In);
+    public void SetLightAttenuation(TextureGL In){
+        throw new UnsupportedOperationException();
+    }
 
     // needs to be called between AllocSceneColor() and SetSceneColor(0)
-	const TRefCountPtr<IPooledRenderTarget>& GetLightAttenuation() const;
+	public Texture2D GetLightAttenuation(){
+        throw new UnsupportedOperationException();
+    }
 
-    TRefCountPtr<IPooledRenderTarget>& GetLightAttenuation();
 
     // ---
 
     // allows to release the GBuffer once post process materials no longer need it
     // @param 1: add a reference, -1: remove a reference
-    void AdjustGBufferRefCount(FRHICommandList& RHICmdList, int Delta);
+    public void AdjustGBufferRefCount(/*FRHICommandList& RHICmdList,*/ int Delta){
+        throw new UnsupportedOperationException();
+    }
 
-    void PreallocGBufferTargets();
-    void GetGBufferADesc(FPooledRenderTargetDesc& Desc) const;
-    void AllocGBufferTargets(FRHICommandList& RHICmdList);
+    public void PreallocGBufferTargets(){
+        throw new UnsupportedOperationException();
+    }
+    public void GetGBufferADesc(Texture2DDesc Desc){
+        throw new UnsupportedOperationException();
+    }
+    public void AllocGBufferTargets(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
-    void AllocLightAttenuation(FRHICommandList& RHICmdList);
+    public void AllocLightAttenuation(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
-    void AllocateReflectionTargets(FRHICommandList& RHICmdList, int32 TargetSize);
+    public void AllocateReflectionTargets(/*FRHICommandList& RHICmdList,*/ int TargetSize){
+        throw new UnsupportedOperationException();
+    }
 
-    void AllocateLightingChannelTexture(FRHICommandList& RHICmdList);
+    public void AllocateLightingChannelTexture(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
-    void AllocateDebugViewModeTargets(FRHICommandList& RHICmdList);
+    public void AllocateDebugViewModeTargets(/*FRHICommandList& RHICmdList*/){
+        throw new UnsupportedOperationException();
+    }
 
-    void AllocateScreenShadowMask(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& ScreenShadowMaskTexture);
+    public void AllocateScreenShadowMask(/*FRHICommandList& RHICmdList,*/ TextureGL ScreenShadowMaskTexture){
+        throw new UnsupportedOperationException();
+    }
 
-    TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
+    public TextureGL GetReflectionBrightnessTarget(){
+        throw new UnsupportedOperationException();
+    }
 
-    FORCEINLINE bool IsSeparateTranslucencyPass() const { return bSeparateTranslucencyPass; }
+    public boolean IsSeparateTranslucencyPass() { return bSeparateTranslucencyPass; }
 
     // Can be called when the Scene Color content is no longer needed. As we create SceneColor on demand we can make sure it is created with the right format.
     // (as a call to SetSceneColor() can override it with a different format)
-    void ReleaseSceneColor();
+    public void ReleaseSceneColor(){
 
-    ERHIFeatureLevel::Type GetCurrentFeatureLevel() const { return CurrentFeatureLevel; }
+    }
+
+    public int GetCurrentFeatureLevel() { return CurrentFeatureLevel; }
 
     /**
      * Initializes the editor primitive color render target

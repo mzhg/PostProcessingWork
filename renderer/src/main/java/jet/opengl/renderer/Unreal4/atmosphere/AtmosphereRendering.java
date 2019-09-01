@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Properties;
 
-import jet.opengl.renderer.Unreal4.FScene;
+import jet.opengl.renderer.Unreal4.scenes.FScene;
 import jet.opengl.renderer.Unreal4.FViewInfo;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
