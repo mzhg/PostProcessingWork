@@ -195,11 +195,11 @@ public class Vector4f extends Vector implements Serializable, ReadableVector4f, 
 	 * @param dest The destination vector, or null if a new vector is to be created
 	 * @return left minus right in dest
 	 */
-	public static Vector4f sub(Vector4f left, Vector4f right, Vector4f dest) {
+	public static Vector4f sub(ReadableVector4f left, ReadableVector4f right, Vector4f dest) {
 		if (dest == null)
-			return new Vector4f(left.x - right.x, left.y - right.y, left.z - right.z, left.w - right.w);
+			return new Vector4f(left.getX() - right.getX(), left.getY() - right.getY(), left.getZ() - right.getZ(), left.getW() - right.getW());
 		else {
-			dest.set(left.x - right.x, left.y - right.y, left.z - right.z, left.w - right.w);
+			dest.set(left.getX() - right.getX(), left.getY() - right.getY(), left.getZ() - right.getZ(), left.getW() - right.getW());
 			return dest;
 		}
 	}
@@ -684,5 +684,19 @@ public class Vector4f extends Vector implements Serializable, ReadableVector4f, 
 		r.w  = a.getW() * g + b.getW() * f;
 
 		return r;
+	}
+
+	/**
+	 * Returns non-zero if any element in Vec1 is greater than the corresponding element in Vec2, otherwise 0.
+	 *
+	 * @param Vec1			1st source vector
+	 * @param Vec2			2nd source vector
+	 * @return				true if (Vec1.x > Vec2.x) || (Vec1.y > Vec2.y) || (Vec1.z > Vec2.z) || (Vec1.w > Vec2.w)
+	 */
+	public static boolean anyGreaterThan(ReadableVector4f Vec1, ReadableVector4f Vec2){
+		return Vec1.getX() > Vec2.getX()
+				|| Vec1.getY() > Vec2.getY()
+				|| Vec1.getZ() > Vec2.getZ()
+				|| Vec1.getW() > Vec2.getW();
 	}
 }

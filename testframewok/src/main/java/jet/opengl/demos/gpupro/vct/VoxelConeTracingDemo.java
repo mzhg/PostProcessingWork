@@ -25,7 +25,7 @@ public class VoxelConeTracingDemo extends NvSampleApp {
         scene.update(getFrameDeltaTime());
 
         graphics.render(scene, getGLContext().width(), getGLContext().height(),
-                VoxelConeTracingRenderer.RenderingMode.VOXELIZATION_VISUALIZATION);
+                VoxelConeTracingRenderer.RenderingMode.VOXEL_CONE_TRACING);
 
         GLCheck.checkError();
     }

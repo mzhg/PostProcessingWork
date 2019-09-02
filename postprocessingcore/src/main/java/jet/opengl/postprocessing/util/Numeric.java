@@ -35,6 +35,7 @@ public final class Numeric {
 	public static final short[] EMPTY_SHORT = new short[0];
 	public static final long[] EMPTY_LONG = new long[0];
 	public static final double[] EMPTY_DOUBLE = new double[0];
+	public static final boolean[] EMPTY_BOOL = new boolean[0];
 
 	public static int unsignedByte(byte b) {
 		return b & 0xFF;

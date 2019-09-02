@@ -26,6 +26,9 @@ public final class UE4Engine {
 
     public static final boolean CHECKING = true;
 
+    /** Maximum number of custom lighting channels */
+    public static final int NUM_LIGHTING_CHANNELS = 3;
+
     public static void check(Object obj){
         if(CHECKING){
             if(obj == null){

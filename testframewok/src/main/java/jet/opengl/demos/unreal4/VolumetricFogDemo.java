@@ -16,9 +16,9 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.volumetricLighting.LightType;
 import jet.opengl.postprocessing.shader.FullscreenProgram;
 import jet.opengl.postprocessing.util.Numeric;
-import jet.opengl.renderer.Unreal4.FViewInfo;
-import jet.opengl.renderer.Unreal4.lgi.LightGridInjection;
-import jet.opengl.renderer.Unreal4.volumetricfog.VolumetricFog;
+//import jet.opengl.renderer.Unreal4.FViewInfo;
+//import jet.opengl.renderer.Unreal4.lgi.LightGridInjection;
+//import jet.opengl.renderer.Unreal4.volumetricfog.VolumetricFog;
 
 public class VolumetricFogDemo extends NvSampleApp {
 
@@ -27,16 +27,15 @@ public class VolumetricFogDemo extends NvSampleApp {
     private FullscreenProgram fullscreenProgram;
     private int m_DummyVAO;
 
-    private VolumetricFog m_PostProcessing;
-    private final VolumetricFog.Params m_Params = new VolumetricFog.Params();
-
     private boolean m_EnableVolumetricFog = true;
     private float m_intensity = 1;
     private final Vector3f m_scatteringColor = new Vector3f(1,1,1);
 
+    /*private VolumetricFog m_PostProcessing;
+    private final VolumetricFog.Params m_Params = new VolumetricFog.Params();
     private LightGridInjection m_LightInjection;
     private final LightGridInjection.Params m_LightParams = new LightGridInjection.Params();
-    private FViewInfo mView;
+    private FViewInfo mView;*/
 
     @Override
     protected void initRendering() {
@@ -48,9 +47,9 @@ public class VolumetricFogDemo extends NvSampleApp {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();
 
-        mView = FViewInfo.getInstance();
-        m_PostProcessing = new VolumetricFog();
-        m_LightInjection = new LightGridInjection();
+//        mView = FViewInfo.getInstance();
+//        m_PostProcessing = new VolumetricFog();
+//        m_LightInjection = new LightGridInjection();
 
         /*for(int slize = 0; slize < 64; slize++){
             float sceneDepth = ComputeDepthFromZSlice(slize);
@@ -209,7 +208,7 @@ public class VolumetricFogDemo extends NvSampleApp {
             return;
 
         m_Scene.onResize(width, height);
-        m_PostProcessing.onResize(width, height);
+//        m_PostProcessing.onResize(width, height);
     }
 
     @Override
@@ -222,7 +221,7 @@ public class VolumetricFogDemo extends NvSampleApp {
             // post processing...
             gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
             gl.glDisable(GLenum.GL_DEPTH_TEST);
-            if(m_PostProcessing.isPrintProgram()){
+            /*if(m_PostProcessing.isPrintProgram()){
                 System.out.println("CameraView:");
                 System.out.println(m_Scene.getViewMat());
                 System.out.println("CameraProj:");
@@ -268,28 +267,12 @@ public class VolumetricFogDemo extends NvSampleApp {
             }
 
 
-//            m_frameAttribs.lightDirection = m_Scene.getLightDir();
-//            m_frameAttribs.lightPos = m_Scene.getLightPos();
-//            m_frameAttribs.lightProjMat = m_Scene.getLightProjMat();
-//            m_frameAttribs.lightViewMat = m_Scene.getLightViewMat();
-//            if(m_InitAttribs.m_uiLightType == LightType.SPOT){
-//                m_LightFrameAttribs.m_f4LightColorAndIntensity.set(80.0f, 80.0f, 80.0f, 5711.714f);   // For the spot light
-//            }else{
-//                m_LightFrameAttribs.m_f4LightColorAndIntensity.set(0.904016f, 0.843299f, 0.70132f, 200.0f);  // for the direction light.
-//            }
-//
-//            m_InitAttribs.m_uiLightType =m_Scene.getLightMode();
-//            float fSceneExtent = 100;
-//            m_LightFrameAttribs.m_fMaxTracingDistance = fSceneExtent * ( m_InitAttribs.m_uiLightType == LightType.DIRECTIONAL  ? 1.5f : 10.f);
-//            m_LightFrameAttribs.m_fDistanceScaler = 60000.f / m_LightFrameAttribs.m_fMaxTracingDistance;
-//            m_LightFrameAttribs.m_bShowLightingOnly = false;
-
             mView.updateViews(getGLContext().width(), getGLContext().height(), m_Params.view, m_Params.proj, m_Params.cameraFar, m_Params.cameraNear);
             m_LightParams.load(m_Params);
             m_LightInjection.computeLightGrid(m_LightParams, mView);
             m_Params.GVolumetricFogTemporalReprojection = true;
             m_Params.GVolumetricFogHistoryWeight = 0.97f;
-            m_PostProcessing.renderVolumetricFog(m_Params);
+            m_PostProcessing.renderVolumetricFog(m_Params);*/
         }
     }
 
