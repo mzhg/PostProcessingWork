@@ -85,7 +85,25 @@ public class StringUtils {
     }
 
     public static final int firstNotEmpty(CharSequence str){
-        for(int i = 0; i < str.length(); i++){
+        return firstNotEmpty(str, 0);
+    }
+
+    public static final int firstNotEmpty(CharSequence str, int offset){
+        for(int i = offset; i < str.length(); i++){
+            char c = str.charAt(i);
+            if(c != ' ' && c != '\t' && c != '\n')
+                return i;
+        }
+
+        return -1;
+    }
+
+    public static final int lastNotEmpty(CharSequence str){
+        return lastNotEmpty(str, str.length()-1);
+    }
+
+    public static final int lastNotEmpty(CharSequence str, int offset){
+        for(int i = Math.min(str.length() - 1, offset); i >= 0 ; i--){
             char c = str.charAt(i);
             if(c != ' ' && c != '\t' && c != '\n')
                 return i;
@@ -143,5 +161,47 @@ public class StringUtils {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * Return the index of the end bracket
+     * @param src
+     * @param offset
+     * @return
+     */
+    public static int findEndBrackek(char startBracket, char endBrackt, CharSequence src, int offset){
+        int index = offset;
+        int level = 0;
+        boolean found = false;
+
+        if(startBracket == endBrackt)
+            throw new IllegalArgumentException();
+
+        for(; index < src.length(); index++){
+            char c = src.charAt(index);
+            if(c == startBracket){
+                level ++;
+                found = true;
+            }else if(c == endBrackt){
+                level --;
+
+                if(level < 0)
+                    throw new IllegalArgumentException("Invalid source: " + src);
+
+                if(level == 0){
+                    if(!found){  // Can't happend
+                        throw new IllegalStateException("Inner error!");
+                    }
+
+                    return index;
+                }
+            }
+        }
+
+        // No found the end because the bad source.
+        if(found)
+            throw new IllegalArgumentException("Invalid source: " + src);
+
+        return -1;
     }
 }

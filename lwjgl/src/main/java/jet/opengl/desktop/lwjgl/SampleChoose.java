@@ -57,7 +57,6 @@ public class SampleChoose {
 
 		Arrays.sort(rates);
 
-
 		System.out.println("The choosed sample: " + samplers[rates[rates.length - 1].idx]);
 		
 	}

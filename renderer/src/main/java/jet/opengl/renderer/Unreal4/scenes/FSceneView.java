@@ -21,6 +21,7 @@ import jet.opengl.renderer.Unreal4.FForwardLightingViewResources;
 import jet.opengl.renderer.Unreal4.FPrimitiveComponentId;
 import jet.opengl.renderer.Unreal4.UE4Engine;
 import jet.opengl.renderer.Unreal4.api.EShaderPlatform;
+import jet.opengl.renderer.Unreal4.editor.FPostProcessSettings;
 import jet.opengl.renderer.Unreal4.utils.FConvexVolume;
 import jet.opengl.renderer.Unreal4.utils.FMirrorMatrix;
 import jet.opengl.renderer.Unreal4.utils.FPlane;
