@@ -27,6 +27,7 @@ import jet.opengl.renderer.Unreal4.utils.FMirrorMatrix;
 import jet.opengl.renderer.Unreal4.utils.FPlane;
 import jet.opengl.renderer.Unreal4.utils.TBitArray;
 import jet.opengl.renderer.Unreal4.views.FViewMatrices;
+import jet.opengl.renderer.Unreal4.views.FViewUniformShaderParameters;
 
 /**
  * A projection from scene space into a 2D screen region.

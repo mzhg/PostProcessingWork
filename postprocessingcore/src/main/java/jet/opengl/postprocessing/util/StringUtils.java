@@ -204,4 +204,84 @@ public class StringUtils {
 
         return -1;
     }
+
+    public static int firstNonSpaceCharacter(String str, int from){
+        if(from >= str.length())
+            throw new IllegalArgumentException();
+
+        for(int i = from; i < str.length(); i++){
+            final char c = str.charAt(i);
+            if(!Character.isWhitespace(c)){
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public static int firstNonSpaceCharacter(String str){
+        return firstNonSpaceCharacter(str, 0);
+    }
+
+    public static int firstSpaceCharacter(String str, int from){
+        if(from >= str.length())
+            throw new IllegalArgumentException();
+
+        for(int i = from; i < str.length(); i++){
+            final char c = str.charAt(i);
+            if(Character.isWhitespace(c)){
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public static int firstNonSpecifedCharacter(String str, char c, int from){
+        if(from >= str.length())
+            throw new IllegalArgumentException();
+
+        for(int i = from; i < str.length(); i++){
+            if(str.charAt(i) != c)
+                return i;
+        }
+
+        return -1;
+    }
+
+    public static int firstNonSpecifedCharacter(String str, char c){
+        return firstNonSpecifedCharacter(str, c, 0);
+    }
+
+    public static int lastNonSpecifedCharacter(String str, char c, int from){
+        if(from >= str.length())
+            throw new IllegalArgumentException();
+
+        for(int i = from; i>=0; i--){
+            if(str.charAt(i) != c)
+                return i;
+        }
+
+        return -1;
+    }
+
+    public static int lastNonSpecifedCharacter(String str, char c){
+        return lastNonSpecifedCharacter(str, c, str.length() - 1);
+    }
+
+    public static int firstSpecifedCharacter(String str, String charSet, int from){
+        if(from >= str.length())
+            throw new IllegalArgumentException();
+
+        for(int i = from; i < str.length(); i++){
+            final char c = str.charAt(i);
+            for(int j = 0; j < charSet.length(); j++){
+                if(c == charSet.charAt(j)){
+                    return i + 1;
+                }
+            }
+        }
+
+        return -1;
+    }
 }

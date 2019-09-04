@@ -2,6 +2,8 @@ apply plugin: 'java'
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
+    implementation project(path: ':gl_math')
+    implementation project(path: ':postprocessingcore')
 }
 
 sourceCompatibility = "1.8"

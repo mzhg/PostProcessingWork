@@ -29,6 +29,11 @@ public final class UE4Engine {
     /** Maximum number of custom lighting channels */
     public static final int NUM_LIGHTING_CHANNELS = 3;
 
+    /** The number of lights to consider for sky/atmospheric light scattering */
+    public static final int NUM_ATMOSPHERE_LIGHTS = 2;
+
+    public static final int NumCustomPrimitiveDataFloat4s = 8; // Must match NUM_CUSTOM_PRIMITIVE_DATA in SceneData.ush
+
     public static void check(Object obj){
         if(CHECKING){
             if(obj == null){

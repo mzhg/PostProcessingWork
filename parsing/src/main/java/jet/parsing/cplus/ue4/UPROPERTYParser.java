@@ -1,4 +1,4 @@
-package jet.opengl.desktop.lwjgl;
+package jet.parsing.cplus.ue4;
 
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
@@ -14,79 +14,7 @@ import jet.opengl.postprocessing.util.StringUtils;
 
 public class UPROPERTYParser {
 
-    private static final class UField{
-        String documents;
-        String type;
-        String name;
-
-        List<Object> uProperties;
-
-        @Override
-        public String toString(){
-            StringBuilder sb = new StringBuilder();
-            if(documents != null){
-                sb.append("\t/*");
-                boolean skipFirstLine = true;
-                String[] tokesn = documents.split("\n");
-                for(String s : tokesn){
-                    if(!skipFirstLine)
-                        sb.append('\t');
-
-                    sb.append(s).append("<br>\n");
-                    skipFirstLine = false;
-                }
-                sb.setLength(sb.length() - 1); // remove the last '\n'
-                sb.append("*/\n");
-            }
-
-            if(uProperties!= null){
-                for(Object property : uProperties){
-                    if(property instanceof  CharSequence){
-                        // This a string.
-                        sb.append("\t@").append(StringUtils.toFirstLetterUpperCase((String)property)).append('\n');
-                    }else{
-                        // A pair value
-                        Pair<Object, Object> pairValue = (Pair<Object, Object>)property;
-                        sb.append('\t').append('@').append(StringUtils.toFirstLetterUpperCase((String)pairValue.first)).append('(');
-
-                        if(pairValue.second instanceof CharSequence){
-                            // simple string value
-                            sb.append("value = "); //append('"').append((String)pairValue.second).append('"');
-                            putValue(sb, pairValue.second);
-                        }else{  // The second must be a lists.
-                            List<Object> subValues = (List<Object>)pairValue.second;
-                            StringBuilder hintValues = new StringBuilder();
-
-                            for(Object subValue : subValues){
-                                if(subValue instanceof String){
-                                    hintValues.append(subValue).append('|');
-                                }else{
-                                    Pair<Object, Object> pairSubValue = (Pair<Object, Object>)subValue;
-                                    sb.append(StringUtils.toFirstLetterUpperCase((String)pairSubValue.first)).append(" = ");
-                                    putValue(sb, pairSubValue.second);
-                                    sb.append(',');
-                                }
-                            }
-
-                            if(hintValues.length() > 0){
-                                hintValues.setLength(hintValues.length() - 1);
-                                sb.append("Hints = ").append(hintValues);
-                            }else {
-                                sb.setLength(sb.length() - 1); // remove the last ','
-                            }
-                        }
-
-                        sb.append(')').append('\n');
-                    }
-                }
-            }
-
-            makeStr(sb, type, name);
-            return sb.toString();
-        }
-    }
-
-    private static void putValue(StringBuilder sb, Object value){
+    static void putValue(StringBuilder sb, Object value){
         if(value instanceof String){
             sb.append('"').append((String)value).append('"');
         }else if(value instanceof Integer){
@@ -143,7 +71,7 @@ public class UPROPERTYParser {
             System.out.println(f);
     }
 
-    // Parsing the UPROPERTY macro
+    // Parsing the UPROPERTY macro or the paramters list in the method decla.
     private static List<Object> parseLine(String line){
         boolean bInToken = false;
 
@@ -282,7 +210,7 @@ public class UPROPERTYParser {
         return new Pair<>(line.substring(0, blank).trim(), line.substring(blank+1).trim());
     }
 
-    private static int isDocument(String source, int offset){
+    static int isDocument(String source, int offset){
         if(source.startsWith("/*", offset)){
             int end = source.indexOf("*/", offset + 2);
             return end;
@@ -296,7 +224,7 @@ public class UPROPERTYParser {
         return -1;
     }
 
-    private static String parseDocument(String source, int start, int end){
+    static String parseDocument(String source, int start, int end){
         String comments = source.substring(start + 2, end);
         return comments;
     }
@@ -323,6 +251,8 @@ public class UPROPERTYParser {
 
     private static interface BuildString{
         void makeStr(StringBuilder out, String varname);
+
+        void makeArrayStr(StringBuilder out, String varname, String size);
     }
 
     private static final class VecBuildString implements BuildString{
@@ -336,14 +266,46 @@ public class UPROPERTYParser {
         public void makeStr(StringBuilder out, String varname) {
             out.append("\tpublic final ").append(type).append(' ').append(varname).append(" = new ").append(type).append("();\n");
         }
+
+        @Override
+        public void makeArrayStr(StringBuilder out, String varname, String size) {
+            out.append("\tpublic final ").append(type).append("[] ").append(varname).append(" = new ").append(type).append("[").append(size).append("];\n");
+        }
     }
 
-    static void makeStr(StringBuilder sb, String type, String varname){
+    private static final class ValueBuildString implements  BuildString{
+        private final String type;
+
+        public ValueBuildString(String type){
+            this.type = type;
+        }
+
+        @Override
+        public void makeStr(StringBuilder out, String varname) {
+            out.append("\tpublic ").append(type).append(' ').append(varname).append(";\n");
+        }
+
+        @Override
+        public void makeArrayStr(StringBuilder out, String varname, String size) {
+            out.append("\tpublic final ").append(type).append("[] ").append(varname).append(" = new ").append(type).append("[").append(size).append("];\n");
+        }
+    }
+
+    public static void makeStr(StringBuilder sb, String type, String varname){
         BuildString buildString = OBJ_BUILDER.get(type);
         if(buildString != null){
             buildString.makeStr(sb, varname);
         }else{
             sb.append('\t').append("public ").append(type).append(' ').append(varname).append(';').append('\n');
+        }
+    }
+
+    public static void makeStr(StringBuilder sb, String type, String varname, String size){
+        BuildString buildString = OBJ_BUILDER.get(type);
+        if(buildString != null){
+            buildString.makeArrayStr(sb, varname, size);
+        }else{
+            sb.append("\tpublic final ").append(type).append("[] ").append(varname).append(" = new ").append(type).append("[").append(size).append("];\n");
         }
     }
 
@@ -355,6 +317,13 @@ public class UPROPERTYParser {
           "FVector4,Vector4f",
           "FVector,Vector3f",
           "FVector2D,Vector2f",
+          "FMatrix,Matrix4f",
+          "FIntPoint,Vector2i",
+        };
+
+        final String[] values = {
+            "int32,int",
+            "uint32,int",
         };
 
         for(String vec : vectors){
@@ -362,6 +331,9 @@ public class UPROPERTYParser {
             OBJ_BUILDER.put(token[0], new VecBuildString(token[1]));
         }
 
-
+        for(String vec : values){
+            String[] token = StringUtils.split(vec,", ");
+            OBJ_BUILDER.put(token[0], new ValueBuildString(token[1]));
+        }
     }
 }
