@@ -2,7 +2,7 @@ package jet.parsing.cplus.reader;
 
 import java.util.Arrays;
 
-import jet.parsing.util.StringUtils;
+import jet.opengl.postprocessing.util.StringUtils;
 
 /**
  * Created by Administrator on 2018/7/12 0012.
@@ -39,7 +39,7 @@ public class PragmaProcessorReader extends ProcessorReader {
                 }
             }else{
                 // handle the line case
-                String[] tokens = StringUtils.splits(params.data, " \t");
+                String[] tokens = StringUtils.split(params.data, " \t");
                 if(tokens != null && tokens.length == 4 &&
                         tokens[0].equals(PROCESSOR_START) && tokens[1].equals(PRAGMA_TOKEN) && tokens[3].equals(";")){
                     conditions[0] = true;

@@ -1,6 +1,6 @@
 package jet.parsing.cplus.reader;
 
-import jet.parsing.util.StringUtils;
+import jet.opengl.postprocessing.util.StringUtils;
 
 public final class CommentReader implements CReader{
 

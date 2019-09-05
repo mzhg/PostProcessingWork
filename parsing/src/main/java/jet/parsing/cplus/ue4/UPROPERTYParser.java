@@ -250,7 +250,7 @@ public class UPROPERTYParser {
     }
 
     private static interface BuildString{
-        void makeStr(StringBuilder out, String varname);
+        void makeStr(StringBuilder out, String varname, String defualtValue);
 
         void makeArrayStr(StringBuilder out, String varname, String size);
     }
@@ -263,8 +263,11 @@ public class UPROPERTYParser {
         }
 
         @Override
-        public void makeStr(StringBuilder out, String varname) {
-            out.append("\tpublic final ").append(type).append(' ').append(varname).append(" = new ").append(type).append("();\n");
+        public void makeStr(StringBuilder out, String varname, String defualtValue) {
+            out.append("\tpublic final ").append(type).append(' ').append(varname).append(" = new ").append(type).append("(");
+            if(defualtValue != null)
+                out.append(defualtValue);
+            out.append(");\n");
         }
 
         @Override
@@ -281,8 +284,13 @@ public class UPROPERTYParser {
         }
 
         @Override
-        public void makeStr(StringBuilder out, String varname) {
-            out.append("\tpublic ").append(type).append(' ').append(varname).append(";\n");
+        public void makeStr(StringBuilder out, String varname, String defualtValue) {
+            out.append("\tpublic ").append(type).append(' ').append(varname);
+
+            if(defualtValue != null)
+                out.append(" = ").append(defualtValue);
+
+            out.append(";\n");
         }
 
         @Override
@@ -294,18 +302,44 @@ public class UPROPERTYParser {
     public static void makeStr(StringBuilder sb, String type, String varname){
         BuildString buildString = OBJ_BUILDER.get(type);
         if(buildString != null){
-            buildString.makeStr(sb, varname);
+            buildString.makeStr(sb, varname, null);
         }else{
             sb.append('\t').append("public ").append(type).append(' ').append(varname).append(';').append('\n');
         }
     }
 
-    public static void makeStr(StringBuilder sb, String type, String varname, String size){
+    public static void makeStr(StringBuilder sb, String type, String varname, String defualtValue){
+        BuildString buildString = OBJ_BUILDER.get(type);
+        if(buildString != null){
+            buildString.makeStr(sb, varname, defualtValue);
+        }else{
+            sb.append('\t').append("public ").append(type).append(' ').append(varname).append(';').append('\n');
+        }
+    }
+
+    public static void makeArrayStr(StringBuilder sb, String type, String varname, String size){
         BuildString buildString = OBJ_BUILDER.get(type);
         if(buildString != null){
             buildString.makeArrayStr(sb, varname, size);
         }else{
             sb.append("\tpublic final ").append(type).append("[] ").append(varname).append(" = new ").append(type).append("[").append(size).append("];\n");
+        }
+    }
+
+    static void makeCommentStr(StringBuilder sb, String commnets){
+        if(commnets != null){
+            sb.append("\t/*");
+            boolean skipFirstLine = true;
+            String[] tokesn = commnets.split("\n");
+            for(String s : tokesn){
+                if(!skipFirstLine)
+                    sb.append('\t');
+
+                sb.append(s).append("<br>\n");
+                skipFirstLine = false;
+            }
+            sb.setLength(sb.length() - 1); // remove the last '\n'
+            sb.append("*/\n");
         }
     }
 

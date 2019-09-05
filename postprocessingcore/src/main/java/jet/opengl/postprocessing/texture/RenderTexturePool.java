@@ -160,7 +160,7 @@ public final class RenderTexturePool {
 
             return true;
         }else{
-            LogUtil.e(LogUtil.LogType.DEFAULT, "Couldn't found the cached texture("+tex.getName()+"), this may be a bug！！！");
+            LogUtil.e(LogUtil.LogType.DEFAULT, "Couldn't found the cached texture("+tex.getName()+"), this may be a bug!!!");
             return false;
         }
     }

@@ -13,10 +13,12 @@ final class UMethod {
     String modifier = "public";
 
     // Parameter Lists, they same as the UFiled, can be null
-    List<Object> parameters;
+    List<UField> parameters;
 
     // can be null
     String body;
 
-    boolean isVirtual;
+    String name;
+
+//    boolean isVirtual;
 }

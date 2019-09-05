@@ -73,7 +73,7 @@ public class UE4MacroParser {
                         int end = member.tokens[2].lastIndexOf(']');
                         String size = member.tokens[2].substring(start+1, end).trim();
 
-                        UPROPERTYParser.makeStr(sb, type, name, size);
+                        UPROPERTYParser.makeArrayStr(sb, type, name, size);
                     }else{
                         UPROPERTYParser.makeStr(sb, type, name);
                     }

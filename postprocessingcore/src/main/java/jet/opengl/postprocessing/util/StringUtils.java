@@ -273,15 +273,140 @@ public class StringUtils {
         if(from >= str.length())
             throw new IllegalArgumentException();
 
+        if(isEmpty(charSet))
+            return -1;
+
         for(int i = from; i < str.length(); i++){
             final char c = str.charAt(i);
-            for(int j = 0; j < charSet.length(); j++){
-                if(c == charSet.charAt(j)){
-                    return i + 1;
-                }
+
+            if(charSet.indexOf(c) >=0){
+                return i;
             }
         }
 
         return -1;
     }
+
+    public static int lastSpecifedCharacter(String str, String charSet, int from){
+        if(charSet == null || charSet.length() == 0)
+            return -1;
+
+        for(int i = Math.min(from, str.length()-1); i >= 0; i--){
+            final char c = str.charAt(i);
+
+            if(charSet.indexOf(c) >=0){
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public static int indexOfWithComments(String source, final int offset, final char c){
+        if(c == '/')
+            throw new IllegalArgumentException("Invalid searched charater 'c'.");
+
+        for(int i = offset; i < source.length(); i++){
+
+            char cc = source.charAt(i);
+
+            if(cc == '/'){
+                if(source.startsWith("//", i)){
+                    int end = source.indexOf('\n', i+1);
+
+                    if(end < 0)
+                        return -1;
+
+                    i = end + 1;
+                    continue;
+                }else if(source.startsWith("/*", i)){
+                    int end = source.indexOf("*/", i+1);
+
+                    if(end < 0)
+                        return -1;
+
+                    i = end + 2;
+                    continue;
+                }
+            }else if(cc == c){
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public static boolean isNextCharacterEqualTo(CharSequence source, int offset, char c){
+        offset++;
+        if(offset< source.length()){
+            return source.charAt(offset) == c;
+        }
+
+        return false;
+    }
+
+    public static String removeComments(String source){
+        // There is more effiect way to do this work.
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = 0; i < source.length(); i++){
+            char cc = source.charAt(i);
+
+            if(cc == '/'){
+                if(source.startsWith("//", i)){
+                    int end = source.indexOf('\n', i+1);
+
+                    if(end < 0)
+                        break;
+
+                    i = end + 1;
+                    continue;
+                }else if(source.startsWith("/*", i)){
+                    int end = source.indexOf("*/", i+1);
+
+                    if(end < 0)
+                        break;
+
+                    i = end + 2;
+                    continue;
+                }
+            }else{
+                sb.append(cc);
+            }
+        }
+
+        return sb.toString();
+    }
+
+    public static String removeBlank(String source){
+        // There is more effiect way to do this work.
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = 0; i < source.length(); i++){
+            char cc = source.charAt(i);
+
+            if(cc != ' ' && cc != '\t' && cc != '\n'){
+                continue;
+            }else{
+                sb.append(cc);
+            }
+        }
+
+        return sb.toString();
+    }
+
+    public static int findCharInRange(CharSequence source, final char c, int offset, int len){
+        offset = Math.max(0, offset);
+        len = Math.min(len, source.length()-1);
+
+        for(int i = offset; i < offset + len; i++){
+            if(source.charAt(i) == c){
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+
 }

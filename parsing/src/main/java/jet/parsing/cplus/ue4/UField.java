@@ -10,26 +10,15 @@ public class UField {
     String type;
     String name;
     String modifier = "public";
+    String defualtValue = null;
 
+    boolean isParameter;
     List<Object> uProperties;
 
     @Override
     public String toString(){
         StringBuilder sb = new StringBuilder();
-        if(documents != null){
-            sb.append("\t/*");
-            boolean skipFirstLine = true;
-            String[] tokesn = documents.split("\n");
-            for(String s : tokesn){
-                if(!skipFirstLine)
-                    sb.append('\t');
-
-                sb.append(s).append("<br>\n");
-                skipFirstLine = false;
-            }
-            sb.setLength(sb.length() - 1); // remove the last '\n'
-            sb.append("*/\n");
-        }
+        UPROPERTYParser.makeCommentStr(sb, documents);
 
         if(uProperties!= null){
             for(Object property : uProperties){
