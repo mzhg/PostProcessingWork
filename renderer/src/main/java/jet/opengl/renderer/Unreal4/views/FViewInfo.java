@@ -1,16 +1,32 @@
 package jet.opengl.renderer.Unreal4.views;
 
+import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector2i;
+import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.Recti;
+import jet.opengl.postprocessing.util.StackInt;
 import jet.opengl.postprocessing.util.StackLong;
 import jet.opengl.renderer.Unreal4.EMeshPass;
+import jet.opengl.renderer.Unreal4.FForwardLightingViewResources;
+import jet.opengl.renderer.Unreal4.FMobileCSMVisibilityInfo;
+import jet.opengl.renderer.Unreal4.FOcclusionQueryBatcher;
+import jet.opengl.renderer.Unreal4.FParallelMeshDrawCommandPass;
 import jet.opengl.renderer.Unreal4.FPrimitiveSceneInfo;
+import jet.opengl.renderer.Unreal4.FPrimitiveUniformShaderParameters;
 import jet.opengl.renderer.Unreal4.FPrimitiveViewRelevance;
 import jet.opengl.renderer.Unreal4.FTranslucenyPrimCount;
 import jet.opengl.renderer.Unreal4.FVisibleLightViewInfo;
+import jet.opengl.renderer.Unreal4.UE4Engine;
+import jet.opengl.renderer.Unreal4.capture.FReflectionCaptureShaderData;
 import jet.opengl.renderer.Unreal4.distancefield.FGlobalDistanceFieldInfo;
 import jet.opengl.renderer.Unreal4.mesh.FBatchedElements;
 import jet.opengl.renderer.Unreal4.mesh.FMeshBatch;
@@ -18,7 +34,9 @@ import jet.opengl.renderer.Unreal4.mesh.FMeshDecalBatch;
 import jet.opengl.renderer.Unreal4.mesh.FVolumetricMeshBatch;
 import jet.opengl.renderer.Unreal4.scenes.FLODMask;
 import jet.opengl.renderer.Unreal4.scenes.FSceneView;
+import jet.opengl.renderer.Unreal4.scenes.FSceneViewInitOptions;
 import jet.opengl.renderer.Unreal4.scenes.FSceneViewState;
+import jet.opengl.renderer.Unreal4.utils.FSceneRenderTargets;
 import jet.opengl.renderer.Unreal4.utils.TBitArray;
 
 /** A FSceneView with additional state used by the scene renderer. */
@@ -121,230 +139,237 @@ public class FViewInfo extends FSceneView {
     public  final ArrayList<FMeshBatch> ViewMeshElements = new ArrayList<>();
 
     /** The view's mesh elements for the foreground (editor gizmos and primitives )*/
-    TIndirectArray<FMeshBatch> TopViewMeshElements;
+    public final ArrayList<FMeshBatch> TopViewMeshElements = new ArrayList<>();
 
     /** The dynamic resources used by the view elements. */
-    TArray<FDynamicPrimitiveResource*> DynamicResources;
+    public final ArrayList<FDynamicPrimitiveResource> DynamicResources = new ArrayList<>();
 
     /** Gathered in initviews from all the primitives with dynamic view relevance, used in each mesh pass. */
-    TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicMeshElements;
+    public final ArrayList<FMeshBatchAndRelevance> DynamicMeshElements = new ArrayList<>();
 
     /* [PrimitiveIndex] = end index index in DynamicMeshElements[], to support GetDynamicMeshElementRange(). Contains valid values only for visible primitives with bDynamicRelevance. */
-    TArray<uint32, SceneRenderingAllocator> DynamicMeshEndIndices;
+    public final StackInt DynamicMeshEndIndices = new StackInt();
 
     /* Mesh pass relevance for gathered dynamic mesh elements. */
-    TArray<FMeshPassMask, SceneRenderingAllocator> DynamicMeshElementsPassRelevance;
+    public final ArrayList<FMeshPassMask> DynamicMeshElementsPassRelevance = new ArrayList<>();
 
     /** Gathered in UpdateRayTracingWorld from all the primitives with dynamic view relevance, used in each mesh pass. */
-    TArray<FMeshBatchAndRelevance, SceneRenderingAllocator> RayTracedDynamicMeshElements;
+    public final ArrayList<FMeshBatchAndRelevance> RayTracedDynamicMeshElements;
 
-    TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicEditorMeshElements;
+    public final ArrayList<FMeshBatchAndRelevance> DynamicEditorMeshElements;
 
-    FSimpleElementCollector SimpleElementCollector;
+    public final FSimpleElementCollector SimpleElementCollector = new FSimpleElementCollector();
 
-    FSimpleElementCollector EditorSimpleElementCollector;
+    public final FSimpleElementCollector EditorSimpleElementCollector = new FSimpleElementCollector();
 
     /** Tracks dynamic primitive data for upload to GPU Scene, when enabled. */
-    TArray<FPrimitiveUniformShaderParameters> DynamicPrimitiveShaderData;
+    public final ArrayList<FPrimitiveUniformShaderParameters> DynamicPrimitiveShaderData = new ArrayList<>();
 
-    FRWBufferStructured OneFramePrimitiveShaderDataBuffer;
+    public BufferGL OneFramePrimitiveShaderDataBuffer;
 
-    TStaticArray<FParallelMeshDrawCommandPass, EMeshPass::Num> ParallelMeshDrawCommandPasses;
+    public final ArrayList<FParallelMeshDrawCommandPass > ParallelMeshDrawCommandPasses = new ArrayList<>();
 
     // Used by mobile renderer to determine whether static meshes will be rendered with CSM shaders or not.
-    FMobileCSMVisibilityInfo MobileCSMVisibilityInfo;
+    public final FMobileCSMVisibilityInfo MobileCSMVisibilityInfo = new FMobileCSMVisibilityInfo();
 
     // Primitive CustomData
-    TArray<FMemStackBase, SceneRenderingAllocator> PrimitiveCustomDataMemStack; // Size == 1 global stack + 1 per visibility thread (if multithread)
+    public final ArrayList<FMemStackBase> PrimitiveCustomDataMemStack = new ArrayList<>(); // Size == 1 global stack + 1 per visibility thread (if multithread)
 
     /** Parameters for exponential height fog. */
-    FVector4 ExponentialFogParameters;
-    FVector4 ExponentialFogParameters2;
-    FVector ExponentialFogColor;
-    float FogMaxOpacity;
-    FVector4 ExponentialFogParameters3;
-    FVector2D SinCosInscatteringColorCubemapRotation;
+    public final Vector4f ExponentialFogParameters = new Vector4f();
+    public final Vector4f ExponentialFogParameters2 = new Vector4f();
+    public final Vector3f ExponentialFogColor = new Vector3f();
+    public float FogMaxOpacity;
+    public final Vector4f ExponentialFogParameters3 = new Vector4f();
+    public final Vector2f SinCosInscatteringColorCubemapRotation = new Vector2f();
 
-    UTexture* FogInscatteringColorCubemap;
-    FVector FogInscatteringTextureParameters;
+    public TextureGL FogInscatteringColorCubemap;
+    public final Vector3f FogInscatteringTextureParameters = new Vector3f();
 
     /** Parameters for directional inscattering of exponential height fog. */
-    bool bUseDirectionalInscattering;
-    float DirectionalInscatteringExponent;
-    float DirectionalInscatteringStartDistance;
-    FVector InscatteringLightDirection;
-    FLinearColor DirectionalInscatteringColor;
+    public boolean bUseDirectionalInscattering;
+    public float DirectionalInscatteringExponent;
+    public float DirectionalInscatteringStartDistance;
+    public final Vector3f InscatteringLightDirection = new Vector3f();
+    public final Vector4f DirectionalInscatteringColor = new Vector4f();
 
     /** Translucency lighting volume properties. */
-    FVector TranslucencyLightingVolumeMin[TVC_MAX];
-    float TranslucencyVolumeVoxelSize[TVC_MAX];
-    FVector TranslucencyLightingVolumeSize[TVC_MAX];
+    public final Vector4f[] TranslucencyLightingVolumeMin = new Vector4f[FInstancedViewUniformShaderParameters.TVC_MAX];
+    private final float[] TranslucencyVolumeVoxelSize = new float[FInstancedViewUniformShaderParameters.TVC_MAX];
+    public final Vector3f[] TranslucencyLightingVolumeSize = new Vector3f[FInstancedViewUniformShaderParameters.TVC_MAX];
 
     /** Number of samples in the temporal AA sequqnce */
-    int32 TemporalJitterSequenceLength;
+    public int TemporalJitterSequenceLength;
 
     /** Index of the temporal AA jitter in the sequence. */
-    int32 TemporalJitterIndex;
+    public int TemporalJitterIndex;
 
     /** Temporal AA jitter at the pixel scale. */
-    FVector2D TemporalJitterPixels;
+    public final Vector2f TemporalJitterPixels = new Vector2f();
 
     /** Whether view state may be updated with this view. */
-    uint32 bViewStateIsReadOnly : 1;
+    public boolean bViewStateIsReadOnly;
 
     /** true if all PrimitiveVisibilityMap's bits are set to false. */
-    uint32 bHasNoVisiblePrimitive : 1;
+    public boolean bHasNoVisiblePrimitive;
 
     /** true if the view has at least one mesh with a translucent material. */
-    uint32 bHasTranslucentViewMeshElements : 1;
+    public boolean bHasTranslucentViewMeshElements;
     /** Indicates whether previous frame transforms were reset this frame for any reason. */
-    uint32 bPrevTransformsReset : 1;
+    public boolean bPrevTransformsReset;
     /** Whether we should ignore queries from last frame (useful to ignoring occlusions on the first frame after a large camera movement). */
-    uint32 bIgnoreExistingQueries : 1;
+    public boolean bIgnoreExistingQueries;
     /** Whether we should submit new queries this frame. (used to disable occlusion queries completely. */
-    uint32 bDisableQuerySubmissions : 1;
+    public boolean bDisableQuerySubmissions;
     /** Whether we should disable distance-based fade transitions for this frame (usually after a large camera movement.) */
-    uint32 bDisableDistanceBasedFadeTransitions : 1;
+    public boolean bDisableDistanceBasedFadeTransitions;
     /** Whether the view has any materials that use the global distance field. */
-    uint32 bUsesGlobalDistanceField : 1;
-    uint32 bUsesLightingChannels : 1;
-    uint32 bTranslucentSurfaceLighting : 1;
+    public boolean bUsesGlobalDistanceField;
+    public boolean bUsesLightingChannels;
+    public boolean bTranslucentSurfaceLighting;
     /** Whether the view has any materials that read from scene depth. */
-    uint32 bUsesSceneDepth : 1;
+    public boolean bUsesSceneDepth;
 
 
     /** Whether fog should only be computed on rendered opaque pixels or not. */
-    uint32 bFogOnlyOnRenderedOpaque : 1;
+    public boolean bFogOnlyOnRenderedOpaque;
 
     /**
      * true if the scene has at least one decal. Used to disable stencil operations in the mobile base pass when the scene has no decals.
      * TODO: Right now decal visibility is computed right before rendering them. Ideally it should be done in InitViews and this flag should be replaced with list of visible decals
      */
-    uint32 bSceneHasDecals : 1;
+    public boolean bSceneHasDecals;
     /**
      * true if the scene has at least one mesh with a material tagged as sky.
      * This is used to skip the sky rendering part during the SkyAtmosphere pass on non mobile platforms.
      */
-    uint32 bSceneHasSkyMaterial : 1;
+    public boolean bSceneHasSkyMaterial;
     /** Bitmask of all shading models used by primitives in this view */
-    uint16 ShadingModelMaskInView;
+    public int ShadingModelMaskInView;
 
     // Previous frame view info to use for this view.
-    FPreviousViewInfo PrevViewInfo;
+    public final FPreviousViewInfo PrevViewInfo = new FPreviousViewInfo();
 
-    /** The GPU nodes on which to render this view. */
-    FRHIGPUMask GPUMask;
+    /* The GPU nodes on which to render this view. */
+//    FRHIGPUMask GPUMask;
 
     /** An intermediate number of visible static meshes.  Doesn't account for occlusion until after FinishOcclusionQueries is called. */
-    int32 NumVisibleStaticMeshElements;
+    public int NumVisibleStaticMeshElements;
 
     /** Frame's exposure. Always > 0. */
-    float PreExposure;
+    public float PreExposure;
 
     /** Mip bias to apply in material's samplers. */
-    float MaterialTextureMipBias;
+    public float MaterialTextureMipBias;
 
     /** Precomputed visibility data, the bits are indexed by VisibilityId of a primitive component. */
-	const uint8* PrecomputedVisibilityData;
+    public byte[] PrecomputedVisibilityData;
 
-    FOcclusionQueryBatcher IndividualOcclusionQueries;
-    FOcclusionQueryBatcher GroupedOcclusionQueries;
+    public FOcclusionQueryBatcher IndividualOcclusionQueries;
+    public FOcclusionQueryBatcher GroupedOcclusionQueries;
 
     // Hierarchical Z Buffer
-    TRefCountPtr<IPooledRenderTarget> HZB;
+    public Texture2D HZB;
 
-    int32 NumBoxReflectionCaptures;
-    int32 NumSphereReflectionCaptures;
-    float FurthestReflectionCaptureDistance;
-    TUniformBufferRef<FReflectionCaptureShaderData> ReflectionCaptureUniformBuffer;
+    public int NumBoxReflectionCaptures;
+    public int NumSphereReflectionCaptures;
+    public float FurthestReflectionCaptureDistance;
+    public FReflectionCaptureShaderData ReflectionCaptureUniformBuffer;
 
     // Sky / Atmosphere textures (transient owned by this view info) and pointer to constants owned by SkyAtmosphere proxy.
-    TRefCountPtr<IPooledRenderTarget> SkyAtmosphereCameraAerialPerspectiveVolume;
-    TRefCountPtr<IPooledRenderTarget> SkyAtmosphereViewLutTexture;
-	const FAtmosphereUniformShaderParameters* SkyAtmosphereUniformShaderParameters;
+    public TextureGL SkyAtmosphereCameraAerialPerspectiveVolume;
+    public TextureGL SkyAtmosphereViewLutTexture;
+	public FAtmosphereUniformShaderParameters SkyAtmosphereUniformShaderParameters;
 
     /** Used when there is no view state, buffers reallocate every frame. */
-    TUniquePtr<FForwardLightingViewResources> ForwardLightingResourcesStorage;
+    public FForwardLightingViewResources ForwardLightingResourcesStorage;
 
-    FVolumetricFogViewResources VolumetricFogResources;
+    public FVolumetricFogViewResources VolumetricFogResources;
 
     // Size of the HZB's mipmap 0
     // NOTE: the mipmap 0 is downsampled version of the depth buffer
-    FIntPoint HZBMipmap0Size;
+    public final Vector2i HZBMipmap0Size = new Vector2i();
 
     /** Used by occlusion for percent unoccluded calculations. */
-    float OneOverNumPossiblePixels;
+    public float OneOverNumPossiblePixels;
 
     // Mobile gets one light-shaft, this light-shaft.
-    FVector4 LightShaftCenter;
-    FLinearColor LightShaftColorMask;
-    FLinearColor LightShaftColorApply;
-    bool bLightShaftUse;
+    public final Vector4f LightShaftCenter = new Vector4f();
+    public final Vector4f LightShaftColorMask = new Vector4f();
+    public final Vector4f LightShaftColorApply = new Vector4f();
+    public boolean bLightShaftUse;
 
-    FHeightfieldLightingViewInfo HeightfieldLightingViewInfo;
+    public final FHeightfieldLightingViewInfo HeightfieldLightingViewInfo = new FHeightfieldLightingViewInfo();
 
-    TShaderMap<FGlobalShaderType>* ShaderMap;
+//    TShaderMap<FGlobalShaderType>* ShaderMap;
 
-    bool bIsSnapshot;
+    public boolean bIsSnapshot;
 
     // Optional stencil dithering optimization during prepasses
-    bool bAllowStencilDither;
+    public boolean bAllowStencilDither;
 
     /** Custom visibility query for view */
-    ICustomVisibilityQuery* CustomVisibilityQuery;
+    public ICustomVisibilityQuery CustomVisibilityQuery;
 
-    TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> IndirectShadowPrimitives;
+    public final ArrayList<FPrimitiveSceneInfo> IndirectShadowPrimitives = new ArrayList<>();
 
-    FShaderResourceViewRHIRef PrimitiveSceneDataOverrideSRV;
-    FShaderResourceViewRHIRef LightmapSceneDataOverrideSRV;
+    public TextureGL PrimitiveSceneDataOverrideSRV;
+    public TextureGL LightmapSceneDataOverrideSRV;
 
-    FRWBufferStructured ShaderPrintValueBuffer;
+    public BufferGL ShaderPrintValueBuffer;
 
     /**
      * Initialization constructor. Passes all parameters to FSceneView constructor
      */
-    FViewInfo(const FSceneViewInitOptions& InitOptions);
+    public FViewInfo(FSceneViewInitOptions InitOptions){
+        super(InitOptions);
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Initialization constructor.
      * @param InView - copy to init with
      */
-    explicit FViewInfo(const FSceneView* InView);
+    public FViewInfo(FSceneView InView){
+        throw new UnsupportedOperationException();
+    }
 
-    /**
-     * Destructor.
-     */
-	~FViewInfo();
 
-#if DO_CHECK
     /** Verifies all the assertions made on members. */
-    bool VerifyMembersChecks() const;
-#endif
+    public boolean VerifyMembersChecks() {
+        throw new UnsupportedOperationException();
+    }
 
     /** Returns the size of view rect after primary upscale ( == only with secondary screen percentage). */
-    FIntPoint GetSecondaryViewRectSize() const;
+    public Vector2i GetSecondaryViewRectSize() {
+        throw new UnsupportedOperationException();
+    }
 
     /** Returns whether the view requires a secondary upscale. */
-    bool RequiresSecondaryUpscale() const
+    public boolean RequiresSecondaryUpscale()
     {
-        return UnscaledViewRect.Size() != GetSecondaryViewRectSize();
+//        return UnscaledViewRect.Size() != GetSecondaryViewRectSize();
+        Vector2i SecondaryViewRectSize = GetSecondaryViewRectSize();
+        return SecondaryViewRectSize.x != UnscaledViewRect.width || SecondaryViewRectSize.y != UnscaledViewRect.height;
     }
 
     /** Creates ViewUniformShaderParameters given a set of view transforms. */
-    void SetupUniformBufferParameters(
-            FSceneRenderTargets& SceneContext,
-		const FViewMatrices& InViewMatrices,
-		const FViewMatrices& InPrevViewMatrices,
-            FBox* OutTranslucentCascadeBoundsArray,
-            int32 NumTranslucentCascades,
-            FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+    public void SetupUniformBufferParameters(
+            FSceneRenderTargets SceneContext,
+            FViewMatrices InViewMatrices,
+            FViewMatrices InPrevViewMatrices,
+            FBox OutTranslucentCascadeBoundsArray,
+            int NumTranslucentCascades,
+            FViewUniformShaderParameters ViewUniformShaderParameters) {
+        throw new UnsupportedOperationException();
+    }
 
     /** Recreates ViewUniformShaderParameters, taking the view transform from the View Matrices */
-    inline void SetupUniformBufferParameters(
-            FSceneRenderTargets& SceneContext,
-            FBox* OutTranslucentCascadeBoundsArray,
-            int32 NumTranslucentCascades,
-            FViewUniformShaderParameters& ViewUniformShaderParameters) const
+    public final void SetupUniformBufferParameters(
+            FSceneRenderTargets SceneContext,
+            FBox OutTranslucentCascadeBoundsArray,
+            int NumTranslucentCascades,
+            FViewUniformShaderParameters ViewUniformShaderParameters)
     {
         SetupUniformBufferParameters(SceneContext,
                 ViewMatrices,
@@ -354,20 +379,32 @@ public class FViewInfo extends FSceneView {
                 ViewUniformShaderParameters);
     }
 
-    void SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
-    void SetupGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
-    void SetupVolumetricFogUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+    public void SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters ViewUniformShaderParameters) {
+        throw new UnsupportedOperationException();
+    }
+    public void SetupGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters ViewUniformShaderParameters) {
+        throw new UnsupportedOperationException();
+    }
+    public void SetupVolumetricFogUniformBufferParameters(FViewUniformShaderParameters ViewUniformShaderParameters) {
+        throw new UnsupportedOperationException();
+    }
 
     /** Initializes the RHI resources used by this view. */
-    void InitRHIResources();
+    public void InitRHIResources(){
+        throw new UnsupportedOperationException();
+    }
 
     /** Determines distance culling and fades if the state changes */
-    bool IsDistanceCulled(float DistanceSquared, float MaxDrawDistance, float MinDrawDistance, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
+    public boolean IsDistanceCulled(float DistanceSquared, float MaxDrawDistance, float MinDrawDistance, FPrimitiveSceneInfo PrimitiveSceneInfo){
+        throw new UnsupportedOperationException();
+    }
 
     /** Gets the eye adaptation render target for this view. Same as GetEyeAdaptationRT */
-    IPooledRenderTarget* GetEyeAdaptation(FRHICommandList& RHICmdList) const;
+    public  Texture2D GetEyeAdaptationRI(/*FRHICommandList& RHICmdList*/) {
+        throw new UnsupportedOperationException();
+    }
 
-    IPooledRenderTarget* GetEyeAdaptation() const
+    public Texture2D GetEyeAdaptation()
     {
         return GetEyeAdaptationRT();
     }
@@ -375,39 +412,61 @@ public class FViewInfo extends FSceneView {
     /** Gets one of two eye adaptation render target for this view.
      * NB: will return null in the case that the internal view state pointer
      * (for the left eye in the stereo case) is null.
-     */
-    IPooledRenderTarget* GetEyeAdaptationRT(FRHICommandList& RHICmdList) const;
-    IPooledRenderTarget* GetEyeAdaptationRT() const;
-    IPooledRenderTarget* GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) const;
+
+    public Texture2D  GetEyeAdaptationRI(FRHICommandList& RHICmdList) {
+        throw new UnsupportedOperationException();
+    }*/
+    public Texture2D GetEyeAdaptationRT() {
+        throw new UnsupportedOperationException();
+    }
+    /*IPooledRenderTarget* GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) {
+        throw new UnsupportedOperationException();
+    }*/
 
     /**Swap the order of the two eye adaptation targets in the double buffer system */
-    void SwapEyeAdaptationRTs(FRHICommandList& RHICmdList) const;
+    public void SwapEyeAdaptationRTs(/*FRHICommandList& RHICmdList*/) {
+        throw new UnsupportedOperationException();
+    }
 
     /** Tells if the eyeadaptation texture exists without attempting to allocate it. */
-    bool HasValidEyeAdaptation() const;
+    public boolean HasValidEyeAdaptation(){
+        throw new UnsupportedOperationException();
+    }
 
     /** Informs sceneinfo that eyedaptation has queued commands to compute it at least once and that it can be used */
-    void SetValidEyeAdaptation() const;
+    public void SetValidEyeAdaptation() {
+        throw new UnsupportedOperationException();
+    }
 
     /** Get the last valid exposure value for eye adapation. */
-    float GetLastEyeAdaptationExposure() const;
+    public float GetLastEyeAdaptationExposure() {
+        throw new UnsupportedOperationException();
+    }
 
     /** Get the last valid average scene luminange for eye adapation (exposure compensation curve). */
-    float GetLastAverageSceneLuminance() const;
+    public float GetLastAverageSceneLuminance() {
+        throw new UnsupportedOperationException();
+    }
 
     /** Informs sceneinfo that tonemapping LUT has queued commands to compute it at least once */
-    void SetValidTonemappingLUT() const;
+    public void SetValidTonemappingLUT() {
+        throw new UnsupportedOperationException();
+    }
 
     /** Gets the tonemapping LUT texture, previously computed by the CombineLUTS post process,
      * for stereo rendering, this will force the post-processing to use the same texture for both eyes*/
-	const FTextureRHIRef* GetTonemappingLUTTexture() const;
+    public  Texture2D GetTonemappingLUTTexture() {
+        throw new UnsupportedOperationException();
+    }
 
     /** Gets the rendertarget that will be populated by CombineLUTS post process
      * for stereo rendering, this will force the post-processing to use the same render target for both eyes*/
-    FSceneRenderTargetItem* GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV, const bool bNeedFloatOutput) const;
+    public FSceneRenderTargetItem GetTonemappingLUTRenderTarget(/*FRHICommandList& RHICmdList,*/ int LUTSize, boolean bUseVolumeLUT, boolean bNeedUAV, boolean bNeedFloatOutput) {
+        throw new UnsupportedOperationException();
+    }
 
     /** Instanced stereo and multi-view only need to render the left eye. */
-    bool ShouldRenderView() const
+    public boolean ShouldRenderView()
     {
         if (bHasNoVisiblePrimitive)
         {
@@ -417,11 +476,11 @@ public class FViewInfo extends FSceneView {
         {
             return true;
         }
-        else if (bIsInstancedStereoEnabled && StereoPass != eSSP_RIGHT_EYE)
+        else if (bIsInstancedStereoEnabled /*TODO && StereoPass != eSSP_RIGHT_EYE*/)
         {
             return true;
         }
-        else if (bIsMobileMultiViewEnabled && StereoPass != eSSP_RIGHT_EYE && Family && Family->Views.Num() > 1)
+        else if (bIsMobileMultiViewEnabled /*TODO && StereoPass != eSSP_RIGHT_EYE && Family && Family->Views.Num() > 1*/)
         {
             return true;
         }
@@ -431,27 +490,35 @@ public class FViewInfo extends FSceneView {
         }
     }
 
-    inline FVector GetPrevViewDirection() const { return PrevViewInfo.ViewMatrices.GetViewMatrix().GetColumn(2); }
+    public ReadableVector3f GetPrevViewDirection()  { return PrevViewInfo.ViewMatrices.GetViewMatrix().GetColumn(2); }
 
     /** Create a snapshot of this view info on the scene allocator. */
-    FViewInfo* CreateSnapshot() const;
+    public FViewInfo CreateSnapshot() {
+        throw new UnsupportedOperationException();
+    }
 
     /** Destroy all snapshots before we wipe the scene allocator. */
-    static void DestroyAllSnapshots();
+    public static void DestroyAllSnapshots(){
+        throw new UnsupportedOperationException();
+    }
 
     // Get the range in DynamicMeshElements[] for a given PrimitiveIndex
     // @return range (start is inclusive, end is exclusive)
-    FInt32Range GetDynamicMeshElementRange(uint32 PrimitiveIndex) const;
+    public Vector2i GetDynamicMeshElementRange(int PrimitiveIndex) {
+        throw new UnsupportedOperationException();
+    }
 
     /** Set the custom data associated with a primitive scene info.	*/
-    void SetCustomData(const FPrimitiveSceneInfo* InPrimitiveSceneInfo, void* InCustomData);
+    public void SetCustomData(FPrimitiveSceneInfo InPrimitiveSceneInfo, Object InCustomData){
+        throw new UnsupportedOperationException();
+    }
 
     /** Custom Data Memstack functions.	*/
-    FORCEINLINE FMemStackBase& GetCustomDataGlobalMemStack() { return PrimitiveCustomDataMemStack[0]; }
-    FORCEINLINE FMemStackBase& AllocateCustomDataMemStack()
+    public FMemStackBase GetCustomDataGlobalMemStack() { return PrimitiveCustomDataMemStack[0]; }
+    public FMemStackBase AllocateCustomDataMemStack()
     {
         // Don't reallocate since we keep references in FRelevancePacket.
-        check(PrimitiveCustomDataMemStack.GetSlack() > 0);
+        UE4Engine.check(PrimitiveCustomDataMemStack.GetSlack() > 0);
         return *new(PrimitiveCustomDataMemStack) FMemStackBase(0);
     }
 
@@ -460,14 +527,22 @@ public class FViewInfo extends FSceneView {
     private ESamplerFilter WorldTextureGroupSamplerFilter;
     private boolean bIsValidWorldTextureGroupSamplerFilter;
 
-    private FSceneViewState GetEffectiveViewState() const;
+    private FSceneViewState GetEffectiveViewState() {
+        throw new UnsupportedOperationException();
+    }
 
     /** Initialization that is common to the constructors. */
-    private void Init();
+    private void Init(){
+        throw new UnsupportedOperationException();
+    }
 
     /** Calculates bounding boxes for the translucency lighting volume cascades. */
-    private void CalcTranslucencyLightingVolumeBounds(FBox* InOutCascadeBoundsArray, int32 NumCascades) const;
+    private void CalcTranslucencyLightingVolumeBounds(FBox InOutCascadeBoundsArray, int NumCascades) {
+        throw new UnsupportedOperationException();
+    }
 
     /** Sets the sky SH irradiance map coefficients. */
-    private void SetupSkyIrradianceEnvironmentMapConstants(FVector4* OutSkyIrradianceEnvironmentMap) const;
+    private void SetupSkyIrradianceEnvironmentMapConstants(FVector4 OutSkyIrradianceEnvironmentMap){
+        throw new UnsupportedOperationException();
+    }
 }

@@ -171,5 +171,4 @@ public class FInstancedViewUniformShaderParameters {
     public final Matrix4f WorldToVirtualTexture = new Matrix4f();
     public final Vector4f VirtualTextureParams = new Vector4f();
     public final Vector4f[] XRPassthroughCameraUVs = new Vector4f[2];
-
 }
