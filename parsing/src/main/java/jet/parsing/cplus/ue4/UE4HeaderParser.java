@@ -1,9 +1,12 @@
 package jet.parsing.cplus.ue4;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.StringUtils;
 
 public class UE4HeaderParser {
@@ -141,12 +144,12 @@ public class UE4HeaderParser {
                 throw new IllegalArgumentException("Invalid source");
 
             final int startBrackt = StringUtils.indexOfWithComments(source, rightBrackt+1, '{');
-            if(startBrackt > 0){
+            if(startBrackt > 0 && startBrackt < end){
                 // may be the body of the method. But need to check.
                 String token = StringUtils.removeComments(source.substring(rightBrackt + 1, startBrackt)).trim();
                 if(token.isEmpty() || token.equals("const")){
-                    // Yes we found a method.
 
+                    // Yes we found a method.
                     return StringUtils.findEndBrackek('{','}', source, startBrackt) + 1;
                 }
             }else{
@@ -220,7 +223,7 @@ public class UE4HeaderParser {
     }
 
     private static List<UField> parsingParameters(String paramContent){
-        if(StringUtils.isBlank(paramContent)){
+        if(StringUtils.isBlank(paramContent) || paramContent.equals("void")){
             return Collections.emptyList();
         }
 
@@ -437,38 +440,172 @@ public class UE4HeaderParser {
         StringBuilder sb = new StringBuilder();
         UPROPERTYParser.makeCommentStr(sb, method.documents);
         sb.append('\t');
-        sb.append("[method]");
         if(method.modifier != null)
             sb.append(method.modifier).append(' ');
 
 
-        sb.append(method.returnType).append(' ');
+        if(!StringUtils.isBlank(method.returnType)) {
+//            sb.append(method.returnType);
+            UPROPERTYParser.makeReadWriteType(sb, method.returnType);
+            sb.append(' ');
+        }
+
         sb.append(method.name).append('(');
+
+        FieldTypeDesc desc = new FieldTypeDesc();
 
         if(method.parameters != null){
             for(UField field : method.parameters){
-                sb.append(field.type).append(' ').append(field.name);
-                if(field.defualtValue != null){
-                    sb.append("/* = ").append(field.defualtValue).append("*/");
+                parsingFileType(field.type, desc);
+                if(UPROPERTYParser.isIngoreType(desc.javaType)){
+                    // TODO
+                }else{
+                    sb.append(makeParameterTypeStr(desc)).append(' ').append(field.name);
+                    if(field.defualtValue != null){
+                        sb.append("/* = ").append(field.defualtValue).append("*/");
+                    }
+
+                    sb.append(',');
+                    sb.append(' ');
                 }
 
-                sb.append(',');
+
             }
 
             if(!method.parameters.isEmpty())
-                sb.setLength(sb.length() - 1);
+                sb.setLength(sb.length() - 2);
 
             sb.append(')');
         }
 
+        sb.append('{').append('\n');
         if(!StringUtils.isEmpty(method.body) && !StringUtils.isBlank(method.body)){
-            sb.append('{').append('\n');
             sb.append(method.body);
-            sb.append('}').append('\n');
         }else{
-            sb.append(';').append('\n');
+            sb.append("\t\tthrow new UnsupportedOperationException();\n\t");
         }
+
+        sb.append('}').append('\n');
 
         return sb.toString();
     }
+
+    private static final class FieldTypeDesc{
+        String typeSource;
+
+        String cType;
+        String javaType;
+
+        int pointerLevel;
+        boolean isReference;
+        boolean isInnerConstant;
+        boolean isOutConstant;
+
+        String[] templateTypes;
+
+        void reset(){
+            typeSource = null;
+            cType = null;
+            javaType = null;
+            pointerLevel = 0;
+            isOutConstant = false;
+            isInnerConstant = false;
+            isReference = false;
+        }
+    }
+
+    private static boolean parsingFileType(String type, FieldTypeDesc outDesc){
+        type = type.trim();
+
+        outDesc.reset();
+        outDesc.typeSource = type;
+
+        final String CLASS = "class";
+        if(type.startsWith(CLASS)){
+            // remove the class modifer.
+            type = type.substring(CLASS.length()).trim();
+        }
+
+        final String CONST = "const";
+        if(type.startsWith(CONST)){
+            outDesc.isOutConstant = true;
+
+            type = type.substring(CONST.length()).trim();
+        }
+
+        // next it must be a type
+        char currentChar = type.charAt(0);
+        if(StringUtils.isProgrammingLanguageFieldValidStartChar(currentChar)){
+            int index = 1;
+            for(; index < type.length(); index ++){
+                currentChar = type.charAt(index);
+
+                if(currentChar == '<'){
+                    // template in the type.
+                    int start = index;
+                    int end = StringUtils.findEndBrackek('<','>', type, start);
+
+                    List<Object> templatesType = UPROPERTYParser.parseLine(type.substring(start+1, end));
+                    outDesc.templateTypes = new String[templatesType.size()];
+                    for(int l = 0; l < templatesType.size(); l++){
+                        outDesc.templateTypes[l] = (String)templatesType.get(l);
+                    }
+
+                    index = end + 1;
+                    continue;
+                }else if(!(Character.isLetterOrDigit(currentChar) || currentChar == '_' || currentChar == ':')){
+                    break;
+                }
+            }
+
+            String cType = type.substring(0, index);
+            outDesc.javaType = UPROPERTYParser.getJavaType(cType);
+
+            while (index < type.length()){
+                currentChar = type.charAt(index);
+
+                if(currentChar == '*'){
+                    outDesc.pointerLevel ++;
+                    index ++;
+                }else if(currentChar == '&'){
+                    outDesc.isReference = true;
+                    index++;
+                }else if(currentChar == 'c'){
+                    if(type.startsWith(CONST, index)){
+                        if(outDesc.isInnerConstant)
+                            throw new IllegalStateException("invalid field type: " + outDesc.typeSource);
+                        outDesc.isInnerConstant = true;
+
+                        index += CONST.length();
+                    }
+                }else if(currentChar == ' '){
+                    index = StringUtils.firstNotEmpty(type, index);
+                }else if(currentChar == ':'){
+                    index ++;
+                }
+            }
+        }else{
+            throw new IllegalStateException("Unable to parse the type: " + type);
+        }
+
+        return true;
+    }
+
+    private static CharSequence makeParameterTypeStr(FieldTypeDesc desc){
+        StringBuilder sb = new StringBuilder();
+        if(desc.isInnerConstant || desc.isOutConstant) {
+            UPROPERTYParser.makeReadType(sb, desc.javaType);
+        }else{
+            sb.append(desc.javaType);
+        }
+
+        if(desc.templateTypes != null && desc.templateTypes.length > 0){
+            sb.append('<');
+            sb.append(desc.templateTypes[0]);
+            sb.append('>');
+        }
+
+        return sb;
+    }
+
 }

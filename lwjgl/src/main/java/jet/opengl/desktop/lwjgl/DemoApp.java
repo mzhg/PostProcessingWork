@@ -121,7 +121,7 @@ public class DemoApp {
 //        testRectVertex();
 //        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
-//        run(new ShaderTest());
+        run(new ShaderTest());
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
@@ -137,7 +137,7 @@ public class DemoApp {
 //        run(new AntiAliasingDemo());
 //        run(new HybridRendererDemo());
 //        run(new CloudSkyDemo());
-        run(new VoxelConeTracingDemo());
+//        run(new VoxelConeTracingDemo());
 //        run(new PerlinFire());
 //        run(new VolumetricFogDemo());
     }

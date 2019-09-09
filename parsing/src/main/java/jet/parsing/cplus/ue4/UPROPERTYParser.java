@@ -1,11 +1,15 @@
 package jet.parsing.cplus.ue4;
 
+import org.lwjgl.util.vector.ReadableVector4f;
+import org.omg.CORBA.PUBLIC_MEMBER;
+
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -72,7 +76,7 @@ public class UPROPERTYParser {
     }
 
     // Parsing the UPROPERTY macro or the paramters list in the method decla.
-    private static List<Object> parseLine(String line){
+    static List<Object> parseLine(String line){
         boolean bInToken = false;
 
         final ArrayList<Object> results = new ArrayList<>();
@@ -253,13 +257,25 @@ public class UPROPERTYParser {
         void makeStr(StringBuilder out, String varname, String defualtValue);
 
         void makeArrayStr(StringBuilder out, String varname, String size);
+
+        default String toReadOnlyType(){
+            return getType();
+        }
+
+        default String toReadWriteType(){
+            return getType();
+        }
+
+        default String getType(){ return null;}
     }
 
     private static final class VecBuildString implements BuildString{
         private final String type;
+        private final String readType;
 
-        public VecBuildString(String type){
+        public VecBuildString(String type, String readType){
             this.type = type;
+            this.readType = readType;
         }
 
         @Override
@@ -273,6 +289,16 @@ public class UPROPERTYParser {
         @Override
         public void makeArrayStr(StringBuilder out, String varname, String size) {
             out.append("\tpublic final ").append(type).append("[] ").append(varname).append(" = new ").append(type).append("[").append(size).append("];\n");
+        }
+
+        @Override
+        public String getType() {
+            return type;
+        }
+
+        @Override
+        public String toReadOnlyType() {
+            return readType;
         }
     }
 
@@ -296,6 +322,11 @@ public class UPROPERTYParser {
         @Override
         public void makeArrayStr(StringBuilder out, String varname, String size) {
             out.append("\tpublic final ").append(type).append("[] ").append(varname).append(" = new ").append(type).append("[").append(size).append("];\n");
+        }
+
+        @Override
+        public String getType() {
+            return type;
         }
     }
 
@@ -326,43 +357,106 @@ public class UPROPERTYParser {
         }
     }
 
+    public static void makeReadType(StringBuilder sb, String type){
+        BuildString buildString = OBJ_BUILDER.get(type);
+        if(buildString != null){
+            sb.append(buildString.toReadOnlyType());
+        }else{
+            sb.append(type);
+        }
+    }
+
+    public static void makeReadWriteType(StringBuilder sb, String type){
+        BuildString buildString = OBJ_BUILDER.get(type);
+        if(buildString != null){
+            sb.append(buildString.toReadWriteType());
+        }else{
+            sb.append(type);
+        }
+    }
+
     static void makeCommentStr(StringBuilder sb, String commnets){
         if(commnets != null){
-            sb.append("\t/*");
-            boolean skipFirstLine = true;
+            sb.append("\t/**");
             String[] tokesn = commnets.split("\n");
             for(String s : tokesn){
-                if(!skipFirstLine)
-                    sb.append('\t');
+                s = s.trim();
+                if(s.length() == 0)
+                    continue;
 
-                sb.append(s).append("<br>\n");
-                skipFirstLine = false;
+                if(s.charAt(0) != '*'){
+                    sb.append("\t* ");
+                }
+
+                sb.append(s).append("\n");
             }
             sb.setLength(sb.length() - 1); // remove the last '\n'
             sb.append("*/\n");
         }
     }
 
+    public static String getJavaType(String type){
+        BuildString bs = OBJ_BUILDER.get(type);
+        if(bs != null){
+            return bs.getType();
+        }else{
+            return type;
+        }
+    }
+
     private static final HashMap<String, BuildString> OBJ_BUILDER = new HashMap<>();
 
+    public static boolean isBaseType(String type){
+        return Arrays.binarySearch(BASE_TYPES, type) >= 0;
+    }
+
+    public static boolean isIngoreType(String type){
+        return Arrays.binarySearch(INGORE_TYPES, type) >= 0;
+    }
+
+    private static final String [] BASE_TYPES = {
+            "int",
+            "boolean",
+            "byte",
+            "char",
+            "short",
+            "float",
+            "long",
+            "double"
+    };
+
+    private static final String[] INGORE_TYPES = {
+         "FRHICommandList"
+    };
+
     static {
+        Arrays.sort(BASE_TYPES);
+        Arrays.sort(INGORE_TYPES);
+    }
+
+    static {
+
         final String[] vectors = {
-          "FLinearColor,Vector4f",
-          "FVector4,Vector4f",
-          "FVector,Vector3f",
-          "FVector2D,Vector2f",
-          "FMatrix,Matrix4f",
-          "FIntPoint,Vector2i",
+          "FLinearColor,Vector4f, ReadableVector4f",
+          "FVector4,Vector4f, ReadableVector4f",
+          "FVector,Vector3f, ReadableVector3f",
+          "FVector2D,Vector2f, ReadableVector2f",
+          "FMatrix,Matrix4f, Matrix4f",
+          "FIntPoint,Vector2i,Vector2i",
+          "TArray,ArrayList,List",
+          "FIntRect,Recti,Recti",
         };
 
         final String[] values = {
             "int32,int",
             "uint32,int",
+            "bool,boolean",
+            "ERHIFeatureLevel::Type,int",
         };
 
         for(String vec : vectors){
             String[] token = StringUtils.split(vec,", ");
-            OBJ_BUILDER.put(token[0], new VecBuildString(token[1]));
+            OBJ_BUILDER.put(token[0], new VecBuildString(token[1], token[2]));
         }
 
         for(String vec : values){

@@ -12,6 +12,10 @@ import jet.opengl.renderer.Unreal4.FPrimitiveViewRelevance;
 import jet.opengl.renderer.Unreal4.FTranslucenyPrimCount;
 import jet.opengl.renderer.Unreal4.FVisibleLightViewInfo;
 import jet.opengl.renderer.Unreal4.distancefield.FGlobalDistanceFieldInfo;
+import jet.opengl.renderer.Unreal4.mesh.FBatchedElements;
+import jet.opengl.renderer.Unreal4.mesh.FMeshBatch;
+import jet.opengl.renderer.Unreal4.mesh.FMeshDecalBatch;
+import jet.opengl.renderer.Unreal4.mesh.FVolumetricMeshBatch;
 import jet.opengl.renderer.Unreal4.scenes.FLODMask;
 import jet.opengl.renderer.Unreal4.scenes.FSceneView;
 import jet.opengl.renderer.Unreal4.scenes.FSceneViewState;
@@ -99,22 +103,22 @@ public class FViewInfo extends FSceneView {
     public boolean bHasCustomDepthPrimitives;
 
     /** Mesh batches with for mesh decal rendering. */
-    TArray<FMeshDecalBatch, SceneRenderingAllocator> MeshDecalBatches;
+    public final ArrayList<FMeshDecalBatch> MeshDecalBatches = new ArrayList<>();
 
     /** Mesh batches with a volumetric material. */
-    TArray<FVolumetricMeshBatch, SceneRenderingAllocator> VolumetricMeshBatches;
+    public final ArrayList<FVolumetricMeshBatch> VolumetricMeshBatches = new ArrayList<>();
 
     /** A map from light ID to a boolean visibility value. */
     public final ArrayList<FVisibleLightViewInfo> VisibleLightInfos = new ArrayList<>();
 
     /** The view's batched elements. */
-    FBatchedElements BatchedViewElements;
+    public final FBatchedElements BatchedViewElements = new FBatchedElements();
 
     /** The view's batched elements, above all other elements, for gizmos that should never be occluded. */
-    FBatchedElements TopBatchedViewElements;
+    public final FBatchedElements TopBatchedViewElements = new FBatchedElements();
 
     /** The view's mesh elements. */
-    TIndirectArray<FMeshBatch> ViewMeshElements;
+    public  final ArrayList<FMeshBatch> ViewMeshElements = new ArrayList<>();
 
     /** The view's mesh elements for the foreground (editor gizmos and primitives )*/
     TIndirectArray<FMeshBatch> TopViewMeshElements;

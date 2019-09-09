@@ -114,7 +114,7 @@ public final class DebugTools {
     }
 
     /**
-     * Loa the binary data from a file by the given filename. Return null if the given file isn't exsit.
+     * Load the binary data from a file by the given filename. Return null if the given file doesn't exsit.
      */
     public static ByteBuffer loadBinary(String filename){
         try(FileInputStream inputStream = new FileInputStream(filename)){

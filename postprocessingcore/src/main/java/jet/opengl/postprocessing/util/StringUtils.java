@@ -58,6 +58,20 @@ public class StringUtils {
         return list.toArray(new String[list.size()]);
     }
 
+    public static boolean isProgrammingLanguageFieldValidStartChar(char c){
+        if(Character.isDigit(c)){
+            return false;
+        }
+
+        if(Character.isLetter(c))
+            return true;
+
+        if(c == '_')
+            return true;
+
+        return false;
+    }
+
     public static final boolean isEmpty(CharSequence str){
         if(str == null || str.length() ==0)
             return true;
@@ -396,8 +410,8 @@ public class StringUtils {
     }
 
     public static int findCharInRange(CharSequence source, final char c, int offset, int len){
-        offset = Math.max(0, offset);
-        len = Math.min(len, source.length()-1);
+//        offset = Math.max(0, offset);
+//        len = Math.min(len, source.length()-1);
 
         for(int i = offset; i < offset + len; i++){
             if(source.charAt(i) == c){

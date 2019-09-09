@@ -1,136 +1,537 @@
 #version 450
-#define M_PI     3.14159265358979323846
-#define M_PI2    6.28318530717958647692
-#define M_INV_PI 0.3183098861837906715
-
-const uint gSampleCount = 1024;
-
-float radicalInverse(uint i)
-{
-    i = (i & 0x55555555u) << 1 | (i & 0xAAAAAAAAu) >> 1;
-    i = (i & 0x33333333u) << 2 | (i & 0xCCCCCCCCu) >> 2;
-    i = (i & 0x0F0F0F0Fu) << 4 | (i & 0xF0F0F0F0u) >> 4;
-    i = (i & 0x00FF00FFu) << 8 | (i & 0xFF00FF00u) >> 8;
-    i = (i << 16) | (i >> 16);
-    return float(i) * 2.3283064365386963e-10f;
-}
-
-vec2 getHammersley(uint i, uint N)
-{
-    return vec2(float(i) / float(N), radicalInverse(i));
-}
+#define THREADGROUP_SIZE 4
+#define USE_LINKED_CULL_LIST 1
+#define LOCAL_LIGHT_DATA_STRIDE 5
+#define LIGHT_LINK_STRIDE 2
 
 
 
-vec3 getPerpendicularStark(vec3 u)
-{
-    vec3 a = abs(u);
-    uint xm = ((a.x - a.y) < 0 && (a.x - a.z) < 0) ? 1 : 0;
-    uint ym = (a.y - a.z) < 0 ? (1u ^ xm) : 0;
-    uint zm = 1u ^ (xm | ym);
-    return cross(u, vec3(xm, ym, zm));
-}
-
-vec3 getPerpendicularSimple(vec3 u)
-{
-    vec3 up = abs(u.z) < 0.999999f ? vec3(0, 0, 1) : vec3(1, 0, 0);
-    return normalize(cross(up, u));
-}
 
 
-vec3 getGGXMicrofacet(vec2 u, vec3 N, float roughness)
-{
-    float a2 = roughness * roughness;
-
-    float phi = M_PI2 * u.x;
-    float cosTheta = sqrt(max(0, (1 - u.y)) / (1 + (a2 * a2 - 1) * u.y));
-    float sinTheta = sqrt(max(0, 1 - cosTheta * cosTheta));
-
-    
-    vec3 tH;
-    tH.x = sinTheta * cos(phi);
-    tH.y = sinTheta * sin(phi);
-    tH.z = cosTheta;
-
-    vec3 T = getPerpendicularStark(N);
-    vec3 B = normalize(cross(N, T));
-
-    
-    return normalize(T * tH.x + B * tH.y + N * tH.z);
-}
-
-float smithGGX(float NdotL, float NdotV, float roughness)
-{
-    float k = ((roughness + 1) * (roughness + 1)) / 8;
-    float g1 = NdotL / (NdotL * (1 - k) + k);
-    float g2 = NdotV / (NdotV * (1 - k) + k);
-    return g1 * g2;
-}
-
-vec3 fresnelSchlick(vec3 f0, vec3 f90, float u)
-{
-    return f0 + (f90 - f0) * pow(1 - u, 5);
-}
+#ifndef GL_ES
 
 
-vec3 getCosHemisphereSample(vec2 u, vec3 N, vec3 T)
-{
-    vec3 B = normalize(cross(N, T));
+#endif
 
-    float r = sqrt(u.x);
-    float phi = u.y * M_PI2;
+#define float2 vec2
+#define bool4 bvec4
 
-    vec3 L = vec3(r * cos(phi),
-                    r * sin(phi),
-                    sqrt(max(0.0f, 1.0f - u.x)));
+#define float3 vec3
+#define float4 vec4
+#define bool2 bvec2
+#define bool3 bvec3
+#define float2x2 mat2
+#define float3x3 mat3
+#define float4x4 mat4
+#define matrix   mat4
+#define float4x3 mat4x3
 
-    return normalize(T * L.x + B * L.y + N * L.z);
-}
+#define half2 vec2
+#define half3 vec3
+#define half4 vec4
 
+#define uint2 uvec2
+#define uint3 uvec3
+#define uint4 uvec4
+
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
+
+#define lerp(x,y,v) mix(x,y,v)
+#define rcp(x) 1.0/x
 #define saturate(x) clamp(x, 0.0, 1.0)
+#define frac(x) fract(x)
+#define rsqrt(x) inversesqrt(x)
+#define InterlockedOr(x, y) atomicOr(x, y)
+#define firstbithigh(x) findMSB(x)
+#define firstbitlow(x)  findLSB(x)
+#define atan2(y,x)  atan(y,x)
+#define reversebits(x) bitfieldReverse(x)
+#define countbits(x)   bitCount(x)
+#define asuint(x) floatBitsToUint(x)
+#define ddx(x)    dFdx(x)
+#define ddy(x)    dFdy(x)
 
 
-float disneyDiffuseFresnel(float NdotV, float NdotL, float LdotH, float linearRoughness)
+
+#define isfinite(x) !(isnan(x) || isinf(x))
+
+#ifndef GroupMemoryBarrierWithGroupSync
+#define GroupMemoryBarrierWithGroupSync barrier
+#endif
+#define groupshared shared
+
+#define GroupMemoryBarrier memoryBarrier
+
+vec4 mul(in vec4 v, in mat4 m )
 {
-    float fd90 = 0.5 + 2 * LdotH * LdotH * linearRoughness;
-    float fd0 = 1;
-    float lightScatter = fresnelSchlick(vec3(fd0), vec3(fd90), NdotL).r;
-    float viewScatter = fresnelSchlick(vec3(fd0), vec3(fd90), NdotV).r;
-    return lightScatter * viewScatter;
+	return m * v;
+}
+
+vec3 mul(in vec3 v, in mat3 m )
+{
+	return m * v;
+}
+
+vec4 mul(in mat4 m , in vec4 v)
+{
+	return m * v;
+}
+
+vec3 mul(in mat3 m , in vec3 v)
+{
+	return m * v;
+}
+
+vec2 mul(in mat2 m , in vec2 v)
+{
+	return m * v;
+}
+
+void sincos(float angle, out float _sin, out float _cos)
+{
+    _sin = sin(angle);
+    _cos = cos(angle);
+}
+
+void sincos(float2 angle, out float2 _sin, out float2 _cos)
+{
+    _sin = sin(angle);
+    _cos = cos(angle);
+}
+
+float asfloat(uint i)
+{
+    return uintBitsToFloat(i);
+}
+
+float asfloat(int i)
+{
+    return intBitsToFloat(i);
+}
+
+float f16tof32( in uint value)
+{
+    return unpackHalf2x16(value).x;
+}
+
+float2 f16tof32( in uint2 value)
+{
+    return float2(unpackHalf2x16(value.x).x, unpackHalf2x16(value.y).x);
+}
+
+float3 f16tof32( in uint3 value)
+{
+    return float3(unpackHalf2x16(value.x).x, unpackHalf2x16(value.y).x, unpackHalf2x16(value.z).x);
+}
+
+float4 f16tof32( in uint4 value)
+{
+    return float4(unpackHalf2x16(value.x).x, unpackHalf2x16(value.y).x, unpackHalf2x16(value.z).x, unpackHalf2x16(value.w).x);
+}
+
+uint f32tof16(in float value)
+{
+    return packHalf2x16(vec2(value, 0));
+}
+
+uint2 f32tof16(in vec2 value)
+{
+    return uint2(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)));
+}
+
+uint3 f32tof16(in float3 value)
+{
+    return uint3(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)), packHalf2x16(vec2(value.z, 0)));
 }
 
 
-layout(binding = 0) uniform samplerCube gInputTex;
-layout(location = 0) out vec4 Out_Irradiance;
-
-vec4 integrateDiffuseLD(vec3 N)
+uint4 f32tof16(in float4 value)
 {
-    vec3 accumulation = vec3(0);
-    float accBrdf = 0;
-    vec3 V = N;
-    for (uint i = 0; i < gSampleCount; i++)
-    {
-        vec2 u = getHammersley(i, gSampleCount);
-        
-        vec3 L = getCosHemisphereSample(u, N, getPerpendicularSimple(N));
-        float NdotL = dot(N, L);
-        if (NdotL > 0)
-        {
-            float LdotH = saturate(dot(L, normalize(V + L)));
-           float NdotV = saturate(dot(N, V));
-            float brdf = disneyDiffuseFresnel(NdotV, NdotL, LdotH, 0);
-            accumulation += textureLod(gInputTex, L, 0.0).rgb * brdf;
-            accBrdf += brdf;
-        }
-    }
-
-    return vec4(accumulation / float(brdf), 1.0f);
+    return uint4(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)), packHalf2x16(vec2(value.z, 0)), packHalf2x16(vec2(value.w, 0)));
 }
 
-in vec3 m_Normal;
+
+#define Texture3DSampleLevel(tex, uv, lod) textureLod(tex, uv, lod)
+#define Texture2DSampleLevel(tex, uv, lod) textureLod(tex, uv, lod)
+#define Texture3DSample(tex, uv)           texture(tex, uv)
+#define Texture2DSample(tex, uv)           texture(tex, uv)
+#define COMP_SIZE(X,Y,Z)  layout(local_size_x = X, local_size_y = Y, local_size_z = Z)in
+#define LOOP
+#define BRANCH
+
+struct UE4View
+{
+    float4x4 ViewToClip;
+    float4x4 ClipToView;
+    float4x4 ViewToTranslatedWorld;
+    float4x4 TranslatedWorldToView;
+    float4 ViewSizeAndInvSize;
+    float3 PreViewTranslation;
+};
+
+layout(binding = 8) uniform ViewBuffer
+{
+    UE4View View;
+};
+
+#ifndef NUM_DIRECTIONAL_LIGHT_CASCADES
+#define NUM_DIRECTIONAL_LIGHT_CASCADES 1
+#endif
+
+struct LocalLightingData
+{
+    float4x4 DirectionalLightWorldToStaticShadow;
+    float4 DirectionalLightStaticShadowBufferSize;
+
+    float4x4 DirectionalLightWorldToShadowMatrix[NUM_DIRECTIONAL_LIGHT_CASCADES];
+    float4 DirectionalLightShadowmapMinMax[NUM_DIRECTIONAL_LIGHT_CASCADES];
+    float4 DirectionalLightShadowmapAtlasBufferSize;
+
+    float3 DirectionalLightColor;
+    float DirectionalLightVolumetricScatteringIntensity;
+    float3 DirectionalLightDirection;
+    float DirectionalLightDepthBias;
+
+    uint3 CulledGridSize;
+    uint LightGridPixelSizeShift;
+
+
+
+    uint HasDirectionalLight;
+    uint DirectionalLightUseStaticShadowing;
+    uint NumDirectionalLightCascades;
+    uint NumLocalLights;
+
+    float4 LightGridZParams;
+    float4 CascadeEndDepths;
+
+    uint DirectionalLightShadowMapChannelMask;
+    uint NumGridCells;
+    uint MaxCulledLightsPerCell;
+    uint NumReflectionCaptures;
+
+    float2 DirectionalLightDistanceFadeMAD;
+};
+
+layout(binding = 9) uniform _ForwardLightData
+{
+    LocalLightingData ForwardLightData;
+};
+
+#ifndef NUM_MAX_REFLECTION_CAPTURES
+#define NUM_MAX_REFLECTION_CAPTURES 4
+#endif
+
+struct UE4ReflectionCapture
+{
+    float4 PositionAndRadius[NUM_MAX_REFLECTION_CAPTURES];
+};
+
+layout(binding = 10) uniform _ReflectionCapture
+{
+    UE4ReflectionCapture ReflectionCapture;
+};
+
+layout(binding = 11) uniform samplerBuffer ForwardLocalLightBuffer;
+
+float ConvertToDeviceZ(float depth)
+{
+    vec4 clipPos = View.ViewToClip * vec4(0,0, depth, 1);
+    return clipPos.z / clipPos.w;
+}
+
+
+float ComputeSquaredDistanceFromBoxToPoint(float3 BoxCenter, float3 BoxExtent, float3 InPoint)
+{
+	float3 AxisDistances = max(abs(InPoint - BoxCenter) - BoxExtent, float3(0));
+	return dot(AxisDistances, AxisDistances);
+}
+
+
+#ifndef NUM_CULLED_GRID_PRIMITIVE_TYPES
+#define NUM_CULLED_GRID_PRIMITIVE_TYPES 2  
+#endif
+
+layout(binding = 0, r32ui) uniform uimageBuffer RWNumCulledLightsGrid;
+layout(binding = 1, r32ui) uniform uimageBuffer RWCulledLightDataGrid;
+
+#define LIGHT_LINK_STRIDE 2
+#define NUM_CULLED_LIGHTS_GRID_STRIDE 2
+
+void writeCullLightTo(uimageBuffer dest, uint destIndex, uint first, uint second)
+{
+    imageStore(dest, int(destIndex) * LIGHT_LINK_STRIDE + 0, uint4(first, 0, 0, 0));
+    imageStore(dest, int(destIndex) * LIGHT_LINK_STRIDE + 1, uint4(second, 0, 0, 0));
+}
+
+
+
+
+
+layout(binding = 2) uniform atomic_uint RWNextCulledLightLink;
+
+layout(binding = 3, r32ui) uniform uimageBuffer RWStartOffsetGrid;
+layout(binding = 4, rg16ui) uniform uimageBuffer RWCulledLightLinks;
+
+#ifndef USE_LINKED_CULL_LIST
+#error "Not declare the macro 'USE_LINKED_CULL_LIST'"
+#endif
+
+float ComputeDepthFromZSlice(uint ZSlice)
+{
+	float SliceDepth = (exp2(float(ZSlice) / ForwardLightData.LightGridZParams.z) - ForwardLightData.LightGridZParams.y) / ForwardLightData.LightGridZParams.x;
+
+	if (ZSlice == uint(ForwardLightData.CulledGridSize.z))
+	{
+		
+		
+		
+		
+		SliceDepth = 2000000.0f;
+	}
+
+	if (ZSlice == 0)
+	{
+		
+		
+		
+		SliceDepth = 0.0f;
+	}
+
+	return SliceDepth;
+}
+
+void ComputeCellViewAABB(uint3 GridCoordinate, out float3 ViewTileMin, out float3 ViewTileMax)
+{
+	
+	const float2 InvCulledGridSizeF = (1 << ForwardLightData.LightGridPixelSizeShift) * View.ViewSizeAndInvSize.zw;
+	const float2 TileSize = float2(2.0f, 2.0f) * InvCulledGridSizeF.xy;
+	const float2 UnitPlaneMin = float2(-1.0f, -1.0f);
+
+	float2 UnitPlaneTileMin = GridCoordinate.xy * TileSize + UnitPlaneMin;
+	float2 UnitPlaneTileMax = (GridCoordinate.xy + 1) * TileSize + UnitPlaneMin;
+
+	float MaxTileZ = -ComputeDepthFromZSlice(GridCoordinate.z);
+	float MinTileZ  = -ComputeDepthFromZSlice(GridCoordinate.z + 1);
+
+	float MinTileDeviceZ = ConvertToDeviceZ(MinTileZ);
+	float4 MinDepthCorner0 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MinTileDeviceZ, 1), View.ClipToView);
+	float4 MinDepthCorner1 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MinTileDeviceZ, 1), View.ClipToView);
+	float4 MinDepthCorner2 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMax.y, MinTileDeviceZ, 1), View.ClipToView);
+	float4 MinDepthCorner3 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMin.y, MinTileDeviceZ, 1), View.ClipToView);
+
+	float MaxTileDeviceZ = ConvertToDeviceZ(MaxTileZ);
+	float4 MaxDepthCorner0 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MaxTileDeviceZ, 1), View.ClipToView);
+	float4 MaxDepthCorner1 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MaxTileDeviceZ, 1), View.ClipToView);
+	float4 MaxDepthCorner2 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMax.y, MaxTileDeviceZ, 1), View.ClipToView);
+	float4 MaxDepthCorner3 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMin.y, MaxTileDeviceZ, 1), View.ClipToView);
+
+	float2 ViewMinDepthCorner0 = MinDepthCorner0.xy / MinDepthCorner0.w;
+	float2 ViewMinDepthCorner1 = MinDepthCorner1.xy / MinDepthCorner1.w;
+	float2 ViewMinDepthCorner2 = MinDepthCorner2.xy / MinDepthCorner2.w;
+	float2 ViewMinDepthCorner3 = MinDepthCorner3.xy / MinDepthCorner3.w;
+	float2 ViewMaxDepthCorner0 = MaxDepthCorner0.xy / MaxDepthCorner0.w;
+	float2 ViewMaxDepthCorner1 = MaxDepthCorner1.xy / MaxDepthCorner1.w;
+	float2 ViewMaxDepthCorner2 = MaxDepthCorner2.xy / MaxDepthCorner2.w;
+	float2 ViewMaxDepthCorner3 = MaxDepthCorner3.xy / MaxDepthCorner3.w;
+
+	
+	ViewTileMin.xy = min(ViewMinDepthCorner0, ViewMinDepthCorner1);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMinDepthCorner2);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMinDepthCorner3);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner0);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner1);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner2);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner3);
+
+	ViewTileMax.xy = max(ViewMinDepthCorner0, ViewMinDepthCorner1);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMinDepthCorner2);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMinDepthCorner3);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner0);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner1);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner2);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner3);
+
+	ViewTileMin.z = MinTileZ;
+	ViewTileMax.z = MaxTileZ;
+}
+
+bool IntersectConeWithSphere(float3 ConeVertex, float3 ConeAxis, float ConeRadius, float2 CosSinAngle, float4 SphereToTest)
+{
+    float3 ConeVertexToSphereCenter = SphereToTest.xyz - ConeVertex;
+    float ConeVertexToSphereCenterLengthSq = dot(ConeVertexToSphereCenter, ConeVertexToSphereCenter);
+    float SphereProjectedOntoConeAxis = dot(ConeVertexToSphereCenter, -ConeAxis);
+    float DistanceToClosestPoint = CosSinAngle.x * sqrt(ConeVertexToSphereCenterLengthSq - SphereProjectedOntoConeAxis * SphereProjectedOntoConeAxis) - SphereProjectedOntoConeAxis * CosSinAngle.y;
+
+    bool bSphereTooFarFromCone = DistanceToClosestPoint > SphereToTest.w;
+    bool bSpherePastConeEnd = SphereProjectedOntoConeAxis > SphereToTest.w + ConeRadius;
+    bool bSphereBehindVertex = SphereProjectedOntoConeAxis < -SphereToTest.w;
+	return !(bSphereTooFarFromCone || bSpherePastConeEnd || bSphereBehindVertex);
+}
+
+
+layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = THREADGROUP_SIZE)in;
+
 
 void main()
 {
-    vec3 N = normalize(m_Normal);
-    Out_Irradiance = integrateDiffuseLD(N);
+	uint3 GridCoordinate = gl_GlobalInvocationID;
+
+	if (all(lessThan(GridCoordinate, uint3(ForwardLightData.CulledGridSize))))
+	{
+		uint GridIndex = (GridCoordinate.z * ForwardLightData.CulledGridSize.y + GridCoordinate.y) * ForwardLightData.CulledGridSize.x + GridCoordinate.x;
+
+
+#define CULL_LIGHTS 1
+	#if CULL_LIGHTS
+		float3 ViewTileMin;
+		float3 ViewTileMax;
+		ComputeCellViewAABB(GridCoordinate, ViewTileMin, ViewTileMax);
+
+		float3 ViewTileCenter = .5f * (ViewTileMin + ViewTileMax);
+		float3 ViewTileExtent = ViewTileMax - ViewTileCenter;
+		float3 WorldTileCenter = mul(float4(ViewTileCenter, 1), View.ViewToTranslatedWorld).xyz - View.PreViewTranslation;
+		float4 WorldTileBoundingSphere = float4(WorldTileCenter, length(ViewTileExtent));
+
+		uint NumAvailableLinks = ForwardLightData.NumGridCells * ForwardLightData.MaxCulledLightsPerCell * NUM_CULLED_GRID_PRIMITIVE_TYPES;
+
+
+		for (uint LocalLightIndex = 0; LocalLightIndex < ForwardLightData.NumLocalLights; LocalLightIndex++)
+		{
+			uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
+			float4 LightPositionAndInvRadius = 
+												texelFetch(ForwardLocalLightBuffer, LocalLightBaseIndex + 0);
+			float LightRadius = 1.0f / LightPositionAndInvRadius.w;
+			bool bPassSpotlightTest = true;
+
+			#define REFINE_SPOTLIGHT_BOUNDS 1
+			#if REFINE_SPOTLIGHT_BOUNDS
+				float CosOuterCone = 
+										texelFetch(ForwardLocalLightBuffer, LocalLightBaseIndex + 3).x;
+
+				if (CosOuterCone > -2.0f)
+				{
+					float2 CosSinAngle = float2(CosOuterCone, sqrt(1 - CosOuterCone * CosOuterCone));
+					float3 LightDirection = 
+												texelFetch(ForwardLocalLightBuffer, LocalLightBaseIndex + 2).xyz;
+
+					bPassSpotlightTest = IntersectConeWithSphere(LightPositionAndInvRadius.xyz, LightDirection, LightRadius, CosSinAngle, WorldTileBoundingSphere);
+
+					
+					const float COS_PI_OVER_4 = 0.707107f; 
+					if (CosSinAngle.x < COS_PI_OVER_4)
+					{
+						LightPositionAndInvRadius.xyz -= LightDirection * LightRadius * CosSinAngle.x;
+						LightRadius = LightRadius * CosSinAngle.y;
+					}
+					else
+					{
+						LightRadius = LightRadius / (2.0f * CosSinAngle.x);
+						LightPositionAndInvRadius.xyz -= LightDirection * LightRadius;
+					}
+				}
+			#endif
+
+			float3 ViewSpaceLightPosition = mul(float4(LightPositionAndInvRadius.xyz + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
+
+			float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(ViewTileCenter, ViewTileExtent, ViewSpaceLightPosition);
+
+			if (BoxDistanceSq < LightRadius * LightRadius && bPassSpotlightTest)
+			{
+				#if USE_LINKED_CULL_LIST
+					uint NextLink;
+
+					NextLink = atomicCounterIncrement(RWNextCulledLightLink);
+
+					if (NextLink < NumAvailableLinks)
+					{
+						uint PreviousLink;
+
+						PreviousLink = imageAtomicExchange(RWStartOffsetGrid, int(GridIndex), NextLink);
+
+
+						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 0), uint4(LocalLightIndex, 0, 0, 0));
+						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 1), uint4(PreviousLink, 0, 0, 0));
+					}
+
+				#else
+					uint CulledLightIndex;
+					InterlockedAdd(RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], 1U, CulledLightIndex);
+					RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = GridIndex * ForwardLightData.MaxCulledLightsPerCell;
+
+					if (CulledLightIndex < ForwardLightData.MaxCulledLightsPerCell)
+					{
+						RWCulledLightDataGrid[GridIndex * ForwardLightData.MaxCulledLightsPerCell + CulledLightIndex] = LocalLightIndex;
+					}
+				#endif
+			}
+		}
+
+		LOOP
+		for (uint ReflectionCaptureIndex = 0; ReflectionCaptureIndex < ForwardLightData.NumReflectionCaptures; ReflectionCaptureIndex++)
+		{
+			float4 CapturePositionAndRadius = ReflectionCapture.PositionAndRadius[ReflectionCaptureIndex];
+			float3 ViewSpaceCapturePosition = mul(float4(CapturePositionAndRadius.xyz + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
+
+			float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(ViewTileCenter, ViewTileExtent, ViewSpaceCapturePosition);
+
+			if (BoxDistanceSq < CapturePositionAndRadius.w * CapturePositionAndRadius.w)
+			{
+				#if USE_LINKED_CULL_LIST
+					uint NextLink;
+
+					NextLink = atomicCounterIncrement(RWNextCulledLightLink);
+
+					if (NextLink < NumAvailableLinks)
+					{
+						uint PreviousLink;
+
+						PreviousLink = imageAtomicExchange(RWStartOffsetGrid, int(ForwardLightData.NumGridCells + GridIndex), NextLink);
+
+
+						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 0), uint4(ReflectionCaptureIndex, 0, 0, 0));
+						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 1), uint4(PreviousLink, 0, 0, 0));
+					}
+
+				#else
+					uint CulledCaptureIndex;
+					InterlockedAdd(RWNumCulledLightsGrid[(ForwardLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], 1U, CulledCaptureIndex);
+					RWNumCulledLightsGrid[(ForwardLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = (ForwardLightData.NumGridCells + GridIndex) * ForwardLightData.MaxCulledLightsPerCell;
+
+					if (CulledCaptureIndex < ForwardLightData.MaxCulledLightsPerCell)
+					{
+						RWCulledLightDataGrid[(ForwardLightData.NumGridCells + GridIndex) * ForwardLightData.MaxCulledLightsPerCell + CulledCaptureIndex] = ReflectionCaptureIndex;
+					}
+				#endif
+			}
+		}
+#else   
+
+
+		for (uint LocalLightIndex = 0; LocalLightIndex < ForwardLightData.NumLocalLights; LocalLightIndex++)
+		{
+			if (LocalLightIndex < ForwardLightData.MaxCulledLightsPerCell)
+			{
+				RWCulledLightDataGrid[GridIndex * ForwardLightData.MaxCulledLightsPerCell + LocalLightIndex] = LocalLightIndex;
+			}
+		}
+
+		RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0] = ForwardLightData.NumLocalLights;
+		RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = GridIndex * ForwardLightData.MaxCulledLightsPerCell;
+
+		LOOP
+		for (uint ReflectionCaptureIndex = 0; ReflectionCaptureIndex < ForwardLightData.NumReflectionCaptures; ReflectionCaptureIndex++)
+		{
+			if (ReflectionCaptureIndex < ForwardLightData.MaxCulledLightsPerCell)
+			{
+				RWCulledLightDataGrid[(ForwardLightData.NumGridCells + GridIndex) * ForwardLightData.MaxCulledLightsPerCell + ReflectionCaptureIndex] = ReflectionCaptureIndex;
+			}
+		}
+
+		RWNumCulledLightsGrid[(ForwardLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 0] = ForwardLightData.NumReflectionCaptures;
+		RWNumCulledLightsGrid[(ForwardLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = (ForwardLightData.NumGridCells + GridIndex) * ForwardLightData.MaxCulledLightsPerCell;
+#endif
+	}
 }

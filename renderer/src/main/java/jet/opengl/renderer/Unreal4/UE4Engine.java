@@ -16,8 +16,6 @@ public final class UE4Engine {
 
     public static final String SHADER_PATH = "Unreal4/";
 
-    public static final int GMaxNumReflectionCaptures = 341;
-
     /** Must match global distance field shaders. */
     public static final int GMaxGlobalDistanceFieldClipmaps = 4;
 
@@ -33,6 +31,9 @@ public final class UE4Engine {
     public static final int NUM_ATMOSPHERE_LIGHTS = 2;
 
     public static final int NumCustomPrimitiveDataFloat4s = 8; // Must match NUM_CUSTOM_PRIMITIVE_DATA in SceneData.ush
+
+    // DX11 maximum 2d texture array size is D3D11_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION = 2048, and 2048/6 = 341.33.
+    public static final int GMaxNumReflectionCaptures = 341;
 
     public static void check(Object obj){
         if(CHECKING){
