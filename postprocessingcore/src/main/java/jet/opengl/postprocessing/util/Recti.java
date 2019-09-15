@@ -1,5 +1,7 @@
 package jet.opengl.postprocessing.util;
 
+import org.lwjgl.util.vector.Vector2i;
+
 /**
  * Created by mazhen'gui on 2017/4/1.
  */
@@ -28,6 +30,23 @@ public class Recti {
         this.height =height;
     }
 
+    public int getMaxX(){
+        return x + width;
+    }
+
+    public int getMaxY(){
+        return y + height;
+    }
+
+    public Vector2i size(){
+        return new Vector2i(width, height);
+    }
+
+    public int getMin()
+    {
+        return Math.min(x,y);
+    }
+
     @Override
     public String toString() {
         return "Recti{" +
@@ -36,5 +55,9 @@ public class Recti {
                 ", width=" + width +
                 ", height=" + height +
                 '}';
+    }
+
+    public int area(){
+        return width * height;
     }
 }

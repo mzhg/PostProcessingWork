@@ -1,5 +1,7 @@
 package jet.opengl.renderer.Unreal4;
 
+import jet.opengl.renderer.Unreal4.api.FMobile;
+
 public final class UE4Engine {
     /* Maximum size of the world */
     public static final float WORLD_MAX	= 2097152.0f;
@@ -34,6 +36,11 @@ public final class UE4Engine {
 
     // DX11 maximum 2d texture array size is D3D11_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION = 2048, and 2048/6 = 341.33.
     public static final int GMaxNumReflectionCaptures = 341;
+
+    /** Incremented once per frame before the scene is being rendered. In split screen mode this is incremented once for all views (not for each view). */
+    public static int GFrameNumber = 1;
+
+    public final static FMobile Mobile = new FMobile();
 
     public static void check(Object obj){
         if(CHECKING){

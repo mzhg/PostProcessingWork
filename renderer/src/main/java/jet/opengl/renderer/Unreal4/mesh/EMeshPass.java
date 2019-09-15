@@ -1,4 +1,4 @@
-package jet.opengl.renderer.Unreal4;
+package jet.opengl.renderer.Unreal4.mesh;
 
 public enum EMeshPass {
     SkyPass,
@@ -15,7 +15,7 @@ public enum EMeshPass {
     MobileInverseOpacity,  /** Mobile specific scene capture, Non-cached */
     VirtualTexture,
 
-        HitProxy,
-        HitProxyOpaqueOnly,
-        EditorSelection,
+    HitProxy,
+    HitProxyOpaqueOnly,
+    EditorSelection,
 }

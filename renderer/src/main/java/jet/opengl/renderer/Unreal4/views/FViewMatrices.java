@@ -64,11 +64,25 @@ public class FViewMatrices {
      */
     private float ScreenScale = 1;
 
+    public FViewMatrices()
+    {
+        /*ProjectionMatrix.SetIdentity();
+        ViewMatrix.SetIdentity();
+        HMDViewMatrixNoRoll.SetIdentity();
+        TranslatedViewMatrix.SetIdentity();
+        TranslatedViewProjectionMatrix.SetIdentity();
+        InvTranslatedViewProjectionMatrix.SetIdentity();
+        PreViewTranslation = FVector::ZeroVector;
+        ViewOrigin = FVector::ZeroVector;
+        ProjectionScale = FVector2D::ZeroVector;
+        TemporalAAProjectionJitter = FVector2D::ZeroVector;*/
+        ScreenScale = 1.f;
+    }
+
     //
     // World = TranslatedWorld - PreViewTranslation
     // TranslatedWorld = World + PreViewTranslation
     //
-
     public FViewMatrices(FSceneViewInitOptions InitOptions){
         throw new UnsupportedOperationException();
     }

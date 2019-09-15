@@ -36,7 +36,7 @@ public class FHZBOcclusionTester {
     public int			GetNum() { return Primitives.size(); }
 
     uint32			AddBounds( const FVector& BoundsOrigin, const FVector& BoundsExtent );
-    void			Submit(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+    void			Submit(FRHICommandListImmediate& RHICmdList, const FViewInfo2& View);
 
     void			MapResults(FRHICommandListImmediate& RHICmdList);
     void			UnmapResults(FRHICommandListImmediate& RHICmdList);

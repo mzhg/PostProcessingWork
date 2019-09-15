@@ -28,6 +28,11 @@ public class Vector2i implements Readable, Writable{
 		x = v.x;
 		y = v.y;
 	}
+
+	public int getMin()
+	{
+		return Math.min(x,y);
+	}
 	
 	public static String toString(Vector2i v){
 		StringBuilder sb = new StringBuilder(16);

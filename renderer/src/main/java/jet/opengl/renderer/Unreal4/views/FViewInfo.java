@@ -12,10 +12,14 @@ import java.util.HashMap;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureGL;
+import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.Recti;
 import jet.opengl.postprocessing.util.StackInt;
 import jet.opengl.postprocessing.util.StackLong;
-import jet.opengl.renderer.Unreal4.EMeshPass;
+import jet.opengl.renderer.Unreal4.FPreviousViewInfo;
+import jet.opengl.renderer.Unreal4.atmosphere.FAtmosphereUniformShaderParameters;
+import jet.opengl.renderer.Unreal4.heightfield.FHeightfieldLightingViewInfo;
+import jet.opengl.renderer.Unreal4.mesh.EMeshPass;
 import jet.opengl.renderer.Unreal4.FForwardLightingViewResources;
 import jet.opengl.renderer.Unreal4.FMobileCSMVisibilityInfo;
 import jet.opengl.renderer.Unreal4.FOcclusionQueryBatcher;
@@ -29,15 +33,21 @@ import jet.opengl.renderer.Unreal4.UE4Engine;
 import jet.opengl.renderer.Unreal4.capture.FReflectionCaptureShaderData;
 import jet.opengl.renderer.Unreal4.distancefield.FGlobalDistanceFieldInfo;
 import jet.opengl.renderer.Unreal4.mesh.FBatchedElements;
+import jet.opengl.renderer.Unreal4.mesh.FDynamicPrimitiveResource;
 import jet.opengl.renderer.Unreal4.mesh.FMeshBatch;
+import jet.opengl.renderer.Unreal4.mesh.FMeshBatchAndRelevance;
 import jet.opengl.renderer.Unreal4.mesh.FMeshDecalBatch;
+import jet.opengl.renderer.Unreal4.mesh.FMeshPassMask;
+import jet.opengl.renderer.Unreal4.mesh.FSimpleElementCollector;
 import jet.opengl.renderer.Unreal4.mesh.FVolumetricMeshBatch;
 import jet.opengl.renderer.Unreal4.scenes.FLODMask;
 import jet.opengl.renderer.Unreal4.scenes.FSceneView;
 import jet.opengl.renderer.Unreal4.scenes.FSceneViewInitOptions;
 import jet.opengl.renderer.Unreal4.scenes.FSceneViewState;
 import jet.opengl.renderer.Unreal4.utils.FSceneRenderTargets;
+import jet.opengl.renderer.Unreal4.utils.ICustomVisibilityQuery;
 import jet.opengl.renderer.Unreal4.utils.TBitArray;
+import jet.opengl.renderer.Unreal4.volumetricfog.FVolumetricFogViewResources;
 
 /** A FSceneView with additional state used by the scene renderer. */
 public class FViewInfo extends FSceneView {
@@ -173,7 +183,7 @@ public class FViewInfo extends FSceneView {
     public final FMobileCSMVisibilityInfo MobileCSMVisibilityInfo = new FMobileCSMVisibilityInfo();
 
     // Primitive CustomData
-    public final ArrayList<FMemStackBase> PrimitiveCustomDataMemStack = new ArrayList<>(); // Size == 1 global stack + 1 per visibility thread (if multithread)
+//    public final ArrayList<FMemStackBase> PrimitiveCustomDataMemStack = new ArrayList<>(); // Size == 1 global stack + 1 per visibility thread (if multithread)
 
     /** Parameters for exponential height fog. */
     public final Vector4f ExponentialFogParameters = new Vector4f();
@@ -358,7 +368,7 @@ public class FViewInfo extends FSceneView {
             FSceneRenderTargets SceneContext,
             FViewMatrices InViewMatrices,
             FViewMatrices InPrevViewMatrices,
-            FBox OutTranslucentCascadeBoundsArray,
+            BoundingBox OutTranslucentCascadeBoundsArray,
             int NumTranslucentCascades,
             FViewUniformShaderParameters ViewUniformShaderParameters) {
         throw new UnsupportedOperationException();
@@ -367,7 +377,7 @@ public class FViewInfo extends FSceneView {
     /** Recreates ViewUniformShaderParameters, taking the view transform from the View Matrices */
     public final void SetupUniformBufferParameters(
             FSceneRenderTargets SceneContext,
-            FBox OutTranslucentCascadeBoundsArray,
+            BoundingBox OutTranslucentCascadeBoundsArray,
             int NumTranslucentCascades,
             FViewUniformShaderParameters ViewUniformShaderParameters)
     {
@@ -513,7 +523,7 @@ public class FViewInfo extends FSceneView {
         throw new UnsupportedOperationException();
     }
 
-    /** Custom Data Memstack functions.	*/
+    /* Custom Data Memstack functions.
     public FMemStackBase GetCustomDataGlobalMemStack() { return PrimitiveCustomDataMemStack[0]; }
     public FMemStackBase AllocateCustomDataMemStack()
     {
@@ -521,7 +531,7 @@ public class FViewInfo extends FSceneView {
         UE4Engine.check(PrimitiveCustomDataMemStack.GetSlack() > 0);
         return *new(PrimitiveCustomDataMemStack) FMemStackBase(0);
     }
-
+*/
     // Cache of TEXTUREGROUP_World to create view's samplers on render thread.
     // may not have a valid value if FViewInfo is created on the render thread.
     private ESamplerFilter WorldTextureGroupSamplerFilter;
@@ -537,12 +547,12 @@ public class FViewInfo extends FSceneView {
     }
 
     /** Calculates bounding boxes for the translucency lighting volume cascades. */
-    private void CalcTranslucencyLightingVolumeBounds(FBox InOutCascadeBoundsArray, int NumCascades) {
+    private void CalcTranslucencyLightingVolumeBounds(BoundingBox InOutCascadeBoundsArray, int NumCascades) {
         throw new UnsupportedOperationException();
     }
 
     /** Sets the sky SH irradiance map coefficients. */
-    private void SetupSkyIrradianceEnvironmentMapConstants(FVector4 OutSkyIrradianceEnvironmentMap){
+    private void SetupSkyIrradianceEnvironmentMapConstants(Vector4f OutSkyIrradianceEnvironmentMap){
         throw new UnsupportedOperationException();
     }
 }

@@ -520,17 +520,17 @@ public class UE4HeaderParser {
         outDesc.reset();
         outDesc.typeSource = type;
 
-        final String CLASS = "class";
-        if(type.startsWith(CLASS)){
-            // remove the class modifer.
-            type = type.substring(CLASS.length()).trim();
-        }
-
         final String CONST = "const";
         if(type.startsWith(CONST)){
             outDesc.isOutConstant = true;
 
             type = type.substring(CONST.length()).trim();
+        }
+
+        final String CLASS = "class";
+        if(type.startsWith(CLASS)){
+            // remove the class modifer.
+            type = type.substring(CLASS.length()).trim();
         }
 
         // next it must be a type
@@ -577,6 +577,8 @@ public class UE4HeaderParser {
                         outDesc.isInnerConstant = true;
 
                         index += CONST.length();
+                    }else if(type.startsWith(CLASS, index)){
+                        index += CLASS.length();
                     }
                 }else if(currentChar == ' '){
                     index = StringUtils.firstNotEmpty(type, index);

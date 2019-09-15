@@ -1009,4 +1009,20 @@ public final class Numeric {
 
 		throw new UnsupportedOperationException();
 	}
+
+	/**
+	 * Aligns a value to the nearest higher multiple of 'Alignment', which must be a power of two.
+	 *
+	 * @param  val        The value to align.
+	 * @param  alignment  The alignment value, must be a power of two.
+	 *
+	 * @return The value aligned up to the specified alignment.
+	 */
+//	template <typename T>
+	public static int align(int val, int alignment)
+	{
+//		static_assert(TIsIntegral<T>::Value || TIsPointer<T>::Value, "Align expects an integer or pointer type");
+
+		return ((val + alignment - 1) & ~(alignment - 1));
+	}
 }

@@ -3,6 +3,9 @@ package jet.opengl.renderer.Unreal4.mesh;
 import java.util.ArrayList;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.renderer.Unreal4.UE4Engine;
+import jet.opengl.renderer.Unreal4.scenes.ESceneDepthPriorityGroup;
 import jet.opengl.renderer.Unreal4.utils.FHitProxyId;
 
 /**
@@ -15,16 +18,16 @@ public class FMeshBatch {
     public short MeshIdInPrimitive;
 
     /** LOD index of the mesh, used for fading LOD transitions. */
-    public byte LODIndex;
+    public byte LODIndex = UE4Engine.INDEX_NONE;
     public byte SegmentIndex;
 
 //#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
     /** Conceptual LOD index used for the LOD Coloration visualization. */
-    public byte VisualizeLODIndex;
+    public byte VisualizeLODIndex = UE4Engine.INDEX_NONE;
 //#endif
 
     /** Conceptual HLOD index used for the HLOD Coloration visualization. */
-    public byte VisualizeHLODIndex;
+    public byte VisualizeHLODIndex = UE4Engine.INDEX_NONE;
 
     public boolean ReverseCulling;
     public boolean bDisableBackfaceCulling;
@@ -37,15 +40,15 @@ public class FMeshBatch {
     uint32 CastRayTracedShadow : 1;	// Whether it casts ray traced shadow.
 #endif*/
 
-    public boolean CastShadow;	// Whether it can be used in shadow renderpasses.
-    public boolean bUseForMaterial;	// Whether it can be used in renderpasses requiring material outputs.
-    public boolean bUseForDepthPass ;	// Whether it can be used in depth pass.
-    public boolean bUseAsOccluder;	// Hint whether this mesh is a good occluder.
+    public boolean CastShadow = true;	// Whether it can be used in shadow renderpasses.
+    public boolean bUseForMaterial = true;	// Whether it can be used in renderpasses requiring material outputs.
+    public boolean bUseForDepthPass = true;	// Whether it can be used in depth pass.
+    public boolean bUseAsOccluder = true;	// Hint whether this mesh is a good occluder.
     public boolean bWireframe;
     // e.g. PT_TriangleList(default), PT_LineList, ..
-    public int Type;
+    public int Type = GLenum.GL_TRIANGLES;
     // e.g. SDPG_World (default), SDPG_Foreground
-    public int DepthPriorityGroup /*: SDPG_NumBits*/;
+    public ESceneDepthPriorityGroup DepthPriorityGroup = ESceneDepthPriorityGroup.SDPG_World /*: SDPG_NumBits*/;
 
     /** Whether view mode overrides can be applied to this mesh eg unlit, wireframe. */
     public boolean bCanApplyViewModeOverrides;
@@ -61,10 +64,10 @@ public class FMeshBatch {
      * This is useful for proxies which support selection on a per-mesh batch basis.
      * They submit multiple mesh batches when selected, some of which have bUseSelectionOutline enabled.
      */
-    public boolean bUseSelectionOutline;
+    public boolean bUseSelectionOutline = true;
 
     /** Whether the mesh batch can be selected through editor selection, aka hit proxies. */
-    public boolean bSelectable;
+    public boolean bSelectable = true;
 
     /** Whether the mesh batch needs VertexFactory->GetStaticBatchElementVisibility to be called each frame to determine which elements of the batch are visible. */
     public boolean bRequiresPerElementVisibility;
@@ -91,6 +94,14 @@ public class FMeshBatch {
 
     /** This is the threshold that will be used to know if we should use this mesh batch or use one with no tessellation enabled */
     float TessellationDisablingShadowMapMeshSize;
+
+    public FMeshBatch(){
+        Elements.add(new FMeshBatchElement());
+    }
+
+    public void Set(FMeshBatch ohs){
+        throw new UnsupportedOperationException();
+    }
 
     public boolean IsTranslucent(int InFeatureLevel)
     {

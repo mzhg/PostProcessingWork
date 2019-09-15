@@ -7,4 +7,8 @@ public class FScene {
 
     public float GlobalDistanceFieldViewDistance;
     public final FDistanceFieldSceneData DistanceFieldSceneData = new FDistanceFieldSceneData();
+
+    public int GetFrameNumber() {
+        return 0;
+    }
 }

@@ -1,4 +1,4 @@
-package jet.opengl.renderer.Unreal4.utils;
+package jet.opengl.renderer.Unreal4.hit;
 
 /**
  * Represents a hit proxy class for runtime type checks.

@@ -3,7 +3,7 @@ package jet.opengl.renderer.Unreal4;
 import jet.opengl.renderer.Unreal4.api.FMeshPassProcessorRenderState;
 
 public class FParallelCommandListSet {
-    FViewInfo View;
+    FViewInfo2 View;
     FSceneRenderer SceneRenderer;
     final FMeshPassProcessorRenderState DrawRenderState = new FMeshPassProcessorRenderState();
 //    FRHICommandListImmediate& ParentCmdList;

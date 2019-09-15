@@ -22,6 +22,10 @@ public class FHitProxyId {
         Index = color;
     }
 
+    public void Set(FHitProxyId ohs){
+        this.Index = ohs.Index;
+    }
+
     /**
      * Maps the ID to a color which can be used to represent the ID.
      */

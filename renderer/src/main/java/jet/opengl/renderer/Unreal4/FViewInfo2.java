@@ -14,7 +14,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Recti;
 import jet.opengl.renderer.Unreal4.scenes.FSceneViewState;
 
-public class FViewInfo {
+ class FViewInfo2 {
     private static final int FLAG_VIEW_BUFFER = 1;
     private static final int FLAG_VIEW_FORWARD_LIGHT = 2;
 
@@ -141,15 +141,15 @@ public class FViewInfo {
         gl.glBindTextureUnit(13, ForwardLightingResources.CulledLightDataGrid != null ? ForwardLightingResources.CulledLightDataGrid.getTexture() : 0);
     }
 
-    private FViewInfo(){
+    private FViewInfo2(){
         ForwardLightingResources = new FForwardLightingResources();
     }
 
-    private static FViewInfo g_Instance;
+    private static FViewInfo2 g_Instance;
 
-    public static FViewInfo getInstance(){
+    public static FViewInfo2 getInstance(){
         if(g_Instance == null)
-            g_Instance = new FViewInfo();
+            g_Instance = new FViewInfo2();
 
         return g_Instance;
     }

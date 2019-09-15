@@ -1,14 +1,11 @@
-package jet.opengl.postprocessing.util;
+package jet.opengl.renderer.Unreal4.utils;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * Created by mazhen'gui on 2017/4/1.
- */
-@Target({ElementType.METHOD, ElementType.FIELD})
+@Target({ElementType.FIELD, ElementType.TYPE_PARAMETER})
 @Retention( RetentionPolicy.SOURCE)
-public @interface CachaRes {
+public @interface Unsigned {
 }

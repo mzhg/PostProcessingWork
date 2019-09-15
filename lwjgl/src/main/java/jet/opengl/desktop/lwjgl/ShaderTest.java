@@ -2,6 +2,7 @@ package jet.opengl.desktop.lwjgl;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
@@ -19,6 +20,7 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/12/28.
@@ -41,6 +43,7 @@ final class ShaderTest extends NvSampleApp{
     protected void initRendering() {
 //        GLSLProgram program = GLSLProgram.createProgram("E:\\workspace\\StudioProjects\\android_opengl(studio)\\app\\src\\main\\assets\\fight404\\ParticleUpdateCS.comp", null);
 //        testActivityUniform();
+
 
         int[] size = new int[1];
         final String root = "E:\\textures\\GameWork\\";
@@ -121,6 +124,15 @@ final class ShaderTest extends NvSampleApp{
 
         System.out.println("gFont = " + program.getUniformLocation("gFont"));
         System.out.println("guiImage = " + program.getUniformLocation("guiImage"));
+
+        String file = "E:\\workspace\\hg\\java\\lwjgl\\assets\\sky\\sky_cube.dds";
+        try {
+            NvImage.uploadTextureFromDDSFile(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        GLCheck.checkError();
 
         FileUtils.setIntenalFileLoader(old);
 

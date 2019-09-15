@@ -1,7 +1,10 @@
 package jet.opengl.renderer.Unreal4;
 
 import java.nio.Buffer;
+import java.nio.ByteBuffer;
 
+import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -15,8 +18,12 @@ public class TextureBuffer {
     private int mTexture;
     public int InternalFormat;
     private boolean mInilized;
+
     private int mStructSize;
     private int mElementCount;
+
+    private ByteBuffer m_mapBuffer;
+    private boolean m_bInMapping;
 
     public TextureBuffer(){}
 
@@ -44,10 +51,13 @@ public class TextureBuffer {
         if(NumBytes == 0)
             throw new IllegalStateException("The NumBytes is 0 in the TextureBuffer: " + mName);
 
+        if(flags == 0)
+            flags = GLenum.GL_DYNAMIC_DRAW;
+
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         mBuffer = gl.glGenBuffer();
         gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, mBuffer);
-        gl.glBufferData(GLenum.GL_TEXTURE_BUFFER, NumBytes, GLenum.GL_DYNAMIC_DRAW);
+        gl.glBufferData(GLenum.GL_TEXTURE_BUFFER, NumBytes, flags);
 
         // Generate a new name for texture.
         mTexture = gl.glGenTexture();
@@ -88,5 +98,47 @@ public class TextureBuffer {
                 InternalFormat = 0;
             }
         }
+    }
+
+    public ByteBuffer map(int mapBits){ return map(0, NumBytes, mapBits);}
+
+    public ByteBuffer map(int offset, int bufferSize, int mapBits){
+        if(!GLFuncProviderFactory.isInitlized()){
+            return null;
+        }
+
+        if(GLCheck.CHECK){
+            if(offset < 0 || bufferSize > NumBytes || offset + bufferSize > NumBytes)
+                throw new IndexOutOfBoundsException();
+
+            if(m_bInMapping){
+                throw new IllegalStateException("The buffer had already in mapping.");
+            }
+
+            m_bInMapping = true;
+        }
+
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, mBuffer);
+        m_mapBuffer = gl.glMapBufferRange(GLenum.GL_TEXTURE_BUFFER, offset, bufferSize, mapBits, m_mapBuffer);
+        return m_mapBuffer;
+    }
+
+    public void unmap(){
+        if(!GLFuncProviderFactory.isInitlized()){
+            return;
+        }
+
+        if(GLCheck.CHECK){
+            if(!m_bInMapping){
+                throw new IllegalStateException("The buffer is not in mapping.");
+            }
+
+            m_bInMapping = false;
+        }
+
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glBindBuffer(GLenum.GL_TEXTURE_BUFFER, mBuffer);
+        gl.glUnmapBuffer(GLenum.GL_TEXTURE_BUFFER);
     }
 }

@@ -26,6 +26,7 @@ import jet.opengl.renderer.Unreal4.utils.FConvexVolume;
 import jet.opengl.renderer.Unreal4.utils.FMirrorMatrix;
 import jet.opengl.renderer.Unreal4.utils.FPlane;
 import jet.opengl.renderer.Unreal4.utils.TBitArray;
+import jet.opengl.renderer.Unreal4.views.FViewElementDrawer;
 import jet.opengl.renderer.Unreal4.views.FViewMatrices;
 import jet.opengl.renderer.Unreal4.views.FViewUniformShaderParameters;
 
@@ -61,7 +62,7 @@ public class FSceneView {
     public int PlayerIndex;
 
     /** An interaction which draws the view's interaction elements. */
-//    FViewElementDrawer* Drawer;
+    public FViewElementDrawer Drawer;
 
     /* Final position of the view in the final render target (in pixels), potentially constrained by an aspect ratio requirement (black bars) */
 	public final Recti UnscaledViewRect = new Recti();
