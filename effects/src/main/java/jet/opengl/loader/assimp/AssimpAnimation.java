@@ -1,10 +1,8 @@
-package jet.opengl.renderer.assimp;
+package jet.opengl.loader.assimp;
 
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Transform;
 import org.lwjgl.util.vector.Vector3f;
-
-import java.util.List;
 
 import jet.opengl.postprocessing.util.Numeric;
 

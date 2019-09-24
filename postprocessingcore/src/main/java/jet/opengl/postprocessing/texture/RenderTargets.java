@@ -267,7 +267,7 @@ public class RenderTargets implements Disposeable{
         }
     }
 
-    private void handleTextureAttachment(TextureGL pTex, int attachment, TextureAttachDesc desc, AttachInfo info){
+    private static void handleTextureAttachment(TextureGL pTex, int attachment, TextureAttachDesc desc, AttachInfo info){
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 //        if(info.type != null && info.type != desc.type){
 //            deAttachTexture(attachment, info.type);

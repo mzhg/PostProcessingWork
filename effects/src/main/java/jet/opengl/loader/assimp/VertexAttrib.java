@@ -1,4 +1,4 @@
-package jet.opengl.renderer.assimp;
+package jet.opengl.loader.assimp;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;

@@ -1,4 +1,4 @@
-package jet.opengl.renderer.assimp;
+package jet.opengl.loader.assimp;
 
 public enum AssimpTextureType {
     DIFFUSE,

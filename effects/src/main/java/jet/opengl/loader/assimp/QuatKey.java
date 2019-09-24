@@ -1,4 +1,4 @@
-package jet.opengl.renderer.assimp;
+package jet.opengl.loader.assimp;
 
 import org.lwjgl.util.vector.Quaternion;
 

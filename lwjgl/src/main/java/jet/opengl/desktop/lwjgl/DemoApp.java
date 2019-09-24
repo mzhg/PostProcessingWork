@@ -9,6 +9,7 @@ import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.NVShaderBufferLoad;
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -114,8 +115,9 @@ public class DemoApp {
             }
         });
 
-        testParaboloidMatrix();
-
+//        testParaboloidMatrix();
+//        testProjectionZ();  // 4:3 -->[33.962746, -157.41496, -69.76516, -69.55124], z/w = 1.0015378
+        testCamera();
         NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
 //        run(new HBAODemo());
 //        run(new ASSAODemoDebug());
@@ -123,7 +125,7 @@ public class DemoApp {
 //        testRectVertex();
 //        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
-        run(new ShaderTest());
+//        run(new ShaderTest());
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
@@ -234,5 +236,48 @@ public class DemoApp {
         GL15.glGetBufferSubData(GL21.GL_PIXEL_PACK_BUFFER, 0,values);
 
         System.out.println("Test Read pixels = " + Arrays.toString(values));
+    }
+
+    private static void testProjectionZ(){
+        final float Z = 100;
+
+        Matrix4f proj = Matrix4f.perspective(60, 4f/3f, 0.1f, 1000f, null);
+        Vector4f v = new Vector4f(0,0,Z, 1);
+        Vector4f result = new Vector4f();
+
+        for(int i = 0; i < 10; i++){
+            v.x = Numeric.random(-100, 100);
+            v.y = Numeric.random(-100, 100);
+
+            Matrix4f.transform(proj, v, result);
+            float deviceZ = (result.z / result.w) * 0.5f + 0.5f;
+            System.out.println(result + ", z/w = " + deviceZ);
+        }
+    }
+
+    private static void testCamera(){
+        final float N = 1;
+        final float F = 5000;
+
+        Vector4f out = new Vector4f();
+        out.x = F/(F-N);
+        out.y =N/(N-F);
+        out.z = out.y * F;
+        out.w = F;
+        System.out.println(out);   // [1.0002, 2.0004001E-4, 1.0002, 5000.0]
+        // [1.0002, -2.0004001E-4, -1.0002, 5000.0]
+
+        float viewDepth = 278;
+        float r0 = out.z/viewDepth + out.x;
+        System.out.println(r0);
+
+        float r1 = (out.x * viewDepth + out.z)/viewDepth;
+        System.out.println(r1);
+
+        int gridX = (int) (1/0.00763);
+        int gridY = (int) (1/0.0101);
+        int gridZ = (int) (1/0.01563);
+
+        System.out.println(gridX + ", " + gridY + ", " + gridZ);
     }
 }

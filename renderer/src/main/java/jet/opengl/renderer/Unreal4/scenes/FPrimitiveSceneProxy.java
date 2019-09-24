@@ -761,8 +761,6 @@ public abstract class FPrimitiveSceneProxy implements Disposeable {
     /** Whether the primitive should be treated as part of the background for occlusion purposes. */
     uint8 bTreatAsBackgroundForOcclusion : 1;
 
-    friend class FLightPrimitiveInteraction;
-
     /** Whether this primitive is affected by dynamic point lights (mobile only)*/
     uint8 bHasMobileMovablePointLightInteraction : 1;
 

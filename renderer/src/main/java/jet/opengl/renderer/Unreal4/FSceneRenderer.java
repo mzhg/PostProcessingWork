@@ -225,8 +225,8 @@ public abstract class FSceneRenderer implements Disposeable {
             {
                 if( VisibleLightInfos.IsValidIndex(LightIt.GetIndex()) )
                 {
-                    FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightIt.GetIndex()];
-                    for(int32 ShadowIndex = 0;ShadowIndex < VisibleLightInfo.MemStackProjectedShadows.Num();ShadowIndex++)
+                    FVisibleLightInfo VisibleLightInfo = VisibleLightInfos[LightIt.GetIndex()];
+                    for(int ShadowIndex = 0;ShadowIndex < VisibleLightInfo.MemStackProjectedShadows.size();ShadowIndex++)
                     {
                         // FProjectedShadowInfo's in MemStackProjectedShadows were allocated on the rendering thread mem stack,
                         // Their memory will be freed when the stack is freed with no destructor call, so invoke the destructor explicitly
@@ -667,7 +667,7 @@ public abstract class FSceneRenderer implements Disposeable {
     protected static void GetLightNameForDrawEvent(const FLightSceneProxy* LightProxy, FString& LightNameWithLevel);
 
     /** Gathers simple lights from visible primtives in the passed in views. */
-    protected static void GatherSimpleLights(const FSceneViewFamily& ViewFamily, const TArray<FViewInfo2>& Views, FSimpleLightArray& SimpleLights);
+    protected static void GatherSimpleLights(FSceneViewFamily ViewFamily, const TArray<FViewInfo2>& Views, FSimpleLightArray& SimpleLights);
 
     /** Splits the gathered simple lights into arrays based on which view they should be rendered in */
     protected static void SplitSimpleLightsByView(const FSceneViewFamily& ViewFamily, const TArray<FViewInfo2>& Views, const FSimpleLightArray& SimpleLights, FSimpleLightArray* SimpleLightsByView);
