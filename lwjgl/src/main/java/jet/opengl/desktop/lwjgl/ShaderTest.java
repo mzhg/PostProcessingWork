@@ -135,8 +135,6 @@ final class ShaderTest extends NvSampleApp{
 
         GLCheck.checkError();
 
-        RenderTargets
-
         FileUtils.setIntenalFileLoader(old);
 
         return program;

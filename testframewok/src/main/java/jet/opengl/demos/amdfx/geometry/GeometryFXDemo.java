@@ -10,6 +10,7 @@ import java.util.Map;
 
 import jet.opengl.demos.amdfx.common.CFirstPersonCamera;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -19,7 +20,6 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
-import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackFloat;
 import jet.opengl.postprocessing.util.StackInt;
@@ -29,7 +29,7 @@ public class GeometryFXDemo extends NvSampleApp {
     //--------------------------------------------------------------------------------------
 // Global variables
 //--------------------------------------------------------------------------------------
-    private CFirstPersonCamera g_Camera;                        //
+    private final CFirstPersonCamera g_Camera = new CFirstPersonCamera();                        //
 //    CDXUTDialogResourceManager g_DialogResourceManager; // manager for shared resources of dialogs
 //    CD3DSettingsDlg g_SettingsDlg;                      // Device settings dialog
 //    CDXUTTextHelper *g_pTxtHelper = NULL;
@@ -50,7 +50,7 @@ public class GeometryFXDemo extends NvSampleApp {
     private boolean instrumentIndirectRender;
     private int windowWidth;
     private int windowHeight;
-    private boolean generateGeometry;
+    private boolean generateGeometry =true;
     private int geometryChunkSize = 65535;
     private int geometryChunkSizeVariance = 16384;
     private float frustumCoverage = 0.9f;
@@ -67,7 +67,7 @@ public class GeometryFXDemo extends NvSampleApp {
     private int enabledFilters = 0xFFFFFFFF;
 
     private boolean benchmarkMode;
-    private String meshFileName;
+    private String meshFileName = "E:\\SDK\\GeometryFX\\amd_geometryfx_sample\\media\\";
 
     private GeometryFX_Filter staticMeshRenderer_;
     private MeshHandle[] meshHandles_;
@@ -99,63 +99,24 @@ public class GeometryFXDemo extends NvSampleApp {
 //        g_MagnifyTool.OnCreateDevice(pd3dDevice);
 
         Create(/*pd3dDevice*/);
+        GLCheck.checkError();
     }
 
     @Override
     public void display() {
-        // Reset the timer at start of frame
-//        TIMER_Reset();
-
-        // If the settings dialog is being shown, then render it instead of
-        // rendering the app's
-        // scene
-//        if (g_SettingsDlg.IsActive())
-//        {
-//            g_SettingsDlg.OnRender(fElapsedTime);
-//            return;
-//        }
-
-        // Clear the backbuffer and depth stencil
-        /*float ClearColor[4] = {0.176f, 0.196f, 0.667f, 0.0f};
-        ID3D11RenderTargetView *pRTV = DXUTGetD3D11RenderTargetView();
-        pd3dImmediateContext->ClearRenderTargetView(
-                (ID3D11RenderTargetView *)DXUTGetD3D11RenderTargetView(), ClearColor);
-        pd3dImmediateContext->ClearDepthStencilView(
-                g_depthStencilTexture._dsv, D3D11_CLEAR_DEPTH, 1.0, 0);*/
-
-        m_FBO.bind();
-        m_FBO.setRenderTextures(CommonUtil.toArray(g_colorTexture, g_depthStencilTexture), null);
+//        m_FBO.bind();
+//        m_FBO.setRenderTextures(CommonUtil.toArray(g_colorTexture, g_depthStencilTexture), null);
         gl.glViewport(0,0, g_colorTexture.getWidth(), g_colorTexture.getHeight());
         gl.glEnable(GLenum.GL_DEPTH_TEST);
         gl.glClearColor(0.176f, 0.196f, 0.667f, 0.0f);
         gl.glClearDepthf(1.f);
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
+        GLCheck.checkError();
 
 //        auto pApp = static_cast<Application *>(pUserContext);
         OnFrameBegin(/*pd3dImmediateContext,*/ g_Camera);
         OnFrameRender(/*pd3dImmediateContext,*/ g_Camera, g_colorTexture);
-        OnFrameEnd();
-
-        /*DXUT_BeginPerfEvent(DXUT_PERFEVENTCOLOR, L"HUD / Stats");
-
-        // Render the HUD
-        if (g_bRenderHUD)
-        {
-            g_MagnifyTool.Render();
-            g_HUD.OnRender(fElapsedTime);
-        }
-
-        RenderText();
-
-        DXUT_EndPerfEvent();
-
-        static DWORD dwTimefirst = GetTickCount();
-        if (GetTickCount() - dwTimefirst > 5000)
-        {
-            OutputDebugString(DXUTGetFrameStats(DXUTIsVsyncEnabled()));
-            OutputDebugString(L"\n");
-            dwTimefirst = GetTickCount();
-        }*/
+        OnFrameEnd();GLCheck.checkError();
     }
 
     @Override
@@ -163,26 +124,17 @@ public class GeometryFXDemo extends NvSampleApp {
         if(width <=0 || height <= 0)
             return;
 
+        final float fov = (float) Math.toDegrees(Numeric.PI/4);
         if (shadowMapResolution == -1)
         {
             // Setup the camera's projection parameters
             float fAspectRatio = width / (float)height;
-            g_Camera.SetProjParams(
-                    Numeric.PI / 4, fAspectRatio, g_Camera.GetNearClip(), g_Camera.GetFarClip());
+            g_Camera.SetProjParams(fov, fAspectRatio, 0.1f, 512.0f);
         }
         else
         {
-            g_Camera.SetProjParams(Numeric.PI / 4, 1.0f, g_Camera.GetNearClip(), g_Camera.GetFarClip());
+            g_Camera.SetProjParams(fov, 1.0f,0.1f, 512.0f);
         }
-
-        // Set the location and size of the AMD standard HUD
-        /*g_HUD.m_GUI.SetLocation(pBackBufferSurfaceDesc->Width - AMD::HUD::iDialogWidth, 0);
-        g_HUD.m_GUI.SetSize(AMD::HUD::iDialogWidth, pBackBufferSurfaceDesc->Height);
-        g_HUD.OnResizedSwapChain(pBackBufferSurfaceDesc);*/
-
-//        g_depthStencilTexture.CreateSurface(pd3dDevice, pBackBufferSurfaceDesc->Width,
-//                pBackBufferSurfaceDesc->Height, 1, 1, 1, DXGI_FORMAT_R32_TYPELESS, DXGI_FORMAT_R32_FLOAT,
-//                DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_D32_FLOAT, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, D3D11_USAGE_DEFAULT, false, 0, NULL, NULL, 0);
 
         if(g_depthStencilTexture != null) {
             g_depthStencilTexture.dispose();
@@ -195,22 +147,8 @@ public class GeometryFXDemo extends NvSampleApp {
         desc.format = GLenum.GL_RGBA8;
         g_colorTexture = TextureUtils.createTexture2D(desc, null);
 
-        // Magnify tool will capture from the color buffer
-        /*g_MagnifyTool.OnResizedSwapChain(pd3dDevice, pSwapChain, pBackBufferSurfaceDesc, pUserContext,
-                pBackBufferSurfaceDesc->Width - AMD::HUD::iDialogWidth, 0);
-        D3D11_RENDER_TARGET_VIEW_DESC RTDesc;
-        ID3D11Resource *pTempRTResource;
-        DXUTGetD3D11RenderTargetView()->GetResource(&pTempRTResource);
-        DXUTGetD3D11RenderTargetView()->GetDesc(&RTDesc);
-        g_MagnifyTool.SetSourceResources(pTempRTResource, RTDesc.Format,
-                DXUTGetDXGIBackBufferSurfaceDesc()->Width, DXUTGetDXGIBackBufferSurfaceDesc()->Height,
-                DXUTGetDXGIBackBufferSurfaceDesc()->SampleDesc.Count);
-        g_MagnifyTool.SetPixelRegion(128);
-        g_MagnifyTool.SetScale(5);
-        SAFE_RELEASE(pTempRTResource);*/
 
-        /*static_cast<Application *>(pUserContext)
-                ->*/CreateResolutionDependentResources(/*pd3dDevice,*/ width,
+        CreateResolutionDependentResources(/*pd3dDevice,*/ width,
                 height, 1);
     }
 
@@ -295,12 +233,9 @@ public class GeometryFXDemo extends NvSampleApp {
             float count = Numeric.normal_distribution(Numeric.random(), chunkSize, chunkSizeVariance);
             GenerateGeometryChunk(
                     Math.max(32, (int)count), positions[i], indices[i]);
-            vertexCountPerMesh.push((positions[i].size() / 3));
-            indexCountPerMesh.push((indices[i].size()));
+            vertexCountPerMesh.push(positions[i].size() / 3);
+            indexCountPerMesh.push(indices[i].size());
         }
-
-//        vertexCountPerMesh.trimToSize(); todo
-//        indexCountPerMesh.trimToSize();
 
         MeshHandle[] handles =
             meshManager.RegisterMeshes(chunkCount, vertexCountPerMesh.getData(), indexCountPerMesh.getData());
@@ -310,6 +245,7 @@ public class GeometryFXDemo extends NvSampleApp {
             meshManager.SetMeshData(handles[i], positions[i].getData(), indices[i].getData());
         }
 
+        GLCheck.checkError();
         return handles;
     }
 
@@ -458,6 +394,8 @@ public class GeometryFXDemo extends NvSampleApp {
         fullscreenConstantBuffer.initlize(GLenum.GL_UNIFORM_BUFFER, 16, null, GLenum.GL_DYNAMIC_COPY);
 
         CreateShaders();
+
+        m_FBO = new RenderTargets();
     }
 
     private static final class FullscreenConstantBuffer {
@@ -479,9 +417,11 @@ public class GeometryFXDemo extends NvSampleApp {
         context->VSSetShader(fullscreenVs, NULL, 0);
         context->PSSetShader(fullscreenPs, NULL, 0);*/
 
-        m_FBO.setRenderTextures(CommonUtil.toArray(target, g_depthStencilTexture), null);
-        gl.glViewport(0,0, g_depthStencilTexture.getWidth(), g_depthStencilTexture.getHeight());
-
+//        m_FBO.setRenderTextures(CommonUtil.toArray(target, g_depthStencilTexture), null);
+//        gl.glViewport(0,0, g_depthStencilTexture.getWidth(), g_depthStencilTexture.getHeight());
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        gl.glDisable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_CULL_FACE);
         fullscreenPs.enable();
         int index = fullscreenPs.getUniformLocation("g_Uniforms");
 

@@ -1,7 +1,5 @@
 package jet.opengl.demos.amdfx.geometry;
 
-import com.nvidia.developer.opengl.ui.NvUIButton;
-
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -10,9 +8,11 @@ import java.util.List;
 
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLCheck;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
-import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
@@ -50,6 +50,8 @@ class SmallBatchChunk {
     private boolean useMultiIndirectDraw_;
 //    private AGSContext agsContext_;
 
+    private GLFuncProvider gl;
+
     SmallBatchChunk (/*ID3D11Device *device, bool emulateMultiDraw, AGSContext* agsContext*/ boolean emulateMultiDraw)
         /*: smallBatchDataBackingStore_ (SmallBatchMergeConstants::BATCH_COUNT)
         , drawCallBackingStore_ (SmallBatchMergeConstants::BATCH_COUNT)
@@ -59,6 +61,13 @@ class SmallBatchChunk {
         , faceCount_ (0)
         , useMultiIndirectDraw_ (!emulateMultiDraw)*/
     {
+        for(int i = 0; i < smallBatchDataBackingStore_.length; i++)
+            smallBatchDataBackingStore_[i] = new SmallBatchData();
+
+        for(int i = 0; i < drawCallBackingStore_.length; i++)
+            drawCallBackingStore_[i] = new DrawCallArguments();
+
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         useMultiIndirectDraw_ = !emulateMultiDraw;
         CreateFilteredIndexBuffer (/*device*/);
         CreateSmallBatchDataBuffer (/*device*/);
@@ -192,15 +201,45 @@ class SmallBatchChunk {
                  BufferGL meshConstantData, BufferGL globalVertexBuffer,
                  BufferGL perFrameConstantBuffer)
     {
+        GLCheck.checkError();
         ClearIndirectArgsBuffer (/*context,*/ computeClearShader);
         UpdateDrawCallAndSmallBatchBuffers (/*context*/);
         Filter (/*context,*/ filterShader, vertexData, indexData, meshConstantData,
                 perFrameConstantBuffer);
 
-//        context->VSSetShader (vertexShader, nullptr, 0);  todo
+//        context->VSSetShader (vertexShader, nullptr, 0);
 
-//        context->IASetIndexBuffer (filteredIndexBuffer_.Get (), DXGI_FORMAT_R32_UINT, 0);  todo
-//        context->IASetPrimitiveTopology (D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);todo
+//        context->IASetIndexBuffer (filteredIndexBuffer_.Get (), DXGI_FORMAT_R32_UINT, 0);
+//        context->IASetPrimitiveTopology (D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        vertexShader.enable();
+
+        // Binding the vertex data
+        gl.glBindVertexArray(0);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, globalVertexBuffer.getBuffer());
+        gl.glEnableVertexAttribArray(0);
+        gl.glVertexAttribPointer(0, 3, GLenum.GL_FLOAT, false, 0, 0);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, instanceIdBuffer_.getBuffer());
+        gl.glEnableVertexAttribArray(1);
+        gl.glVertexAttribPointer(1, 1, GLenum.GL_UNSIGNED_INT, false, 0, 0);
+
+        // Binding the index data
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, filteredIndexBuffer_.getBuffer());
+
+        // Binding the drawConstat
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 6, drawCallSRV_.getBuffer());
+
+        // TODO missing the DrawCallConstantBuffer buffer here.
+
+        // Indirect buffer
+        gl.glBindBuffer(GLenum.GL_DRAW_INDIRECT_BUFFER, indirectArgumentsBuffer_.getBuffer());
+
+        for (int i = 0; i < currentDrawCallCount_; ++i)
+        {
+//            context->DrawIndexedInstancedIndirect (
+//                    indirectArgumentsBuffer_.Get (), sizeof (IndirectArguments) * i);
+            gl.glDrawElementsIndirect(GLenum.GL_TRIANGLES, GLenum.GL_UNSIGNED_INT, IndirectArguments.SIZE * i);
+        }
 
         /*ID3D11Buffer *iaVBs[] = { globalVertexBuffer, instanceIdBuffer_.Get () };
         UINT vbOffsets[] = { 0, 0 };
@@ -228,9 +267,10 @@ class SmallBatchChunk {
 
         context->IASetIndexBuffer (nullptr, DXGI_FORMAT_R32_UINT, 0);*/
 
-        Reset ();
+        if(GeometryFX_Filter.isPrintLog())
+            vertexShader.printPrograminfo();
 
-        throw new UnsupportedOperationException();
+        Reset ();
     }
 
     int GetFaceCount ()
@@ -259,7 +299,28 @@ class SmallBatchChunk {
         csUAVs[1] = nullptr;
         context->CSSetUnorderedAccessViews (0, 2, csUAVs, initialCounts);*/
 
-        throw new UnsupportedOperationException();
+        // Read only Shader Resource Views
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 4, vertexData.getBuffer());
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 8, indexData.getBuffer());
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 5, meshConstantData.getBuffer());
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 6, drawCallSRV_.getBuffer());
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 7, smallBatchDataSRV_.getBuffer());
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, perFrameConstantBuffer.getBuffer());
+
+        // Unordered Shader Resource Views
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, filteredIndexUAV_.getBuffer());
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, indirectArgumentsUAV_.getBuffer());
+
+        filterShader.enable();
+
+        gl.glDispatchCompute(currentBatchCount_, 1, 1);
+
+        //Unbind the unordered shader resource views
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, 0);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
+
+        if(GeometryFX_Filter.isPrintLog())
+            filterShader.printPrograminfo();
     }
 
     private void UpdateDrawCallAndSmallBatchBuffers (/*ID3D11DeviceContext *context*/) {
@@ -284,7 +345,7 @@ class SmallBatchChunk {
         buffer.flip();
         smallBatchDataBuffer_.update(0, buffer);
 
-        buffer = CacheBuffer.getCachedByteBuffer(drawCallBackingStore_.length * SmallBatchData.SIZE);
+        buffer = CacheBuffer.getCachedByteBuffer(drawCallBackingStore_.length * DrawCallArguments.SIZE);
         for(int i = 0; i < drawCallBackingStore_.length; i++)
             drawCallBackingStore_[i].store(buffer);
         buffer.flip();
@@ -474,6 +535,14 @@ class SmallBatchChunk {
 
         context->CSSetUnorderedAccessViews (0, 1, uavViews, initialCounts);*/
 
-        throw new UnsupportedOperationException();
+        GLCheck.checkError();
+        computeClearShader.enable();
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, indirectArgumentsUAV_.getBuffer());
+
+        gl.glDispatchCompute(currentBatchCount_, 1, 1);
+        gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 3, 0);
+        if(GeometryFX_Filter.isPrintLog()){
+            computeClearShader.printPrograminfo();
+        }
     }
 }

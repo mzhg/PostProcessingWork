@@ -34,13 +34,14 @@ layout(location = 0) out float4 Out_Color;
 //float4 FullscreenPS(float4 pos : SV_POSITION) : SV_Target
 void main()
 {
+    float4 pos = gl_FragCoord;
     // shadow map pixels per output window pixels
     float dx = float (shadowMapWidth) / float (windowWidth);
     float dy = float (shadowMapHeight) / float (windowHeight);
 
     float scale = max (dx, dy);
-    int scaledWidth = shadowMapWidth / scale;
-    int scaledHeight = shadowMapHeight / scale;
+    int scaledWidth = int(shadowMapWidth / scale);
+    int scaledHeight = int(shadowMapHeight / scale);
 
     int2 windowCenter = int2 (windowWidth, windowHeight) / 2;
     int2 shadowMapCenter = int2 (scaledWidth, scaledHeight) / 2;

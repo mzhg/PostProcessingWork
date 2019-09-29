@@ -1,7 +1,5 @@
 package jet.opengl.demos.amdfx.geometry;
 
-import com.nvidia.developer.opengl.ui.NvUIButton;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;

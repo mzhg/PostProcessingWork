@@ -3,6 +3,7 @@ package jet.opengl.demos.amdfx.geometry;
 import org.lwjgl.util.vector.Matrix4f;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;
@@ -29,7 +30,7 @@ final class GeometryFX_OpaqueFilterDesc {
     private int currentDrawCall_;
     private int maxDrawCallCount_;
 
-    private List<DrawCommand> drawCommands_;
+    private final List<DrawCommand> drawCommands_ = new ArrayList<>();
 
 //    ID3D11DeviceContext *deviceContext_;
     private FilterContext filterContext_;
@@ -37,12 +38,12 @@ final class GeometryFX_OpaqueFilterDesc {
     private int pipelineQuery_;
 //    ID3D11Device *device_;
 
-    private FrameConstantBuffer frameConstantBufferBackingStore_;
+    private final FrameConstantBuffer frameConstantBufferBackingStore_ = new FrameConstantBuffer();
     private BufferGL frameConstantBuffer_;
 
     private GLSLProgram filterComputeShader_;
 
-    private List<SmallBatchChunk> smallBatchChunks_;
+    private final List<SmallBatchChunk> smallBatchChunks_ = new ArrayList<>();
 
     private GLSLProgram clearDrawIndirectArgumentsComputeShader_;
 
@@ -214,7 +215,7 @@ final class GeometryFX_OpaqueFilterDesc {
 //        ID3D11Buffer *constantBuffers[] = { frameConstantBuffer_.Get() };
 
 //        deviceContext_->VSSetConstantBuffers(1, 1, constantBuffers);
-        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, frameConstantBuffer_.getBuffer());
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, frameConstantBuffer_.getBuffer());
 
         if (filterContext_.options.enableFiltering)
         {
@@ -309,12 +310,12 @@ final class GeometryFX_OpaqueFilterDesc {
             sizeof(AMD_GeometryFX_ClearDrawIndirectArgsCS), AMD_GeometryFX_ClearDrawIndirectArgsCS,
             ShaderType::Compute);*/
 
-        clearDrawIndirectArgumentsComputeShader_ = GLSLProgram.createProgram(root + "ClearDrawIndirectArgsCS.vert", null);
+        clearDrawIndirectArgumentsComputeShader_ = GLSLProgram.createProgram(root + "ClearDrawIndirectArgsCS.comp", null);
 
         /*CreateShader(device_, (ID3D11DeviceChild **)filterComputeShader_.GetAddressOf(),
             sizeof(AMD_GeometryFX_FilterCS), AMD_GeometryFX_FilterCS, ShaderType::Compute);*/
 
-        filterComputeShader_ = GLSLProgram.createProgram(root + "FilterCS.vert", null);
+        filterComputeShader_ = GLSLProgram.createProgram(root + "FilterCS.comp", null);
     }
 
     private static int RoundToNextMultiple(int value, int multiple) {
@@ -349,11 +350,11 @@ final class GeometryFX_OpaqueFilterDesc {
         final int roundedIndirectArgsCount = RoundToNextMultiple(meshCount, 256);
         IndirectArguments[] indirectArgs = new IndirectArguments[roundedIndirectArgsCount];
 
-        for (int i = 0; i < meshCount; ++i)
+        for (int i = 0; i < roundedIndirectArgsCount; ++i)
         {
 //            IndirectArguments::Init(indirectArgs[i]);
             indirectArgs[i] = new IndirectArguments();
-            indirectArgs[i].IndexCountPerInstance = indicesInMesh[i];
+            indirectArgs[i].IndexCountPerInstance = i<meshCount ? indicesInMesh[i] : 0;
         }
 
         ByteBuffer buffer = CacheBuffer.getCachedByteBuffer(indirectArgs.length * IndirectArguments.SIZE);
@@ -484,7 +485,7 @@ final class GeometryFX_OpaqueFilterDesc {
             depthOnlyLayout_.bind();
 
             gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, it.mesh.indexBuffer.getBuffer());
-            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, drawCallConstantBuffers_[it.drawCallId].getBuffer());
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 1, drawCallConstantBuffers_[it.drawCallId].getBuffer());
             gl.glDrawElements(GLenum.GL_TRIANGLES, it.mesh.indexCount, GLenum.GL_UNSIGNED_INT, 0);
 
         }
@@ -543,7 +544,7 @@ final class GeometryFX_OpaqueFilterDesc {
                     clearDrawIndirectArgumentsComputeShader_,
                     filterComputeShader_,
                     vertexShader, depthOnlyLayoutMID_,
-                        meshManager_.GetVertexBufferSRV(),
+                    meshManager_.GetVertexBufferSRV(),
                     meshManager_.GetIndexBufferSRV(), meshManager_.GetMeshConstantsBuffer(),
                     meshManager_.GetVertexBuffer(), frameConstantBuffer_);
 

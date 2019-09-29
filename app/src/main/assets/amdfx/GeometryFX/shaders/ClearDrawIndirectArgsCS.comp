@@ -4,7 +4,8 @@
 layout(local_size_x = CLEAR_THREAD_COUNT, local_size_y = 1, local_size_z = 1)in;
 void main()
 {
+    int x = int(SV_DispatchThreadID.x);
     // Note: need to clear in a seperate pass because the order of
     // invocations of FilterCS() in a dispatch is not determinate
-    indirectArgs[id.x * 5 + 0] = 0;
+    indirectArgs[x * 5 + 0] = 0;
 }

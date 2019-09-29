@@ -1,7 +1,5 @@
 package jet.opengl.demos.amdfx.geometry;
 
-import java.nio.ByteBuffer;
-
 import jet.opengl.postprocessing.buffer.BufferGL;
 
 interface IMeshManager {

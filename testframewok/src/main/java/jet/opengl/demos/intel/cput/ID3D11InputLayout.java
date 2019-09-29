@@ -46,6 +46,11 @@ public interface ID3D11InputLayout {
                     sizes[i] = 2;
                     strideInBytes += 2 * 4;
                     break;
+                case GLenum.GL_R32UI:
+                    types[i] = GLenum.GL_UNSIGNED_INT;
+                    sizes[i] = 1;
+                    strideInBytes += 4;
+                    break;
                 case GLenum.GL_NONE:
                     break;
                 default:

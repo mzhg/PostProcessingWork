@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
+import jet.opengl.demos.amdfx.geometry.GeometryFXDemo;
 import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
 import jet.opengl.demos.nvidia.fire.PerlinFire;
 import jet.opengl.demos.unreal4.VolumetricFogDemo;
@@ -144,6 +145,7 @@ public class DemoApp {
 //        run(new VoxelConeTracingDemo());
 //        run(new PerlinFire());
 //        run(new VolumetricFogDemo());
+        run(new GeometryFXDemo());
     }
 
     private static void testParaboloidMatrix(){

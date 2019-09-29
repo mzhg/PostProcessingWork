@@ -115,6 +115,7 @@ public class BufferGL implements Disposeable{
         }
     }
 
+    public int getFormat()   { return m_textureFormat;}
     public int getTexture()  { return m_textureBuffer;}
 
     public void update(int offset, Buffer data){

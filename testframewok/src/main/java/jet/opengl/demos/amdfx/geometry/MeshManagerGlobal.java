@@ -1,10 +1,9 @@
 package jet.opengl.demos.amdfx.geometry;
 
-import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector3f;
 
-import java.nio.ByteBuffer;
-import java.util.List;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLenum;
@@ -75,6 +74,10 @@ final class MeshManagerGlobal extends MeshManagerBase{
         }
 
         Triangle[] triangleCache = new Triangle[SmallBatchMergeConstants.BATCH_SIZE * 3];
+        for(int i = 0; i < triangleCache.length; i++)
+        {
+            triangleCache[i] = new Triangle();
+        }
 
         final int triangleCount = indexCount / 3;
         final int clusterCount = (triangleCount + SmallBatchMergeConstants.BATCH_SIZE - 1)
@@ -262,15 +265,22 @@ final class MeshManagerGlobal extends MeshManagerBase{
         context->UpdateSubresource(vertexBuffer_.Get(), 0, &dstBox, vertexData, 0, 0);*/
 
         int offset = meshes_.get(meshIndex).vertexOffset;
-        int size = meshes_.get(meshIndex).vertexCount * 3 * /*sizeof(float)*/4;
+        int size = meshes_.get(meshIndex).vertexCount * 3 /** sizeof(float)*/;
 //        pVertexData.position(0).limit(size);  todo
+        if(offset % 4 != 0)
+            throw new UnsupportedOperationException();
 
-        vertexBuffer_.update(offset, CacheBuffer.wrap(pVertexData));
+        FloatBuffer vertexData = CacheBuffer.wrap(pVertexData, 0, size);
+        vertexBuffer_.update(offset, vertexData);
 
         offset = meshes_.get(meshIndex).indexOffset;
-        size = meshes_.get(meshIndex).indexCount * /*sizeof(int)*/4;
+        size = meshes_.get(meshIndex).indexCount /** sizeof(int)*/;
 //        context->UpdateSubresource(indexBuffer_.Get(), 0, &dstBox, indexData, 0, 0);
-        indexBuffer_.update(offset, CacheBuffer.wrap(pIndexData));
+        if(offset % 4 != 0)
+            throw new UnsupportedOperationException();
+        IntBuffer indexData = CacheBuffer.wrap(pIndexData, 0, size);
+
+        indexBuffer_.update(offset, indexData);
 
         meshes_.get(meshIndex).clusters = CreateClusters (meshes_.get(meshIndex).indexCount,
                 pVertexData, pIndexData);

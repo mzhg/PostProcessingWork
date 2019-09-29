@@ -15,10 +15,18 @@ public class GeometryFX_Filter implements Disposeable {
 
     private GeometryFX_OpaqueFilterDesc impl_;
 
+    private static boolean gPrintOnce = false;
+
+    private final FilterContext mFilterContext = new FilterContext();
+
     public GeometryFX_Filter(GeometryFX_FilterDesc pDesc){
         GeometryFX_FilterDesc desc = pDesc != null ? pDesc :new GeometryFX_FilterDesc();
 
         impl_ = new GeometryFX_OpaqueFilterDesc(desc);
+    }
+
+    static boolean isPrintLog(){
+        return !gPrintOnce;
     }
 
     /**
@@ -75,22 +83,20 @@ public class GeometryFX_Filter implements Disposeable {
         assert(windowWidth > 0);
         assert(windowHeight > 0);
 
-        FilterContext filterContext = new FilterContext();
-        filterContext.options = options;
-        filterContext.projection.load(projection);
-        filterContext.view.load(view);
-        filterContext.windowWidth = windowWidth;
-        filterContext.windowHeight = windowHeight;
+        mFilterContext.options = options;
+        mFilterContext.projection.load(projection);
+        mFilterContext.view.load(view);
+        mFilterContext.windowWidth = windowWidth;
+        mFilterContext.windowHeight = windowHeight;
 
         /*const auto inverseView = DirectX::XMMatrixInverse (nullptr, view);
         DirectX::XMFLOAT4X4 float4x4;
         XMStoreFloat4x4 (&float4x4, inverseView);
 
         filterContext.eye = DirectX::XMVectorSet (float4x4._41, float4x4._42, float4x4._43, 1);*/
+        Matrix4f.decompseRigidMatrix(view, mFilterContext.eye, null, null);
 
-        Matrix4f.decompseRigidMatrix(view, filterContext.eye, null, null);
-
-        impl_.BeginRender(/*context,*/ filterContext);
+        impl_.BeginRender(/*context,*/ mFilterContext);
     }
 
     /**
@@ -120,6 +126,7 @@ public class GeometryFX_Filter implements Disposeable {
      */
     void EndRender(){
         impl_.EndRender();
+        gPrintOnce = true;
     }
 
     /*

@@ -1,18 +1,14 @@
 package jet.opengl.demos.scenes;
 
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
-import com.nvidia.developer.opengl.app.NvInputTransformer;
 import com.nvidia.developer.opengl.models.DrawMode;
 import com.nvidia.developer.opengl.models.GLVAO;
 import com.nvidia.developer.opengl.models.QuadricBuilder;
 import com.nvidia.developer.opengl.models.QuadricMesh;
 import com.nvidia.developer.opengl.models.QuadricSphere;
 
-import org.lwjgl.util.vector.Quaternion;
-
 import jet.opengl.demos.scene.BaseScene;
 import jet.opengl.postprocessing.texture.Texture2D;
-import jet.opengl.postprocessing.texture.TextureUtils;
 
 public class Earth extends BaseScene {
     private GLVAO mSphere;

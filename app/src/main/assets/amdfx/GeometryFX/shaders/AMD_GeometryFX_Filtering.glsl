@@ -111,6 +111,11 @@ layout(binding = 4) buffer ShaderBuffer4
     float vertexData[];
 };
 
+layout(binding = 8) readonly buffer ShaderBuffer8
+{
+    uint indexData[];
+};
+
 layout(binding = 5) buffer ShaderBuffer5
 {
     MeshConstants meshConstants[];

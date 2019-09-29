@@ -15,7 +15,7 @@ bool CullTriangle (uint indices [3], float4 vertices [3])
     bool cull = false;
 
 #ifdef ENABLE_CULL_INDEX
-    if (cullFlags & CULL_INDEX_FILTER)
+    if (bool(cullFlags & CULL_INDEX_FILTER))
     {
         if (   indices[0] == indices[1]
             || indices[1] == indices[2]
@@ -36,7 +36,7 @@ bool CullTriangle (uint indices [3], float4 vertices [3])
     };
 
 #if ENABLE_CULL_BACKFACE
-    if (cullFlags & CULL_BACKFACE)
+    if (bool(cullFlags & CULL_BACKFACE))
     {
         cull = cull || (determinant (m) > 0);
     }
@@ -59,7 +59,7 @@ bool CullTriangle (uint indices [3], float4 vertices [3])
 #endif
 
 #if ENABLE_CULL_SMALL_PRIMITIVES
-    if (cullFlags & CULL_SMALL_PRIMITIVES)
+    if ((cullFlags & CULL_SMALL_PRIMITIVES) != 0)
     {
         const uint SUBPIXEL_BITS = 8;
         const uint SUBPIXEL_MASK = 0xFF;
@@ -120,7 +120,7 @@ bool CullTriangle (uint indices [3], float4 vertices [3])
 #endif
 
 #if ENABLE_CULL_FRUSTUM
-    if (cullFlags & CULL_FRUSTUM)
+    if ((cullFlags & CULL_FRUSTUM) != 0)
     {
         if (verticesInFrontOfNearPlane == 3)
         {
@@ -195,7 +195,8 @@ void main()
 
         if (!cull)
         {
-            InterlockedAdd (workGroupIndexCount, 3, threadOutputSlot);
+//            InterlockedAdd (workGroupIndexCount, 3, threadOutputSlot);
+            threadOutputSlot = atomicAdd(workGroupIndexCount, 3u);
         }
     }
 
@@ -203,10 +204,12 @@ void main()
 
     if (inGroupId.x == 0)
     {
-        InterlockedAdd (indirectArgs [batchDrawIndex * 5], workGroupIndexCount, workGroupOutputSlot);
+//        InterlockedAdd (indirectArgs [batchDrawIndex * 5], workGroupIndexCount, workGroupOutputSlot);
+        workGroupOutputSlot = atomicAdd(indirectArgs [batchDrawIndex * 5], workGroupIndexCount);
     }
 
-    AllMemoryBarrierWithGroupSync ();
+//    AllMemoryBarrierWithGroupSync ();
+    groupMemoryBarrier();
 
     uint outputIndexOffset =  workGroupOutputSlot + smallBatchData [groupId.x].outputIndexOffset / 4;
 
