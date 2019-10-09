@@ -15,7 +15,8 @@ layout(binding = 0) uniform sampler2D g_TxDiffuse;
 
 void main()
 {
-    Out_Normal = 0.5 * (1 + normalize( Input.Normal ));
+    Out_Normal.xyz = 0.5 * (1 + normalize( Input.Normal ));
+    Out_Normal.w = 0;
     Out_Diffuse = texture( g_TxDiffuse, Input.TextureUV );
-    Output.Diffuse.a = 1;
+    Out_Diffuse.a = 1;
 }

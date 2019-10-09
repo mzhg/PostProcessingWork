@@ -2,6 +2,14 @@
 #include "LightingCommonHeader.glsl"
 #include "TilingCommonHeader.glsl"
 
+layout(binding = 8) uniform sampler2D g_GBuffer0Texture;
+layout(binding = 9) uniform sampler2D g_GBuffer1Texture;
+layout(binding = 10) uniform sampler2D g_GBuffer2Texture;
+layout(binding = 11) uniform sampler2D g_GBuffer3Texture;
+layout(binding = 12) uniform sampler2D g_GBuffer4Texture;
+
+layout(binding = 0, rgba32f) uniform image2D g_OffScreenBufferOut;
+
 layout (local_size_x = NUM_THREADS_X, local_size_x = NUM_THREADS_Y) in;
 
 void main()
@@ -24,9 +32,9 @@ void main()
 
     // get the surface normal from the G-Buffer
     #if ( NUM_MSAA_SAMPLES <= 1 )   // non-MSAA
-    float4 vNormAndSpecMask = g_GBuffer1Texture.Load( uint3(globalIdx.x,globalIdx.y,0) );
+    float4 vNormAndSpecMask = texelFetch(g_GBuffer1Texture, int2(globalIdx.x,globalIdx.y), 0);
     #else                           // MSAA
-    float4 vNormAndSpecMask = g_GBuffer1Texture.Load( uint2(globalIdx.x,globalIdx.y), 0 );
+    float4 vNormAndSpecMask = texelFetch(g_GBuffer1Texture, int2(globalIdx.x,globalIdx.y), 0);
     #endif
     float3 vNorm = vNormAndSpecMask.xyz;
     vNorm *= 2;
@@ -34,11 +42,11 @@ void main()
 
     // convert depth and screen position to world-space position
     #if ( NUM_MSAA_SAMPLES <= 1 )   // non-MSAA
-    float fDepthBufferDepth = g_DepthTexture.Load( uint3(globalIdx.x,globalIdx.y,0) ).x;
+    float fDepthBufferDepth = texelFetch(g_DepthTexture, int2(globalIdx.x,globalIdx.y), 0 ).x;
     #else                           // MSAA
-    float fDepthBufferDepth = g_DepthTexture.Load( uint2(globalIdx.x,globalIdx.y), 0 ).x;
+    float fDepthBufferDepth = texelFetch(g_DepthTexture, int2(globalIdx.x,globalIdx.y), 0 ).x;
     #endif
-    float4 vWorldSpacePosition = mul(float4((float)globalIdx.x+0.5, (float)globalIdx.y+0.5, fDepthBufferDepth, 1.0), g_mViewProjectionInvViewport);
+    float4 vWorldSpacePosition = mul(float4(float(globalIdx.x)+0.5, float(globalIdx.y)+0.5, fDepthBufferDepth, 1.0), g_mViewProjectionInvViewport);
     float3 vPositionWS = vWorldSpacePosition.xyz / vWorldSpacePosition.w;
 
     float3 vViewDir = normalize( g_vCameraPos - vPositionWS );
@@ -55,7 +63,7 @@ void main()
 
         for(uint i=uStartIdx; i<uEndIdx; i++)
         {
-            uint nLightIndex = ldsLightIdx[i];
+            int nLightIndex = int(ldsLightIdx[i]);
 
             float3 LightColorDiffuseResult;
             float3 LightColorSpecularResult;
@@ -77,7 +85,7 @@ void main()
 
         for(uint i=uStartIdx; i<uEndIdx; i++)
         {
-            uint nLightIndex = ldsSpotIdx[i];
+            int nLightIndex = int(ldsSpotIdx[i]);
 
             float3 LightColorDiffuseResult;
             float3 LightColorSpecularResult;
@@ -118,34 +126,34 @@ void main()
     // for performance testing
     #if ( NUM_MSAA_SAMPLES <= 1 )   // non-MSAA
     #if ( NUM_GBUFFER_RTS >= 3 )
-    float4 Dummy0 = g_GBuffer2Texture.Load( uint3(globalIdx.x,globalIdx.y,0) );
+    float4 Dummy0 = texelFetch(g_GBuffer2Texture, int2(globalIdx.x,globalIdx.y), 0 );
     AccumDiffuse *= Dummy0.xyz;
     AccumSpecular *= Dummy0.xyz;
     #endif
     #if ( NUM_GBUFFER_RTS >= 4 )
-    float4 Dummy1 = g_GBuffer3Texture.Load( uint3(globalIdx.x,globalIdx.y,0) );
+    float4 Dummy1 = texelFetch(g_GBuffer3Texture, int2(globalIdx.x,globalIdx.y), 0 );
     AccumDiffuse *= Dummy1.xyz;
     AccumSpecular *= Dummy1.xyz;
     #endif
     #if ( NUM_GBUFFER_RTS >= 5 )
-    float4 Dummy2 = g_GBuffer4Texture.Load( uint3(globalIdx.x,globalIdx.y,0) );
+    float4 Dummy2 = texelFetch(g_GBuffer4Texture, int2(globalIdx.x,globalIdx.y), 0 );
     AccumDiffuse *= Dummy2.xyz;
     AccumSpecular *= Dummy2.xyz;
     #endif
 
     #else                           // MSAA
     #if ( NUM_GBUFFER_RTS >= 3 )
-    float4 Dummy0 = g_GBuffer2Texture.Load( uint2(globalIdx.x,globalIdx.y), 0 );
+    float4 Dummy0 = texelFetch(g_GBuffer2Texture, int2(globalIdx.x,globalIdx.y), 0 );
     AccumDiffuse *= Dummy0.xyz;
     AccumSpecular *= Dummy0.xyz;
     #endif
     #if ( NUM_GBUFFER_RTS >= 4 )
-    float4 Dummy1 = g_GBuffer3Texture.Load( uint2(globalIdx.x,globalIdx.y), 0 );
+    float4 Dummy1 = texelFetch(g_GBuffer3Texture, int2(globalIdx.x,globalIdx.y), 0 );
     AccumDiffuse *= Dummy1.xyz;
     AccumSpecular *= Dummy1.xyz;
     #endif
     #if ( NUM_GBUFFER_RTS >= 5 )
-    float4 Dummy2 = g_GBuffer4Texture.Load( uint2(globalIdx.x,globalIdx.y), 0 );
+    float4 Dummy2 = texelFetch(g_GBuffer4Texture, int2(globalIdx.x,globalIdx.y), 0 );
     AccumDiffuse *= Dummy2.xyz;
     AccumSpecular *= Dummy2.xyz;
     #endif
@@ -158,9 +166,9 @@ void main()
 
     // modulate mesh texture with lighting
     #if ( NUM_MSAA_SAMPLES <= 1 )   // non-MSAA
-    float3 DiffuseTex = g_GBuffer0Texture.Load( uint3(globalIdx.x,globalIdx.y,0) ).rgb;
+    float3 DiffuseTex = texelFetch(g_GBuffer0Texture, int2(globalIdx.x,globalIdx.y), 0 ).rgb;
     #else                           // MSAA
-    float3 DiffuseTex = g_GBuffer0Texture.Load( uint2(globalIdx.x,globalIdx.y), 0 ).rgb;
+    float3 DiffuseTex = texelFetch(g_GBuffer0Texture, int2(globalIdx.x,globalIdx.y), 0 ).rgb;
     #endif
     float fSpecMask = vNormAndSpecMask.a;
 
@@ -189,15 +197,17 @@ void main()
 #endif
 
 #if ( NUM_MSAA_SAMPLES <= 1 )   // non-MSAA
-    g_OffScreenBufferOut[globalIdx.xy] = float4(Result,1);
+//    g_OffScreenBufferOut[globalIdx.xy] = float4(Result,1);
+   imageStore(g_OffScreenBufferOut, int2(globalIdx.xy), float4(Result,1));
 #else                           // MSAA
 
-    uint2 uavMsaaBufferCoord = globalIdx.xy * uint2(2,2);
-    g_OffScreenBufferOut[uavMsaaBufferCoord] = float4(Result,1);
+    int2 uavMsaaBufferCoord = int2(globalIdx.xy) * int2(2,2);
+//    g_OffScreenBufferOut[uavMsaaBufferCoord] = float4(Result,1);
+    imageStore(g_OffScreenBufferOut, uavMsaaBufferCoord, float4(Result,1));
 
     for( uint sampleIdx=1; sampleIdx<NUM_MSAA_SAMPLES; sampleIdx++ )
     {
-        float3 vNormSample = g_GBuffer1Texture.Load( uint2(globalIdx.x,globalIdx.y), sampleIdx ).xyz;
+        float3 vNormSample = texelFetch(g_GBuffer1Texture, int2(globalIdx.x,globalIdx.y), sampleIdx ).xyz;
         vNormSample *= 2;
         vNormSample -= float3(1,1,1);
         bIsEdge = bIsEdge || dot(vNormSample, vNorm) < 0.984807753f;
@@ -208,14 +218,18 @@ void main()
         // do a thread-safe increment of the list counter
         // and put the global index of this thread into the list
         uint dstIdx = 0;
-        InterlockedAdd( ldsEdgePixelIdxCounter, 1, dstIdx );
+        dstIdx = atomicAdd( ldsEdgePixelIdxCounter, 1u );
         ldsEdgePixelIdx[dstIdx] = (globalIdx.y << 16) | globalIdx.x;
     }
     else
     {
-        g_OffScreenBufferOut[uavMsaaBufferCoord + uint2(1, 0)] = float4(Result,1);
-        g_OffScreenBufferOut[uavMsaaBufferCoord + uint2(0, 1)] = float4(Result,1);
-        g_OffScreenBufferOut[uavMsaaBufferCoord + uint2(1, 1)] = float4(Result,1);
+//        g_OffScreenBufferOut[uavMsaaBufferCoord + uint2(1, 0)] = float4(Result,1);
+//        g_OffScreenBufferOut[uavMsaaBufferCoord + uint2(0, 1)] = float4(Result,1);
+//        g_OffScreenBufferOut[uavMsaaBufferCoord + uint2(1, 1)] = float4(Result,1);
+
+        imageStore(g_OffScreenBufferOut, uavMsaaBufferCoord+int2(1, 0), float4(Result,1));
+        imageStore(g_OffScreenBufferOut, uavMsaaBufferCoord+int2(0, 1), float4(Result,1));
+        imageStore(g_OffScreenBufferOut, uavMsaaBufferCoord+int2(1, 1), float4(Result,1));
     }
 
     GroupMemoryBarrierWithGroupSync();
@@ -235,7 +249,8 @@ void main()
             uint2 litSampleCoord = globalIdxForThisEdgePixel * uint2(2, 2);
             litSampleCoord.x += sampleIdx % 2;
             litSampleCoord.y += sampleIdx > 1;
-            g_OffScreenBufferOut[litSampleCoord] = float4(DoLightingForMSAA(globalIdxForThisEdgePixel, sampleIdx, fHalfZ),1);
+//            g_OffScreenBufferOut[litSampleCoord] = float4(DoLightingForMSAA(globalIdxForThisEdgePixel, sampleIdx, fHalfZ),1);
+            imageStore(g_OffScreenBufferOut, int2(litSampleCoord), float4(DoLightingForMSAA(globalIdxForThisEdgePixel, sampleIdx, fHalfZ),1));
         }
     }
 #endif

@@ -36,12 +36,13 @@
 /*RWStructuredBuffer<float4>      g_VPLPositionBuffer                 : register( u0 );
 RWStructuredBuffer<VPLData>     g_VPLDataBuffer                     : register( u1 );*/
 
-layout(binding = 0) writeonly buffer Buffer0
+layout (binding = 2, offset = 0) uniform atomic_uint g_VPLCounter;
+layout(binding = 0) buffer Buffer0
 {
     float4 g_VPLPositionBuffer[];
 };
 
-layout(binding = 1) writeonly buffer Buffer1
+layout(binding = 1) buffer Buffer1
 {
     VPLData g_VPLDataBuffer[];
 };
@@ -103,7 +104,7 @@ layout(binding = 5) readonly buffer Buffer5
 //[numthreads( THREAD_SIZE, THREAD_SIZE, 1 )]
 layout(local_size_x = THREAD_SIZE, local_size_y = THREAD_SIZE, local_size_z = 1)in;
 //void GenerateVPLsCS( uint3 globalIdx : SV_DispatchThreadID )
-void ()
+void main()
 {
     uint3 globalIdx = gl_GlobalInvocationID;
     uint2 uv00 = SAMPLE_WIDTH*globalIdx.xy;
@@ -126,7 +127,7 @@ void ()
     color = texelFetch(g_RSMDiffuseAtlas, uv, 0).rgb;
     normal = (2*texelFetch(g_RSMNormalAtlas, uv, 0).rgb)-1;
 
-    float2 viewportUV = uv.xy;
+    int2 viewportUV = uv.xy;
 
     viewportUV.xy %= RSM_SIZE;
 
@@ -223,8 +224,7 @@ void ()
                 data.SourceLightDirection.xyz = normalize( -sourceLightDir );
                 data.SourceLightDirection.w = 0;
 #endif
-
-                uint index = g_VPLPositionBuffer.IncrementCounter();
+                uint index = atomicCounterIncrement(g_VPLCounter);
 
                 g_VPLPositionBuffer[ index ] = positionAndRadius;
                 g_VPLDataBuffer[ index ] = data;

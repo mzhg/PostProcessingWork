@@ -124,12 +124,12 @@ final class RSMRenderer implements Disposeable, ICONST {
         GenerateVPLMacros[0].value = 1;
 //        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pGenerateSpotVPLsCS, AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"GenerateVPLsCS",
 //                L"GenerateVPLs.hlsl", ARRAYSIZE( GenerateVPLMacros ), GenerateVPLMacros, NULL, NULL, 0 );
-        m_pGenerateSpotVPLsCS = GLSLProgram.createProgram(SHADER_PATH+"GenerateVPLsCS.comp", GenerateVPLMacros);
+        m_pGenerateSpotVPLsCS = GLSLProgram.createProgram(SHADER_PATH+"GenerateVPLs.comp", GenerateVPLMacros);
 
         GenerateVPLMacros[0].value = 0;
 //        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pGeneratePointVPLsCS, AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"GenerateVPLsCS",
 //                L"GenerateVPLs.hlsl", ARRAYSIZE( GenerateVPLMacros ), GenerateVPLMacros, NULL, NULL, 0 );
-        m_pGeneratePointVPLsCS = GLSLProgram.createProgram(SHADER_PATH+"GenerateVPLsCS.comp", GenerateVPLMacros);
+        m_pGeneratePointVPLsCS = GLSLProgram.createProgram(SHADER_PATH+"GenerateVPLs.comp", GenerateVPLMacros);
     }
 
     // Various hook functions

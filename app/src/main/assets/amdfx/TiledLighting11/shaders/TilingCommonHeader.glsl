@@ -25,9 +25,9 @@
 //
 // HLSL file for the TiledLighting11 sample. Header file for tiled light culling.
 //--------------------------------------------------------------------------------------
-
-
+#ifndef FLT_MAX
 #define FLT_MAX         3.402823466e+38F
+#endif
 
 //-----------------------------------------------------------------------------------------
 // Parameters for the light culling shader
@@ -62,32 +62,6 @@
 #define FORWARD_PLUS 1
 #define VPLS_ENABLED 0
 #define BLENDED_PASS 1
-#endif
-
-//-----------------------------------------------------------------------------------------
-// Textures and Buffers
-//-----------------------------------------------------------------------------------------
-/*Buffer<float4> g_PointLightBufferCenterAndRadius : register( t0 );
-Buffer<float4> g_SpotLightBufferCenterAndRadius  : register( t1 );*/
-
-layout(binding = 0) readonly buffer Buffer0
-{
-    float4 g_PointLightBufferCenterAndRadius[];
-};
-
-layout(binding = 1) readonly buffer Buffer1
-{
-    float4 g_SpotLightBufferCenterAndRadius[];
-};
-
-// Only process VPLs for opaque geometry. The effect is barely
-// noticeable on transparent geometry, so skip it, to save perf.
-#if ( VPLS_ENABLED == 1 )
-//StructuredBuffer<float4> g_VPLBufferCenterAndRadius : register( t2 );
-layout(binding = 2) readonly buffer Buffer2
-{
-    float4 g_VPLBufferCenterAndRadius[];
-};
 #endif
 
 #if ( NUM_MSAA_SAMPLES <= 1 )   // non-MSAA
@@ -141,6 +115,7 @@ shared uint ldsEdgePixelIdxCounter;
 shared uint ldsEdgePixelIdx[NUM_THREADS_PER_TILE];
 #endif
 
+#include "Transparency.glsl"
 //-----------------------------------------------------------------------------------------
 // Helper functions
 //-----------------------------------------------------------------------------------------
@@ -340,7 +315,7 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
     // loop over the lights and do a sphere vs. frustum intersection test
     for(uint i=localIdxFlattened; i<g_uNumLights; i+=NUM_THREADS_PER_TILE)
     {
-        float4 center = g_PointLightBufferCenterAndRadius[i];
+        float4 center = texelFetch(g_PointLightBufferCenterAndRadius, int(i));
         float r = center.w;
         center.xyz = mul( float4(center.xyz, 1), g_mView ).xyz;
 
@@ -372,7 +347,7 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
     // loop over the spot lights and do a sphere vs. frustum intersection test
     for(uint j=localIdxFlattened; j<g_uNumSpotLights; j+=NUM_THREADS_PER_TILE)
     {
-        float4 center = g_SpotLightBufferCenterAndRadius[j];
+        float4 center = texelFetch(g_SpotLightBufferCenterAndRadius, int(j));
         float r = center.w;
         center.xyz = mul( float4(center.xyz, 1), g_mView ).xyz;
 
@@ -410,7 +385,7 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
     // loop over the VPLs and do a sphere vs. frustum intersection test
     for(uint k=localIdxFlattened; k<numVPLs; k+=NUM_THREADS_PER_TILE)
     {
-        float4 center = g_VPLBufferCenterAndRadius[k];
+        float4 center = texelFetch(g_VPLBufferCenterAndRadius, int(k));
         float r = center.w;
         center.xyz = mul( float4(center.xyz, 1), g_mView ).xyz;
 
