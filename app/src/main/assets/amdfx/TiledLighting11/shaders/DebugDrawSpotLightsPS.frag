@@ -2,7 +2,7 @@
 
 layout(location = 0) out float4 Out_Color;
 
-out VS_OUTPUT_DRAW_SPOT_LIGHTS
+in VS_OUTPUT_DRAW_SPOT_LIGHTS
 {
 //    float4 Position     : SV_POSITION; // vertex position
     float3 Normal       /*: NORMAL*/;      // vertex normal vector

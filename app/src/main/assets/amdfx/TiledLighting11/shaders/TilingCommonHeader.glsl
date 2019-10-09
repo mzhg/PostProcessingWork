@@ -184,16 +184,16 @@ void CalculateMinMaxDepthInLds( uint3 globalIdx )
     // Blended path
     if( blendedDepth != 0.f )
     {
-        InterlockedMax( ldsZMax, opaqueZ );
-        InterlockedMin( ldsZMin, blendedZ );
+        atomicMax( ldsZMax, opaqueZ );
+        atomicMin( ldsZMin, blendedZ );
     }
 
 #else
     // Opaque only path
     if( opaqueDepth != 0.f )
     {
-        InterlockedMax( ldsZMax, opaqueZ );
-        InterlockedMin( ldsZMin, opaqueZ );
+        atomicMax( ldsZMax, opaqueZ );
+        atomicMin( ldsZMin, opaqueZ );
     }
 #endif
 }
@@ -228,7 +228,7 @@ bool CalculateMinMaxDepthInLdsMSAA( uint3 globalIdx, uint depthBufferNumSamples)
     }
 #endif
 
-    for( uint sampleIdx=1; sampleIdx<depthBufferNumSamples; sampleIdx++ )
+    for( int sampleIdx=1; sampleIdx<int(depthBufferNumSamples); sampleIdx++ )
     {
         float opaqueDepth = texelFetch(g_DepthTexture, int2(globalIdx.x,globalIdx.y), sampleIdx ).x;
         float opaqueViewPosZ = ConvertProjDepthToView( opaqueDepth );
@@ -256,8 +256,8 @@ bool CalculateMinMaxDepthInLdsMSAA( uint3 globalIdx, uint depthBufferNumSamples)
 
     uint zMaxForThisPixel = asuint( maxZForThisPixel );
     uint zMinForThisPixel = asuint( minZForThisPixel );
-    InterlockedMax( ldsZMax, zMaxForThisPixel );
-    InterlockedMin( ldsZMin, zMinForThisPixel );
+    atomicMax( ldsZMax, zMaxForThisPixel );
+    atomicMax( ldsZMin, zMinForThisPixel );
 
     // return depth-based edge detection result
     return ((maxZForThisPixel - minZForThisPixel) > 50.0f);
@@ -322,8 +322,9 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
     CalculateMinMaxDepthInLds( globalIdx );
 #else                           // MSAA
 #if ( FORWARD_PLUS == 1 )       // Forward+ MSAA
-    uint depthBufferWidth, depthBufferHeight, depthBufferNumSamples;
-    g_DepthTexture.GetDimensions( depthBufferWidth, depthBufferHeight, depthBufferNumSamples );
+//    uint depthBufferWidth, depthBufferHeight, depthBufferNumSamples;
+//    g_DepthTexture.GetDimensions( depthBufferWidth, depthBufferHeight, depthBufferNumSamples );
+    int depthBufferNumSamples = textureSamples(g_DepthTexture);
     CalculateMinMaxDepthInLdsMSAA( globalIdx, depthBufferNumSamples );
 #else                           // Tiled Deferred MSAA
     uint depthBufferNumSamples = NUM_MSAA_SAMPLES;
@@ -354,7 +355,7 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
                 // do a thread-safe increment of the list counter
                 // and put the index of this light into the list
                 uint dstIdx = 0;
-                InterlockedAdd( ldsLightIdxCounterA, 1, dstIdx );
+                dstIdx = atomicAdd( ldsLightIdxCounterA, 1 );
                 ldsLightIdx[dstIdx] = i;
             }
             if( -center.z + fHalfZ < r && center.z - maxZ < r )
@@ -362,7 +363,7 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
                 // do a thread-safe increment of the list counter
                 // and put the index of this light into the list
                 uint dstIdx = 0;
-                InterlockedAdd( ldsLightIdxCounterB, 1, dstIdx );
+                dstIdx = atomicAdd( ldsLightIdxCounterB, 1 );
                 ldsLightIdx[dstIdx] = i;
             }
         }
@@ -386,7 +387,7 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
                 // do a thread-safe increment of the list counter
                 // and put the index of this light into the list
                 uint dstIdx = 0;
-                InterlockedAdd( ldsSpotIdxCounterA, 1, dstIdx );
+                dstIdx = atomicAdd( ldsSpotIdxCounterA, 1 );
                 ldsSpotIdx[dstIdx] = j;
             }
             if( -center.z + fHalfZ < r && center.z - maxZ < r )
@@ -394,7 +395,7 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
                 // do a thread-safe increment of the list counter
                 // and put the index of this light into the list
                 uint dstIdx = 0;
-                InterlockedAdd( ldsSpotIdxCounterB, 1, dstIdx );
+                dstIdx = atomicAdd( ldsSpotIdxCounterB, 1 );
                 ldsSpotIdx[dstIdx] = j;
             }
         }
@@ -424,7 +425,7 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
                 // do a thread-safe increment of the list counter
                 // and put the index of this VPL into the list
                 uint dstIdx = 0;
-                InterlockedAdd( ldsVPLIdxCounterA, 1, dstIdx );
+                dstIdx = atomicAdd( ldsVPLIdxCounterA, 1 );
                 ldsVPLIdx[dstIdx] = k;
             }
             if( -center.z + fHalfZ < r && center.z - maxZ < r )
@@ -432,7 +433,7 @@ DoLightCulling( in uint3 globalIdx, in uint localIdxFlattened, in uint3 groupIdx
                 // do a thread-safe increment of the list counter
                 // and put the index of this VPL into the list
                 uint dstIdx = 0;
-                InterlockedAdd( ldsVPLIdxCounterB, 1, dstIdx );
+                dstIdx = atomicAdd( ldsVPLIdxCounterB, 1 );
                 ldsVPLIdx[dstIdx] = k;
             }
         }

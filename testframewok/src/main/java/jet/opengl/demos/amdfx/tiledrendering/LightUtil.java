@@ -8,6 +8,7 @@ import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.Random;
@@ -19,8 +20,10 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
 import jet.opengl.postprocessing.shader.ShaderProgram;
+import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 
@@ -115,6 +118,10 @@ final class LightUtil implements Disposeable, ICONST {
     private final static Matrix4f[][] g_ShadowCastingPointLightViewProjTransposed = new Matrix4f[MAX_NUM_SHADOWCASTING_POINTS][6];
     private final static Matrix4f[][] g_ShadowCastingPointLightViewProjInvTransposed = new Matrix4f[MAX_NUM_SHADOWCASTING_POINTS][6];
 
+    static {
+        for(int i = 0; i < g_QuadForLightsVertexData.length; i++) g_QuadForLightsVertexData[i] = new LightUtilSpriteVertex();
+    }
+
     private static final class LightUtilConeVertex implements Readable
     {
         static final int SIZE = Vector3f.SIZE * 2 + Vector2f.SIZE;
@@ -137,6 +144,11 @@ final class LightUtil implements Disposeable, ICONST {
     private static final int            g_nConeNumIndices = 3*g_nConeNumTris;
     private final static LightUtilConeVertex[]  g_ConeForSpotLightsVertexData = new LightUtilConeVertex[g_nConeNumVertices];
     private static final short[]        g_ConeForSpotLightsIndexData = new short[g_nConeNumIndices];
+
+    static {
+        for(int i = 0; i<g_ConeForSpotLightsVertexData.length; i++)
+            g_ConeForSpotLightsVertexData[i] = new LightUtilConeVertex();
+    }
 
     // these are half-precision (i.e. 16-bit) float values,
 // stored as unsigned shorts
@@ -228,12 +240,11 @@ final class LightUtil implements Disposeable, ICONST {
         return vLightDir;
     }
 
-    private static LightUtilSpotParams PackSpotParams(Vector3f vLightDir, float fCosineOfConeAngle, float fFalloffRadius)
+    private static void PackSpotParams(LightUtilSpotParams PackedParams, Vector3f vLightDir, float fCosineOfConeAngle, float fFalloffRadius)
     {
         assert( fCosineOfConeAngle > 0.0f );
         assert( fFalloffRadius > 0.0f );
 
-        LightUtilSpotParams PackedParams = new LightUtilSpotParams();
         PackedParams.fLightDirX = Numeric.convertFloatToHFloat( vLightDir.x );
         PackedParams.fLightDirY = Numeric.convertFloatToHFloat( vLightDir.y );
         PackedParams.fCosineOfConeAngleAndLightDirZSign = Numeric.convertFloatToHFloat( fCosineOfConeAngle );
@@ -249,8 +260,6 @@ final class LightUtil implements Disposeable, ICONST {
         {
             PackedParams.fCosineOfConeAngleAndLightDirZSign &= 0x7FFF;
         }
-
-        return PackedParams;
     }
 
     private static void CalcPointLightView(ReadableVector3f PositionAndRadius, int nFace, Matrix4f View )
@@ -313,6 +322,9 @@ final class LightUtil implements Disposeable, ICONST {
 
         assert( uShadowCastingPointLightCounter < MAX_NUM_SHADOWCASTING_POINTS );
 
+        if(g_ShadowCastingPointLightDataArrayCenterAndRadius[ uShadowCastingPointLightCounter ] == null)
+            g_ShadowCastingPointLightDataArrayCenterAndRadius[ uShadowCastingPointLightCounter ] = new Vector4f();
+
         g_ShadowCastingPointLightDataArrayCenterAndRadius[ uShadowCastingPointLightCounter ].set(positionAndRadius);
         g_ShadowCastingPointLightDataArrayColor[ uShadowCastingPointLightCounter ] = color;
 
@@ -372,12 +384,20 @@ final class LightUtil implements Disposeable, ICONST {
 //        XMVECTOR boundingSpherePos = eye + (dir * positionAndRadius.w);
         Vector3f boundingSpherePos = Vector3f.linear(eye, f3Dir, positionAndRadius.getW(), null);
 
+        if(g_ShadowCastingSpotLightDataArrayCenterAndRadius[ uShadowCastingSpotLightCounter ] == null)
+            g_ShadowCastingSpotLightDataArrayCenterAndRadius[ uShadowCastingSpotLightCounter ] = new Vector4f();
         g_ShadowCastingSpotLightDataArrayCenterAndRadius[ uShadowCastingSpotLightCounter ].set( boundingSpherePos, positionAndRadius.getW() );
         g_ShadowCastingSpotLightDataArrayColor[ uShadowCastingSpotLightCounter ] = color;
 
         // cosine of cone angle is cosine(35.26438968 degrees) = 0.816496580927726
-        g_ShadowCastingSpotLightDataArraySpotParams[ uShadowCastingSpotLightCounter ] = PackSpotParams( f3Dir, 0.816496580927726f, positionAndRadius.getW() * 1.33333333f );
+        if(g_ShadowCastingSpotLightDataArraySpotParams[ uShadowCastingSpotLightCounter ] == null)
+            g_ShadowCastingSpotLightDataArraySpotParams[ uShadowCastingSpotLightCounter ] = new LightUtilSpotParams();
+        PackSpotParams(g_ShadowCastingSpotLightDataArraySpotParams[ uShadowCastingSpotLightCounter ], f3Dir, 0.816496580927726f, positionAndRadius.getW() * 1.33333333f );
 
+        if(g_ShadowCastingSpotLightViewProjTransposed[uShadowCastingSpotLightCounter] == null)
+            g_ShadowCastingSpotLightViewProjTransposed[uShadowCastingSpotLightCounter] = new Matrix4f();
+        if(g_ShadowCastingSpotLightViewProjInvTransposed[uShadowCastingSpotLightCounter] == null)
+            g_ShadowCastingSpotLightViewProjInvTransposed[uShadowCastingSpotLightCounter] = new Matrix4f();
         CalcSpotLightViewProj( positionAndRadius, lookAt, g_ShadowCastingSpotLightViewProjTransposed[uShadowCastingSpotLightCounter], g_ShadowCastingSpotLightViewProjInvTransposed[uShadowCastingSpotLightCounter] );
 
         // build a "rotate from one vector to another" matrix, to point the spot light
@@ -780,6 +800,8 @@ final class LightUtil implements Disposeable, ICONST {
         // initialize the point light data
         for (int i = 0; i < MAX_NUM_LIGHTS; i++)
         {
+            if(g_PointLightDataArrayCenterAndRadius[i] == null)
+                g_PointLightDataArrayCenterAndRadius[i] = new Vector4f();
             g_PointLightDataArrayCenterAndRadius[i].set(randFloat.of(BBoxMin.getX(),BBoxMax.getX()),
                     randFloat.of(BBoxMin.getY(),BBoxMax.getY()), randFloat.of(BBoxMin.getZ(),BBoxMax.getZ()), fRadius);
             g_PointLightDataArrayColor[i] = GetRandColor();
@@ -788,6 +810,8 @@ final class LightUtil implements Disposeable, ICONST {
         // initialize the spot light data
         for (int i = 0; i < MAX_NUM_LIGHTS; i++)
         {
+            if(g_SpotLightDataArrayCenterAndRadius[i] == null)
+                g_SpotLightDataArrayCenterAndRadius[i] = new Vector4f();
             g_SpotLightDataArrayCenterAndRadius[i].set(randFloat.of(BBoxMin.getX(),BBoxMax.getX()), randFloat.of(BBoxMin.getY(),BBoxMax.getY()), randFloat.of(BBoxMin.getZ(),BBoxMax.getZ()), fRadius);
             g_SpotLightDataArrayColor[i] = GetRandColor();
 
@@ -803,7 +827,8 @@ final class LightUtil implements Disposeable, ICONST {
             // store the cosine of this angle: cosine(35.26438968 degrees) = 0.816496580927726
 
             // random direction, cosine of cone angle, falloff radius calcuated above
-            g_SpotLightDataArraySpotParams[i] = PackSpotParams(vLightDir, 0.816496580927726f, fSpotLightFalloffRadius);
+            if(g_SpotLightDataArraySpotParams[i] == null) g_SpotLightDataArraySpotParams[i] = new LightUtilSpotParams();
+            PackSpotParams(g_SpotLightDataArraySpotParams[i],vLightDir, 0.816496580927726f, fSpotLightFalloffRadius);
 
             // build a "rotate from one vector to another" matrix, to point the spot light
             // cone along its light direction
@@ -941,14 +966,14 @@ final class LightUtil implements Disposeable, ICONST {
 //#ifdef _DEBUG
                 // check that the normal is actually perpendicular
                 float dot = Vector3f.dot( g_ConeForSpotLightsVertexData[2*i+1].v3Pos, g_ConeForSpotLightsVertexData[2*i+1].v3Norm );
-                if(Math.abs(dot) < 0.001f) {
+                if(Math.abs(dot) >= 0.001f) {
                     throw new IllegalStateException();
                 }
 //#endif
             }
 
             // create duplicate points for the top of the cone, each with its own normal
-            for (int i = 0; i < g_nConeNumTris; i++)
+            for (int i = 0; i < g_nConeNumTris-1; i++)
             {
                 g_ConeForSpotLightsVertexData[2*i].v3Pos.set( 0.0f, 0.0f, 0.0f );
                 g_ConeForSpotLightsVertexData[2*i].v2TexCoord.set( 0.0f, 0.0f );
@@ -991,7 +1016,7 @@ final class LightUtil implements Disposeable, ICONST {
         return g_ShadowCastingSpotLightViewProjInvTransposed;
     }
 
-    void AddShadersToCache( /*AMD::ShaderCache *pShaderCache*/ ){
+    void AddShadersToCache( /*AMD::ShaderCache *pShaderCache*/ ) throws IOException {
         // Ensure all shaders (and input layouts) are released
         SAFE_RELEASE( m_pDebugDrawPointLightsVS );
         SAFE_RELEASE( m_pDebugDrawPointLightsPS );
@@ -1011,12 +1036,15 @@ final class LightUtil implements Disposeable, ICONST {
 
         final D3D11_INPUT_ELEMENT_DESC LayoutForCone[] =
         {
-                new D3D11_INPUT_ELEMENT_DESC( "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
-                new D3D11_INPUT_ELEMENT_DESC( "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
-                new D3D11_INPUT_ELEMENT_DESC( "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
         };
 
-        throw new IllegalStateException("Don't forget initlizing the shaders.");
+        m_pDebugDrawPointLightsVS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawPointLightsVS.vert", ShaderType.VERTEX);
+        m_pDebugDrawPointLightsPS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawPointLightsPS.frag", ShaderType.FRAGMENT);
+        m_pDebugDrawSpotLightsVS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawSpotLightsVS.vert", ShaderType.VERTEX);
+        m_pDebugDrawSpotLightsPS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawSpotLightsPS.frag", ShaderType.FRAGMENT);
 
         /*pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawPointLightsVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"DebugDrawPointLightsVS",
                 L"DebugDraw.hlsl", 0, NULL, &m_pDebugDrawPointLightsLayout11, LayoutForSprites, ARRAYSIZE( LayoutForSprites ) );

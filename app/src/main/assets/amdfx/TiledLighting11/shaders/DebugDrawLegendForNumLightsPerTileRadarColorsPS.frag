@@ -5,7 +5,7 @@ in vec2 m_TextureUV;
 
 void main()
 {
-    uint nBandIdx = floor(16.999f*m_TextureUV.y);
+    int nBandIdx = int(floor(16.999f*m_TextureUV.y));
 
     // black for no lights
     if( nBandIdx == 0 ) Out_Color = float4(0,0,0,1);
@@ -17,7 +17,7 @@ void main()
     else
     {
         // nBandIdx should be in the range [1,14]
-        uint nColorIndex = nBandIdx-1;
+        int nColorIndex = nBandIdx-1;
         Out_Color = kRadarColors[nColorIndex];
     }
 }

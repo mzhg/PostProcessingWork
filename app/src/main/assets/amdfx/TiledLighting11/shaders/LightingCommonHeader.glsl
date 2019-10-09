@@ -30,8 +30,8 @@
 //-----------------------------------------------------------------------------------------
 // Textures and Buffers
 //-----------------------------------------------------------------------------------------
-layout(binding = 13) uniform sampler2D      g_PointShadowAtlas/*                : register( t13 )*/;
-layout(binding = 14) uniform sampler2D      g_SpotShadowAtlas/*                 : register( t14 )*/;
+layout(binding = 13) uniform sampler2DShadow      g_PointShadowAtlas/*                : register( t13 )*/;
+layout(binding = 14) uniform sampler2DShadow      g_SpotShadowAtlas/*                 : register( t14 )*/;
 
 //-----------------------------------------------------------------------------------------
 // Helper functions
@@ -128,7 +128,7 @@ float DoShadow( uint nShadowIndex, in float3 vPosition, float3 vLightDir, float 
     return FilterShadow( g_PointShadowAtlas, shadowTexCoord.xyz );
 }
 
-float DoSpotShadow( uint nShadowIndex, in float3 vPosition )
+float DoSpotShadow( int nShadowIndex, in float3 vPosition )
 {
     float4 shadowTexCoord = mul( float4( vPosition, 1 ), g_mSpotShadowViewProj[ nShadowIndex ] );
     shadowTexCoord.xyz = shadowTexCoord.xyz / shadowTexCoord.w;
@@ -144,9 +144,9 @@ float DoSpotShadow( uint nShadowIndex, in float3 vPosition )
     return FilterShadow( g_SpotShadowAtlas, shadowTexCoord.xyz );
 }
 
-void DoLighting(bool bDoShadow, in Buffer<float4> PointLightBufferCenterAndRadius, in Buffer<float4> PointLightBufferColor, in uint nLightIndex, in float3 vPosition, in float3 vNorm, in float3 vViewDir, out float3 LightColorDiffuseResult, out float3 LightColorSpecularResult)
+void DoLighting(bool bDoShadow, in samplerBuffer PointLightBufferCenterAndRadius, in samplerBuffer PointLightBufferColor, in int nLightIndex, in float3 vPosition, in float3 vNorm, in float3 vViewDir, out float3 LightColorDiffuseResult, out float3 LightColorSpecularResult)
 {
-    float4 CenterAndRadius = PointLightBufferCenterAndRadius[nLightIndex];
+    float4 CenterAndRadius = texelFetch(PointLightBufferCenterAndRadius, nLightIndex);
 
     float3 vToLight = CenterAndRadius.xyz - vPosition;
     float3 vLightDir = normalize(vToLight);
@@ -163,10 +163,10 @@ void DoLighting(bool bDoShadow, in Buffer<float4> PointLightBufferCenterAndRadiu
         // -(1/k)*(1-(k+1)/(1+k*x^2))
         // k=20: -(1/20)*(1 - 21/(1+20*x^2))
         float fFalloff = -0.05 + 1.05/(1+20*x*x);
-        LightColorDiffuseResult = PointLightBufferColor[nLightIndex].rgb * saturate(dot(vLightDir,vNorm)) * fFalloff;
+        LightColorDiffuseResult = texelFetch(PointLightBufferColor,nLightIndex).rgb * saturate(dot(vLightDir,vNorm)) * fFalloff;
 
         float3 vHalfAngle = normalize( vViewDir + vLightDir );
-        LightColorSpecularResult = PointLightBufferColor[nLightIndex].rgb * pow( saturate(dot( vHalfAngle, vNorm )), 8 ) * fFalloff;
+        LightColorSpecularResult = texelFetch(PointLightBufferColor, nLightIndex).rgb * pow( saturate(dot( vHalfAngle, vNorm )), 8 ) * fFalloff;
 
         if( bDoShadow )
         {
@@ -177,10 +177,10 @@ void DoLighting(bool bDoShadow, in Buffer<float4> PointLightBufferCenterAndRadiu
     }
 }
 
-void DoSpotLighting(bool bDoShadow, in Buffer<float4> SpotLightBufferCenterAndRadius, in Buffer<float4> SpotLightBufferColor, in Buffer<float4> SpotLightBufferSpotParams, in uint nLightIndex, in float3 vPosition, in float3 vNorm, in float3 vViewDir, out float3 LightColorDiffuseResult, out float3 LightColorSpecularResult)
+void DoSpotLighting(bool bDoShadow, in samplerBuffer SpotLightBufferCenterAndRadius, in samplerBuffer SpotLightBufferColor, in samplerBuffer SpotLightBufferSpotParams, in int nLightIndex, in float3 vPosition, in float3 vNorm, in float3 vViewDir, out float3 LightColorDiffuseResult, out float3 LightColorSpecularResult)
 {
-    float4 BoundingSphereCenterAndRadius = SpotLightBufferCenterAndRadius[nLightIndex];
-    float4 SpotParams = SpotLightBufferSpotParams[nLightIndex];
+    float4 BoundingSphereCenterAndRadius = texelFetch(SpotLightBufferCenterAndRadius,nLightIndex);
+    float4 SpotParams = texelFetch(SpotLightBufferSpotParams,nLightIndex);
 
     // reconstruct z component of the light dir from x and y
     float3 SpotLightDir;
@@ -214,10 +214,10 @@ void DoSpotLighting(bool bDoShadow, in Buffer<float4> SpotLightBufferCenterAndRa
         // -(1/k)*(1-(k+1)/(1+k*x^2))
         // k=20: -(1/20)*(1 - 21/(1+20*x^2))
         float fFalloff = -0.05 + 1.05/(1+20*x*x);
-        LightColorDiffuseResult = SpotLightBufferColor[nLightIndex].rgb * saturate(dot(vToLightNormalized,vNorm)) * fFalloff * fRadialAttenuation;
+        LightColorDiffuseResult = texelFetch(SpotLightBufferColor,nLightIndex).rgb * saturate(dot(vToLightNormalized,vNorm)) * fFalloff * fRadialAttenuation;
 
         float3 vHalfAngle = normalize( vViewDir + vToLightNormalized );
-        LightColorSpecularResult = SpotLightBufferColor[nLightIndex].rgb * pow( saturate(dot( vHalfAngle, vNorm )), 8 ) * fFalloff * fRadialAttenuation;
+        LightColorSpecularResult = texelFetch(SpotLightBufferColor,nLightIndex).rgb * pow( saturate(dot( vHalfAngle, vNorm )), 8 ) * fFalloff * fRadialAttenuation;
 
         if( bDoShadow )
         {
@@ -228,9 +228,14 @@ void DoSpotLighting(bool bDoShadow, in Buffer<float4> SpotLightBufferCenterAndRa
     }
 }
 
-void DoVPLLighting(in StructuredBuffer<float4> VPLBufferCenterAndRadius, in StructuredBuffer<VPLData> VPLBufferData, in uint nLightIndex, in float3 vPosition, in float3 vNorm, out float3 LightColorDiffuseResult)
+layout(binding = 7) buffer _VPLBufferData
 {
-    float4 CenterAndRadius = VPLBufferCenterAndRadius[nLightIndex];
+    VPLData VPLBufferData[];
+};
+
+void DoVPLLighting(samplerBuffer VPLBufferCenterAndRadius, /*in VPLData VPLBufferData[],*/ in int nLightIndex, in float3 vPosition, in float3 vNorm, out float3 LightColorDiffuseResult)
+{
+    float4 CenterAndRadius = texelFetch(VPLBufferCenterAndRadius, nLightIndex);
     VPLData Data = VPLBufferData[nLightIndex];
 
     float3 vToLight = CenterAndRadius.xyz - vPosition;

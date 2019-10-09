@@ -13,6 +13,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.texture.AttachType;
 import jet.opengl.postprocessing.texture.RenderTargets;
@@ -96,38 +97,39 @@ final class RSMRenderer implements Disposeable, ICONST {
 
     void AddShadersToCache( /*AMD::ShaderCache *pShaderCache*/ ){
         // Ensure all shaders (and input layouts) are released
-        /*SAFE_RELEASE( m_pRSMVS );
-        SAFE_RELEASE( m_pRSMPS );
-        SAFE_RELEASE( m_pRSMLayout );
+        SAFE_RELEASE( m_pRSMProg );
+//        SAFE_RELEASE( m_pRSMPS );
+//        SAFE_RELEASE( m_pRSMLayout );
         SAFE_RELEASE( m_pGenerateSpotVPLsCS );
         SAFE_RELEASE( m_pGeneratePointVPLsCS );
 
-        const D3D11_INPUT_ELEMENT_DESC Layout[] =
-                {
-                        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                        { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                };
+//        const D3D11_INPUT_ELEMENT_DESC Layout[] =
+//        {
+//                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+//                { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+//                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+//                { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+//        };
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pRSMVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RSMVS",
+        /*pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pRSMVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RSMVS",
                 L"RSM.hlsl", 0, NULL, &m_pRSMLayout, Layout, ARRAYSIZE( Layout ) );
 
         pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pRSMPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RSMPS",
-                L"RSM.hlsl", 0, NULL, NULL, NULL, 0 );
+                L"RSM.hlsl", 0, NULL, NULL, NULL, 0 );*/
+        m_pRSMProg = GLSLProgram.createProgram(SHADER_PATH+"RSMVS.vert", SHADER_PATH+"RSMPS.frag", null);
 
-        AMD::ShaderCache::Macro GenerateVPLMacros[ 1 ];
-        wcscpy_s( GenerateVPLMacros[0].m_wsName, AMD::ShaderCache::m_uMACRO_MAX_LENGTH, L"SPOT_LIGHTS" );
+        Macro GenerateVPLMacros[] = {new Macro("SPOT_LIGHTS", 0)};
+//        wcscpy_s( GenerateVPLMacros[0].m_wsName, AMD::ShaderCache::m_uMACRO_MAX_LENGTH, L"SPOT_LIGHTS" );
 
-        GenerateVPLMacros[ 0 ].m_iValue = 1;
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pGenerateSpotVPLsCS, AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"GenerateVPLsCS",
-                L"GenerateVPLs.hlsl", ARRAYSIZE( GenerateVPLMacros ), GenerateVPLMacros, NULL, NULL, 0 );
+        GenerateVPLMacros[0].value = 1;
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pGenerateSpotVPLsCS, AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"GenerateVPLsCS",
+//                L"GenerateVPLs.hlsl", ARRAYSIZE( GenerateVPLMacros ), GenerateVPLMacros, NULL, NULL, 0 );
+        m_pGenerateSpotVPLsCS = GLSLProgram.createProgram(SHADER_PATH+"GenerateVPLsCS.comp", GenerateVPLMacros);
 
-        GenerateVPLMacros[ 0 ].m_iValue = 0;
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pGeneratePointVPLsCS, AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"GenerateVPLsCS",
-                L"GenerateVPLs.hlsl", ARRAYSIZE( GenerateVPLMacros ), GenerateVPLMacros, NULL, NULL, 0 );*/
-
-        throw new UnsupportedOperationException();
+        GenerateVPLMacros[0].value = 0;
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pGeneratePointVPLsCS, AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"GenerateVPLsCS",
+//                L"GenerateVPLs.hlsl", ARRAYSIZE( GenerateVPLMacros ), GenerateVPLMacros, NULL, NULL, 0 );
+        m_pGeneratePointVPLsCS = GLSLProgram.createProgram(SHADER_PATH+"GenerateVPLsCS.comp", GenerateVPLMacros);
     }
 
     // Various hook functions

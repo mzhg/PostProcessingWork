@@ -1,5 +1,6 @@
 #include "CommonHeader.glsl"
 #include "LightingCommonHeader.glsl"
+#include "Transparency.glsl"
 
 in VS_OUTPUT_ALPHA_BLENDED
 {
@@ -10,55 +11,11 @@ in VS_OUTPUT_ALPHA_BLENDED
 
 out vec4 Out_Color;
 
-/*Buffer<float4> g_PointLightBufferCenterAndRadius : register( t2 );
-Buffer<float4> g_PointLightBufferColor           : register( t3 );
-Buffer<uint>   g_PerTileLightIndexBuffer         : register( t4 );
-
-Buffer<float4> g_SpotLightBufferCenterAndRadius  : register( t5 );
-Buffer<float4> g_SpotLightBufferColor            : register( t6 );
-Buffer<float4> g_SpotLightBufferSpotParams       : register( t7 );
-Buffer<uint>   g_PerTileSpotIndexBuffer          : register( t8 );*/
-
-layout(binding = 2) readonly buffer Buffer2
-{
-    float4 g_PointLightBufferCenterAndRadius[];
-};
-
-layout(binding = 3) readonly buffer Buffer3
-{
-    float4 g_PointLightBufferColor[];
-};
-
-layout(binding = 4) readonly buffer Buffer4
-{
-    uint g_PerTileLightIndexBuffer[];
-};
-
-layout(binding = 5) readonly buffer Buffer5
-{
-    float4 g_SpotLightBufferCenterAndRadius[];
-};
-
-layout(binding = 6) readonly buffer Buffer6
-{
-    float4 g_SpotLightBufferColor[];
-};
-
-layout(binding = 7) readonly buffer Buffer7
-{
-    float4 g_SpotLightBufferSpotParams[];
-};
-
-layout(binding = 8) readonly buffer Buffer8
-{
-    uint g_PerTileSpotIndexBuffer[];
-};
-
-void DoLightingTwoSided(in uint nLightIndex, in float3 vPosition, in float3 vNorm, in float3 vViewDir,
+void DoLightingTwoSided(in int nLightIndex, in float3 vPosition, in float3 vNorm, in float3 vViewDir,
                         out float3 LightColorDiffuseResultFrontFace, out float3 LightColorSpecularResultFrontFace,
                         out float3 LightColorDiffuseResultBackFace, out float3 LightColorSpecularResultBackFace)
 {
-    float4 CenterAndRadius = g_PointLightBufferCenterAndRadius[nLightIndex];
+    float4 CenterAndRadius = texelFetch(g_PointLightBufferCenterAndRadius, nLightIndex);
 
     float3 vToLight = CenterAndRadius.xyz - vPosition.xyz;
     float3 vLightDir = normalize(vToLight);
@@ -78,7 +35,7 @@ void DoLightingTwoSided(in uint nLightIndex, in float3 vPosition, in float3 vNor
         // k=20: -(1/20)*(1 - 21/(1+20*x^2))
         float fFalloff = -0.05 + 1.05/(1+20*x*x);
 
-        float3 LightColor = g_PointLightBufferColor[nLightIndex].rgb;
+        float3 LightColor = texelFetch(g_PointLightBufferColor, nLightIndex).rgb;
 
         LightColorDiffuseResultFrontFace = LightColor * saturate(dot(vLightDir,vNorm)) * fFalloff;
 
@@ -98,12 +55,12 @@ void DoLightingTwoSided(in uint nLightIndex, in float3 vPosition, in float3 vNor
     }
 }
 
-void DoSpotLightingTwoSided(in uint nLightIndex, in float3 vPosition, in float3 vNorm, in float3 vViewDir,
+void DoSpotLightingTwoSided(in int nLightIndex, in float3 vPosition, in float3 vNorm, in float3 vViewDir,
                             out float3 LightColorDiffuseResultFrontFace, out float3 LightColorSpecularResultFrontFace,
                             out float3 LightColorDiffuseResultBackFace, out float3 LightColorSpecularResultBackFace)
 {
-    float4 BoundingSphereCenterAndRadius = g_SpotLightBufferCenterAndRadius[nLightIndex];
-    float4 SpotParams = g_SpotLightBufferSpotParams[nLightIndex];
+    float4 BoundingSphereCenterAndRadius = texelFetch(g_SpotLightBufferCenterAndRadius,nLightIndex);
+    float4 SpotParams = texelFetch(g_SpotLightBufferSpotParams,nLightIndex);
 
     // reconstruct z component of the light dir from x and y
     float3 SpotLightDir;
@@ -140,7 +97,7 @@ void DoSpotLightingTwoSided(in uint nLightIndex, in float3 vPosition, in float3 
         // k=20: -(1/20)*(1 - 21/(1+20*x^2))
         float fFalloff = -0.05 + 1.05/(1+20*x*x);
 
-        float3 LightColor = g_SpotLightBufferColor[nLightIndex].rgb;
+        float3 LightColor = texelFetch(g_SpotLightBufferColor,nLightIndex).rgb;
 
         LightColorDiffuseResultFrontFace = LightColor * saturate(dot(vToLightNormalized,vNorm)) * fFalloff * fRadialAttenuation;
 
@@ -181,11 +138,11 @@ void main()
     // loop over the point lights
     {
         uint nStartIndex, nLightCount;
-        GetLightListInfo(g_PerTileLightIndexBuffer, g_uMaxNumLightsPerTile, g_uMaxNumElementsPerTile, Input.Position, nStartIndex, nLightCount);
+        GetLightListInfo(g_PerTileLightIndexBuffer, g_uMaxNumLightsPerTile, g_uMaxNumElementsPerTile, gl_FragCoord, nStartIndex, nLightCount);
 
         for ( uint i = nStartIndex; i < nStartIndex+nLightCount; i++ )
         {
-            uint nLightIndex = g_PerTileLightIndexBuffer[i];
+            int nLightIndex = int(texelFetch(g_PerTileLightIndexBuffer, int(i)));
 
             float3 LightColorDiffuseResultFrontFace;
             float3 LightColorSpecularResultFrontFace;
@@ -205,11 +162,11 @@ void main()
     // loop over the spot lights
     {
         uint nStartIndex, nLightCount;
-        GetLightListInfo(g_PerTileSpotIndexBuffer, g_uMaxNumLightsPerTile, g_uMaxNumElementsPerTile, Input.Position, nStartIndex, nLightCount);
+        GetLightListInfo(g_PerTileSpotIndexBuffer, g_uMaxNumLightsPerTile, g_uMaxNumElementsPerTile, gl_FragCoord, nStartIndex, nLightCount);
 
         for ( uint i = nStartIndex; i < nStartIndex+nLightCount; i++ )
         {
-            uint nLightIndex = g_PerTileSpotIndexBuffer[i];
+            int nLightIndex = int(texelFetch(g_PerTileSpotIndexBuffer, int(i)));
 
             float3 LightColorDiffuseResultFrontFace;
             float3 LightColorSpecularResultFrontFace;

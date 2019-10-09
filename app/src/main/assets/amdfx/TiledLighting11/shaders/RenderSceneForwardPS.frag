@@ -47,11 +47,11 @@ void main()
     // loop over the point lights
     {
         uint nStartIndex, nLightCount;
-        GetLightListInfo(g_PerTileLightIndexBuffer, g_uMaxNumLightsPerTile, g_uMaxNumElementsPerTile, Input.Position, nStartIndex, nLightCount);
+        GetLightListInfo(g_PerTileLightIndexBuffer, g_uMaxNumLightsPerTile, g_uMaxNumElementsPerTile, gl_FragCoord, nStartIndex, nLightCount);
 
         for ( uint i = nStartIndex; i < nStartIndex+nLightCount; i++ )
         {
-            uint nLightIndex = g_PerTileLightIndexBuffer[i];
+            int nLightIndex = int(texelFetch(g_PerTileLightIndexBuffer, int(i)));
 
             float3 LightColorDiffuseResult;
             float3 LightColorSpecularResult;
@@ -70,11 +70,12 @@ void main()
     // loop over the spot lights
     {
         uint nStartIndex, nLightCount;
-        GetLightListInfo(g_PerTileSpotIndexBuffer, g_uMaxNumLightsPerTile, g_uMaxNumElementsPerTile, Input.Position, nStartIndex, nLightCount);
+        GetLightListInfo(g_PerTileSpotIndexBuffer, g_uMaxNumLightsPerTile, g_uMaxNumElementsPerTile, gl_FragCoord, nStartIndex, nLightCount);
 
         for ( uint i = nStartIndex; i < nStartIndex+nLightCount; i++ )
         {
-            uint nLightIndex = g_PerTileSpotIndexBuffer[i];
+//            uint nLightIndex = g_PerTileSpotIndexBuffer[i];
+            int nLightIndex = int(texelFetch(g_PerTileSpotIndexBuffer, int(i)));
 
             float3 LightColorDiffuseResult;
             float3 LightColorSpecularResult;
@@ -94,15 +95,16 @@ void main()
     // loop over the VPLs
     {
         uint nStartIndex, nLightCount;
-        GetLightListInfo(g_PerTileVPLIndexBuffer, g_uMaxNumVPLsPerTile, g_uMaxNumVPLElementsPerTile, Input.Position, nStartIndex, nLightCount);
+        GetLightListInfo(g_PerTileVPLIndexBuffer, g_uMaxNumVPLsPerTile, g_uMaxNumVPLElementsPerTile, gl_FragCoord, nStartIndex, nLightCount);
 
         for ( uint i = nStartIndex; i < nStartIndex+nLightCount; i++ )
         {
-            uint nLightIndex = g_PerTileVPLIndexBuffer[i];
+//            uint nLightIndex = g_PerTileVPLIndexBuffer[i];
+            int nLightIndex = int(texelFetch(g_PerTileVPLIndexBuffer, int(i)));
 
             float3 LightColorDiffuseResult;
 
-            DoVPLLighting(g_VPLBufferCenterAndRadius, g_VPLBufferData, nLightIndex, vPositionWS, vNorm, LightColorDiffuseResult);
+            DoVPLLighting(g_VPLBufferCenterAndRadius, /*g_VPLBufferData,*/ nLightIndex, vPositionWS, vNorm, LightColorDiffuseResult);
 
             AccumDiffuse += LightColorDiffuseResult;
         }

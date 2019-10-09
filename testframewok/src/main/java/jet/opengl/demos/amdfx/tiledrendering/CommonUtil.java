@@ -26,6 +26,7 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.GLSLProgramPipeline;
 import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderProgram;
+import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
@@ -162,6 +163,29 @@ final class CommonUtil implements ICONST, Disposeable {
     private static final int          g_NumBlendedObjects = 2*20;
     private static final Matrix4f[]   g_BlendedObjectInstanceTransform = new Matrix4f[ g_NumBlendedObjects ];
     private static final BlendedObjectIndex[] g_BlendedObjectIndices = new BlendedObjectIndex[ g_NumBlendedObjects ];
+
+    static{
+        for (int i = 0; i < g_GridVertexDataHigh.length; i++){
+            for(int j = 0; j < g_GridVertexDataHigh[i].length; j++){
+                g_GridVertexDataHigh[i][j] = new CommonUtilGridVertex();
+            }
+        }
+
+        for(int i = 0; i < g_GridVertexDataMed.length; i++){
+            for(int j = 0; j < g_GridVertexDataMed[i].length; j++){
+                g_GridVertexDataMed[i][j] = new CommonUtilGridVertex();
+            }
+        }
+
+        for(int i = 0; i < g_GridVertexDataLow.length; i++){
+            for(int j = 0; j < g_GridVertexDataLow[i].length; j++){
+                g_GridVertexDataLow[i][j] = new CommonUtilGridVertex();
+            }
+        }
+
+        for(int i = 0; i < g_QuadForLegendVertexData.length; i++)
+            g_QuadForLegendVertexData[i] = new CommonUtilSpriteVertex();
+    }
 
     // there should only be one CommonUtil object
     static int CommonUtilObjectCounter = 0;
@@ -451,7 +475,7 @@ final class CommonUtil implements ICONST, Disposeable {
         }
     }
 
-    void AddShadersToCache( /*AMD::ShaderCache *pShaderCache*/ ){
+    void AddShadersToCache( /*AMD::ShaderCache *pShaderCache*/ ) throws IOException{
         // Ensure all shaders (and input layouts) are released
         SAFE_RELEASE( m_pSceneBlendedVS );
         SAFE_RELEASE( m_pSceneBlendedDepthVS );
@@ -503,75 +527,90 @@ final class CommonUtil implements ICONST, Disposeable {
 
         final D3D11_INPUT_ELEMENT_DESC LayoutForBlendedObjects[] =
         {
-                new D3D11_INPUT_ELEMENT_DESC( "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
-                new D3D11_INPUT_ELEMENT_DESC( "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
-                new D3D11_INPUT_ELEMENT_DESC( "TEXCOORD", 0, DXGI_FORMAT_R16G16_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "TEXCOORD", 0, DXGI_FORMAT_R16G16_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
         };
 
         final D3D11_INPUT_ELEMENT_DESC LayoutForSprites[] =
         {
-                new D3D11_INPUT_ELEMENT_DESC( "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
-                new D3D11_INPUT_ELEMENT_DESC( "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
         };
 
         m_pSceneBlendedLayout = ID3D11InputLayout.createInputLayoutFrom(LayoutForBlendedObjects);
         m_pSceneBlendedDepthLayout = ID3D11InputLayout.createInputLayoutFrom(LayoutForBlendedObjects);
 
-        throw new UnsupportedOperationException("Don't forget to create shaders.");
-        /*pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneBlendedVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderBlendedVS",
-                L"Transparency.hlsl", 0, NULL, &m_pSceneBlendedLayout, LayoutForBlendedObjects, ARRAYSIZE( LayoutForBlendedObjects ) );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneBlendedVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderBlendedVS",
+//                L"Transparency.hlsl", 0, NULL, &m_pSceneBlendedLayout, LayoutForBlendedObjects, ARRAYSIZE( LayoutForBlendedObjects ) );
+        m_pSceneBlendedVS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"RenderBlendedVS.vert", ShaderType.VERTEX);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneBlendedDepthVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderBlendedDepthVS",
-                L"Transparency.hlsl", 0, NULL, &m_pSceneBlendedDepthLayout, LayoutForBlendedObjects, ARRAYSIZE( LayoutForBlendedObjects ) );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneBlendedDepthVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderBlendedDepthVS",
+//                L"Transparency.hlsl", 0, NULL, &m_pSceneBlendedDepthLayout, LayoutForBlendedObjects, ARRAYSIZE( LayoutForBlendedObjects ) );
+        m_pSceneBlendedDepthVS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"RenderBlendedDepthVS.vert", ShaderType.VERTEX);
 
         // SHADOWS_ENABLED = 0 (false)
-        ShaderMacroBlendedPS.m_iValue = 0;
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneBlendedPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RenderBlendedPS",
-                L"Transparency.hlsl", 1, &ShaderMacroBlendedPS, NULL, NULL, 0 );
+        ShaderMacroBlendedPS.value = 0;
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneBlendedPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RenderBlendedPS",
+//                L"Transparency.hlsl", 1, &ShaderMacroBlendedPS, NULL, NULL, 0 );
+
+        m_pSceneBlendedPS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"RenderBlendedPS.frag", ShaderType.FRAGMENT, ShaderMacroBlendedPS);
 
         // SHADOWS_ENABLED = 1 (true)
-        ShaderMacroBlendedPS.m_iValue = 1;
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneBlendedPSShadows, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RenderBlendedPS",
-                L"Transparency.hlsl", 1, &ShaderMacroBlendedPS, NULL, NULL, 0 );
+        ShaderMacroBlendedPS.value = 1;
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneBlendedPSShadows, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RenderBlendedPS",
+//                L"Transparency.hlsl", 1, &ShaderMacroBlendedPS, NULL, NULL, 0 );
+        m_pSceneBlendedPSShadows= GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"RenderBlendedPS.frag", ShaderType.FRAGMENT, ShaderMacroBlendedPS);
+
 
         // BLENDED_PASS = 0 (false)
-        ShaderMacroDebugDrawNumLightsPerTilePS[1].m_iValue = 0;
+        ShaderMacroDebugDrawNumLightsPerTilePS[1].value = 0;
 
         // VPLS_ENABLED = 0 (false)
-        ShaderMacroDebugDrawNumLightsPerTilePS[0].m_iValue = 0;
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsPerTileRadarColorsPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileRadarColorsPS",
-                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+        ShaderMacroDebugDrawNumLightsPerTilePS[0].value = 0;
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsPerTileRadarColorsPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileRadarColorsPS",
+//                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+        m_pDebugDrawNumLightsPerTileRadarColorsPS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawNumLightsPerTileRadarColorsPS.frag", ShaderType.FRAGMENT, ShaderMacroDebugDrawNumLightsPerTilePS);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsPerTileGrayscalePS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileGrayscalePS",
-                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsPerTileGrayscalePS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileGrayscalePS",
+//                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+        m_pDebugDrawNumLightsPerTileGrayscalePS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawNumLightsPerTileGrayscalePS.frag", ShaderType.FRAGMENT, ShaderMacroDebugDrawNumLightsPerTilePS);
 
         // VPLS_ENABLED = 1 (true)
-        ShaderMacroDebugDrawNumLightsPerTilePS[0].m_iValue = 1;
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsAndVPLsPerTileRadarColorsPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileRadarColorsPS",
-                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+        ShaderMacroDebugDrawNumLightsPerTilePS[0].value = 1;
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsAndVPLsPerTileRadarColorsPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileRadarColorsPS",
+//                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+        m_pDebugDrawNumLightsAndVPLsPerTileRadarColorsPS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawNumLightsPerTileRadarColorsPS.frag", ShaderType.FRAGMENT, ShaderMacroDebugDrawNumLightsPerTilePS);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsAndVPLsPerTileGrayscalePS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileGrayscalePS",
-                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsAndVPLsPerTileGrayscalePS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileGrayscalePS",
+//                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+        m_pDebugDrawNumLightsAndVPLsPerTileGrayscalePS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawNumLightsPerTileGrayscalePS.frag", ShaderType.FRAGMENT, ShaderMacroDebugDrawNumLightsPerTilePS);
 
         // BLENDED_PASS = 1 (true), still with VPLS_ENABLED = 1 (true)
-        ShaderMacroDebugDrawNumLightsPerTilePS[1].m_iValue = 1;
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsPerTileForTransparencyWithVPLsEnabledRadarColorsPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileRadarColorsPS",
-                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+        ShaderMacroDebugDrawNumLightsPerTilePS[1].value = 1;
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsPerTileForTransparencyWithVPLsEnabledRadarColorsPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileRadarColorsPS",
+//                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+        m_pDebugDrawNumLightsPerTileForTransparencyWithVPLsEnabledRadarColorsPS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawNumLightsPerTileRadarColorsPS.frag", ShaderType.FRAGMENT, ShaderMacroBlendedPS);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsPerTileForTransparencyWithVPLsEnabledGrayscalePS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileGrayscalePS",
-                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawNumLightsPerTileForTransparencyWithVPLsEnabledGrayscalePS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawNumLightsPerTileGrayscalePS",
+//                L"DebugDraw.hlsl", 2, ShaderMacroDebugDrawNumLightsPerTilePS, NULL, NULL, 0 );
+        m_pDebugDrawNumLightsPerTileForTransparencyWithVPLsEnabledGrayscalePS= GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawNumLightsPerTileGrayscalePS.frag", ShaderType.FRAGMENT, ShaderMacroBlendedPS);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawLegendForNumLightsPerTileVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"DebugDrawLegendForNumLightsPerTileVS",
-                L"DebugDraw.hlsl", 0, NULL, &m_pDebugDrawLegendForNumLightsLayout11, LayoutForSprites, ARRAYSIZE( LayoutForSprites ) );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawLegendForNumLightsPerTileVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"DebugDrawLegendForNumLightsPerTileVS",
+//                L"DebugDraw.hlsl", 0, NULL, &m_pDebugDrawLegendForNumLightsLayout11, LayoutForSprites, ARRAYSIZE( LayoutForSprites ) );
+        m_pDebugDrawLegendForNumLightsPerTileVS= GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawLegendForNumLightsPerTileVS.vert", ShaderType.VERTEX);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawLegendForNumLightsPerTileRadarColorsPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawLegendForNumLightsPerTileRadarColorsPS",
-                L"DebugDraw.hlsl", 0, NULL, NULL, NULL, 0 );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawLegendForNumLightsPerTileRadarColorsPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawLegendForNumLightsPerTileRadarColorsPS",
+//                L"DebugDraw.hlsl", 0, NULL, NULL, NULL, 0 );
+        m_pDebugDrawLegendForNumLightsPerTileRadarColorsPS= GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawLegendForNumLightsPerTileRadarColorsPS.frag", ShaderType.FRAGMENT);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawLegendForNumLightsPerTileGrayscalePS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawLegendForNumLightsPerTileGrayscalePS",
-                L"DebugDraw.hlsl", 0, NULL, NULL, NULL, 0 );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pDebugDrawLegendForNumLightsPerTileGrayscalePS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"DebugDrawLegendForNumLightsPerTileGrayscalePS",
+//                L"DebugDraw.hlsl", 0, NULL, NULL, NULL, 0 );
+        m_pDebugDrawLegendForNumLightsPerTileGrayscalePS= GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"DebugDrawLegendForNumLightsPerTileGrayscalePS.frag", ShaderType.FRAGMENT);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pFullScreenVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"FullScreenQuadVS",
-                L"Common.hlsl", 0, NULL, NULL, NULL, 0 );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pFullScreenVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"FullScreenQuadVS",
+//                L"Common.hlsl", 0, NULL, NULL, NULL, 0 );
+//  TODO      m_pFullScreenVS= GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"FullScreenQuadVS.vert", ShaderType.VERTEX);
 
         // sanity check
         assert(NUM_FULL_SCREEN_PIXEL_SHADERS == NUM_MSAA_SETTINGS);
@@ -579,17 +618,19 @@ final class CommonUtil implements ICONST, Disposeable {
         for( int i = 0; i < NUM_FULL_SCREEN_PIXEL_SHADERS; i++ )
         {
             // set NUM_MSAA_SAMPLES
-            ShaderMacroFullScreenPS.m_iValue = g_nMSAASampleCount[i];
-            pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pFullScreenPS[i], AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"FullScreenBlitPS",
-                L"Common.hlsl", 1, &ShaderMacroFullScreenPS, NULL, NULL, 0 );
+            ShaderMacroFullScreenPS.value = g_nMSAASampleCount[i];
+//            pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pFullScreenPS[i], AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"FullScreenBlitPS",
+//                L"Common.hlsl", 1, &ShaderMacroFullScreenPS, NULL, NULL, 0 );
+// TODO           m_pFullScreenPS[i] = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"FullScreenBlitPS.frag", ShaderType.FRAGMENT, ShaderMacroFullScreenPS);
         }
 
-        AMD::ShaderCache::Macro ShaderMacroLightCullCS[2];
-        wcscpy_s( ShaderMacroLightCullCS[0].m_wsName, AMD::ShaderCache::m_uMACRO_MAX_LENGTH, L"TILED_CULLING_COMPUTE_SHADER_MODE" );
-        wcscpy_s( ShaderMacroLightCullCS[1].m_wsName, AMD::ShaderCache::m_uMACRO_MAX_LENGTH, L"NUM_MSAA_SAMPLES" );
+        Macro[] ShaderMacroLightCullCS = {
+                new Macro("TILED_CULLING_COMPUTE_SHADER_MODE", 4),
+                new Macro("NUM_MSAA_SAMPLES", 0),
+        };
 
         // Set TILED_CULLING_COMPUTE_SHADER_MODE to 4 (blended geometry mode)
-        ShaderMacroLightCullCS[0].m_iValue = 4;
+//        ShaderMacroLightCullCS[0].m_iValue = 4;
 
         // sanity check
         assert(NUM_LIGHT_CULLING_COMPUTE_SHADERS_FOR_BLENDED_OBJECTS == NUM_MSAA_SETTINGS);
@@ -597,10 +638,12 @@ final class CommonUtil implements ICONST, Disposeable {
         for( int i = 0; i < NUM_MSAA_SETTINGS; i++ )
         {
             // set NUM_MSAA_SAMPLES
-            ShaderMacroLightCullCS[1].m_iValue = g_nMSAASampleCount[i];
-            pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pLightCullCSForBlendedObjects[i], AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"CullLightsCS",
-                L"TilingForward.hlsl", 2, ShaderMacroLightCullCS, NULL, NULL, 0 );
-        }*/
+            ShaderMacroLightCullCS[1].value = g_nMSAASampleCount[i];
+//            pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pLightCullCSForBlendedObjects[i], AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"CullLightsCS",
+//                L"TilingForward.hlsl", 2, ShaderMacroLightCullCS, NULL, NULL, 0 );
+
+            m_pLightCullCSForBlendedObjects[i] = GLSLProgram.createProgram(SHADER_PATH+"CullLightsCS.comp",ShaderMacroLightCullCS);
+        }
     }
 
     void SortTransparentObjects(ReadableVector3f vEyePt){

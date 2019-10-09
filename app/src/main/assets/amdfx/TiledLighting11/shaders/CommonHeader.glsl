@@ -8,7 +8,7 @@
 //--------------------------------------------------------------------------------------
 // Miscellaneous constants
 //--------------------------------------------------------------------------------------
-const float4 kRadarColors[14] = float4[]
+const float4 kRadarColors[14] = float4[14]
 (
     float4(0,0.9255,0.9255,1),   // cyan
     float4(0,0.62745,0.9647,1),  // light blue
@@ -23,7 +23,7 @@ const float4 kRadarColors[14] = float4[]
     float4(0.8392,0,0,1),        // red
     float4(0.75294,0,0,1),       // dark red
     float4(1,0,1,1),             // magenta
-    float4(0.6,0.3333,0.7882,1), // purple
+    float4(0.6,0.3333,0.7882,1)  // purple
 );
 
 //--------------------------------------------------------------------------------------
@@ -56,6 +56,7 @@ cbuffer cbPerCamera : register( b1 )
 
 uniform mat4 g_mWorld;
 uniform mat4 g_mViewProjection;
+uniform float2 g_CameraRange;   // x: near; y: far
 
 layout(binding = 0) uniform cbPerFrame //: register( b2 )
 {
@@ -131,8 +132,11 @@ float4 ConvertProjToView( float4 p )
 // convert a depth value from post-projection space into view space
 float ConvertProjDepthToView( float z )
 {
-    z = 1.f / (z*g_mProjectionInv._34 + g_mProjectionInv._44);
-    return z;
+    float mZFar =g_CameraRange.y;
+    float mZNear = g_CameraRange.x;
+    float fCamSpaceZ = mZFar*mZNear/(mZFar-z*(mZFar-mZNear));
+
+    return fCamSpaceZ;
 }
 
 uint GetTileIndex(float2 ScreenPos)
@@ -144,21 +148,21 @@ uint GetTileIndex(float2 ScreenPos)
 
 // PerTileLightIndexBuffer layout:
 // | HalfZ High Bits | HalfZ Low Bits | Light Count List A | Light Count List B | space for max num lights per tile light indices (List A) | space for max num lights per tile light indices (List B) |
-void GetLightListInfo(in Buffer<uint> PerTileLightIndexBuffer, in uint uMaxNumLightsPerTile, in uint uMaxNumElementsPerTile, in float4 SVPosition, out uint uFirstLightIndex, out uint uNumLights)
+void GetLightListInfo(usamplerBuffer PerTileLightIndexBuffer, in uint uMaxNumLightsPerTile, in uint uMaxNumElementsPerTile, in float4 SVPosition, out uint uFirstLightIndex, out uint uNumLights)
 {
     uint nTileIndex = GetTileIndex(SVPosition.xy);
-    uint nStartIndex = uMaxNumElementsPerTile*nTileIndex;
+    int nStartIndex = int(uMaxNumElementsPerTile*nTileIndex);
 
     // reconstruct fHalfZ
-    uint uHalfZBitsHigh = PerTileLightIndexBuffer[nStartIndex];
-    uint uHalfZBitsLow = PerTileLightIndexBuffer[nStartIndex+1];
+    uint uHalfZBitsHigh = texelFetch(PerTileLightIndexBuffer, nStartIndex).x;
+    uint uHalfZBitsLow = texelFetch(PerTileLightIndexBuffer, nStartIndex+1).x;
     uint uHalfZBits = (uHalfZBitsHigh << 16) | uHalfZBitsLow;
     float fHalfZ = asfloat(uHalfZBits);
 
     float fViewPosZ = ConvertProjDepthToView( SVPosition.z );
 
     uFirstLightIndex = (fViewPosZ < fHalfZ) ? (nStartIndex + 4) : (nStartIndex + 4 + uMaxNumLightsPerTile);
-    uNumLights = (fViewPosZ < fHalfZ) ? PerTileLightIndexBuffer[nStartIndex+2] : PerTileLightIndexBuffer[nStartIndex+3];
+    uNumLights = (fViewPosZ < fHalfZ) ? texelFetch(PerTileLightIndexBuffer, nStartIndex+2).x : texelFetch(PerTileLightIndexBuffer, nStartIndex+3).x;
 }
 
 float4 ConvertNumberOfLightsToGrayscale(uint nNumLightsInThisTile, uint uMaxNumLightsPerTile)
@@ -186,7 +190,7 @@ float4 ConvertNumberOfLightsToRadarColor(uint nNumLightsInThisTile, uint uMaxNum
 
         // change of base
         // logb(x) = log2(x) / log2(b)
-        uint nColorIndex = uint(floor(log2(float(nNumLightsInThisTile)) / log2(fLogBase)));
+        int nColorIndex = int(floor(log2(float(nNumLightsInThisTile)) / log2(fLogBase)));
         return kRadarColors[nColorIndex];
     }
 }

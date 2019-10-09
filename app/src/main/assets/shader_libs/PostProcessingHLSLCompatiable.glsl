@@ -152,4 +152,9 @@ uint4 f32tof16(in float4 value)
     return uint4(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)), packHalf2x16(vec2(value.z, 0)), packHalf2x16(vec2(value.w, 0)));
 }
 
+#define SV_ThreadGroupSize gl_WorkGroupSize
+#define SV_NumThreadGroup  gl_NumWorkGroups
+#define SV_GroupID         gl_WorkGroupID
+#define SV_GroupThreadID   gl_LocalInvocationID
 #define SV_DispatchThreadID gl_GlobalInvocationID
+#define SV_GroupIndex      gl_LocalInvocationIndex

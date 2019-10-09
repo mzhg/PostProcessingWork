@@ -20,6 +20,8 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.FileLoader;
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
 
 public class TiledLighting11 extends NvSampleApp implements ICONST{
@@ -32,7 +34,7 @@ public class TiledLighting11 extends NvSampleApp implements ICONST{
     //--------------------------------------------------------------------------------------
 // Global variables
 //--------------------------------------------------------------------------------------
-    CFirstPersonCamera g_Camera;                // A first-person camera
+    final CFirstPersonCamera g_Camera = new CFirstPersonCamera();                // A first-person camera
 
     // Direct3D 11 resources
     SDKmesh                     g_SceneMesh;
@@ -44,7 +46,7 @@ public class TiledLighting11 extends NvSampleApp implements ICONST{
     Texture2D                   g_DepthStencilBufferForTransparency;
 
     // GUI state
-    GuiState                    g_CurrentGuiState;
+    final GuiState              g_CurrentGuiState = new GuiState();
 
 // Number of currently active point lights
 //    static AMD::Slider*         g_NumPointLightsSlider = NULL;
@@ -125,7 +127,9 @@ public class TiledLighting11 extends NvSampleApp implements ICONST{
         Vector3f SceneMin = new Vector3f();
         Vector3f SceneMax = new Vector3f();
         final String root = "E:\\SDK\\TiledLighting11\\tiledlighting11\\media\\sponza\\";
+        FileLoader old =  FileUtils.g_IntenalFileLoader;
         try {
+            FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
             g_SceneMesh = new SDKmesh();
             g_SceneMesh.create(root + "sponza.sdkmesh", false, null);
             g_SceneMesh.printMeshInformation("sponza");
@@ -137,6 +141,8 @@ public class TiledLighting11 extends NvSampleApp implements ICONST{
             g_CommonUtil.CalculateSceneMinMax( g_SceneMesh, SceneMin, SceneMax );
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            FileUtils.setIntenalFileLoader(old);
         }
 
         // Put the mesh pointers in the wrapper struct that gets passed around
@@ -225,7 +231,11 @@ public class TiledLighting11 extends NvSampleApp implements ICONST{
         if( bFirstPass )
         {
             // Add the applications shaders to the cache
-            AddShadersToCache();
+            try {
+                AddShadersToCache();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 //            g_ShaderCache.GenerateShaders( AMD::ShaderCache::CREATE_TYPE_COMPILE_CHANGES );    // Only compile shaders that have changed (development mode)
             bFirstPass = false;
         }
@@ -518,7 +528,7 @@ public class TiledLighting11 extends NvSampleApp implements ICONST{
     //--------------------------------------------------------------------------------------
 // Adds all shaders to the shader cache
 //--------------------------------------------------------------------------------------
-    void AddShadersToCache()
+    void AddShadersToCache() throws IOException
     {
         g_CommonUtil.AddShadersToCache();
         g_ForwardPlusUtil.AddShadersToCache();

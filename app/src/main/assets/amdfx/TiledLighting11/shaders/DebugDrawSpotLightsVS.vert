@@ -11,7 +11,12 @@ out VS_OUTPUT_DRAW_SPOT_LIGHTS
     float4 Color        /*: COLOR0*/;      // vertex color
     float2 TextureUV    /*: TEXCOORD0*/;   // vertex texture coords
     float3 PositionWS   /*: TEXCOORD1*/;   // vertex position (world space)
-}_output;
+}Output;
+
+out gl_PerVertex
+{
+    float4 gl_Position;
+};
 
 //--------------------------------------------------------------------------------------
 // This shader reads from the spot light buffers to place and orient a particular
@@ -19,8 +24,8 @@ out VS_OUTPUT_DRAW_SPOT_LIGHTS
 //--------------------------------------------------------------------------------------
 void main()
 {
-    float4 BoundingSphereCenterAndRadius = g_SpotLightBufferCenterAndRadius[gl_InstanceID];
-    float4 SpotParams = g_SpotLightBufferSpotParams[gl_InstanceID];
+    float4 BoundingSphereCenterAndRadius = texelFetch(g_SpotLightBufferCenterAndRadius, gl_InstanceID);
+    float4 SpotParams = texelFetch(g_SpotLightBufferSpotParams, gl_InstanceID);
 
     // reconstruct z component of the light dir from x and y
     float3 SpotLightDir;
@@ -35,10 +40,10 @@ void main()
     float3 LightPosition = BoundingSphereCenterAndRadius.xyz - BoundingSphereCenterAndRadius.w*SpotLightDir;
 
     // rotate the light to point along the light direction vector
-    float4x4 LightRotation = float4x4( g_SpotLightBufferSpotMatrices[4*Input.InstanceID],
-                               g_SpotLightBufferSpotMatrices[4*Input.InstanceID+1],
-                               g_SpotLightBufferSpotMatrices[4*Input.InstanceID+2],
-                               g_SpotLightBufferSpotMatrices[4*Input.InstanceID+3] );
+    float4x4 LightRotation = float4x4( texelFetch(g_SpotLightBufferSpotMatrices, 4*gl_InstanceID),
+                    texelFetch(g_SpotLightBufferSpotMatrices,4*gl_InstanceID+1),
+                    texelFetch(g_SpotLightBufferSpotMatrices,4*gl_InstanceID+2),
+                    texelFetch(g_SpotLightBufferSpotMatrices,4*gl_InstanceID+3) );
     float3 VertexPosition = mul( In_Position, float3x3(LightRotation) ) + LightPosition;
     float3 VertexNormal = mul( In_Normal, float3x3(LightRotation) );
 
@@ -50,6 +55,6 @@ void main()
     Output.Normal = VertexNormal;//, (float3x3)g_mWorld );
 
     // pass through color from the light buffer and tex coords from the vert data
-    Output.Color = g_SpotLightBufferColor[gl_InstanceID];
-    Output.TextureUV = Input.TextureUV;
+    Output.Color = texelFetch(g_SpotLightBufferColor, gl_InstanceID);
+    Output.TextureUV = In_Texcoord;
 }

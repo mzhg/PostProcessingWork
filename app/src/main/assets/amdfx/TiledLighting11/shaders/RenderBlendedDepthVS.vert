@@ -1,14 +1,12 @@
 #include "CommonHeader.glsl"
 #include "LightingCommonHeader.glsl"
+#include "Transparency.glsl"
 
 layout(location = 0) in float3 In_Position;
-//-----------------------------------------------------------------------------------------
-// Textures and Buffers
-//-----------------------------------------------------------------------------------------
-//StructuredBuffer<matrix> g_InstanceTransform : register( t0 );
-layout(binding = 0) buffer Buffer0
+
+out gl_PerVertex
 {
-    mat4 g_InstanceTransform[];
+    float4 gl_Position;
 };
 
 //--------------------------------------------------------------------------------------
@@ -17,7 +15,7 @@ layout(binding = 0) buffer Buffer0
 //VS_OUTPUT_ALPHA_BLENDED_DEPTH RenderBlendedDepthVS( VS_INPUT_ALPHA_BLENDED Input, uint InstanceID : SV_InstanceID )
 void main()
 {
-    mat4 mWorld = g_InstanceTransform[InstanceID];
+    mat4 mWorld = g_InstanceTransform[gl_InstanceID];
 
     // Transform the position from object space to homogeneous projection space
     float4 vWorldPos = mul( float4(In_Position,1), mWorld );

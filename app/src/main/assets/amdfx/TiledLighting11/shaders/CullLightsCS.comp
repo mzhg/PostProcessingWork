@@ -1,0 +1,148 @@
+#include "CommonHeader.glsl"
+#include "LightingCommonHeader.glsl"
+#include "TilingCommonHeader.glsl"
+
+//-----------------------------------------------------------------------------------------
+// Textures and Buffers
+//-----------------------------------------------------------------------------------------
+//RWBuffer<uint> g_PerTileLightIndexBufferOut : register( u0 );
+//RWBuffer<uint> g_PerTileSpotIndexBufferOut  : register( u1 );
+
+layout(binding = 0) buffer PerTileLightIndexBufferOut
+{
+    uint g_PerTileLightIndexBufferOut[];
+};
+
+layout(binding = 1) buffer PerTileSpotIndexBufferOut
+{
+    uint g_PerTileSpotIndexBufferOut[];
+};
+
+// Only process VPLs for opaque geometry. The effect is barely
+// noticeable on transparent geometry, so skip it, to save perf.
+#if ( VPLS_ENABLED == 1 )
+//RWBuffer<uint> g_PerTileVPLIndexBufferOut   : register( u2 );
+layout(binding = 2) buffer PerTileVPLIndexBufferOut
+{
+    uint g_PerTileVPLIndexBufferOut[];
+};
+#endif
+
+layout (local_size_x = NUM_THREADS_X, local_size_x = NUM_THREADS_Y) in;
+void main()
+{
+    uint3 globalIdx = SV_DispatchThreadID;
+    uint3 localIdx  = SV_GroupThreadID;
+    uint3 groupIdx = SV_GroupID;
+
+    uint localIdxFlattened = localIdx.x + localIdx.y*NUM_THREADS_X;
+
+    // after calling DoLightCulling, the per-tile list of light indices that intersect this tile
+    // will be in ldsLightIdx, and the number of lights that intersect this tile
+    // will be in ldsLightIdxCounterA and ldsLightIdxCounterB
+    float fHalfZ;
+    DoLightCulling( globalIdx, localIdxFlattened, groupIdx, fHalfZ );
+
+    {   // write back (point lights)
+        uint tileIdxFlattened = groupIdx.x + groupIdx.y*g_uNumTilesX;
+        uint startOffset = g_uMaxNumElementsPerTile*tileIdxFlattened;
+
+        for(uint i=localIdxFlattened; i<ldsLightIdxCounterA; i+=NUM_THREADS_PER_TILE)
+        {
+            // per-tile list of light indices
+            g_PerTileLightIndexBufferOut[startOffset+i+4] = ldsLightIdx[i];
+        }
+
+        for(uint j=localIdxFlattened; j<ldsLightIdxCounterB-MAX_NUM_LIGHTS_PER_TILE; j+=NUM_THREADS_PER_TILE)
+        {
+            // per-tile list of light indices
+            g_PerTileLightIndexBufferOut[startOffset+j+4+g_uMaxNumLightsPerTile] = ldsLightIdx[j+MAX_NUM_LIGHTS_PER_TILE];
+        }
+
+        if( localIdxFlattened == 0 )
+        {
+            // store fHalfZ for this tile as two 16-bit unsigned values
+            uint uHalfZBits = asuint(fHalfZ);
+            uint uHalfZBitsHigh = uHalfZBits >> 16;
+            uint uHalfZBitsLow = uHalfZBits & 0x0000FFFFu;
+            g_PerTileLightIndexBufferOut[startOffset+0] = uHalfZBitsHigh;
+            g_PerTileLightIndexBufferOut[startOffset+1] = uHalfZBitsLow;
+
+            // store the light count for list A
+            g_PerTileLightIndexBufferOut[startOffset+2] = ldsLightIdxCounterA;
+
+            // store the light count for list B
+            g_PerTileLightIndexBufferOut[startOffset+3] = ldsLightIdxCounterB-MAX_NUM_LIGHTS_PER_TILE;
+        }
+    }
+
+    {   // write back (spot lights)
+        uint tileIdxFlattened = groupIdx.x + groupIdx.y*g_uNumTilesX;
+        uint startOffset = g_uMaxNumElementsPerTile*tileIdxFlattened;
+
+        for(uint i=localIdxFlattened; i<ldsSpotIdxCounterA; i+=NUM_THREADS_PER_TILE)
+        {
+            // per-tile list of light indices
+            g_PerTileSpotIndexBufferOut[startOffset+i+4] = ldsSpotIdx[i];
+        }
+
+        for(uint j=localIdxFlattened; j<ldsSpotIdxCounterB-MAX_NUM_LIGHTS_PER_TILE; j+=NUM_THREADS_PER_TILE)
+        {
+            // per-tile list of light indices
+            g_PerTileSpotIndexBufferOut[startOffset+j+4+g_uMaxNumLightsPerTile] = ldsSpotIdx[j+MAX_NUM_LIGHTS_PER_TILE];
+        }
+
+        if( localIdxFlattened == 0 )
+        {
+            // store fHalfZ for this tile as two 16-bit unsigned values
+            uint uHalfZBits = asuint(fHalfZ);
+            uint uHalfZBitsHigh = uHalfZBits >> 16;
+            uint uHalfZBitsLow = uHalfZBits & 0x0000FFFFu;
+            g_PerTileSpotIndexBufferOut[startOffset+0] = uHalfZBitsHigh;
+            g_PerTileSpotIndexBufferOut[startOffset+1] = uHalfZBitsLow;
+
+            // store the light count for list A
+            g_PerTileSpotIndexBufferOut[startOffset+2] = ldsSpotIdxCounterA;
+
+            // store the light count for list B
+            g_PerTileSpotIndexBufferOut[startOffset+3] = ldsSpotIdxCounterB-MAX_NUM_LIGHTS_PER_TILE;
+        }
+    }
+
+// Only process VPLs for opaque geometry. The effect is barely
+// noticeable on transparent geometry, so skip it, to save perf.
+#if ( VPLS_ENABLED == 1 )
+    {   // write back (VPLs)
+        uint tileIdxFlattened = groupIdx.x + groupIdx.y*g_uNumTilesX;
+        uint startOffset = g_uMaxNumVPLElementsPerTile*tileIdxFlattened;
+
+        for(uint i=localIdxFlattened; i<ldsVPLIdxCounterA; i+=NUM_THREADS_PER_TILE)
+        {
+            // per-tile list of VPL indices
+            g_PerTileVPLIndexBufferOut[startOffset+i+4] = ldsVPLIdx[i];
+        }
+
+        for(uint j=localIdxFlattened; j<ldsVPLIdxCounterB-MAX_NUM_VPLS_PER_TILE; j+=NUM_THREADS_PER_TILE)
+        {
+            // per-tile list of VPL indices
+            g_PerTileVPLIndexBufferOut[startOffset+j+4+g_uMaxNumVPLsPerTile] = ldsVPLIdx[j+MAX_NUM_VPLS_PER_TILE];
+        }
+
+        if( localIdxFlattened == 0 )
+        {
+            // store fHalfZ for this tile as two 16-bit unsigned values
+            uint uHalfZBits = asuint(fHalfZ);
+            uint uHalfZBitsHigh = uHalfZBits >> 16;
+            uint uHalfZBitsLow = uHalfZBits & 0x0000FFFFu;
+            g_PerTileVPLIndexBufferOut[startOffset+0] = uHalfZBitsHigh;
+            g_PerTileVPLIndexBufferOut[startOffset+1] = uHalfZBitsLow;
+
+            // store the light count for list A
+            g_PerTileVPLIndexBufferOut[startOffset+2] = ldsVPLIdxCounterA;
+
+            // store the light count for list B
+            g_PerTileVPLIndexBufferOut[startOffset+3] = ldsVPLIdxCounterB-MAX_NUM_VPLS_PER_TILE;
+        }
+    }
+#endif
+}

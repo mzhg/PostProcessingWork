@@ -10,5 +10,5 @@ in vec2 m_TextureUV;
 void main()
 {
     float fGradVal = m_TextureUV.y;
-    return float4(fGradVal, fGradVal, fGradVal, 1.0f);
+    Out_Color = float4(fGradVal, fGradVal, fGradVal, 1.0f);
 }

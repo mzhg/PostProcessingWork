@@ -1,5 +1,6 @@
 #include "CommonHeader.glsl"
 #include "LightingCommonHeader.glsl"
+#include "Transparency.glsl"
 
 layout(location = 0) in float3 In_Position;
 layout(location = 1) in float2 In_Texcoord;
@@ -13,6 +14,11 @@ out VS_OUTPUT_ALPHA_BLENDED
     float3 Normal       /*: NORMAL*/;      // vertex normal vector
     float3 PositionWS   /*: TEXCOORD0*/;   // vertex position (world space)
 }Output;
+
+out gl_PerVertex
+{
+   float4 gl_Position;
+};
 
 //--------------------------------------------------------------------------------------
 // This shader transforms position, calculates world-space position and normal,

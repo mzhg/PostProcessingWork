@@ -1,11 +1,18 @@
 package jet.opengl.demos.amdfx.tiledrendering;
 
+import org.omg.CORBA.UnknownUserException;
+
+import java.io.IOException;
+
+import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderProgram;
+import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.texture.Texture2D;
 
 final class ForwardPlusUtil implements ICONST, Disposeable {
@@ -34,7 +41,7 @@ final class ForwardPlusUtil implements ICONST, Disposeable {
 
     private GLFuncProvider     gl;
 
-    void AddShadersToCache( /*AMD::ShaderCache *pShaderCache*/ ){
+    void AddShadersToCache( /*AMD::ShaderCache *pShaderCache*/ ) throws IOException {
         // Ensure all shaders (and input layouts) are released
         SAFE_RELEASE(m_pScenePositionOnlyVS);
         SAFE_RELEASE(m_pScenePositionAndTexVS);
@@ -54,55 +61,65 @@ final class ForwardPlusUtil implements ICONST, Disposeable {
             SAFE_RELEASE(m_pLightCullCS[i]);
         }
 
-        /*AMD::ShaderCache::Macro ShaderMacroSceneForwardPS[3];
-        wcscpy_s( ShaderMacroSceneForwardPS[0].m_wsName, AMD::ShaderCache::m_uMACRO_MAX_LENGTH, L"USE_ALPHA_TEST" );
-        wcscpy_s( ShaderMacroSceneForwardPS[1].m_wsName, AMD::ShaderCache::m_uMACRO_MAX_LENGTH, L"SHADOWS_ENABLED" );
-        wcscpy_s( ShaderMacroSceneForwardPS[2].m_wsName, AMD::ShaderCache::m_uMACRO_MAX_LENGTH, L"VPLS_ENABLED" );
+//        AMD::ShaderCache::Macro ShaderMacroSceneForwardPS[3];
 
-        const D3D11_INPUT_ELEMENT_DESC Layout[] =
-                {
-                        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                        { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                };
+        Macro[] ShaderMacroSceneForwardPS = {
+                new Macro("USE_ALPHA_TEST", 1),
+                new Macro("SHADOWS_ENABLED", 1),
+                new Macro("VPLS_ENABLED", 1),
+        };
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pScenePositionOnlyVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderScenePositionOnlyVS",
-                L"Forward.hlsl", 0, NULL, &m_pLayoutPositionOnly11, Layout, ARRAYSIZE( Layout ) );
+        final int DXGI_FORMAT_R32G32B32_FLOAT = GLenum.GL_RGB32F;
+        final int DXGI_FORMAT_R32G32_FLOAT = GLenum.GL_RG32F;
+        int D3D11_INPUT_PER_VERTEX_DATA = 0;
+        final D3D11_INPUT_ELEMENT_DESC Layout[] =
+        {
+            new D3D11_INPUT_ELEMENT_DESC( "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+            new D3D11_INPUT_ELEMENT_DESC( "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+        };
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pScenePositionAndTexVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderScenePositionAndTexVS",
-                L"Forward.hlsl", 0, NULL, &m_pLayoutPositionAndTex11, Layout, ARRAYSIZE( Layout ) );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pScenePositionOnlyVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderScenePositionOnlyVS",
+//                L"Forward.hlsl", 0, NULL, &m_pLayoutPositionOnly11, Layout, ARRAYSIZE( Layout ) );
+        m_pScenePositionOnlyVS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"RenderScenePositionOnlyVS.vert", ShaderType.VERTEX);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneForwardVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderSceneForwardVS",
-                L"Forward.hlsl", 0, NULL, &m_pLayoutForward11, Layout, ARRAYSIZE( Layout ) );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pScenePositionAndTexVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderScenePositionAndTexVS",
+//                L"Forward.hlsl", 0, NULL, &m_pLayoutPositionAndTex11, Layout, ARRAYSIZE( Layout ) );
+        m_pScenePositionAndTexVS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"RenderScenePositionAndTexVS.vert", ShaderType.VERTEX);
 
-        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneAlphaTestOnlyPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RenderSceneAlphaTestOnlyPS",
-                L"Forward.hlsl", 0, NULL, NULL, NULL, 0 );
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneForwardVS, AMD::ShaderCache::SHADER_TYPE_VERTEX, L"vs_5_0", L"RenderSceneForwardVS",
+//                L"Forward.hlsl", 0, NULL, &m_pLayoutForward11, Layout, ARRAYSIZE( Layout ) );
+        m_pSceneForwardVS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"RenderSceneForwardVS.vert", ShaderType.VERTEX);
+
+//        pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneAlphaTestOnlyPS, AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RenderSceneAlphaTestOnlyPS",
+//                L"Forward.hlsl", 0, NULL, NULL, NULL, 0 );
+        m_pSceneAlphaTestOnlyPS = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"RenderSceneAlphaTestOnlyPS.frag", ShaderType.FRAGMENT);
 
         for( int i = 0; i < 2; i++ )
         {
             // USE_ALPHA_TEST 0 first time through (false), then 1 (true)
-            ShaderMacroSceneForwardPS[0].m_iValue = i;
-
+            ShaderMacroSceneForwardPS[0].value = i;
             for( int j = 0; j < 2; j++ )
             {
                 // SHADOWS_ENABLED 0 first time through (false), then 1 (true)
-                ShaderMacroSceneForwardPS[1].m_iValue = j;
-
+                ShaderMacroSceneForwardPS[1].value = j;
                 for( int k = 0; k < 2; k++ )
                 {
                     // VPLS_ENABLED 0 first time through (false), then 1 (true)
-                    ShaderMacroSceneForwardPS[2].m_iValue = k;
+                    ShaderMacroSceneForwardPS[2].value = k;
 
-                    pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneForwardPS[2*2*i + 2*j + k], AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RenderSceneForwardPS",
-                        L"Forward.hlsl", 3, ShaderMacroSceneForwardPS, NULL, NULL, 0 );
+//                    pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneForwardPS[2*2*i + 2*j + k], AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RenderSceneForwardPS",
+//                        L"Forward.hlsl", 3, ShaderMacroSceneForwardPS, NULL, NULL, 0 );
+                    m_pSceneForwardPS[2*2*i + 2*j + k] = GLSLProgram.createShaderProgramFromFile(SHADER_PATH+"RenderSceneForwardPS.frag", ShaderType.FRAGMENT, ShaderMacroSceneForwardPS);
                 }
             }
         }
 
-        AMD::ShaderCache::Macro ShaderMacroLightCullCS[2];
-        wcscpy_s( ShaderMacroLightCullCS[0].m_wsName, AMD::ShaderCache::m_uMACRO_MAX_LENGTH, L"TILED_CULLING_COMPUTE_SHADER_MODE" );
-        wcscpy_s( ShaderMacroLightCullCS[1].m_wsName, AMD::ShaderCache::m_uMACRO_MAX_LENGTH, L"NUM_MSAA_SAMPLES" );
+        Macro ShaderMacroLightCullCS[] = {
+            new Macro("TILED_CULLING_COMPUTE_SHADER_MODE", 1),
+            new Macro("NUM_MSAA_SAMPLES", 1),
+        };
 
         // sanity check
         assert(NUM_LIGHT_CULLING_COMPUTE_SHADERS == 2*NUM_MSAA_SETTINGS);
@@ -111,16 +128,18 @@ final class ForwardPlusUtil implements ICONST, Disposeable {
         {
             // TILED_CULLING_COMPUTE_SHADER_MODE 0 first time through (Forward+, VPLs disabled),
             // then 1 (Forward+, VPLs enabled)
-            ShaderMacroLightCullCS[0].m_iValue = i;
+            ShaderMacroLightCullCS[0].value = i;
 
             for( int j = 0; j < NUM_MSAA_SETTINGS; j++ )
             {
                 // set NUM_MSAA_SAMPLES
-                ShaderMacroLightCullCS[1].m_iValue = g_nMSAASampleCount[j];
-                pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pLightCullCS[NUM_MSAA_SETTINGS*i + j], AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"CullLightsCS",
-                    L"TilingForward.hlsl", 2, ShaderMacroLightCullCS, NULL, NULL, 0 );
+                ShaderMacroLightCullCS[1].value = g_nMSAASampleCount[j];
+//                pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pLightCullCS[NUM_MSAA_SETTINGS*i + j], AMD::ShaderCache::SHADER_TYPE_COMPUTE, L"cs_5_0", L"CullLightsCS",
+//                    L"TilingForward.hlsl", 2, ShaderMacroLightCullCS, NULL, NULL, 0 );
+
+                m_pLightCullCS[NUM_MSAA_SETTINGS*i + j] = GLSLProgram.createProgram(SHADER_PATH+"CullLightsCS.comp", ShaderMacroLightCullCS);
             }
-        }*/
+        }
     }
 
     void RenderSceneForShadowMaps( GuiState CurrentGuiState, Scene Scene, CommonUtil CommonUtil ){
@@ -154,6 +173,8 @@ final class ForwardPlusUtil implements ICONST, Disposeable {
         pd3dImmediateContext->PSSetSamplers( 0, 1, CommonUtil.GetSamplerStateParam(SAMPLER_STATE_ANISO) );
         Scene.m_pAlphaMesh->Render( pd3dImmediateContext, 0 );
         pd3dImmediateContext->RSSetState( NULL );*/
+
+        throw new UnsupportedOperationException("The RenderSceneForShadowMaps hasn't implement");
     }
 
     // Various hook functions
@@ -218,6 +239,8 @@ final class ForwardPlusUtil implements ICONST, Disposeable {
     void OnRender(float fElapsedTime, GuiState CurrentGuiState, Texture2D DepthStencilBufferForOpaque,
                   Texture2D DepthStencilBufferForTransparency, Scene Scene, CommonUtil CommonUtil, LightUtil LightUtil,
                   ShadowRenderer ShadowRenderer,  RSMRenderer RSMRenderer ){
+
+        throw new UnsupportedOperationException("OnRender");
         /*ID3D11DeviceContext* pd3dImmediateContext = DXUTGetD3D11DeviceContext();
         ID3D11RenderTargetView* pRTV = DXUTGetD3D11RenderTargetView();
 

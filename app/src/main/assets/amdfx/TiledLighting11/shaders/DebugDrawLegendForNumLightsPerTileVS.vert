@@ -5,6 +5,11 @@ layout(location = 1) in vec2 In_Texcoord;
 
 out vec2 m_TextureUV;
 
+out gl_PerVertex
+{
+    float4 gl_Position;
+};
+
 void main()
 {
     // convert from screen space to homogeneous projection space

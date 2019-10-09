@@ -1,8 +1,11 @@
 #version 450
-#define THREADGROUP_SIZE 4
-#define USE_LINKED_CULL_LIST 1
-#define LOCAL_LIGHT_DATA_STRIDE 5
-#define LIGHT_LINK_STRIDE 2
+#define USE_ALPHA_TEST 0
+#define NUM_GBUFFER_RTS 2
+
+
+
+
+
 
 
 
@@ -152,386 +155,263 @@ uint4 f32tof16(in float4 value)
     return uint4(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)), packHalf2x16(vec2(value.z, 0)), packHalf2x16(vec2(value.w, 0)));
 }
 
+#define SV_ThreadGroupSize gl_WorkGroupSize
+#define SV_NumThreadGroup  gl_NumWorkGroups
+#define SV_GroupID         gl_WorkGroupID
+#define SV_GroupThreadID   gl_LocalInvocationID
+#define SV_DispatchThreadID gl_GlobalInvocationID
+#define SV_GroupIndex      gl_LocalInvocationIndex
 
-#define Texture3DSampleLevel(tex, uv, lod) textureLod(tex, uv, lod)
-#define Texture2DSampleLevel(tex, uv, lod) textureLod(tex, uv, lod)
-#define Texture3DSample(tex, uv)           texture(tex, uv)
-#define Texture2DSample(tex, uv)           texture(tex, uv)
-#define COMP_SIZE(X,Y,Z)  layout(local_size_x = X, local_size_y = Y, local_size_z = Z)in
-#define LOOP
-#define BRANCH
 
-struct UE4View
+
+
+
+const float4 kRadarColors[14] = float4[14]
+(
+    float4(0,0.9255,0.9255,1),   
+    float4(0,0.62745,0.9647,1),  
+    float4(0,0,0.9647,1),        
+    float4(0,1,0,1),             
+    float4(0,0.7843,0,1),        
+    float4(0,0.5647,0,1),        
+    float4(1,1,0,1),             
+    float4(0.90588,0.75294,0,1), 
+    float4(1,0.5647,0,1),        
+    float4(1,0,0,1),             
+    float4(0.8392,0,0,1),        
+    float4(0.75294,0,0,1),       
+    float4(1,0,1,1),             
+    float4(0.6,0.3333,0.7882,1)  
+);
+
+
+
+
+
+#define TILE_RES 16
+#define MAX_NUM_LIGHTS_PER_TILE 272
+#define MAX_NUM_VPLS_PER_TILE 1024
+
+
+
+
+
+#define MAX_NUM_SHADOWCASTING_POINTS     12
+#define MAX_NUM_SHADOWCASTING_SPOTS      12
+
+
+
+
+
+
+uniform mat4 g_mWorld;
+uniform mat4 g_mViewProjection;
+uniform float2 g_CameraRange;   
+
+layout(binding = 0) uniform cbPerFrame 
 {
-    float4x4 ViewToClip;
-    float4x4 ClipToView;
-    float4x4 ViewToTranslatedWorld;
-    float4x4 TranslatedWorldToView;
-    float4 ViewSizeAndInvSize;
-    float3 PreViewTranslation;
+    matrix              g_mView                      ;
+    matrix              g_mProjection                ;
+    matrix              g_mProjectionInv             ;
+    matrix              g_mViewProjectionInvViewport ;
+    float4              g_AmbientColorUp             ;
+    float4              g_AmbientColorDown           ;
+    float3              g_vCameraPos                 ;
+    float               g_fAlphaTest                 ;
+    uint                g_uNumLights                 ;
+    uint                g_uNumSpotLights             ;
+    uint                g_uWindowWidth               ;
+    uint                g_uWindowHeight              ;
+    uint                g_uMaxNumLightsPerTile       ;
+    uint                g_uMaxNumElementsPerTile     ;
+    uint                g_uNumTilesX                 ;
+    uint                g_uNumTilesY                 ;
+    uint                g_uMaxVPLs                   ;
+    uint                g_uMaxNumVPLsPerTile         ;
+    uint                g_uMaxNumVPLElementsPerTile  ;
+    float               g_fVPLSpotStrength           ;
+    float               g_fVPLSpotRadius             ;
+    float               g_fVPLPointStrength          ;
+    float               g_fVPLPointRadius            ;
+    float               g_fVPLRemoveBackFaceContrib  ;
+    float               g_fVPLColorThreshold         ;
+    float               g_fVPLBrightnessThreshold    ;
+    float               g_fPerFramePad1              ;
+    float               g_fPerFramePad2              ;
 };
 
-layout(binding = 8) uniform ViewBuffer
+layout(binding = 1) uniform cbShadowConstants 
 {
-    UE4View View;
+    matrix              g_mPointShadowViewProj[ MAX_NUM_SHADOWCASTING_POINTS ][ 6 ];
+    matrix              g_mSpotShadowViewProj[ MAX_NUM_SHADOWCASTING_SPOTS ];
+    float4              g_ShadowBias;  
 };
 
-#ifndef NUM_DIRECTIONAL_LIGHT_CASCADES
-#define NUM_DIRECTIONAL_LIGHT_CASCADES 1
+layout(binding = 2) uniform cbVPLConstants 
+{
+    uint                g_uNumVPLs;
+    uint                g_uVPLPad[ 3 ];
+};
+
+struct VPLData
+{
+    float4 Direction;
+    float4 Color;
+    float4 SourceLightDirection;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+float4 ConvertProjToView( float4 p )
+{
+    p = mul( p, g_mProjectionInv );
+    p /= p.w;
+    return p;
+}
+
+
+float ConvertProjDepthToView( float z )
+{
+    float mZFar =g_CameraRange.y;
+    float mZNear = g_CameraRange.x;
+    float fCamSpaceZ = mZFar*mZNear/(mZFar-z*(mZFar-mZNear));
+
+    return fCamSpaceZ;
+}
+
+uint GetTileIndex(float2 ScreenPos)
+{
+    float fTileRes = float(TILE_RES);
+    uint nTileIdx = uint(floor(ScreenPos.x/fTileRes)+floor(ScreenPos.y/fTileRes)*g_uNumTilesX);
+    return nTileIdx;
+}
+
+
+
+void GetLightListInfo(usamplerBuffer PerTileLightIndexBuffer, in uint uMaxNumLightsPerTile, in uint uMaxNumElementsPerTile, in float4 SVPosition, out uint uFirstLightIndex, out uint uNumLights)
+{
+    uint nTileIndex = GetTileIndex(SVPosition.xy);
+    int nStartIndex = int(uMaxNumElementsPerTile*nTileIndex);
+
+    
+    uint uHalfZBitsHigh = texelFetch(PerTileLightIndexBuffer, nStartIndex).x;
+    uint uHalfZBitsLow = texelFetch(PerTileLightIndexBuffer, nStartIndex+1).x;
+    uint uHalfZBits = (uHalfZBitsHigh << 16) | uHalfZBitsLow;
+    float fHalfZ = asfloat(uHalfZBits);
+
+    float fViewPosZ = ConvertProjDepthToView( SVPosition.z );
+
+    uFirstLightIndex = (fViewPosZ < fHalfZ) ? (nStartIndex + 4) : (nStartIndex + 4 + uMaxNumLightsPerTile);
+    uNumLights = (fViewPosZ < fHalfZ) ? texelFetch(PerTileLightIndexBuffer, nStartIndex+2).x : texelFetch(PerTileLightIndexBuffer, nStartIndex+3).x;
+}
+
+float4 ConvertNumberOfLightsToGrayscale(uint nNumLightsInThisTile, uint uMaxNumLightsPerTile)
+{
+    float fPercentOfMax = float(nNumLightsInThisTile) / float(uMaxNumLightsPerTile);
+    return float4(fPercentOfMax, fPercentOfMax, fPercentOfMax, 1.0f);
+}
+
+float4 ConvertNumberOfLightsToRadarColor(uint nNumLightsInThisTile, uint uMaxNumLightsPerTile)
+{
+    
+    if( nNumLightsInThisTile == 0 ) return float4(0,0,0,1);
+    
+    else if( nNumLightsInThisTile == uMaxNumLightsPerTile ) return float4(0.847,0.745,0.921,1);
+    
+    else if ( nNumLightsInThisTile > uMaxNumLightsPerTile ) return float4(1,1,1,1);
+    
+    else
+    {
+        
+
+        
+        
+        float fLogBase = exp2(0.07142857f*log2(float(uMaxNumLightsPerTile)));
+
+        
+        
+        int nColorIndex = int(floor(log2(float(nNumLightsInThisTile)) / log2(fLogBase)));
+        return kRadarColors[nColorIndex];
+    }
+}
+
+
+in VS_OUTPUT_SCENE
+{
+
+    float3 Normal       ;      
+    float2 TextureUV    ;   
+    float3 Tangent      ;   
+}Input;
+
+layout(location = 0) out float4 RT0 ;  
+layout(location = 1) out float4 RT1 ;  
+#if ( NUM_GBUFFER_RTS >= 3 )
+layout(location = 2) out float4 RT2 ;  
+#endif
+#if ( NUM_GBUFFER_RTS >= 4 )
+layout(location = 3) out float4 RT3 ;  
+#endif
+#if ( NUM_GBUFFER_RTS >= 5 )
+layout(location = 4) out float4 RT4 ;  
 #endif
 
-struct LocalLightingData
-{
-    float4x4 DirectionalLightWorldToStaticShadow;
-    float4 DirectionalLightStaticShadowBufferSize;
-
-    float4x4 DirectionalLightWorldToShadowMatrix[NUM_DIRECTIONAL_LIGHT_CASCADES];
-    float4 DirectionalLightShadowmapMinMax[NUM_DIRECTIONAL_LIGHT_CASCADES];
-    float4 DirectionalLightShadowmapAtlasBufferSize;
-
-    float3 DirectionalLightColor;
-    float DirectionalLightVolumetricScatteringIntensity;
-    float3 DirectionalLightDirection;
-    float DirectionalLightDepthBias;
-
-    uint3 CulledGridSize;
-    uint LightGridPixelSizeShift;
+layout(binding = 0) uniform sampler2D g_TxDiffuse;
+layout(binding = 1) uniform sampler2D g_TxNormal;
 
 
 
-    uint HasDirectionalLight;
-    uint DirectionalLightUseStaticShadowing;
-    uint NumDirectionalLightCascades;
-    uint NumLocalLights;
-
-    float4 LightGridZParams;
-    float4 CascadeEndDepths;
-
-    uint DirectionalLightShadowMapChannelMask;
-    uint NumGridCells;
-    uint MaxCulledLightsPerCell;
-    uint NumReflectionCaptures;
-
-    float2 DirectionalLightDistanceFadeMAD;
-};
-
-layout(binding = 9) uniform _ForwardLightData
-{
-    LocalLightingData ForwardLightData;
-};
-
-#ifndef NUM_MAX_REFLECTION_CAPTURES
-#define NUM_MAX_REFLECTION_CAPTURES 4
-#endif
-
-struct UE4ReflectionCapture
-{
-    float4 PositionAndRadius[NUM_MAX_REFLECTION_CAPTURES];
-};
-
-layout(binding = 10) uniform _ReflectionCapture
-{
-    UE4ReflectionCapture ReflectionCapture;
-};
-
-layout(binding = 11) uniform samplerBuffer ForwardLocalLightBuffer;
-
-float ConvertToDeviceZ(float depth)
-{
-    vec4 clipPos = View.ViewToClip * vec4(0,0, depth, 1);
-    return clipPos.z / clipPos.w;
-}
-
-
-float ComputeSquaredDistanceFromBoxToPoint(float3 BoxCenter, float3 BoxExtent, float3 InPoint)
-{
-	float3 AxisDistances = max(abs(InPoint - BoxCenter) - BoxExtent, float3(0));
-	return dot(AxisDistances, AxisDistances);
-}
-
-
-#ifndef NUM_CULLED_GRID_PRIMITIVE_TYPES
-#define NUM_CULLED_GRID_PRIMITIVE_TYPES 2  
-#endif
-
-layout(binding = 0, r32ui) uniform uimageBuffer RWNumCulledLightsGrid;
-layout(binding = 1, r32ui) uniform uimageBuffer RWCulledLightDataGrid;
-
-#define LIGHT_LINK_STRIDE 2
-#define NUM_CULLED_LIGHTS_GRID_STRIDE 2
-
-void writeCullLightTo(uimageBuffer dest, uint destIndex, uint first, uint second)
-{
-    imageStore(dest, int(destIndex) * LIGHT_LINK_STRIDE + 0, uint4(first, 0, 0, 0));
-    imageStore(dest, int(destIndex) * LIGHT_LINK_STRIDE + 1, uint4(second, 0, 0, 0));
-}
-
-
-
-
-
-layout(binding = 2) uniform atomic_uint RWNextCulledLightLink;
-
-layout(binding = 3, r32ui) uniform uimageBuffer RWStartOffsetGrid;
-layout(binding = 4, rg16ui) uniform uimageBuffer RWCulledLightLinks;
-
-#ifndef USE_LINKED_CULL_LIST
-#error "Not declare the macro 'USE_LINKED_CULL_LIST'"
-#endif
-
-float ComputeDepthFromZSlice(uint ZSlice)
-{
-	float SliceDepth = (exp2(float(ZSlice) / ForwardLightData.LightGridZParams.z) - ForwardLightData.LightGridZParams.y) / ForwardLightData.LightGridZParams.x;
-
-	if (ZSlice == uint(ForwardLightData.CulledGridSize.z))
-	{
-		
-		
-		
-		
-		SliceDepth = 2000000.0f;
-	}
-
-	if (ZSlice == 0)
-	{
-		
-		
-		
-		SliceDepth = 0.0f;
-	}
-
-	return SliceDepth;
-}
-
-void ComputeCellViewAABB(uint3 GridCoordinate, out float3 ViewTileMin, out float3 ViewTileMax)
-{
-	
-	const float2 InvCulledGridSizeF = (1 << ForwardLightData.LightGridPixelSizeShift) * View.ViewSizeAndInvSize.zw;
-	const float2 TileSize = float2(2.0f, 2.0f) * InvCulledGridSizeF.xy;
-	const float2 UnitPlaneMin = float2(-1.0f, -1.0f);
-
-	float2 UnitPlaneTileMin = GridCoordinate.xy * TileSize + UnitPlaneMin;
-	float2 UnitPlaneTileMax = (GridCoordinate.xy + 1) * TileSize + UnitPlaneMin;
-
-	float MaxTileZ = -ComputeDepthFromZSlice(GridCoordinate.z);
-	float MinTileZ  = -ComputeDepthFromZSlice(GridCoordinate.z + 1);
-
-	float MinTileDeviceZ = ConvertToDeviceZ(MinTileZ);
-	float4 MinDepthCorner0 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MinTileDeviceZ, 1), View.ClipToView);
-	float4 MinDepthCorner1 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MinTileDeviceZ, 1), View.ClipToView);
-	float4 MinDepthCorner2 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMax.y, MinTileDeviceZ, 1), View.ClipToView);
-	float4 MinDepthCorner3 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMin.y, MinTileDeviceZ, 1), View.ClipToView);
-
-	float MaxTileDeviceZ = ConvertToDeviceZ(MaxTileZ);
-	float4 MaxDepthCorner0 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMin.y, MaxTileDeviceZ, 1), View.ClipToView);
-	float4 MaxDepthCorner1 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMax.y, MaxTileDeviceZ, 1), View.ClipToView);
-	float4 MaxDepthCorner2 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMax.y, MaxTileDeviceZ, 1), View.ClipToView);
-	float4 MaxDepthCorner3 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMin.y, MaxTileDeviceZ, 1), View.ClipToView);
-
-	float2 ViewMinDepthCorner0 = MinDepthCorner0.xy / MinDepthCorner0.w;
-	float2 ViewMinDepthCorner1 = MinDepthCorner1.xy / MinDepthCorner1.w;
-	float2 ViewMinDepthCorner2 = MinDepthCorner2.xy / MinDepthCorner2.w;
-	float2 ViewMinDepthCorner3 = MinDepthCorner3.xy / MinDepthCorner3.w;
-	float2 ViewMaxDepthCorner0 = MaxDepthCorner0.xy / MaxDepthCorner0.w;
-	float2 ViewMaxDepthCorner1 = MaxDepthCorner1.xy / MaxDepthCorner1.w;
-	float2 ViewMaxDepthCorner2 = MaxDepthCorner2.xy / MaxDepthCorner2.w;
-	float2 ViewMaxDepthCorner3 = MaxDepthCorner3.xy / MaxDepthCorner3.w;
-
-	
-	ViewTileMin.xy = min(ViewMinDepthCorner0, ViewMinDepthCorner1);
-	ViewTileMin.xy = min(ViewTileMin.xy, ViewMinDepthCorner2);
-	ViewTileMin.xy = min(ViewTileMin.xy, ViewMinDepthCorner3);
-	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner0);
-	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner1);
-	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner2);
-	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner3);
-
-	ViewTileMax.xy = max(ViewMinDepthCorner0, ViewMinDepthCorner1);
-	ViewTileMax.xy = max(ViewTileMax.xy, ViewMinDepthCorner2);
-	ViewTileMax.xy = max(ViewTileMax.xy, ViewMinDepthCorner3);
-	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner0);
-	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner1);
-	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner2);
-	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner3);
-
-	ViewTileMin.z = MinTileZ;
-	ViewTileMax.z = MaxTileZ;
-}
-
-bool IntersectConeWithSphere(float3 ConeVertex, float3 ConeAxis, float ConeRadius, float2 CosSinAngle, float4 SphereToTest)
-{
-    float3 ConeVertexToSphereCenter = SphereToTest.xyz - ConeVertex;
-    float ConeVertexToSphereCenterLengthSq = dot(ConeVertexToSphereCenter, ConeVertexToSphereCenter);
-    float SphereProjectedOntoConeAxis = dot(ConeVertexToSphereCenter, -ConeAxis);
-    float DistanceToClosestPoint = CosSinAngle.x * sqrt(ConeVertexToSphereCenterLengthSq - SphereProjectedOntoConeAxis * SphereProjectedOntoConeAxis) - SphereProjectedOntoConeAxis * CosSinAngle.y;
-
-    bool bSphereTooFarFromCone = DistanceToClosestPoint > SphereToTest.w;
-    bool bSpherePastConeEnd = SphereProjectedOntoConeAxis > SphereToTest.w + ConeRadius;
-    bool bSphereBehindVertex = SphereProjectedOntoConeAxis < -SphereToTest.w;
-	return !(bSphereTooFarFromCone || bSpherePastConeEnd || bSphereBehindVertex);
-}
-
-
-layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = THREADGROUP_SIZE)in;
 
 
 void main()
 {
-	uint3 GridCoordinate = gl_GlobalInvocationID;
+    
+    float4 DiffuseTex = texture( g_TxDiffuse, Input.TextureUV );
 
-	if (all(lessThan(GridCoordinate, uint3(ForwardLightData.CulledGridSize))))
-	{
-		uint GridIndex = (GridCoordinate.z * ForwardLightData.CulledGridSize.y + GridCoordinate.y) * ForwardLightData.CulledGridSize.x + GridCoordinate.x;
-
-
-#define CULL_LIGHTS 1
-	#if CULL_LIGHTS
-		float3 ViewTileMin;
-		float3 ViewTileMax;
-		ComputeCellViewAABB(GridCoordinate, ViewTileMin, ViewTileMax);
-
-		float3 ViewTileCenter = .5f * (ViewTileMin + ViewTileMax);
-		float3 ViewTileExtent = ViewTileMax - ViewTileCenter;
-		float3 WorldTileCenter = mul(float4(ViewTileCenter, 1), View.ViewToTranslatedWorld).xyz - View.PreViewTranslation;
-		float4 WorldTileBoundingSphere = float4(WorldTileCenter, length(ViewTileExtent));
-
-		uint NumAvailableLinks = ForwardLightData.NumGridCells * ForwardLightData.MaxCulledLightsPerCell * NUM_CULLED_GRID_PRIMITIVE_TYPES;
-
-
-		for (uint LocalLightIndex = 0; LocalLightIndex < ForwardLightData.NumLocalLights; LocalLightIndex++)
-		{
-			uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
-			float4 LightPositionAndInvRadius = 
-												texelFetch(ForwardLocalLightBuffer, LocalLightBaseIndex + 0);
-			float LightRadius = 1.0f / LightPositionAndInvRadius.w;
-			bool bPassSpotlightTest = true;
-
-			#define REFINE_SPOTLIGHT_BOUNDS 1
-			#if REFINE_SPOTLIGHT_BOUNDS
-				float CosOuterCone = 
-										texelFetch(ForwardLocalLightBuffer, LocalLightBaseIndex + 3).x;
-
-				if (CosOuterCone > -2.0f)
-				{
-					float2 CosSinAngle = float2(CosOuterCone, sqrt(1 - CosOuterCone * CosOuterCone));
-					float3 LightDirection = 
-												texelFetch(ForwardLocalLightBuffer, LocalLightBaseIndex + 2).xyz;
-
-					bPassSpotlightTest = IntersectConeWithSphere(LightPositionAndInvRadius.xyz, LightDirection, LightRadius, CosSinAngle, WorldTileBoundingSphere);
-
-					
-					const float COS_PI_OVER_4 = 0.707107f; 
-					if (CosSinAngle.x < COS_PI_OVER_4)
-					{
-						LightPositionAndInvRadius.xyz -= LightDirection * LightRadius * CosSinAngle.x;
-						LightRadius = LightRadius * CosSinAngle.y;
-					}
-					else
-					{
-						LightRadius = LightRadius / (2.0f * CosSinAngle.x);
-						LightPositionAndInvRadius.xyz -= LightDirection * LightRadius;
-					}
-				}
-			#endif
-
-			float3 ViewSpaceLightPosition = mul(float4(LightPositionAndInvRadius.xyz + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
-
-			float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(ViewTileCenter, ViewTileExtent, ViewSpaceLightPosition);
-
-			if (BoxDistanceSq < LightRadius * LightRadius && bPassSpotlightTest)
-			{
-				#if USE_LINKED_CULL_LIST
-					uint NextLink;
-
-					NextLink = atomicCounterIncrement(RWNextCulledLightLink);
-
-					if (NextLink < NumAvailableLinks)
-					{
-						uint PreviousLink;
-
-						PreviousLink = imageAtomicExchange(RWStartOffsetGrid, int(GridIndex), NextLink);
-
-
-						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 0), uint4(LocalLightIndex, 0, 0, 0));
-						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 1), uint4(PreviousLink, 0, 0, 0));
-					}
-
-				#else
-					uint CulledLightIndex;
-					InterlockedAdd(RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], 1U, CulledLightIndex);
-					RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = GridIndex * ForwardLightData.MaxCulledLightsPerCell;
-
-					if (CulledLightIndex < ForwardLightData.MaxCulledLightsPerCell)
-					{
-						RWCulledLightDataGrid[GridIndex * ForwardLightData.MaxCulledLightsPerCell + CulledLightIndex] = LocalLightIndex;
-					}
-				#endif
-			}
-		}
-
-		LOOP
-		for (uint ReflectionCaptureIndex = 0; ReflectionCaptureIndex < ForwardLightData.NumReflectionCaptures; ReflectionCaptureIndex++)
-		{
-			float4 CapturePositionAndRadius = ReflectionCapture.PositionAndRadius[ReflectionCaptureIndex];
-			float3 ViewSpaceCapturePosition = mul(float4(CapturePositionAndRadius.xyz + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
-
-			float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(ViewTileCenter, ViewTileExtent, ViewSpaceCapturePosition);
-
-			if (BoxDistanceSq < CapturePositionAndRadius.w * CapturePositionAndRadius.w)
-			{
-				#if USE_LINKED_CULL_LIST
-					uint NextLink;
-
-					NextLink = atomicCounterIncrement(RWNextCulledLightLink);
-
-					if (NextLink < NumAvailableLinks)
-					{
-						uint PreviousLink;
-
-						PreviousLink = imageAtomicExchange(RWStartOffsetGrid, int(ForwardLightData.NumGridCells + GridIndex), NextLink);
-
-
-						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 0), uint4(ReflectionCaptureIndex, 0, 0, 0));
-						imageStore(RWCulledLightLinks, int(NextLink * LIGHT_LINK_STRIDE + 1), uint4(PreviousLink, 0, 0, 0));
-					}
-
-				#else
-					uint CulledCaptureIndex;
-					InterlockedAdd(RWNumCulledLightsGrid[(ForwardLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], 1U, CulledCaptureIndex);
-					RWNumCulledLightsGrid[(ForwardLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = (ForwardLightData.NumGridCells + GridIndex) * ForwardLightData.MaxCulledLightsPerCell;
-
-					if (CulledCaptureIndex < ForwardLightData.MaxCulledLightsPerCell)
-					{
-						RWCulledLightDataGrid[(ForwardLightData.NumGridCells + GridIndex) * ForwardLightData.MaxCulledLightsPerCell + CulledCaptureIndex] = ReflectionCaptureIndex;
-					}
-				#endif
-			}
-		}
-#else   
-
-
-		for (uint LocalLightIndex = 0; LocalLightIndex < ForwardLightData.NumLocalLights; LocalLightIndex++)
-		{
-			if (LocalLightIndex < ForwardLightData.MaxCulledLightsPerCell)
-			{
-				RWCulledLightDataGrid[GridIndex * ForwardLightData.MaxCulledLightsPerCell + LocalLightIndex] = LocalLightIndex;
-			}
-		}
-
-		RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0] = ForwardLightData.NumLocalLights;
-		RWNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = GridIndex * ForwardLightData.MaxCulledLightsPerCell;
-
-		LOOP
-		for (uint ReflectionCaptureIndex = 0; ReflectionCaptureIndex < ForwardLightData.NumReflectionCaptures; ReflectionCaptureIndex++)
-		{
-			if (ReflectionCaptureIndex < ForwardLightData.MaxCulledLightsPerCell)
-			{
-				RWCulledLightDataGrid[(ForwardLightData.NumGridCells + GridIndex) * ForwardLightData.MaxCulledLightsPerCell + ReflectionCaptureIndex] = ReflectionCaptureIndex;
-			}
-		}
-
-		RWNumCulledLightsGrid[(ForwardLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 0] = ForwardLightData.NumReflectionCaptures;
-		RWNumCulledLightsGrid[(ForwardLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE + 1] = (ForwardLightData.NumGridCells + GridIndex) * ForwardLightData.MaxCulledLightsPerCell;
+#if ( USE_ALPHA_TEST == 1 )
+    float fAlpha = DiffuseTex.a;
+    if( fAlpha < g_fAlphaTest ) discard;
 #endif
-	}
+
+    
+    float3 vNorm = texture( g_TxNormal, Input.TextureUV ).xyz;
+    vNorm *= 2;
+    vNorm -= float3(1,1,1);
+
+    
+    float3 vBinorm = normalize( cross( Input.Normal, Input.Tangent ) );
+    float3x3 BTNMatrix = float3x3( vBinorm, Input.Tangent, Input.Normal );
+    vNorm = normalize(mul( vNorm, BTNMatrix ));
+
+#if ( USE_ALPHA_TEST == 1 )
+    RT0 = DiffuseTex;
+    RT1 = float4(0.5*vNorm + 0.5, 0);
+#else
+    RT0 = float4(DiffuseTex.rgb, 1);
+    RT1 = float4(0.5*vNorm + 0.5, DiffuseTex.a);
+#endif
+
+    
+    
+#if ( NUM_GBUFFER_RTS >= 3 )
+    RT2 = float4(1,1,1,1);
+#endif
+#if ( NUM_GBUFFER_RTS >= 4 )
+    RT3 = float4(1,1,1,1);
+#endif
+#if ( NUM_GBUFFER_RTS >= 5 )
+    RT4 = float4(1,1,1,1);
+#endif
+
+    return Output;
 }

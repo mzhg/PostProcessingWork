@@ -5,6 +5,11 @@ layout(location = 1) in float2 In_Texcoord;
 layout(location = 2) in float3 In_Normal;
 layout(location = 3) in float3 In_Tangent;
 
+out gl_PerVertex
+{
+    float4 gl_Position;
+};
+
 //--------------------------------------------------------------------------------------
 // This shader just transforms position (e.g. for depth pre-pass)
 //--------------------------------------------------------------------------------------
@@ -13,6 +18,6 @@ void main()
 {
 
     // Transform the position from object space to homogeneous projection space
-    float4 vWorldPos = mul( float4(Input.Position,1), g_mWorld );
+    float4 vWorldPos = mul( float4(In_Position,1), g_mWorld );
     gl_Position = mul( vWorldPos, g_mViewProjection );
 }

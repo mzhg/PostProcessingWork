@@ -109,9 +109,8 @@ final class TiledDeferredUtil implements ICONST, Disposeable {
 
                 /*pShaderCache->AddShader( (ID3D11DeviceChild**)&m_pSceneDeferredBuildGBufferPS[(MAX_NUM_GBUFFER_RENDER_TARGETS-1)*i+j-2], AMD::ShaderCache::SHADER_TYPE_PIXEL, L"ps_5_0", L"RenderSceneToGBufferPS",
                     L"Deferred.hlsl", 2, ShaderMacroBuildGBufferPS, NULL, NULL, 0 );*/
-                final String root = "amdfx\\TiledLighting11\\shaders\\";
-                m_pSceneDeferredBuildGBufferPS[(MAX_NUM_GBUFFER_RENDER_TARGETS-1)*i+j-2] = GLSLProgram.createProgram(root + "RenderSceneToGBufferVS.vert",
-                        root + "RenderSceneToGBufferPS.frag", ShaderMacroBuildGBufferPS);
+                m_pSceneDeferredBuildGBufferPS[(MAX_NUM_GBUFFER_RENDER_TARGETS-1)*i+j-2] = GLSLProgram.createProgram(SHADER_PATH + "RenderSceneToGBufferVS.vert",
+                        SHADER_PATH + "RenderSceneToGBufferPS.frag", ShaderMacroBuildGBufferPS);
             }
         }
 

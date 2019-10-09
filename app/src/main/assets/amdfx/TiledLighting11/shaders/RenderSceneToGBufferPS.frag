@@ -20,6 +20,9 @@ layout(location = 3) out float4 RT3 /*: SV_TARGET3*/;  // Dummy
 layout(location = 4) out float4 RT4 /*: SV_TARGET4*/;  // Dummy
 #endif
 
+layout(binding = 0) uniform sampler2D g_TxDiffuse;
+layout(binding = 1) uniform sampler2D g_TxNormal;
+
 //--------------------------------------------------------------------------------------
 // This shader calculates diffuse and specular lighting for all lights.
 //--------------------------------------------------------------------------------------
@@ -63,6 +66,4 @@ void main()
 #if ( NUM_GBUFFER_RTS >= 5 )
     RT4 = float4(1,1,1,1);
 #endif
-
-    return Output;
 }

@@ -7,6 +7,11 @@ layout(location = 3) in float3 In_Tangent;
 
 out vec2 TextureUV;
 
+out gl_PerVertex
+{
+    float4 gl_Position;
+};
+
 //--------------------------------------------------------------------------------------
 // This shader just transforms position and passes through tex coord
 // (e.g. for depth pre-pass with alpha test)

@@ -15,4 +15,6 @@ interface ICONST {
         MSAA_SETTING_4X_MSAA = 2,
         NUM_MSAA_SETTINGS = 3;
     int g_nMSAASampleCount[] = {1,2,4};
+
+    String SHADER_PATH = "amdfx/TiledLighting11/shaders/";
 }

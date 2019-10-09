@@ -51,6 +51,11 @@ public interface ID3D11InputLayout {
                     sizes[i] = 1;
                     strideInBytes += 4;
                     break;
+                case GLenum.GL_RG16F:
+                    types[i] = GLenum.GL_HALF_FLOAT;
+                    sizes[i] = 2;
+                    strideInBytes += 2 * 2;
+                    break;
                 case GLenum.GL_NONE:
                     break;
                 default:

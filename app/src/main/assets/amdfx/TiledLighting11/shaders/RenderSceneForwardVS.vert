@@ -14,6 +14,11 @@ out VS_OUTPUT_SCENE
     float3 PositionWS   /*: TEXCOORD2*/;   // vertex position (world space)
 }Output;
 
+out gl_PerVertex
+{
+    float4 gl_Position;
+};
+
 //--------------------------------------------------------------------------------------
 // This shader transforms position, calculates world-space position, normal,
 // and tangent, and passes tex coords through to the pixel shader.
