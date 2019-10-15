@@ -3,8 +3,8 @@ package jet.opengl.demos.nvidia.water;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
 
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Params;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree_Params;
 
 /**
  * Created by mazhen'gui on 2017/8/23.

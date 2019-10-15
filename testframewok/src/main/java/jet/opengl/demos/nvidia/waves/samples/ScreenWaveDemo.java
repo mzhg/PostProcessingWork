@@ -17,7 +17,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
 
-import jet.opengl.demos.nvidia.waves.SimpleWaveSimulator;
+import jet.opengl.demos.nvidia.waves.wavework.SimpleWaveSimulator;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;

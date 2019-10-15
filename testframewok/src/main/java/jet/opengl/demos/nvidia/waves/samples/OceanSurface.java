@@ -5,12 +5,12 @@ import org.lwjgl.util.vector.ReadableVector2f;
 
 import java.io.IOException;
 
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Params;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Stats;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Savestate;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree_Params;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree_Stats;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Savestate;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.buffer.VertexArrayObject;
 import jet.opengl.postprocessing.common.Disposeable;

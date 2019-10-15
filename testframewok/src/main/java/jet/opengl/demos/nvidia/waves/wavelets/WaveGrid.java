@@ -1,15 +1,9 @@
 package jet.opengl.demos.nvidia.waves.wavelets;
 
-import org.lwjgl.util.vector.ReadableVector;
 import org.lwjgl.util.vector.ReadableVector4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.ResourceBundle;
 
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Pair;

@@ -8,9 +8,9 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Detailed_Simulation_Params;
-import jet.opengl.demos.nvidia.waves.NVWaveWorks_FFT_Simulation_Timings;
-import jet.opengl.demos.nvidia.waves.Simulation_Util;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Detailed_Simulation_Params;
+import jet.opengl.demos.nvidia.waves.wavework.NVWaveWorks_FFT_Simulation_Timings;
+import jet.opengl.demos.nvidia.waves.wavework.Simulation_Util;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;

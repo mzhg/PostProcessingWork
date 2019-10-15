@@ -9,6 +9,15 @@ import org.lwjgl.util.vector.Vector2i;
 public class Recti {
     public int x,y,width, height;
 
+    public Recti(){}
+
+    public Recti(int x, int y, int width, int height){
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+
     public boolean isValid(){ return width > 0 && height > 0;}
     public void zero(){x=y = width = height = 0;}
     public boolean equals(Recti rect){

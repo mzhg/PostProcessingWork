@@ -5,6 +5,19 @@ public class Transform {
     private float scaleX = 1, scaleY = 1, scaleZ = 1;
     private float rotX, rotY, rotZ, rotW = 1;
 
+    public void set(Transform ohs){
+        x = ohs.x;
+        y = ohs.y;
+        z = ohs.z;
+        scaleX = ohs.scaleX;
+        scaleY = ohs.scaleY;
+        scaleZ = ohs.scaleZ;
+        rotX = ohs.rotX;
+        rotY = ohs.rotY;
+        rotZ = ohs.rotZ;
+        rotW = ohs.rotW;
+    }
+
     public void setIdentity(){
         x=y=z=0;
         scaleX = scaleY=scaleZ = 1;
@@ -27,6 +40,14 @@ public class Transform {
 
         return pos;
     }
+
+    public float getPositionX() { return x;}
+    public float getPositionY() { return y;}
+    public float getPositionZ() { return z;}
+
+    public float getScaleX() { return scaleX;}
+    public float getScaleY() { return scaleY;}
+    public float getScaleZ() { return scaleZ;}
 
     public void setScale(float scaleX, float scaleY, float scaleZ){
         this.scaleX = scaleX;

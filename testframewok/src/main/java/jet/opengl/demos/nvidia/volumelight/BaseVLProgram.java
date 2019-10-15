@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
@@ -23,7 +22,6 @@ import jet.opengl.postprocessing.shader.ShaderSourceItem;
 import jet.opengl.postprocessing.shader.ShaderType;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
-import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Pair;
 
 abstract class BaseVLProgram implements OpenGLProgram {

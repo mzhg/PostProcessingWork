@@ -2,7 +2,6 @@ package jet.opengl.demos.intel.fluid.scene;
 
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.ReadableVector4f;
-import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 /**

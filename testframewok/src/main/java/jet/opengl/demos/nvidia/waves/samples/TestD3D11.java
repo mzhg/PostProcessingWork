@@ -10,17 +10,17 @@ import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
 
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Params;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Quadtree_Stats;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Result;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Savestate;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_CPU_Threading_Model;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_DetailLevel;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_Params;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_Settings;
-import jet.opengl.demos.nvidia.waves.GFSDK_WaveWorks_Simulation_Stats;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree_Params;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree_Stats;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Result;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Savestate;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation_CPU_Threading_Model;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation_DetailLevel;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation_Params;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation_Settings;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation_Stats;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
