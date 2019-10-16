@@ -9,6 +9,7 @@ import jet.opengl.demos.nvidia.waves.crest.CommandBuffer;
 import jet.opengl.demos.nvidia.waves.crest.MonoBehaviour;
 import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.demos.nvidia.waves.crest.helpers.IFloatingOrigin;
+import jet.opengl.demos.nvidia.waves.crest.helpers.Time;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Rectf;
 
@@ -28,8 +29,9 @@ public class LodTransform extends MonoBehaviour implements IFloatingOrigin {
         public final Vector3f _posSnapped = new Vector3f();
         public int _frame;
 
-        public RenderData Validate(int frameCount, int frameOffset, Object context)
+        public RenderData Validate(int frameOffset, Object context)
         {
+            final int frameCount = Time.frameCount;
             // ignore first frame - this patches errors when using edit & continue in editor
             if (_frame > 0 && _frame != frameCount + frameOffset)
             {
@@ -90,7 +92,7 @@ public class LodTransform extends MonoBehaviour implements IFloatingOrigin {
             float camOrthSize = 2f * lodScale;
 
             // find snap period
-            _renderData[lodIdx]._textureRes = OceanRenderer.Instance.LodDataResolution;
+            _renderData[lodIdx]._textureRes = OceanRenderer.Instance.LodDataResolution();
             _renderData[lodIdx]._texelWidth = 2f * camOrthSize / _renderData[lodIdx]._textureRes;
             // snap so that shape texels are stationary
             _renderData[lodIdx]._posSnapped = OceanRenderer.Instance.transform.position

@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.waves.crest.loddata;
 import jet.opengl.postprocessing.common.GLenum;
 
 public class SimSettingsFoam implements SimSettingsBase{
+    public String name;
 //    [Range(0f, 20f), Tooltip("Speed at which foam fades/dissipates.")]
     public float _foamFadeRate = 0.8f;
 //        [Range(0f, 5f), Tooltip("Scales intensity of foam generated from waves.")]

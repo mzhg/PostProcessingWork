@@ -15,9 +15,7 @@ public interface ICollProvider {
     /// <param name="o_samplingData">Result. Needs to be new'd in advance - passing a null pointer is not valid.</param>
     boolean GetSamplingData(Rectf i_displacedSamplingArea, float i_minSpatialLength, SamplingData o_samplingData);
 
-    /// <summary>
-    /// Clear sampling data state, call this when done with a state.
-    /// </summary>
+    /** Clear sampling data state, call this when done with a state. */
     void ReturnSamplingData(SamplingData i_data);
 
     /// <summary>

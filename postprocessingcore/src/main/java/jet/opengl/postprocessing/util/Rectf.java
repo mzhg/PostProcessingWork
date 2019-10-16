@@ -70,4 +70,9 @@ public class Rectf {
     public float area(){
         return width * height;
     }
+
+    public boolean contains(float x, float y) {
+        return x >= this.x && x <= this.x + width &&
+           y >=  this.y && y <= this.y + height;
+    }
 }

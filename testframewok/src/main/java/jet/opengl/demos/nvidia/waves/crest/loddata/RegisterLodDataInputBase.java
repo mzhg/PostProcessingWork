@@ -50,14 +50,12 @@ public abstract class RegisterLodDataInputBase extends MonoBehaviour implements 
 
     public void Draw(CommandBuffer buf, float weight, int isTransition)
     {
-        /*if (_renderer && weight > 0f)
+        if ( weight > 0f)
         {
             _materials[isTransition].SetFloat(sp_Weight, weight);
 
-            buf.DrawRenderer(_renderer, _materials[isTransition]);
-        }*/
-
-        throw new UnsupportedOperationException();
+            buf.DrawRenderer( _materials[isTransition]);
+        }
     }
 
 //    public int MaterialCount => _materials.Length;

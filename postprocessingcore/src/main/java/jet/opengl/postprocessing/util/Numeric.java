@@ -537,6 +537,24 @@ public final class Numeric {
 		return start + (stop - start) * amt;
 	}
 
+	/**
+	 * Calculates a number between two numbers at a specific increment. The
+	 * <b>amt</b> parameter is the amount to interpolate between the two values
+	 * where 0.0 equal to the first point, 0.1 is very near the first point, 0.5
+	 * is half-way in between, etc. The lerp function is convenient for creating
+	 * motion along a straight path and for drawing dotted lines.
+	 *
+	 * @param start
+	 *            first value
+	 * @param stop
+	 *            second value
+	 * @param amt
+	 *            float between 0.0 and 1.0
+	 */
+	public static final double mix(double start, double stop, double amt) {
+		return start + (stop - start) * amt;
+	}
+
 	/** A predefined constant for WHITE. */
 	public static final int NV_PC_PREDEF_WHITE = 0xFFFFFFFF;
 	/** A predefined constant for BLACK. */

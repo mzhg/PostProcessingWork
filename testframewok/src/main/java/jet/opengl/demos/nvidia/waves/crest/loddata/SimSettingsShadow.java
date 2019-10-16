@@ -1,6 +1,8 @@
 package jet.opengl.demos.nvidia.waves.crest.loddata;
 
 public class SimSettingsShadow  implements SimSettingsBase{
+    public String name;
+
 //    [Range(0f, 32f), Tooltip("Jitter diameter for soft shadows, controls softness of this shadowing component.")]
     public float _jitterDiameterSoft = 15f;
 

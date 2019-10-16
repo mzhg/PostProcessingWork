@@ -4,13 +4,24 @@ import com.nvidia.developer.opengl.models.obj.Material;
 
 import org.lwjgl.util.vector.Transform;
 
+import jdk.nashorn.internal.runtime.Debug;
 import jet.opengl.demos.intel.fluid.scene.Light;
+import jet.opengl.demos.nvidia.waves.crest.collision.ICollProvider;
+import jet.opengl.demos.nvidia.waves.crest.collision.SampleHeightHelper;
+import jet.opengl.demos.nvidia.waves.crest.helpers.Time;
 import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrAnimWaves;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrDynWaves;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrFlow;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrFoam;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrSeaFloorDepth;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrShadow;
 import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
 import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsAnimatedWaves;
 import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsFoam;
 import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsShadow;
 import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsWave;
+import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.Numeric;
 
 /**
  * The main script for the ocean system. Attach this to a GameObject to create an ocean. This script initializes the various data types and systems
@@ -120,8 +131,7 @@ public class OceanRenderer extends MonoBehaviour {
     /// <summary>
     /// The ocean changes scale when viewer changes altitude, this gives the interpolation param between scales.
     /// </summary>
-    private float _ViewerAltitudeLevelAlpha;
-    public float ViewerAltitudeLevelAlpha (){ return _ViewerAltitudeLevelAlpha; }
+    public float ViewerAltitudeLevelAlpha;
 
     /// <summary>
     /// Sea level is given by y coordinate of GameObject with OceanRenderer script.
@@ -138,17 +148,18 @@ public class OceanRenderer extends MonoBehaviour {
     /// <summary>
     /// The number of LODs/scales that the ocean is currently using.
     /// </summary>
-    public int CurrentLodCount { get { return _lodTransform.LodCount; } }
+    public int CurrentLodCount()  { return _lodTransform.LodCount();  }
 
     /// <summary>
     /// Vertical offset of viewer vs water surface
     /// </summary>
-    public float ViewerHeightAboveWater { get; private set; }
+    private float _ViewerHeightAboveWater;
+    public float ViewerHeightAboveWater() { return _ViewerHeightAboveWater;}
 
     SampleHeightHelper _sampleHeightHelper = new SampleHeightHelper();
 
-    static int sp_crestTime = Shader.PropertyToID("_CrestTime");
-    static int sp_texelsPerWave = Shader.PropertyToID("_TexelsPerWave");
+    static int sp_crestTime = 0; //Shader.PropertyToID("_CrestTime");
+    static int sp_texelsPerWave = 1; //Shader.PropertyToID("_TexelsPerWave");
 
 
     void Awake()
@@ -173,7 +184,7 @@ public class OceanRenderer extends MonoBehaviour {
         InitTimeProvider();
     }
 
-    bool VerifyRequirements()
+    boolean VerifyRequirements()
     {
         if (_material == null)
         {
@@ -271,20 +282,20 @@ public class OceanRenderer extends MonoBehaviour {
         // reach maximum detail at slightly below sea level. this should combat cases where visual range can be lost
         // when water height is low and camera is suspended in air. i tried a scheme where it was based on difference
         // to water height but this does help with the problem of horizontal range getting limited at bad times.
-        float maxDetailY = SeaLevel - _maxVertDispFromWaves * _dropDetailHeightBasedOnWaves;
-        float camDistance = Mathf.Abs(_viewpoint.position.y - maxDetailY);
+        float maxDetailY = SeaLevel() - _maxVertDispFromWaves * _dropDetailHeightBasedOnWaves;
+        float camDistance = Math.abs(_viewpoint.getPositionY() - maxDetailY);
 
         // offset level of detail to keep max detail in a band near the surface
-        camDistance = Mathf.Max(camDistance - 4f, 0f);
+        camDistance = Math.max(camDistance - 4f, 0f);
 
         // scale ocean mesh based on camera distance to sea level, to keep uniform detail.
-            const float HEIGHT_LOD_MUL = 1f;
+        final float HEIGHT_LOD_MUL = 1f;
         float level = camDistance * HEIGHT_LOD_MUL;
-        level = Mathf.Max(level, _minScale);
-        if (_maxScale != -1f) level = Mathf.Min(level, 1.99f * _maxScale);
+        level = Math.max(level, _minScale);
+        if (_maxScale != -1f) level = Math.min(level, 1.99f * _maxScale);
 
-        float l2 = Mathf.Log(level) / Mathf.Log(2f);
-        float l2f = Mathf.Floor(l2);
+        float l2 = (float) (Math.log(level) / Math.log(2f));
+        float l2f = Math.floor(l2);
 
         ViewerAltitudeLevelAlpha = l2 - l2f;
 
@@ -319,11 +330,11 @@ public class OceanRenderer extends MonoBehaviour {
     /// <summary>
     /// Could the ocean horizontal scale increase (for e.g. if the viewpoint gains altitude). Will be false if ocean already at maximum scale.
     /// </summary>
-    public bool ScaleCouldIncrease { get { return _maxScale == -1f || transform.localScale.x < _maxScale * 0.99f; } }
+    public boolean ScaleCouldIncrease () { return _maxScale == -1f || transform.getScaleX() < _maxScale * 0.99f; }
     /// <summary>
     /// Could the ocean horizontal scale decrease (for e.g. if the viewpoint drops in altitude). Will be false if ocean already at minimum scale.
     /// </summary>
-    public bool ScaleCouldDecrease { get { return _minScale == -1f || transform.localScale.x > _minScale * 1.01f; } }
+    public boolean ScaleCouldDecrease(){ return _minScale == -1f || transform.getScaleX() > _minScale * 1.01f; }
 
     /// <summary>
     /// User shape inputs can report in how far they might displace the shape horizontally and vertically. The max value is
@@ -349,11 +360,11 @@ public class OceanRenderer extends MonoBehaviour {
     /// <summary>
     /// The maximum horizontal distance that the shape scripts are displacing the shape.
     /// </summary>
-    public float MaxHorizDisplacement { get { return _maxHorizDispFromShape; } }
+    public float MaxHorizDisplacement () { return _maxHorizDispFromShape; }
     /// <summary>
     /// The maximum height that the shape scripts are displacing the shape.
     /// </summary>
-    public float MaxVertDisplacement { get { return _maxVertDispFromShape; } }
+    public float MaxVertDisplacement () { return _maxVertDispFromShape; }
 
     public static OceanRenderer Instance;
 
@@ -361,41 +372,40 @@ public class OceanRenderer extends MonoBehaviour {
     /// Provides ocean shape to CPU.
     /// </summary>
     ICollProvider _collProvider;
-    public ICollProvider CollisionProvider { get { return _collProvider != null ? _collProvider : (_collProvider = _simSettingsAnimatedWaves.CreateCollisionProvider()); } }
+    public ICollProvider CollisionProvider (){ return _collProvider != null ? _collProvider : (_collProvider = _simSettingsAnimatedWaves.CreateCollisionProvider()); }
 
-#if UNITY_EDITOR
     private void OnValidate()
     {
         // Must be at least 0.25, and must be on a power of 2
-        _minScale = Mathf.Pow(2f, Mathf.Round(Mathf.Log(Mathf.Max(_minScale, 0.25f), 2f)));
+        _minScale = (float) Math.pow(2f, Math.round(Numeric.log2(Math.max(_minScale, 0.25f))));
 
         // Max can be -1 which means no maximum
         if (_maxScale != -1f)
         {
             // otherwise must be at least 0.25, and must be on a power of 2
-            _maxScale = Mathf.Pow(2f, Mathf.Round(Mathf.Log(Mathf.Max(_maxScale, _minScale), 2f)));
+            _maxScale = (float) Math.pow(2f, Math.round(Numeric.log2(Math.max(_maxScale, _minScale))));
         }
 
         // Gravity 0 makes waves freeze which is weird but doesn't seem to break anything so allowing this for now
-        _gravityMultiplier = Mathf.Max(_gravityMultiplier, 0f);
+        _gravityMultiplier = Math.max(_gravityMultiplier, 0f);
 
         // LOD data resolution multiple of 2 for general GPU texture reasons (like pixel quads)
         _lodDataResolution -= _lodDataResolution % 2;
 
-        _geometryDownSampleFactor = Mathf.ClosestPowerOfTwo(Mathf.Max(_geometryDownSampleFactor, 1));
+        _geometryDownSampleFactor = Numeric.nearestPowerOfTwo(Math.max(_geometryDownSampleFactor, 1));
 
-        var remGeo = _lodDataResolution % _geometryDownSampleFactor;
+        int remGeo = _lodDataResolution % _geometryDownSampleFactor;
         if (remGeo > 0)
         {
-            var newLDR = _lodDataResolution - (_lodDataResolution % _geometryDownSampleFactor);
-            Debug.LogWarning("Adjusted Lod Data Resolution from " + _lodDataResolution + " to " + newLDR + " to ensure the Geometry Down Sample Factor is a factor (" + _geometryDownSampleFactor + ").", this);
+            int newLDR = _lodDataResolution - (_lodDataResolution % _geometryDownSampleFactor);
+            LogUtil.w(LogUtil.LogType.DEFAULT, "Adjusted Lod Data Resolution from " + _lodDataResolution + " to " + newLDR + " to ensure the Geometry Down Sample Factor is a factor (" + _geometryDownSampleFactor + ").");
             _lodDataResolution = newLDR;
         }
     }
 
-        [UnityEditor.Callbacks.DidReloadScripts]
+//        [UnityEditor.Callbacks.DidReloadScripts]
     private static void OnReLoadScripts()
     {
-        Instance = FindObjectOfType<OceanRenderer>();
+//        Instance = FindObjectOfType<OceanRenderer>();
     }
 }

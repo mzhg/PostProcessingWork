@@ -12,11 +12,11 @@ public abstract class RegisterLodDataInput<LodDataType extends LodDataMgr> exten
     {
         if (_disableRenderer)
         {
-            var rend = GetComponent<Renderer>();
+            /*var rend = GetComponent<Renderer>();
             if (rend)
             {
                 rend.enabled = false;
-            }
+            }*/
         }
 
         Type type = getClass().getGenericInterfaces()[0];

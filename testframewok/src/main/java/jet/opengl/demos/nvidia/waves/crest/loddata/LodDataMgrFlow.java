@@ -1,5 +1,6 @@
 package jet.opengl.demos.nvidia.waves.crest.loddata;
 
+import java.awt.Color;
 import java.util.List;
 
 import jet.opengl.demos.nvidia.waves.crest.CommandBuffer;
@@ -8,20 +9,48 @@ import jet.opengl.demos.nvidia.waves.crest.helpers.IPropertyWrapper;
 import jet.opengl.demos.nvidia.waves.crest.helpers.TextureArrayHelpers;
 import jet.opengl.postprocessing.common.GLenum;
 
-/**
- * Renders depth of the ocean (height of sea level above ocean floor), by rendering the relative height of tagged objects from top down.
- */
-public class LodDataMgrSeaFloorDepth extends LodDataMgr {
-    public String SimName () { return "SeaFloorDepth"; }
-    public int TextureFormat() { return GLenum.GL_R16F; }
+/** A persistent flow simulation that moves around with a displacement LOD. The input is fully combined water surface shape. */
+public class LodDataMgrFlow extends LodDataMgr {
+    public String SimName () { return "Flow"; }
+    public int TextureFormat () { return GLenum.GL_R16F; }
     protected boolean NeedToReadWriteTextureData () { return false; }
 
-    public SimSettingsBase CreateDefaultSettings() { return null; }
-    public void UseSettings(SimSettingsBase settings) { }
+    public SimSettingsBase Settings() { return /*OceanRenderer.Instance._simSettingsFlow*/null;  }
+    public void UseSettings(SimSettingsBase settings) { /*OceanRenderer.Instance._simSettingsFlow = settings as SimSettingsFlow;*/ }
+    public SimSettingsBase CreateDefaultSettings()
+    {
+//        var settings = ScriptableObject.CreateInstance<SimSettingsFlow>();
+//        settings.name = SimName + " Auto-generated Settings";
+//        return settings;
+
+        return null;
+    }
 
     boolean _targetsClear = false;
 
-    public final String ShaderName = "Crest/Inputs/Depth/Cached Depths";
+    public final String FLOW_KEYWORD = "_FLOW_ON";
+
+    protected void Start()
+    {
+        super.Start();
+
+/*#if UNITY_EDITOR
+        if (!OceanRenderer.Instance.OceanMaterial.IsKeywordEnabled(FLOW_KEYWORD))
+        {
+            Debug.LogWarning("Flow is not enabled on the current ocean material and will not be visible.", this);
+        }
+#endif*/
+    }
+
+    protected void OnEnable()
+    {
+//        Shader.EnableKeyword(FLOW_KEYWORD);
+    }
+
+    protected void OnDisable()
+    {
+//        Shader.DisableKeyword(FLOW_KEYWORD);
+    }
 
     public void BuildCommandBuffer(OceanRenderer ocean, CommandBuffer buf)
     {
@@ -37,7 +66,7 @@ public class LodDataMgrSeaFloorDepth extends LodDataMgr {
         for (int lodIdx = OceanRenderer.Instance.CurrentLodCount() - 1; lodIdx >= 0; lodIdx--)
         {
             buf.SetRenderTarget(_targets, 0, CubemapFace.Unknown, lodIdx);
-            buf.ClearRenderTarget(false, true, Color.white * 1000f);
+            buf.ClearRenderTarget(false, true, Color.black);
             buf.SetGlobalFloat(sp_LD_SliceIndex, lodIdx);
             SubmitDraws(lodIdx, buf);
         }
@@ -49,7 +78,7 @@ public class LodDataMgrSeaFloorDepth extends LodDataMgr {
         }
     }
 
-    public static String TextureArrayName = "_LD_TexArray_SeaFloorDepth";
+    public static String TextureArrayName = "_LD_TexArray_Flow";
     private static TextureArrayParamIds textureArrayParamIds = new TextureArrayParamIds(TextureArrayName);
     public static int ParamIdSampler(boolean sourceLod /*= false*/) { return textureArrayParamIds.GetId(sourceLod); }
     protected int GetParamIdSampler(boolean sourceLod /*= false*/)

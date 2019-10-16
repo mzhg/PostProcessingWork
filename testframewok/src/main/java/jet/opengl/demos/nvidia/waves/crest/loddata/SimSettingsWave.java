@@ -1,6 +1,8 @@
 package jet.opengl.demos.nvidia.waves.crest.loddata;
 
 public class SimSettingsWave  implements SimSettingsBase{
+    public String name;
+
     //[Header("Range")]
 //        [Range(0f, 32f), Tooltip("NOT CURRENTLY WORKING. The wave sim will not run if the simulation grid is smaller in resolution than this size. Useful to limit sim range for performance."),
 //    HideInInspector]

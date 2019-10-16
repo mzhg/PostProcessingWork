@@ -11,6 +11,7 @@ import jet.opengl.demos.nvidia.waves.crest.helpers.IPropertyWrapper;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.Numeric;
 
 public abstract class LodDataMgr extends MonoBehaviour {
     public abstract String SimName();  // { get; }
@@ -41,8 +42,7 @@ public abstract class LodDataMgr extends MonoBehaviour {
     // ocean scale last frame - used to detect scale changes
     float _oceanLocalScalePrev = -1f;
 
-    int _scaleDifferencePow2 = 0;
-    protected int ScaleDifferencePow2() {  return _scaleDifferencePow2; }
+    protected int ScaleDifferencePow2;
 
     public LodDataMgr(){
         for(int i = 0; i < _BindData_paramIdPosScales.length; i++){
@@ -108,16 +108,16 @@ public abstract class LodDataMgr extends MonoBehaviour {
         float ratio = oceanLocalScale / _oceanLocalScalePrev;
         _oceanLocalScalePrev = oceanLocalScale;
         float ratio_l2 = (float) (Math.log(ratio) / Math.log(2f));
-        _scaleDifferencePow2 = Math.round(ratio_l2);
+        ScaleDifferencePow2 = Math.round(ratio_l2);
     }
 
-    public void BindResultData(IPropertyWrapper properties){
+    public final void BindResultData(IPropertyWrapper properties){
         BindResultData(properties, true);
     }
 
     public void BindResultData(IPropertyWrapper properties, boolean blendOut /*= true*/)
     {
-        BindData(properties, _targets, blendOut, ref OceanRenderer.Instance._lodTransform._renderData);
+        BindData(properties, _targets, blendOut, OceanRenderer.Instance._lodTransform._renderData, false);
     }
 
     // Avoid heap allocations instead BindData
@@ -132,7 +132,7 @@ public abstract class LodDataMgr extends MonoBehaviour {
         }
 
         LodTransform lt = OceanRenderer.Instance._lodTransform;
-        for (int lodIdx = 0; lodIdx < OceanRenderer.Instance.CurrentLodCount; lodIdx++)
+        for (int lodIdx = 0; lodIdx < OceanRenderer.Instance.CurrentLodCount(); lodIdx++)
         {
             // NOTE: gets zeroed by unity, see https://www.alanzucconi.com/2016/10/24/arrays-shaders-unity-5-4/
             _BindData_paramIdPosScales[lodIdx].set(
@@ -143,8 +143,8 @@ public abstract class LodDataMgr extends MonoBehaviour {
 
         // Duplicate the last element as the shader accesses element {slice index + 1] in a few situations. This way going
         // off the end of this parameter is the same as going off the end of the texture array with our clamped sampler.
-        _BindData_paramIdPosScales[OceanRenderer.Instance.CurrentLodCount] = _BindData_paramIdPosScales[OceanRenderer.Instance.CurrentLodCount - 1];
-        _BindData_paramIdOceans[OceanRenderer.Instance.CurrentLodCount] = _BindData_paramIdOceans[OceanRenderer.Instance.CurrentLodCount - 1];
+        _BindData_paramIdPosScales[OceanRenderer.Instance.CurrentLodCount()] = _BindData_paramIdPosScales[OceanRenderer.Instance.CurrentLodCount() - 1];
+        _BindData_paramIdOceans[OceanRenderer.Instance.CurrentLodCount()] = _BindData_paramIdOceans[OceanRenderer.Instance.CurrentLodCount() - 1];
 
         properties.SetVectorArray(LodTransform.ParamIdPosScale(sourceLod), _BindData_paramIdPosScales);
         properties.SetVectorArray(LodTransform.ParamIdOcean(sourceLod), _BindData_paramIdOceans);
@@ -168,27 +168,28 @@ public abstract class LodDataMgr extends MonoBehaviour {
 
     public interface IDrawFilter
     {
+        /** float in the first, isTransition in the seocnd */
         long Filter(ILodDataInput data/*, out int isTransition*/);
     }
 
-    protected void SubmitDraws(int lodIdx, CommandBuffer buf, int frameCount)
+    protected void SubmitDraws(int lodIdx, CommandBuffer buf)
     {
         LodTransform lt = OceanRenderer.Instance._lodTransform;
-        lt._renderData[lodIdx].Validate(frameCount,0, this);
+        lt._renderData[lodIdx].Validate(0, this);
 
         lt.SetViewProjectionMatrices(lodIdx, buf);
 
-        var drawList = RegisterLodDataInputBase.GetRegistrar(GetType());
-        foreach (var draw in drawList)
+        List<ILodDataInput> drawList = RegisterLodDataInputBase.GetRegistrar(getClass());
+        for (ILodDataInput draw : drawList)
         {
             draw.Draw(buf, 1f, 0);
         }
     }
 
-    protected void SubmitDrawsFiltered(int lodIdx, CommandBuffer buf, IDrawFilter filter, int frameCount)
+    protected void SubmitDrawsFiltered(int lodIdx, CommandBuffer buf, IDrawFilter filter)
     {
         LodTransform lt = OceanRenderer.Instance._lodTransform;
-        lt._renderData[lodIdx].Validate(frameCount,0, this);
+        lt._renderData[lodIdx].Validate( 0, this);
 
         lt.SetViewProjectionMatrices(lodIdx, buf);
 
@@ -203,7 +204,8 @@ public abstract class LodDataMgr extends MonoBehaviour {
 //            int isTransition;
 //            float weight = filter.Filter(draw, out isTransition);
             long result = filter.Filter(draw);
-
+            float weight = Float.intBitsToFloat(Numeric.decodeFirst(result));
+            int isTransition = Numeric.decodeSecond(result);
             if (weight > 0f)
             {
                 draw.Draw(buf, weight, isTransition);
