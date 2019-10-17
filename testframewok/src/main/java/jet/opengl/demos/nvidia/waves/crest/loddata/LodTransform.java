@@ -78,8 +78,9 @@ public class LodTransform extends MonoBehaviour implements IFloatingOrigin {
         }
     }
 
-    public void UpdateTransforms(int frameCount)
+    public void UpdateTransforms()
     {
+        int frameCount = Time.frameCount;
         for (int lodIdx = 0; lodIdx < LodCount(); lodIdx++)
         {
             if (_transformUpdateFrame[lodIdx] == frameCount) continue;

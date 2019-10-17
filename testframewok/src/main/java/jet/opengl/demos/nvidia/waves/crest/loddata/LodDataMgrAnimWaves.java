@@ -184,8 +184,8 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
             // Dynamic waves
             if (OceanRenderer.Instance._lodDataDynWaves != null)
             {
-                OceanRenderer.Instance._lodDataDynWaves.BindCopySettings([lodIdx]);
-                OceanRenderer.Instance._lodDataDynWaves.BindResultData([lodIdx]);
+                OceanRenderer.Instance._lodDataDynWaves.BindCopySettings(_combineMaterial[lodIdx]);
+                OceanRenderer.Instance._lodDataDynWaves.BindResultData(_combineMaterial[lodIdx]);
             }
             else
             {

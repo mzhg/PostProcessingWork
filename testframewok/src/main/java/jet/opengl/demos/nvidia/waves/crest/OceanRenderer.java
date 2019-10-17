@@ -319,7 +319,7 @@ public class OceanRenderer extends MonoBehaviour {
 
         _lodTransform.UpdateTransforms();
 
-        if (_lodDataAnimWaves) _lodDataAnimWaves.UpdateLodData();
+        if (_lodDataAnimWaves != null) _lodDataAnimWaves.UpdateLodData();
         if (_lodDataDynWaves) _lodDataDynWaves.UpdateLodData();
         if (_lodDataFlow) _lodDataFlow.UpdateLodData();
         if (_lodDataFoam) _lodDataFoam.UpdateLodData();

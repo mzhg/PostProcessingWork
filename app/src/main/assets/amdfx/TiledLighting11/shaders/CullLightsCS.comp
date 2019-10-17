@@ -28,7 +28,7 @@ layout(binding = 2) buffer PerTileVPLIndexBufferOut
 };
 #endif
 
-layout (local_size_x = NUM_THREADS_X, local_size_x = NUM_THREADS_Y) in;
+layout (local_size_x = NUM_THREADS_X, local_size_y = NUM_THREADS_Y) in;
 void main()
 {
     uint3 globalIdx = SV_DispatchThreadID;

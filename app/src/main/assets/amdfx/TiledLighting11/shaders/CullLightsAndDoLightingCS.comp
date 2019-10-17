@@ -10,7 +10,7 @@ layout(binding = 12) uniform sampler2D g_GBuffer4Texture;
 
 layout(binding = 0, rgba32f) uniform image2D g_OffScreenBufferOut;
 
-layout (local_size_x = NUM_THREADS_X, local_size_x = NUM_THREADS_Y) in;
+layout (local_size_x = NUM_THREADS_X, local_size_y = NUM_THREADS_Y) in;
 
 void main()
 {

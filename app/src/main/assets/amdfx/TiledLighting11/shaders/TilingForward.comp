@@ -60,7 +60,7 @@ layout(binding = 2) buffer Buffer2
 // Light culling shader
 //-----------------------------------------------------------------------------------------
 //[numthreads(NUM_THREADS_X, NUM_THREADS_Y, 1)]
-layout (local_size_x = NUM_THREADS_X, local_size_x = NUM_THREADS_Y) in;
+layout (local_size_x = NUM_THREADS_X, local_size_y = NUM_THREADS_Y) in;
 //void CullLightsCS( uint3 globalIdx : SV_DispatchThreadID, uint3 localIdx : SV_GroupThreadID, uint3 groupIdx : SV_GroupID )
 void main()
 {

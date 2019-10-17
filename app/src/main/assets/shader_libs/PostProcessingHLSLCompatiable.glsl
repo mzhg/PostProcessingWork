@@ -37,6 +37,7 @@
 #define int2 ivec2
 #define int3 ivec3
 #define int4 ivec4
+#define half4 mediump float
 
 #define lerp(x,y,v) mix(x,y,v)
 #define rcp(x) 1.0/x
