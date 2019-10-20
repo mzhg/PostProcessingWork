@@ -51,6 +51,12 @@ public interface ICollProvider {
     /// </summary>
     boolean RetrieveSucceeded(int queryStatus);
 
+    /**
+     * bool in the first. float in the second.
+     * @param i_worldPos
+     * @param i_samplingData
+     * @return
+     */
     long SampleHeight(ReadableVector3f i_worldPos, SamplingData i_samplingData);
 
     /// <summary>

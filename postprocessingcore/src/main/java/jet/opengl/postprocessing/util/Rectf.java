@@ -75,4 +75,8 @@ public class Rectf {
         return x >= this.x && x <= this.x + width &&
            y >=  this.y && y <= this.y + height;
     }
+
+    public boolean contains(Rectf o){
+        return contains(o.x, o.y) && contains(o.x + o.width, o.y+o.height);
+    }
 }

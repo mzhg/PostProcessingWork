@@ -23,7 +23,7 @@ public abstract class LodDataMgr extends MonoBehaviour {
 
     // NOTE: This MUST match the value in OceanLODData.hlsl, as it
     // determines the size of the texture arrays in the shaders.
-    public final int MAX_LOD_COUNT = 15;
+    public final static int MAX_LOD_COUNT = 15;
 
     protected abstract int GetParamIdSampler(boolean sourceLod /*= false*/);
 

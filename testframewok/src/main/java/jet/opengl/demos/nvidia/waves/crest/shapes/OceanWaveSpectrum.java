@@ -8,8 +8,10 @@ import jet.opengl.postprocessing.util.Numeric;
 
 /** Ocean shape representation - power values for each octave of wave components. */
 public final class OceanWaveSpectrum {
-    public final int NUM_OCTAVES = 14;
+    public final static int NUM_OCTAVES = 14;
     public static final float SMALLEST_WL_POW_2 = -4f;
+
+    public String name;
 
 //        [HideInInspector]
     public float _windSpeed = 10f;
@@ -144,7 +146,7 @@ public final class OceanWaveSpectrum {
                 double maxWavelengthi = Math.min(minWavelengthi + invComponentsPerOctave * minWavelength, 2f * minWavelength);
                 wavelengths[index] = (float) Numeric.mix(minWavelengthi, maxWavelengthi, Numeric.random());
 
-                double rnd = (i + Math.random()) * invComponentsPerOctave;
+                double rnd = (i + Numeric.random()) * invComponentsPerOctave;
                 anglesDeg[index] = (float) ((2f * rnd - 1f) * _waveDirectionVariance);
             }
 

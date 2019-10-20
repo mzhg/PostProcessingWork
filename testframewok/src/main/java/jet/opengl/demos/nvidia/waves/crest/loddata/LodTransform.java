@@ -141,7 +141,7 @@ public class LodTransform extends MonoBehaviour implements IFloatingOrigin {
 
     public float MaxWavelength(int lodIdx)
     {
-        float oceanBaseScale = OceanRenderer.Instance.Scale();
+        float oceanBaseScale = OceanRenderer.Instance.Scale;
         float maxDiameter = (float) (4f * oceanBaseScale * Math.pow(2f, lodIdx));
         float maxTexelSize = maxDiameter / OceanRenderer.Instance.LodDataResolution();
         return 2f * maxTexelSize * OceanRenderer.Instance.MinTexelsPerWave();

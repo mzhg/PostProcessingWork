@@ -25,8 +25,7 @@ public class SimSettingsAnimatedWaves implements IReadbackSettingsProvider,SimSe
     }
 //        [Header("Readback to CPU")]
 //            [Tooltip("Where to obtain ocean shape on CPU for physics / gameplay."), SerializeField]
-    private CollisionSources _collisionSource = CollisionSources.ComputeShaderQueries;
-    public CollisionSources CollisionSource() { return _collisionSource; }
+    public CollisionSources CollisionSource = CollisionSources.ComputeShaderQueries;
 
 //        [SerializeField, Tooltip("Cache CPU requests for ocean height. Requires restart.")]
     private boolean _cachedHeightQueries = false;

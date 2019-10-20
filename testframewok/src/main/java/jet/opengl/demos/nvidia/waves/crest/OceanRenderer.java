@@ -51,7 +51,7 @@ public class OceanRenderer extends MonoBehaviour {
 
 //        [SerializeField, Delayed, Tooltip("Multiplier for physics gravity."), Range(0f, 10f)]
     float _gravityMultiplier = 1f;
-    public float Gravity() { return _gravityMultiplier * /*Physics.gravity.magnitude*/ 9.8f; }
+    public float Gravity() { return _gravityMultiplier * /*Physics.gravity.magnitude*/ -9.8f; }
 
 
 //        [Header("Detail Params")]
@@ -85,27 +85,22 @@ public class OceanRenderer extends MonoBehaviour {
     public SimSettingsAnimatedWaves _simSettingsAnimatedWaves;
 
 //        [Tooltip("Water depth information used for shallow water, shoreline foam, wave attenuation, among others."), SerializeField]
-    boolean _createSeaFloorDepthData = true;
-    public boolean CreateSeaFloorDepthData () { return _createSeaFloorDepthData;  }
+    public boolean CreateSeaFloorDepthData = true;
 
 //        [Tooltip("Simulation of foam created in choppy water and dissipating over time."), SerializeField]
-    boolean _createFoamSim = true;
-    public boolean CreateFoamSim () { return _createFoamSim; }
+    public boolean CreateFoamSim = true;
     public SimSettingsFoam _simSettingsFoam;
 
 //        [Tooltip("Dynamic waves generated from interactions with objects such as boats."), SerializeField]
-    boolean _createDynamicWaveSim = false;
-    public boolean CreateDynamicWaveSim () { return _createDynamicWaveSim; }
+    public boolean CreateDynamicWaveSim = false;
     public SimSettingsWave _simSettingsDynamicWaves;
 
 //        [Tooltip("Horizontal motion of water body, akin to water currents."), SerializeField]
-    boolean _createFlowSim = false;
-    public boolean CreateFlowSim (){ return _createFlowSim; }
+    public boolean CreateFlowSim = false;
 //    public SimSettingsFlow _simSettingsFlow;
 
 //        [Tooltip("Shadow information used for lighting water."), SerializeField]
-    boolean _createShadowData = false;
-    public boolean CreateShadowData () { return _createShadowData; }
+    public boolean CreateShadowData = false;
 //        [Tooltip("The primary directional light. Required if shadowing is enabled.")]
     public Light _primaryLight;
     public SimSettingsShadow _simSettingsShadow;
@@ -123,8 +118,7 @@ public class OceanRenderer extends MonoBehaviour {
     /// Current ocean scale (changes with viewer altitude).
     /// </summary>
 
-    private float _scale = 1;
-    public float Scale () { return _scale;}
+    public float Scale = 1;
     public float CalcLodScale(float lodIndex) { return (float) (_scale * Math.pow(2f, lodIndex)); }
     public float CalcGridSize(int lodIndex) { return CalcLodScale(lodIndex) / _lodDataResolution; }
 
@@ -171,7 +165,7 @@ public class OceanRenderer extends MonoBehaviour {
         }
 
         Instance = this;
-        Scale = Mathf.Clamp(Scale, _minScale, _maxScale);
+        Scale = Numeric.clamp(Scale, _minScale, _maxScale);
 
         OceanBuilder.GenerateMesh(this, _lodDataResolution, _geometryDownSampleFactor, _lodCount);
 
@@ -263,6 +257,46 @@ public class OceanRenderer extends MonoBehaviour {
         }
 
         LateUpdateLods();
+
+        Build(null);
+    }
+
+    void Build(CommandBuffer buf)
+    {
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // --- Ocean depths
+        if (_lodDataSeaDepths !=null)
+        {
+            _lodDataSeaDepths.BuildCommandBuffer(this, buf);
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // --- Flow data
+        if (_lodDataFlow != null)
+        {
+            _lodDataFlow.BuildCommandBuffer( this,buf);
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // --- Dynamic wave simulations
+        if (_lodDataDynWaves != null)
+        {
+            _lodDataDynWaves.BuildCommandBuffer(this, buf);
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // --- Animated waves next
+        if (_lodDataAnimWaves != null)
+        {
+            _lodDataAnimWaves.BuildCommandBuffer(this, buf);
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // --- Foam simulation
+        if (_lodDataFoam != null)
+        {
+            _lodDataFoam.BuildCommandBuffer(this, buf);
+        }
     }
 
     void LateUpdatePosition()
@@ -295,12 +329,12 @@ public class OceanRenderer extends MonoBehaviour {
         if (_maxScale != -1f) level = Math.min(level, 1.99f * _maxScale);
 
         float l2 = (float) (Math.log(level) / Math.log(2f));
-        float l2f = Math.floor(l2);
+        float l2f = (float) Math.floor(l2);
 
         ViewerAltitudeLevelAlpha = l2 - l2f;
 
-        Scale = Mathf.Pow(2f, l2f);
-        transform.localScale = new Vector3(Scale, 1f, Scale);
+        Scale = (float) Math.pow(2f, l2f);
+        transform.setScale(Scale, 1f, Scale);
     }
 
     void LateUpdateViewerHeight()
@@ -320,11 +354,11 @@ public class OceanRenderer extends MonoBehaviour {
         _lodTransform.UpdateTransforms();
 
         if (_lodDataAnimWaves != null) _lodDataAnimWaves.UpdateLodData();
-        if (_lodDataDynWaves) _lodDataDynWaves.UpdateLodData();
-        if (_lodDataFlow) _lodDataFlow.UpdateLodData();
-        if (_lodDataFoam) _lodDataFoam.UpdateLodData();
-        if (_lodDataSeaDepths) _lodDataSeaDepths.UpdateLodData();
-        if (_lodDataShadow) _lodDataShadow.UpdateLodData();
+        if (_lodDataDynWaves != null) _lodDataDynWaves.UpdateLodData();
+        if (_lodDataFlow != null) _lodDataFlow.UpdateLodData();
+        if (_lodDataFoam != null) _lodDataFoam.UpdateLodData();
+        if (_lodDataSeaDepths != null) _lodDataSeaDepths.UpdateLodData();
+        if (_lodDataShadow != null) _lodDataShadow.UpdateLodData();
     }
 
     /// <summary>
@@ -347,24 +381,22 @@ public class OceanRenderer extends MonoBehaviour {
             _maxHorizDispFromShape = _maxVertDispFromShape = _maxVertDispFromWaves = 0f;
         }
 
-        _maxHorizDispFromShape += maxHorizDisp;
+        MaxHorizDisplacement += maxHorizDisp;
         _maxVertDispFromShape += maxVertDisp;
         _maxVertDispFromWaves += maxVertDispFromWaves;
 
         _maxDisplacementCachedTime = Time.frameCount;
     }
-    float _maxHorizDispFromShape = 0f;
-    float _maxVertDispFromShape = 0f;
     float _maxVertDispFromWaves = 0f;
     int _maxDisplacementCachedTime = 0;
     /// <summary>
     /// The maximum horizontal distance that the shape scripts are displacing the shape.
     /// </summary>
-    public float MaxHorizDisplacement () { return _maxHorizDispFromShape; }
+    public float MaxHorizDisplacement;
     /// <summary>
     /// The maximum height that the shape scripts are displacing the shape.
     /// </summary>
-    public float MaxVertDisplacement () { return _maxVertDispFromShape; }
+    public float MaxVertDisplacement ;
 
     public static OceanRenderer Instance;
 

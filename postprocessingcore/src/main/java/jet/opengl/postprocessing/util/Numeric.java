@@ -1,15 +1,16 @@
 package jet.opengl.postprocessing.util;
 
-import com.sun.java.swing.plaf.windows.WindowsButtonUI;
-
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.WritableVector3f;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Random;
 
 public final class Numeric {
+
+	private static final Random gGlobalRandom = new Random();
 
 	// -15 stored using a single precision bias of 127
 	private static final int  HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP = 0x38000000;
@@ -125,10 +126,14 @@ public final class Numeric {
 		return makeRGBA(a, b, c, d);
 	}
 
-	public static final float random() { return (float)Math.random();}
+	public static final void setRandomSeed(long seed){
+		gGlobalRandom.setSeed(seed);
+	}
+
+	public static final float random() { return gGlobalRandom.nextFloat();}
 	
 	public static final float random(float low, float high){
-		return (float) (Math.random() * (high - low) + low);
+		return (gGlobalRandom.nextFloat() * (high - low) + low);
 	}
 
 	public static final int getInt(InputStream in) throws IOException{
