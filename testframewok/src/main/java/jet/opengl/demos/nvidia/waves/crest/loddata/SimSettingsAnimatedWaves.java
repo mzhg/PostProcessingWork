@@ -7,6 +7,7 @@ import jet.opengl.demos.nvidia.waves.crest.collision.CollProviderCache;
 import jet.opengl.demos.nvidia.waves.crest.collision.CollProviderNull;
 import jet.opengl.demos.nvidia.waves.crest.collision.ICollProvider;
 import jet.opengl.demos.nvidia.waves.crest.collision.QueryDisplacements;
+import jet.opengl.demos.nvidia.waves.crest.gpureadback.GPUReadbackDisps;
 import jet.opengl.demos.nvidia.waves.crest.gpureadback.IReadbackSettingsProvider;
 
 public class SimSettingsAnimatedWaves implements IReadbackSettingsProvider,SimSettingsBase {
@@ -28,8 +29,7 @@ public class SimSettingsAnimatedWaves implements IReadbackSettingsProvider,SimSe
     public CollisionSources CollisionSource = CollisionSources.ComputeShaderQueries;
 
 //        [SerializeField, Tooltip("Cache CPU requests for ocean height. Requires restart.")]
-    private boolean _cachedHeightQueries = false;
-    public boolean CachedHeightQueries (){ return _cachedHeightQueries; }
+    public boolean CachedHeightQueries = false;
 
 //        [Header("GPU Readback Settings")]
 //            [Tooltip("Minimum floating object width. The larger the objects that will float, the lower the resolution of the read data. If an object is small, the highest resolution LODs will be sample for physics. This is an optimisation. Set to 0 to disable this optimisation and always copy high res data.")]
@@ -54,7 +54,7 @@ public class SimSettingsAnimatedWaves implements IReadbackSettingsProvider,SimSe
     {
         ICollProvider result = null;
 
-        switch (_collisionSource)
+        switch (CollisionSource)
         {
             case None:
                 result = new CollProviderNull();
@@ -71,7 +71,7 @@ public class SimSettingsAnimatedWaves implements IReadbackSettingsProvider,SimSe
                 break;
         }
 
-        if (result == null && _collisionSource == CollisionSources.OceanDisplacementTexturesGPU)
+        if (result == null && CollisionSource == CollisionSources.OceanDisplacementTexturesGPU)
         {
             // can happen if async readback not supported on device
             result = new CollProviderNull();

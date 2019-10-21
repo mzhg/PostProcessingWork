@@ -2,6 +2,8 @@ package jet.opengl.postprocessing.util;
 
 import org.lwjgl.util.vector.Vector2i;
 
+import java.nio.IntBuffer;
+
 /**
  * Created by mazhen'gui on 2017/4/1.
  */
@@ -68,5 +70,14 @@ public class Recti {
 
     public int area(){
         return width * height;
+    }
+
+    public Recti load(IntBuffer buf){
+        x = buf.get();
+        y = buf.get();
+        width = buf.get();
+        height = buf.get();
+
+        return this;
     }
 }

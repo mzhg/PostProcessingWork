@@ -6,6 +6,7 @@ import org.lwjgl.util.vector.Transform;
 
 import jdk.nashorn.internal.runtime.Debug;
 import jet.opengl.demos.intel.fluid.scene.Light;
+import jet.opengl.demos.nvidia.waves.crest.collision.CollProviderCache;
 import jet.opengl.demos.nvidia.waves.crest.collision.ICollProvider;
 import jet.opengl.demos.nvidia.waves.crest.collision.SampleHeightHelper;
 import jet.opengl.demos.nvidia.waves.crest.helpers.Time;
@@ -58,8 +59,8 @@ public class OceanRenderer extends MonoBehaviour {
 
 //            [Range(2, 16)]
 //            [Tooltip("Min number of verts / shape texels per wave."), SerializeField]
-    float _minTexelsPerWave = 3f;
-//    public float MinTexelsPerWave => _minTexelsPerWave;
+//    float _minTexelsPerWave = 3f;
+    public float MinTexelsPerWave = 3;
 
 //        [Delayed, Tooltip("The smallest scale the ocean can be."), SerializeField]
     float _minScale = 8f;
@@ -119,7 +120,7 @@ public class OceanRenderer extends MonoBehaviour {
     /// </summary>
 
     public float Scale = 1;
-    public float CalcLodScale(float lodIndex) { return (float) (_scale * Math.pow(2f, lodIndex)); }
+    public float CalcLodScale(float lodIndex) { return (float) (Scale * Math.pow(2f, lodIndex)); }
     public float CalcGridSize(int lodIndex) { return CalcLodScale(lodIndex) / _lodDataResolution; }
 
     /// <summary>
@@ -169,10 +170,10 @@ public class OceanRenderer extends MonoBehaviour {
 
         OceanBuilder.GenerateMesh(this, _lodDataResolution, _geometryDownSampleFactor, _lodCount);
 
-        if (null == GetComponent<BuildCommandBufferBase>())
+        /*if (null == GetComponent<BuildCommandBufferBase>())
         {
             gameObject.AddComponent<BuildCommandBuffer>();
-        }
+        }*/
 
         InitViewpoint();
         InitTimeProvider();
@@ -182,19 +183,10 @@ public class OceanRenderer extends MonoBehaviour {
     {
         if (_material == null)
         {
-            Debug.LogError("A material for the ocean must be assigned on the Material property of the OceanRenderer.", this);
+            LogUtil.e(LogUtil.LogType.DEFAULT, "A material for the ocean must be assigned on the Material property of the OceanRenderer.");
             return false;
         }
-        if (!SystemInfo.supportsComputeShaders)
-        {
-            Debug.LogError("Crest requires graphics devices that support compute shaders.", this);
-            return false;
-        }
-        if (!SystemInfo.supports2DArrayTextures)
-        {
-            Debug.LogError("Crest requires graphics devices that support 2D array textures.", this);
-            return false;
-        }
+
 
         return true;
     }
@@ -215,7 +207,7 @@ public class OceanRenderer extends MonoBehaviour {
         }
     }
 
-    void InitTimeProvider()
+    /*void InitTimeProvider()
     {
         // Used assigned time provider, or use one attached to this game object
         if (_timeProvider == null && (_timeProvider = GetComponent<TimeProviderBase>()) == null)
@@ -223,7 +215,7 @@ public class OceanRenderer extends MonoBehaviour {
             // None found - create
             _timeProvider = gameObject.AddComponent<TimeProviderDefault>();
         }
-    }
+    }*/
 
     void Update()
     {
@@ -234,7 +226,7 @@ public class OceanRenderer extends MonoBehaviour {
     {
         if (_simSettingsAnimatedWaves.CachedHeightQueries)
         {
-            (CollisionProvider as CollProviderCache).ClearCache();
+            ((CollProviderCache)CollisionProvider()).ClearCache();
         }
     }
 

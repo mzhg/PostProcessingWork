@@ -1,8 +1,15 @@
 package jet.opengl.demos.nvidia.waves.crest.gpureadback;
 
+import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.Vector;
+import org.lwjgl.util.vector.Vector3f;
+
 import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.demos.nvidia.waves.crest.collision.ICollProvider;
+import jet.opengl.demos.nvidia.waves.crest.collision.SamplingData;
 import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrAnimWaves;
+import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.Rectf;
 
 /**
  * Reads back displacements - this is the ocean shape, which includes any dynamic waves and any custom shape.
@@ -41,114 +48,118 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         Instance = null;
     }
 
-    public boolean ComputeUndisplacedPosition(ref Vector3 i_worldPos, SamplingData i_samplingData, out Vector3 undisplacedWorldPos)
+    public boolean ComputeUndisplacedPosition(ReadableVector3f i_worldPos, SamplingData i_samplingData, final Vector3f undisplacedWorldPos)
     {
         // Tag should not be null if the collision source is GPU readback.
-        Debug.Assert(i_samplingData._tag != null, "Invalid sampling data - LOD to sample from was unspecified.");
+        assert(i_samplingData._tag != null): "Invalid sampling data - LOD to sample from was unspecified.";
 
-        var lodData = i_samplingData._tag as PerLodData;
+        PerLodData lodData = (PerLodData)i_samplingData._tag;
 
         // FPI - guess should converge to location that displaces to the target position
-        Vector3 guess = i_worldPos;
+        Vector3f guess = new Vector3f(i_worldPos);
         // 2 iterations was enough to get very close when chop = 1, added 2 more which should be
         // sufficient for most applications. for high chop values or really stormy conditions there may
         // be some error here. one could also terminate iteration based on the size of the error, this is
         // worth trying but is left as future work for now.
-        Vector3 disp = Vector3.zero;
+        Vector3f disp = new Vector3f();
 
-        for (int i = 0; i < 4 && lodData._resultData.InterpolateARGB16(ref guess, out disp); i++)
+        for (int i = 0; i < 4 && lodData._resultData.InterpolateARGB16(guess, disp); i++)
         {
-            Vector3 error = guess + disp - i_worldPos;
-            guess.x -= error.x;
-            guess.z -= error.z;
+            float errorx = guess.x + disp.x - i_worldPos.getX();
+            float errorz = guess.z + disp.z - i_worldPos.getZ();
+            guess.x -= errorx;
+            guess.z -= errorz;
         }
 
-        undisplacedWorldPos = guess;
-        undisplacedWorldPos.y = OceanRenderer.Instance.SeaLevel;
+        undisplacedWorldPos.set(guess);
+        undisplacedWorldPos.y = OceanRenderer.Instance.SeaLevel();
 
         return true;
     }
 
-    public bool ComputeUndisplacedPosition(ref Vector3 i_worldPos, out Vector3 undisplacedWorldPos, float minSpatialLength)
+    public boolean ComputeUndisplacedPosition(ReadableVector3f i_worldPos, Vector3f undisplacedWorldPos, float minSpatialLength)
     {
         // FPI - guess should converge to location that displaces to the target position
-        Vector3 guess = i_worldPos;
+        Vector3f guess = new Vector3f(i_worldPos);
         // 2 iterations was enough to get very close when chop = 1, added 2 more which should be
         // sufficient for most applications. for high chop values or really stormy conditions there may
         // be some error here. one could also terminate iteration based on the size of the error, this is
         // worth trying but is left as future work for now.
-        Vector3 disp = Vector3.zero;
-        for (int i = 0; i < 4 && SampleDisplacement(ref guess, out disp, minSpatialLength); i++)
+        Vector3f disp = new Vector3f();
+        for (int i = 0; i < 4 && SampleDisplacement(guess, disp, minSpatialLength); i++)
         {
-            Vector3 error = guess + disp - i_worldPos;
-            guess.x -= error.x;
-            guess.z -= error.z;
+            float errorx = guess.x + disp.x - i_worldPos.getX();
+            float errorz = guess.z + disp.z - i_worldPos.getZ();
+            guess.x -= errorx;
+            guess.z -= errorz;
         }
 
-        undisplacedWorldPos = guess;
-        undisplacedWorldPos.y = OceanRenderer.Instance.SeaLevel;
+        undisplacedWorldPos.set(guess);
+        undisplacedWorldPos.y = OceanRenderer.Instance.SeaLevel();
 
         return true;
     }
 
-    public bool SampleDisplacement(ref Vector3 i_worldPos, out Vector3 o_displacement)
+    public boolean SampleDisplacement(ReadableVector3f i_worldPos, Vector3f o_displacement)
     {
-        var data = GetData(new Rect(i_worldPos.x, i_worldPos.z, 0f, 0f), 0f);
+        PerLodData data = GetData(new Rectf(i_worldPos.getX(), i_worldPos.getZ(), 0f, 0f), 0f);
         if (data == null)
         {
-            o_displacement = Vector3.zero;
+            o_displacement.set(0,0,0);
             return false;
         }
-        return data._resultData.InterpolateARGB16(ref i_worldPos, out o_displacement);
+        return data._resultData.InterpolateARGB16(i_worldPos, o_displacement);
     }
 
-    public bool SampleDisplacement(ref Vector3 i_worldPos, out Vector3 o_displacement, float minSpatialLength)
+    public boolean SampleDisplacement(ReadableVector3f i_worldPos, Vector3f o_displacement, float minSpatialLength)
     {
-        var data = GetData(new Rect(i_worldPos.x, i_worldPos.z, 0f, 0f), minSpatialLength);
+        PerLodData data = GetData(new Rectf(i_worldPos.getX(), i_worldPos.getZ(), 0f, 0f), minSpatialLength);
         if (data == null)
         {
-            o_displacement = Vector3.zero;
+            o_displacement.set(0,0,0);
             return false;
         }
-        return data._resultData.InterpolateARGB16(ref i_worldPos, out o_displacement);
+        return data._resultData.InterpolateARGB16(i_worldPos, o_displacement);
     }
 
-    public bool SampleDisplacement(ref Vector3 i_worldPos, SamplingData i_data, out Vector3 o_displacement)
+    public boolean SampleDisplacement(ReadableVector3f i_worldPos, SamplingData i_data, Vector3f o_displacement)
     {
-        var lodData = i_data._tag as PerLodData;
+        PerLodData lodData = (PerLodData)i_data._tag;
         if (lodData == null)
         {
-            o_displacement = Vector3.zero;
+            o_displacement.set(0,0,0);
             return false;
         }
-        return lodData._resultData.InterpolateARGB16(ref i_worldPos, out o_displacement);
+        return lodData._resultData.InterpolateARGB16(i_worldPos, o_displacement);
     }
 
-    public bool SampleHeight(ref Vector3 i_worldPos, SamplingData i_samplingData, out float height)
+    public long SampleHeight(ReadableVector3f i_worldPos, SamplingData i_samplingData/*, out float height*/)
     {
-        var posFlatland = i_worldPos;
-        posFlatland.y = OceanRenderer.Instance.transform.position.y;
+        Vector3f posFlatland = new Vector3f(i_worldPos);
+        posFlatland.y = OceanRenderer.Instance.transform.getPositionY();
 
-        Vector3 undisplacedPos;
-        ComputeUndisplacedPosition(ref posFlatland, i_samplingData, out undisplacedPos);
+        Vector3f undisplacedPos = new Vector3f();
+        ComputeUndisplacedPosition(posFlatland, i_samplingData, undisplacedPos);
 
-        var disp = Vector3.zero;
-        SampleDisplacement(ref undisplacedPos, i_samplingData, out disp);
+        Vector3f disp = new Vector3f();
+        SampleDisplacement(undisplacedPos, i_samplingData, disp);
 
-        height = posFlatland.y + disp.y;
-        return true;
+//        height = posFlatland.y + disp.y;
+//        return true;
+        return Numeric.encode(1, Float.floatToIntBits(posFlatland.y + disp.y));
     }
 
-    public void SampleDisplacementVel(ref Vector3 i_worldPos, SamplingData i_samplingData, out Vector3 o_displacement, out bool o_displacementValid, out Vector3 o_displacementVel, out bool o_velValid)
+    public long SampleDisplacementVel(ReadableVector3f i_worldPos, SamplingData i_samplingData, Vector3f o_displacement, /*out bool o_displacementValid,*/ Vector3f o_displacementVel/*, out bool o_velValid*/)
     {
-        var lodData = i_samplingData._tag as PerLodData;
+        PerLodData lodData = (PerLodData)i_samplingData._tag;
 
-        o_displacementValid = lodData._resultData.InterpolateARGB16(ref i_worldPos, out o_displacement);
+        boolean o_velValid;
+        boolean o_displacementValid = lodData._resultData.InterpolateARGB16(i_worldPos, o_displacement);
         if (!o_displacementValid)
         {
-            o_displacementVel = Vector3.zero;
+            o_displacementVel.set(0,0,0);
             o_velValid = false;
-            return;
+            return 0;
         }
 
         // Check if this lod changed scales between result and previous result - if so can't compute vel. This should
@@ -156,65 +167,80 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         // for physics code.
         if (lodData._resultDataPrevFrame._renderData._texelWidth != lodData._resultData._renderData._texelWidth)
         {
-            o_displacementVel = Vector3.zero;
+            o_displacementVel.set(0,0,0);
             o_velValid = false;
-            return;
+            return 1;
         }
 
-        Vector3 dispLast;
-        o_velValid = lodData._resultDataPrevFrame.InterpolateARGB16(ref i_worldPos, out dispLast);
+        Vector3f dispLast = new Vector3f();
+        o_velValid = lodData._resultDataPrevFrame.InterpolateARGB16(i_worldPos, dispLast);
         if (!o_velValid)
         {
-            o_displacementVel = Vector3.zero;
-            return;
+            o_displacementVel.set(0,0,0);
+            return Numeric.encode(o_displacementValid ? 1:0, o_velValid?1:0);
         }
 
-        Debug.Assert(lodData._resultData.Valid && lodData._resultDataPrevFrame.Valid);
-        o_displacementVel = (o_displacement - dispLast) / Mathf.Max(0.0001f, lodData._resultData._time - lodData._resultDataPrevFrame._time);
+        assert(lodData._resultData.Valid() && lodData._resultDataPrevFrame.Valid());
+//        o_displacementVel = (o_displacement - dispLast) / Mathf.Max(0.0001f, lodData._resultData._time - lodData._resultDataPrevFrame._time);
+        Vector3f.sub(o_displacement, dispLast, o_displacementVel);
+        o_displacementVel.scale(1.f/Math.max(0.0001f, lodData._resultData._time - lodData._resultDataPrevFrame._time));
+
+        return Numeric.encode(o_displacementValid ? 1:0, o_velValid?1:0);
     }
 
-    public bool SampleNormal(ref Vector3 i_undisplacedWorldPos, SamplingData i_samplingData, out Vector3 o_normal)
+    public boolean SampleNormal(ReadableVector3f i_undisplacedWorldPos, SamplingData i_samplingData, Vector3f o_normal)
     {
-        var lodData = i_samplingData._tag as PerLodData;
-        var gridSize = lodData._resultData._renderData._texelWidth;
+        PerLodData lodData = (PerLodData)i_samplingData._tag;
+        float gridSize = lodData._resultData._renderData._texelWidth;
 
-        o_normal = Vector3.zero;
+        if(o_normal == null)
+            return true;
 
-        var dispCenter = Vector3.zero;
-        if (!lodData._resultData.InterpolateARGB16(ref i_undisplacedWorldPos, out dispCenter)) return false;
+        Vector3f dispCenter = new Vector3f();
+        if (!lodData._resultData.InterpolateARGB16(i_undisplacedWorldPos, dispCenter)) return false;
 
-        var undisplacedWorldPosX = i_undisplacedWorldPos + Vector3.right * gridSize;
-        var dispX = Vector3.zero;
-        if (!lodData._resultData.InterpolateARGB16(ref undisplacedWorldPosX, out dispX)) return false;
+//        var undisplacedWorldPosX = i_undisplacedWorldPos + Vector3.right * gridSize;
+        Vector3f undisplacedWorldPosX = Vector3f.linear(i_undisplacedWorldPos, Vector3f.X_AXIS, gridSize, null);
+        Vector3f dispX = new Vector3f();
+        if (!lodData._resultData.InterpolateARGB16(undisplacedWorldPosX, dispX)) return false;
 
-        var undisplacedWorldPosZ = i_undisplacedWorldPos + Vector3.forward * gridSize;
-        var dispZ = Vector3.zero;
-        if (!lodData._resultData.InterpolateARGB16(ref undisplacedWorldPosZ, out dispZ)) return false;
+        Vector3f undisplacedWorldPosZ = Vector3f.linear(i_undisplacedWorldPos, Vector3f.Z_AXIS, gridSize, null);
+        Vector3f dispZ = new Vector3f();
+        if (!lodData._resultData.InterpolateARGB16(undisplacedWorldPosZ, dispZ)) return false;
 
-        o_normal = Vector3.Cross(dispZ + Vector3.forward * gridSize - dispCenter, dispX + Vector3.right * gridSize - dispCenter).normalized;
+//        o_normal = Vector3.Cross(dispZ + Vector3.forward * gridSize - dispCenter, dispX + Vector3.right * gridSize - dispCenter).normalized;
+        Vector3f zvalue = Vector3f.linear(dispZ, Vector3f.Z_AXIS, gridSize, undisplacedWorldPosX);
+        Vector3f.sub( zvalue, dispCenter, zvalue);
 
+        Vector3f xvalue = Vector3f.linear(dispX, Vector3f.X_AXIS, gridSize, undisplacedWorldPosZ);
+        Vector3f.sub( xvalue, dispCenter, xvalue);
+
+        Vector3f.cross(zvalue, xvalue, o_normal);
+        o_normal.normalise();
         return true;
     }
 
-    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3[] i_queryPoints, Vector3[] o_resultDisps, Vector3[] o_resultNorms, Vector3[] o_resultVels)
+    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPoints, Vector3f[] o_resultDisps, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
     {
-        var status = 0;
+        int status = 0;
 
         if (o_resultDisps != null)
         {
-            for (int i = 0; i < o_resultDisps.Length; i++)
+            for (int i = 0; i < o_resultDisps.length; i++)
             {
                 if (o_resultVels == null)
                 {
-                    if (!SampleDisplacement(ref i_queryPoints[i], i_samplingData, out o_resultDisps[i]))
+                    if (!SampleDisplacement(i_queryPoints[i], i_samplingData, o_resultDisps[i]))
                     {
                         status = 1 | status;
                     }
                 }
                 else
                 {
-                    bool dispValid, velValid;
-                    SampleDisplacementVel(ref i_queryPoints[i], i_samplingData, out o_resultDisps[i], out dispValid, out o_resultVels[i], out velValid);
+//                    bool dispValid, velValid;
+                    long dispAndVel = SampleDisplacementVel(i_queryPoints[i], i_samplingData, o_resultDisps[i], /*dispValid,*/ o_resultVels[i]/*, velValid*/);
+                    boolean dispValid = Numeric.decodeFirst(dispAndVel) != 0;
+                    boolean velValid = Numeric.decodeSecond(dispAndVel) != 0;
                     if (!dispValid || !velValid)
                     {
                         status = 1 | status;
@@ -225,16 +251,16 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
 
         if (o_resultNorms != null)
         {
-            for (int i = 0; i < o_resultNorms.Length; i++)
+            for (int i = 0; i < o_resultNorms.length; i++)
             {
-                Vector3 undispPos;
-                if (ComputeUndisplacedPosition(ref i_queryPoints[i], i_samplingData, out undispPos))
+                Vector3f undispPos = new Vector3f();
+                if (ComputeUndisplacedPosition(i_queryPoints[i], i_samplingData, undispPos))
                 {
-                    SampleNormal(ref undispPos, i_samplingData, out o_resultNorms[i]);
+                    SampleNormal(undispPos, i_samplingData, o_resultNorms[i]);
                 }
                 else
                 {
-                    o_resultNorms[i] = Vector3.up;
+                    o_resultNorms[i] .set(0,1,0);
                     status = 1 | status;
                 }
             }
@@ -243,20 +269,20 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return status;
     }
 
-    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3[] i_queryPoints, float[] o_resultHeights, Vector3[] o_resultNorms, Vector3[] o_resultVels)
+    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPoints, float[] o_resultHeights, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
     {
-        var status = 0;
+        int status = 0;
 
         if (o_resultHeights != null)
         {
-            for (int i = 0; i < o_resultHeights.Length; i++)
+            for (int i = 0; i < o_resultHeights.length; i++)
             {
                 if (o_resultVels == null)
                 {
-                    Vector3 disp;
-                    if (SampleDisplacement(ref i_queryPoints[i], i_samplingData, out disp))
+                    Vector3f disp = new Vector3f();
+                    if (SampleDisplacement(i_queryPoints[i], i_samplingData, disp))
                     {
-                        o_resultHeights[i] = OceanRenderer.Instance.SeaLevel + disp.y;
+                        o_resultHeights[i] = OceanRenderer.Instance.SeaLevel() + disp.y;
                     }
                     else
                     {
@@ -265,12 +291,12 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
                 }
                 else
                 {
-                    Vector3 disp;
-                    bool dispValid, velValid;
-                    SampleDisplacementVel(ref i_queryPoints[i], i_samplingData, out disp, out dispValid, out o_resultVels[i], out velValid);
-                    if (dispValid && velValid)
+                    Vector3f disp = new Vector3f();
+//                    bool dispValid, velValid;
+                    long dispAndVel = SampleDisplacementVel(i_queryPoints[i], i_samplingData, disp, /*out dispValid, out*/ o_resultVels[i]/*, out velValid*/);
+                    if (/*dispValid && velValid*/dispAndVel > 1)
                     {
-                        o_resultHeights[i] = OceanRenderer.Instance.SeaLevel + disp.y;
+                        o_resultHeights[i] = OceanRenderer.Instance.SeaLevel() + disp.y;
                     }
                     else
                     {
@@ -282,16 +308,16 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
 
         if (o_resultNorms != null)
         {
-            for (int i = 0; i < o_resultNorms.Length; i++)
+            for (int i = 0; i < o_resultNorms.length; i++)
             {
-                Vector3 undispPos;
-                if (ComputeUndisplacedPosition(ref i_queryPoints[i], i_samplingData, out undispPos))
+                Vector3f undispPos = new Vector3f();
+                if (ComputeUndisplacedPosition(i_queryPoints[i], i_samplingData, undispPos))
                 {
-                    SampleNormal(ref undispPos, i_samplingData, out o_resultNorms[i]);
+                    SampleNormal(undispPos, i_samplingData, o_resultNorms[i]);
                 }
                 else
                 {
-                    o_resultNorms[i] = Vector3.up;
+                    o_resultNorms[i].set(0,1,0);
                     status = 1 | status;
                 }
             }
@@ -300,18 +326,19 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return status;
     }
 
-    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3[] i_queryDisplacementToPoints, Vector3[] i_queryNormalAtPoint, Vector3[] o_resultDisps, Vector3[] o_resultNorms, Vector3[] o_resultVels)
+    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryDisplacementToPoints, Vector3f[] i_queryNormalAtPoint, Vector3f[] o_resultDisps, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
     {
-        var status = 0;
+        int status = 0;
 
         if (o_resultDisps != null)
         {
-            for (int i = 0; i < o_resultDisps.Length; i++)
+            for (int i = 0; i < o_resultDisps.length; i++)
             {
-                var dispValid = false;
-                var velValid = false;
-                SampleDisplacementVel(ref i_queryDisplacementToPoints[i], i_samplingData, out o_resultDisps[i], out dispValid, out o_resultVels[i], out velValid);
-
+//                var dispValid = false;
+//                var velValid = false;
+                long dispAndVel = SampleDisplacementVel(i_queryDisplacementToPoints[i], i_samplingData, o_resultDisps[i], /*out dispValid, out*/ o_resultVels[i]/*, out velValid*/);
+                boolean dispValid = Numeric.decodeFirst(dispAndVel) != 0;
+                boolean velValid = Numeric.decodeSecond(dispAndVel) != 0;
                 if (!dispValid || !velValid)
                 {
                     status = 1 | status;
@@ -321,16 +348,16 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
 
         if (o_resultNorms != null)
         {
-            for (int i = 0; i < o_resultNorms.Length; i++)
+            for (int i = 0; i < o_resultNorms.length; i++)
             {
-                Vector3 undispPos;
-                if (ComputeUndisplacedPosition(ref i_queryNormalAtPoint[i], i_samplingData, out undispPos))
+                Vector3f undispPos = new Vector3f();
+                if (ComputeUndisplacedPosition(i_queryNormalAtPoint[i], i_samplingData, undispPos))
                 {
-                    SampleNormal(ref undispPos, i_samplingData, out o_resultNorms[i]);
+                    SampleNormal(undispPos, i_samplingData, o_resultNorms[i]);
                 }
                 else
                 {
-                    o_resultNorms[i] = Vector3.up;
+                    o_resultNorms[i].set(0,1,0);
                     status = 1 | status;
                 }
             }
@@ -339,7 +366,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return status;
     }
 
-    public bool RetrieveSucceeded(int queryStatus)
+    public boolean RetrieveSucceeded(int queryStatus)
     {
         return queryStatus == 0;
     }

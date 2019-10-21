@@ -44,7 +44,7 @@ import java.nio.FloatBuffer;
  * $Id$
  */
 
-public class Vector2f extends Vector implements Serializable, ReadableVector2f, WritableVector2f {
+public class Vector2f extends Vector implements Serializable, ReadableVector2f, WritableVector2f, Cloneable {
 
 	private static final long serialVersionUID = 3587359845319496063L;
 	
@@ -632,6 +632,11 @@ public class Vector2f extends Vector implements Serializable, ReadableVector2f, 
 		dest.set(Math.abs(src.getX()), Math.abs(src.getY()));
 		return dest;
 	}
-	
-//	public static float 
+
+	@Override
+	public Vector2f clone() {
+		return new Vector2f(x,y);
+	}
+
+	//	public static float
 }

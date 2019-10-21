@@ -96,9 +96,12 @@ public class LodTransform extends MonoBehaviour implements IFloatingOrigin {
             _renderData[lodIdx]._textureRes = OceanRenderer.Instance.LodDataResolution();
             _renderData[lodIdx]._texelWidth = 2f * camOrthSize / _renderData[lodIdx]._textureRes;
             // snap so that shape texels are stationary
-            _renderData[lodIdx]._posSnapped = OceanRenderer.Instance.transform.position
-                    - new Vector3(Mathf.Repeat(OceanRenderer.Instance.transform.position.x, _renderData[lodIdx]._texelWidth), 0f, Mathf.Repeat(OceanRenderer.Instance.transform.position.z, _renderData[lodIdx]._texelWidth));
+//            _renderData[lodIdx]._posSnapped = OceanRenderer.Instance.transform.position
+//                    - new Vector3(Mathf.Repeat(OceanRenderer.Instance.transform.position.x, _renderData[lodIdx]._texelWidth), 0f, Mathf.Repeat(OceanRenderer.Instance.transform.position.z, _renderData[lodIdx]._texelWidth));
 
+            _renderData[lodIdx]._posSnapped.x = OceanRenderer.Instance.transform.getPositionX() - (OceanRenderer.Instance.transform.getPositionX() % _renderData[lodIdx]._texelWidth);
+            _renderData[lodIdx]._posSnapped.y = OceanRenderer.Instance.transform.getPositionY();
+            _renderData[lodIdx]._posSnapped.z = OceanRenderer.Instance.transform.getPositionZ() - (OceanRenderer.Instance.transform.getPositionZ() % _renderData[lodIdx]._texelWidth);
             _renderData[lodIdx]._frame = frameCount;
 
             // detect first update and populate the render data if so - otherwise it can give divide by 0s and other nastiness
@@ -144,7 +147,7 @@ public class LodTransform extends MonoBehaviour implements IFloatingOrigin {
         float oceanBaseScale = OceanRenderer.Instance.Scale;
         float maxDiameter = (float) (4f * oceanBaseScale * Math.pow(2f, lodIdx));
         float maxTexelSize = maxDiameter / OceanRenderer.Instance.LodDataResolution();
-        return 2f * maxTexelSize * OceanRenderer.Instance.MinTexelsPerWave();
+        return 2f * maxTexelSize * OceanRenderer.Instance.MinTexelsPerWave;
     }
 
     public static int ParamIdPosScale(boolean sourceLod /*= false*/)

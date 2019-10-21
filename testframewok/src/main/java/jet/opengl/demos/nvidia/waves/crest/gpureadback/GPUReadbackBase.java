@@ -491,7 +491,7 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
 
             // The smallest wavelengths should repeat no more than twice across the smaller spatial length. Unless we're
             // in the last LOD - then this is the best we can do.
-            float minWavelength = texelWidth * OceanRenderer.Instance.MinTexelsPerWave();
+            float minWavelength = texelWidth * OceanRenderer.Instance.MinTexelsPerWave;
             if (minSpatialLength / minWavelength > 2f)
             {
                 continue;

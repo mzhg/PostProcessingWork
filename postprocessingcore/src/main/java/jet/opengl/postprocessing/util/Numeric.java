@@ -29,7 +29,9 @@ public final class Numeric {
 	public static final int MAX_UBYTE = 255;
 	public static final int MAX_USHORT = 65535;
 	public static final long MAX_UINT = 4294967295l;
-	
+
+	public static final int RAND_MAX = 32767;
+
 	public static final float[] EMPTY_FLOAT = new float[0];
 	public static final int[]   EMPTY_INT = new int[0];
 	public static final byte [] EMPTY_BYTE = new byte[0];
