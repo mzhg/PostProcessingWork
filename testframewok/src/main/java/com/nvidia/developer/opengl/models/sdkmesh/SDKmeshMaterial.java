@@ -23,11 +23,11 @@ public final class SDKmeshMaterial {
 	public String normalTexture;   // 260
 	public String specularTexture; // 260
 	
-    final Vector4f diffuse = new Vector4f();
-    final Vector4f ambient = new Vector4f();
-    final Vector4f specular = new Vector4f();
-    final Vector4f emissive = new Vector4f();
-    float power;
+    public final Vector4f diffuse = new Vector4f();
+	public final Vector4f ambient = new Vector4f();
+	public final Vector4f specular = new Vector4f();
+	public final Vector4f emissive = new Vector4f();
+	public float power;
 
 	public int pDiffuseTexture11;  // aligin 8
 	public int pNormalTexture11;

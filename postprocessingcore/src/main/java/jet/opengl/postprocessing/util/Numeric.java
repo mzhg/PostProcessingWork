@@ -282,6 +282,17 @@ public final class Numeric {
 	public static final float getFloat(byte[] data, int position){
 		return Float.intBitsToFloat(getInt(data, position));
 	}
+
+	public static final Vector3f getVector3f(byte[] data, int position, Vector3f out){
+		if(out == null)
+			out = new Vector3f();
+
+		out.x = getFloat(data, position+0);
+		out.y = getFloat(data, position+4);
+		out.z = getFloat(data, position+8);
+
+		return out;
+	}
 	
 	public static final float getFloatBE(byte[] data, int position){
 		return Float.intBitsToFloat(getIntBE(data, position));

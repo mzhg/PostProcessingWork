@@ -686,13 +686,6 @@ public final class TextureUtils {
 				break;
 			}
 
-			if(!multiSample) {
-				// setup the defualt properties.
-				gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-				gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
-				gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
-			}
-
 			// 3. Fill the texture Data
 			if(dataDesc != null && dataDesc.data != null && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE_ARRAY && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE){
 				enablePixelStore(dataDesc);
@@ -702,7 +695,6 @@ public final class TextureUtils {
 				int depth = textureDesc.arraySize;
 				
 				if(mipLevels > 1){
-					gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR_MIPMAP_LINEAR);
 					List<Object> mipData = null;
 					if(dataDesc.data instanceof  List<?>){
 						mipData = (List<Object>)dataDesc.data;
@@ -729,9 +721,7 @@ public final class TextureUtils {
 						gl.glGenerateTextureMipmap(textureID);
 					}
 				}else{
-					if(!multiSample) {
-						gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
-					}
+
 					if(target == GLenum.GL_TEXTURE_2D_ARRAY){
 						subTexImage3DDAS(textureID, width, height, depth, 0, dataDesc.format, dataDesc.type, dataDesc.data);
 					}else if(target == GLenum.GL_TEXTURE_2D){
@@ -740,10 +730,14 @@ public final class TextureUtils {
 				}
 				
 				disablePixelStore(dataDesc);
-			}else{
-				if(!multiSample) {
-					gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
-				}
+			}
+
+			if(!multiSample) {
+				// setup the defualt properties.
+				gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MIN_FILTER, mipLevels > 1 ? GLenum.GL_LINEAR_MIPMAP_LINEAR:GLenum.GL_LINEAR);
+				gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+				gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+				gl.glTextureParameteri(textureID, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
 			}
 		}else{
 			boolean allocateStorage = false;
@@ -807,14 +801,6 @@ public final class TextureUtils {
 				gl.glBindTexture(target, textureID);
 			}
 
-			if(!multiSample) {
-				// setup the defualt parameters.
-				gl.glTexParameteri(target, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
-				gl.glTexParameteri(target, GLenum.GL_TEXTURE_MIN_FILTER, GLenum.GL_LINEAR);
-				gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
-				gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
-			}
-			
 			// 3. Fill the texture Data�� Ignore the multisample texture.
 			if(target != GLenum.GL_TEXTURE_2D_MULTISAMPLE_ARRAY && target != GLenum.GL_TEXTURE_2D_MULTISAMPLE){
 				int width = textureDesc.width;
@@ -899,8 +885,14 @@ public final class TextureUtils {
 				
 				disablePixelStore(dataDesc);
 			}
-			
-			
+
+			if(!multiSample) {
+				// setup the defualt parameters.
+				gl.glTexParameteri(target, GLenum.GL_TEXTURE_MAG_FILTER, GLenum.GL_LINEAR);
+				gl.glTexParameteri(target, GLenum.GL_TEXTURE_MIN_FILTER, mipLevels > 1 ? GLenum.GL_LINEAR_MIPMAP_LINEAR:GLenum.GL_LINEAR);
+				gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_S, GLenum.GL_CLAMP_TO_EDGE);
+				gl.glTexParameteri(target, GLenum.GL_TEXTURE_WRAP_T, GLenum.GL_CLAMP_TO_EDGE);
+			}
 			gl.glBindTexture(target, 0);  // unbind Texture
 		}		
 		

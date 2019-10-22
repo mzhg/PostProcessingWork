@@ -2721,4 +2721,30 @@ public class Matrix4f extends Matrix implements Serializable {
 
 		return true;
 	}
+
+	/**
+	 * Builds a matrix that reflects the coordinate system about a plane.This function normalizes the plane equation before it creates the reflected matrix.
+	 * @param plane The plane form ax+by+cz+d = 0, where (a,b,c) in the plane normal stored in the xyz channel of plane, d in the w channel of plane.
+	 * @param out  The result matrix. A new matrix will be created if it null.
+	 * @return
+	 */
+	public static Matrix4f reflection(ReadableVector4f plane, Matrix4f out){
+		if(out == null)
+			out = new Matrix4f();
+
+		float len = Vector3f.length(plane);
+		if(len == 0)
+		    throw new IllegalArgumentException("Invalid plane(the normal is 0): " + plane);
+
+		final float Pa = plane.getX()/len;
+		final float Pb = plane.getY()/len;
+		final float Pc = plane.getZ()/len;
+		final float Pd = plane.getW()/len;
+		out.set(-2 * Pa * Pa + 1,  -2 * Pb * Pa,      -2 * Pc * Pa,        0,
+				-2 * Pa * Pb,      -2 * Pb * Pb + 1,  -2 * Pc * Pb,        0,
+				-2 * Pa * Pc,      -2 * Pb * Pc,      -2 * Pc * Pc + 1,    0,
+				-2 * Pa * Pd,      -2 * Pb * Pd,      -2 * Pc * Pd,        1);
+
+		return out;
+	}
 }

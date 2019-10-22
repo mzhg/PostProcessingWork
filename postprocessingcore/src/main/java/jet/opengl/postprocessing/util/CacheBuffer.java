@@ -8,7 +8,6 @@ import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.ReadableVector2f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.ReadableVector4f;
-import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 import org.lwjgl.util.vector.Vector4i;

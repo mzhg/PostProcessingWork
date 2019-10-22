@@ -11,6 +11,7 @@
 package com.nvidia.developer.opengl.models.sdkmesh;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.BufferedInputStream;
@@ -91,7 +92,7 @@ public class SDKmesh implements Disposeable {
 	}
 	
 	// Should query dynamic.
-	protected static final int MAX_D3D10_VERTEX_STREAMS = 16;
+	public static final int MAX_D3D10_VERTEX_STREAMS = 16;
 	
 	//--------------------------------------------------------------------------------------
 	// Enumerated Types.  These will have mirrors in both D3D9 and D3D10
@@ -1261,7 +1262,7 @@ public class SDKmesh implements Disposeable {
 //IDirect3DIndexBuffer9* GetIB9( int iMesh );
 
 //Helpers (general)
-public String getMeshPath() { return m_strPath;}
+    public String getMeshPath() { return m_strPath;}
 	public int  getNumMeshes(){ return m_pMeshHeader != null ? m_pMeshHeader.numMeshes : 0;}
     public int  getNumMaterials() { return m_pMeshHeader != null ? m_pMeshHeader.numMaterials: 0;}
     public int  getNumVBs(){ return m_pMeshHeader != null ? m_pMeshHeader.numVertexBuffers: 0;}
@@ -1270,8 +1271,9 @@ public String getMeshPath() { return m_strPath;}
 //IDirect3DIndexBuffer9* GetIB9At( int iIB );
     public int  getVB10At( int iVB ) { return m_pVertexBufferArray[ iVB ].buffer;}
     public int getIB10At( int iIB ) {return m_pIndexBufferArray[ iIB ].buffer;}
-//	byte[] getRawVerticesAt( int iVB ){ return null;}
-//	byte[] getRawIndicesAt( int iIB ) { return null;}
+	public int getRawVerticesAt( int iVB ){ return m_ppVertices[iVB];}
+    public int getRawIndicesAt( int iIB ) { return m_ppIndices[iIB];}
+    public byte[] getRawData() { return m_pStaticMeshData;}
     public SDKmeshMaterial getMaterial( int iMaterial ) {return m_pMaterialArray[ iMaterial ];}
     public SDKMeshMesh getMesh( int iMesh ){
 		return m_pMeshArray[ iMesh ];
@@ -1304,8 +1306,8 @@ public String getMeshPath() { return m_strPath;}
 	}
 	int getNumVertices( int iMesh, int iVB ) { return (int) m_pVertexBufferArray[ m_pMeshArray[ iMesh ].vertexBuffers[iVB] ].numVertices;}
 	int getNumIndices( int iMesh ) { return (int) m_pIndexBufferArray[ m_pMeshArray[ iMesh ].indexBuffer ].numVertices;}
-	public Vector3f getMeshBBoxCenter( int iMesh ) {return m_pMeshArray[iMesh].boundingBoxCenter;}
-	public Vector3f getMeshBBoxExtents( int iMesh ) { return m_pMeshArray[iMesh].boundingBoxExtents;}
+	public ReadableVector3f getMeshBBoxCenter(int iMesh ) {return m_pMeshArray[iMesh].boundingBoxCenter;}
+	public ReadableVector3f getMeshBBoxExtents( int iMesh ) { return m_pMeshArray[iMesh].boundingBoxExtents;}
 	int getOutstandingResources() { return 0;}
 	public int getOutstandingBufferResources(){
 		int outstandingResources = 0;
