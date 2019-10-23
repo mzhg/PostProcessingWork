@@ -20,4 +20,15 @@ public class GFSDK_WaveWorks_Simulation_Stats {
     public float GPU_gfx_time;
     /** Total GPU time spent on simulation workloads*/
     public float GPU_update_time;
+
+    /** Make all of the values to zero */
+    public void zeros(){
+        CPU_main_thread_wait_time = 0;
+        CPU_threads_start_to_finish_time = 0;
+        CPU_threads_total_time = 0;
+        GPU_simulation_time = 0;
+        GPU_FFT_simulation_time = 0;
+        GPU_gfx_time = 0;
+        GPU_update_time = 0;
+    }
 }

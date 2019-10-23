@@ -152,6 +152,7 @@ public class BufferGL implements Disposeable{
 
         gl.glBindBuffer(m_target, m_bufferID);
         m_mapBuffer = gl.glMapBufferRange(m_target, offset, bufferSize, mapBits, m_mapBuffer);
+        m_mapBuffer.clear();
         return m_mapBuffer;
     }
 

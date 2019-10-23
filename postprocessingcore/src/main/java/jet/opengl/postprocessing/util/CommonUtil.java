@@ -1,5 +1,7 @@
 package jet.opengl.postprocessing.util;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.List;
 
 import jet.opengl.postprocessing.common.Disposeable;
@@ -111,5 +113,59 @@ public final class CommonUtil {
 
     public static int length(Object[] a){
         return a != null ? a.length : 0;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static<T> T[] initArray(T[] arr){
+        if(arr == null)
+            return null;
+
+        Class<?> clazz = arr.getClass().getComponentType();
+        try {
+            for(int i = 0; i < arr.length; i++)
+                if(arr[i] == null)
+                    arr[i] = (T) clazz.newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        return arr;
+    }
+
+    // https://blog.csdn.net/xuhailiang0816/article/details/78403041
+    public static Class<?> getActualTypeArgument(Class<?> clazz) {
+        return getActualTypeArgument(clazz, 0);
+    }
+
+    public static Class<?> getActualTypeArgument(Class<?> clazz, int index) {
+        Class<?> entitiClass = null;
+        Type genericSuperclass = clazz.getGenericSuperclass();
+        if (genericSuperclass instanceof ParameterizedType) {
+            Type[] actualTypeArguments = ((ParameterizedType) genericSuperclass)
+                    .getActualTypeArguments();
+            if (actualTypeArguments != null && actualTypeArguments.length > 0) {
+                entitiClass = (Class<?>) actualTypeArguments[index];
+            }
+        }
+
+        return entitiClass;
+    }
+
+    public static Class<?>[] getActualTypeArguments(Class<?> clazz) {
+        Class<?>[] entitiClass = null;
+        Type genericSuperclass = clazz.getGenericSuperclass();
+        if (genericSuperclass instanceof ParameterizedType) {
+            Type[] actualTypeArguments = ((ParameterizedType) genericSuperclass)
+                    .getActualTypeArguments();
+            if (actualTypeArguments != null && actualTypeArguments.length > 0) {
+                entitiClass = new Class[actualTypeArguments.length];
+                for(int i = 0; i < entitiClass.length; i++)
+                    entitiClass[i] = (Class<?>) actualTypeArguments[i];
+            }
+        }
+
+        return entitiClass;
     }
 }

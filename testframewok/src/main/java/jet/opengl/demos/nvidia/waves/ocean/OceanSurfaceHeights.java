@@ -477,6 +477,45 @@ final class OceanSurfaceHeights implements OceanConst{
         }
     }
 
+    void getGradient(Vector2f inSamplePoint, Vector2f outGradient)
+    {
+        Vector2f coord = new Vector2f();
+        final float num_intervals_w = (m_num_samples_w-3);	// Not including the 'slop' samples
+        final float num_intervals_l = (m_num_samples_l-3); // Not including the 'slop' samples
+        // Transform the sample point to UV
+        coord.x = inSamplePoint.x - m_UVToWorldOffset.x;
+        coord.y = inSamplePoint.y - m_UVToWorldOffset.y;
+        coord = do_inv_scale_and_rot(coord,m_UVToWorldScale,m_UVToWorldRotation);
+
+        // Transform UV to non-slop samples
+        coord.x *= num_intervals_w;
+        coord.y *= num_intervals_l;
+        assert(coord.x >= 0.f);
+        assert(coord.x <= num_intervals_w);
+        assert(coord.y >= 0.f);
+        assert(coord.y <= num_intervals_l);
+
+        // Then allow for the slop
+        coord.x += 1.f;
+        coord.y += 1.f;
+
+        float flower_x = (float)Math.floor(coord.x);
+        float flower_y = (float)Math.floor(coord.y);
+        int lower_x = (int)(flower_x);
+        int lower_y = (int)(flower_y);
+
+        Vector2f p00 = m_pSampleGradients[(lower_x+0) + (lower_y+0)*m_num_samples_w];
+        Vector2f p01 = m_pSampleGradients[(lower_x+1) + (lower_y+0)*m_num_samples_w];
+        Vector2f p10 = m_pSampleGradients[(lower_x+0) + (lower_y+1)*m_num_samples_w];
+        Vector2f p11 = m_pSampleGradients[(lower_x+1) + (lower_y+1)*m_num_samples_w];
+
+        float frac_x = coord.x - (lower_x);
+        float frac_y = coord.y - (lower_y);
+
+        outGradient.x = (1.f-frac_x)*(1.f-frac_y)*p00.x + frac_x*(1.f-frac_y)*p01.x + (1.f-frac_x)*frac_y*p10.x + frac_x*frac_y*p11.x;
+        outGradient.y = (1.f-frac_x)*(1.f-frac_y)*p00.y + frac_x*(1.f-frac_y)*p01.y + (1.f-frac_x)*frac_y*p10.y + frac_x*frac_y*p11.y;
+    }
+
     void updateGradients()
     {
         Vector2f grad = new Vector2f();

@@ -11,7 +11,7 @@ interface OceanConst {
     int MaxNumVessels =           1;
     int MaxNumSpotlights   =     11;
 
-    int ENABLE_SHADOWS          =1;
+    boolean ENABLE_SHADOWS          = true;
 
     int ENABLE_GPU_SIMULATION   =1;
     int SPRAY_PARTICLE_SORTING  =1;
@@ -49,8 +49,31 @@ interface OceanConst {
 
     int LOCAL_FOAMMAP_TEX_SIZE	    = 1024;
 
+    float kParticleTTL = 7.5f; // particle lifetime
+    float kGravity = 9.81f;
+    float kParticleScaleRate = 0.02f;
+    float kParticleDrag = 1.f;
+    float kPSMOpacityMultiplier = 0.012f;
+    float kFadeInTime = 0.4f;
+    float kMaxSimulationTimeStep = 0.06f;
+
+    boolean ENABLE_SPRAY_PARTICLES = true;
+
     static Texture2D CreateTexture2DFromFileSRGB(String filename){
         NvImage.loadAsSRGB(true);
+
+        try {
+            int texture = NvImage.uploadTextureFromDDSFile(filename);
+            return TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, texture);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    static Texture2D CreateTexture2DFromFile(String filename){
+        NvImage.loadAsSRGB(false);
 
         try {
             int texture = NvImage.uploadTextureFromDDSFile(filename);
