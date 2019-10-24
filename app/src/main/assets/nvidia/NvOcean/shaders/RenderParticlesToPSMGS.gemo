@@ -1,0 +1,41 @@
+#include "ocean_smoke.glsl"
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 4) out;
+
+
+out GS_PSM_PARTICLE_OUTPUT
+{
+//    float4 Position                      : SV_Position;
+//    nointerpolation uint LayerIndex      : SV_RenderTargetArrayIndex;
+    float3 TextureUVAndOpacity           /*: TEXCOORD0*/;
+    flat uint SubLayer        /*: TEXCOORD1*/;
+}outvert;
+
+void main()
+{
+    float4 InstanceData = GetParticleInstanceData(PrimID);
+    float3 CentreViewPos = mul(float4(InstanceData.xyz,1), g_matView).xyz;
+
+    // Dispatch to PSM layer-slice
+    float linearZ = mul(float4(CentreViewPos,1.f), g_matProj).z;
+    float slice = g_PSMSlices * linearZ + 1.f;	// +1 because zero slice reserved for coverage
+    uint sublayer = 2.f * frac(slice);
+
+    if(slice < 0.f || slice > g_PSMSlices)
+        return;
+
+    slice = floor(slice);
+
+    for(uint i = 0; i != 4; ++i) {
+        GS_PARTICLE_COORDS particleCoords = CalcParticleCoords(InstanceData,i);
+//        GS_PSM_PARTICLE_OUTPUT outvert;
+        outvert.TextureUVAndOpacity = particleCoords.TextureUVAndOpacity;
+        gl_Position = mul(float4(particleCoords.ViewPos,1.f), g_matProj);
+        outvert.SubLayer = sublayer;
+        gl_Layer = slice;
+//        outstream.Append(outvert);
+        EmitVertex();
+    }
+//    outstream.RestartStrip();
+}

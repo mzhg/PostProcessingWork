@@ -1,0 +1,48 @@
+#include "ocean_smoke.glsl"
+
+layout (local_size_x = SimulateParticlesCSBlocksSize, local_size_y = 1) in;
+void main()
+{
+    uint3 Gid = SV_GroupID;
+    uint3 DTid = SV_DispatchThreadID;
+    uint3 GTid = SV_GroupThreadID;
+    uint GI = SV_GroupIndex;
+
+    if(DTid.x >= g_ParticleCount)
+        return;
+
+    uint particle_wrap_index;
+    g_SimulationInstanceData.GetDimensions(particle_wrap_index);
+    uint particle_index = (4 * (g_ParticleIndexOffset + DTid.x)) % particle_wrap_index;
+
+    float4 velocity;
+    velocity.x = g_SimulationVelocities[particle_index+0];
+    velocity.y = g_SimulationVelocities[particle_index+1];
+    velocity.z = g_SimulationVelocities[particle_index+2];
+    velocity.w = g_SimulationVelocities[particle_index+3];
+
+    float4 instance_data;
+    instance_data.x = g_SimulationInstanceData[particle_index+0];
+    instance_data.y = g_SimulationInstanceData[particle_index+1];
+    instance_data.z = g_SimulationInstanceData[particle_index+2];
+    instance_data.w = g_SimulationInstanceData[particle_index+3];
+
+    simulate(instance_data, velocity, g_TimeStep);
+
+    // Calc view-space z for depth sort (clamp to 0 to ensure pow-2 pad entries sort to end)
+    float view_z = max(0,mul(float4(instance_data.xyz,1), g_matView).z);
+
+    g_SimulationInstanceData[particle_index+0] = instance_data.x;
+    g_SimulationInstanceData[particle_index+1] = instance_data.y;
+    g_SimulationInstanceData[particle_index+2] = instance_data.z;
+    g_SimulationInstanceData[particle_index+3] = instance_data.w;
+
+    g_SimulationVelocities[particle_index+0] = velocity.x;
+    g_SimulationVelocities[particle_index+1] = velocity.y;
+    g_SimulationVelocities[particle_index+2] = velocity.z;
+    g_SimulationVelocities[particle_index+3] = velocity.w;
+
+    int depth_sort_index = particle_index/4;
+    g_ParticleDepthSortUAV[depth_sort_index].ParticleIndex = depth_sort_index;
+    g_ParticleDepthSortUAV[depth_sort_index].ViewZ = view_z;
+}

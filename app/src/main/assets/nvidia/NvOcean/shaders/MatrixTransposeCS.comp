@@ -1,0 +1,17 @@
+#include "ocean_smoke.glsl"
+
+shared DepthSortEntry transpose_shared_data[TransposeCSBlockSize * TransposeCSBlockSize];
+layout (local_size_x = TransposeCSBlockSize, local_size_y = TransposeCSBlockSize) in;
+
+void main()
+{
+    uint3 Gid = SV_GroupID;
+    uint3 DTid = SV_DispatchThreadID;
+    uint3 GTid = SV_GroupThreadID;
+    uint GI = SV_GroupIndex;
+
+    transpose_shared_data[GI] = g_ParticleDepthSortSRV[DTid.y * g_iDepthSortWidth + DTid.x];
+    GroupMemoryBarrierWithGroupSync();
+    uint2 XY = DTid.yx - GTid.yx + GTid.xy;
+    g_ParticleDepthSortUAV[XY.y * g_iDepthSortHeight + XY.x] = transpose_shared_data[GTid.x * TransposeCSBlockSize + GTid.y];
+}

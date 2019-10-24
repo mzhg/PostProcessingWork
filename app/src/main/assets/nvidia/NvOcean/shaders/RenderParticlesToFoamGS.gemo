@@ -1,0 +1,66 @@
+#include "ocean_spray.glsl"
+
+float2 rotate_2d(float2 v, float2 rot)
+{
+    return float2(v.x * rot.x + v.y * rot.y, v.x * -rot.y + v.y * rot.x);
+}
+
+layout(points) in;
+layout(triangle_strip, max_vertices = 4) out;
+
+out GS_FOAM_PARTICLE_OUTPUT {
+//    float4 Position               : SV_Position;
+    float3 ViewPos                /*: ViewPos*/;
+    float3 TextureUVAndOpacity    /*: TEXCOORD0*/;
+    float  FoamAmount			  /*: FOAMAMOUNT*/;
+}outvert;
+
+void main()
+{
+    PARTICLE_INSTANCE_DATA InstanceData = GetParticleInstanceData(PrimID);
+
+    // Only downward-moving particles are eligible for foam injection
+    if(InstanceData.velocity.y > 0.f)
+        return;
+
+    // Particles that fall outside our lookup cannot be rendered to foam, because we have no way of knowing when they hit the sea surface
+    float2 lookup_uv = rotate_2d(InstanceData.position_and_mass.xz+g_worldToHeightLookupOffset,g_worldToHeightLookupRot)*g_worldToHeightLookupScale;
+    if(lookup_uv.x < 0.f || lookup_uv.y < 0.f || lookup_uv.x > 1.f || lookup_uv.y > 1.f)
+        return;
+
+    float particle_scale = CalcTimeScale(InstanceData.time);
+    float3 lookup_value = textureLod(g_texHeightLookup,lookup_uv,0.f).xyz;  //g_SamplerTrilinearClamp
+    float height_of_centre_above_water = InstanceData.position_and_mass.y-lookup_value.z;
+    if( height_of_centre_above_water < -particle_scale || height_of_centre_above_water > particle_scale)
+        return;	// No intersection
+
+    // The proportion of foam applied depends on how much foam is falling through the surface on this update
+    // Note that this does not take account of the normal or speed of the water surface, which would be
+    // necessary for perfection here...
+    float relative_penetration = 0.15f*(-InstanceData.velocity.y * g_SimulationTime)/particle_scale;
+
+    for(uint i = 0; i != 4; ++i) {
+
+        HS_PARTICLE_COORDS particleCoords = CalcParticleCoords(InstanceData,i);
+
+        // Lookup undisplaced coords
+        float2 world_xy = float2(particleCoords.ViewPos.xy);
+        // DISABLED: use world space float2 corner_lookup_uv = rotate_2d(world_xy+g_worldToHeightLookupOffset,g_worldToHeightLookupRot)*g_worldToHeightLookupScale;
+        // DISABLED: use world space world_xy = g_texHeightLookup.SampleLevel(g_SamplerTrilinearClamp,corner_lookup_uv,0.f).xy;
+
+        float2 clip_xy = mul(float4(world_xy.x,0.0,world_xy.y,1.0),g_matWorldToFoam).xz;
+        clip_xy *= g_WakeTexScale;
+        clip_xy += g_WakeTexOffset;
+        clip_xy *= 2.f;
+        clip_xy -= 1.f;
+
+//        GS_FOAM_PARTICLE_OUTPUT outvert;
+        outvert.TextureUVAndOpacity = particleCoords.TextureUVAndOpacity;
+        gl_Position = float4(clip_xy,0.5f,1.f);
+        outvert.ViewPos = particleCoords.ViewPos;
+        outvert.FoamAmount = relative_penetration;
+//        outstream.Append(outvert);
+        EmitVertex();
+    }
+//    outstream.RestartStrip();
+}

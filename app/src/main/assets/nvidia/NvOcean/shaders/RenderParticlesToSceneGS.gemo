@@ -1,0 +1,62 @@
+#include "ocean_smoke.glsl"
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 4) out;
+
+
+out GS_SCENE_PARTICLE_OUTPUT
+{
+//    float4 Position               : SV_Position;
+    float3 TextureUVAndOpacity    /*: TEXCOORD0*/;
+    float3 PSMCoords              /*: PSMCoords*/;
+    float  FogFactor              /*: FogFactor*/;
+}outvert;
+
+float CalcPSMFadeFactor(float3 PSMCoords)
+{
+    // Find the minimum distance from a PSM bounds face, and fade accordingly
+    // This will be in normalized PSM coords, but that seems to work well
+    float min_dist_from_bounds_face;
+    min_dist_from_bounds_face = PSMCoords.x;
+    min_dist_from_bounds_face = min(min_dist_from_bounds_face, 1.f-PSMCoords.x);
+    min_dist_from_bounds_face = min(min_dist_from_bounds_face,PSMCoords.y);
+    min_dist_from_bounds_face = min(min_dist_from_bounds_face, 1.f-PSMCoords.y);
+    min_dist_from_bounds_face = min(min_dist_from_bounds_face,PSMCoords.z);
+    min_dist_from_bounds_face = min(min_dist_from_bounds_face, 1.f-PSMCoords.z);
+
+    float result = smoothstep(0.f,g_PSMFadeMargin,min_dist_from_bounds_face);
+    result *= result;
+
+    return result;
+}
+
+void main()
+{
+    int PrimID = gl_PrimitiveIDn;
+    float4 InstanceData = GetParticleInstanceData(PrimID);
+
+    // Fade particles that are near the bounds of the PSM, and kill any that go outside
+    float3 CentreViewPos = mul(float4(InstanceData.xyz,1), g_matView).xyz;
+    float3 CentrePSMCoords = mul(float4(CentreViewPos,1.f), g_matViewToPSM).xyz;
+    float PSMFade = CalcPSMFadeFactor(CentrePSMCoords);
+    if(PSMFade <= 0.f)
+        return;
+
+    float fog_factor = exp(dot(CentreViewPos,CentreViewPos)*g_FogExponent);
+
+//    [unroll]
+    for(uint i = 0; i != 4; ++i) {
+
+        GS_PARTICLE_COORDS particleCoords = CalcParticleCoords(InstanceData,i);
+
+        float4 PSMCoords = mul(float4(particleCoords.ViewPos,1.f), g_matViewToPSM);
+
+        outvert.TextureUVAndOpacity = particleCoords.TextureUVAndOpacity;
+        outvert.TextureUVAndOpacity.z *= PSMFade;
+        gl_Position = mul(float4(particleCoords.ViewPos,1.f), g_matProj);
+        outvert.PSMCoords = float3(PSMCoords.xyz);
+        outvert.FogFactor = fog_factor;
+        EmitVertex();
+    }
+//    outstream.RestartStrip();
+}

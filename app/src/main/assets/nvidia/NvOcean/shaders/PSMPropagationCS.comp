@@ -1,0 +1,53 @@
+#include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
+
+layout(binding = 0, r32ui) uniform uimage3D g_PSMPropagationMapUAV;
+
+layout (local_size_x = PSMPropagationCSBlockSize, local_size_y = PSMPropagationCSBlockSize) in;
+void main()
+{
+    uint3 Gid = SV_GroupID;
+    uint3 DTid = SV_DispatchThreadID;
+    uint3 GTid = SV_GroupThreadID;
+    uint GI = SV_GroupIndex;
+
+    uint PSMMapW, PSMMapH, PSMMapD;
+//    g_PSMPropagationMapUAV.GetDimensions(PSMMapW, PSMMapH, PSMMapD);
+    int3 texSize = imageSize(g_PSMPropagationMapUAV);
+    PSMMapW = texSize.x;
+    PSMMapH = texSize.y;
+    PSMMapD = texSize.z;
+
+    // TBD: Would it be worth doing away with this by insisting on multiple-of-block-size dims?
+    if(DTid.x >= PSMMapW || DTid.y >= PSMMapH)
+    return;
+
+    float AccumulatedOpacity = 1.f;
+    uint2 PixelCoords = DTid.xy;
+
+    /*
+    // Early-out if there is no coverage on this coverage slice
+    float Coverage = g_PSMCoverageTexture[int2(PixelCoords/PSM_COVERAGE_MULTIPLIER)].r;
+    if(Coverage == 0.f)
+        return;
+        */
+
+    // Skip layer 0, which is reserved for coverage
+    for(uint layer = 1; layer < PSMMapD; ++layer)
+    {
+        uint ReadVal = imageLoad(g_PSMPropagationMapUAV,int3(PixelCoords,layer)).x;
+        uint RReadVal = ReadVal & 0x0000FFFFu;
+        uint GReadVal = ReadVal >> 16;
+        float LocalOpacity1 = float(RReadVal) * 1.f/65535.f;
+        float LocalOpacity2 = float(GReadVal) * 1.f/65535.f;
+        float AccumulatedOpacityTemp = AccumulatedOpacity * LocalOpacity1;
+        AccumulatedOpacity = AccumulatedOpacityTemp * LocalOpacity2;
+        if(AccumulatedOpacity < 1.f)
+        {
+            uint RWriteVal = uint(65535.f * AccumulatedOpacityTemp);
+            uint GWriteVal = uint(65535.f * AccumulatedOpacity);
+            uint WriteVal = RWriteVal + (GWriteVal << 16);
+//            g_PSMPropagationMapUAV[int3(PixelCoords,layer)] = WriteVal;
+            imageStore(g_PSMPropagationMapUAV, int3(PixelCoords,layer), uint4(WriteVal,0,0,0));
+        }
+    }
+}

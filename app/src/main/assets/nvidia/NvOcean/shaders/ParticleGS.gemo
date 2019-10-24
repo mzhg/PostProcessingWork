@@ -1,0 +1,26 @@
+#include "ocean_surface.glsl"
+
+out float4 m_Color;
+
+layout(points) in;
+layout(triangle_strip, max_vertices = 4) out;
+
+void main()
+{
+    int particleID = gl_PrimitiveIDn;
+    SprayParticleData particleData = g_SprayParticleDataSRV[particleID];
+
+    float3 position = particleData.position.xyz;
+    position -= g_ViewForward.xyz * 0.75f;
+    float particleSize = particleData.position.w;
+
+    m_Color = float4(0, 0, 1.0f, 0.25f * particleSize);
+
+    for (int i=0; i<4; ++i)
+    {
+        float3 vertexPos = position + (ParticleOffsets[i].x * g_ViewRight.xyz + ParticleOffsets[i].y * g_ViewUp.xyz) * particleSize;
+        gl_Position = mul(float4(vertexPos, 1.0f), g_matViewProj);
+//        particleStream.Append(output);
+        EmitVertex();
+    }
+}

@@ -1,0 +1,75 @@
+#include "ocean_smoke.glsl"
+
+layout (local_size_x = EmitParticlesCSBlocksSize, local_size_y = 1) in;
+void main()
+{
+    uint3 Gid = SV_GroupID;
+    uint3 DTid = SV_DispatchThreadID;
+    uint3 GTid = SV_GroupThreadID;
+    uint GI = SV_GroupIndex;
+
+    if(DTid.x >= g_ParticleCount)
+    return;
+
+    uint random_wrap_index;
+    g_RandomUV.GetDimensions(random_wrap_index);
+    uint random_index = (g_RandomOffset + 2 * DTid.x) % random_wrap_index;
+
+    float emit_interp = g_EmitInterpScaleAndOffset.y + g_EmitInterpScaleAndOffset.x * float(DTid.x);
+
+    float2 random_uv_0 = g_RandomUV.Load(random_index);
+    float2 random_uv_1 = g_RandomUV.Load(random_index+1);
+    float r = sqrt(random_uv_0.x);
+    float theta_pos = 2.f * PI * random_uv_0.y;
+    float2 random_unit_circle = float2(r * cos(theta_pos), r *sin(theta_pos));
+    float4 emit_pos_local = float4(g_EmitAreaScale.x * random_unit_circle.x,0.f,g_EmitAreaScale.y * random_unit_circle.y,1.f);
+
+    float3 prev_emit_pos_world = mul(emit_pos_local, g_PrevEmitterMatrix);
+    float3 curr_emit_pos_world = mul(emit_pos_local, g_CurrEmitterMatrix);
+
+    float3 emit_velocity_local;
+    emit_velocity_local.y = 1.f;
+    emit_velocity_local.xz = g_EmitMinMaxVelocityAndSpread.z * random_unit_circle;
+    emit_velocity_local *= lerp(g_EmitMinMaxVelocityAndSpread.x,g_EmitMinMaxVelocityAndSpread.y,random_uv_1.x);
+
+    float3 prev_emit_vel_world = mul(emit_velocity_local, (float3x3)g_PrevEmitterMatrix);
+    float3 curr_emit_vel_world = mul(emit_velocity_local, (float3x3)g_CurrEmitterMatrix);
+
+    float3 emit_pos_world = lerp(prev_emit_pos_world,curr_emit_pos_world,emit_interp);
+    float3 emit_vel_world = lerp(prev_emit_vel_world,curr_emit_vel_world,emit_interp);
+
+    // Add in the velocity of the emitter
+    emit_vel_world += (curr_emit_vel_world - prev_emit_vel_world)/g_TimeStep;
+
+    // Random buoyancy
+    float initial_buoyancy = lerp(g_BuoyancyParams.x,g_BuoyancyParams.y,random_uv_1.y);
+
+    // Pre-roll
+    float pre_roll_time = lerp(g_TimeStep,0.f,emit_interp) - g_PreRollEndTime;
+    float4 velocity = float4(emit_vel_world,initial_buoyancy);
+    float4 instance_data = float4(emit_pos_world,0.f);
+    simulate(instance_data, velocity, pre_roll_time);
+
+    // Calc particle index
+    uint particle_wrap_index;
+    g_SimulationInstanceData.GetDimensions(particle_wrap_index);
+    uint particle_index = (4 * (g_ParticleIndexOffset + DTid.x)) % particle_wrap_index;
+
+    // Calc view-space z for depth sort (clamp to 0 to ensure pow-2 pad entries sort to end)
+    float view_z = max(0,mul(float4(instance_data.xyz,1), g_matView).z);
+
+    // Write results
+    g_SimulationInstanceData[particle_index+0] = instance_data.x;
+    g_SimulationInstanceData[particle_index+1] = instance_data.y;
+    g_SimulationInstanceData[particle_index+2] = instance_data.z;
+    g_SimulationInstanceData[particle_index+3] = instance_data.w;
+
+    g_SimulationVelocities[particle_index+0] = velocity.x;
+    g_SimulationVelocities[particle_index+1] = velocity.y;
+    g_SimulationVelocities[particle_index+2] = velocity.z;
+    g_SimulationVelocities[particle_index+3] = velocity.w;
+
+    int depth_sort_index = particle_index/4;
+    g_ParticleDepthSortUAV[depth_sort_index].ParticleIndex = depth_sort_index;
+    g_ParticleDepthSortUAV[depth_sort_index].ViewZ = view_z;
+}

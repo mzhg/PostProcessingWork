@@ -1,0 +1,32 @@
+#include "ocean_smoke.glsl"
+
+shared DepthSortEntry shared_data[BitonicSortCSBlockSize];
+layout (local_size_x = BitonicSortCSBlockSize, local_size_y = 1) in;
+
+void main()
+{
+    uint3 Gid = SV_GroupID;
+    uint3 DTid = SV_DispatchThreadID;
+    uint3 GTid = SV_GroupThreadID;
+    int GI = int(SV_GroupIndex);
+
+    // Load shared data
+    shared_data[GI] = g_ParticleDepthSortUAV[DTid.x];
+    GroupMemoryBarrierWithGroupSync();
+
+    // Sort the shared data
+    for (int j = g_iDepthSortLevel >> 1 ; j > 0 ; j >>= 1)
+    {
+        DepthSortEntry result;
+        if(bool(shared_data[GI & ~j].ViewZ > shared_data[GI | j].ViewZ) == bool(g_iDepthSortLevelMask & DTid.x))
+            result = shared_data[GI ^ j];
+        else
+            result = shared_data[GI];
+        GroupMemoryBarrierWithGroupSync();
+        shared_data[GI] = result;
+        GroupMemoryBarrierWithGroupSync();
+    }
+
+    // Store shared data
+    g_ParticleDepthSortUAV[DTid.x] = shared_data[GI];
+}
