@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.NvImage;
 
@@ -45,6 +46,7 @@ interface OceanConst {
     int DXGI_FORMAT_R32_UINT = GLenum.GL_R32UI;
     int DXGI_FORMAT_R8G8B8A8_UNORM_SRGB = GLenum.GL_SRGB8_ALPHA8;
     int DXGI_FORMAT_R16G16B16A16_FLOAT = GLenum.GL_RGBA16F;
+    int DXGI_FORMAT_R16_FLOAT = GLenum.GL_R16F;
 
     // Ocean grid setting
     int BICOLOR_TEX_SIZE			= 256;
@@ -67,6 +69,19 @@ interface OceanConst {
         try {
             int texture = NvImage.uploadTextureFromDDSFile(filename);
             return TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, texture);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    static TextureCube CreateTextureCubeFromFileSRGB(String filename){
+        NvImage.loadAsSRGB(true);
+
+        try {
+            int texture = NvImage.uploadTextureFromDDSFile(filename);
+            return TextureUtils.createTextureCube(GLenum.GL_TEXTURE_2D, texture);
         } catch (IOException e) {
             e.printStackTrace();
         }

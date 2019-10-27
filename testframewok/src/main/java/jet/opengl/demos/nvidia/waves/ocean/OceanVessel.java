@@ -5,6 +5,7 @@ import com.nvidia.developer.opengl.models.sdkmesh.SDKmeshMaterial;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector2f;
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
@@ -18,10 +19,12 @@ import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation;
 import jet.opengl.demos.scene.CameraData;
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
@@ -34,7 +37,7 @@ import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.NvImage;
 import jet.opengl.postprocessing.util.StringUtils;
 
-final class OceanVessel implements OceanConst{
+final class OceanVessel implements OceanConst, Disposeable {
 
     private static final float kAccelerationDueToGravity = 9.81f;
     private static final float kDensityOfWater = 1000.f;
@@ -55,12 +58,12 @@ final class OceanVessel implements OceanConst{
     private ID3D11InputLayout m_pLayout;
 
 //    ID3DX11Effect* m_pFX;
-    private GLSLProgram m_pRenderToSceneTechnique;
-    private GLSLProgram m_pRenderToShadowMapTechnique;
-    private GLSLProgram m_pRenderToHullProfileTechnique;
-    private GLSLProgram m_pRenderQuadToUITechnique;
-    private GLSLProgram m_pRenderQuadToCrackFixTechnique;
-    private GLSLProgram m_pWireframeOverrideTechnique;
+    private Technique m_pRenderToSceneTechnique;
+    private Technique m_pRenderToShadowMapTechnique;
+    private Technique m_pRenderToHullProfileTechnique;
+    private Technique m_pRenderQuadToUITechnique;
+    private Technique m_pRenderQuadToCrackFixTechnique;
+    private Technique m_pWireframeOverrideTechnique;
     /*ID3DX11EffectMatrixVariable* m_pMatWorldViewProjVariable;
     ID3DX11EffectMatrixVariable* m_pMatWorldViewVariable;
     ID3DX11EffectMatrixVariable* m_pMatWorldVariable;
@@ -85,10 +88,10 @@ final class OceanVessel implements OceanConst{
 
     ID3DX11EffectScalarVariable* m_pFogExponentVariable;*/
 
-    private TextureGL m_pWhiteTextureSRV;
-    private TextureGL m_pRustMapSRV;
-    private TextureGL m_pRustSRV;
-    private TextureGL m_pBumpSRV;
+    private Texture2D m_pWhiteTextureSRV;
+    private Texture2D m_pRustMapSRV;
+    private Texture2D m_pRustSRV;
+    private Texture2D m_pBumpSRV;
 
     private final TextureGL[] m_pHullProfileSRV = new TextureGL[2];
     private final TextureGL[] m_pHullProfileRTV = new TextureGL[2];
@@ -131,6 +134,15 @@ final class OceanVessel implements OceanConst{
 
     private final Matrix4f m_MeshToLocal = new Matrix4f();
     private final Matrix4f m_CameraToLocal = new Matrix4f();
+
+    private final OceanVesselParams m_TechParams = new OceanVesselParams();
+    private GLFuncProvider gl;
+    private RenderTargets mFbo;
+
+    @Override
+    public void dispose() {
+
+    }
 
     private final static class Spotlight{
         final Vector3f position = new Vector3f();
@@ -190,9 +202,9 @@ final class OceanVessel implements OceanConst{
     private OceanHullSensors m_pHullSensors;
     private boolean m_bFirstSensorUpdate;
 
-    private void parseConfig(String cfg_string);
-    private Spotlight processGlobalConfigLine(String line);
-    private Spotlight processSpotlightConfigLine(String line, Spotlight pSpot);
+    private void parseConfig(String cfg_string){throw new UnsupportedOperationException(); }
+    private Spotlight processGlobalConfigLine(String line) { throw new UnsupportedOperationException();}
+    private Spotlight processSpotlightConfigLine(String line, Spotlight pSpot) { throw new UnsupportedOperationException();}
 
     OceanVessel(OceanVesselDynamicState pDynamicState){
         m_pDynamicState = pDynamicState;
@@ -254,6 +266,8 @@ final class OceanVessel implements OceanConst{
         // Parse the cfg file
         parseConfig(cfg_string);
 
+        mFbo = new RenderTargets();
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         // Load the mesh
         m_pMesh = new BoatMesh();
         try {
@@ -323,12 +337,12 @@ final class OceanVessel implements OceanConst{
         V_RETURN(D3DX11CreateEffectFromMemory(pEffectBuffer->GetBufferPointer(), pEffectBuffer->GetBufferSize(), 0, m_pd3dDevice, &m_pFX));
         pEffectBuffer->Release();*/
 
-        m_pRenderToSceneTechnique = m_pFX->GetTechniqueByName("RenderVesselToSceneTech");
-        m_pRenderToShadowMapTechnique = m_pFX->GetTechniqueByName("RenderVesselToShadowMapTech");
-        m_pRenderToHullProfileTechnique = m_pFX->GetTechniqueByName("RenderVesselToHullProfileTech");
-        m_pRenderQuadToUITechnique = m_pFX->GetTechniqueByName("RenderQuadToUITech");
-        m_pRenderQuadToCrackFixTechnique = m_pFX->GetTechniqueByName("RenderQuadToCrackFixTech");
-        m_pWireframeOverrideTechnique = m_pFX->GetTechniqueByName("WireframeOverrideTech");
+        m_pRenderToSceneTechnique = ShaderManager.getInstance().getProgram("RenderVesselToSceneTech");
+        m_pRenderToShadowMapTechnique = ShaderManager.getInstance().getProgram("RenderVesselToShadowMapTech");
+        m_pRenderToHullProfileTechnique = ShaderManager.getInstance().getProgram("RenderVesselToHullProfileTech");
+        m_pRenderQuadToUITechnique = ShaderManager.getInstance().getProgram("RenderQuadToUITech");
+        m_pRenderQuadToCrackFixTechnique = ShaderManager.getInstance().getProgram("RenderQuadToCrackFixTech");
+        m_pWireframeOverrideTechnique = ShaderManager.getInstance().getProgram("WireframeOverrideTech");
         /*m_pMatWorldViewProjVariable = m_pFX->GetVariableByName("g_matWorldViewProj")->AsMatrix();
         m_pMatWorldVariable = m_pFX->GetVariableByName("g_matWorld")->AsMatrix();
         m_pMatWorldViewVariable = m_pFX->GetVariableByName("g_matWorldView")->AsMatrix();
@@ -560,7 +574,7 @@ final class OceanVessel implements OceanConst{
     }
 
     private void renderVessel(	//ID3D11DeviceContext* pDC,
-                                  GLSLProgram pTechnique,
+                                  Technique pTechnique,
                                   OceanVesselSubset pSubsetOverride,
                                   boolean wireframe,
                                   boolean depthOnly){
@@ -583,23 +597,31 @@ final class OceanVessel implements OceanConst{
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, pVB);
         m_pLayout.bind();
 
-
-        m_pTexRustMapVariable.SetResource(m_pRustMapSRV);
-        m_pTexRustVariable.SetResource(m_pRustSRV);
-        m_pTexBumpVariable.SetResource(m_pBumpSRV);
+//        m_pTexRustMapVariable.SetResource(m_pRustMapSRV);
+        m_TechParams.g_texRustMap = m_pRustMapSRV;
+//        m_pTexRustVariable.SetResource(m_pRustSRV);
+        m_TechParams.g_texRust = m_pRustSRV;
+//        m_pTexBumpVariable.SetResource(m_pBumpSRV);
+        m_TechParams.g_texBump = m_pBumpSRV;
         if(pSubsetOverride != null) {
 //            pDC->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_POINTLIST );
 //            pDC->IASetIndexBuffer( pSubsetOverride->pIB, pSubsetOverride->ib_format, 0);
 
             gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, pSubsetOverride.pIB.getBuffer());
 
-            m_pTexDiffuseVariable.SetResource(m_pWhiteTextureSRV);
-            D3DXVECTOR4 diffuse = D3DXVECTOR4(100,100,100,100);
-            m_pDiffuseColorVariable->SetFloatVector((FLOAT*)&diffuse);
+//            m_pTexDiffuseVariable.SetResource(m_pWhiteTextureSRV);
+            m_TechParams.g_texDiffuse = m_pWhiteTextureSRV.getTexture();
+//            D3DXVECTOR4 diffuse = D3DXVECTOR4(100,100,100,100);
+//            m_pDiffuseColorVariable->SetFloatVector((FLOAT*)&diffuse);
+            m_TechParams.g_DiffuseColor.set(100,100,100,100);
 //            pTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pTechnique.enable();
-            if(wireframe)
-                m_pWireframeOverrideTechnique->GetPassByIndex(0)->Apply(0,pDC);
+
+            if(wireframe) {
+//                m_pWireframeOverrideTechnique -> GetPassByIndex(0)->Apply(0, pDC);
+                m_pWireframeOverrideTechnique.enable(m_TechParams);
+            }else{
+                pTechnique.enable(m_TechParams);
+            }
 //            pDC->DrawIndexed(pSubsetOverride->index_count, 0, 0);
             gl.glDrawElements(GLenum.GL_POINTS, pSubsetOverride.index_count, pSubsetOverride.ib_format, 0);
         } else {
@@ -608,9 +630,13 @@ final class OceanVessel implements OceanConst{
             gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, mesh.getIB10(0));
 
 //            pTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pTechnique.enable();
-            if(wireframe)
-                m_pWireframeOverrideTechnique->GetPassByIndex(0)->Apply(0,pDC);
+
+            if(wireframe) {
+//                m_pWireframeOverrideTechnique -> GetPassByIndex(0)->Apply(0, pDC);
+                m_pWireframeOverrideTechnique.enable(m_TechParams);
+            }else{
+                pTechnique.enable(m_TechParams);
+            }
             for (int subset = 0; subset < mesh.getNumSubsets(0); ++subset)
             {
                 SDKMeshSubset pSubset = mesh.getSubset( 0, subset );
@@ -619,7 +645,8 @@ final class OceanVessel implements OceanConst{
                 {
                     SDKmeshMaterial  pMat = mesh.getMaterial(pSubset.materialID);
 
-                    m_pTexDiffuseVariable.SetResource(pMat.pDiffuseRV11);// ? pMat->pDiffuseRV11 : m_pWhiteTextureSRV);
+//                    m_pTexDiffuseVariable.SetResource(pMat.pDiffuseRV11);// ? pMat->pDiffuseRV11 : m_pWhiteTextureSRV);
+                    m_TechParams.g_texDiffuse = pMat.pDiffuseRV11;
 
                     Vector4f diffuse = pMat.diffuse;
                     float diffuseX = (float)Math.pow(diffuse.x,m_DiffuseGamma);//*1.9f;
@@ -635,16 +662,23 @@ final class OceanVessel implements OceanConst{
                     diffuseY = Numeric.mix(diffuseY, Luminance, 0.7f);
                     diffuseZ = Numeric.mix(diffuseZ, Luminance, 0.7f);
 
-                    m_pDiffuseColorVariable->SetFloatVector((FLOAT*)&diffuse);
+//                    m_pDiffuseColorVariable->SetFloatVector((FLOAT*)&diffuse);
+                    m_TechParams.g_DiffuseColor.set(diffuseX, diffuseY,diffuseZ, 0);
 
-                    // HACK to render the hull with no backface culling but the rest with backface
-                    if(pSubset.materialID != 0)
-                        pTechnique->GetPassByIndex(0)->Apply(0, pDC);
-				    else
-                        pTechnique->GetPassByIndex(1)->Apply(0, pDC);
 
-                    if(wireframe)
-                        m_pWireframeOverrideTechnique->GetPassByIndex(0)->Apply(0,pDC);
+                    if(wireframe) {
+//                        m_pWireframeOverrideTechnique -> GetPassByIndex(0)->Apply(0, pDC);
+                        m_pWireframeOverrideTechnique.enable(m_TechParams);
+                    }else{
+                        // HACK to render the hull with no backface culling but the rest with backface
+                        if(pSubset.materialID != 0) {
+//                        pTechnique -> GetPassByIndex(0)->Apply(0, pDC);
+                            pTechnique.enable(m_TechParams);
+                        }else {
+//                        pTechnique -> GetPassByIndex(1)->Apply(0, pDC);
+                            pTechnique.enable(m_TechParams);  // todo
+                        }
+                    }
                 }
 
 //                pDC->DrawIndexed( (UINT)pSubset->IndexCount, (UINT)pSubset->IndexStart, (UINT)pSubset->VertexStart );
@@ -891,6 +925,13 @@ final class OceanVessel implements OceanConst{
         m_pHullSensors.update(m_pSurfaceHeights,m_pDynamicState.m_LocalToWorld);
     }
 
+    private final Vector4f[] spotlight_position = CommonUtil.initArray(new Vector4f[MaxNumSpotlights]);
+    private final Vector4f[] spotlight_axis_and_cos_angle = CommonUtil.initArray(new Vector4f[MaxNumSpotlights]);
+    private final Matrix4f[] spotlightMatrix = CommonUtil.initArray(new Matrix4f[MaxNumSpotlights]);
+
+    private final Matrix4f matW = new Matrix4f();
+    private final Matrix4f matWV = new Matrix4f();
+    private final Matrix4f matWVP = new Matrix4f();
     void renderVesselToScene(	//ID3D11DeviceContext* pDC,
 								Matrix4f matView,
 								Matrix4f matProj,
@@ -898,7 +939,7 @@ final class OceanVessel implements OceanConst{
 								OceanVesselSubset pSubsetOverride,
                                 boolean  wireframe
     ){
-        D3DXMATRIX matLocalToView = m_pDynamicState.m_LocalToWorld * matView;
+        /*D3DXMATRIX matLocalToView = m_pDynamicState.m_LocalToWorld * matView;
 
         // View-proj
         D3DXMATRIX matW = m_MeshToLocal * m_pDynamicState.m_LocalToWorld;
@@ -906,21 +947,36 @@ final class OceanVessel implements OceanConst{
         D3DXMATRIX matWVP = matWV * matProj;
         m_pMatWorldViewProjVariable->SetMatrix((FLOAT*)&matWVP);
         m_pMatWorldVariable->SetMatrix((FLOAT*)&matW);
-        m_pMatWorldViewVariable->SetMatrix((FLOAT*)&matWV);
+        m_pMatWorldViewVariable->SetMatrix((FLOAT*)&matWV);*/
+
+        final Matrix4f matLocalToView = CacheBuffer.getCachedMatrix();
+        Matrix4f.mul(matView, m_pDynamicState.m_LocalToWorld, matLocalToView);
+        Matrix4f.mul(m_pDynamicState.m_LocalToWorld, m_MeshToLocal, matW);
+        Matrix4f.mul(matLocalToView, m_MeshToLocal, matWV);
+        Matrix4f.mul(matProj, matWV, matWVP);
+
+        m_TechParams.g_matWorldViewProj = matWVP;
+        m_TechParams.g_matWorld = matW;
+        m_TechParams.g_matWorldView = matWV;
+
+        CacheBuffer.free(matLocalToView);
 
         // Global lighting
-        m_pLightDirectionVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_direction);
-        m_pLightColorVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_color);
-        m_pAmbientColorVariable->SetFloatVector((FLOAT*)&ocean_env.sky_color);
+//        m_pLightDirectionVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_direction);
+        m_TechParams.g_LightDirection = ocean_env.main_light_direction;
+//        m_pLightColorVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_color);
+        m_TechParams.g_LightColor = ocean_env.main_light_color;
+//        m_pAmbientColorVariable->SetFloatVector((FLOAT*)&ocean_env.sky_color);
+        m_TechParams.g_AmbientColor = ocean_env.sky_color;
 
+        int lightsNum = 0;
         // Spot lights - transform to view space
-        D3DXMATRIX matSpotlightsToView = ocean_env.spotlights_to_world_matrix * matView;
+        /*D3DXMATRIX matSpotlightsToView = ocean_env.spotlights_to_world_matrix * matView;
         D3DXMATRIX matViewToSpotlights;
         D3DXMatrixInverse(&matViewToSpotlights,NULL,&matSpotlightsToView);
         D3DXVECTOR4 spotlight_position[MaxNumSpotlights];
         D3DXVECTOR4 spotlight_axis_and_cos_angle[MaxNumSpotlights];
         D3DXVECTOR4 spotlight_color[MaxNumSpotlights];
-        int lightsNum = 0;
 
         D3DXVec4TransformArray(spotlight_position,sizeof(spotlight_position[0]),ocean_env.spotlight_position,sizeof(ocean_env.spotlight_position[0]),&matSpotlightsToView,MaxNumSpotlights);
         D3DXVec3TransformNormalArray((D3DXVECTOR3*)spotlight_axis_and_cos_angle,sizeof(spotlight_axis_and_cos_angle[0]),(D3DXVECTOR3*)ocean_env.spotlight_axis_and_cos_angle,sizeof(ocean_env.spotlight_axis_and_cos_angle[0]),&matSpotlightsToView,MaxNumSpotlights);
@@ -946,20 +1002,71 @@ final class OceanVessel implements OceanConst{
         m_pSpotLightAxisAndCosAngleVariable->SetFloatVectorArray((FLOAT*)spotlight_axis_and_cos_angle,0,lightsNum);
         m_pSpotlightColorVariable->SetFloatVectorArray((FLOAT*)spotlight_color,0,lightsNum);
 
+        */
+        Matrix4f matSpotlightsToView = Matrix4f.mul(matView, ocean_env.spotlights_to_world_matrix, CacheBuffer.getCachedMatrix());
+
+//        D3DXVECTOR4 spotlight_position[MaxNumSpotlights];
+//        D3DXVECTOR4 spotlight_axis_and_cos_angle[MaxNumSpotlights];
+//        D3DXVECTOR4 spotlight_color[MaxNumSpotlights];
+
+//        D3DXVec4TransformArray(spotlight_position,sizeof(spotlight_position[0]),ocean_env.spotlight_position,sizeof(ocean_env.spotlight_position[0]),&matSpotlightsToView,MaxNumSpotlights);
+//        D3DXVec3TransformNormalArray((D3DXVECTOR3*)spotlight_axis_and_cos_angle,sizeof(spotlight_axis_and_cos_angle[0]),(D3DXVECTOR3*)ocean_env.spotlight_axis_and_cos_angle,sizeof(ocean_env.spotlight_axis_and_cos_angle[0]),&matSpotlightsToView,MaxNumSpotlights);
+
+        for(int i = 0; i < MaxNumSpotlights; i++){
+            Matrix4f.transform(matSpotlightsToView, ocean_env.spotlight_position[i], spotlight_position[i]);
+            Matrix4f.transformNormal(matSpotlightsToView, ocean_env.spotlight_axis_and_cos_angle[i], spotlight_axis_and_cos_angle[i]);
+        }
+
+        Matrix4f matViewToSpotlights = Matrix4f.invert(matSpotlightsToView,matSpotlightsToView);
+        for(int i=0; i!=ocean_env.activeLightsNum; ++i) {
+
+            if (ocean_env.lightFilter != -1 && ocean_env.objectID[i] != ocean_env.lightFilter) continue;
+
+            spotlight_position[lightsNum] = spotlight_position[i];
+            spotlight_axis_and_cos_angle[lightsNum] = spotlight_axis_and_cos_angle[i];
+//            spotlight_color[lightsNum] = ocean_env.spotlight_color[i];
+            spotlight_axis_and_cos_angle[lightsNum].w = ocean_env.spotlight_axis_and_cos_angle[i].w;
+
+            if(ENABLE_SHADOWS) {
+//                D3DXMATRIX spotlight_shadow_matrix = matViewToSpotlights * ocean_env.spotlight_shadow_matrix[i];
+//                m_pSpotlightShadowMatrixVar -> SetMatrixArray(( float*)& spotlight_shadow_matrix, lightsNum, 1);
+                Matrix4f.mul(ocean_env.spotlight_shadow_matrix[i], matViewToSpotlights, spotlightMatrix[i]);
+
+//                m_pSpotlightShadowResourceVar -> SetResourceArray((ID3D11ShaderResourceView * *) & ocean_env.spotlight_shadow_resource[i], lightsNum, 1);
+            }
+
+            ++lightsNum;
+        }
+
+        CacheBuffer.free(matViewToSpotlights);
+
+//        m_pSpotlightNumVariable->SetInt(lightsNum);
+        m_TechParams.g_LightsNum = lightsNum;
+//        m_pRenderSurfaceSpotlightPositionVariable->SetFloatVectorArray((FLOAT*)spotlight_position,0,lightsNum);
+        m_TechParams.g_SpotlightPosition = spotlight_position;
+//        m_pRenderSurfaceSpotLightAxisAndCosAngleVariable->SetFloatVectorArray((FLOAT*)spotlight_axis_and_cos_angle,0,lightsNum);
+        m_TechParams.g_SpotLightAxisAndCosAngle = spotlight_axis_and_cos_angle;
+//        m_pRenderSurfaceSpotlightColorVariable->SetFloatVectorArray((FLOAT*)spotlight_color,0,lightsNum);
+        m_TechParams.g_SpotlightColor = ocean_env.spotlight_color;
+        m_TechParams.g_SpotlightResource = ocean_env.spotlight_shadow_resource;
+
         // Lightnings
-        m_pLightningColorVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_intensity);
-        m_pLightningPositionVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_position);
+//        m_pLightningColorVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_intensity);
+        m_TechParams.g_LightningColor = ocean_env.lightning_light_intensity;
+//        m_pLightningPositionVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_position);
+        m_TechParams.g_LightningPosition = ocean_env.lightning_light_position;
 
         // Fog
-        m_pFogExponentVariable->SetFloat(ocean_env.fog_exponent*ocean_env.cloud_factor);
+//        m_pFogExponentVariable->SetFloat(ocean_env.fog_exponent*ocean_env.cloud_factor);
+        m_TechParams.g_FogExponent = ocean_env.fog_exponent*ocean_env.cloud_factor;
 
-        renderVessel(pDC, m_pRenderToSceneTechnique, pSubsetOverride, wireframe, false);
+        renderVessel(/*pDC,*/ m_pRenderToSceneTechnique, pSubsetOverride, wireframe, false);
 
         // Release input refs
-        ID3D11ShaderResourceView* pNullSRVs[MaxNumSpotlights];
+        /*ID3D11ShaderResourceView* pNullSRVs[MaxNumSpotlights];
         memset(pNullSRVs,0,sizeof(pNullSRVs));
         m_pSpotlightShadowResourceVar->SetResourceArray(pNullSRVs,0,MaxNumSpotlights);
-        m_pRenderToSceneTechnique->GetPassByIndex(0)->Apply(0,pDC);
+        m_pRenderToSceneTechnique->GetPassByIndex(0)->Apply(0,pDC);*/
     }
 
     void renderReflectedVesselToScene(	//ID3D11DeviceContext* pDC,
@@ -967,68 +1074,89 @@ final class OceanVessel implements OceanConst{
 										Vector4f world_reflection_plane,
 										OceanEnvironment ocean_env
     ){
-        D3DXMATRIX matView = *camera.GetViewMatrix();
-        D3DXMATRIX matProj = *camera.GetProjMatrix();
+        Matrix4f matView = camera.getViewMatrix();
+        Matrix4f matProj = camera.getProjMatrix();
 
-        D3DXMATRIX matReflection;
-        D3DXMatrixReflect(&matReflection, &world_reflection_plane);
+        Matrix4f matReflection = CacheBuffer.getCachedMatrix();
+//        D3DXMatrixReflect(&matReflection, &world_reflection_plane);
+        Matrix4f.reflection(world_reflection_plane, matReflection);
 
-        matView = matReflection*matView;
+//        matView = matReflection*matView;
+        Matrix4f newMatView =  Matrix4f.mul(matView, matReflection, matReflection);
 
-        renderVesselToScene(pDC, matView, matProj, ocean_env, NULL, false);
+        renderVesselToScene(/*pDC,*/ newMatView, matProj, ocean_env, null, false);
+        CacheBuffer.free(matReflection);
     }
 
     void updateVesselShadows(/*ID3D11DeviceContext* pDC*/){
-        D3D11_VIEWPORT original_viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+        /*D3D11_VIEWPORT original_viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
         UINT num_original_viewports = sizeof(original_viewports)/sizeof(original_viewports[0]);
         pDC->RSGetViewports( &num_original_viewports, original_viewports);
 
         CD3D11_VIEWPORT viewport(0.0f, 0.0f, (float)kSpotlightShadowResolution, (float)kSpotlightShadowResolution);
-        pDC->RSSetViewports(1, &viewport);
+        pDC->RSSetViewports(1, &viewport);*/
+        gl.glViewport(0,0,(int)kSpotlightShadowResolution, (int)kSpotlightShadowResolution);
 
-        size_t lightsNum = m_Spotlights.size();
-        for (size_t i=0; i<lightsNum; ++i)
+        final Matrix4f matView = CacheBuffer.getCachedMatrix();
+        final Matrix4f matProj = CacheBuffer.getCachedMatrix();
+        final Vector3f lightPosWorldSpace = CacheBuffer.getCachedVec3();
+        final Vector3f lightAxisWorldSpace = CacheBuffer.getCachedVec3();
+
+        int lightsNum = m_Spotlights.size();
+        for (int i=0; i<lightsNum; ++i)
         {
-            if (m_SpotlightsShadows[i].m_Dirty == false)
+            if (m_SpotlightsShadows.get(i).m_Dirty == false)
             {
                 continue;
             }
 
             Spotlight sl = m_Spotlights.get(i);
 
-            D3DXMATRIX matView;
-            D3DXMATRIX matProj;
+//            D3DXMATRIX matView;
+//            D3DXMATRIX matProj;
 
-            D3DXVECTOR3 lightPosWorldSpace;
-            D3DXVec3TransformCoord(&lightPosWorldSpace, (D3DXVECTOR3*)&sl.position, &m_pDynamicState.m_LocalToWorld);
+//            D3DXVECTOR3 lightPosWorldSpace;
+//            D3DXVec3TransformCoord(&lightPosWorldSpace, (D3DXVECTOR3*)&sl.position, &m_pDynamicState.m_LocalToWorld);
+            Matrix4f.transformCoord(m_pDynamicState.m_LocalToWorld, sl.position, lightPosWorldSpace);
 
-            D3DXVECTOR3 lightAxisWorldSpace;
-            D3DXVec3TransformNormal(&lightAxisWorldSpace, (D3DXVECTOR3*)&sl.axis, &m_pDynamicState.m_LocalToWorld);
+//            D3DXVECTOR3 lightAxisWorldSpace;
+//            D3DXVec3TransformNormal(&lightAxisWorldSpace, (D3DXVECTOR3*)&sl.axis, &m_pDynamicState.m_LocalToWorld);
+            Matrix4f.transformNormal(m_pDynamicState.m_LocalToWorld, sl.axis, lightAxisWorldSpace);
 
-            D3DXVECTOR3 lookAt = (D3DXVECTOR3&)sl.position + (D3DXVECTOR3&)sl.axis;
-            D3DXVECTOR3 up(1.0f, 0.0, 1.0f);
-            D3DXMatrixLookAtLH(&matView, (D3DXVECTOR3*)&sl.position, &lookAt, &up);
+//            D3DXVECTOR3 lookAt = (D3DXVECTOR3&)sl.position + (D3DXVECTOR3&)sl.axis;
+//            D3DXVECTOR3 up(1.0f, 0.0, 1.0f);
+//            D3DXMatrixLookAtLH(&matView, (D3DXVECTOR3*)&sl.position, &lookAt, &up);
+            Vector3f lookAt = Vector3f.add(sl.position, sl.axis, lightPosWorldSpace);
+            Matrix4f.lookAt(sl.position, lookAt, new Vector3f(1,0,1), matView);
 
-            D3DXMatrixPerspectiveFovLH(&matProj, m_Spotlights[i].beam_angle, 1.0f, kSpotlightClipNear, kSpotlightClipFar);
+//            D3DXMatrixPerspectiveFovLH(&matProj, m_Spotlights[i].beam_angle, 1.0f, kSpotlightClipNear, kSpotlightClipFar);
+            Matrix4f.perspective((float)Math.toDegrees(m_Spotlights.get(i).beam_angle), 1.0f, kSpotlightClipNear, kSpotlightClipFar, matProj);
 
-            D3DXMATRIX matW = m_MeshToLocal;
-            D3DXMATRIX matWV = matW * matView;
-            D3DXMATRIX matWVP = matWV * matProj;
-            m_pMatWorldViewProjVariable->SetMatrix((FLOAT*)&matWVP);
+//            D3DXMATRIX matW = m_MeshToLocal;
+//            D3DXMATRIX matWV = matW * matView;
+//            D3DXMATRIX matWVP = matWV * matProj;
 
-            m_SpotlightsShadows[i].m_ViewProjMatrix = matView * matProj;
+            Matrix4f.mul(matView, m_MeshToLocal, matWV);
+            Matrix4f.mul(matProj, matWV, matWVP);
 
-            pDC->ClearDepthStencilView(m_SpotlightsShadows[i].m_pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
-            pDC->OMSetRenderTargets(0, NULL, m_SpotlightsShadows[i].m_pDSV);
+//            m_pMatWorldViewProjVariable->SetMatrix((FLOAT*)&matWVP);
+            m_TechParams.g_matWorldViewProj = matWVP;
 
-            renderVessel(pDC, m_pRenderToShadowMapTechnique, NULL, false, true);
+//            m_SpotlightsShadows[i].m_ViewProjMatrix = matView * matProj;
+            Matrix4f.mul(matProj, matView, m_SpotlightsShadows.get(i).m_ViewProjMatrix);
 
-            m_SpotlightsShadows[i].m_Dirty = false;
+//            pDC->ClearDepthStencilView(m_SpotlightsShadows[i].m_pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
+            gl.glClearTexImage(m_SpotlightsShadows.get(i).m_pDSV.getTexture(), 0, GLenum.GL_DEPTH_COMPONENT, GLenum.GL_FLOAT, CacheBuffer.wrap(1.f));
+//            pDC->OMSetRenderTargets(0, NULL, m_SpotlightsShadows[i].m_pDSV);
+            mFbo.setRenderTexture(m_SpotlightsShadows.get(i).m_pDSV, null);
+
+            renderVessel(/*pDC,*/ m_pRenderToShadowMapTechnique, null, false, true);
+
+            m_SpotlightsShadows.get(i).m_Dirty = false;
         }
 
-        pDC->RSSetViewports(num_original_viewports, original_viewports);
-
-        pDC->OMSetRenderTargets(0, NULL, NULL);
+//        pDC->RSSetViewports(num_original_viewports, original_viewports);
+//        pDC->OMSetRenderTargets(0, NULL, NULL);
     }
 
     void updateVesselLightsInEnv(OceanEnvironment env, Matrix4f matView, float lighting_mult, int objectID){
@@ -1085,7 +1213,7 @@ final class OceanVessel implements OceanConst{
 
         BoundingBox aabb = new BoundingBox();
         aabb.setFromExtent(m_bbCentre, m_bbExtents);
-        Matrix4f matW = Matrix4f.mul(m_pDynamicState.m_LocalToWorld, m_MeshToLocal, null);
+        Matrix4f.mul(m_pDynamicState.m_LocalToWorld, m_MeshToLocal, matW);
         BoundingBox.transform(matW, aabb, aabb);
         Vector3f maxCorner = aabb._max;
         Vector3f minCorner = aabb._min;
@@ -1122,54 +1250,70 @@ final class OceanVessel implements OceanConst{
         matVP.m32 =  1.f - matVP.m12 * maxCorner.y;
 
         // Set up matrices for rendering
-        D3DXMATRIX matWVP = matW* matVP;
-        m_pMatWorldViewProjVariable->SetMatrix((FLOAT*)&matWVP);
-        m_pMatWorldVariable->SetMatrix((FLOAT*)&matW);
+//        D3DXMATRIX matWVP = matW* matVP;
+//        m_pMatWorldViewProjVariable->SetMatrix((FLOAT*)&matWVP);
+//        m_pMatWorldVariable->SetMatrix((FLOAT*)&matW);
+
+        Matrix4f.mul(matVP, matW, matWVP);
+        m_TechParams.g_matWorldViewProj = matWVP;
+        m_TechParams.g_matWorld = matW;
 
         // Save rt setup to restore shortly...
-        D3D11_VIEWPORT original_viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+        /*D3D11_VIEWPORT original_viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
         UINT num_original_viewports = sizeof(original_viewports)/sizeof(original_viewports[0]);
         pDC->RSGetViewports( &num_original_viewports, original_viewports);
         ID3D11RenderTargetView* original_rtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
         ID3D11DepthStencilView* original_dsv = NULL;
         UINT num_original_rtvs = sizeof(original_rtvs)/sizeof(original_rtvs[0]);
-        pDC->OMGetRenderTargets( num_original_rtvs, original_rtvs, &original_dsv );
+        pDC->OMGetRenderTargets( num_original_rtvs, original_rtvs, &original_dsv );*/
 
         // Do the rendering
-        pDC->ClearDepthStencilView(m_pHullProfileDSV, D3D11_CLEAR_DEPTH, 1.f, 0);
+        /*pDC->ClearDepthStencilView(m_pHullProfileDSV, D3D11_CLEAR_DEPTH, 1.f, 0);
 	    const FLOAT rtvClearColor[4] = { 1.f, 0.f, 0.f, 0.f };
         pDC->ClearRenderTargetView(m_pHullProfileRTV[0], rtvClearColor);
-        pDC->OMSetRenderTargets( 1, &m_pHullProfileRTV[0], m_pHullProfileDSV);
+        pDC->OMSetRenderTargets( 1, &m_pHullProfileRTV[0], m_pHullProfileDSV);*/
 
-        D3D11_VIEWPORT vp;
+        gl.glClearTexImage(m_pHullProfileDSV.getTexture(), 0, GLenum.GL_DEPTH_COMPONENT, GLenum.GL_FLOAT, CacheBuffer.wrap(1.f));
+        gl.glClearTexImage(m_pHullProfileRTV[0].getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, CacheBuffer.wrap(1.f, 0.f, 0.f, 0.f));
+        mFbo.bind();
+        mFbo.setRenderTexture(m_pHullProfileRTV[0], null);
+
+        /*D3D11_VIEWPORT vp;
         vp.TopLeftX = vp.TopLeftY = 0.f;
         vp.Height = vp.Width = FLOAT(m_HullProfileTextureWH);
         vp.MinDepth = 0.f;
         vp.MaxDepth = 1.f;
-        pDC->RSSetViewports(1, &vp);
+        pDC->RSSetViewports(1, &vp);*/
+        gl.glViewport(0,0, (int)m_HullProfileTextureWH, (int)m_HullProfileTextureWH);
 
-        renderVessel(pDC, m_pRenderToHullProfileTechnique, NULL, false, false);
+        renderVessel(/*pDC,*/ m_pRenderToHullProfileTechnique, null, false, false);
 
         // Fix up cracks
-        pDC->OMSetRenderTargets( 1, &m_pHullProfileRTV[1], NULL);
-        m_pTexDiffuseVariable->SetResource(m_pHullProfileSRV[0]);
-        m_pRenderQuadToCrackFixTechnique->GetPassByIndex(0)->Apply(0, pDC);
-        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+//        pDC->OMSetRenderTargets( 1, &m_pHullProfileRTV[1], NULL);
+        mFbo.setRenderTexture(m_pHullProfileRTV[1], null);
+//        m_pTexDiffuseVariable->SetResource(m_pHullProfileSRV[0]);
+        m_TechParams.g_texDiffuse = m_pHullProfileSRV[0].getTexture();
+//        m_pRenderQuadToCrackFixTechnique->GetPassByIndex(0)->Apply(0, pDC);
+        m_pRenderQuadToCrackFixTechnique.enable(m_TechParams);
+        /*pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
         pDC->IASetInputLayout(NULL);
-        pDC->Draw(4,0);
-        m_pTexDiffuseVariable->SetResource(NULL);
-        m_pRenderQuadToCrackFixTechnique->GetPassByIndex(0)->Apply(0, pDC);
+        pDC->Draw(4,0);*/
+        gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
+
+//        m_pTexDiffuseVariable->SetResource(NULL);
+//        m_pRenderQuadToCrackFixTechnique->GetPassByIndex(0)->Apply(0, pDC);
 
         // Restore original state
-        pDC->OMSetRenderTargets(num_original_rtvs, original_rtvs, original_dsv);
+        /*pDC->OMSetRenderTargets(num_original_rtvs, original_rtvs, original_dsv);
         pDC->RSSetViewports(num_original_viewports, original_viewports);
         SAFE_RELEASE(original_dsv);
         for(UINT i = 0; i != num_original_rtvs; ++i) {
             SAFE_RELEASE(original_rtvs[i]);
-        }
+        }*/
 
         // Generate mips
-        pDC->GenerateMips(m_pHullProfileSRV[1]);
+//        pDC->GenerateMips(m_pHullProfileSRV[1]);
+        gl.glGenerateTextureMipmap(m_pHullProfileSRV[1].getTexture());
 
         // Set result
         profile = result;
@@ -1215,36 +1359,47 @@ final class OceanVessel implements OceanConst{
         Matrix4f.transformCoord(matEmitter, emitter_pos, emitter_pos);
 
         // Local y is wind-aligned in the plane
-        D3DXVECTOR3 local_y = -D3DXVECTOR3(wind_dir.x,0,wind_dir.y);
-        local_y.y = 0.f;
-        D3DXVec3Normalize(&local_y, &local_y);
+//        D3DXVECTOR3 local_y = -D3DXVECTOR3(wind_dir.x,0,wind_dir.y);
+//        local_y.y = 0.f;
+//        D3DXVec3Normalize(&local_y, &local_y);
+        Vector3f local_y  = CacheBuffer.getCachedVec3();
+        local_y.set(-wind_dir.getX(),0,-wind_dir.getY());
+        local_y.normalise();
 
         // Local z is world down (effective light dir - to put shadows on bottom of smoke plume)
-        D3DXVECTOR3 local_z = D3DXVECTOR3(0.f,-1.f,0.f);
+//        D3DXVECTOR3 local_z = D3DXVECTOR3(0.f,-1.f,0.f);
+        ReadableVector3f local_z = Vector3f.Y_AXIS_NEG;
 
         // Local x is implied by y and z
-        D3DXVECTOR3 local_x;
-        D3DXVec3Cross(&local_x,&local_y,&local_z);
+        Vector3f local_x = CacheBuffer.getCachedVec3();
+//        D3DXVec3Cross(&local_x,&local_y,&local_z);
+        Vector3f.cross(local_y, local_z, local_x);
 
-        D3DXMATRIX matPSM;
-        D3DXMatrixTranslation(&matPSM,emitter_pos.x,emitter_pos.y,emitter_pos.z);
+        Matrix4f matPSM = CacheBuffer.getCachedMatrix();
+        matPSM.setIdentity();
+//        D3DXMatrixTranslation(&matPSM,emitter_pos.x,emitter_pos.y,emitter_pos.z);
+        matPSM.setColumn(3, emitter_pos.x,emitter_pos.y,emitter_pos.z, 1);
 
-        matPSM._11 = local_x.x;
-        matPSM._12 = local_x.y;
-        matPSM._13 = local_x.z;
+        matPSM.m00 = local_x.x;
+        matPSM.m10 = local_x.y;
+        matPSM.m20 = local_x.z;
 
-        matPSM._21 = local_y.x;
-        matPSM._22 = local_y.y;
-        matPSM._23 = local_y.z;
+        matPSM.m01 = local_y.x;
+        matPSM.m11 = local_y.y;
+        matPSM.m21 = local_y.z;
 
-        matPSM._31 = local_z.x;
-        matPSM._32 = local_z.y;
-        matPSM._33 = local_z.z;
+        matPSM.m02 = local_z.getX();
+        matPSM.m12 = local_z.getY();
+        matPSM.m22 = local_z.getZ();
 
 
-        m_pPSM->beginRenderToPSM(matPSM,pDC);
+        m_pPSM.beginRenderToPSM(matPSM/*,pDC*/);
 
         CacheBuffer.free(matEmitter);
+        CacheBuffer.free(emitter_pos);
+        CacheBuffer.free(local_y);
+        CacheBuffer.free(local_x);
+        CacheBuffer.free(matPSM);
     }
     void endRenderToPSM(/*ID3D11DeviceContext* pDC*/){
         m_pPSM.endRenderToPSM(/*pDC*/);

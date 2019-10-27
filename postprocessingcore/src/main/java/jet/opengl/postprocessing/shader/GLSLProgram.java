@@ -28,6 +28,8 @@ public class GLSLProgram implements OpenGLProgram{
 	private List<ProgramLinkTask> m_TaskInvokedBeforeLinked;
 	private String m_name = getClass().getSimpleName();
 
+	private boolean m_computeProgram = false;
+
 	/**
 	 * Creates and returns a shader object from a array of #{@link ShaderSourceItem}.<br>
 	 * @param items
@@ -105,7 +107,7 @@ public class GLSLProgram implements OpenGLProgram{
 	 * @return true on success and false on failure
 	 */
 	public void setSourceFromFiles(String vertFilename, String fragFilename, Macro...macros) throws IOException{
-		CharSequence vertSrc = ShaderLoader.loadShaderFile(vertFilename, false);
+		CharSequence vertSrc = vertFilename != null? ShaderLoader.loadShaderFile(vertFilename, false) : null;
 		CharSequence fragSrc = fragFilename != null? ShaderLoader.loadShaderFile(fragFilename, false) : null;
 		setSourceFromStrings(vertSrc, fragSrc, macros);
 	}
@@ -364,9 +366,12 @@ public class GLSLProgram implements OpenGLProgram{
 
 	public String getName(){return m_name;}
 
+	public boolean isComputeProgram() { return m_computeProgram;}
+
 	private int compileProgram(ShaderSourceItem[] src){
 		int program = gl.glCreateProgram();
 		int count = src.length;
+		m_computeProgram = false;
 
 		int i;
 		for (i = 0; i < count; i++) {
@@ -377,6 +382,10 @@ public class GLSLProgram implements OpenGLProgram{
 			int shader = GLSLUtil.compileShaderFromSource(source, src[i].type, GLCheck.CHECK);
 
 			gl.glAttachShader(program, shader);
+
+			if( count == 1 && src[i].type == ShaderType.COMPUTE){
+				m_computeProgram = true;
+			}
 
 			// can be deleted since the program will keep a reference
 			gl.glDeleteShader(shader);

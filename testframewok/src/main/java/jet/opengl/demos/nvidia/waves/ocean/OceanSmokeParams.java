@@ -1,57 +1,74 @@
 package jet.opengl.demos.nvidia.waves.ocean;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
+import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
-final class OceanSmokeParams {
-    final Matrix4f g_matProj = new Matrix4f();
-    final Matrix4f	g_matView = new Matrix4f();
-    float3		g_LightDirection;
-    float3		g_LightColor;
-    float3		g_AmbientColor;
+import java.nio.ByteBuffer;
+
+import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.texture.Texture2D;
+
+final class OceanSmokeParams implements TechniqueParams{
+
+    // Galobal variables for the ocean_psm.fxh
+    final Matrix4f g_matViewToPSM = new Matrix4f();
+    OceanPSMParams m_pPSMParams;
+
+    Matrix4f g_matProj ;
+    Matrix4f	g_matView ;
+    Vector3f g_LightDirection;
+    Vector3f		g_LightColor;
+    Vector3f		g_AmbientColor;
     float		g_FogExponent;
-    float2		g_ParticleBeginEndScale;
+    final Vector2f g_ParticleBeginEndScale = new Vector2f();
     float		g_InvParticleLifeTime;
     float		g_NoiseTime;
-    Buffer<float4> g_RenderInstanceData;
+    BufferGL g_RenderInstanceData;
 
-    float3		g_LightningPosition;
-    float3		g_LightningColor;
+    Vector3f		g_LightningPosition;
+    Vector3f		g_LightningColor;
 
-    uint g_ParticleIndexOffset;
-    uint g_ParticleCount;
+    int g_ParticleIndexOffset;
+    int g_ParticleCount;
     float g_TimeStep;
     float g_PreRollEndTime;
 
-    RWBuffer<float> g_SimulationInstanceData;
-    RWBuffer<float> g_SimulationVelocities;
-    float4x3 g_CurrEmitterMatrix;
-    float4x3 g_PrevEmitterMatrix;
-    float2 g_EmitAreaScale;
-    float3 g_EmitMinMaxVelocityAndSpread;
-    float2 g_EmitInterpScaleAndOffset;
-    float4 g_WindVectorAndNoiseMult;
-    float3 g_BuoyancyParams;
+    BufferGL g_SimulationInstanceData;
+    BufferGL g_SimulationVelocities;
+    Matrix4f g_CurrEmitterMatrix;
+    Matrix4f g_PrevEmitterMatrix;
+    final Vector2f g_EmitAreaScale = new Vector2f();
+    final Vector3f g_EmitMinMaxVelocityAndSpread = new Vector3f();
+    final Vector2f g_EmitInterpScaleAndOffset = new Vector2f();
+    final Vector4f g_WindVectorAndNoiseMult = new Vector4f();
+    final Vector3f g_BuoyancyParams = new Vector3f();
     float g_WindDrag;
 
     float g_NoiseSpatialScale;
     float g_NoiseTimeScale;
 
-    Buffer<float2> g_RandomUV;
-    uint g_RandomOffset;
+    BufferGL g_RandomUV;
+    int g_RandomOffset;
 
     float  g_PSMOpacityMultiplier;
     float  g_PSMFadeMargin;
 
-    struct DepthSortEntry {
-        int ParticleIndex;
-        float ViewZ;
-    };
+    BufferGL g_ParticleDepthSortUAV;
+    BufferGL g_ParticleDepthSortSRV;
 
-    RWStructuredBuffer <DepthSortEntry> g_ParticleDepthSortUAV;
-    StructuredBuffer <DepthSortEntry> g_ParticleDepthSortSRV;
+    int g_iDepthSortLevel;
+    int g_iDepthSortLevelMask;
+    int g_iDepthSortWidth;
+    int g_iDepthSortHeight;
 
-    uint g_iDepthSortLevel;
-    uint g_iDepthSortLevelMask;
-    uint g_iDepthSortWidth;
-    uint g_iDepthSortHeight;
+    Texture2D g_texDiffuse;
+    Texture2D permTexture;    // noise
+    Texture2D gradTexture4d ;
+
+    @Override
+    public ByteBuffer store(ByteBuffer buf) {
+        return null;
+    }
 }

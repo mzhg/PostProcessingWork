@@ -13,6 +13,8 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.texture.RenderTargets;
+import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
@@ -40,9 +42,9 @@ final class OceanSurfaceHeights implements OceanConst{
 
     // FX objects
 //    ID3DX11Effect* m_pFX;
-    private GLSLProgram m_pRenderSurfaceToReverseLookupTechnique;
-    private GLSLProgram m_pRenderQuadToUITechnique;
-    private GLSLProgram m_pRenderMarkerTechnique;
+    private Technique m_pRenderSurfaceToReverseLookupTechnique;
+    private Technique m_pRenderQuadToUITechnique;
+    private Technique m_pRenderMarkerTechnique;
 
     /*ID3DX11EffectScalarVariable* m_pNumQuadsWVariable;
     ID3DX11EffectScalarVariable* m_pNumQuadsHVariable;
@@ -69,8 +71,13 @@ final class OceanSurfaceHeights implements OceanConst{
 
     // D3D objects
 //    ID3D11Device* m_pd3dDevice;
-    private TextureGL m_pLookupSRV;
-    private TextureGL m_pLookupRTV;
+    private Texture2D m_pLookupSRV;
+    private Texture2D m_pLookupRTV;
+
+    private GLFuncProvider gl;
+    private RenderTargets mFbo;
+
+    private final OceanSurfaceHeightParams m_TechParams = new OceanSurfaceHeightParams();
 
     private static Vector2f do_rot(Vector2f coord, Vector2f rot) {
         Vector2f result = new Vector2f();
@@ -546,9 +553,11 @@ final class OceanSurfaceHeights implements OceanConst{
         V_RETURN(D3DX11CreateEffectFromMemory(pEffectBuffer->GetBufferPointer(), pEffectBuffer->GetBufferSize(), 0, m_pd3dDevice, &m_pFX));
         pEffectBuffer->Release();*/
 
-        m_pRenderSurfaceToReverseLookupTechnique = m_pFX->GetTechniqueByName("RenderSurfaceToReverseLookupTech");
-        m_pRenderQuadToUITechnique = m_pFX->GetTechniqueByName("RenderQuadToUITech");
-        m_pRenderMarkerTechnique = m_pFX->GetTechniqueByName("RenderMarkerTech");
+        gl = GLFuncProviderFactory.getGLFuncProvider();
+        mFbo = new RenderTargets();
+        m_pRenderSurfaceToReverseLookupTechnique = ShaderManager.getInstance().getProgram("RenderSurfaceToReverseLookupTech");
+        m_pRenderQuadToUITechnique = ShaderManager.getInstance().getProgram("RenderQuadToUITech");
+        m_pRenderMarkerTechnique = ShaderManager.getInstance().getProgram("RenderMarkerTech");
 
         /*m_pNumQuadsWVariable = m_pFX->GetVariableByName("g_numQuadsW")->AsScalar();
         m_pNumQuadsHVariable = m_pFX->GetVariableByName("g_numQuadsH")->AsScalar();
@@ -651,29 +660,38 @@ final class OceanSurfaceHeights implements OceanConst{
         rot.y = -m_UVToWorldRotation.y;
     }
 
+    Texture2D getGPULookupSRV() { return m_pLookupSRV; }
+
     void renderMarkerArray(Matrix4f matViewProj, Matrix4f matWorld)
     {
-        m_pTexLookupVariable->SetResource(getGPULookupSRV());
-        m_pMatViewProjVariable->SetMatrix((float*)&matViewProj);
-        m_pMatWorldVariable->SetMatrix((float*)&matWorld);
+//        m_pTexLookupVariable->SetResource(getGPULookupSRV());
+        m_TechParams.g_texLookup = getGPULookupSRV();
+//        m_pMatViewProjVariable->SetMatrix((float*)&matViewProj);
+        m_TechParams.g_matViewProj = matViewProj;
+//        m_pMatWorldVariable->SetMatrix((float*)&matWorld);
+        m_TechParams.g_matWorld = matWorld;
 
-        gfsdk_float2 worldToUVScale;
-        gfsdk_float2 worldToUVOffset;
-        gfsdk_float2 worldToUVRot;
+        Vector2f worldToUVScale = m_TechParams.g_worldToUVScale;
+        Vector2f worldToUVOffset = m_TechParams.g_worldToUVOffset;
+        Vector2f worldToUVRot = m_TechParams.g_worldToUVRot;
         getGPUWorldToUVTransform(worldToUVOffset, worldToUVRot, worldToUVScale);
 
-        m_pWorldToUVScaleVariable->SetFloatVector((float*)&worldToUVScale);
-        m_pWorldToUVRotationVariable->SetFloatVector((float*)&worldToUVRot);
-        m_pWorldToUVOffsetVariable->SetFloatVector((float*)&worldToUVOffset);
+//        m_pWorldToUVScaleVariable->SetFloatVector((float*)&worldToUVScale);
+//        m_pWorldToUVRotationVariable->SetFloatVector((float*)&worldToUVRot);
+//        m_pWorldToUVOffsetVariable->SetFloatVector((float*)&worldToUVOffset);
 
-        m_pRenderMarkerTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//        m_pRenderMarkerTechnique->GetPassByIndex(0)->Apply(0, pDC);
+        m_pRenderMarkerTechnique.enable(m_TechParams);
 
-        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        /*pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         pDC->IASetInputLayout(NULL);
-        pDC->Draw(300,0);
+        pDC->Draw(300,0);*/
 
-        m_pTexLookupVariable->SetResource(NULL);
-        m_pRenderMarkerTechnique->GetPassByIndex(0)->Apply(0, pDC);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 300);
+
+
+//        m_pTexLookupVariable->SetResource(NULL);
+//        m_pRenderMarkerTechnique->GetPassByIndex(0)->Apply(0, pDC);
     }
 
     void updateGPUHeights(/*ID3D11DeviceContext* pDC, */GFSDK_WaveWorks_Simulation hSim, Matrix4f matView)
@@ -712,9 +730,12 @@ final class OceanSurfaceHeights implements OceanConst{
         srcUVToWorldScale.x += 2.f * inflate_w + world_quad_size_w;
         srcUVToWorldScale.y += 2.f * inflate_h + world_quad_size_h;
 
-        m_pSrcUVToWorldScaleVariable->SetFloatVector((FLOAT*)&srcUVToWorldScale);
-        m_pSrcUVToWorldRotationVariable->SetFloatVector((FLOAT*)&m_UVToWorldRotation);
-        m_pSrcUVToWorldOffsetVariable->SetFloatVector((FLOAT*)&srcUVToWorldOffset);
+//        m_pSrcUVToWorldScaleVariable->SetFloatVector((FLOAT*)&srcUVToWorldScale);
+        m_TechParams.g_srcUVToWorldScale.set(srcUVToWorldScale.x,srcUVToWorldScale.y);
+//        m_pSrcUVToWorldRotationVariable->SetFloatVector((FLOAT*)&m_UVToWorldRotation);
+        m_TechParams.g_srcUVToWorldRot.set(m_UVToWorldRotation.x, m_UVToWorldRotation.y);
+//        m_pSrcUVToWorldOffsetVariable->SetFloatVector((FLOAT*)&srcUVToWorldOffset);
+        m_TechParams.g_srcUVToWorldOffset.set(srcUVToWorldOffset.x, srcUVToWorldOffset.y);
 
         // World to clip are inverse of vanilla forwards, but with the additional half-quad offset to
         // match CPU sampling scheme
@@ -729,35 +750,47 @@ final class OceanSurfaceHeights implements OceanConst{
         clipToWorldOffset.x += clipToWorld_additional_offset.x;
         clipToWorldOffset.y += clipToWorld_additional_offset.y;
 
-        m_pWorldToClipScaleVariable->SetFloatVector((FLOAT*)&worldToClipScale);
-        m_pClipToWorldRotationVariable->SetFloatVector((FLOAT*)&m_UVToWorldRotation);
-        m_pClipToWorldOffsetVariable->SetFloatVector((FLOAT*)&clipToWorldOffset);
+//        m_pWorldToClipScaleVariable->SetFloatVector((FLOAT*)&worldToClipScale);
+        m_TechParams.g_worldToClipScale = worldToClipScale;
+//        m_pClipToWorldRotationVariable->SetFloatVector((FLOAT*)&m_UVToWorldRotation);
+        m_TechParams.g_clipToWorldRot = m_UVToWorldRotation;
+//        m_pClipToWorldOffsetVariable->SetFloatVector((FLOAT*)&clipToWorldOffset);
+        m_TechParams.g_clipToWorldOffset = clipToWorldOffset;
 
         // Quads setup
         float quadsWH[] = {quads_w,(quads_h)};
-        m_pNumQuadsWVariable->SetFloat(quadsWH[0]);
-        m_pNumQuadsHVariable->SetFloat(quadsWH[1]);
+//        m_pNumQuadsWVariable->SetFloat(quadsWH[0]);
+        m_TechParams.g_numQuadsW = quads_w;
+//        m_pNumQuadsHVariable->SetFloat(quadsWH[1]);
+        m_TechParams.g_numQuadsH = quads_h;
         float quadUVdims[] = {1.f/(quads_w),1.f/(quads_h)};
-        m_pQuadUVDimsVariable->SetFloatVector(quadUVdims);
+//        m_pQuadUVDimsVariable->SetFloatVector(quadUVdims);
+        m_TechParams.g_quadUVDims.set(1.f/(quads_w),1.f/(quads_h));
 
         // Preserve original viewports
-        D3D11_VIEWPORT original_viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+        /*D3D11_VIEWPORT original_viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
         UINT num_original_viewports = sizeof(original_viewports)/sizeof(original_viewports[0]);
-        pDC->RSGetViewports( &num_original_viewports, original_viewports);
+        pDC->RSGetViewports( &num_original_viewports, original_viewports);*/
 
         // RTV setup
-        pDC->OMSetRenderTargets(1,&m_pLookupRTV,NULL);
+        /*pDC->OMSetRenderTargets(1,&m_pLookupRTV,NULL);
 	    const D3D11_VIEWPORT viewport = {0.f, 0.f, FLOAT(m_num_gpu_samples_w-2), FLOAT(m_num_gpu_samples_l-2), 0.f, 1.f };
-        pDC->RSSetViewports(1,&viewport);
+        pDC->RSSetViewports(1,&viewport);*/
+        mFbo.bind();
+        mFbo.setRenderTexture(m_pLookupRTV, null);
+        gl.glViewport(0,0,m_num_gpu_samples_w-2, m_num_gpu_samples_l-2);
 
         // Render
-        m_pRenderSurfaceToReverseLookupTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//        m_pRenderSurfaceToReverseLookupTechnique->GetPassByIndex(0)->Apply(0, pDC);
+        m_pRenderSurfaceToReverseLookupTechnique.enable(m_TechParams);
         GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_SetRenderStateD3D11(hSim,matView, m_pWaterSimulationShaderInputMappings, null);
-        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
+        /*pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
         pDC->IASetInputLayout(NULL);
-        pDC->Draw(4*quads_w*quads_h,0);
+        pDC->Draw(4*quads_w*quads_h,0);*/
+        gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 4);
+        gl.glDrawArrays(GLenum.GL_PATCHES, 0, 4*quads_w*quads_h);
 
         // Restore viewports
-        pDC->RSSetViewports(num_original_viewports,original_viewports);
+//        pDC->RSSetViewports(num_original_viewports,original_viewports);
     }
 }

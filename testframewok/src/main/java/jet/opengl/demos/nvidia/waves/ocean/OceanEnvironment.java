@@ -4,6 +4,7 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
+import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureGL;
 
 final class OceanEnvironment {
@@ -25,10 +26,10 @@ final class OceanEnvironment {
 
     final Matrix4f spotlights_to_world_matrix = new Matrix4f();
     final Matrix4f[] spotlight_shadow_matrix = new Matrix4f[MaxNumSpotlights];
-    final TextureGL[] spotlight_shadow_resource = new TextureGL[MaxNumSpotlights];
-    TextureGL pPlanarReflectionSRV;
-    TextureGL pPlanarReflectionDepthSRV;
-    TextureGL pPlanarReflectionPosSRV;
+    final Texture2D[] spotlight_shadow_resource = new Texture2D[MaxNumSpotlights];
+    Texture2D pPlanarReflectionSRV;
+    Texture2D pPlanarReflectionDepthSRV;
+    Texture2D pPlanarReflectionPosSRV;
 
     int activeLightsNum;
     final int[] objectID = new int[MaxNumSpotlights];

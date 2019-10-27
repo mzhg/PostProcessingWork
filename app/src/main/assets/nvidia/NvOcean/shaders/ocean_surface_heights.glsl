@@ -6,20 +6,19 @@
 uniform float g_numQuadsW;
 uniform float g_numQuadsH;
 uniform float4 g_quadScale;
-uniform float4 g_quadUVDims;
+uniform float2 g_quadUVDims;
 uniform float4 g_srcUVToWorldScale;
 uniform float4 g_srcUVToWorldRot;
 uniform float4 g_srcUVToWorldOffset;
-uniform float4 g_worldToClipScale;
-uniform float4 g_clipToWorldRot;
-uniform float4 g_clipToWorldOffset;
+uniform float2 g_worldToClipScale;
+uniform float2 g_clipToWorldRot;
+uniform float2 g_clipToWorldOffset;
 
-uniform float4 g_worldToUVScale;
-uniform float4 g_worldToUVOffset;
-uniform float4 g_worldToUVRot;
+uniform float2 g_worldToUVScale;
+uniform float2 g_worldToUVOffset;
+uniform float2 g_worldToUVRot;
 uniform float4x4 g_matViewProj;
-uniform float4x3 g_matWorld;
-
+uniform float4x4 g_matWorld;
 //------------------------------------------------------------------------------------
 // Water hooks
 //------------------------------------------------------------------------------------
@@ -56,14 +55,14 @@ float3 GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(float2 In)
 //------------------------------------------------------------------------------------
 // Constants
 //------------------------------------------------------------------------------------
-static const float2 kQuadCornerUVs[] = {
+ const float2 kQuadCornerUVs[4] = float2[4](
 float2(0.f,0.f),
 float2(0.f,1.f),
 float2(1.f,0.f),
 float2(1.f,1.f)
-};
+);
 
-static const float3 kMarkerCoords[] = {
+ const float3 kMarkerCoords[12] = float3[12](
 float3( 0.f, 0.f, 0.f),
 float3( 1.f, 1.f, 1.f),
 float3( 1.f,-1.f, 1.f),
@@ -76,7 +75,7 @@ float3(-1.f, 1.f, 1.f),
 float3( 0.f, 0.f, 0.f),
 float3(-1.f, 1.f, 1.f),
 float3( 1.f, 1.f, 1.f)
-};
+);
 
 const float kMarkerSeparation = 5.f;
 

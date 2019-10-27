@@ -16,10 +16,9 @@ import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureDataDesc;
-import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
@@ -102,75 +101,24 @@ final class OceanSmoke implements OceanConst{
     private static final int kPSMLayersPerSlice = 2;
 
 //    ID3DX11Effect* m_pFX;
-    private GLSLProgram m_pRenderToSceneTechnique;
-    private GLSLProgram m_pRenderToPSMTechnique;
-    private GLSLProgram m_pEmitParticlesTechnique;
-    private GLSLProgram m_pSimulateParticlesTechnique;
-    private GLSLProgram m_pBitonicSortTechnique;
-    private GLSLProgram m_pMatrixTransposeTechnique;
+    private OceanSmokeTechnique m_pRenderToSceneTechnique;
+    private OceanSmokeTechnique m_pRenderToPSMTechnique;
+    private OceanSmokeTechnique m_pEmitParticlesTechnique;
+    private OceanSmokeTechnique m_pSimulateParticlesTechnique;
+    private OceanSmokeTechnique m_pBitonicSortTechnique;
+    private OceanSmokeTechnique m_pMatrixTransposeTechnique;
 
-    // Generic simulation/emit/sort params
-    private int m_pParticleIndexOffsetVariable;
-    private int m_pParticleCountVariable;
-    private int m_pTimeStepVariable;
-    private int m_pPreRollEndTimeVariable;
-    private int m_pBuoyancyParamsVariable;
-    private int m_pNoiseTimeVariable;
-    private int m_pParticleDepthSortUAVVariable;
-    private int m_pParticleDepthSortSRVVariable;
-
-    // Emit params
-    private int m_pSimulationInstanceDataVariable;
-    private int m_pSimulationVelocitiesVariable;
-    private int m_pRandomUVVariable;
-    private int m_pRandomOffsetVariable;
-    private int m_pCurrEmitterMatrixVariable;
-    private int m_pPrevEmitterMatrixVariable;
-    private int m_pEmitInterpScaleAndOffsetVariable;
-    private int m_pEmitMinMaxVelocityAndSpreadVariable;
-    private int m_pEmitAreaScaleVariable;
-
-    // Sim params
-    private int m_pWindDragVariable;
-    private int m_pWindVectorAndNoiseMultVariable;
-
-    // Rendering params
-    private int m_pTexDiffuseVariable;
-    private int m_pRenderInstanceDataVariable;
-    private int m_pMatProjVariable;
-    private int m_pMatViewVariable;
-    private int m_pLightDirectionVariable;
-    private int m_pLightColorVariable;
-    private int m_pAmbientColorVariable;
-    private int m_pFogExponentVariable;
-    private int m_pParticleBeginEndScaleVariable;
-    private int m_pInvParticleLifeTimeVariable;
-
-    private int m_pLightningPositionVariable;
-    private int m_pLightningColorVariable;
-
-    // Noise params
-    private int m_ppermTextureVariable;
-    private int m_pgradTexture4dVariable;
-
-    // PSM params
-    private int m_pMatViewToPSMVariable;
-    private OceanPSMParams m_pPSMParams;
-
-    // Depth sort params
-    private int m_piDepthSortLevelVariable;
-    private int m_piDepthSortLevelMaskVariable;
-    private int m_piDepthSortWidthVariable;
-    private int m_piDepthSortHeightVariable;
+    private final OceanPSMParams m_pPSMParams = new OceanPSMParams();
+    private final OceanSmokeParams m_TechParams = new OceanSmokeParams();
 
     // D3D resources
-    TextureGL m_pSmokeTextureSRV;
+    private Texture2D m_pSmokeTextureSRV;
     private BufferGL m_pRandomUVSRV;
     private BufferGL m_pRenderInstanceDataSRV;
     private BufferGL m_pSimulationInstanceDataUAV;
     private BufferGL m_pSimulationVelocitiesUAV;
-    TextureGL m_ppermTextureSRV;
-    TextureGL m_pgradTexture4dSRV;
+    private Texture2D m_ppermTextureSRV;
+    private Texture2D m_pgradTexture4dSRV;
     private BufferGL m_pDepthSort1SRV;
     private BufferGL m_pDepthSort1UAV;
     private BufferGL m_pDepthSort2SRV;
@@ -207,7 +155,7 @@ final class OceanSmoke implements OceanConst{
 
     private GLFuncProvider gl;
 
-    void init(	TextureGL pSmokeTexture,
+    void init(	Texture2D pSmokeTexture,
                      int num_particles,
                      float emit_rate,
                      float particle_begin_size,
@@ -248,6 +196,7 @@ final class OceanSmoke implements OceanConst{
         m_EmitAreaScale.set(emitAreaScale);
         m_TintColor.set(tint_color);
 
+        m_TechParams.m_pPSMParams = m_pPSMParams;
         // Depth sort works to power of two, so...
         m_NumDepthSortParticles = 1024;
         while(m_NumDepthSortParticles < m_MaxNumParticles)
@@ -264,14 +213,14 @@ final class OceanSmoke implements OceanConst{
         pEffectBuffer->Release();*/
 
         gl = GLFuncProviderFactory.getGLFuncProvider();
-        m_pRenderToSceneTechnique = m_pFX->GetTechniqueByName("RenderSmokeToSceneTech");
-        m_pRenderToPSMTechnique = m_pFX->GetTechniqueByName("RenderSmokeToPSMTech");
-        m_pEmitParticlesTechnique = m_pFX->GetTechniqueByName("EmitParticlesTech");
-        m_pSimulateParticlesTechnique = m_pFX->GetTechniqueByName("SimulateParticlesTech");
-        m_pBitonicSortTechnique = m_pFX->GetTechniqueByName("BitonicSortTech");
-        m_pMatrixTransposeTechnique = m_pFX->GetTechniqueByName("MatrixTransposeTech");
+        m_pRenderToSceneTechnique = ShaderManager.getInstance().getProgram("RenderSmokeToSceneTech");
+        m_pRenderToPSMTechnique = ShaderManager.getInstance().getProgram("RenderSmokeToPSMTech");
+        m_pEmitParticlesTechnique = ShaderManager.getInstance().getProgram("EmitParticlesTech");
+        m_pSimulateParticlesTechnique = ShaderManager.getInstance().getProgram("SimulateParticlesTech");
+        m_pBitonicSortTechnique = ShaderManager.getInstance().getProgram("BitonicSortTech");
+        m_pMatrixTransposeTechnique = ShaderManager.getInstance().getProgram("MatrixTransposeTech");
 
-        m_pParticleIndexOffsetVariable = m_pFX->GetVariableByName("g_ParticleIndexOffset")->AsScalar();
+        /*m_pParticleIndexOffsetVariable = m_pFX->GetVariableByName("g_ParticleIndexOffset")->AsScalar();
         m_pParticleCountVariable = m_pFX->GetVariableByName("g_ParticleCount")->AsScalar();
         m_pTimeStepVariable = m_pFX->GetVariableByName("g_TimeStep")->AsScalar();
         m_pPreRollEndTimeVariable = m_pFX->GetVariableByName("g_PreRollEndTime")->AsScalar();
@@ -316,13 +265,18 @@ final class OceanSmoke implements OceanConst{
         m_piDepthSortLevelVariable = m_pFX->GetVariableByName("g_iDepthSortLevel")->AsScalar();
         m_piDepthSortLevelMaskVariable = m_pFX->GetVariableByName("g_iDepthSortLevelMask")->AsScalar();
         m_piDepthSortWidthVariable = m_pFX->GetVariableByName("g_iDepthSortWidth")->AsScalar();
-        m_piDepthSortHeightVariable = m_pFX->GetVariableByName("g_iDepthSortHeight")->AsScalar();
+        m_piDepthSortHeightVariable = m_pFX->GetVariableByName("g_iDepthSortHeight")->AsScalar();*/
 
         // Fire-and-forgets
-        m_pFX->GetVariableByName("g_NoiseSpatialScale")->AsScalar()->SetFloat(wind_noise_spatial_scale);
+        /*m_pFX->GetVariableByName("g_NoiseSpatialScale")->AsScalar()->SetFloat(wind_noise_spatial_scale);
         m_pFX->GetVariableByName("g_NoiseTimeScale")->AsScalar()->SetFloat(wind_noise_time_scale);
         m_pFX->GetVariableByName("g_PSMOpacityMultiplier")->AsScalar()->SetFloat(shadow_opacity_multiplier);
-        m_pFX->GetVariableByName("g_PSMFadeMargin")->AsScalar()->SetFloat(psm_bounds_fade_margin);
+        m_pFX->GetVariableByName("g_PSMFadeMargin")->AsScalar()->SetFloat(psm_bounds_fade_margin);*/
+
+        m_TechParams.g_NoiseSpatialScale = wind_noise_spatial_scale;
+        m_TechParams.g_NoiseTimeScale = wind_noise_time_scale;
+        m_TechParams.g_PSMOpacityMultiplier = shadow_opacity_multiplier;
+        m_TechParams.g_PSMFadeMargin = psm_bounds_fade_margin;
 
         // Create buffer for random unit circle
         {
@@ -535,18 +489,24 @@ final class OceanSmoke implements OceanConst{
         gl.glClearNamedBufferData(m_pDepthSort1UAV.getBuffer(), GLenum.GL_RG32F, GLenum.GL_RG, GLenum.GL_FLOAT, depthSortClearValues);
 
         // Set common params
-        Vector4f vWindVector = new Vector4f(wind_vector.getX(),wind_vector.getY(),wind_vector.getZ(),wind_noise);
-        m_pWindVectorAndNoiseMultVariable->SetFloatVector((FLOAT*)&vWindVector);
-        m_pWindDragVariable->SetFloat(m_WindDrag);
+//        Vector4f vWindVector = new Vector4f(wind_vector.getX(),wind_vector.getY(),wind_vector.getZ(),wind_noise);
+//        m_pWindVectorAndNoiseMultVariable->SetFloatVector((FLOAT*)&vWindVector);
+        m_TechParams.g_WindVectorAndNoiseMult.set(wind_vector.getX(),wind_vector.getY(),wind_vector.getZ(),wind_noise);
+//        m_pWindDragVariable->SetFloat(m_WindDrag);
+        m_TechParams.g_WindDrag = m_WindDrag;
 
-        D3DXVECTOR4 vBuoyancyParams(m_MinBuoyancy, m_MaxBuoyancy, -m_CoolingRate, 0.f);
-        m_pBuoyancyParamsVariable->SetFloatVector((FLOAT*)&vBuoyancyParams);
+//        D3DXVECTOR4 vBuoyancyParams(m_MinBuoyancy, m_MaxBuoyancy, -m_CoolingRate, 0.f);
+//        m_pBuoyancyParamsVariable->SetFloatVector((FLOAT*)&vBuoyancyParams);
+        m_TechParams.g_BuoyancyParams.set(m_MinBuoyancy, m_MaxBuoyancy, -m_CoolingRate);
 
-        m_ppermTextureVariable->SetResource(m_ppermTextureSRV);
-        m_pgradTexture4dVariable->SetResource(m_pgradTexture4dSRV);
+//        m_ppermTextureVariable->SetResource(m_ppermTextureSRV);
+        m_TechParams.permTexture =m_ppermTextureSRV;
+//        m_pgradTexture4dVariable->SetResource(m_pgradTexture4dSRV);
+        m_TechParams.gradTexture4d = m_pgradTexture4dSRV;
 
-        D3DXMATRIX matView = *camera.GetViewMatrix();
-        m_pMatViewVariable->SetMatrix((FLOAT*)&matView);
+//        D3DXMATRIX matView = *camera.GetViewMatrix();
+//        m_pMatViewVariable->SetMatrix((FLOAT*)&matView);
+        m_TechParams.g_matView = camera.getViewMatrix();
 
         int num_steps = (int)Math.ceil(time_delta/kMaxSimulationTimeStep);
         float time_step = time_delta/(float)num_steps;
@@ -560,7 +520,8 @@ final class OceanSmoke implements OceanConst{
         for(int step = 0; step != num_steps; ++step)
         {
 		    final float step_interp_offset = step * step_interp_scale;
-            m_pNoiseTimeVariable->SetFloat(m_NoiseTime);
+//            m_pNoiseTimeVariable->SetFloat(m_NoiseTime);
+            m_TechParams.g_NoiseTime = m_NoiseTime;
 
             // Can/should emit?
             int num_particles_emitted = 0;
@@ -578,60 +539,76 @@ final class OceanSmoke implements OceanConst{
                     final int num_particles_to_emit = (int)Math.ceil((time_step - m_TimeToNextEmit)/emit_interval);
                     if(num_particles_to_emit!=0) {
 
-                        m_pTimeStepVariable->SetFloat(time_delta);	// NB: We set the entire time slice when emitting, so that we can
+                        /*m_pTimeStepVariable->SetFloat(time_delta);*/
+                        m_TechParams.g_TimeStep = time_delta;  // NB: We set the entire time slice when emitting, so that we can
                         // interpolate emit positions etc. in a consistent way
 
                         // But this means that we need to subtract the remainder of the timeslice when calculating pre-roll
 					    final float pre_roll_end_time = time_step * (float)(num_steps - step - 1);
-                        m_pPreRollEndTimeVariable->SetFloat(pre_roll_end_time);
+//                        m_pPreRollEndTimeVariable->SetFloat(pre_roll_end_time);
+                        m_TechParams.g_PreRollEndTime = pre_roll_end_time;
 
-                        m_pParticleIndexOffsetVariable->SetInt(m_EmitParticleIndex);
-                        m_pParticleCountVariable->SetInt(num_particles_to_emit);
+//                        m_pParticleIndexOffsetVariable->SetInt(m_EmitParticleIndex);
+                        m_TechParams.g_ParticleIndexOffset = m_EmitParticleIndex;
+//                        m_pParticleCountVariable->SetInt(num_particles_to_emit);
+                        m_TechParams.g_ParticleCount = num_particles_to_emit;
 
-                        m_pSimulationInstanceDataVariable->SetUnorderedAccessView(m_pSimulationInstanceDataUAV);
-                        m_pSimulationVelocitiesVariable->SetUnorderedAccessView(m_pSimulationVelocitiesUAV);
-                        m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
-                        m_pRandomUVVariable->SetResource(m_pRandomUVSRV);
+//                        m_pSimulationInstanceDataVariable->SetUnorderedAccessView(m_pSimulationInstanceDataUAV);
+                        m_TechParams.g_SimulationInstanceData = m_pSimulationInstanceDataUAV;
+//                        m_pSimulationVelocitiesVariable->SetUnorderedAccessView(m_pSimulationVelocitiesUAV);
+                        m_TechParams.g_SimulationVelocities = m_pSimulationVelocitiesUAV;
+//                        m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
+                        m_TechParams.g_ParticleDepthSortUAV = m_pDepthSort1UAV;
+//                        m_pRandomUVVariable->SetResource(m_pRandomUVSRV);
+                        m_TechParams.g_RandomUV = m_pRandomUVSRV;
 
-                        m_pRandomOffsetVariable->SetInt(m_EmitParticleRandomOffset);
-                        m_pCurrEmitterMatrixVariable->SetMatrix((FLOAT*)&emitterMatrix);
-                        m_pPrevEmitterMatrixVariable->SetMatrix((FLOAT*)&prevEmitterMatrix);
+//                        m_pRandomOffsetVariable->SetInt(m_EmitParticleRandomOffset);
+                        m_TechParams.g_RandomOffset = m_EmitParticleRandomOffset;
+//                        m_pCurrEmitterMatrixVariable->SetMatrix((FLOAT*)&emitterMatrix);
+                        m_TechParams.g_CurrEmitterMatrix = emitterMatrix;
+//                        m_pPrevEmitterMatrixVariable->SetMatrix((FLOAT*)&prevEmitterMatrix);
+                        m_TechParams.g_PrevEmitterMatrix = prevEmitterMatrix;
 
-                        D3DXVECTOR4 vEmitInterpScaleAndOffset;
+                        /*D3DXVECTOR4 vEmitInterpScaleAndOffset;
                         vEmitInterpScaleAndOffset.y = step_interp_offset + step_interp_scale * m_TimeToNextEmit/time_step;
                         vEmitInterpScaleAndOffset.x = step_interp_scale * emit_interval/time_step;
-                        vEmitInterpScaleAndOffset.z = vEmitInterpScaleAndOffset.w = 0.f;
-                        m_pEmitInterpScaleAndOffsetVariable->SetFloatVector((FLOAT*)&vEmitInterpScaleAndOffset);
+                        vEmitInterpScaleAndOffset.z = vEmitInterpScaleAndOffset.w = 0.f;*/
+//                        m_pEmitInterpScaleAndOffsetVariable->SetFloatVector((FLOAT*)&vEmitInterpScaleAndOffset);
+                        m_TechParams.g_EmitInterpScaleAndOffset.set(step_interp_offset + step_interp_scale * m_TimeToNextEmit/time_step, step_interp_scale * emit_interval/time_step);
 
-                        D3DXVECTOR4 vEmitVelocityMinMaxAndSpread;
+                        /*D3DXVECTOR4 vEmitVelocityMinMaxAndSpread;
                         vEmitVelocityMinMaxAndSpread.x = m_EmitMinVelocity;
                         vEmitVelocityMinMaxAndSpread.y = m_EmitMaxVelocity;
                         vEmitVelocityMinMaxAndSpread.z = m_EmitSpread;
-                        vEmitVelocityMinMaxAndSpread.w = 0.f;
-                        m_pEmitMinMaxVelocityAndSpreadVariable->SetFloatVector((FLOAT*)&vEmitVelocityMinMaxAndSpread);
+                        vEmitVelocityMinMaxAndSpread.w = 0.f;*/
+//                        m_pEmitMinMaxVelocityAndSpreadVariable->SetFloatVector((FLOAT*)&vEmitVelocityMinMaxAndSpread);
+                        m_TechParams.g_EmitMinMaxVelocityAndSpread.set(m_EmitMinVelocity, m_EmitMaxVelocity, m_EmitSpread);
 
-                        D3DXVECTOR4 vEmitAreaScale;
+                        /*D3DXVECTOR4 vEmitAreaScale;
                         vEmitAreaScale.x = m_EmitAreaScale.x;
                         vEmitAreaScale.y = m_EmitAreaScale.y;
                         vEmitAreaScale.z = 0.f;
-                        vEmitAreaScale.w = 0.f;
-                        m_pEmitAreaScaleVariable->SetFloatVector((FLOAT*)&vEmitAreaScale);
+                        vEmitAreaScale.w = 0.f;*/
+//                        m_pEmitAreaScaleVariable->SetFloatVector((FLOAT*)&vEmitAreaScale);
+                        m_TechParams.g_EmitAreaScale.set(m_EmitAreaScale.x, m_EmitAreaScale.y);
 
 					    final int num_groups = 1+ (num_particles_to_emit-1)/EmitParticlesCSBlocksSize;
-                        m_pEmitParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
-                        pDC->Dispatch(num_groups,1,1);
+//                        m_pEmitParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+                        m_pEmitParticlesTechnique.enable(m_TechParams);
+//                        pDC->Dispatch(num_groups,1,1);
+                        gl.glDispatchCompute(num_groups,1,1);
 
                         // Clear resource usage
-                        m_pSimulationInstanceDataVariable->SetUnorderedAccessView(NULL);
-                        m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(NULL);
-                        m_pEmitParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//                        m_pSimulationInstanceDataVariable->SetUnorderedAccessView(NULL);
+//                        m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(NULL);
+//                        m_pEmitParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
 
                         // Update particle counts/indices
                         num_particles_emitted = num_particles_to_emit;
                         m_EmitParticleIndex = (m_EmitParticleIndex + num_particles_to_emit) % m_MaxNumParticles;
-                        m_ActiveNumParticles = min(m_MaxNumParticles,m_ActiveNumParticles+num_particles_to_emit);
-                        m_EmitParticleRandomOffset = (m_EmitParticleRandomOffset + 2 * num_particles_to_emit) % NumRandomUV;
-                        m_TimeToNextEmit = m_TimeToNextEmit + float(num_particles_to_emit) * emit_interval - time_step;
+                        m_ActiveNumParticles = Math.min(m_MaxNumParticles,m_ActiveNumParticles+num_particles_to_emit);
+                        m_EmitParticleRandomOffset = (m_EmitParticleRandomOffset + 2 * num_particles_to_emit) % (Numeric.RAND_MAX/2);
+                        m_TimeToNextEmit = m_TimeToNextEmit + (float)(num_particles_to_emit) * emit_interval - time_step;
                     }
                 }
             }
@@ -645,22 +622,30 @@ final class OceanSmoke implements OceanConst{
                     simulate_start_index = m_EmitParticleIndex;
                 }
 
-                m_pTimeStepVariable->SetFloat(time_step);
-                m_pParticleIndexOffsetVariable->SetInt(simulate_start_index);
-                m_pParticleCountVariable->SetInt(num_particles_to_simulate);
+//                m_pTimeStepVariable->SetFloat(time_step);
+                m_TechParams.g_TimeStep = time_step;
+//                m_pParticleIndexOffsetVariable->SetInt(simulate_start_index);
+                m_TechParams.g_ParticleIndexOffset = simulate_start_index;
+//                m_pParticleCountVariable->SetInt(num_particles_to_simulate);
+                m_TechParams.g_ParticleCount = num_particles_to_simulate;
 
-                m_pSimulationInstanceDataVariable->SetUnorderedAccessView(m_pSimulationInstanceDataUAV);
-                m_pSimulationVelocitiesVariable->SetUnorderedAccessView(m_pSimulationVelocitiesUAV);
-                m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
+//                m_pSimulationInstanceDataVariable->SetUnorderedAccessView(m_pSimulationInstanceDataUAV);
+                m_TechParams.g_SimulationInstanceData = m_pSimulationInstanceDataUAV;
+//                m_pSimulationVelocitiesVariable->SetUnorderedAccessView(m_pSimulationVelocitiesUAV);
+                m_TechParams.g_SimulationVelocities = m_pSimulationVelocitiesUAV;
+//                m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
+                m_TechParams.g_ParticleDepthSortUAV = m_pDepthSort1UAV;
 
 			    final int num_groups = 1+ (num_particles_to_simulate-1)/SimulateParticlesCSBlocksSize;
-                m_pSimulateParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
-                pDC->Dispatch(num_groups,1,1);
+//                m_pSimulateParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//                pDC->Dispatch(num_groups,1,1);
+                m_pSimulateParticlesTechnique.enable(m_TechParams);
+                gl.glDispatchCompute(num_groups,1,1);
 
                 // Clear resource usage
-                m_pSimulationInstanceDataVariable->SetUnorderedAccessView(NULL);
-                m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(NULL);
-                m_pSimulateParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//                m_pSimulationInstanceDataVariable->SetUnorderedAccessView(NULL);
+//                m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(NULL);
+//                m_pSimulateParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
             }
 
             // Evolve procedural noise
@@ -689,38 +674,49 @@ final class OceanSmoke implements OceanConst{
             return;
 
         // Matrices
-        /*D3DXMATRIX matView = *camera.GetViewMatrix();
-        D3DXMATRIX matProj = *camera.GetProjMatrix();
+        Matrix4f matView = camera.getViewMatrix();
+        Matrix4f matProj = camera.getProjMatrix();
 
         // View-proj
-        m_pMatProjVariable->SetMatrix((FLOAT*)&matProj);
-        m_pMatViewVariable->SetMatrix((FLOAT*)&matView);
+//        m_pMatProjVariable->SetMatrix((FLOAT*)&matProj);
+//        m_pMatViewVariable->SetMatrix((FLOAT*)&matView);
+        m_TechParams.g_matProj = matProj;
+        m_TechParams.g_matView = matView;
 
         // Global lighting
-        m_pLightDirectionVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_direction);
-        m_pLightColorVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_color);
-        m_pAmbientColorVariable->SetFloatVector((FLOAT*)&ocean_env.sky_color);
+//        m_pLightDirectionVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_direction);
+        m_TechParams.g_LightDirection = ocean_env.main_light_direction;
+//        m_pLightColorVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_color);
+        m_TechParams.g_LightColor = ocean_env.main_light_color;
+//        m_pAmbientColorVariable->SetFloatVector((FLOAT*)&ocean_env.sky_color);
+        m_TechParams.g_AmbientColor =ocean_env.sky_color;
 
         // Lightnings
-        m_pLightningColorVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_intensity);
-        m_pLightningPositionVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_position);
+//        m_pLightningColorVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_intensity);
+        m_TechParams.g_LightningColor = ocean_env.lightning_light_intensity;
+//        m_pLightningPositionVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_position);
+        m_TechParams.g_LightningPosition = ocean_env.lightning_light_position;
 
         // Fog
-        m_pFogExponentVariable->SetFloat(ocean_env.fog_exponent);
+//        m_pFogExponentVariable->SetFloat(ocean_env.fog_exponent);
+        m_TechParams.g_FogExponent=ocean_env.fog_exponent;
 
         // PSM
-        pPSM->setReadParams(*m_pPSMParams,m_TintColor);
+        pPSM.setReadParams(m_pPSMParams,m_TintColor);
 
-        D3DXMATRIX matInvView;
+        /*D3DXMATRIX matInvView;
         D3DXMatrixInverse(&matInvView, NULL, &matView);
-        D3DXMATRIX matViewToPSM = matInvView * *pPSM->getWorldToPSMUV();
-        m_pMatViewToPSMVariable->SetMatrix((FLOAT*)&matViewToPSM);
+        D3DXMATRIX matViewToPSM = matInvView * *pPSM.getWorldToPSMUV();
+        m_pMatViewToPSMVariable->SetMatrix((FLOAT*)&matViewToPSM);*/
+        Matrix4f result = m_TechParams.g_matViewToPSM;
+        Matrix4f.invert(matView, result);
+        Matrix4f.mul(pPSM.getWorldToPSMUV(), result, result);
 
-        renderParticles(pDC,m_pRenderToSceneTechnique);
+        renderParticles(/*pDC,*/m_pRenderToSceneTechnique);
 
-        pPSM->clearReadParams(*m_pPSMParams);
-        m_pRenderToSceneTechnique->GetPassByIndex(0)->Apply(0,pDC);*/
-        throw new UnsupportedOperationException();
+        pPSM.clearReadParams(m_pPSMParams);
+//        m_pRenderToSceneTechnique->GetPassByIndex(0)->Apply(0,pDC);
+        m_pRenderToSceneTechnique.enable(m_TechParams);
     }
 
     void renderToPSM(	//ID3D11DeviceContext* pDC,
@@ -729,35 +725,44 @@ final class OceanSmoke implements OceanConst{
         if(0==m_ActiveNumParticles)
             return;
 
-        /*m_pMatViewVariable->SetMatrix((FLOAT*)pPSM->getPSMView());
-        m_pMatProjVariable->SetMatrix((FLOAT*)pPSM->getPSMProj());
-        pPSM->setWriteParams(m_pPSMParams);
+//        m_pMatViewVariable->SetMatrix((FLOAT*)pPSM->getPSMView());
+//        m_pMatProjVariable->SetMatrix((FLOAT*)pPSM->getPSMProj());
+        m_TechParams.g_matView = pPSM.getPSMView();
+        m_TechParams.g_matProj = pPSM.getPSMProj();
+        pPSM.setWriteParams(m_pPSMParams);
 
-        renderParticles(pDC,m_pRenderToPSMTechnique);*/
-        throw new UnsupportedOperationException();
+        renderParticles(/*pDC,*/m_pRenderToPSMTechnique);
     }
 
 
-    private void renderParticles(GLSLProgram pTech){
+    private void renderParticles(Technique pTech){
         // Particle
-        /*D3DXVECTOR4 vParticleBeginEndScale(m_ParticleBeginSize, m_ParticleEndSize, 0.f, 0.f);
-        m_pParticleBeginEndScaleVariable->SetFloatVector((FLOAT*)&vParticleBeginEndScale);
-        m_pTexDiffuseVariable->SetResource(m_pSmokeTextureSRV);
-        m_pRenderInstanceDataVariable->SetResource(m_pRenderInstanceDataSRV);
-        m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort1SRV);
-        m_pInvParticleLifeTimeVariable->SetFloat(m_ActualEmitRate/float(m_MaxNumParticles));
+//        D3DXVECTOR4 vParticleBeginEndScale(m_ParticleBeginSize, m_ParticleEndSize, 0.f, 0.f);
+//        m_pParticleBeginEndScaleVariable->SetFloatVector((FLOAT*)&vParticleBeginEndScale);
+        m_TechParams.g_ParticleBeginEndScale.set(m_ParticleBeginSize, m_ParticleEndSize);
+//        m_pTexDiffuseVariable->SetResource(m_pSmokeTextureSRV);
+        m_TechParams.g_texDiffuse = m_pSmokeTextureSRV;
+//        m_pRenderInstanceDataVariable->SetResource(m_pRenderInstanceDataSRV);
+        m_TechParams.g_RenderInstanceData = m_pRenderInstanceDataSRV;
+//        m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort1SRV);
+        m_TechParams.g_ParticleDepthSortSRV = m_pDepthSort1SRV;
+//        m_pInvParticleLifeTimeVariable->SetFloat(m_ActualEmitRate/float(m_MaxNumParticles));
+        m_TechParams.g_InvParticleLifeTime = m_ActualEmitRate/(float)m_MaxNumParticles;
 
 	    final int num_particles_to_render = m_ActiveNumParticles;
-        pTech->GetPassByIndex(0)->Apply(0, pDC);
-        pDC->IASetInputLayout(NULL);
-        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-        pDC->Draw(num_particles_to_render,0);
+//        pTech->GetPassByIndex(0)->Apply(0, pDC);
+        pTech.enable(m_TechParams);
+//        pDC->IASetInputLayout(NULL);
+//        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+//        pDC->Draw(num_particles_to_render,0);
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+        gl.glDrawArrays(GLenum.GL_POINTS, 0, num_particles_to_render);
 
         // Clear resource usage
-        m_pRenderInstanceDataVariable->SetResource(NULL);
+        /*m_pRenderInstanceDataVariable->SetResource(NULL);
         m_pParticleDepthSortSRVVariable->SetResource(NULL);
         pTech->GetPassByIndex(0)->Apply(0, pDC);*/
-        throw new UnsupportedOperationException();
     }
 
     private void depthSortParticles(/*ID3D11DeviceContext* pDC*/){
@@ -776,9 +781,12 @@ final class OceanSmoke implements OceanConst{
             setDepthSortConstants( level, level, matrix_height, matrix_width );
 
             // Sort the row data
-            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
-            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( num_elements / BitonicSortCSBlockSize, 1, 1 );
+//            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
+            m_TechParams.g_ParticleDepthSortUAV = m_pDepthSort1UAV;
+//            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pBitonicSortTechnique.enable(m_TechParams);
+//            pDC->Dispatch( num_elements / BitonicSortCSBlockSize, 1, 1 );
+            gl.glDispatchCompute(num_elements / BitonicSortCSBlockSize, 1, 1);
         }
 
         // Then sort the rows and columns for the levels > than the block size
@@ -788,36 +796,48 @@ final class OceanSmoke implements OceanConst{
             setDepthSortConstants( (level / BitonicSortCSBlockSize), (level & ~num_elements) / BitonicSortCSBlockSize, matrix_width, matrix_height );
 
             // Transpose the data from buffer 1 into buffer 2
-            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort2UAV);
-            m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort1SRV);
-            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( matrix_width / TransposeCSBlockSize, matrix_height / TransposeCSBlockSize, 1 );
-            m_pParticleDepthSortSRVVariable->SetResource(NULL);
-            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort2UAV);
+            m_TechParams.g_ParticleDepthSortUAV = m_pDepthSort2UAV;
+//            m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort1SRV);
+            m_TechParams.g_ParticleDepthSortSRV = m_pDepthSort1SRV;
+//            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pMatrixTransposeTechnique.enable(m_TechParams);
+//            pDC->Dispatch( matrix_width / TransposeCSBlockSize, matrix_height / TransposeCSBlockSize, 1 );
+            gl.glDispatchCompute(matrix_width / TransposeCSBlockSize, matrix_height / TransposeCSBlockSize, 1);
+//            m_pParticleDepthSortSRVVariable->SetResource(NULL);
+            m_TechParams.g_ParticleDepthSortSRV = null;
+//            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
 
             // Sort the transposed column data
-            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( num_elements / BitonicSortCSBlockSize, 1, 1 );
+//            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pBitonicSortTechnique.enable(m_TechParams);
+//            pDC->Dispatch( num_elements / BitonicSortCSBlockSize, 1, 1 );
+            gl.glDispatchCompute(num_elements / BitonicSortCSBlockSize, 1, 1);
 
             setDepthSortConstants( BitonicSortCSBlockSize, level, matrix_height, matrix_width );
 
             // Transpose the data from buffer 2 back into buffer 1
-            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
-            m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort2SRV);
-            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( matrix_height / TransposeCSBlockSize, matrix_width / TransposeCSBlockSize, 1 );
-            m_pParticleDepthSortSRVVariable->SetResource(NULL);
-            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
+            m_TechParams.g_ParticleDepthSortUAV = m_pDepthSort1UAV;
+//            m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort2SRV);
+            m_TechParams.g_ParticleDepthSortSRV = m_pDepthSort2SRV;
+//            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pMatrixTransposeTechnique.enable(m_TechParams);
+            gl.glDispatchCompute( matrix_height / TransposeCSBlockSize, matrix_width / TransposeCSBlockSize, 1 );
+//            m_pParticleDepthSortSRVVariable->SetResource(NULL);
+            m_TechParams.g_ParticleDepthSortSRV = null;
+//            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
 
             // Sort the row data
-            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( num_elements / BitonicSortCSBlockSize, 1, 1 );
+//            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pBitonicSortTechnique.enable(m_TechParams);
+            gl.glDispatchCompute( num_elements / BitonicSortCSBlockSize, 1, 1 );
         }
 
         // Release outputs
-        m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(NULL);
-        m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
-        m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//        m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(NULL);
+//        m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//        m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
     }
 
     private void setDepthSortConstants( int iLevel, int iLevelMask, int iWidth, int iHeight ){
@@ -825,5 +845,10 @@ final class OceanSmoke implements OceanConst{
         m_piDepthSortLevelMaskVariable->SetInt(iLevelMask);
         m_piDepthSortWidthVariable->SetInt(iWidth);
         m_piDepthSortHeightVariable->SetInt(iHeight);*/
+
+        m_TechParams.g_iDepthSortLevel = iLevel;
+        m_TechParams.g_iDepthSortLevelMask = iLevelMask;
+        m_TechParams.g_iDepthSortWidth = iWidth;
+        m_TechParams.g_iDepthSortHeight = iHeight;
     }
 }

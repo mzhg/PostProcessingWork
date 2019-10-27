@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.waves.ocean;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -23,6 +24,7 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
 final class OceanSpray implements OceanConst, Disposeable {
@@ -39,14 +41,14 @@ final class OceanSpray implements OceanConst, Disposeable {
     static boolean SPRAY_PARTICLE_SORTING = true;
 
 //    ID3DX11Effect* m_pFX;
-    private GLSLProgram m_pRenderSprayToSceneTechTechnique;
-    private GLSLProgram m_pRenderSprayToPSMTechnique;
-    private GLSLProgram m_pRenderSprayToFoamTechnique;
-    private GLSLProgram m_pInitSortTechnique;
-    private GLSLProgram m_pBitonicSortTechnique;
-    private GLSLProgram m_pMatrixTransposeTechnique;
-    private GLSLProgram m_pSensorVisualizationTechnique;
-    private GLSLProgram m_pAudioVisualizationTechnique;
+    private Technique m_pRenderSprayToSceneTechTechnique;
+    private Technique m_pRenderSprayToPSMTechnique;
+    private Technique m_pRenderSprayToFoamTechnique;
+    private Technique m_pInitSortTechnique;
+    private Technique m_pBitonicSortTechnique;
+    private Technique m_pMatrixTransposeTechnique;
+    private Technique m_pSensorVisualizationTechnique;
+    private Technique m_pAudioVisualizationTechnique;
 
     /*ID3DX11EffectShaderResourceVariable* m_pTexSplashVariable;
     ID3DX11EffectShaderResourceVariable* m_pTexDepthVariable;
@@ -83,8 +85,9 @@ final class OceanSpray implements OceanConst, Disposeable {
 
     // PSM params
     ID3DX11EffectMatrixVariable* m_pMatViewToPSMVariable;
-    OceanPSMParams* m_pPSMParams;*/
+    */
 
+    private final OceanPSMParams m_pPSMParams = new OceanPSMParams();
     // D3D objects
 //    ID3D11Device* m_pd3dDevice;
     private Texture2D          m_pSplashTextureSRV;
@@ -145,9 +148,9 @@ final class OceanSpray implements OceanConst, Disposeable {
     private BufferGL			m_pDrawParticlesBufferUAV;
     private BufferGL			m_pDrawParticlesBufferStaging;
 
-    private GLSLProgram		    m_pInitSprayParticlesTechnique;
-    private GLSLProgram		    m_pSimulateSprayParticlesTechnique;
-    private GLSLProgram		    m_pDispatchArgumentsTechnique;
+    private Technique		    m_pInitSprayParticlesTechnique;
+    private Technique		    m_pSimulateSprayParticlesTechnique;
+    private Technique		    m_pDispatchArgumentsTechnique;
 
     /*ID3DX11EffectScalarVariable* m_pParticlesNum;
     ID3DX11EffectScalarVariable* m_pSimulationTime;
@@ -169,20 +172,25 @@ final class OceanSpray implements OceanConst, Disposeable {
     ID3DX11EffectScalarVariable* m_pAudioVisualizationLevelVariable;*/
 
     private float m_SplashPowerFromLastUpdate;
+    private GLFuncProvider gl;
+
+    private final OceanSprayParams m_TechParams = new OceanSprayParams();
 
     void init(OceanHullSensors pHullSensors){
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         /*ID3DXBuffer* pEffectBuffer = NULL;
         V_RETURN(LoadFile(TEXT(".\\Media\\ocean_spray_d3d11.fxo"), &pEffectBuffer));
         V_RETURN(D3DX11CreateEffectFromMemory(pEffectBuffer->GetBufferPointer(), pEffectBuffer->GetBufferSize(), 0, m_pd3dDevice, &m_pFX));
         pEffectBuffer->Release();*/
 
-        m_pRenderSprayToSceneTechTechnique = m_pFX->GetTechniqueByName("RenderSprayToSceneTech");
-        m_pRenderSprayToPSMTechnique = m_pFX->GetTechniqueByName("RenderSprayToPSMTech");
-        m_pRenderSprayToFoamTechnique = m_pFX->GetTechniqueByName("RenderSprayToFoamTech");
-        m_pInitSortTechnique = m_pFX->GetTechniqueByName("InitSortTech");
-        m_pBitonicSortTechnique = m_pFX->GetTechniqueByName("BitonicSortTech");
-        m_pMatrixTransposeTechnique = m_pFX->GetTechniqueByName("MatrixTransposeTech");
-        m_pAudioVisualizationTechnique = m_pFX->GetTechniqueByName("AudioVisualizationTech");
+        m_TechParams.m_pPSMParams = m_pPSMParams;
+        m_pRenderSprayToSceneTechTechnique = ShaderManager.getInstance().getProgram("RenderSprayToSceneTech");
+        m_pRenderSprayToPSMTechnique = ShaderManager.getInstance().getProgram("RenderSprayToPSMTech");
+        m_pRenderSprayToFoamTechnique = ShaderManager.getInstance().getProgram("RenderSprayToFoamTech");
+        m_pInitSortTechnique = ShaderManager.getInstance().getProgram("InitSortTech");
+        m_pBitonicSortTechnique = ShaderManager.getInstance().getProgram("BitonicSortTech");
+        m_pMatrixTransposeTechnique = ShaderManager.getInstance().getProgram("MatrixTransposeTech");
+        m_pAudioVisualizationTechnique = ShaderManager.getInstance().getProgram("AudioVisualizationTech");
 
         /*m_pTexSplashVariable = m_pFX->GetVariableByName("g_texSplash")->AsShaderResource();
         m_pTexDepthVariable = m_pFX->GetVariableByName("g_texDepth")->AsShaderResource();
@@ -344,9 +352,9 @@ final class OceanSpray implements OceanConst, Disposeable {
                 m_pDrawParticlesBufferStaging = m_pDrawParticlesBuffer;
             }
 
-            m_pInitSprayParticlesTechnique = m_pFX -> GetTechniqueByName("InitSprayParticles");
-            m_pSimulateSprayParticlesTechnique = m_pFX -> GetTechniqueByName("SimulateSprayParticles");
-            m_pDispatchArgumentsTechnique = m_pFX -> GetTechniqueByName("PrepareDispatchArguments");
+            m_pInitSprayParticlesTechnique = ShaderManager.getInstance().getProgram("InitSprayParticles");
+            m_pSimulateSprayParticlesTechnique = ShaderManager.getInstance().getProgram("SimulateSprayParticles");
+            m_pDispatchArgumentsTechnique = ShaderManager.getInstance().getProgram("PrepareDispatchArguments");
 
         /*m_pParticlesNum = m_pFX->GetVariableByName("g_ParticlesNum")->AsScalar();
         m_pSimulationTime = m_pFX->GetVariableByName("g_SimulationTime")->AsScalar();
@@ -419,7 +427,7 @@ final class OceanSpray implements OceanConst, Disposeable {
 
 //		    const UINT num_layout_elements = sizeof(svis_layout)/sizeof(svis_layout[0]);
 
-            m_pSensorVisualizationTechnique = m_pFX->GetTechniqueByName("SensorVisualizationTech");
+            m_pSensorVisualizationTechnique = ShaderManager.getInstance().getProgram("SensorVisualizationTech");
 
             /*D3DX11_PASS_DESC PassDesc;
             V_RETURN(m_pSensorVisualizationTechnique->GetPassByIndex(0)->GetDesc(&PassDesc));
@@ -848,10 +856,14 @@ final class OceanSpray implements OceanConst, Disposeable {
                 m_pRenderInstanceDataBuffer.unmap();
                 m_pRenderVelocityDataBuffer.unmap();
 
-                m_pParticlesNum->SetInt(m_numParticlesAlive);
-                m_pRenderInstanceDataVariable->SetResource(m_pRenderInstanceDataSRV);
-                m_pRenderVelocityAndTimeDataVariable->SetResource(m_pRenderVelocityDataSRV);
-                m_pInitSprayParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//                m_pParticlesNum->SetInt(m_numParticlesAlive);
+                m_TechParams.g_ParticlesNum = m_numParticlesAlive;
+//                m_pRenderInstanceDataVariable->SetResource(m_pRenderInstanceDataSRV);
+                m_TechParams.g_RenderInstanceData = m_pRenderInstanceDataSRV;
+//                m_pRenderVelocityAndTimeDataVariable->SetResource(m_pRenderVelocityDataSRV);
+                m_TechParams.g_RenderVelocityAndTimeData = m_pRenderVelocityDataSRV;
+//                m_pInitSprayParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+                m_pInitSprayParticlesTechnique.enable(m_TechParams);
 
                 GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
                 m_pInitSprayParticlesTechnique.enable();
@@ -867,63 +879,73 @@ final class OceanSpray implements OceanConst, Disposeable {
             }
 
             { // Prepare DispatchIndirect arguments for simulation
-                pDC->CopyStructureCount(m_pDrawParticlesCB, 0, m_pParticlesBufferUAV[m_ParticleWriteBuffer]);
+//                pDC->CopyStructureCount(m_pDrawParticlesCB, 0, m_pParticlesBufferUAV[m_ParticleWriteBuffer]);  TODO
 
-                m_pDispatchArgumentsTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//                m_pDispatchArgumentsTechnique->GetPassByIndex(0)->Apply(0, pDC);
+                m_pDispatchArgumentsTechnique.enable(m_TechParams);
 
-                pDC->CSSetConstantBuffers(2, 1, &m_pDrawParticlesCB);
-                pDC->CSSetUnorderedAccessViews(0, 1, &m_pDrawParticlesBufferUAV, NULL);
+//                pDC->CSSetConstantBuffers(2, 1, &m_pDrawParticlesCB);  TODO setup the constant buffer
+//                pDC->CSSetUnorderedAccessViews(0, 1, &m_pDrawParticlesBufferUAV, NULL);   TODO set unordered resource view
 
-                pDC->Dispatch(1, 1, 1);
+                gl.glDispatchCompute(1, 1, 1);
 
-                ID3D11UnorderedAccessView* pNullUAV = NULL;
-                pDC->CSSetUnorderedAccessViews(0, 1, &pNullUAV, NULL);
+//                ID3D11UnorderedAccessView* pNullUAV = NULL;
+//                pDC->CSSetUnorderedAccessViews(0, 1, &pNullUAV, NULL);
             }
 
             { // Simulate particles
 
                 m_ParticleWriteBuffer = 1 - m_ParticleWriteBuffer;
 
-                m_pSimulationTime->SetFloat(deltaTime);
+//                m_pSimulationTime->SetFloat(deltaTime);
+                m_TechParams.g_SimulationTime = deltaTime;
 
-                m_pWindSpeed->SetFloatVector((FLOAT*)&wind_speed_3d);
+//                m_pWindSpeed->SetFloatVector((FLOAT*)&wind_speed_3d);
+                m_TechParams.g_WindSpeed = wind_speed_3d;
 
-                m_pVesselToWorldVariable->SetMatrix((float*)pOceanVessel->getWorldXform());
+//                m_pVesselToWorldVariable->SetMatrix((float*)pOceanVessel->getWorldXform());
+                m_TechParams.g_vesselToWorld = pOceanVessel.getWorldXform();
 
-                D3DXMATRIX matWorldToVessel;
+                /*D3DXMATRIX matWorldToVessel;
                 D3DXMatrixInverse(&matWorldToVessel,NULL,pOceanVessel->getWorldXform());
-                m_pWorldToVesselVariable->SetMatrix((float*)&matWorldToVessel);
+                m_pWorldToVesselVariable->SetMatrix((float*)&matWorldToVessel);*/
 
-                gfsdk_float2 worldToUVScale;
-                gfsdk_float2 worldToUVOffset;
-                gfsdk_float2 worldToUVRot;
-                pOceanVessel->getSurfaceHeights()->getGPUWorldToUVTransform(worldToUVOffset, worldToUVRot, worldToUVScale);
+                Matrix4f.invert(pOceanVessel.getWorldXform(),m_TechParams.g_worldToVessel);
 
-                m_worldToHeightLookupScaleVariable->SetFloatVector((float*)&worldToUVScale);
-                m_worldToHeightLookupRotVariable->SetFloatVector((float*)&worldToUVRot);
-                m_worldToHeightLookupOffsetVariable->SetFloatVector((float*)&worldToUVOffset);
+                Vector2f worldToUVScale = m_TechParams.g_worldToHeightLookupScale;
+                Vector2f worldToUVOffset = m_TechParams.g_worldToHeightLookupOffset;
+                Vector2f worldToUVRot = m_TechParams.g_worldToHeightLookupRot;
+                pOceanVessel.getSurfaceHeights().getGPUWorldToUVTransform(worldToUVOffset, worldToUVRot, worldToUVScale);
 
-                m_texHeightLookupVariable->SetResource(pOceanVessel->getSurfaceHeights()->getGPULookupSRV());
+//                m_worldToHeightLookupScaleVariable->SetFloatVector((float*)&worldToUVScale);
+//                m_worldToHeightLookupRotVariable->SetFloatVector((float*)&worldToUVRot);
+//                m_worldToHeightLookupOffsetVariable->SetFloatVector((float*)&worldToUVOffset);
 
-                m_pParticlesBufferVariable->SetResource(m_pParticlesBufferSRV[1-m_ParticleWriteBuffer]);
-                m_pSimulateSprayParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//                m_texHeightLookupVariable.SetResource(pOceanVessel->getSurfaceHeights()->getGPULookupSRV());
+                m_TechParams.g_texHeightLookup = pOceanVessel.getSurfaceHeights().getGPULookupSRV();
 
-                pDC->CSSetConstantBuffers(2, 1, &m_pDrawParticlesCB);
+//                m_pParticlesBufferVariable->SetResource(m_pParticlesBufferSRV[1-m_ParticleWriteBuffer]);
+                m_TechParams.g_SprayParticleDataSRV = m_pParticlesBufferSRV[1-m_ParticleWriteBuffer];
+//                m_pSimulateSprayParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+                m_pSimulateSprayParticlesTechnique.enable(m_TechParams);
 
-                UINT count = 0;
-                pDC->CSSetUnorderedAccessViews(1, 1, &m_pParticlesBufferUAV[m_ParticleWriteBuffer], &count);
+//                pDC->CSSetConstantBuffers(2, 1, &m_pDrawParticlesCB); // TODO
 
-                pDC->DispatchIndirect(m_pDrawParticlesBuffer, 0);
+                int count = 0;
+//                pDC->CSSetUnorderedAccessViews(1, 1, &m_pParticlesBufferUAV[m_ParticleWriteBuffer], &count); // TODO
 
-                ID3D11UnorderedAccessView* pNullUAV = NULL;
-                pDC->CSSetUnorderedAccessViews(1, 1, &pNullUAV, NULL);
+//                pDC->DispatchIndirect(m_pDrawParticlesBuffer, 0);  TODO
 
-                pDC->CopyStructureCount(m_pDrawParticlesBuffer, 0, m_pParticlesBufferUAV[m_ParticleWriteBuffer]);
-                pDC->CopyStructureCount(m_pDrawParticlesCB, 0, m_pParticlesBufferUAV[m_ParticleWriteBuffer]);
+//                ID3D11UnorderedAccessView* pNullUAV = NULL;
+//                pDC->CSSetUnorderedAccessViews(1, 1, &pNullUAV, NULL);
+
+//                pDC->CopyStructureCount(m_pDrawParticlesBuffer, 0, m_pParticlesBufferUAV[m_ParticleWriteBuffer]);// TODO
+//                pDC->CopyStructureCount(m_pDrawParticlesCB, 0, m_pParticlesBufferUAV[m_ParticleWriteBuffer]);// TODO
 
                 // Release refs
-                m_texHeightLookupVariable->SetResource(NULL);
-                m_pSimulateSprayParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//                m_texHeightLookupVariable->SetResource(NULL);
+                m_TechParams.g_texHeightLookup =null;
+//                m_pSimulateSprayParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
             }
         }else{
             // CPU simualtes the Particle animations.
@@ -1006,139 +1028,182 @@ final class OceanSpray implements OceanConst, Disposeable {
 
     float getSplashPowerFromLastUpdate() { return m_SplashPowerFromLastUpdate; }
 
+    private final Vector4f[] spotlight_position = CommonUtil.initArray(new Vector4f[MaxNumSpotlights]);
+    private final Vector4f[] spotlight_axis_and_cos_angle = CommonUtil.initArray(new Vector4f[MaxNumSpotlights]);
+    private final Matrix4f[] spotlightMatrix = CommonUtil.initArray(new Matrix4f[MaxNumSpotlights]);
+
     void renderToScene(    //ID3D11DeviceContext* pDC,
                            OceanVessel pOceanVessel, CameraData camera, OceanEnvironment ocean_env,
-                           TextureGL pDepthSRV, boolean simple
+                           Texture2D pDepthSRV, boolean simple
     ){
         // Matrices
-        D3DXMATRIX matView = *camera.GetViewMatrix();
-        D3DXMATRIX matProj = *camera.GetProjMatrix();
+        Matrix4f matView = camera.getViewMatrix();
+        Matrix4f matProj = camera.getProjMatrix();
 
-        D3DXMATRIX matInvView;
-        D3DXMatrixInverse(&matInvView, NULL, &matView);
+//        D3DXMATRIX matInvView;
+//        D3DXMatrixInverse(&matInvView, NULL, &matView);
 
-        D3DXMATRIX matInvProj;
-        D3DXMatrixInverse(&matInvProj, NULL, &matProj);
+//        D3DXMATRIX matInvProj;
+//        D3DXMatrixInverse(&matInvProj, NULL, &matProj);
 
         // View-proj
-        m_pMatProjVariable->SetMatrix((FLOAT*)&matProj);
-        m_pMatProjInvVariable->SetMatrix((FLOAT*)&matInvProj);
-        m_pMatViewVariable->SetMatrix((FLOAT*)&matView);
+//        m_pMatProjVariable->SetMatrix((FLOAT*)&matProj);
+        m_TechParams.g_matProj = matProj;
+//        m_pMatProjInvVariable->SetMatrix((FLOAT*)&matInvProj);
+        Matrix4f.invert(matProj, m_TechParams.g_matProjInv);
+//        m_pMatViewVariable->SetMatrix((FLOAT*)&matView);
+        m_TechParams.g_matView = matView;
 
-#if SPRAY_PARTICLE_SORTING
-        depthSortParticles(pDC);
-#endif
+        if (SPRAY_PARTICLE_SORTING)
+            depthSortParticles(/*pDC*/);
+//#endif
 
         // Simple particles
-        m_pSimpleParticlesVariable->SetFloat(simple?1.0f:0.0f);
+//        m_pSimpleParticlesVariable->SetFloat(simple?1.0f:0.0f);
+        m_TechParams.g_SimpleParticles = simple?1.0f:0.0f;
 
         // Global lighting
-        m_pLightDirectionVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_direction);
-        m_pLightColorVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_color);
-        m_pAmbientColorVariable->SetFloatVector((FLOAT*)&ocean_env.sky_color);
+//        m_pLightDirectionVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_direction);
+        m_TechParams.g_LightDirection = ocean_env.main_light_direction;
+//        m_pLightColorVariable->SetFloatVector((FLOAT*)&ocean_env.main_light_color);
+        m_TechParams.g_LightColor = ocean_env.main_light_color;
+//        m_pAmbientColorVariable->SetFloatVector((FLOAT*)&ocean_env.sky_color);
+        m_TechParams.g_AmbientColor = ocean_env.sky_color;
 
         // Lightnings
-        m_pLightningColorVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_intensity);
-        m_pLightningPositionVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_position);
+//        m_pLightningColorVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_intensity);
+        m_TechParams.g_LightningColor = ocean_env.lightning_light_intensity;
+//        m_pLightningPositionVariable->SetFloatVector((FLOAT*)&ocean_env.lightning_light_position);
+        m_TechParams.g_LightningPosition = ocean_env.lightning_light_position;
 
         // Fog
-        m_pFogExponentVariable->SetFloat(ocean_env.fog_exponent);
+//        m_pFogExponentVariable->SetFloat(ocean_env.fog_exponent);
+        m_TechParams.g_FogExponent = ocean_env.fog_exponent;
 
-        D3DXMATRIX matWorldToVessel;
+        /*D3DXMATRIX matWorldToVessel;
         D3DXMatrixInverse(&matWorldToVessel,NULL,pOceanVessel->getWorldXform());
         D3DXMATRIX matViewToVessel = matInvView * matWorldToVessel;
-        m_pWorldToVesselVariable->SetMatrix((float*)&matViewToVessel);
+        m_pWorldToVesselVariable->SetMatrix((float*)&matViewToVessel);*/
+
+        Matrix4f matInvView = Matrix4f.invertRigid(matView, CacheBuffer.getCachedMatrix());
+        Matrix4f matWorldToVessel = Matrix4f.invert(pOceanVessel.getWorldXform(), m_TechParams.g_worldToVessel);
+        Matrix4f.mul(matWorldToVessel, matInvView, m_TechParams.g_worldToVessel);
 
         int lightsNum = 0;
 
         // Spot lights - transform to view space
-        D3DXMATRIX matSpotlightsToView = ocean_env.spotlights_to_world_matrix * matView;
+        /*D3DXMATRIX matSpotlightsToView = ocean_env.spotlights_to_world_matrix * matView;
         D3DXMATRIX matViewToSpotlights;
-        D3DXMatrixInverse(&matViewToSpotlights,NULL,&matSpotlightsToView);
+        D3DXMatrixInverse(&matViewToSpotlights,NULL,&matSpotlightsToView);*/
+        Matrix4f matSpotlightsToView = Matrix4f.mul(matView, ocean_env.spotlights_to_world_matrix, CacheBuffer.getCachedMatrix());
 
-        D3DXVECTOR4 spotlight_position[MaxNumSpotlights];
-        D3DXVECTOR4 spotlight_axis_and_cos_angle[MaxNumSpotlights];
-        D3DXVECTOR4 spotlight_color[MaxNumSpotlights];
+//        D3DXVECTOR4 spotlight_position[MaxNumSpotlights];
+//        D3DXVECTOR4 spotlight_axis_and_cos_angle[MaxNumSpotlights];
+//        D3DXVECTOR4 spotlight_color[MaxNumSpotlights];
 
-        D3DXVec4TransformArray(spotlight_position,sizeof(spotlight_position[0]),ocean_env.spotlight_position,sizeof(ocean_env.spotlight_position[0]),&matSpotlightsToView,MaxNumSpotlights);
-        D3DXVec3TransformNormalArray((D3DXVECTOR3*)spotlight_axis_and_cos_angle,sizeof(spotlight_axis_and_cos_angle[0]),(D3DXVECTOR3*)ocean_env.spotlight_axis_and_cos_angle,sizeof(ocean_env.spotlight_axis_and_cos_angle[0]),&matSpotlightsToView,MaxNumSpotlights);
+//        D3DXVec4TransformArray(spotlight_position,sizeof(spotlight_position[0]),ocean_env.spotlight_position,sizeof(ocean_env.spotlight_position[0]),&matSpotlightsToView,MaxNumSpotlights);
+//        D3DXVec3TransformNormalArray((D3DXVECTOR3*)spotlight_axis_and_cos_angle,sizeof(spotlight_axis_and_cos_angle[0]),(D3DXVECTOR3*)ocean_env.spotlight_axis_and_cos_angle,sizeof(ocean_env.spotlight_axis_and_cos_angle[0]),&matSpotlightsToView,MaxNumSpotlights);
 
+        for(int i = 0; i < MaxNumSpotlights; i++){
+            Matrix4f.transform(matSpotlightsToView, ocean_env.spotlight_position[i], spotlight_position[i]);
+            Matrix4f.transformNormal(matSpotlightsToView, ocean_env.spotlight_axis_and_cos_angle[i], spotlight_axis_and_cos_angle[i]);
+        }
+
+        Matrix4f matViewToSpotlights = Matrix4f.invert(matSpotlightsToView,matSpotlightsToView);
         for(int i=0; i!=ocean_env.activeLightsNum; ++i) {
 
             if (ocean_env.lightFilter != -1 && ocean_env.objectID[i] != ocean_env.lightFilter) continue;
 
             spotlight_position[lightsNum] = spotlight_position[i];
             spotlight_axis_and_cos_angle[lightsNum] = spotlight_axis_and_cos_angle[i];
-            spotlight_color[lightsNum] = ocean_env.spotlight_color[i];
+//            spotlight_color[lightsNum] = ocean_env.spotlight_color[i];
             spotlight_axis_and_cos_angle[lightsNum].w = ocean_env.spotlight_axis_and_cos_angle[i].w;
 
             if(ENABLE_SHADOWS) {
-                D3DXMATRIX spotlight_shadow_matrix = matViewToSpotlights * ocean_env.spotlight_shadow_matrix[i];
-                m_pSpotlightShadowMatrixVar -> SetMatrixArray(( float*)&
-                spotlight_shadow_matrix, lightsNum, 1);
-                m_pSpotlightShadowResourceVar -> SetResourceArray((ID3D11ShaderResourceView * *) & ocean_env.spotlight_shadow_resource[i], lightsNum, 1);
+//                D3DXMATRIX spotlight_shadow_matrix = matViewToSpotlights * ocean_env.spotlight_shadow_matrix[i];
+//                m_pSpotlightShadowMatrixVar -> SetMatrixArray(( float*)& spotlight_shadow_matrix, lightsNum, 1);
+                Matrix4f.mul(ocean_env.spotlight_shadow_matrix[i], matViewToSpotlights, spotlightMatrix[i]);
+
+//                m_pSpotlightShadowResourceVar -> SetResourceArray((ID3D11ShaderResourceView * *) & ocean_env.spotlight_shadow_resource[i], lightsNum, 1);
             }
 
-                    ++lightsNum;
+            ++lightsNum;
         }
 
-        m_pSpotlightNumVariable->SetInt(lightsNum);
-        m_pRenderSurfaceSpotlightPositionVariable->SetFloatVectorArray((FLOAT*)spotlight_position,0,lightsNum);
-        m_pRenderSurfaceSpotLightAxisAndCosAngleVariable->SetFloatVectorArray((FLOAT*)spotlight_axis_and_cos_angle,0,lightsNum);
-        m_pRenderSurfaceSpotlightColorVariable->SetFloatVectorArray((FLOAT*)spotlight_color,0,lightsNum);
+        CacheBuffer.free(matViewToSpotlights);
+
+//        m_pSpotlightNumVariable->SetInt(lightsNum);
+        m_TechParams.g_LightsNum = lightsNum;
+//        m_pRenderSurfaceSpotlightPositionVariable->SetFloatVectorArray((FLOAT*)spotlight_position,0,lightsNum);
+        m_TechParams.g_SpotlightPosition = spotlight_position;
+//        m_pRenderSurfaceSpotLightAxisAndCosAngleVariable->SetFloatVectorArray((FLOAT*)spotlight_axis_and_cos_angle,0,lightsNum);
+        m_TechParams.g_SpotLightAxisAndCosAngle = spotlight_axis_and_cos_angle;
+//        m_pRenderSurfaceSpotlightColorVariable->SetFloatVectorArray((FLOAT*)spotlight_color,0,lightsNum);
+        m_TechParams.g_SpotlightColor = ocean_env.spotlight_color;
+        m_TechParams.g_SpotlightResource = ocean_env.spotlight_shadow_resource;
 
         // PSM
-        D3DXVECTOR3 no_tint(1,1,1); // For now
-        pOceanVessel->getPSM()->setReadParams(*m_pPSMParams,no_tint);
+        Vector3f no_tint/*(1,1,1)*/ ; // For now
+        pOceanVessel.getPSM().setReadParams(m_pPSMParams,new Vector3f(1,1,1));
 
-        D3DXMATRIX matViewToPSM = matInvView * *pOceanVessel->getPSM()->getWorldToPSMUV();
-        m_pMatViewToPSMVariable->SetMatrix((FLOAT*)&matViewToPSM);
+        /*D3DXMATRIX matViewToPSM = matInvView * *pOceanVessel->getPSM()->getWorldToPSMUV();
+        m_pMatViewToPSMVariable->SetMatrix((FLOAT*)&matViewToPSM);*/
 
-        renderParticles(pDC,m_pRenderSprayToSceneTechTechnique, pDepthSRV, D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+        Matrix4f.mul(pOceanVessel.getPSM().getWorldToPSMUV(), matInvView, m_TechParams.g_matViewToPSM);
+        CacheBuffer.free(matInvView);
 
-        pOceanVessel->getPSM()->clearReadParams(*m_pPSMParams);
-        m_pRenderSprayToSceneTechTechnique->GetPassByIndex(0)->Apply(0,pDC);
+        renderParticles(/*pDC,*/m_pRenderSprayToSceneTechTechnique, pDepthSRV,/*, D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST*/true, 1);
+
+        pOceanVessel.getPSM().clearReadParams(m_pPSMParams);
+//        m_pRenderSprayToSceneTechTechnique->GetPassByIndex(0)->Apply(0,pDC);
+        m_pRenderSprayToSceneTechTechnique.enable(m_TechParams);
     }
 
     void renderToPSM(//	ID3D11DeviceContext* pDC,
                          OceanPSM pPSM, OceanEnvironment ocean_env){
-        m_pSimpleParticlesVariable->SetFloat(0.0f);
-        m_pMatViewVariable->SetMatrix((FLOAT*)pPSM->getPSMView());
-        m_pMatProjVariable->SetMatrix((FLOAT*)pPSM->getPSMProj());
-        pPSM->setWriteParams(*m_pPSMParams);
+//        m_pSimpleParticlesVariable->SetFloat(0.0f);
+        m_TechParams.g_SimpleParticles = 0.0f;
+//        m_pMatViewVariable->SetMatrix((FLOAT*)pPSM->getPSMView());
+//        m_pMatProjVariable->SetMatrix((FLOAT*)pPSM->getPSMProj());
+        m_TechParams.g_matView = pPSM.getPSMView();
+        m_TechParams.g_matProj = pPSM.getPSMProj();
+        pPSM.setWriteParams(m_pPSMParams);
 
-        renderParticles(pDC,m_pRenderSprayToPSMTechnique, NULL, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+        renderParticles(/*pDC,*/m_pRenderSprayToPSMTechnique, null, false, GLenum.GL_POINTS);
     }
 
+    private final Matrix4f matView = new Matrix4f(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1);
     void renderToFoam(	//ID3D11DeviceContext* pDC,
 						Matrix4f matWorldToFoam, OceanVessel pOceanVessel, float deltaTime){
         // Just swap y and z in view matrix
-        /*D3DXMATRIX matView = D3DXMATRIX(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1);
-        m_pMatViewVariable->SetMatrix((float*)&matView);
+//        m_pMatViewVariable->SetMatrix((float*)&matView);
+        m_TechParams.g_matView = matView;
 
-        m_pMatWorldToFoamVariable->SetMatrix((float*)&matWorldToFoam);
+//        m_pMatWorldToFoamVariable->SetMatrix((float*)&matWorldToFoam);
+        m_TechParams.g_matWorldToFoam = matWorldToFoam;
 
-        gfsdk_float2 worldToUVScale;
-        gfsdk_float2 worldToUVOffset;
-        gfsdk_float2 worldToUVRot;
-        pOceanVessel->getSurfaceHeights()->getGPUWorldToUVTransform(worldToUVOffset, worldToUVRot, worldToUVScale);
+        Vector2f worldToUVScale = m_TechParams.g_worldToHeightLookupScale;
+        Vector2f worldToUVOffset = m_TechParams.g_worldToHeightLookupOffset;
+        Vector2f worldToUVRot = m_TechParams.g_worldToHeightLookupRot;
+        pOceanVessel.getSurfaceHeights().getGPUWorldToUVTransform(worldToUVOffset, worldToUVRot, worldToUVScale);
 
-        m_worldToHeightLookupScaleVariable->SetFloatVector((float*)&worldToUVScale);
+        /*m_worldToHeightLookupScaleVariable->SetFloatVector((float*)&worldToUVScale);
         m_worldToHeightLookupRotVariable->SetFloatVector((float*)&worldToUVRot);
-        m_worldToHeightLookupOffsetVariable->SetFloatVector((float*)&worldToUVOffset);
+        m_worldToHeightLookupOffsetVariable->SetFloatVector((float*)&worldToUVOffset);*/
 
-        m_texHeightLookupVariable->SetResource(pOceanVessel->getSurfaceHeights()->getGPULookupSRV());
+//        m_texHeightLookupVariable->SetResource(pOceanVessel->getSurfaceHeights()->getGPULookupSRV());
+        m_TechParams.g_texHeightLookup =pOceanVessel.getSurfaceHeights().getGPULookupSRV();
 
-        m_pSimulationTime->SetFloat(deltaTime);
-        m_pSimpleParticlesVariable->SetFloat(0.0f);
+//        m_pSimulationTime->SetFloat(deltaTime);
+        m_TechParams.g_SimulationTime = deltaTime;
+//        m_pSimpleParticlesVariable->SetFloat(0.0f);
+        m_TechParams.g_SimpleParticles = 0.0f;
 
-        renderParticles(pDC,m_pRenderSprayToFoamTechnique, NULL, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+        renderParticles(/*pDC,*/m_pRenderSprayToFoamTechnique, null, /*D3D11_PRIMITIVE_TOPOLOGY_POINTLIST*/false, GLenum.GL_POINTS);
 
         // Release refs
-        m_texHeightLookupVariable->SetResource(NULL);
-        m_pRenderSprayToFoamTechnique->GetPassByIndex(0)->Apply(0,pDC);*/
-
-        throw new UnsupportedOperationException();
+//        m_texHeightLookupVariable->SetResource(NULL);
+//        m_pRenderSprayToFoamTechnique->GetPassByIndex(0)->Apply(0,pDC);
     }
 
     int GetParticleBudget() {
@@ -1278,10 +1343,12 @@ final class OceanSpray implements OceanConst, Disposeable {
         Matrix4f matWorldView = CacheBuffer.getCachedMatrix();
         Matrix4f.mul(camera.getViewMatrix(), pOceanVessel.getWorldXform(), matWorldView);
 
-        m_pMatViewVariable->SetMatrix(matWorldView);
-        m_pMatProjVariable->SetMatrix((float*)camera.GetProjMatrix());
+//        m_pMatViewVariable->SetMatrix(matWorldView);
+        m_TechParams.g_matView = matWorldView;
+//        m_pMatProjVariable->SetMatrix((float*)camera.GetProjMatrix());
+        m_TechParams.g_matProj = camera.getProjMatrix();
 //        m_pSensorVisualizationTechnique->GetPassByIndex(0)->Apply(0, pDC);
-        m_pSensorVisualizationTechnique.enable();
+        m_pSensorVisualizationTechnique.enable(m_TechParams);
 
 	    final int vertexStride = VisualizationVertex.SIZE;
 	    final int vbOffset = 0;
@@ -1307,13 +1374,16 @@ final class OceanSpray implements OceanConst, Disposeable {
     }
 
     void renderAudioVisualization(/*ID3D11DeviceContext* pDC,*/ float l, float t, float r, float b, float h_margin, float v_margin, float level){
-        FLOAT litterbug[4] = {l,t,r,b};
-        m_pAudioVisualizationRectVariable->SetFloatVector(litterbug);
+//        FLOAT litterbug[4] = {l,t,r,b};
+//        m_pAudioVisualizationRectVariable->SetFloatVector(litterbug);
+        m_TechParams.g_AudioVisualizationRect.set(l,t,r,b);
 
-        FLOAT margin[4] = {h_margin, v_margin, 0.f, 0.f};
-        m_pAudioVisualizationMarginVariable->SetFloatVector(margin);
+//        FLOAT margin[4] = {h_margin, v_margin, 0.f, 0.f};
+//        m_pAudioVisualizationMarginVariable->SetFloatVector(margin);
+        m_TechParams.g_AudioVisualizationMargin.set(h_margin, v_margin);
 
-        m_pAudioVisualizationLevelVariable->SetFloat(level);
+//        m_pAudioVisualizationLevelVariable->SetFloat(level);
+        m_TechParams.g_AudioVisualizationLevel = level;
 
 //        m_pAudioVisualizationTechnique->GetPassByIndex(0)->Apply(0, pDC);
         m_pAudioVisualizationTechnique.enable();
@@ -1366,41 +1436,62 @@ final class OceanSpray implements OceanConst, Disposeable {
         m_firstUpdate = true;
     }
 
-    private void renderParticles(/*ID3D11DeviceContext* pDC,*/ GLSLProgram pTech, TextureGL pSRV, int topology){
+    private void renderParticles(/*ID3D11DeviceContext* pDC,*/ Technique pTech, Texture2D pSRV, boolean isPatch, int pathCount){
         // Particle
-        /*m_pTexSplashVariable->SetResource(m_pSplashTextureSRV);
-        m_pTexDepthVariable->SetResource(pDepthSRV);
-        m_pInvParticleLifeTimeVariable->SetFloat(1.f/kParticleTTL);
+//        m_pTexSplashVariable->SetResource(m_pSplashTextureSRV);
+        m_TechParams.g_texSplash = m_pSplashTextureSRV;
+//        m_pTexDepthVariable->SetResource(pDepthSRV);
+        m_TechParams.g_texDepth = pSRV;
+//        m_pInvParticleLifeTimeVariable->SetFloat(1.f/kParticleTTL);
+        m_TechParams.g_InvParticleLifeTime = 1.f/kParticleTTL;
 
-        pDC->IASetInputLayout(NULL);
-        pDC->IASetPrimitiveTopology(topology);
+//        pDC->IASetInputLayout(NULL);
+//        pDC->IASetPrimitiveTopology(topology);
+        if(isPatch){
+            gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, pathCount);
+        }
 
-#if ENABLE_GPU_SIMULATION
-        m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort1SRV);
-        m_pParticlesBufferVariable->SetResource(m_pParticlesBufferSRV[m_ParticleWriteBuffer]);
-        pTech->GetPassByIndex(0)->Apply(0, pDC);
+        if(ENABLE_GPU_SIMULATION) {
+//            m_pParticleDepthSortSRVVariable -> SetResource(m_pDepthSort1SRV);
+            m_TechParams.g_ParticleDepthSortSRV = m_pDepthSort1SRV;
+//            m_pParticlesBufferVariable -> SetResource(m_pParticlesBufferSRV[m_ParticleWriteBuffer]);
+            m_TechParams.g_SprayParticleDataSRV = m_pParticlesBufferSRV[m_ParticleWriteBuffer];
+//            pTech -> GetPassByIndex(0)->Apply(0, pDC);
+            pTech.enable(m_TechParams);
 
-        pDC->DrawInstancedIndirect(m_pDrawParticlesBuffer, 0);
+//            pDC -> DrawInstancedIndirect(m_pDrawParticlesBuffer, 0);  TODO
+            if(isPatch){
+                gl.glDrawArraysIndirect(GLenum.GL_PATCHES, 0);
+            }else{
+                gl.glDrawArraysIndirect(pathCount, 0);
+            }
 
-        // Clear resource usage
-        m_pParticlesBufferVariable->SetResource(NULL);
-        m_pParticleDepthSortSRVVariable->SetResource(NULL);
-#else
-        m_pRenderInstanceDataVariable->SetResource(m_pRenderInstanceDataSRV);
-        m_pRenderOrientationAndDecimationDataVariable->SetResource(m_pRenderOrientationsAndDecimationsSRV);
-        pTech->GetPassByIndex(0)->Apply(0, pDC);
+            // Clear resource usage
+//            m_pParticlesBufferVariable -> SetResource(NULL);
+//            m_pParticleDepthSortSRVVariable -> SetResource(NULL);
+        }else {
 
-        pDC->Draw(m_numParticlesAlive,0);
+//        m_pRenderInstanceDataVariable->SetResource(m_pRenderInstanceDataSRV);
+            m_TechParams.g_RenderInstanceData = m_pRenderInstanceDataSRV;
+//        m_pRenderOrientationAndDecimationDataVariable->SetResource(m_pRenderOrientationsAndDecimationsSRV);
+            m_TechParams.g_RenderOrientationAndDecimationData = m_pRenderOrientationsAndDecimationsSRV;
+//        pTech->GetPassByIndex(0)->Apply(0, pDC);
+            pTech.enable(m_TechParams);
 
-        // Clear resource usage
-        m_pRenderInstanceDataVariable->SetResource(NULL);
-        m_pRenderOrientationAndDecimationDataVariable->SetResource(NULL);
-#endif
+//        pDC->Draw(m_numParticlesAlive,0);
+            if (isPatch) {
+                gl.glDrawArrays(GLenum.GL_PATCHES, 0, m_numParticlesAlive);
+            } else {
+                gl.glDrawArrays(pathCount, 0, m_numParticlesAlive);
+            }
 
-        m_pTexDepthVariable->SetResource(NULL);
-        pTech->GetPassByIndex(0)->Apply(0, pDC);*/
+            // Clear resource usage
+//            m_pRenderInstanceDataVariable -> SetResource(NULL);
+//            m_pRenderOrientationAndDecimationDataVariable -> SetResource(NULL);
+        }
 
-        throw new UnsupportedOperationException();
+//        m_pTexDepthVariable->SetResource(NULL);
+//        pTech->GetPassByIndex(0)->Apply(0, pDC);
     }
 
     private void simulateParticles(int begin_ix, int end_ix, float deltaTime, Vector3f wind_speed_3d){
@@ -1448,32 +1539,36 @@ final class OceanSpray implements OceanConst, Disposeable {
         if(!ENABLE_GPU_SIMULATION)
             return;
 
-        /*int num_elements = SPRAY_PARTICLE_COUNT;
+        int num_elements = SPRAY_PARTICLE_COUNT;
 
         { // Init sorting data
-            m_pParticlesBufferVariable->SetResource(m_pParticlesBufferSRV[m_ParticleWriteBuffer]);
-            m_pInitSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//            m_pParticlesBufferVariable->SetResource(m_pParticlesBufferSRV[m_ParticleWriteBuffer]);
+            m_TechParams.g_SprayParticleDataSRV = m_pParticlesBufferSRV[m_ParticleWriteBuffer];
+//            m_pInitSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pInitSortTechnique.enable(m_TechParams);
 
-            pDC->CSSetConstantBuffers(2, 1, &m_pDrawParticlesCB);
+//            pDC->CSSetConstantBuffers(2, 1, &m_pDrawParticlesCB);  TODO
 
             int count = 0;
-            pDC->CSSetUnorderedAccessViews(0, 1, &m_pDepthSort1UAV, &count);
+//            pDC->CSSetUnorderedAccessViews(0, 1, &m_pDepthSort1UAV, &count);  TODO
 
-            pDC->Dispatch(num_elements/SprayParticlesCSBlocksSize, 1, 1);
+            gl.glDispatchCompute(num_elements/SprayParticlesCSBlocksSize, 1, 1);
         }
 
-	    const UINT matrix_width = BitonicSortCSBlockSize;
-	    const UINT matrix_height = num_elements / BitonicSortCSBlockSize;
+	    final int matrix_width = BitonicSortCSBlockSize;
+        final int matrix_height = num_elements / BitonicSortCSBlockSize;
 
         // First sort the rows for the levels <= to the block size
-        for( UINT level = 2 ; level <= BitonicSortCSBlockSize ; level = level * 2 )
+        for( int level = 2 ; level <= BitonicSortCSBlockSize ; level = level * 2 )
         {
             setDepthSortConstants( level, level, matrix_height, matrix_width );
 
             // Sort the row data
-            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
-            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( num_elements / BitonicSortCSBlockSize, 1, 1 );
+//            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
+            m_TechParams.g_ParticleDepthSortUAV = m_pDepthSort1UAV;
+//            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pBitonicSortTechnique.enable(m_TechParams);
+            gl.glDispatchCompute ( num_elements / BitonicSortCSBlockSize, 1, 1 );
         }
 
         // Then sort the rows and columns for the levels > than the block size
@@ -1483,46 +1578,56 @@ final class OceanSpray implements OceanConst, Disposeable {
             setDepthSortConstants( (level / BitonicSortCSBlockSize), (level & ~num_elements) / BitonicSortCSBlockSize, matrix_width, matrix_height );
 
             // Transpose the data from buffer 1 into buffer 2
-            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort2UAV);
-            m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort1SRV);
-            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( matrix_width / TransposeCSBlockSize, matrix_height / TransposeCSBlockSize, 1 );
-            m_pParticleDepthSortSRVVariable->SetResource(NULL);
-            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort2UAV);
+            m_TechParams.g_ParticleDepthSortUAV = m_pDepthSort2UAV;
+//            m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort1SRV);
+            m_TechParams.g_ParticleDepthSortSRV = m_pDepthSort1SRV;
+//            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pMatrixTransposeTechnique.enable(m_TechParams);
+            gl.glDispatchCompute( matrix_width / TransposeCSBlockSize, matrix_height / TransposeCSBlockSize, 1 );
+//            m_pParticleDepthSortSRVVariable->SetResource(NULL);
+            m_TechParams.g_ParticleDepthSortSRV = null;
+//            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
 
             // Sort the transposed column data
-            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( num_elements / BitonicSortCSBlockSize, 1, 1 );
+//            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pBitonicSortTechnique.enable(m_TechParams);
+            gl.glDispatchCompute( num_elements / BitonicSortCSBlockSize, 1, 1 );
 
             setDepthSortConstants( BitonicSortCSBlockSize, level, matrix_height, matrix_width );
 
             // Transpose the data from buffer 2 back into buffer 1
-            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
-            m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort2SRV);
-            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( matrix_height / TransposeCSBlockSize, matrix_width / TransposeCSBlockSize, 1 );
-            m_pParticleDepthSortSRVVariable->SetResource(NULL);
-            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//            m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(m_pDepthSort1UAV);
+            m_TechParams.g_ParticleDepthSortUAV = m_pDepthSort1UAV;
+//            m_pParticleDepthSortSRVVariable->SetResource(m_pDepthSort2SRV);
+            m_TechParams.g_ParticleDepthSortSRV = m_pDepthSort2SRV;
+//            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pMatrixTransposeTechnique.enable(m_TechParams);
+            gl.glDispatchCompute( matrix_height / TransposeCSBlockSize, matrix_width / TransposeCSBlockSize, 1 );
+//            m_pParticleDepthSortSRVVariable->SetResource(NULL);
+//            m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
 
             // Sort the row data
-            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
-            pDC->Dispatch( num_elements / BitonicSortCSBlockSize, 1, 1 );
+//            m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
+            m_pBitonicSortTechnique.enable(m_TechParams);
+            gl.glDispatchCompute( num_elements / BitonicSortCSBlockSize, 1, 1 );
         }
 
         // Release outputs
-        m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(NULL);
-        m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
-        m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);*/
-
-        throw new UnsupportedOperationException();
+//        m_pParticleDepthSortUAVVariable->SetUnorderedAccessView(NULL);
+//        m_pMatrixTransposeTechnique->GetPassByIndex(0)->Apply(0, pDC);
+//        m_pBitonicSortTechnique->GetPassByIndex(0)->Apply(0, pDC);
     }
     private void setDepthSortConstants( int iLevel, int iLevelMask, int iWidth, int iHeight ){
-       /* m_piDepthSortLevelVariable->SetInt(iLevel);
+        /*m_piDepthSortLevelVariable->SetInt(iLevel);
         m_piDepthSortLevelMaskVariable->SetInt(iLevelMask);
         m_piDepthSortWidthVariable->SetInt(iWidth);
         m_piDepthSortHeightVariable->SetInt(iHeight);*/
 
-        throw new UnsupportedOperationException();
+        m_TechParams.g_iDepthSortLevel = iLevel;
+        m_TechParams.g_iDepthSortLevelMask = iLevelMask;
+        m_TechParams.g_iDepthSortWidth = iWidth;
+        m_TechParams.g_iDepthSortHeight = iHeight;
     }
 
     private static int PoissonOutcomeKnuth(float lambda) {

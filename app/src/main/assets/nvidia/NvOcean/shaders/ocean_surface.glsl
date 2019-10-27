@@ -49,7 +49,7 @@ uniform float4		g_GustUV;
 
 uniform float4		g_ScreenSizeInv;
 uniform float3		g_SkyColor;
-uniform float3		g_DeepColor;
+uniform float4		g_DeepColor;
 uniform float3		g_BendParam = {0.1f, -0.4f, 0.2f};
 
 uniform float3		g_LightningPosition;
@@ -84,7 +84,7 @@ uniform float		g_CubeBlend;
 uniform float2		g_SkyCube0RotateSinCos;
 uniform float2		g_SkyCube1RotateSinCos;
 
-uniform float4		g_SkyCubeMult;
+uniform float3		g_SkyCubeMult;
 
 uniform float		g_FogExponent;
 

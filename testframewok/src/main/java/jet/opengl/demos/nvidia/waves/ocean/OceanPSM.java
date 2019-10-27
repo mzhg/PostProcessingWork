@@ -197,16 +197,20 @@ final class OceanPSM implements OceanConst{
     }
 
     void setWriteParams(OceanPSMParams params){
-        gl.glUniform1f(params.m_pPSMSlicesVariable, m_PSM_num_slices);
+//        gl.glUniform1f(params.m_pPSMSlicesVariable, m_PSM_num_slices);
+        params.g_PSMSlices = m_PSM_num_slices;
     }
-    void setReadParams(OceanPSMParams params, ReadableVector3f tint_color){
-        gl.glUniform1f(params.m_pPSMSlicesVariable, m_PSM_num_slices);
+    void setReadParams(OceanPSMParams params, Vector3f tint_color){
+        /*gl.glUniform1f(params.m_pPSMSlicesVariable, m_PSM_num_slices);
         gl.glUniform3f(params.m_pPSMTintVariable, tint_color.getX(), tint_color.getY(), tint_color.getZ());
-        gl.glBindTextureUnit(params.m_pPSMMapVariable, m_pPSMSRV.getTexture());
+        gl.glBindTextureUnit(params.m_pPSMMapVariable, m_pPSMSRV.getTexture());*/
+
+        params.g_PSMSlices = m_PSM_num_slices;
+        params.g_PSMMap = m_pPSMSRV;
+        params.g_PSMTint = tint_color;
     }
 
     void clearReadParams(OceanPSMParams params){
-        gl.glBindTextureUnit(params.m_pPSMMapVariable, 0);
     }
 
 //    void renderToUI(ID3D11DeviceContext* pDC);

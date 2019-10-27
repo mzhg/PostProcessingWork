@@ -28,6 +28,7 @@ import jet.opengl.demos.scene.CameraData;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLHelper;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
@@ -415,6 +416,8 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
 //        V_RETURN( g_SettingsDlg.OnD3D11CreateDevice( pd3dDevice ) );
 //        g_pTxtHelper = new CDXUTTextHelper( pd3dDevice, pd3dImmediateContext, &g_DialogResourceManager, 15 );
 
+        gl = GLFuncProviderFactory.getGLFuncProvider();
+        mFbo = new RenderTargets();
         GFSDK_WaveWorks.GFSDK_WaveWorks_InitD3D11(/*pd3dDevice,NULL,*/ GFSDK_WaveWorks.GFSDK_WAVEWORKS_API_GUID);
 
         // Ocean sim
@@ -508,14 +511,14 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
            /* V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, sm.m_SkyDomeFileName, &pD3D11Resource));
             V_RETURN(pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &sm.m_pSkyDomeSRV));*/
 
-            sm.m_pSkyDomeSRV = OceanConst.CreateTexture2DFromFileSRGB(sm.m_SkyDomeFileName);
+            sm.m_pSkyDomeSRV = OceanConst.CreateTextureCubeFromFileSRGB(sm.m_SkyDomeFileName);
 
             /*SAFE_RELEASE(pD3D11Resource);
             V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, sm.m_ReflectFileName, &pD3D11Resource));
             V_RETURN(pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &sm.m_pReflectionSRV));
             SAFE_RELEASE(pD3D11Resource);*/
 
-            sm.m_pReflectionSRV = OceanConst.CreateTexture2DFromFileSRGB(sm.m_ReflectFileName);
+            sm.m_pReflectionSRV = OceanConst.CreateTextureCubeFromFileSRGB(sm.m_ReflectFileName);
         }
 
         /*V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, TEXT(".\\Media\\nvidia_logo.dds"), &pD3D11Resource));
@@ -881,6 +884,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
 
         CreateViewDependentResources(width, height, GLenum.GL_SRGB8_ALPHA8);
 
+        g_pOceanSurf.setScreenSize(width, height);
         // UI
 //        g_HUD.SetLocation(pBackBufferSurfaceDesc->Width-180, 8);
 //        g_HUD.SetSize(172, 704);
@@ -1334,7 +1338,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
             g_ocean_env.lightFilter = -1;
 
             // Update ocean surface ready for rendering
-            g_pOceanSurf.setHullProfiles(hp,1);
+            g_pOceanSurf.setHullProfiles(hp);
 
             if (g_WaterRenderMode == WaterRenderMode_Wireframe)
                 g_pOceanSurf.renderWireframe(/*pDC,*/ matView,matProj,g_hOceanSimulation, g_hOceanSavestate, g_DebugCam);
@@ -1566,7 +1570,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
 
         if(g_hOceanSavestate != null)
         {
-            GFSDK_WaveWorks.GFSDK_WaveWorks_Savestate_Destroy(g_hOceanSavestate);
+//            GFSDK_WaveWorks.GFSDK_WaveWorks_Savestate_Destroy(g_hOceanSavestate);  TODO
             g_hOceanSavestate = null;
         }
 
@@ -2350,8 +2354,9 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
     "g 7.5\n"+
     "b 2.5\n"+
     "beam_angle 120\n"+
-    "EndSpotlight\n"+
-    ;
+    "EndSpotlight\n";
 
-
+    private static float GetOceanAudioSplashPowerThreshold(){
+        throw new UnsupportedOperationException();
+    }
 }
