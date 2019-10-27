@@ -208,12 +208,12 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 	 * @param dest The destination vector, or null if a new vector is to be created
 	 * @return the sum of left and right in dest
 	 */
-	public static Vector3f add(ReadableVector3f left, float right, Vector3f dest) {
+	public static<T extends WritableVector3f> T add(ReadableVector3f left, float right, WritableVector3f dest) {
 		if (dest == null)
-			return new Vector3f(left.getX() + right, left.getY() + right, left.getZ() + right);
+			return (T) new Vector3f(left.getX() + right, left.getY() + right, left.getZ() + right);
 		else {
 			dest.set(left.getX() + right, left.getY() + right, left.getZ() + right);
-			return dest;
+			return (T) dest;
 		}
 	}
 	
@@ -225,12 +225,12 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 	 * @param dest The destination vector, or null if a new vector is to be created
 	 * @return left minus right in dest
 	 */
-	public static Vector3f sub(ReadableVector3f left, float right, Vector3f dest) {
+	public static <T extends WritableVector3f> T sub(ReadableVector3f left, float right, WritableVector3f dest) {
 		if (dest == null)
-			return new Vector3f(left.getX() - right, left.getY() - right, left.getZ() - right);
+			return (T) new Vector3f(left.getX() - right, left.getY() - right, left.getZ() - right);
 		else {
 			dest.set(left.getX() - right, left.getY() - right, left.getZ() - right);
-			return dest;
+			return (T) dest;
 		}
 	}
 	

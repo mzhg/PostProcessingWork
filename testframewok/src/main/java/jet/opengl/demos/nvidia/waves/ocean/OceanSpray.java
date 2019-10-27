@@ -1,10 +1,8 @@
 package jet.opengl.demos.nvidia.waves.ocean;
 
-import org.lwjgl.util.vector.Matrix2f;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Readable;
 import org.lwjgl.util.vector.ReadableVector3f;
-import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -14,10 +12,10 @@ import java.nio.IntBuffer;
 
 import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
-import jet.opengl.demos.intel.fluid.utils.Camera;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation;
 import jet.opengl.demos.scene.CameraData;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -27,7 +25,7 @@ import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 
-final class OceanSpray implements OceanConst{
+final class OceanSpray implements OceanConst, Disposeable {
     static final int NUMSPRAYPARTICLES = 50000;
     static final int NUMSPRAYGENERATORS = OceanHullSensors.MaxNumSensors;
     static final int NUMRIMSPRAYGENERATORS = OceanHullSensors.MaxNumRimSensors;
@@ -1543,6 +1541,11 @@ final class OceanSpray implements OceanConst{
 
     private static int PoissonOutcome(float lambda) {
         return PoissonOutcomeKnuth(lambda);
+    }
+
+    @Override
+    public void dispose() {
+
     }
 
     private final static class VisualizationVertex implements Readable {

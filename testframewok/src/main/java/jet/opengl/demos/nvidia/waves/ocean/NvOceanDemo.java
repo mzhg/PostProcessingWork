@@ -2,16 +2,21 @@ package jet.opengl.demos.nvidia.waves.ocean;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
+import java.nio.FloatBuffer;
 import java.util.Arrays;
 
+import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree_Params;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree_Stats;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Result;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Savestate;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation_CPU_Threading_Model;
@@ -21,27 +26,40 @@ import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation_Setting
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation_Stats;
 import jet.opengl.demos.scene.CameraData;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLHelper;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
+import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;
+
 
 /**
  * Created by jetlee01 on 2019/10/23
  */
 
-public class NvOceanDemo extends NvSampleApp implements OceanConst{
+public class NvOceanDemo extends NvSampleApp implements OceanConst {
     private static final int SCENE_SHADOWMAP_SIZE = 1024;
 
     private static final int FMOD_logo_w = 100;
     private static final int FMOD_logo_h = 45;
 
+    private static final int DOWNSAMPLE_SCALE = 1;
+
     private static final int
             SkyMap_Cloudy = 0,
             SkyMap_Grey = 1,
             SkyMap_Storm = 2,
-            NumSkyMap= 3;
+            NumSkyMaps= 3;
 
-    private final OceanSkyMapInfo[] g_SkyMaps = new OceanSkyMapInfo[NumSkyMap];
+    private final OceanSkyMapInfo[] g_SkyMaps = new OceanSkyMapInfo[NumSkyMaps];
     float g_CurrentPreset = 0.f;
     int g_TargetPreset = 0;
 
@@ -199,10 +217,10 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
 
 
 // These are borrowed from the effect in g_pOceanSurf
-    private GLSLProgram g_pLogoTechnique = null;
+    private Technique g_pLogoTechnique = null;
 //    ID3DX11EffectShaderResourceVariable* g_pLogoTextureVariable = NULL;
 
-//    ID3D11InputLayout* g_pSkyboxLayout = NULL;
+    ID3D11InputLayout g_pSkyboxLayout = null;
 
     ID3D11InputLayout g_pMarkerLayout = null;
 //    ID3DX11Effect* g_pMarkerFX = NULL;
@@ -214,6 +232,8 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
     float g_NearPlane = 1.0f;
     float g_FarPlane = 20000.0f;
     double g_TotalSimulatedTime = 100000000.0f;
+    private GLFuncProvider gl;
+    private RenderTargets mFbo;
 
     //--------------------------------------------------------------------------------------
 // Initialize the app
@@ -409,8 +429,8 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
         GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_SetFrustumCullMargin(g_pOceanSurf.m_hOceanQuadTree, GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetConservativeMaxDisplacementEstimate(g_hOceanSimulation));
 
         // Effect hooks borrowed from ocean object
-        g_pLogoTechnique = g_pOceanSurf->m_pOceanFX->GetTechniqueByName("DisplayBufferTech");
-        g_pLogoTextureVariable = g_pOceanSurf->m_pOceanFX->GetVariableByName("g_texBufferMap")->AsShaderResource();
+        g_pLogoTechnique = ShaderManager.getInstance().getProgram("DisplayBufferTech");
+//        g_pLogoTextureVariable = g_pOceanSurf->m_pOceanFX->GetVariableByName("g_texBufferMap")->AsShaderResource();
 
         // Vessels
         g_pHeroVessel = new OceanVessel(g_HeroVesselState);
@@ -445,14 +465,14 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
             pEffectBuffer->Release();*/
         }
 
-        g_pDownsampleDepthTechnique = g_pSkyboxFX->GetTechniqueByName("DownsampleDepthTech");
-        g_pUpsampleParticlesTechnique = g_pSkyboxFX->GetTechniqueByName("UpsampleParticlesTech");
+        g_pDownsampleDepthTechnique = ShaderManager.getInstance().getProgram("DownsampleDepthTech");
+        g_pUpsampleParticlesTechnique = ShaderManager.getInstance().getProgram("UpsampleParticlesTech");
         /*g_pColorMapVariable = g_pSkyboxFX->GetVariableByName("g_texColor")->AsShaderResource();
         g_pDepthMapVariable = g_pSkyboxFX->GetVariableByName("g_texDepth")->AsShaderResource();
         g_pDepthMapMSVariable = g_pSkyboxFX->GetVariableByName("g_texDepthMS")->AsShaderResource();
         g_pMatProjInvVariable = g_pSkyboxFX->GetVariableByName("g_matProjInv")->AsMatrix();*/
 
-        g_pSkyBoxTechnique = g_pSkyboxFX->GetTechniqueByName("SkyboxTech");
+        g_pSkyBoxTechnique = ShaderManager.getInstance().getProgram("SkyboxTech");
         /*g_pSkyBoxMatViewProjVariable = g_pSkyboxFX->GetVariableByName("g_matViewProj")->AsMatrix();
         g_pSkyBoxFogColorVariable = g_pSkyboxFX->GetVariableByName("g_FogColor")->AsVector();
         g_pSkyBoxFogExponentVariable = g_pSkyboxFX->GetVariableByName("g_FogExponent")->AsScalar();
@@ -466,10 +486,11 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
         g_pSkyBoxSunPositionVariable = g_pSkyboxFX->GetVariableByName("g_LightPos")->AsVector();
         g_pSkyBoxCloudFactorVariable = g_pSkyboxFX->GetVariableByName("g_CloudFactor")->AsScalar();*/
 
-	const D3D11_INPUT_ELEMENT_DESC sky_layout[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        int D3D11_INPUT_PER_VERTEX_DATA = 0;
+	final D3D11_INPUT_ELEMENT_DESC sky_layout[] = {
+            new D3D11_INPUT_ELEMENT_DESC( "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
     };
-	const UINT num_layout_elements = sizeof(sky_layout)/sizeof(sky_layout[0]);
+	    /*const UINT num_layout_elements = sizeof(sky_layout)/sizeof(sky_layout[0]);
 
         D3DX11_PASS_DESC PassDesc;
         V_RETURN(g_pSkyBoxTechnique->GetPassByIndex(0)->GetDesc(&PassDesc));
@@ -477,74 +498,92 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
         V_RETURN(pd3dDevice->CreateInputLayout(	sky_layout, num_layout_elements,
                 PassDesc.pIAInputSignature, PassDesc.IAInputSignatureSize,
                 &g_pSkyboxLayout
-        ));
+        ));*/
 
-        ID3D11Resource* pD3D11Resource = NULL;
+        g_pSkyboxLayout = ID3D11InputLayout.createInputLayoutFrom(sky_layout);
+
+//        ID3D11Resource* pD3D11Resource = NULL;
         for(int i = 0; i != NumSkyMaps; ++i) {
-            OceanSkyMapInfo& sm = g_SkyMaps[i];
-            V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, sm.m_SkyDomeFileName, &pD3D11Resource));
-            V_RETURN(pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &sm.m_pSkyDomeSRV));
-            SAFE_RELEASE(pD3D11Resource);
+            OceanSkyMapInfo sm = g_SkyMaps[i];
+           /* V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, sm.m_SkyDomeFileName, &pD3D11Resource));
+            V_RETURN(pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &sm.m_pSkyDomeSRV));*/
+
+            sm.m_pSkyDomeSRV = OceanConst.CreateTexture2DFromFileSRGB(sm.m_SkyDomeFileName);
+
+            /*SAFE_RELEASE(pD3D11Resource);
             V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, sm.m_ReflectFileName, &pD3D11Resource));
             V_RETURN(pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &sm.m_pReflectionSRV));
-            SAFE_RELEASE(pD3D11Resource);
+            SAFE_RELEASE(pD3D11Resource);*/
+
+            sm.m_pReflectionSRV = OceanConst.CreateTexture2DFromFileSRGB(sm.m_ReflectFileName);
         }
 
-        V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, TEXT(".\\Media\\nvidia_logo.dds"), &pD3D11Resource));
+        /*V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, TEXT(".\\Media\\nvidia_logo.dds"), &pD3D11Resource));
         V_RETURN(pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &g_pLogoTex));
-        SAFE_RELEASE(pD3D11Resource);
+        SAFE_RELEASE(pD3D11Resource);*/
 
-        V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, TEXT(".\\Media\\fmod_logo.dds"), &pD3D11Resource));
+        g_pLogoTex = OceanConst.CreateTexture2DFromFileSRGB(".\\Media\\nvidia_logo.dds");
+
+        /*V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, TEXT(".\\Media\\fmod_logo.dds"), &pD3D11Resource));
         V_RETURN(pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &g_pFMODLogoTex));
-        SAFE_RELEASE(pD3D11Resource);
+        SAFE_RELEASE(pD3D11Resource);*/
+
+        g_pFMODLogoTex = OceanConst.CreateTexture2DFromFileSRGB(".\\Media\\fmod_logo.dds");
 
         {
-            D3D11_BUFFER_DESC vBufferDesc;
+            /*D3D11_BUFFER_DESC vBufferDesc;
             vBufferDesc.ByteWidth = 4 * sizeof(D3DXVECTOR4);
             vBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
             vBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
             vBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
             vBufferDesc.MiscFlags = 0;
-            V_RETURN(pd3dDevice->CreateBuffer(&vBufferDesc, NULL, &g_pSkyBoxVB));
+            V_RETURN(pd3dDevice->CreateBuffer(&vBufferDesc, NULL, &g_pSkyBoxVB));*/
+
+            g_pSkyBoxVB = new BufferGL();
+            g_pSkyBoxVB.initlize(GLenum.GL_ARRAY_BUFFER, 4* Vector4f.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
         }
 
         // Readback marker
         {
-            ID3DXBuffer* pEffectBuffer = NULL;
+           /* ID3DXBuffer* pEffectBuffer = NULL;
             V_RETURN(LoadFile(TEXT(".\\Media\\ocean_marker_d3d11.fxo"), &pEffectBuffer));
             V_RETURN(D3DX11CreateEffectFromMemory(pEffectBuffer->GetBufferPointer(), pEffectBuffer->GetBufferSize(), 0, pd3dDevice, &g_pMarkerFX));
-            pEffectBuffer->Release();
+            pEffectBuffer->Release();*/
         }
 
-        g_pMarkerTechnique = g_pMarkerFX->GetTechniqueByName("RenderMarkerTech");
-        g_pMarkerMatViewProjVariable = g_pMarkerFX->GetVariableByName("g_matViewProj")->AsMatrix();
+        g_pMarkerTechnique = ShaderManager.getInstance().getProgram("RenderMarkerTech");
+//        g_pMarkerMatViewProjVariable = g_pMarkerFX->GetVariableByName("g_matViewProj")->AsMatrix();
 
-	const D3D11_INPUT_ELEMENT_DESC marker_layout[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
-	const UINT num_marker_layout_elements = sizeof(marker_layout)/sizeof(marker_layout[0]);
+	    final D3D11_INPUT_ELEMENT_DESC marker_layout[] = {
+            new D3D11_INPUT_ELEMENT_DESC( "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 ),
+        };
+	    /*const UINT num_marker_layout_elements = sizeof(marker_layout)/sizeof(marker_layout[0]);
 
         V_RETURN(g_pMarkerTechnique->GetPassByIndex(0)->GetDesc(&PassDesc));
 
         V_RETURN(pd3dDevice->CreateInputLayout(	marker_layout, num_marker_layout_elements,
                 PassDesc.pIAInputSignature, PassDesc.IAInputSignatureSize,
                 &g_pMarkerLayout
-        ));
+        ));*/
+        g_pMarkerLayout = ID3D11InputLayout.createInputLayoutFrom(marker_layout);
 
         {
-            D3D11_BUFFER_DESC vBufferDesc;
+            /*D3D11_BUFFER_DESC vBufferDesc;
             vBufferDesc.ByteWidth = 5 * sizeof(D3DXVECTOR4);
             vBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
             vBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
             vBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
             vBufferDesc.MiscFlags = 0;
-            V_RETURN(pd3dDevice->CreateBuffer(&vBufferDesc, NULL, &g_pMarkerVB));
+            V_RETURN(pd3dDevice->CreateBuffer(&vBufferDesc, NULL, &g_pMarkerVB));*/
+
+            g_pMarkerVB = new BufferGL();
+            g_pMarkerVB.initlize(GLenum.GL_ARRAY_BUFFER, 5*Vector4f.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
         }
 
         {
-            static const WORD indices[] = {0,1,2, 0,2,3, 0,3,4, 0,4,1};
+            final short indices[] = {0,1,2, 0,2,3, 0,3,4, 0,4,1};
 
-            D3D11_BUFFER_DESC iBufferDesc;
+            /*D3D11_BUFFER_DESC iBufferDesc;
             iBufferDesc.ByteWidth = sizeof(indices);
             iBufferDesc.Usage = D3D11_USAGE_IMMUTABLE ;
             iBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -556,7 +595,10 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
             iBufferData.SysMemPitch = 0;
             iBufferData.SysMemSlicePitch = 0;
 
-            V_RETURN(pd3dDevice->CreateBuffer(&iBufferDesc, &iBufferData, &g_pMarkerIB));
+            V_RETURN(pd3dDevice->CreateBuffer(&iBufferDesc, &iBufferData, &g_pMarkerIB));*/
+
+            g_pMarkerIB = new BufferGL();
+            g_pMarkerIB.initlize(GLenum.GL_ELEMENT_ARRAY_BUFFER, 2*indices.length, CacheBuffer.wrap(indices), GLenum.GL_STATIC_DRAW);
         }
 
 /*#if ENABLE_SSAO
@@ -591,152 +633,167 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
     void ReleaseViewDependentResources()
     {
         // MSAA targets
-        SAFE_RELEASE(g_pColorBuffer);
-        SAFE_RELEASE(g_pColorBufferRTV);
-        SAFE_RELEASE(g_pColorBufferSRV);
+        CommonUtil.safeRelease(g_pColorBuffer);
+        CommonUtil.safeRelease(g_pColorBufferRTV);
+        CommonUtil.safeRelease(g_pColorBufferSRV);
 
-        SAFE_RELEASE(g_pDepthBuffer);
-        SAFE_RELEASE(g_pDepthBufferDSV);
-        SAFE_RELEASE(g_pDepthBufferReadDSV);
-        SAFE_RELEASE(g_pDepthBufferSRV);
+        CommonUtil.safeRelease(g_pDepthBuffer);
+        CommonUtil.safeRelease(g_pDepthBufferDSV);
+        CommonUtil.safeRelease(g_pDepthBufferReadDSV);
+        CommonUtil.safeRelease(g_pDepthBufferSRV);
 
         // Resolved targets
-        SAFE_RELEASE(g_pColorBufferResolved);
-        SAFE_RELEASE(g_pColorBufferResolvedRTV);
-        SAFE_RELEASE(g_pColorBufferResolvedSRV);
+        CommonUtil.safeRelease(g_pColorBufferResolved);
+        CommonUtil.safeRelease(g_pColorBufferResolvedRTV);
+        CommonUtil.safeRelease(g_pColorBufferResolvedSRV);
 
-        SAFE_RELEASE(g_pDepthBufferResolved);
-        SAFE_RELEASE(g_pDepthBufferResolvedDSV);
-        SAFE_RELEASE(g_pDepthBufferResolvedReadDSV);
-        SAFE_RELEASE(g_pDepthBufferResolvedSRV);
+        CommonUtil.safeRelease(g_pDepthBufferResolved);
+        CommonUtil.safeRelease(g_pDepthBufferResolvedDSV);
+        CommonUtil.safeRelease(g_pDepthBufferResolvedReadDSV);
+        CommonUtil.safeRelease(g_pDepthBufferResolvedSRV);
 
-        SAFE_RELEASE(g_reflectionColorResource);
-        SAFE_RELEASE(g_reflectionColorResourceSRV);
-        SAFE_RELEASE(g_reflectionColorResourceRTV);
-        SAFE_RELEASE(g_reflectionDepthResource);
-        SAFE_RELEASE(g_reflectionDepthResourceDSV);
-        SAFE_RELEASE(g_reflectionDepthResourceSRV);
-        SAFE_RELEASE(g_sceneShadowMapResource);
-        SAFE_RELEASE(g_sceneShadowMapResourceDSV);
-        SAFE_RELEASE(g_sceneShadowMapResourceSRV);
+        CommonUtil.safeRelease(g_reflectionColorResource);
+        CommonUtil.safeRelease(g_reflectionColorResourceSRV);
+        CommonUtil.safeRelease(g_reflectionColorResourceRTV);
+        CommonUtil.safeRelease(g_reflectionDepthResource);
+        CommonUtil.safeRelease(g_reflectionDepthResourceDSV);
+        CommonUtil.safeRelease(g_reflectionDepthResourceSRV);
+        CommonUtil.safeRelease(g_sceneShadowMapResource);
+        CommonUtil.safeRelease(g_sceneShadowMapResourceDSV);
+        CommonUtil.safeRelease(g_sceneShadowMapResourceSRV);
 
-        SAFE_RELEASE(g_pReflectionViewDepth);
-        SAFE_RELEASE(g_pReflectionViewDepthRTV);
-        SAFE_RELEASE(g_pReflectionViewDepthSRV);
+        CommonUtil.safeRelease(g_pReflectionViewDepth);
+        CommonUtil.safeRelease(g_pReflectionViewDepthRTV);
+        CommonUtil.safeRelease(g_pReflectionViewDepthSRV);
     }
 
-    HRESULT CreateViewDependentResources( ID3D11Device* pd3dDevice, const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc)
+    void CreateViewDependentResources( /*ID3D11Device* pd3dDevice, const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc*/ int width, int height, int format)
     {
-        HRESULT hr;
 
         ReleaseViewDependentResources();
 
-#if ENABLE_TXAA
+/*#if ENABLE_TXAA
             g_TXAAisActive = g_TXAA_Status == TXAA_RETURN_OK &&
             g_SwapChainDesc.SampleDesc.Count == 4 &&
             g_SwapChainDesc.SampleDesc.Quality == 0;
-#endif
+#endif*/
 
         { // MSAA targets
-#if 0
             {
-                CD3D11_TEXTURE2D_DESC desc(pBackBufferSurfaceDesc->Format, pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height, 1, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
-                desc.SampleDesc = g_SwapChainDesc.SampleDesc;
-                V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pColorBuffer));
+//                CD3D11_TEXTURE2D_DESC desc(pBackBufferSurfaceDesc->Format, pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height, 1, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
+//                desc.SampleDesc = g_SwapChainDesc.SampleDesc;
+//                V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pColorBuffer));
+                Texture2DDesc desc = new Texture2DDesc(width, height, format);
+                desc.sampleCount = 4;
 
-                CD3D11_RENDER_TARGET_VIEW_DESC descRTV(desc.SampleDesc.Count > 1 ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D, pBackBufferSurfaceDesc->Format);
+                g_pColorBuffer = g_pColorBufferRTV = g_pColorBufferSRV = TextureUtils.createTexture2D(desc, null);
+
+                /*CD3D11_RENDER_TARGET_VIEW_DESC descRTV(desc.SampleDesc.Count > 1 ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D, pBackBufferSurfaceDesc->Format);
                 V_RETURN(pd3dDevice->CreateRenderTargetView(g_pColorBuffer, &descRTV, &g_pColorBufferRTV));
 
                 CD3D11_SHADER_RESOURCE_VIEW_DESC descSRV(desc.SampleDesc.Count > 1 ? D3D11_SRV_DIMENSION_TEXTURE2DMS : D3D11_SRV_DIMENSION_TEXTURE2D, pBackBufferSurfaceDesc->Format);
-                V_RETURN(pd3dDevice->CreateShaderResourceView(g_pColorBuffer, &descSRV, &g_pColorBufferSRV));
+                V_RETURN(pd3dDevice->CreateShaderResourceView(g_pColorBuffer, &descSRV, &g_pColorBufferSRV));*/
             }
-#endif
 
             {
-                CD3D11_TEXTURE2D_DESC desc(DXGI_FORMAT_R24G8_TYPELESS, pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height, 1, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL);
-                desc.SampleDesc = g_SwapChainDesc.SampleDesc;
-                V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pDepthBuffer));
+//                Texture2DDesc desc = (DXGI_FORMAT_R24G8_TYPELESS, pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height, 1, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL);
+                Texture2DDesc desc = new Texture2DDesc(width, height, format);
+                /*desc.SampleDesc = g_SwapChainDesc.SampleDesc;  TODO multisample
+                V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pDepthBuffer));*/
+                g_pDepthBuffer = TextureUtils.createTexture2D(desc, null);
 
-                CD3D11_DEPTH_STENCIL_VIEW_DESC descDSV(desc.SampleDesc.Count > 1 ? D3D11_DSV_DIMENSION_TEXTURE2DMS : D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT);
+                /*CD3D11_DEPTH_STENCIL_VIEW_DESC descDSV(desc.SampleDesc.Count > 1 ? D3D11_DSV_DIMENSION_TEXTURE2DMS : D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT);
                 V_RETURN(pd3dDevice->CreateDepthStencilView(g_pDepthBuffer, &descDSV, &g_pDepthBufferDSV));
 
                 descDSV.Flags = D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL;
                 V_RETURN(pd3dDevice->CreateDepthStencilView(g_pDepthBuffer, &descDSV, &g_pDepthBufferReadDSV));
 
                 CD3D11_SHADER_RESOURCE_VIEW_DESC descSRV(desc.SampleDesc.Count > 1 ? D3D11_SRV_DIMENSION_TEXTURE2DMS : D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
-                V_RETURN(pd3dDevice->CreateShaderResourceView(g_pDepthBuffer, &descSRV, &g_pDepthBufferSRV));
+                V_RETURN(pd3dDevice->CreateShaderResourceView(g_pDepthBuffer, &descSRV, &g_pDepthBufferSRV));*/
+                g_pDepthBufferDSV = g_pDepthBufferReadDSV = g_pDepthBufferSRV = g_pDepthBuffer;
             }
         }
 
         //if (g_TXAAisActive) // Resolved targets
         {
-            UINT bufferWidth = pBackBufferSurfaceDesc->Width / DOWNSAMPLE_SCALE;
-            UINT bufferHeight = pBackBufferSurfaceDesc->Height / DOWNSAMPLE_SCALE;
+            int bufferWidth = width / DOWNSAMPLE_SCALE;
+            int bufferHeight = height / DOWNSAMPLE_SCALE;
 
             {
-                CD3D11_TEXTURE2D_DESC desc(DXGI_FORMAT_R32_TYPELESS, bufferWidth, bufferHeight, 1, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL);
-                V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pDepthBufferResolved));
+//                CD3D11_TEXTURE2D_DESC desc(DXGI_FORMAT_R32_TYPELESS, bufferWidth, bufferHeight, 1, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL);
+                Texture2DDesc desc = new Texture2DDesc(bufferWidth, bufferHeight, GLenum.GL_R32F);
+//                V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pDepthBufferResolved));
+                g_pDepthBufferResolved = TextureUtils.createTexture2D(desc, null);
 
-                CD3D11_DEPTH_STENCIL_VIEW_DESC descDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D32_FLOAT);
+                /*CD3D11_DEPTH_STENCIL_VIEW_DESC descDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D32_FLOAT);
                 V_RETURN(pd3dDevice->CreateDepthStencilView(g_pDepthBufferResolved, &descDSV, &g_pDepthBufferResolvedDSV));
 
                 descDSV.Flags = D3D11_DSV_READ_ONLY_DEPTH;
                 V_RETURN(pd3dDevice->CreateDepthStencilView(g_pDepthBufferResolved, &descDSV, &g_pDepthBufferResolvedReadDSV));
 
                 CD3D11_SHADER_RESOURCE_VIEW_DESC descSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R32_FLOAT);
-                V_RETURN(pd3dDevice->CreateShaderResourceView(g_pDepthBufferResolved, &descSRV, &g_pDepthBufferResolvedSRV));
+                V_RETURN(pd3dDevice->CreateShaderResourceView(g_pDepthBufferResolved, &descSRV, &g_pDepthBufferResolvedSRV));*/
+
+                g_pDepthBufferResolvedDSV = g_pDepthBufferResolvedReadDSV = g_pDepthBufferResolvedSRV = g_pDepthBufferResolved;
             }
 
             {
-                DXGI_FORMAT format = pBackBufferSurfaceDesc->Format;
-                CD3D11_TEXTURE2D_DESC desc(format, bufferWidth, bufferHeight, 1, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
-                V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pColorBufferResolved));
+//                DXGI_FORMAT format = pBackBufferSurfaceDesc->Format;
+//                CD3D11_TEXTURE2D_DESC desc(format, bufferWidth, bufferHeight, 1, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
+                Texture2DDesc desc = new Texture2DDesc(bufferWidth, bufferHeight, format);
+//                V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pColorBufferResolved));
+                g_pColorBufferResolved = TextureUtils.createTexture2D(desc, null);
 
-                CD3D11_RENDER_TARGET_VIEW_DESC descRTV(D3D11_RTV_DIMENSION_TEXTURE2D, format);
+                /*CD3D11_RENDER_TARGET_VIEW_DESC descRTV(D3D11_RTV_DIMENSION_TEXTURE2D, format);
                 V_RETURN(pd3dDevice->CreateRenderTargetView(g_pColorBufferResolved, &descRTV, &g_pColorBufferResolvedRTV));
 
                 CD3D11_SHADER_RESOURCE_VIEW_DESC descSRV(D3D11_SRV_DIMENSION_TEXTURE2D, format);
-                V_RETURN(pd3dDevice->CreateShaderResourceView(g_pColorBufferResolved, &descSRV, &g_pColorBufferResolvedSRV));
+                V_RETURN(pd3dDevice->CreateShaderResourceView(g_pColorBufferResolved, &descSRV, &g_pColorBufferResolvedSRV));*/
+
+                g_pColorBufferResolvedRTV = g_pColorBufferResolvedSRV = g_pColorBufferResolved;
             }
         }
 
         // (Re)creating reflection buffers
-        D3D11_TEXTURE2D_DESC tex_desc;
-        D3D11_SHADER_RESOURCE_VIEW_DESC textureSRV_desc;
-        D3D11_DEPTH_STENCIL_VIEW_DESC DSV_desc;
+        Texture2DDesc tex_desc = new Texture2DDesc();
+//        D3D11_SHADER_RESOURCE_VIEW_DESC textureSRV_desc;
+//        D3D11_DEPTH_STENCIL_VIEW_DESC DSV_desc;
         float reflection_buffer_size_multiplier=1.0f;
 
-        ZeroMemory(&textureSRV_desc,sizeof(textureSRV_desc));
-        ZeroMemory(&tex_desc,sizeof(tex_desc));
+//        ZeroMemory(&textureSRV_desc,sizeof(textureSRV_desc));
+//        ZeroMemory(&tex_desc,sizeof(tex_desc));
 
-        tex_desc.Width              = (UINT)(pBackBufferSurfaceDesc->Width*reflection_buffer_size_multiplier);
-        tex_desc.Height             = (UINT)(pBackBufferSurfaceDesc->Height*reflection_buffer_size_multiplier);
-        tex_desc.MipLevels          = (UINT)max(1,log(max((float)tex_desc.Width,(float)tex_desc.Height))/(float)log(2.0f));
-        tex_desc.ArraySize          = 1;
-        tex_desc.Format             = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        tex_desc.SampleDesc.Count   = 1;
-        tex_desc.SampleDesc.Quality = 0;
-        tex_desc.Usage              = D3D11_USAGE_DEFAULT;
-        tex_desc.BindFlags          = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-        tex_desc.CPUAccessFlags     = 0;
-        tex_desc.MiscFlags          = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+        tex_desc.width              = (int)(width * reflection_buffer_size_multiplier);
+        tex_desc.height             = (int)(height *reflection_buffer_size_multiplier);
+        tex_desc.mipLevels          = (int)Math.max(1,Math.log(Math.max((float)tex_desc.width,(float)tex_desc.height))/(float)Math.log(2.0f));
+        tex_desc.arraySize          = 1;
+        tex_desc.format             = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        tex_desc.sampleCount        = 1;
+//        tex_desc.SampleDesc.Quality = 0;
+//        tex_desc.Usage              = D3D11_USAGE_DEFAULT;
+//        tex_desc.BindFlags          = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+//        tex_desc.CPUAccessFlags     = 0;
+//        tex_desc.MiscFlags          = D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
-        textureSRV_desc.Format                    = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        /*textureSRV_desc.Format                    = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
         textureSRV_desc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
         textureSRV_desc.Texture2D.MipLevels = tex_desc.MipLevels;
         textureSRV_desc.Texture2D.MostDetailedMip = 0;
 
         V_RETURN(pd3dDevice->CreateTexture2D( &tex_desc, NULL, &g_reflectionColorResource));
         V_RETURN(pd3dDevice->CreateShaderResourceView( g_reflectionColorResource, &textureSRV_desc, &g_reflectionColorResourceSRV));
-        V_RETURN(pd3dDevice->CreateRenderTargetView( g_reflectionColorResource, NULL, &g_reflectionColorResourceRTV));
+        V_RETURN(pd3dDevice->CreateRenderTargetView( g_reflectionColorResource, NULL, &g_reflectionColorResourceRTV));*/
 
-        tex_desc.Width              = (UINT)(pBackBufferSurfaceDesc->Width*reflection_buffer_size_multiplier);
-        tex_desc.Height             = (UINT)(pBackBufferSurfaceDesc->Height*reflection_buffer_size_multiplier);
-        tex_desc.MipLevels          = 1;
-        tex_desc.ArraySize          = 1;
-        tex_desc.Format             = DXGI_FORMAT_R32_TYPELESS;
-        tex_desc.SampleDesc.Count   = 1;
-        tex_desc.SampleDesc.Quality = 0;
+        g_reflectionColorResource = TextureUtils.createTexture2D(tex_desc, null);
+        g_reflectionColorResourceSRV = g_reflectionColorResourceRTV = g_reflectionColorResource;
+
+        tex_desc.width              = (int)(width*reflection_buffer_size_multiplier);
+        tex_desc.height             = (int)(height*reflection_buffer_size_multiplier);
+        tex_desc.mipLevels          = 1;
+        tex_desc.arraySize          = 1;
+        tex_desc.format             = /*DXGI_FORMAT_R32_TYPELESS*/ GLenum.GL_DEPTH_COMPONENT32F;
+        tex_desc.sampleCount        = 1;
+        /*tex_desc.SampleDesc.Quality = 0;
         tex_desc.Usage              = D3D11_USAGE_DEFAULT;
         tex_desc.BindFlags          = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
         tex_desc.CPUAccessFlags     = 0;
@@ -754,26 +811,33 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
 
         V_RETURN(pd3dDevice->CreateTexture2D( &tex_desc, NULL, &g_reflectionDepthResource));
         V_RETURN(pd3dDevice->CreateDepthStencilView(g_reflectionDepthResource, &DSV_desc, &g_reflectionDepthResourceDSV));
-        V_RETURN(pd3dDevice->CreateShaderResourceView(g_reflectionDepthResource, &textureSRV_desc, &g_reflectionDepthResourceSRV));
+        V_RETURN(pd3dDevice->CreateShaderResourceView(g_reflectionDepthResource, &textureSRV_desc, &g_reflectionDepthResourceSRV));*/
+
+        g_reflectionDepthResource = TextureUtils.createTexture2D(tex_desc, null);
+        g_reflectionDepthResourceDSV = g_reflectionDepthResourceSRV = g_reflectionDepthResource;
 
         {
-            CD3D11_TEXTURE2D_DESC desc(DXGI_FORMAT_R16G16B16A16_FLOAT, tex_desc.Width, tex_desc.Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
-            V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pReflectionViewDepth));
+//            CD3D11_TEXTURE2D_DESC desc(DXGI_FORMAT_R16G16B16A16_FLOAT, tex_desc.Width, tex_desc.Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+//            V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pReflectionViewDepth));
+            tex_desc.format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+            g_pReflectionViewDepth = TextureUtils.createTexture2D(tex_desc, null);
 
-            CD3D11_RENDER_TARGET_VIEW_DESC descRTV(D3D11_RTV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R16G16B16A16_FLOAT);
+            /*CD3D11_RENDER_TARGET_VIEW_DESC descRTV(D3D11_RTV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R16G16B16A16_FLOAT);
             V_RETURN(pd3dDevice->CreateRenderTargetView(g_pReflectionViewDepth, &descRTV, &g_pReflectionViewDepthRTV));
 
+
             CD3D11_SHADER_RESOURCE_VIEW_DESC descSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R16G16B16A16_FLOAT);
-            V_RETURN(pd3dDevice->CreateShaderResourceView(g_pReflectionViewDepth, &descSRV, &g_pReflectionViewDepthSRV));
+            V_RETURN(pd3dDevice->CreateShaderResourceView(g_pReflectionViewDepth, &descSRV, &g_pReflectionViewDepthSRV));*/
+            g_pReflectionViewDepthRTV = g_pReflectionViewDepthSRV = g_pReflectionViewDepth;
         }
 
         // (Re)creating shadowmap buffers
-        tex_desc.Width              = (UINT)(SCENE_SHADOWMAP_SIZE);
-        tex_desc.Height             = (UINT)(SCENE_SHADOWMAP_SIZE);
-        tex_desc.MipLevels          = 1;
-        tex_desc.ArraySize          = 1;
-        tex_desc.Format             = DXGI_FORMAT_R32_TYPELESS;
-        tex_desc.SampleDesc.Count   = 1;
+        tex_desc.width              = (SCENE_SHADOWMAP_SIZE);
+        tex_desc.height             = (SCENE_SHADOWMAP_SIZE);
+        tex_desc.mipLevels          = 1;
+        tex_desc.arraySize          = 1;
+        tex_desc.format             = GLenum.GL_DEPTH_COMPONENT32F;
+        /*tex_desc.SampleDesc.Count   = 1;
         tex_desc.SampleDesc.Quality = 0;
         tex_desc.Usage              = D3D11_USAGE_DEFAULT;
         tex_desc.BindFlags          = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
@@ -792,57 +856,47 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
 
         V_RETURN(pd3dDevice->CreateTexture2D( &tex_desc, NULL, &g_sceneShadowMapResource));
         V_RETURN(pd3dDevice->CreateDepthStencilView(g_sceneShadowMapResource, &DSV_desc, &g_sceneShadowMapResourceDSV));
-        V_RETURN(pd3dDevice->CreateShaderResourceView(g_sceneShadowMapResource, &textureSRV_desc, &g_sceneShadowMapResourceSRV));
+        V_RETURN(pd3dDevice->CreateShaderResourceView(g_sceneShadowMapResource, &textureSRV_desc, &g_sceneShadowMapResourceSRV));*/
+        g_sceneShadowMapResource = TextureUtils.createTexture2D(tex_desc, null);
+        g_sceneShadowMapResourceDSV = g_sceneShadowMapResourceSRV = g_sceneShadowMapResource;
 
-#if ENABLE_TXAA
-        if (g_TXAA_Status == TXAA_RETURN_OK)
-        {
-
-        }
-#endif
-
-
-        return hr;
     }
 
     //--------------------------------------------------------------------------------------
 // Create any D3D11 resources that depend on the back buffer
 //--------------------------------------------------------------------------------------
-    HRESULT CALLBACK OnD3D11ResizedSwapChain( ID3D11Device* pd3dDevice, IDXGISwapChain* pSwapChain,
-                                         const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc, void* pUserContext )
+    void OnD3D11ResizedSwapChain( int width, int height )
     {
-        HRESULT hr;
-
-        BOOL fullScreen = true;
-        IDXGIOutput* pUnused=NULL;
-        pSwapChain->GetFullscreenState(&fullScreen, &pUnused);
-        //g_CursorVisibility.SetVisibility(!fullScreen);
-
-        V_RETURN( g_DialogResourceManager.OnD3D11ResizedSwapChain(pd3dDevice,pBackBufferSurfaceDesc) );
-        V_RETURN( g_SettingsDlg.OnD3D11ResizedSwapChain(pd3dDevice,pBackBufferSurfaceDesc) );
+        boolean fullScreen = true;
+//        IDXGIOutput* pUnused=NULL;
+//        pSwapChain->GetFullscreenState(&fullScreen, &pUnused);
+//        //g_CursorVisibility.SetVisibility(!fullScreen);
+//
+//        V_RETURN( g_DialogResourceManager.OnD3D11ResizedSwapChain(pd3dDevice,pBackBufferSurfaceDesc) );
+//        V_RETURN( g_SettingsDlg.OnD3D11ResizedSwapChain(pd3dDevice,pBackBufferSurfaceDesc) );
 
         // Setup the camera's projection parameters
-        float fAspectRatio = pBackBufferSurfaceDesc->Width / (FLOAT)pBackBufferSurfaceDesc->Height;
-        g_Camera.SetProjParams(D3DX_PI/5, fAspectRatio, g_NearPlane, g_FarPlane);
+        float fAspectRatio = width / (float)height;
+        g_Camera.setProjection((float)Math.toDegrees(Numeric.PI/5), fAspectRatio, g_NearPlane, g_FarPlane);
 
-        CreateViewDependentResources(pd3dDevice, pBackBufferSurfaceDesc);
+        CreateViewDependentResources(width, height, GLenum.GL_SRGB8_ALPHA8);
 
         // UI
-        g_HUD.SetLocation(pBackBufferSurfaceDesc->Width-180, 8);
-        g_HUD.SetSize(172, 704);
+//        g_HUD.SetLocation(pBackBufferSurfaceDesc->Width-180, 8);
+//        g_HUD.SetSize(172, 704);
 
         // Create Vb for nvidia logo
-        float width = (float)200/pBackBufferSurfaceDesc->Width;
-        float height = (float)160/pBackBufferSurfaceDesc->Height;
-        float fmod_width = 2.f*(float)FMOD_logo_w/pBackBufferSurfaceDesc->Width;
-        float fmod_height = 2.f*(float)FMOD_logo_h/pBackBufferSurfaceDesc->Height;
+        float _width = (float)200/width;
+        float _height = (float)160/height;
+        float fmod_width = 2.f*(float)FMOD_logo_w/width;
+        float fmod_height = 2.f*(float)FMOD_logo_h/height;
         float half_tex = 0;
-        float vertices0[] = {0.94f - width, -0.96f + height, 0,    half_tex,      half_tex,
-                0.94f - width, -0.96f,          0,    half_tex,      half_tex+1.0f,
-                0.94f,         -0.96f + height, 0,    half_tex+1.0f, half_tex,
+        float vertices0[] = {0.94f - _width, -0.96f + _height, 0,    half_tex,      half_tex,
+                0.94f - _width, -0.96f,          0,    half_tex,      half_tex+1.0f,
+                0.94f,         -0.96f + _height, 0,    half_tex+1.0f, half_tex,
                 0.94f,         -0.96f,          0,    half_tex+1.0f, half_tex+1.0f};
 
-        D3D11_BUFFER_DESC vBufferDesc;
+        /*D3D11_BUFFER_DESC vBufferDesc;
         vBufferDesc.ByteWidth = sizeof(vertices0);
         vBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
         vBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -855,47 +909,57 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
         vSrd.SysMemPitch = 0;
         vSrd.SysMemSlicePitch = 0;
 
-        V_RETURN(pd3dDevice->CreateBuffer(&vBufferDesc, &vSrd, &g_pLogoVB));
+        V_RETURN(pd3dDevice->CreateBuffer(&vBufferDesc, &vSrd, &g_pLogoVB));*/
 
-	const float fmod_left = -1.f + 2.f * float((pBackBufferSurfaceDesc->Width-180)/2 - 150)/float(pBackBufferSurfaceDesc->Width);
-	const float fmod_top = 1.f - 2.f * float(450+22)/float(pBackBufferSurfaceDesc->Height);
+        CommonUtil.safeRelease(g_pLogoVB);
+        CommonUtil.safeRelease(g_pFMODLogoVB);
+        g_pLogoVB = new BufferGL();
+        g_pLogoVB.initlize(GLenum.GL_ARRAY_BUFFER, 4*vertices0.length, CacheBuffer.wrap(vertices0), GLenum.GL_STATIC_DRAW);
+
+	    final float fmod_left = -1.f + 2.f * ((width-180)/2 - 150)/(width);
+        final float fmod_top = 1.f - 2.f * (450+22)/(height);
 
         float fmodvertices0[] = {fmod_left,              fmod_top,               0,    half_tex,      half_tex,
                 fmod_left,              fmod_top - fmod_height, 0,    half_tex,      half_tex+1.0f,
                 fmod_left + fmod_width, fmod_top,               0,    half_tex+1.0f, half_tex,
                 fmod_left + fmod_width, fmod_top - fmod_height, 0,    half_tex+1.0f, half_tex+1.0f};
 
-        D3D11_SUBRESOURCE_DATA vFMODSrd;
+        /*D3D11_SUBRESOURCE_DATA vFMODSrd;
         vFMODSrd.pSysMem = fmodvertices0;
         vFMODSrd.SysMemPitch = 0;
         vFMODSrd.SysMemSlicePitch = 0;
 
         V_RETURN(pd3dDevice->CreateBuffer(&vBufferDesc, &vFMODSrd, &g_pFMODLogoVB));
 
-        return S_OK;
+        return S_OK;*/
+
+        g_pFMODLogoVB = new BufferGL();
+        g_pFMODLogoVB.initlize(GLenum.GL_ARRAY_BUFFER, 4*fmodvertices0.length, CacheBuffer.wrap(fmodvertices0), GLenum.GL_STATIC_DRAW);
     }
 
     //--------------------------------------------------------------------------------------
 // Handle updates to the scene.  This is called regardless of which D3D API is used
 //--------------------------------------------------------------------------------------
-    void CALLBACK OnFrameMove( double fTime, float fElapsedTime, void* pUserContext )
+    void OnFrameMove( float fTime, float fElapsedTime )
     {
         UpdatePresetTransition(fElapsedTime);
 
         // Update the wind speed readout
-	const UINT buffer_len = 256;
+	    /*const UINT buffer_len = 256;
         WCHAR buffer[buffer_len];
-        swprintf_s(buffer,buffer_len,L"BEAUFORT: %0.1f", g_ocean_simulation_param.wind_speed);
+        swprintf_s(buffer,buffer_len,"BEAUFORT: %0.1f", g_ocean_simulation_param.wind_speed);
         g_HUD.GetStatic(IDC_WIND_SPEED_READOUT)->SetText(buffer);
-        g_HUD.GetStatic(IDC_WIND_SPEED_READOUT)->SetTextColor(0xFFFFFF00);
+        g_HUD.GetStatic(IDC_WIND_SPEED_READOUT)->SetTextColor(0xFFFFFF00);*/
 
         // Update the time of day readout
-        float tod = GetTimeOfDay();
-	const int tod_hours = ((int)tod)%12;
-	const WCHAR* tod_ampm = tod >= 12.f ? L"pm" : L"am";
-	const int tod_minutes = (int)floor(60.f*(tod-floor(tod)));
-        swprintf_s(buffer,buffer_len,L"Time of day: %d:%02d%s", tod_hours, tod_minutes, tod_ampm);
-        g_HUD.GetStatic(IDC_TIMEOFDAY_READOUT)->SetText(buffer);
+       float tod = GetTimeOfDay();
+       final int tod_hours = ((int)tod)%12;
+//	    const WCHAR* tod_ampm = tod >= 12.f ? "pm" : "am";
+        final int tod_minutes = (int)Math.floor(60.f*(tod-Math.floor(tod)));
+         /*swprintf_s(buffer,buffer_len,"Time of day: %d:%02d%s", tod_hours, tod_minutes, tod_ampm);
+        g_HUD.GetStatic(IDC_TIMEOFDAY_READOUT)->SetText(buffer);*/
+
+
 
         // Cap sim time to make debugging less horrible!
         if(fElapsedTime > 0.1f) {
@@ -904,57 +968,57 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
             g_TimeMultiplier = 1.f;
         }
 
-        ID3D11DeviceContext* pDC = DXUTGetD3D11DeviceContext();
-        if(g_bSimulateWater || g_ForceKick || (gfsdk_waveworks_result_NONE==GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,NULL)))
+//        ID3D11DeviceContext* pDC = DXUTGetD3D11DeviceContext();
+        if(g_bSimulateWater || g_ForceKick || (GFSDK_WaveWorks_Result.NONE ==GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,null)))
         {
             // Fill the simulation pipeline - this loop should execute once in all cases except the first
             // iteration, when the simulation pipeline is first 'primed'
             do {
-                GFSDK_WaveWorks_Simulation_SetTime(g_hOceanSimulation, g_TotalSimulatedTime);
-                GFSDK_WaveWorks_Simulation_KickD3D11(g_hOceanSimulation, NULL, pDC, g_hOceanSavestate);
+                GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_SetTime(g_hOceanSimulation, g_TotalSimulatedTime);
+                GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_KickD3D11(g_hOceanSimulation, null, g_hOceanSavestate);
                 g_TotalSimulatedTime += (double)g_TimeMultiplier * (double)fElapsedTime;
-            } while(gfsdk_waveworks_result_NONE==GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,NULL));
-            GFSDK_WaveWorks_Savestate_RestoreD3D11(g_hOceanSavestate, pDC);
+            } while(GFSDK_WaveWorks_Result.NONE==GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStagingCursor(g_hOceanSimulation,null));
+//            GFSDK_WaveWorks.GFSDK_WaveWorks_Savestate_RestoreD3D11(g_hOceanSavestate, pDC);  TODO missing the function
             g_ForceKick = false;
         }
 
         g_ocean_env.activeLightsNum = 0;
 
-        g_pHeroVessel->updateVesselMotion(pDC, g_hOceanSimulation, g_ocean_param_quadtree.sea_level, fElapsedTime * g_TimeMultiplier, kWaterScale);
-        g_pCameraVessel->updateVesselMotion(pDC, g_hOceanSimulation, g_ocean_param_quadtree.sea_level, fElapsedTime * g_TimeMultiplier, kWaterScale);
+        g_pHeroVessel.updateVesselMotion( g_hOceanSimulation, g_ocean_param_quadtree.sea_level, fElapsedTime * g_TimeMultiplier, kWaterScale);
+        g_pCameraVessel.updateVesselMotion( g_hOceanSimulation, g_ocean_param_quadtree.sea_level, fElapsedTime * g_TimeMultiplier, kWaterScale);
 
-        // Put camera on vessel 0
+        // Put camera on .vessel 0
         if(g_VesselMode == VesselMode_OnBoard) {
-            g_Camera.SetVesselBorneXform(g_pCameraVessel->getCameraXform());
+//            g_Camera.SetVesselBorneXform(g_pCameraVessel->getCameraXform());
         }
 
-        g_Camera.FrameMove( fElapsedTime );
+//        g_Camera.FrameMove( fElapsedTime );
 
         // Update lights in env
         float ship_lighting = ShipLightingOfPreset(g_CurrentPreset);
-        if(tod<6.5f) ship_lighting = min(1.0f, ship_lighting + 6.5f - tod);
+        if(tod<6.5f) ship_lighting = Math.min(1.0f, ship_lighting + 6.5f - tod);
 
-        D3DXMATRIX viewMatrix = *g_Camera.GetViewMatrix();
-        g_pHeroVessel->updateVesselLightsInEnv(g_ocean_env, viewMatrix, ship_lighting, 0);
+        Matrix4f viewMatrix = g_Camera.getViewMatrix();
+        g_pHeroVessel.updateVesselLightsInEnv(g_ocean_env, viewMatrix, ship_lighting, 0);
 
-        g_pOceanSurf->setWorldToShipMatrix(*g_pHeroVessel->getWakeToWorldXform());
+        g_pOceanSurf.setWorldToShipMatrix(g_pHeroVessel.getWakeToWorldXform());
 
-	const bool is_paused = DXUTGetGlobalTimer()->IsStopped();
-        UpdateOceanAudio(fTime, fElapsedTime, g_ocean_simulation_param.wind_speed, g_pOceanSpray->getSplashPowerFromLastUpdate(), is_paused);
+//	    const bool is_paused = DXUTGetGlobalTimer()->IsStopped();
+//        UpdateOceanAudio(fTime, fElapsedTime, g_ocean_simulation_param.wind_speed, g_pOceanSpray->getSplashPowerFromLastUpdate(), is_paused);
 
         // Run peak meter for splash power
-        g_recentMaxSplashPower = max(g_recentMaxSplashPower,g_pOceanSpray->getSplashPowerFromLastUpdate());
-        g_recentMaxSplashPower *= expf(-1.5f*fElapsedTime);
+        g_recentMaxSplashPower = Math.max(g_recentMaxSplashPower,g_pOceanSpray.getSplashPowerFromLastUpdate());
+        g_recentMaxSplashPower *= Math.exp(-1.5f*fElapsedTime);
     }
 
     //--------------------------------------------------------------------------------------
 // Render the scene using the D3D11 device
 //--------------------------------------------------------------------------------------
-    void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext* pDC, double fTime,
-                                      float fElapsedTime, void* pUserContext )
+    void OnD3D11FrameRender( /*ID3D11Device* pd3dDevice, ID3D11DeviceContext* pDC,*/ float fTime,
+                                      float fElapsedTime/*, void* pUserContext*/ )
     {
         // getting simulation timings
-        GFSDK_WaveWorks_Simulation_GetStats(g_hOceanSimulation,g_ocean_stats_simulation);
+        GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetStats(g_hOceanSimulation,g_ocean_stats_simulation);
 
         // exponential filtering for stats
         g_ocean_stats_simulation_filtered.CPU_main_thread_wait_time			= g_ocean_stats_simulation_filtered.CPU_main_thread_wait_time*0.98f + 0.02f*g_ocean_stats_simulation.CPU_main_thread_wait_time;
@@ -967,11 +1031,11 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
 
         // If the settings dialog is being shown, then
         // render it instead of rendering the app's scene
-        if( g_SettingsDlg.IsActive() )
+        /*if( g_SettingsDlg.IsActive() )
         {
             g_SettingsDlg.OnRender( fElapsedTime );
             return;
-        }
+        }*/
 
         // Igniting the ligntnings
         float cloud_factor = CloudFactorOfPreset(g_CurrentPreset);
@@ -985,48 +1049,57 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
             default:
                 break;
         }
-        if((LightningsEnabledOfPreset(g_CurrentPreset))&&
+        if((LightningsEnabledOfPreset(g_CurrentPreset) != 0)&&
                 (g_ocean_env.lightning_time_to_next_strike < 0) &&
                 (cloud_factor==1.0f))
         {
             g_ocean_env.lightning_current_cstrike=0;
-            g_ocean_env.lightning_num_of_cstrikes = rand()%(int)AverageNumberOfConsecutiveLightningStrikesOfPreset(g_CurrentPreset);
-            g_ocean_env.lightning_time_to_next_strike = AverageTimeToNextLightningStrikeOfPreset(g_CurrentPreset)*(0.5f+1.5f*(float)rand()/(float)RAND_MAX);
-            g_ocean_env.lightning_time_to_next_cstrike = 0.25f*(float)rand()/(float)RAND_MAX;
-            g_ocean_env.lightning_light_intensity = ((float)rand()/(float)RAND_MAX)*D3DXVECTOR3(20.0f,20.0f,20.0f);
-            g_ocean_env.lightning_light_position.x = 2000.0f*(-0.5f + (float)rand()/(float)RAND_MAX) - 2.0f*g_ocean_simulation_param.wind_dir.x*(float)g_TotalSimulatedTime;
-            g_ocean_env.lightning_light_position.y = 2000.0f*(-0.5f + (float)rand()/(float)RAND_MAX) - 2.0f*g_ocean_simulation_param.wind_dir.y*(float)g_TotalSimulatedTime;
+            g_ocean_env.lightning_num_of_cstrikes = (int)Numeric.random(0, Numeric.RAND_MAX) %(int)AverageNumberOfConsecutiveLightningStrikesOfPreset(g_CurrentPreset);
+            g_ocean_env.lightning_time_to_next_strike = AverageTimeToNextLightningStrikeOfPreset(g_CurrentPreset)*(0.5f+1.5f*/*(float)rand()/(float)RAND_MAX*/ Numeric.random());
+            g_ocean_env.lightning_time_to_next_cstrike = 0.25f*/*(float)rand()/(float)RAND_MAX*/Numeric.random();
+//            g_ocean_env.lightning_light_intensity = (/*(float)rand()/(float)RAND_MAX*/Numeric.random())*D3DXVECTOR3(20.0f,20.0f,20.0f);
+            float rand = Numeric.random();
+            g_ocean_env.lightning_light_intensity.set(20.0f,20.0f,20.0f);
+            g_ocean_env.lightning_light_intensity.scale(rand);
+            g_ocean_env.lightning_light_position.x = 2000.0f*(-0.5f + /*(float)rand()/(float)RAND_MAX*/Numeric.random()) - 2.0f*g_ocean_simulation_param.wind_dir.x*(float)g_TotalSimulatedTime;
+            g_ocean_env.lightning_light_position.y = 2000.0f*(-0.5f + /*(float)rand()/(float)RAND_MAX*/Numeric.random()) - 2.0f*g_ocean_simulation_param.wind_dir.y*(float)g_TotalSimulatedTime;
             g_ocean_env.lightning_light_position.z = 200.0f;
-            PlayLightningSound();
+//            PlayLightningSound();  TODO sound
         }
         if((g_ocean_env.lightning_current_cstrike<g_ocean_env.lightning_num_of_cstrikes) && (g_ocean_env.lightning_time_to_next_cstrike<0))
         {
-            g_ocean_env.lightning_light_intensity = ((float)rand()/(float)RAND_MAX)*D3DXVECTOR3(20.0f,20.0f,20.0f);
-            g_ocean_env.lightning_time_to_next_cstrike = 0.25f*(float)rand()/(float)RAND_MAX;
-            g_ocean_env.lightning_light_position.x += 400.0f*(-0.5f + (float)rand()/(float)RAND_MAX);
-            g_ocean_env.lightning_light_position.y += 400.0f*(-0.5f + (float)rand()/(float)RAND_MAX);
+//            g_ocean_env.lightning_light_intensity = ((float)rand()/(float)RAND_MAX)*D3DXVECTOR3(20.0f,20.0f,20.0f);
+            float rand = Numeric.random();
+            g_ocean_env.lightning_light_intensity.set(20.0f,20.0f,20.0f);
+            g_ocean_env.lightning_light_intensity.scale(rand);
+            g_ocean_env.lightning_time_to_next_cstrike = 0.25f*/*(float)rand()/(float)RAND_MAX*/Numeric.random();
+            g_ocean_env.lightning_light_position.x += 400.0f*(-0.5f + /*(float)rand()/(float)RAND_MAX*/Numeric.random());
+            g_ocean_env.lightning_light_position.y += 400.0f*(-0.5f + /*(float)rand()/(float)RAND_MAX*/Numeric.random());
             g_ocean_env.lightning_light_position.z = 200.0f;
             g_ocean_env.lightning_current_cstrike++;
         }
 
         // dimming the lightning over time
-        g_ocean_env.lightning_light_intensity.x *=pow(0.95f,300.0f*fElapsedTime);
-        g_ocean_env.lightning_light_intensity.y *=pow(0.945f,300.0f*fElapsedTime);
-        g_ocean_env.lightning_light_intensity.z *=pow(0.94f,300.0f*fElapsedTime);
+        g_ocean_env.lightning_light_intensity.x *=Math.pow(0.95f,300.0f*fElapsedTime);
+        g_ocean_env.lightning_light_intensity.y *=Math.pow(0.945f,300.0f*fElapsedTime);
+        g_ocean_env.lightning_light_intensity.z *=Math.pow(0.94f,300.0f*fElapsedTime);
 
         // updating pauses between lightnings
         g_ocean_env.lightning_time_to_next_strike -= fElapsedTime;
         g_ocean_env.lightning_time_to_next_cstrike -= fElapsedTime;
 
-        SkyMap lower_map;
-        SkyMap upper_map;
+        int lower_map;
+        int upper_map;
         float map_interp;
-        SkyMapsOfPreset(g_CurrentPreset,lower_map,upper_map,map_interp);
-        g_ocean_env.pSky0 = &g_SkyMaps[lower_map];
-        g_ocean_env.pSky1 = &g_SkyMaps[upper_map];
+        SkyMapPreset preset =  SkyMapsOfPreset(g_CurrentPreset/*,lower_map,upper_map,map_interp*/);
+        lower_map = preset.lower_map;
+        upper_map = preset.upper_map;
+        map_interp = preset.map_blend;
+        g_ocean_env.pSky0 = g_SkyMaps[lower_map];
+        g_ocean_env.pSky1 = g_SkyMaps[upper_map];
         g_ocean_env.sky_interp = map_interp;
         g_ocean_env.fog_exponent = FogExponentOfPreset(g_CurrentPreset);
-        g_ocean_env.sky_map_color_mult = SkyColorMultOfPreset(g_CurrentPreset);
+        g_ocean_env.sky_map_color_mult.set(SkyColorMultOfPreset(g_CurrentPreset));
 
         // Wind gusts
         g_ocean_env.gust_UV.x -= 4.0f*fElapsedTime*g_ocean_simulation_param.wind_dir.x*SmokeSpeedOfPreset(g_CurrentPreset);
@@ -1035,40 +1108,56 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
         g_ocean_env.gust_UV.w += 2.0f*fElapsedTime*g_ocean_simulation_param.wind_dir.y*SmokeSpeedOfPreset(g_CurrentPreset);
 
         // Sun position
-	const float tod = GetTimeOfDay();
-        D3DXVECTOR3 sun_position = SunPositionOfTimeOfDay(tod);
+	    final float tod = GetTimeOfDay();
+        /*D3DXVECTOR3 sun_position = SunPositionOfTimeOfDay(tod);
         g_ocean_env.main_light_direction.x = sun_position.x;
         g_ocean_env.main_light_direction.y = sun_position.y;
-        g_ocean_env.main_light_direction.z = sun_position.z;
+        g_ocean_env.main_light_direction.z = sun_position.z;*/
+
+        SunPositionOfTimeOfDay(tod,g_ocean_env.main_light_direction);
 
         // Atmospheric colors
-        D3DXVECTOR3 clear_sun_color;
-        D3DXVECTOR3 clear_ambient_color;
-        D3DXVECTOR3 cloudy_sun_color;
-        D3DXVECTOR3 cloudy_ambient_color;
+        Vector3f clear_sun_color;
+        Vector3f clear_ambient_color;
+        Vector3f cloudy_sun_color = CacheBuffer.getCachedVec3();
+        Vector3f cloudy_ambient_color = CacheBuffer.getCachedVec3();
 
         // Clear sky colors
-        AtmosphereColorsType atmospheric_colors = CalculateAtmosphericScattering(sun_position,sun_position,30.0f);
+        Atmospheric.AtmosphereColorsType atmospheric_colors = Atmospheric.CalculateAtmosphericScattering(g_ocean_env.main_light_direction,g_ocean_env.main_light_direction,30.0f);
         clear_sun_color = atmospheric_colors.RayleighColor;
-        atmospheric_colors = CalculateAtmosphericScattering(D3DXVECTOR3(0,0,1.0f),sun_position,20.0f);
+        atmospheric_colors = Atmospheric.CalculateAtmosphericScattering(/*D3DXVECTOR3(0,0,1.0f)*/Vector3f.Z_AXIS,g_ocean_env.main_light_direction,20.0f);
         clear_ambient_color = atmospheric_colors.RayleighColor;
         //de-saturating the sun color based on time of day
-        D3DXVECTOR3  LuminanceWeights = D3DXVECTOR3(0.299f,0.587f,0.114f);
-        float Luminance = D3DXVec3Dot(&clear_sun_color,&LuminanceWeights);
-        D3DXVECTOR3 LuminanceVec = D3DXVECTOR3(Luminance,Luminance,Luminance);
-        D3DXVec3Lerp(&clear_sun_color,&clear_sun_color,&LuminanceVec, max(0.0f,min(1.0f,tod - 6.5f)));
+        final Vector3f LuminanceWeights = new Vector3f(0.299f,0.587f,0.114f);
+        float Luminance = Vector3f.dot(clear_sun_color,LuminanceWeights);
+        Vector3f LuminanceVec = new Vector3f(Luminance,Luminance,Luminance);
+        Vector3f.mix(clear_sun_color,LuminanceVec, Math.max(0.0f,Math.min(1.0f,tod - 6.5f)), clear_sun_color);
 
         // Cloudy colors
-        cloudy_sun_color = DirLightColorOfPreset(g_CurrentPreset);
-        cloudy_ambient_color = SkyColorOfPreset(g_CurrentPreset);
+        DirLightColorOfPreset(g_CurrentPreset,cloudy_sun_color);
+        SkyColorOfPreset(g_CurrentPreset,cloudy_ambient_color);
 
         // Dimming cloudy colors based on time of day
-        cloudy_sun_color *= Luminance;
-        cloudy_ambient_color *= Luminance;
+        cloudy_sun_color.scale(Luminance);
+        cloudy_ambient_color.scale(Luminance);
 
         // Update env
-        g_ocean_env.sky_color = clear_ambient_color + (cloudy_ambient_color - clear_ambient_color)*cloud_factor;
-        g_ocean_env.main_light_color = clear_sun_color + (cloudy_sun_color - clear_sun_color)*cloud_factor;
+//        g_ocean_env.sky_color = clear_ambient_color + (cloudy_ambient_color - clear_ambient_color)*cloud_factor;
+        {
+            Vector3f.sub(cloudy_ambient_color, clear_ambient_color, g_ocean_env.sky_color);
+            Vector3f.linear(clear_ambient_color,g_ocean_env.sky_color, cloud_factor, g_ocean_env.sky_color);
+        }
+
+//        g_ocean_env.main_light_color = clear_sun_color + (cloudy_sun_color - clear_sun_color)*cloud_factor;
+        {
+            Vector3f.sub(cloudy_sun_color, clear_sun_color, g_ocean_env.main_light_color);
+            Vector3f.linear(clear_sun_color,g_ocean_env.main_light_color, cloud_factor, g_ocean_env.main_light_color);
+        }
+
+        CacheBuffer.free(clear_sun_color);
+        CacheBuffer.free(cloudy_ambient_color);
+        clear_sun_color = cloudy_ambient_color = null;
+
         g_ocean_env.sky_map_color_mult.x *= Luminance;
         g_ocean_env.sky_map_color_mult.y *= Luminance;
         g_ocean_env.sky_map_color_mult.z *= Luminance;
@@ -1076,100 +1165,131 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
         g_ocean_env.cloud_factor = cloud_factor;
 
         // Render GPU height maps
-        g_pHeroVessel->getSurfaceHeights()->updateGPUHeights(pDC, g_hOceanSimulation, *g_Camera.GetViewMatrix());
+        g_pHeroVessel.getSurfaceHeights().updateGPUHeights(/*pDC,*/ g_hOceanSimulation, g_Camera.getViewMatrix());
 
         // Update vessel smoke
-	const FLOAT smoke_speed = SmokeSpeedOfPreset(g_CurrentPreset);
-	const FLOAT smoke_emit_rate_scale = g_bEnableSmoke ? SmokeEmitRateScaleOfPreset(g_CurrentPreset) : 0.f;
-        g_pHeroVessel->updateSmokeSimulation(pDC, g_Camera, fElapsedTime * g_TimeMultiplier, -NvToDX(g_ocean_simulation_param.wind_dir), smoke_speed, smoke_emit_rate_scale);
+	    final float smoke_speed = SmokeSpeedOfPreset(g_CurrentPreset);
+        final float smoke_emit_rate_scale = g_bEnableSmoke ? SmokeEmitRateScaleOfPreset(g_CurrentPreset) : 0.f;
+        Vector2f neg_wind_dir = new Vector2f(g_ocean_simulation_param.wind_dir);
+        neg_wind_dir.negate();
+        g_pHeroVessel.updateSmokeSimulation(/*pDC,*/ g_Camera, fElapsedTime * g_TimeMultiplier, neg_wind_dir, smoke_speed, smoke_emit_rate_scale);
 
         // Render vessel shadows
-        g_pHeroVessel->updateVesselShadows(pDC);
+        g_pHeroVessel.updateVesselShadows(/*pDC*/);
 
         // Render reflection
-        float ReflectionClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        /*float ReflectionClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
         pDC->ClearRenderTargetView( g_reflectionColorResourceRTV, ReflectionClearColor );
         pDC->ClearRenderTargetView( g_pReflectionViewDepthRTV, ReflectionClearColor );
-        pDC->ClearDepthStencilView( g_reflectionDepthResourceDSV, D3D11_CLEAR_DEPTH, 1.0, 0 );
-        ID3D11RenderTargetView* pRTVs[2] = {g_reflectionColorResourceRTV, g_pReflectionViewDepthRTV};
-        pDC->OMSetRenderTargets(2, pRTVs, g_reflectionDepthResourceDSV);
+        pDC->ClearDepthStencilView( g_reflectionDepthResourceDSV, D3D11_CLEAR_DEPTH, 1.0, 0 );*/
+
+        gl.glClearTexImage(g_reflectionColorResourceRTV.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
+        gl.glClearTexImage(g_pReflectionViewDepthRTV.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
+        gl.glClearTexImage(g_reflectionDepthResourceDSV.getTexture(), 0, GLenum.GL_DEPTH_COMPONENT, GLenum.GL_FLOAT, CacheBuffer.wrap(1.f));
+
+//        ID3D11RenderTargetView* pRTVs[2] = {g_reflectionColorResourceRTV, g_pReflectionViewDepthRTV};
+//        pDC->OMSetRenderTargets(2, pRTVs, g_reflectionDepthResourceDSV);
+
+        mFbo.bind();
+        mFbo.setRenderTextures(new TextureGL[]{g_reflectionColorResourceRTV, g_pReflectionViewDepthRTV}, null);
 
         // Render vessel to reflection - set up a plane that passes through the target boat,
         // and match its attitude
         if(!g_bShowSpraySimulation && g_bRenderShip)
         {
-            __declspec(align(16)) D3DXPLANE reflection_plane;
-            D3DXVECTOR3 origin = D3DXVECTOR3(0,0,0);
-            D3DXVECTOR3 up = D3DXVECTOR3(0,1,0);
-            D3DXVECTOR3 forward = D3DXVECTOR3(0,0,1);
-            D3DXVECTOR3 planar = D3DXVECTOR3(1,0,0);
-            D3DXVec3TransformCoord(&origin,&origin,g_pHeroVessel->getWorldXform());
+            Vector4f reflection_plane = new Vector4f();
+            Vector3f origin = new Vector3f(0,0,0);
+            Vector3f up = new Vector3f(0,1,0);
+            Vector3f forward = new Vector3f(0,0,1);
+            Vector3f planar = new Vector3f(1,0,0);
+//            D3DXVec3TransformCoord(&origin,&origin,g_pHeroVessel->getWorldXform());
+            Matrix4f.transformCoord(g_pHeroVessel.getWorldXform(), origin,origin);
 
-#if 0
+/*#if 0
             D3DXVec3TransformNormal(&up,&up,g_pHeroVessel->getWorldXform());
-#else
-            D3DXVec3TransformNormal(&forward,&forward,g_pHeroVessel->getWorldXform());
-            D3DXVec3TransformNormal(&planar,&planar,g_pHeroVessel->getWorldXform());
+#else*/
+//            D3DXVec3TransformNormal(&forward,&forward,g_pHeroVessel->getWorldXform());
+//            D3DXVec3TransformNormal(&planar,&planar,g_pHeroVessel->getWorldXform());
+            Matrix4f.transformNormal(g_pHeroVessel.getWorldXform(),forward,forward);
+            Matrix4f.transformNormal(g_pHeroVessel.getWorldXform(),planar,planar);
             planar.y = 0;
-            D3DXVec3Cross(&up, &planar, &forward);
-            D3DXVec3Normalize(&up, &up);
-#endif
+//            D3DXVec3Cross(&up, &planar, &forward);
+//            D3DXVec3Normalize(&up, &up);
+            Vector3f.cross(planar,forward, up);
+            up.normalise();
+//#endif
 
-            D3DXPlaneFromPointNormal(&reflection_plane, &origin, &up);
+//            D3DXPlaneFromPointNormal(&reflection_plane, &origin, &up);
+            reflection_plane.set(up);
+            reflection_plane.w = -Vector3f.dot(origin, up);
 
             g_ocean_env.lightFilter = 0;
 
             // do not render the reflection of the vessel we're at, if we're onboard
-            g_pHeroVessel->renderReflectedVesselToScene(pDC, g_Camera, reflection_plane, g_ocean_env);
+            g_pHeroVessel.renderReflectedVesselToScene(/*pDC,*/ g_Camera, reflection_plane, g_ocean_env);
         }
 
         // Generate reflection mips
-        pDC->GenerateMips(g_reflectionColorResourceSRV);
+//        pDC->GenerateMips(g_reflectionColorResourceSRV);
+        gl.glGenerateTextureMipmap(g_reflectionColorResourceSRV.getTexture());
 
         // Update local foam map
         {
-            D3D11_VIEWPORT original_viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+            /*D3D11_VIEWPORT original_viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
             UINT num_original_viewports = sizeof(original_viewports)/sizeof(original_viewports[0]);
-            pDC->RSGetViewports( &num_original_viewports, original_viewports);
+            pDC->RSGetViewports( &num_original_viewports, original_viewports);*/
+            GLHelper.saveViewport();
 
-            D3DXMATRIX matWorldToFoam;
-            g_pOceanSurf->beginRenderToLocalFoamMap(pDC, matWorldToFoam);
-            g_pOceanSpray->renderToFoam(pDC, matWorldToFoam, g_pHeroVessel, fElapsedTime);
-            D3DXVECTOR2 shift_vector;
+            final Matrix4f matWorldToFoam = CacheBuffer.getCachedMatrix();
+            g_pOceanSurf.beginRenderToLocalFoamMap(/*pDC,*/ matWorldToFoam);
+            g_pOceanSpray.renderToFoam(/*pDC,*/ matWorldToFoam, g_pHeroVessel, fElapsedTime);
+            Vector2f shift_vector = new Vector2f();
             shift_vector.x = 0.0028f;	// set exactly as float2 g_WakeTexScale = {0.0028,0.0028}; in shader_common.fxh
             shift_vector.y =0;
-            g_pOceanSurf->endRenderToLocalFoamMap(pDC,shift_vector*kVesselSpeed*fElapsedTime, 0.01f*fElapsedTime,1.f-0.1f*fElapsedTime);
+            shift_vector.scale(kVesselSpeed*fElapsedTime);
+            g_pOceanSurf.endRenderToLocalFoamMap(/*pDC,*/shift_vector/**kVesselSpeed*fElapsedTime*/, 0.01f*fElapsedTime,1.f-0.1f*fElapsedTime);
 
-            pDC->RSSetViewports(num_original_viewports, original_viewports);
+//            pDC->RSSetViewports(num_original_viewports, original_viewports);
+            GLHelper.restoreViewport();
 
             // Generate local foam map mips
-            pDC->GenerateMips(g_pOceanSurf->m_pLocalFoamMapReceiverSRV);
+//            pDC->GenerateMips(g_pOceanSurf->m_pLocalFoamMapReceiverSRV);
+            CacheBuffer.free(matWorldToFoam);
         }
 
-        D3D11_VIEWPORT defaultViewport;
+        /*D3D11_VIEWPORT defaultViewport;
         UINT numViewports = 1;
-        pDC->RSGetViewports(&numViewports, &defaultViewport);
+        pDC->RSGetViewports(&numViewports, &defaultViewport);*/
+        GLHelper.saveViewport();
 
         // Render the scene to back buffer
         // Clear the render target and depth stencil
-        float ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+        /*float ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
         ID3D11RenderTargetView* pRTV = DXUTGetD3D11RenderTargetView();
         pDC->ClearRenderTargetView( pRTV, ClearColor );
         ID3D11DepthStencilView* pDSV = g_pDepthBufferDSV;
         pDC->ClearDepthStencilView( pDSV, D3D11_CLEAR_DEPTH, 1.0, 0 );
-        pDC->OMSetRenderTargets(1, &pRTV, pDSV);
+        pDC->OMSetRenderTargets(1, &pRTV, pDSV);*/
+
+        Texture2D pRTV = g_pColorBufferRTV;
+        Texture2D pDSV = g_pDepthBufferDSV;
+        mFbo.bind();
+        mFbo.setRenderTextures(CommonUtil.toArray(pRTV, pDSV), null);
+        gl.glClearColor( 0.1f, 0.1f, 0.1f, 1.0f);
+        gl.glClearDepthf(1.f);
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
 
         // Render vessel
         g_ocean_env.lightFilter = 0;
         if(g_bRenderShip) {
-		const bool b_vessel_wireframe = g_bShowSpraySimulation;
-            g_pHeroVessel->renderVesselToScene(pDC, *g_Camera.GetViewMatrix(), *g_Camera.GetProjMatrix(), g_ocean_env, NULL, b_vessel_wireframe);
+		    final boolean b_vessel_wireframe = g_bShowSpraySimulation;
+            g_pHeroVessel.renderVesselToScene(/*pDC,*/ g_Camera.getViewMatrix(), g_Camera.getProjMatrix(), g_ocean_env, null, b_vessel_wireframe);
         }
 
         if(g_ShowReadbackMarkers)
-            RenderMarkers(pDC);
+            RenderMarkers(/*pDC*/);
 
-#if ENABLE_SSAO
+/*#if ENABLE_SSAO
         while (g_RenderSSAO)
         {
             D3DXMATRIX projMatrix = *g_Camera.GetProjMatrix();
@@ -1193,16 +1313,20 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
 
             break;
         }
-#endif
+#endif*/
 
-	const float foamSprayFade = g_bEnableFoamAndSpray ? FoamSprayFadeOfPreset(g_CurrentPreset) : 0.f;
+	    final float foamSprayFade = g_bEnableFoamAndSpray ? FoamSprayFadeOfPreset(g_CurrentPreset) : 0.f;
         if(g_WaterRenderMode != WaterRenderMode_Off)
         {
-            OceanHullProfile hp;
-            g_pHeroVessel->renderVesselToHullProfile(pDC, hp);
+            OceanHullProfile hp = new OceanHullProfile();
+            g_pHeroVessel.renderVesselToHullProfile(/*pDC,*/ hp);
 
-		const D3DXMATRIX matView = D3DXMATRIX(kWaterScale,0,0,0,0,0,kWaterScale,0,0,kWaterScale,0,0,0,0,0,1) * *g_Camera.GetViewMatrix();
-		const D3DXMATRIX matProj = *g_Camera.GetProjMatrix();
+            Matrix4f matView = CacheBuffer.getCachedMatrix();
+
+//		const D3DXMATRIX matView = D3DXMATRIX(kWaterScale,0,0,0,0,0,kWaterScale,0,0,kWaterScale,0,0,0,0,0,1) * *g_Camera.GetViewMatrix();
+            matView.load(g_Camera.getViewMatrix());
+            matView.scale(kWaterScale);
+		    Matrix4f matProj = g_Camera.getProjMatrix();
 
             // Pass the reflection SRV & DSV to ocean environment struct
             g_ocean_env.pPlanarReflectionSRV = g_reflectionColorResourceSRV;
@@ -1210,28 +1334,29 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
             g_ocean_env.lightFilter = -1;
 
             // Update ocean surface ready for rendering
-            g_pOceanSurf->setHullProfiles(&hp,1);
+            g_pOceanSurf.setHullProfiles(hp,1);
 
             if (g_WaterRenderMode == WaterRenderMode_Wireframe)
-                g_pOceanSurf->renderWireframe(pDC, matView,matProj,g_hOceanSimulation, g_hOceanSavestate, g_DebugCam);
+                g_pOceanSurf.renderWireframe(/*pDC,*/ matView,matProj,g_hOceanSimulation, g_hOceanSavestate, g_DebugCam);
             else if (g_WaterRenderMode == WaterRenderMode_Solid)
             {
-                g_pOceanSurf->renderShaded(	pDC,
-                        *g_Camera.GetViewMatrix(),matView,matProj,
+                g_pOceanSurf.renderShaded(	/*pDC,*/
+                        g_Camera.getViewMatrix(),matView,matProj,
                         g_hOceanSimulation, g_hOceanSavestate,
                         g_ocean_env,
                         g_DebugCam, foamSprayFade, g_bShowSpraySimulation, g_bShowFoamSimulation,
                         g_bGustsEnabled, g_bWakeEnabled);}
 
-            g_pOceanSurf->getQuadTreeStats(g_ocean_stats_quadtree);
+            g_pOceanSurf.getQuadTreeStats(g_ocean_stats_quadtree);
+            CacheBuffer.free(matView);
         }
 
         if((g_WaterRenderMode == WaterRenderMode_Solid)&&(!g_bShowSpraySimulation)&&(!g_bShowFoamSimulation))
         {
-            RenderSkybox(pDC);
+            RenderSkybox(/*pDC*/);
         }
 
-#if 0
+/*#if 0
         if (g_TXAAisActive)
         {
 #if ENABLE_TXAA
@@ -1250,47 +1375,52 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
             pRTV = pResourceRTV;
             pDSV = NULL;
         }
-#endif
+#endif*/
 
-        ID3D11RenderTargetView* pTempRTV = pRTV;
-        ID3D11DepthStencilView* pTempDSV = g_pDepthBufferReadDSV;
-        ID3D11ShaderResourceView* pTempDepthSRV = g_pDepthBufferSRV;
+        Texture2D pTempRTV = pRTV;
+        Texture2D pTempDSV = g_pDepthBufferReadDSV;
+        Texture2D pTempDepthSRV = g_pDepthBufferSRV;
 
-#if DOWNSAMPLE_SCALE > 1
-        DownsampleDepth(pDC);
+        if(DOWNSAMPLE_SCALE > 1){
+            DownsampleDepth(/*pDC*/);
 
-        D3D11_TEXTURE2D_DESC desc;
-        g_pColorBufferResolved->GetDesc(&desc);
-        CD3D11_VIEWPORT viewport(0.0f, 0.0f, (float)desc.Width, (float)desc.Height);
-        pDC->RSSetViewports(1, &viewport);
+//            D3D11_TEXTURE2D_DESC desc;
+//            g_pColorBufferResolved->GetDesc(&desc);
+//            CD3D11_VIEWPORT viewport(0.0f, 0.0f, (float)desc.Width, (float)desc.Height);
+//            pDC->RSSetViewports(1, &viewport);
+            gl.glViewport(0,0, g_pColorBufferResolved.getWidth(), g_pColorBufferResolved.getHeight());
 
-        pDC->OMSetRenderTargets(1, &g_pColorBufferResolvedRTV, g_pDepthBufferResolvedReadDSV);
+//            pDC->OMSetRenderTargets(1, &g_pColorBufferResolvedRTV, g_pDepthBufferResolvedReadDSV);
+            mFbo.bind();
+            mFbo.setRenderTextures(CommonUtil.toArray(g_pColorBufferResolvedRTV, g_pDepthBufferResolvedReadDSV), null);
 
-        float colorBlack[4] = {0,0,0,1.0f};
-        pDC->ClearRenderTargetView(g_pColorBufferResolvedRTV, colorBlack);
+//            float colorBlack[4] = {0,0,0,1.0f};
+//            pDC->ClearRenderTargetView(g_pColorBufferResolvedRTV, colorBlack);
+            gl.glClearTexImage(g_pColorBufferResolvedRTV.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
 
-        pTempRTV = g_pColorBufferResolvedRTV;
-        pTempDSV = g_pDepthBufferResolvedReadDSV;
-        pTempDepthSRV = g_pDepthBufferResolvedSRV;
-#endif
+            pTempRTV = g_pColorBufferResolvedRTV;
+            pTempDSV = g_pDepthBufferResolvedReadDSV;
+            pTempDepthSRV = g_pDepthBufferResolvedSRV;
+        }
+
 
         // Spray
-        gfsdk_float2 spray_wind;
+        Vector2f spray_wind = new Vector2f();
         spray_wind.x = -g_ocean_simulation_param.wind_dir.x*SmokeSpeedOfPreset(g_CurrentPreset);
         spray_wind.y = -g_ocean_simulation_param.wind_dir.y*SmokeSpeedOfPreset(g_CurrentPreset);
 
         //updating spray generators
-        g_pOceanSpray->updateSprayGenerators(g_hOceanSimulation, g_pHeroVessel, fElapsedTime, kWaterScale, spray_wind, foamSprayFade);
+        g_pOceanSpray.updateSprayGenerators(g_hOceanSimulation, g_pHeroVessel, fElapsedTime, kWaterScale, spray_wind, foamSprayFade);
 
         // updating spray sensors for visualization
         if(g_bShowSpraySimulation)
         {
-            g_pOceanSpray->UpdateSensorsVisualizationVertexBuffer(pDC, g_pHeroVessel, fElapsedTime);
-            g_pOceanSpray->RenderSensors(pDC,g_Camera,g_pHeroVessel);
+            g_pOceanSpray.UpdateSensorsVisualizationVertexBuffer(/*pDC,*/ g_pHeroVessel, fElapsedTime);
+            g_pOceanSpray.RenderSensors(/*pDC,*/g_Camera,g_pHeroVessel);
         }
 
         //updating spray particles
-        g_pOceanSpray->updateSprayParticles(pDC, g_pHeroVessel, fElapsedTime, kWaterScale, spray_wind);
+        g_pOceanSpray.updateSprayParticles(/*pDC,*/ g_pHeroVessel, fElapsedTime, kWaterScale, spray_wind);
 
         //update PSM for spray
         //g_pOceanVessels[i]->beginRenderToPSM(pDC,-NvToDX(g_ocean_simulation_param.wind_dir));
@@ -1301,34 +1431,43 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
 
         //rendering spray
         if(g_bEnableFoamAndSpray) {
-            pDC->OMSetRenderTargets(1, &pTempRTV, pTempDSV);
-            g_pOceanSpray->renderToScene(pDC, g_pHeroVessel, g_Camera, g_ocean_env, pTempDepthSRV, g_bShowSpraySimulation);
+//            pDC->OMSetRenderTargets(1, &pTempRTV, pTempDSV);
+
+            mFbo.bind();
+            mFbo.setRenderTextures(CommonUtil.toArray(pTempRTV, pTempDSV), null);
+            g_pOceanSpray.renderToScene(/*pDC,*/ g_pHeroVessel, g_Camera, g_ocean_env, pTempDepthSRV, g_bShowSpraySimulation);
         }
 
         // Render smoke
         if(g_bEnableSmoke && (!g_bShowSpraySimulation))
         {
+            Vector2f neg_dir = new Vector2f(g_ocean_simulation_param.wind_dir);
+            neg_dir.negate();
             //update PSM for smoke
-            g_pHeroVessel->beginRenderToPSM(pDC,-NvToDX(g_ocean_simulation_param.wind_dir));
-            g_pHeroVessel->renderSmokeToPSM(pDC, g_ocean_env);
-            g_pHeroVessel->endRenderToPSM(pDC);
+            g_pHeroVessel.beginRenderToPSM(/*pDC,*//*-NvToDX(g_ocean_simulation_param.wind_dir)*/neg_dir);
+            g_pHeroVessel.renderSmokeToPSM(/*pDC,*/ g_ocean_env);
+            g_pHeroVessel.endRenderToPSM(/*pDC*/);
 
             g_ocean_env.lightFilter = -1;
 
             // render smoke
-            pDC->OMSetRenderTargets(1, &pTempRTV, pTempDSV);
-            g_pHeroVessel->renderSmokeToScene(pDC, g_Camera, g_ocean_env);
+//            pDC->OMSetRenderTargets(1, &pTempRTV, pTempDSV);
+            mFbo.bind();
+            mFbo.setRenderTextures(CommonUtil.toArray(pTempRTV, pTempDSV), null);
+            g_pHeroVessel.renderSmokeToScene(/*pDC,*/ g_Camera, g_ocean_env);
         }
 
-        pDC->RSSetViewports(1, &defaultViewport);
-        pDC->OMSetRenderTargets(1, &pRTV, NULL);
+//        pDC->RSSetViewports(1, &defaultViewport);
+//        pDC->OMSetRenderTargets(1, &pRTV, NULL);
+        GLHelper.restoreViewport();
+        mFbo.setRenderTexture(pRTV, null);
 
-#if DOWNSAMPLE_SCALE > 1
-        InterpolateDepth(pDC);
-#endif
+        if (DOWNSAMPLE_SCALE > 1)
+            InterpolateDepth(/*pDC*/);
+//#endif
 
 
-#if 0
+/*#if 0
         {
             ID3D11Resource* pResource;
             ID3D11RenderTargetView* pResourceRTV;
@@ -1339,34 +1478,35 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
             pDC->OMSetRenderTargets(1, &pResourceRTV, NULL);
             pResource->Release();
         }
-#endif
+#endif*/
 
         // g_pHeroVessel->renderHullProfileInUI(pDC);
 
         if(g_bShowSprayAudioLevel) {
-		const DXGI_SURFACE_DESC* pd3dsdBackBuffer = DXUTGetDXGIBackBufferSurfaceDesc();
-
-		const float fAspectRatio = float(pd3dsdBackBuffer->Width)/float(pd3dsdBackBuffer->Height);
-		const float height = 1.f;
-		const float width = height * 0.1f / fAspectRatio;
-		const float v_inset = 0.02f * height;
-		const float h_inset = v_inset / fAspectRatio;
-		const float v_margin = 0.02f * height;
-		const float h_margin = v_margin / fAspectRatio;
+//            const DXGI_SURFACE_DESC* pd3dsdBackBuffer = DXUTGetDXGIBackBufferSurfaceDesc();
+            final int screenWidth = getGLContext().width();
+            final int screenHeight = getGLContext().height();
+            final float fAspectRatio = (float)screenWidth/screenHeight;
+            final float height = 1.f;
+            final float width = height * 0.1f / fAspectRatio;
+            final float v_inset = 0.02f * height;
+            final float h_inset = v_inset / fAspectRatio;
+            final float v_margin = 0.02f * height;
+            final float h_margin = v_margin / fAspectRatio;
 
             float splash_level = 0.5f * g_recentMaxSplashPower/GetOceanAudioSplashPowerThreshold();
             if(splash_level > 1.f) splash_level = 1.f;
             else if(splash_level < 0.f) splash_level = 0.f;
-            g_pOceanSpray->renderAudioVisualization(pDC,-1.f+h_inset,-1.f+v_inset+height,-1.f+h_inset+width,-1.f+v_inset,h_margin,v_margin,splash_level);
+            g_pOceanSpray.renderAudioVisualization(/*pDC,*/-1.f+h_inset,-1.f+v_inset+height,-1.f+h_inset+width,-1.f+v_inset,h_margin,v_margin,splash_level);
         }
 
-        if (g_ShowHUD)
+        /*if (g_ShowHUD)
         {
             float fUIElapsedTime = fElapsedTime;
             if( DXUTGetGlobalTimer()->IsStopped() ) {
-            if (DXUTGetFPS() == 0.0f) fUIElapsedTime = 0;
-            else fUIElapsedTime = 1.0f / DXUTGetFPS();
-        }
+                if (DXUTGetFPS() == 0.0f) fUIElapsedTime = 0;
+                else fUIElapsedTime = 1.0f / DXUTGetFPS();
+            }
 
             g_HUD.OnRender( fUIElapsedTime );
             g_SampleUI.OnRender( fUIElapsedTime );
@@ -1375,66 +1515,66 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
             if(g_bShowCredits) {
                 RenderLogo(pDC, g_pFMODLogoTex, g_pFMODLogoVB);
             }
-        }
+        }*/
 
-        RenderLogo(pDC, g_pLogoTex, g_pLogoVB);
+        RenderLogo(/*pDC,*/ g_pLogoTex, g_pLogoVB);
 
-        pDC->GSSetShader(NULL,NULL,0);
+//        pDC->GSSetShader(NULL,NULL,0);
     }
 
     //--------------------------------------------------------------------------------------
 // Release D3D11 resources created in OnD3D11CreateDevice
 //--------------------------------------------------------------------------------------
-    void CALLBACK OnD3D11DestroyDevice( void* pUserContext )
+    void OnD3D11DestroyDevice( /*void* pUserContext*/ )
     {
-        g_DialogResourceManager.OnD3D11DestroyDevice();
+        /*g_DialogResourceManager.OnD3D11DestroyDevice();
         g_SettingsDlg.OnD3D11DestroyDevice();
         CDXUTDirectionWidget::StaticOnD3D11DestroyDevice();
-        SAFE_DELETE(g_pTxtHelper);
+        SAFE_DELETE(g_pTxtHelper);*/
 
         // Spray
-        SAFE_DELETE(g_pOceanSpray);
+        CommonUtil.safeRelease(g_pOceanSpray);
 
         // Ocean object
-        SAFE_DELETE(g_pOceanSurf);
-        SAFE_DELETE(g_pHeroVessel);
-        SAFE_DELETE(g_pCameraVessel);
+        CommonUtil.safeRelease(g_pOceanSurf);
+        CommonUtil.safeRelease(g_pHeroVessel);
+        CommonUtil.safeRelease(g_pCameraVessel);
 
-        if(g_hOceanSimulation)
+        if(g_hOceanSimulation != null)
         {
-            GFSDK_WaveWorks_Simulation_Destroy(g_hOceanSimulation);
-            g_hOceanSimulation = NULL;
+            GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_Destroy(g_hOceanSimulation);
+            g_hOceanSimulation = null;
         }
 
-        SAFE_RELEASE(g_pMarkerFX);
-        SAFE_RELEASE(g_pMarkerLayout);
+//        SAFE_RELEASE(g_pMarkerFX);
+//        SAFE_RELEASE(g_pMarkerLayout);
 
-        SAFE_RELEASE(g_pSkyboxFX);
-        SAFE_RELEASE(g_pSkyboxLayout);
-        SAFE_RELEASE(g_pLogoTex);
-        SAFE_RELEASE(g_pFMODLogoTex);
+//        SAFE_RELEASE(g_pSkyboxFX);
+//        SAFE_RELEASE(g_pSkyboxLayout);
+        CommonUtil.safeRelease(g_pLogoTex);
+        CommonUtil.safeRelease(g_pFMODLogoTex);
 
         for(int i = 0; i != NumSkyMaps; ++i) {
-            OceanSkyMapInfo& sm = g_SkyMaps[i];
-            SAFE_RELEASE(sm.m_pSkyDomeSRV);
-            SAFE_RELEASE(sm.m_pReflectionSRV);
+            OceanSkyMapInfo sm = g_SkyMaps[i];
+            CommonUtil.safeRelease(sm.m_pSkyDomeSRV);
+            CommonUtil.safeRelease(sm.m_pReflectionSRV);
         }
 
-        SAFE_RELEASE(g_pSkyBoxVB);
-        SAFE_RELEASE(g_pMarkerVB);
-        SAFE_RELEASE(g_pMarkerIB);
+        CommonUtil.safeRelease(g_pSkyBoxVB);
+        CommonUtil.safeRelease(g_pMarkerVB);
+        CommonUtil.safeRelease(g_pMarkerIB);
 
-        if(g_hOceanSavestate)
+        if(g_hOceanSavestate != null)
         {
-            GFSDK_WaveWorks_Savestate_Destroy(g_hOceanSavestate);
-            g_hOceanSavestate = NULL;
+            GFSDK_WaveWorks.GFSDK_WaveWorks_Savestate_Destroy(g_hOceanSavestate);
+            g_hOceanSavestate = null;
         }
 
-        GFSDK_WaveWorks_ReleaseD3D11(DXUTGetD3D11Device());
+        GFSDK_WaveWorks.GFSDK_WaveWorks_ReleaseD3D11(/*DXUTGetD3D11Device()*/);
 
         ReleaseViewDependentResources();
 
-        DXUTGetGlobalResourceCache().OnDestroyDevice();
+        /*DXUTGetGlobalResourceCache().OnDestroyDevice();
 
 #if ENABLE_SSAO
         g_pSSAO_Context->Release();
@@ -1442,64 +1582,80 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
 
 #if ENABLE_TXAA
         TxaaCloseDX(&g_TXAA_Ctx);
-#endif
+#endif*/
     }
 
-    void RenderMarkers(ID3D11DeviceContext* pDC)
-    {
-        HRESULT hr;
+    private final int markers_x = 7;
+    private final int markers_y = 7;
+    private final int num_markers = markers_x * markers_y;
+    private final Vector2f[] marker_pos = CommonUtil.initArray(new Vector2f[num_markers]);
+    private final Vector4f[] displacements = CommonUtil.initArray(new Vector4f[num_markers]);
+    private final Vector4f[] position = CommonUtil.initArray(new Vector4f[num_markers]);
 
-        D3DXVECTOR3 eye_pos = *g_Camera.GetEyePt();
+    void RenderMarkers(/*ID3D11DeviceContext* pDC*/)
+    {
+
+        ReadableVector3f eye_pos = g_Camera.getPosition();
 
         // Find where the camera vector intersects mean sea level
-	const D3DXVECTOR3 sea_level_pos = GetOceanSurfaceLookAtPoint();
-	const D3DXVECTOR2 sea_level_xy(sea_level_pos.x, sea_level_pos.z);
+	    final Vector3f sea_level_pos = CacheBuffer.getCachedVec3();
+        GetOceanSurfaceLookAtPoint(sea_level_pos);
+//	    const D3DXVECTOR2 sea_level_xy(sea_level_pos.x, sea_level_pos.z);
+        final float sea_level_x = sea_level_pos.x;
+        final float sea_level_y = sea_level_pos.z;
 
         // Draw markers on the surface
-	const int markers_x = 7;
-	const int markers_y = 7;
-	const int num_markers = markers_x * markers_y;
-        gfsdk_float2 marker_pos[num_markers];
+
         for(int x = 0; x != markers_x; ++x)
         {
             for(int y = 0; y != markers_y; ++y)
             {
-                marker_pos[y * markers_x + x] = NvFromDX(sea_level_xy/kWaterScale + D3DXVECTOR2(2.f * (x-((markers_x-1)/2)), 2.f * (y-((markers_y-1)/2))));
+//                marker_pos[y * markers_x + x] = NvFromDX(sea_level_xy/kWaterScale + D3DXVECTOR2(2.f * (x-((markers_x-1)/2)), 2.f * (y-((markers_y-1)/2))));
+                marker_pos[y * markers_x + x].x = sea_level_x/kWaterScale + 2.f * (x-((markers_x-1)/2));
+                marker_pos[y * markers_x + x].y = sea_level_y/kWaterScale + 2.f * (y-((markers_y-1)/2));
             }
         }
-        gfsdk_float4 displacements[num_markers];
-        V(GFSDK_WaveWorks_Simulation_GetDisplacements(g_hOceanSimulation, marker_pos, displacements, num_markers));
+//        gfsdk_float4 displacements[num_markers];
+        GFSDK_WaveWorks.GFSDK_WaveWorks_Simulation_GetDisplacements(g_hOceanSimulation, marker_pos, displacements, num_markers);
 
-        D3DXVECTOR4 position[num_markers];
+//        D3DXVECTOR4 position[num_markers];
         for(int x = 0; x != markers_x; ++x)
         {
             for(int y = 0; y != markers_y; ++y)
             {
-			const int ix = y * markers_x + x;
-                position[ix] = D3DXVECTOR4(displacements[ix].x + marker_pos[ix].x,displacements[ix].z + g_ocean_param_quadtree.sea_level,displacements[ix].y + marker_pos[ix].y,1.f);
+			    final int ix = y * markers_x + x;
+                position[ix].set(displacements[ix].x + marker_pos[ix].x,displacements[ix].z + g_ocean_param_quadtree.sea_level,displacements[ix].y + marker_pos[ix].y,1.f);
                 position[ix].x *= kWaterScale;
                 position[ix].y *= kWaterScale;
                 position[ix].z *= kWaterScale;
             }
         }
 
-	const UINT vbOffset = 0;
-	const UINT vertexStride = sizeof(D3DXVECTOR4);
-        pDC->IASetInputLayout(g_pMarkerLayout);
+	    final int vbOffset = 0;
+        final int vertexStride = /*sizeof(D3DXVECTOR4)*/Vector4f.SIZE;
+        /*pDC->IASetInputLayout(g_pMarkerLayout);
         pDC->IASetVertexBuffers(0, 1, &g_pMarkerVB, &vertexStride, &vbOffset);
         pDC->IASetIndexBuffer(g_pMarkerIB, DXGI_FORMAT_R16_UINT, 0);
 
-        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);*/
 
-        D3DXMATRIX matView = /*D3DXMATRIX(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1) **/ *g_Camera.GetViewMatrix();
-        D3DXMATRIX matProj = *g_Camera.GetProjMatrix();
-        D3DXMATRIX matVP = matView * matProj;
-        g_pMarkerMatViewProjVariable->SetMatrix((FLOAT*)&matVP);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, g_pMarkerIB.getBuffer());
 
-        g_pMarkerTechnique->GetPassByIndex(0)->Apply(0,pDC);
+
+        Matrix4f matView = /*D3DXMATRIX(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1) **/ g_Camera.getViewMatrix();
+        Matrix4f matProj = g_Camera.getProjMatrix();
+        Matrix4f matVP = g_Camera.getViewProjMatrix();
+
+//        g_pMarkerMatViewProjVariable->SetMatrix((FLOAT*)&matVP);
+
+//        g_pMarkerTechnique->GetPassByIndex(0)->Apply(0,pDC);
+        FloatBuffer marker_verts = CacheBuffer.getCachedFloatBuffer(4*5);
+        g_pMarkerTechnique.enable();
+
+        Vector4f temp = CacheBuffer.getCachedVec4();
         for(int i = 0; i != num_markers; ++i)
         {
-            D3D11_MAPPED_SUBRESOURCE msr;
+            /*D3D11_MAPPED_SUBRESOURCE msr;
             pDC->Map(g_pMarkerVB,0,D3D11_MAP_WRITE_DISCARD, 0, &msr);
 
             D3DXVECTOR4* marker_verts = (D3DXVECTOR4*)msr.pData;
@@ -1508,74 +1664,139 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
             marker_verts[2] = position[i] + D3DXVECTOR4( 0.5, 0.5,-0.5, 0.f);
             marker_verts[3] = position[i] + D3DXVECTOR4(-0.5, 0.5,-0.5, 0.f);
             marker_verts[4] = position[i] + D3DXVECTOR4(-0.5, 0.5, 0.5, 0.f);
-            pDC->Unmap(g_pMarkerVB,0);
+            pDC->Unmap(g_pMarkerVB,0);*/
+            temp.w = position[i].w;
+            position[i].store(marker_verts);  // 0
+            Vector3f.add(position[i], 0.5f, temp);  //1
+            temp.store(marker_verts);
 
-            pDC->DrawIndexed(12, 0, 0);
+            temp.set(0.5f, 0.5f,-0.5f);
+            Vector3f.add(position[i], temp, temp);  //2
+            temp.store(marker_verts);
+
+            temp.set(-0.5f, 0.5f,-0.5f);
+            Vector3f.add(position[i], temp, temp);  //3
+            temp.store(marker_verts);
+
+            temp.set(-0.5f, 0.5f, 0.5f);
+            Vector3f.add(position[i], temp, temp);  //4
+            temp.store(marker_verts);
+
+            marker_verts.flip();
+
+            g_pMarkerVB.update(0, marker_verts);
+            gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, g_pMarkerVB.getBuffer());
+            g_pMarkerLayout.bind();
+//            pDC->DrawIndexed(12, 0, 0);
+            gl.glDrawElements(GLenum.GL_TRIANGLES, 12, GLenum.GL_UNSIGNED_SHORT, 0);
         }
+
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+        g_pMarkerLayout.unbind();
+
+        CacheBuffer.free(sea_level_pos);
+        CacheBuffer.free(temp);
     }
 
-    void DownsampleDepth(ID3D11DeviceContext* pDC)
+    void DownsampleDepth(/*ID3D11DeviceContext* pDC*/)
     {
-        pDC->OMSetRenderTargets(0, NULL, g_pDepthBufferResolvedDSV);
+//        pDC->OMSetRenderTargets(0, NULL, g_pDepthBufferResolvedDSV);
+        mFbo.bind();
+        mFbo.setRenderTexture(g_pDepthBufferResolvedDSV, null);
 
-        pDC->IASetInputLayout(NULL);
-        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        /*pDC->IASetInputLayout(NULL);
+        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);*/
 
-        g_pDepthMapMSVariable->SetResource(g_pDepthBufferSRV);
-        g_pDownsampleDepthTechnique->GetPassByIndex(0)->Apply(0, pDC);
+        /*g_pDepthMapMSVariable->SetResource(g_pDepthBufferSRV);
+        g_pDownsampleDepthTechnique->GetPassByIndex(0)->Apply(0, pDC);*/
 
-        pDC->Draw(4, 0);
 
-        g_pDepthMapMSVariable->SetResource(NULL);
+        g_pDownsampleDepthTechnique.enable();
+//        pDC->Draw(4, 0);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+//        g_pDepthMapMSVariable->SetResource(NULL);
     }
 
-    void InterpolateDepth(ID3D11DeviceContext* pDC)
+    void InterpolateDepth(/*ID3D11DeviceContext* pDC*/)
     {
-        D3DXMATRIX matProj = *g_Camera.GetProjMatrix();
-        D3DXMATRIX matProjInv;
+        /*D3DXMATRIX matProj = *g_Camera.GetProjMatrix();
+        D3DXMATRIX matProjInv; todo
         D3DXMatrixInverse(&matProjInv, NULL, &matProj);
-        g_pMatProjInvVariable->SetMatrix(matProjInv);
+        g_pMatProjInvVariable->SetMatrix(matProjInv);*/
 
-        pDC->IASetInputLayout(NULL);
-        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+//        pDC->IASetInputLayout(NULL);
+//        pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-        g_pColorMapVariable->SetResource(g_pColorBufferResolvedSRV);
+        /*g_pColorMapVariable->SetResource(g_pColorBufferResolvedSRV); todo
         g_pDepthMapVariable->SetResource(g_pDepthBufferResolvedSRV);
         g_pDepthMapMSVariable->SetResource(g_pDepthBufferSRV);
-        g_pUpsampleParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+        g_pUpsampleParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);*/
 
-        pDC->Draw(4, 0);
+        g_pUpsampleParticlesTechnique.enable();
 
-        g_pColorMapVariable->SetResource(NULL);
+//        pDC->Draw(4, 0);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+
+        /*g_pColorMapVariable->SetResource(NULL);
         g_pDepthMapVariable->SetResource(NULL);
         g_pDepthMapMSVariable->SetResource(NULL);
-        g_pUpsampleParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);
+        g_pUpsampleParticlesTechnique->GetPassByIndex(0)->Apply(0, pDC);*/
     }
 
-    void RenderSkybox(ID3D11DeviceContext* pDC)
+    private final Vector4f[] far_plane_quad = CommonUtil.initArray(new Vector4f[4]);
+    private final Matrix4f prePostMat = new Matrix4f(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1);
+    void RenderSkybox(/*ID3D11DeviceContext* pDC*/)
     {
-        D3DXMATRIX matView = D3DXMATRIX(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1) * *g_Camera.GetViewMatrix();
+        /*D3DXMATRIX matView = D3DXMATRIX(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1) * *g_Camera.GetViewMatrix();
         matView._41 = 0.f; // Zero out the translation, to avoid precision issues at large distances from origin
         matView._42 = 0.f;
         matView._43 = 0.f;
         D3DXMATRIX matProj = *g_Camera.GetProjMatrix();
-        D3DXMATRIX matVP = matView * matProj;
+        D3DXMATRIX matVP = matView * matProj;*/
+        final Matrix4f matView = CacheBuffer.getCachedMatrix();
+        Matrix4f viewMat  = g_Camera.getViewMatrix();
+        Matrix4f.mul(viewMat, prePostMat, matView);
+        matView.setColumn(3, 0,0,0,1);  //Zero out the translation, to avoid precision issues at large distances from origin
+        Matrix4f matProj = g_Camera.getProjMatrix();
+        Matrix4f matVP = Matrix4f.mul(matProj, matView, matView);
 
-        D3D11_MAPPED_SUBRESOURCE msr;
+        /*D3D11_MAPPED_SUBRESOURCE msr;
         pDC->Map(g_pSkyBoxVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 
-        D3DXVECTOR4* far_plane_quad = (D3DXVECTOR4*)msr.pData;
-        far_plane_quad[0] = D3DXVECTOR4(-g_FarPlane,  g_FarPlane, g_FarPlane, g_FarPlane);
-        far_plane_quad[1] = D3DXVECTOR4(-g_FarPlane, -g_FarPlane, g_FarPlane, g_FarPlane);
-        far_plane_quad[2] = D3DXVECTOR4( g_FarPlane,  g_FarPlane, g_FarPlane, g_FarPlane);
-        far_plane_quad[3] = D3DXVECTOR4( g_FarPlane, -g_FarPlane, g_FarPlane, g_FarPlane);
-        D3DXMATRIX matInvVP;
+        D3DXVECTOR4* far_plane_quad = (D3DXVECTOR4*)msr.pData;*/
+        far_plane_quad[0].set(-g_FarPlane,  g_FarPlane, g_FarPlane, g_FarPlane);
+        far_plane_quad[1].set(-g_FarPlane, -g_FarPlane, g_FarPlane, g_FarPlane);
+        far_plane_quad[2].set( g_FarPlane,  g_FarPlane, g_FarPlane, g_FarPlane);
+        far_plane_quad[3].set( g_FarPlane, -g_FarPlane, g_FarPlane, g_FarPlane);
+        /*D3DXMATRIX matInvVP;
         D3DXMatrixInverse(&matInvVP, NULL, &matVP);
         D3DXVec4TransformArray(&far_plane_quad[0], sizeof(D3DXVECTOR4), &far_plane_quad[0], sizeof(D3DXVECTOR4), &matInvVP, 4);
-        pDC->Unmap(g_pSkyBoxVB, 0);
+        pDC->Unmap(g_pSkyBoxVB, 0);*/
 
-	const UINT vbOffset = 0;
-	const UINT vertexStride = sizeof(D3DXVECTOR4);
+        Matrix4f matInvVP = Matrix4f.invert(matVP, CacheBuffer.getCachedMatrix());
+        for(int i = 0; i < far_plane_quad.length;i++)
+            Matrix4f.transform(matInvVP, far_plane_quad[i], far_plane_quad[i]);
+
+        g_pSkyBoxVB.update(0, CacheBuffer.wrap(far_plane_quad));
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, g_pSkyBoxVB.getBuffer());
+        g_pSkyboxLayout.bind();
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        // setup paramsters.  todo
+        g_pSkyBoxTechnique.enable();
+        gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
+
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+        g_pMarkerLayout.unbind();
+
+        CacheBuffer.free(matView);
+        CacheBuffer.free(matInvVP);
+
+	    /*const UINT vbOffset = 0;
+	    const UINT vertexStride = sizeof(D3DXVECTOR4);
         pDC->IASetInputLayout(g_pSkyboxLayout);
         pDC->IASetVertexBuffers(0, 1, &g_pSkyBoxVB, &vertexStride, &vbOffset);
         pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -1605,45 +1826,54 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
         g_pSkyCubeMultVariable->SetFloatVector((FLOAT*)&g_ocean_env.sky_map_color_mult);
 
         g_pSkyBoxTechnique->GetPassByIndex(0)->Apply(0, pDC);
-        pDC->Draw(4, 0);
+        pDC->Draw(4, 0);*/
     }
 
-    void RenderLogo(ID3D11DeviceContext* pDC, ID3D11ShaderResourceView* pSRV, ID3D11Buffer* pVB)
+    void RenderLogo(/*ID3D11DeviceContext* pDC,*/ Texture2D pSRV, BufferGL pVB)
     {
-        g_pLogoTextureVariable->SetResource(pSRV);
+        /*g_pLogoTextureVariable->SetResource(pSRV);
 
-	const UINT vbOffset = 0;
-	const UINT vertexStride = 20;
+	    const UINT vbOffset = 0;
+	    const UINT vertexStride = 20;
         pDC->IASetInputLayout(g_pOceanSurf->m_pQuadLayout);
         pDC->IASetVertexBuffers(0, 1, &pVB, &vertexStride, &vbOffset);
         pDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
         g_pLogoTechnique->GetPassByIndex(0)->Apply(0, pDC);
-        pDC->Draw(4, 0);
+        pDC->Draw(4, 0);*/
+
+        gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, pVB.getBuffer());
+        g_pOceanSurf.m_pQuadLayout.bind();
+        gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        // setup paramsters.  todo
+        g_pLogoTechnique.enable();
+        gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
+        g_pOceanSurf.m_pQuadLayout.unbind();
     }
 
     void SetVesselMode_OnBoard()
     {
-        g_Camera.SetEnablePositionMovement(FALSE);
+//        g_Camera.SetEnablePositionMovement(FALSE);
 
         // Reset the vessel-relative xform to look out to port at the other vessel
-        D3DXVECTOR3 vecEye(0.f, 0.f, 0.f);
-        D3DXVECTOR3 vecAt (-100.f, -3.f, 90.f);
-        g_Camera.SetViewParams(&vecEye, &vecAt);
+        Vector3f vecEye = new Vector3f(0.f, 0.f, 0.f);
+        Vector3f vecAt  = new Vector3f(-100.f, -3.f, 90.f);
+        g_Camera.setViewAndUpdateCamera(vecEye, vecAt, Vector3f.Y_AXIS);
 
         g_VesselMode = VesselMode_OnBoard;
     }
 
     void SetVesselMode_External()
     {
-        g_Camera.SetEnablePositionMovement(TRUE);
-        g_Camera.AssimilateVesselBorneXform();
+//        g_Camera.SetEnablePositionMovement(TRUE);
+//        g_Camera.AssimilateVesselBorneXform();
         g_VesselMode = VesselMode_External;
     }
 
     void CycleVesselMode()
     {
-        g_VesselMode = (VesselMode)((g_VesselMode+1) % Num_VesselModes);
+        g_VesselMode = ((g_VesselMode+1) % Num_VesselModes);
 
         if(g_VesselMode == VesselMode_OnBoard) {
             SetVesselMode_OnBoard();
@@ -1657,14 +1887,16 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
         // GFSDK_WaveWorks_Simulation_UpdateProperties(g_hOceanSimulation, g_ocean_simulation_settings, g_ocean_simulation_param);
     }
 
-    D3DXVECTOR3 GetOceanSurfaceLookAtPoint()
+    void GetOceanSurfaceLookAtPoint(Vector3f result)
     {
-        D3DXVECTOR3 eye_pos = *g_Camera.GetEyePt();
-        D3DXVECTOR3 lookat_pos = *g_Camera.GetLookAtPt();
-	const FLOAT intersectionHeight = g_ocean_param_quadtree.sea_level;
-	const FLOAT lambda = (intersectionHeight - eye_pos.y)/(lookat_pos.y - eye_pos.y);
-	const D3DXVECTOR3 result = (1.f - lambda) * eye_pos + lambda * lookat_pos;
-        return result;
+        ReadableVector3f eye_pos = g_Camera.getPosition();
+        ReadableVector3f lookat = g_Camera.getLookAt();
+        ReadableVector3f lookat_pos = Vector3f.add(eye_pos, lookat, result);
+	    final float intersectionHeight = g_ocean_param_quadtree.sea_level;
+        final float lambda = (intersectionHeight - eye_pos.getY())/(lookat_pos.getY() - eye_pos.getY());
+//	    const D3DXVECTOR3 result = (1.f - lambda) * eye_pos + lambda * lookat_pos;
+//        return result;
+        Vector3f.mix(eye_pos, lookat_pos, lambda, result);
     }
 
     private static final Preset kPresets[] = {
@@ -1805,7 +2037,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
 
         if(preset < 0.f) return kPresets[0].sky_color_mult;
         else if(preset >= (NumPresets-1)) return kPresets[NumPresets-1].sky_color_mult;
-	else {
+	    else {
             int lower = (int)Math.floor(preset);
             float blend = preset - (lower);
 //            return (1.f-blend) * kPresets[lower].sky_color_mult + blend * kPresets[lower+1].sky_color_mult;
@@ -1813,15 +2045,17 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
         }
     }
 
-    ReadableVector3f DirLightColorOfPreset(float preset) {
+    private static void DirLightColorOfPreset(float preset, Vector3f result) {
 
-        if(preset < 0.f) return kPresets[0].dir_light_color;
-        else if(preset >= (NumPresets-1)) return kPresets[NumPresets-1].dir_light_color;
-	else {
+        if(preset < 0.f)
+            result.set(kPresets[0].dir_light_color);
+        else if(preset >= (NumPresets-1))
+            result.set(kPresets[NumPresets-1].dir_light_color);
+	    else {
             int lower = (int)Math.floor(preset);
             float blend = preset - (lower);
 //            return (1.f-blend) * kPresets[lower].dir_light_color + blend * kPresets[lower+1].dir_light_color;
-            return Vector3f.mix(kPresets[lower].dir_light_color, kPresets[lower+1].dir_light_color, blend, null);
+            Vector3f.mix(kPresets[lower].dir_light_color, kPresets[lower+1].dir_light_color, blend, result);
         }
     }
 
@@ -1862,17 +2096,16 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
 	    return new SkyMapPreset(lower_map, upper_map, map_blend);
     }
 
-    ReadableVector3f SkyColorOfPreset(float preset) {
+    private void SkyColorOfPreset(float preset, Vector3f result) {
 
         SkyMapPreset smp =  SkyMapsOfPreset(preset/*, lower_map, upper_map, map_blend*/);
 
 //        D3DXVECTOR3 gross_color = (1.f-map_blend) * g_SkyMaps[lower_map].m_GrossColor + map_blend * g_SkyMaps[upper_map].m_GrossColor;
-        Vector3f gross_color = Vector3f.mix(g_SkyMaps[smp.lower_map].m_GrossColor, g_SkyMaps[smp.upper_map].m_GrossColor, smp.map_blend, null);
+        Vector3f gross_color = Vector3f.mix(g_SkyMaps[smp.lower_map].m_GrossColor, g_SkyMaps[smp.upper_map].m_GrossColor, smp.map_blend, result);
         ReadableVector3f mult = SkyColorMultOfPreset(preset);
 
 //        return D3DXVECTOR3(mult.x * gross_color.x, mult.y * gross_color.y, mult.z * gross_color.z);
         Vector3f.scale(mult, gross_color,gross_color);
-        return gross_color;
     }
 
     float TimeOfDayOfPreset(float preset)
@@ -1917,5 +2150,208 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst{
     {
         return g_bUseCustomTimeOfDay ? g_CustomTimeOfDay : TimeOfDayOfPreset(g_CurrentPreset);
     }
+
+    private static final String kVesselConfigString =
+            "Mesh .\\Media\\boat.sdkmesh\n"+
+    "DiffuseGamma 2.2\n"+
+    "Length 69\n"+
+    "CameraHeightAboveWater 12.85\n"+
+    "CameraLongitudinalOffset 10.35\n"+
+    "AttitudeInDegrees 1.35\n"+
+    "HeightDrag 1\n"+
+    "PitchDrag 2\n"+
+    "YawDrag 0.5\n"+
+    "YawCoefficient 0.5\n"+
+    "RollDrag 1\n"+
+    "MetacentricHeight 0.8\n"+
+    "HullProfileTextureWH 1024\n"+
+    "\n"+
+    "LongitudinalCOM -3.0\n"+
+    "InitialHeight -0.85\n"+
+    "InitialPitch 0.013\n"+
+    "\n"+
+    "PitchInertiaMult 0.4\n"+
+    "\n"+
+    "FunnelLongitudinalOffset -3.9\n"+
+    "FunnelHeightAboveWater 9.6\n"+
+    "FunnelXSize 0.4\n"+
+    "FunnelYSize 0.1\n"+
+    "\n"+
+    "SmokeTexture .\\Media\\smoke.dds\n"+
+    "NumSmokeParticles 100000\n"+
+    "SmokeEmitMinVelocity 15\n"+
+    "SmokeEmitMaxVelocity 20\n"+
+    "SmokeEmitSpread 0.25\n"+
+    "SmokeEmitRate 10000\n"+
+    "SmokeParticleBeginSize 0.3\n"+
+    "SmokeParticleEndSize 1.0\n"+
+    "SmokeWindDrag 5.0\n"+
+    "SmokeMinBuoyancy 4.0\n"+
+    "SmokeMaxBuoyancy 5.0\n"+
+    "SmokeCoolingRate 0.1\n"+
+    "\n"+
+    "PSMMinCornerX -50.0\n"+
+    "PSMMaxCornerX  50.0\n"+
+    "PSMMinCornerY -100.0\n"+
+    "PSMMaxCornerY  50.0\n"+
+    "PSMMinCornerZ -40.0\n"+
+    "PSMMaxCornerZ  40.0\n"+
+    "PSMRes 512\n"+
+    "\n"+
+    "SmokePSMBoundsFadeMargin 0.1\n"+
+    "SmokeShadowOpacity 0.2\n"+
+    "SmokeWindNoiseSpatialScale 0.25\n"+
+    "SmokeWindNoiseTimeScale 5.0\n"+
+    "SmokeWindNoiseLevel 1.5\n"+
+    "SmokeTintR 1.0\n"+
+    "SmokeTintG 1.1\n"+
+    "SmokeTintB 1.3\n"+
+    "\n"+
+    "NumSurfaceHeightSamples 3000\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x 0\n"+
+    "y 20\n"+
+    "z 21\n"+
+    "axis-x 0\n"+
+    "axis-y -1\n"+
+    "axis-z 0.5\n"+
+    "r 200\n"+
+    "g 150\n"+
+    "b 50\n"+
+    "beam_angle 75\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x 3.25\n"+
+    "y 7\n"+
+    "z 7\n"+
+    "axis-x 0.2\n"+
+    "axis-y -1\n"+
+    "axis-z 0.25\n"+
+    "r 20\n"+
+    "g 15\n"+
+    "b 5\n"+
+    "beam_angle 90\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x -3.25\n"+
+    "y 7\n"+
+    "z 7\n"+
+    "axis-x -0.2\n"+
+    "axis-y -1\n"+
+    "axis-z 0.25\n"+
+    "r 20\n"+
+    "g 15\n"+
+    "b 5\n"+
+    "beam_angle 90\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x 3.25\n"+
+    "y 7\n"+
+    "z 3\n"+
+    "axis-x 0.2\n"+
+    "axis-y -1\n"+
+    "axis-z 0\n"+
+    "r 20\n"+
+    "g 15\n"+
+    "b 5\n"+
+    "beam_angle 90\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x -3.25\n"+
+    "y 7\n"+
+    "z 3\n"+
+    "axis-x -0.2\n"+
+    "axis-y -1\n"+
+    "axis-z 0\n"+
+    "r 20\n"+
+    "g 15\n"+
+    "b 5\n"+
+    "beam_angle 90\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x 0\n"+
+    "y 10\n"+
+    "z -3\n"+
+    "axis-x 0\n"+
+    "axis-y 0\n"+
+    "axis-z 1\n"+
+    "r 20\n"+
+    "g 15\n"+
+    "b 5\n"+
+    "beam_angle 90\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x 3.25\n"+
+    "y 5\n"+
+    "z -17\n"+
+    "axis-x 0.2\n"+
+    "axis-y -1\n"+
+    "axis-z 0\n"+
+    "r 10\n"+
+    "g 7.5\n"+
+    "b 2.5\n"+
+    "beam_angle 90\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x -3.25\n"+
+    "y 5\n"+
+    "z -17\n"+
+    "axis-x -0.2\n"+
+    "axis-y -1\n"+
+    "axis-z 0\n"+
+    "r 10\n"+
+    "g 7.5\n"+
+    "b 2.5\n"+
+    "beam_angle 90\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x 3.25\n"+
+    "y 5\n"+
+    "z -20\n"+
+    "axis-x 0.2\n"+
+    "axis-y -1\n"+
+    "axis-z -0.25\n"+
+    "r 10\n"+
+    "g 7.5\n"+
+    "b 2.5\n"+
+    "beam_angle 90\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x -3.25\n"+
+    "y 5\n"+
+    "z -20\n"+
+    "axis-x -0.2\n"+
+    "axis-y -1\n"+
+    "axis-z -0.25\n"+
+    "r 10\n"+
+    "g 7.5\n"+
+    "b 2.5\n"+
+    "beam_angle 90\n"+
+    "EndSpotlight\n"+
+    "\n"+
+    "BeginSpotlight\n"+
+    "x 0\n"+
+    "y 5\n"+
+    "z -22.5\n"+
+    "axis-x 0\n"+
+    "axis-y -1\n"+
+    "axis-z -0.5\n"+
+    "r 10\n"+
+    "g 7.5\n"+
+    "b 2.5\n"+
+    "beam_angle 120\n"+
+    "EndSpotlight\n"+
+    ;
+
 
 }

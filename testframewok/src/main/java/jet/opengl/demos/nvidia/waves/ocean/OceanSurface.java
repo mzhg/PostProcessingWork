@@ -10,7 +10,9 @@ import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree_Params;
+import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Quadtree_Stats;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
@@ -18,13 +20,13 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
 
-final class OceanSurface implements OceanConst{
+final class OceanSurface implements OceanConst, Disposeable {
 
     private final OceanSurfaceParameters m_params = new OceanSurfaceParameters();
 
     // D3D objects
 //    ID3D11Device* m_pd3dDevice;
-    private ID3D11InputLayout m_pQuadLayout;
+    ID3D11InputLayout m_pQuadLayout;
 
     // Color look up 1D texture
     private Texture2D m_pBicolorMap;			// (RGBA8)
@@ -169,9 +171,9 @@ final class OceanSurface implements OceanConst{
             pEffectBuffer->Release();*/
 
             // Hook up the shader mappings
-            m_pRenderSurfaceTechnique = m_pOceanFX->GetTechniqueByName("RenderOceanSurfTech");
-            m_pRenderSurfaceShadedPass = m_pRenderSurfaceTechnique->GetPassByName("Pass_PatchSolid");
-            m_pRenderSurfaceWireframePass = m_pRenderSurfaceTechnique->GetPassByName("Pass_PatchWireframe");
+//            m_pRenderSurfaceTechnique = m_pOceanFX->GetTechniqueByName("RenderOceanSurfTech");
+            m_pRenderSurfaceShadedPass = ShaderManager.getInstance().getProgram("Pass_PatchSolid");
+            m_pRenderSurfaceWireframePass = ShaderManager.getInstance().getProgram("Pass_PatchWireframe");
 
             /*m_pRenderSurfaceMatViewProjVariable = m_pOceanFX->GetVariableByName("g_matViewProj")->AsMatrix();
             m_pRenderSurfaceMatViewVariable = m_pOceanFX->GetVariableByName("g_matView")->AsMatrix();
@@ -224,8 +226,8 @@ final class OceanSurface implements OceanConst{
             m_pRenderSurfaceCloudFactorVariable = m_pOceanFX->GetVariableByName("g_CloudFactor")->AsScalar();
             m_pRenderSurfaceLocalFoamMapVariable = m_pOceanFX->GetVariableByName("g_texLocalFoamMap")->AsShaderResource();*/
 
-            m_pShiftFadeBlurLocalFoamTechnique = m_pOceanFX->GetTechniqueByName("LocalFoamMapTech");
-            m_pShiftFadeBlurLocalFoamShadedPass = m_pShiftFadeBlurLocalFoamTechnique->GetPassByName("Pass_Solid");
+            m_pShiftFadeBlurLocalFoamTechnique = ShaderManager.getInstance().getProgram("LocalFoamMapTech");
+            m_pShiftFadeBlurLocalFoamShadedPass = ShaderManager.getInstance().getProgram("Pass_Solid");
             /*m_pShiftFadeBlurLocalFoamTextureVariable = m_pOceanFX->GetVariableByName("g_texLocalFoamSource")->AsShaderResource();
             m_pShiftFadeBlurLocalFoamUVOffsetBlurVariable = m_pOceanFX->GetVariableByName("g_UVOffsetBlur")->AsVector();
             m_pShiftFadeBlurLocalFoamFadeAmountVariable = m_pOceanFX->GetVariableByName("g_FadeAmount")->AsScalar();
@@ -422,9 +424,9 @@ final class OceanSurface implements OceanConst{
                 m_pDrawParticlesCB.initlize(GLenum.GL_UNIFORM_BUFFER, 16, null, GLenum.GL_DYNAMIC_COPY);
             }
 
-            m_pRenderSprayParticlesTechnique = m_pOceanFX -> GetTechniqueByName("RenderSprayParticles");
-            m_pSimulateSprayParticlesTechnique = m_pOceanFX -> GetTechniqueByName("SimulateSprayParticles");
-            m_pDispatchArgumentsTechnique = m_pOceanFX -> GetTechniqueByName("PrepareDispatchArguments");
+            m_pRenderSprayParticlesTechnique = ShaderManager.getInstance().getProgram("RenderSprayParticles");
+            m_pSimulateSprayParticlesTechnique = ShaderManager.getInstance().getProgram("SimulateSprayParticles");
+            m_pDispatchArgumentsTechnique = ShaderManager.getInstance().getProgram("PrepareDispatchArguments");
 
             /*m_pViewRightVariable = m_pOceanFX -> GetVariableByName("g_ViewRight")->AsVector();
             m_pViewUpVariable = m_pOceanFX -> GetVariableByName("g_ViewUp")->AsVector();
@@ -591,7 +593,7 @@ final class OceanSurface implements OceanConst{
         SAFE_RELEASE(pTextureResource);
     }
 
-    void OceanSurface::setHullProfiles(const OceanHullProfile* hullProfiles, UINT NumHullProfiles)
+    void setHullProfiles(OceanHullProfile hullProfiles, int NumHullProfiles)
     {
         assert(NumHullProfiles <= MaxNumVessels);
 
@@ -647,7 +649,7 @@ final class OceanSurface implements OceanConst{
         m_pRenderSurfaceShadedPass->Apply(0,pDC);
     }
 
-    void OceanSurface::renderShaded(ID3D11DeviceContext* pDC,
+    void renderShaded(ID3D11DeviceContext* pDC,
 								const D3DXMATRIX& matCameraView, const D3DXMATRIX& matView, const D3DXMATRIX& matProj,
                                     GFSDK_WaveWorks_SimulationHandle hSim, GFSDK_WaveWorks_SavestateHandle hSavestate,
 								const OceanEnvironment& ocean_env,
@@ -793,13 +795,19 @@ final class OceanSurface implements OceanConst{
         pDC->CopyStructureCount(m_pDrawParticlesCB, 0, m_pParticlesBufferUAV[m_ParticleWriteBuffer]);
 #endif
     }
-    void OceanSurface::getQuadTreeStats(GFSDK_WaveWorks_Quadtree_Stats& stats)
+    void getQuadTreeStats(GFSDK_WaveWorks_Quadtree_Stats stats)
     {
-        GFSDK_WaveWorks_Quadtree_GetStats(m_hOceanQuadTree, stats);
+        GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_GetStats(m_hOceanQuadTree, stats);
     }
 
-    void OceanSurface::setWorldToShipMatrix(const D3DXMATRIX& matShipToWorld)
+    void setWorldToShipMatrix(Matrix4f matShipToWorld)
     {
-        D3DXMatrixInverse(&m_matWorldToShip,NULL,&matShipToWorld);
+//        D3DXMatrixInverse(&m_matWorldToShip,NULL,&matShipToWorld);
+        Matrix4f.invert(matShipToWorld, m_matWorldToShip);
+    }
+
+    @Override
+    public void dispose() {
+
     }
 }
