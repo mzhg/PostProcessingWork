@@ -1,7 +1,6 @@
 package jet.opengl.demos.nvidia.waves.crest.gpureadback;
 
 import org.lwjgl.util.vector.ReadableVector3f;
-import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector3f;
 
 import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;

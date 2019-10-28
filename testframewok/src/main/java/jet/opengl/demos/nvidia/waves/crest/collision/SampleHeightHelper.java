@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.waves.crest.collision;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
+import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 import jet.opengl.postprocessing.util.Recti;
@@ -38,7 +39,7 @@ public class SampleHeightHelper {
     {
         _queryPos[0].set(i_queryPos);
         Rectf rect = new Rectf(i_queryPos.getX(), i_queryPos.getZ(), 0f, 0f);
-        return _valid = OceanRenderer.Instance.CollisionProvider.GetSamplingData(rect, i_minLength, _samplingData);
+        return _valid = OceanRenderer.Instance.CollisionProvider().GetSamplingData(rect, i_minLength, _samplingData);
     }
 
     /// <summary>
@@ -51,17 +52,17 @@ public class SampleHeightHelper {
             return 0;
         }
 
-        int status = OceanRenderer.Instance.CollisionProvider.Query(hashCode(), _samplingData, _queryPos, _queryResult, null, null);
+        int status = OceanRenderer.Instance.CollisionProvider().Query(hashCode(), _samplingData, _queryPos, _queryResult, null, null);
 
-        OceanRenderer.Instance.CollisionProvider.ReturnSamplingData(_samplingData);
+        OceanRenderer.Instance.CollisionProvider().ReturnSamplingData(_samplingData);
 
-        if (!OceanRenderer.Instance.CollisionProvider.RetrieveSucceeded(status))
+        if (!OceanRenderer.Instance.CollisionProvider().RetrieveSucceeded(status))
         {
             _valid = false;
             return 0;
         }
 
-        float o_height = _queryResult[0].y + OceanRenderer.Instance.SeaLevel;
+        float o_height = _queryResult[0].y + OceanRenderer.Instance.SeaLevel();
 
         return Numeric.encode(1, Float.floatToIntBits(o_height));
     }
@@ -73,17 +74,17 @@ public class SampleHeightHelper {
             return 0;
         }
 
-        int status = OceanRenderer.Instance.CollisionProvider.Query(hashCode(), _samplingData, _queryPos, _queryResult, _queryResultNormal, null);
+        int status = OceanRenderer.Instance.CollisionProvider().Query(hashCode(), _samplingData, _queryPos, _queryResult, _queryResultNormal, null);
 
-        OceanRenderer.Instance.CollisionProvider.ReturnSamplingData(_samplingData);
+        OceanRenderer.Instance.CollisionProvider().ReturnSamplingData(_samplingData);
 
-        if (!OceanRenderer.Instance.CollisionProvider.RetrieveSucceeded(status))
+        if (!OceanRenderer.Instance.CollisionProvider().RetrieveSucceeded(status))
         {
             _valid = false;
             return 0;
         }
 
-        float o_height = _queryResult[0].y + OceanRenderer.Instance.SeaLevel;
+        float o_height = _queryResult[0].y + OceanRenderer.Instance.SeaLevel();
         o_normal.set(_queryResultNormal[0]);
 
 //        return true;
@@ -97,16 +98,16 @@ public class SampleHeightHelper {
             return 0;
         }
 
-        int status = OceanRenderer.Instance.CollisionProvider.Query(hashCode(), _samplingData, _queryPos, _queryResult, _queryResultNormal, _queryResultVel);
+        int status = OceanRenderer.Instance.CollisionProvider().Query(hashCode(), _samplingData, _queryPos, _queryResult, _queryResultNormal, _queryResultVel);
 
-        OceanRenderer.Instance.CollisionProvider.ReturnSamplingData(_samplingData);
+        OceanRenderer.Instance.CollisionProvider().ReturnSamplingData(_samplingData);
 
-        if (!OceanRenderer.Instance.CollisionProvider.RetrieveSucceeded(status))
+        if (!OceanRenderer.Instance.CollisionProvider().RetrieveSucceeded(status))
         {
             return 0;
         }
 
-        float o_height = _queryResult[0].y + OceanRenderer.Instance.SeaLevel;
+        float o_height = _queryResult[0].y + OceanRenderer.Instance.SeaLevel();
         o_normal.set(_queryResultNormal[0]);
         o_surfaceVel.set(_queryResultVel[0]);
 
@@ -120,11 +121,11 @@ public class SampleHeightHelper {
             return false;
         }
 
-        int status = OceanRenderer.Instance.CollisionProvider.Query(hashCode(), _samplingData, _queryPos, _queryResult, _queryResultNormal, _queryResultVel);
+        int status = OceanRenderer.Instance.CollisionProvider().Query(hashCode(), _samplingData, _queryPos, _queryResult, _queryResultNormal, _queryResultVel);
 
-        OceanRenderer.Instance.CollisionProvider.ReturnSamplingData(_samplingData);
+        OceanRenderer.Instance.CollisionProvider().ReturnSamplingData(_samplingData);
 
-        if (!OceanRenderer.Instance.CollisionProvider.RetrieveSucceeded(status))
+        if (!OceanRenderer.Instance.CollisionProvider().RetrieveSucceeded(status))
         {
             return false;
         }

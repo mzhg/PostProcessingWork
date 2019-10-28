@@ -14,7 +14,7 @@ import jet.opengl.postprocessing.util.Numeric;
 public class LodDataMgrDynWaves extends LodDataMgrPersistent {
 
     protected String ShaderSim () { return "UpdateDynWaves";  }
-    protected GLSLProgram krnl_ShaderSim () { return _shader.FindKernel(ShaderSim()); }
+    protected GLSLProgram krnl_ShaderSim () { return /*_shader.FindKernel(ShaderSim())*/null; }
 
     public String SimName () { return "DynamicWaves"; }
     public int TextureFormat () { return GLenum.GL_RG16F; }
@@ -104,7 +104,7 @@ public class LodDataMgrDynWaves extends LodDataMgrPersistent {
         }
         else
         {
-            LodDataMgrFlow.BindNull(simMaterial);
+            LodDataMgrFlow.BindNull(simMaterial, false);
         }
     }
 

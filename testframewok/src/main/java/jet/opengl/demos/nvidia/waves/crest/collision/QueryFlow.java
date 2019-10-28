@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.waves.crest.collision;
 import org.lwjgl.util.vector.Vector3f;
 
 import jet.opengl.demos.nvidia.waves.crest.CrestConst;
+import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.demos.nvidia.waves.crest.helpers.PropertyWrapperComputeStandalone;
 import jet.opengl.postprocessing.buffer.BufferGL;
 
@@ -35,8 +36,8 @@ public class QueryFlow extends QueryBase implements CrestConst {
     protected  void BindInputsAndOutputs(PropertyWrapperComputeStandalone wrapper, BufferGL resultsBuffer)
     {
         OceanRenderer.Instance._lodDataFlow.BindResultData(wrapper);
-        ShaderProcessQueries.SetTexture(_kernelHandle, sp_LD_TexArray_Flow, OceanRenderer.Instance._lodDataFlow.DataTexture);
-        ShaderProcessQueries.SetBuffer(_kernelHandle, sp_ResultFlows, resultsBuffer);
+//        ShaderProcessQueries.SetTexture(_kernelHandle, sp_LD_TexArray_Flow, OceanRenderer.Instance._lodDataFlow.DataTexture);
+//        ShaderProcessQueries.SetBuffer(_kernelHandle, sp_ResultFlows, resultsBuffer);
     }
 
     public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPoints, Vector3f[] o_resultFlows)

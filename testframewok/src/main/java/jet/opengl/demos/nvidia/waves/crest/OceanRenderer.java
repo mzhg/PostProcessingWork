@@ -176,7 +176,7 @@ public class OceanRenderer extends MonoBehaviour {
         }*/
 
         InitViewpoint();
-        InitTimeProvider();
+//        InitTimeProvider();
     }
 
     boolean VerifyRequirements()
@@ -195,7 +195,7 @@ public class OceanRenderer extends MonoBehaviour {
     {
         if (_viewpoint == null)
         {
-            var camMain = Camera.main;
+            /*var camMain = Camera.main;  todo
             if (camMain != null)
             {
                 _viewpoint = camMain.transform;
@@ -203,7 +203,7 @@ public class OceanRenderer extends MonoBehaviour {
             else
             {
                 Debug.LogError("Please provide the viewpoint transform, or tag the primary camera as MainCamera.", this);
-            }
+            }*/
         }
     }
 
@@ -233,12 +233,12 @@ public class OceanRenderer extends MonoBehaviour {
     void LateUpdate()
     {
         // set global shader params
-        Shader.SetGlobalFloat(sp_texelsPerWave, MinTexelsPerWave);
-        Shader.SetGlobalFloat(sp_crestTime, CurrentTime);
+        /*Shader.SetGlobalFloat(sp_texelsPerWave, MinTexelsPerWave);  todo
+        Shader.SetGlobalFloat(sp_crestTime, CurrentTime);*/
 
         if (_viewpoint == null)
         {
-            Debug.LogError("_viewpoint is null, ocean update will fail.", this);
+//            Debug.LogError("_viewpoint is null, ocean update will fail.", this);
         }
 
         if (_followViewpoint)
@@ -293,14 +293,14 @@ public class OceanRenderer extends MonoBehaviour {
 
     void LateUpdatePosition()
     {
-        Vector3 pos = _viewpoint.position;
+        /*Vector3 pos = _viewpoint.position;  todo
 
         // maintain y coordinate - sea level
         pos.y = transform.position.y;
 
         transform.position = pos;
 
-        Shader.SetGlobalVector("_OceanCenterPosWorld", transform.position);
+        Shader.SetGlobalVector("_OceanCenterPosWorld", transform.position);*/
     }
 
     void LateUpdateScale()
@@ -331,12 +331,12 @@ public class OceanRenderer extends MonoBehaviour {
 
     void LateUpdateViewerHeight()
     {
-        _sampleHeightHelper.Init(Viewpoint.position, 0f);
+        /*_sampleHeightHelper.Init(Viewpoint.position, 0f); todo
 
         float waterHeight = 0f;
         _sampleHeightHelper.Sample(ref waterHeight);
 
-        ViewerHeightAboveWater = Viewpoint.position.y - waterHeight;
+        _ViewerHeightAboveWater = Viewpoint.position.y - waterHeight;*/
     }
 
     void LateUpdateLods()
@@ -370,11 +370,11 @@ public class OceanRenderer extends MonoBehaviour {
     {
         if (Time.frameCount != _maxDisplacementCachedTime)
         {
-            _maxHorizDispFromShape = _maxVertDispFromShape = _maxVertDispFromWaves = 0f;
+//            MaxHorizDispFromShape = MaxVertDispFromShape = _maxVertDispFromWaves = 0f;  todo
         }
 
         MaxHorizDisplacement += maxHorizDisp;
-        _maxVertDispFromShape += maxVertDisp;
+//        _maxVertDispFromShape += maxVertDisp;  todo
         _maxVertDispFromWaves += maxVertDispFromWaves;
 
         _maxDisplacementCachedTime = Time.frameCount;

@@ -450,8 +450,8 @@ final class CommonUtil implements ICONST, Disposeable {
         /**pBBoxMaxOut = Mesh.GetMeshBBoxCenter( 0 ) + Mesh.GetMeshBBoxExtents( 0 );
         *pBBoxMinOut = Mesh.GetMeshBBoxCenter( 0 ) - Mesh.GetMeshBBoxExtents( 0 );*/
 
-        Vector3f center = Mesh.getMeshBBoxCenter(0);
-        Vector3f extents = Mesh.getMeshBBoxExtents(0);
+        ReadableVector3f center = Mesh.getMeshBBoxCenter(0);
+        ReadableVector3f extents = Mesh.getMeshBBoxExtents(0);
 
         Vector3f.add(center, extents, pBBoxMinOut);
         Vector3f.sub(center, extents, pBBoxMinOut);

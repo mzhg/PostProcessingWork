@@ -5,8 +5,10 @@ import org.lwjgl.util.vector.Transform;
 import jet.opengl.demos.intel.fluid.scene.Light;
 import jet.opengl.demos.intel.fluid.utils.Camera;
 import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
+import jet.opengl.demos.nvidia.waves.crest.helpers.IPropertyWrapper;
 import jet.opengl.demos.nvidia.waves.crest.helpers.PropertyWrapperCompute;
 import jet.opengl.demos.nvidia.waves.crest.helpers.TextureArrayHelpers;
+import jet.opengl.demos.nvidia.waves.crest.helpers.Time;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
@@ -61,11 +63,11 @@ public class LodDataMgrShadow extends LodDataMgr {
         super.Start();
 
         _renderProperties = new PropertyWrapperCompute();
-        _updateShadowShader = Resources.Load<ComputeShader>(UpdateShadow);
+//        _updateShadowShader = Resources.Load<ComputeShader>(UpdateShadow);  todo
 
         try
         {
-            krnl_UpdateShadow = _updateShadowShader.FindKernel(UpdateShadow);
+//            krnl_UpdateShadow = _updateShadowShader.FindKernel(UpdateShadow); todo
         }
         catch (Exception e)
         {
@@ -74,7 +76,7 @@ public class LodDataMgrShadow extends LodDataMgr {
             return;
         }
 
-        _cameraMain = Camera.main;
+//        _cameraMain = Camera.main; todo
         if (_cameraMain == null)
         {
             Transform viewpoint = OceanRenderer.Instance.Viewpoint();
@@ -112,7 +114,7 @@ public class LodDataMgrShadow extends LodDataMgr {
     {
         _mainLight = OceanRenderer.Instance._primaryLight;
 
-        if (_mainLight.type != LightType.Directional)
+        /*if (_mainLight.type != LightType.Directional)  todo
         {
             LogUtil.e(LogUtil.LogType.DEFAULT, ()->"Primary light must be of type Directional.");
             return false;
@@ -122,7 +124,7 @@ public class LodDataMgrShadow extends LodDataMgr {
         {
             LogUtil.e(LogUtil.LogType.DEFAULT, ()->"Shadows must be enabled on primary light to enable ocean shadowing (types Hard and Soft are equivalent for the ocean system).");
             return false;
-        }
+        }*/
 
         return true;
     }
@@ -140,7 +142,7 @@ public class LodDataMgrShadow extends LodDataMgr {
         {
             if (_mainLight != null)
             {
-                _mainLight.RemoveCommandBuffer(LightEvent.BeforeScreenspaceMask, BufCopyShadowMap);
+//                _mainLight.RemoveCommandBuffer(LightEvent.BeforeScreenspaceMask, BufCopyShadowMap); todo
                 BufCopyShadowMap = null;
                 TextureArrayHelpers.ClearToBlack(_sources);
                 TextureArrayHelpers.ClearToBlack(_targets);
@@ -199,7 +201,7 @@ public class LodDataMgrShadow extends LodDataMgr {
         LodTransform lt = OceanRenderer.Instance._lodTransform;
         for (int lodIdx = lt.LodCount() - 1; lodIdx >= 0; lodIdx--)
         {
-            _renderProperties.Initialise(BufCopyShadowMap, _updateShadowShader, krnl_UpdateShadow);
+            /*_renderProperties.Initialise(BufCopyShadowMap, _updateShadowShader, krnl_UpdateShadow);  todo
 
             lt._renderData[lodIdx].Validate(0, this);
             _renderProperties.SetVector(sp_CenterPos, lt._renderData[lodIdx]._posSnapped);
@@ -218,30 +220,30 @@ public class LodDataMgrShadow extends LodDataMgr {
             _renderProperties.SetFloat(sp_LD_SliceIndex_Source, srcDataIdx);
             BindSourceData(_renderProperties, false);
             _renderProperties.SetTexture(sp_LD_TexArray_Target, _targets);
-            _renderProperties.DispatchShader();
+            _renderProperties.DispatchShader();*/
         }
     }
 
     public void ValidateSourceData()
     {
-        foreach (var renderData in OceanRenderer.Instance._lodTransform._renderDataSource)
+        for (LodTransform.RenderData renderData : OceanRenderer.Instance._lodTransform._renderDataSource)
         {
-            renderData.Validate(BuildCommandBufferBase._lastUpdateFrame - Time.frameCount, this);
+            renderData.Validate(/*BuildCommandBufferBase._lastUpdateFrame - Time.frameCount*/0, this);
         }
     }
 
-    public void BindSourceData(IPropertyWrapper simMaterial, bool paramsOnly)
+    public void BindSourceData(IPropertyWrapper simMaterial, boolean paramsOnly)
     {
-        var rd = OceanRenderer.Instance._lodTransform._renderDataSource;
-        BindData(simMaterial, paramsOnly ? Texture2D.blackTexture : _sources as Texture, true, ref rd, true);
+        LodTransform.RenderData[] rd = OceanRenderer.Instance._lodTransform._renderDataSource;
+//        BindData(simMaterial, paramsOnly ? Texture2D.blackTexture : _sources as Texture, true, ref rd, true);  todo
     }
 
-    void OnEnable()
+    protected void OnEnable()
     {
         RemoveCommandBuffers();
     }
 
-    void OnDisable()
+    protected void OnDisable()
     {
         RemoveCommandBuffers();
     }
@@ -250,22 +252,22 @@ public class LodDataMgrShadow extends LodDataMgr {
     {
         if (BufCopyShadowMap != null)
         {
-            if (_mainLight)
+            if (_mainLight != null)
             {
-                _mainLight.RemoveCommandBuffer(LightEvent.BeforeScreenspaceMask, BufCopyShadowMap);
+//                _mainLight.RemoveCommandBuffer(LightEvent.BeforeScreenspaceMask, BufCopyShadowMap);
             }
             BufCopyShadowMap = null;
         }
     }
 
-    public static string TextureArrayName = "_LD_TexArray_Shadow";
+    public static String TextureArrayName = "_LD_TexArray_Shadow";
     private static TextureArrayParamIds textureArrayParamIds = new TextureArrayParamIds(TextureArrayName);
-    public static int ParamIdSampler(bool sourceLod = false) { return textureArrayParamIds.GetId(sourceLod); }
-    protected override int GetParamIdSampler(bool sourceLod = false)
+    public static int ParamIdSampler(boolean sourceLod /*= false*/) { return textureArrayParamIds.GetId(sourceLod); }
+    protected int GetParamIdSampler(boolean sourceLod /*= false*/)
     {
         return ParamIdSampler(sourceLod);
     }
-    public static void BindNull(IPropertyWrapper properties, bool sourceLod = false)
+    public static void BindNull(IPropertyWrapper properties, boolean sourceLod /*= false*/)
     {
         properties.SetTexture(ParamIdSampler(sourceLod), TextureArrayHelpers.BlackTextureArray);
     }

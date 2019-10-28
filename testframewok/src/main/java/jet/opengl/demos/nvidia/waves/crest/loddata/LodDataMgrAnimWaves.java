@@ -72,15 +72,15 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
         // different animated wave LODs. As we use a single texture array
         // for all LODs, we employ a compute shader as only they can
         // read and write to the same texture.
-        _combineShader = Resources.Load<ComputeShader>(ShaderName);
-        krnl_ShapeCombine = _combineShader.FindKernel("ShapeCombine");
-        krnl_ShapeCombine_DISABLE_COMBINE = _combineShader.FindKernel("ShapeCombine_DISABLE_COMBINE");
-        krnl_ShapeCombine_FLOW_ON = _combineShader.FindKernel("ShapeCombine_FLOW_ON");
-        krnl_ShapeCombine_FLOW_ON_DISABLE_COMBINE = _combineShader.FindKernel("ShapeCombine_FLOW_ON_DISABLE_COMBINE");
-        krnl_ShapeCombine_DYNAMIC_WAVE_SIM_ON = _combineShader.FindKernel("ShapeCombine_DYNAMIC_WAVE_SIM_ON");
-        krnl_ShapeCombine_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE = _combineShader.FindKernel("ShapeCombine_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE");
-        krnl_ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON = _combineShader.FindKernel("ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON");
-        krnl_ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE = _combineShader.FindKernel("ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE");
+//        _combineShader = Resources.Load<ComputeShader>(ShaderName);
+//        krnl_ShapeCombine = _combineShader.FindKernel("ShapeCombine");
+//        krnl_ShapeCombine_DISABLE_COMBINE = _combineShader.FindKernel("ShapeCombine_DISABLE_COMBINE");
+//        krnl_ShapeCombine_FLOW_ON = _combineShader.FindKernel("ShapeCombine_FLOW_ON");
+//        krnl_ShapeCombine_FLOW_ON_DISABLE_COMBINE = _combineShader.FindKernel("ShapeCombine_FLOW_ON_DISABLE_COMBINE");
+//        krnl_ShapeCombine_DYNAMIC_WAVE_SIM_ON = _combineShader.FindKernel("ShapeCombine_DYNAMIC_WAVE_SIM_ON");
+//        krnl_ShapeCombine_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE = _combineShader.FindKernel("ShapeCombine_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE");
+//        krnl_ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON = _combineShader.FindKernel("ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON");
+//        krnl_ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE = _combineShader.FindKernel("ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE");
 //        _combineProperties = new PropertyWrapperCompute();
 
         int resolution = OceanRenderer.Instance.LodDataResolution();
@@ -90,13 +90,13 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
 
         _combineBuffer = TextureUtils.createTexture2D(desc, null);
 
-        var combineShader = Shader.Find("Hidden/Crest/Simulation/Combine Animated Wave LODs");
+        /*var combineShader = Shader.Find("Hidden/Crest/Simulation/Combine Animated Wave LODs");
         _combineMaterial = new PropertyWrapperMaterial[OceanRenderer.Instance.CurrentLodCount];
         for (int i = 0; i < _combineMaterial.length; i++)
         {
             Material mat = new Material(combineShader);
             _combineMaterial[i] = new PropertyWrapperMaterial(mat);
-        }
+        }*/
     }
 
     FilterWavelength _filterWavelength = new FilterWavelength();
@@ -129,14 +129,14 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
         _filterWavelength._lodCount = lodCount;
         for (int lodIdx = lodCount - 1; lodIdx >= 0; lodIdx--)
         {
-            buf.SetRenderTarget(_waveBuffers, 0, CubemapFace.Unknown, lodIdx);
-            buf.ClearRenderTarget(false, true, new Color(0f, 0f, 0f, 0f));
+//            buf.SetRenderTarget(_waveBuffers, 0, CubemapFace.Unknown, lodIdx);  todo
+//            buf.ClearRenderTarget(false, true, new Color(0f, 0f, 0f, 0f));
 
             // draw any data with lod preference
             _filterWavelength._lodIdx = lodIdx;
             _filterWavelength._lodMaxWavelength = OceanRenderer.Instance._lodTransform.MaxWavelength(lodIdx);
             _filterWavelength._lodMinWavelength = _filterWavelength._lodMaxWavelength / 2f;
-            _filterWavelength._globalMaxWavelength = OceanRenderer.Instance._lodTransform.MaxWavelength(OceanRenderer.Instance.CurrentLodCount - 1);
+            _filterWavelength._globalMaxWavelength = OceanRenderer.Instance._lodTransform.MaxWavelength(OceanRenderer.Instance.CurrentLodCount() - 1);
             SubmitDrawsFiltered(lodIdx, buf, _filterWavelength);
         }
 
@@ -153,7 +153,7 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
         // lod-independent data
         for (int lodIdx = lodCount - 1; lodIdx >= 0; lodIdx--)
         {
-            buf.SetRenderTarget(_targets, 0, CubemapFace.Unknown, lodIdx);
+//            buf.SetRenderTarget(_targets, 0, CubemapFace.Unknown, lodIdx);
 
             // draw any data that did not express a preference for one lod or another
             SubmitDrawsFiltered(lodIdx, buf, _filterNoLodPreference);
@@ -189,7 +189,7 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
             }
             else
             {
-                LodDataMgrDynWaves.BindNull([lodIdx]);
+                LodDataMgrDynWaves.BindNull(_combineMaterial[lodIdx], false);
             }
 
             // Flow
@@ -199,19 +199,19 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
             }
             else
             {
-                LodDataMgrFlow.BindNull(_combineMaterial[lodIdx]);
+//                LodDataMgrFlow.BindNull(_combineMaterial[lodIdx]);
             }
 
             _combineMaterial[lodIdx].SetFloat(LodDataMgr.sp_LD_SliceIndex, lodIdx);
 
             // Combine this LOD's waves with waves from the LODs above into auxiliary combine buffer
-            buf.SetRenderTarget(_combineBuffer);
+            /*buf.SetRenderTarget(_combineBuffer);  todo
             buf.DrawProcedural(Matrix4x4.identity, _combineMaterial[lodIdx].material, shaderPassCombineIntoAux, MeshTopology.Triangles, 3);
 
             // Copy combine buffer back to lod texture array
             buf.SetRenderTarget(_targets, 0, CubemapFace.Unknown, lodIdx);
             _combineMaterial[lodIdx].SetTexture(Shader.PropertyToID("_CombineBuffer"), _combineBuffer);
-            buf.DrawProcedural(Matrix4x4.identity, _combineMaterial[lodIdx].material, shaderPassCopyResultBack, MeshTopology.Triangles, 3);
+            buf.DrawProcedural(Matrix4x4.identity, _combineMaterial[lodIdx].material, shaderPassCopyResultBack, MeshTopology.Triangles, 3);*/
         }
     }
 
@@ -255,48 +255,48 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
                 selectedShaderKernel = combineShaderKernel_lastLOD;
             }
 
-            _combineProperties.Initialise(buf, _combineShader, selectedShaderKernel);
+//            _combineProperties.Initialise(buf, _combineShader, selectedShaderKernel);
 
             // The per-octave wave buffers
-            BindWaveBuffer(_combineProperties);
+            BindWaveBuffer(/*_combineProperties*/null, false);
             // Bind this LOD data (displacements)
-            BindResultData(_combineProperties);
+            BindResultData(/*_combineProperties,*/ null);
 
             // Dynamic waves
-            if (OceanRenderer.Instance._lodDataDynWaves)
+            if (OceanRenderer.Instance._lodDataDynWaves != null)
             {
-                OceanRenderer.Instance._lodDataDynWaves.BindCopySettings(_combineProperties);
-                OceanRenderer.Instance._lodDataDynWaves.BindResultData(_combineProperties);
+                OceanRenderer.Instance._lodDataDynWaves.BindCopySettings(/*_combineProperties*/null);
+                OceanRenderer.Instance._lodDataDynWaves.BindResultData(/*_combineProperties*/null);
             }
             else
             {
-                LodDataMgrDynWaves.BindNull(_combineProperties);
+                LodDataMgrDynWaves.BindNull(/*_combineProperties*/null, false);
             }
 
             // Flow
-            if (OceanRenderer.Instance._lodDataFlow)
+            if (OceanRenderer.Instance._lodDataFlow != null)
             {
-                OceanRenderer.Instance._lodDataFlow.BindResultData(_combineProperties);
+                OceanRenderer.Instance._lodDataFlow.BindResultData(/*_combineProperties*/null);
             }
             else
             {
-                LodDataMgrFlow.BindNull(_combineProperties);
+                LodDataMgrFlow.BindNull(/*_combineProperties*/null, false);
             }
 
             // Set the animated waves texture where the results will be combined.
-            _combineProperties.SetTexture(
+            /*_combineProperties.SetTexture(  todo
                     sp_LD_TexArray_AnimatedWaves_Compute,
                     DataTexture
             );
 
             _combineProperties.SetFloat(sp_LD_SliceIndex, lodIdx);
-            _combineProperties.DispatchShader();
+            _combineProperties.DispatchShader();*/
         }
     }
 
     public void BindWaveBuffer(IPropertyWrapper properties, boolean sourceLod /*= false*/)
     {
-        properties.SetTexture(Shader.PropertyToID("_LD_TexArray_WaveBuffer"), _waveBuffers);
+        properties.SetTexture(/*Shader.PropertyToID("_LD_TexArray_WaveBuffer")*/0, _waveBuffers);
         BindData(properties, null, true, OceanRenderer.Instance._lodTransform._renderData, sourceLod);
     }
 
@@ -310,7 +310,7 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
         {
             // need to blend out shape if this is the largest lod, and the ocean might get scaled down later (so the largest lod will disappear)
             boolean needToBlendOutShape = lodIdx == OceanRenderer.Instance.CurrentLodCount() - 1 && OceanRenderer.Instance.ScaleCouldDecrease() && blendOut;
-            float shapeWeight = needToBlendOutShape ? OceanRenderer.Instance.ViewerAltitudeLevelAlpha() : 1f;
+            float shapeWeight = needToBlendOutShape ? OceanRenderer.Instance.ViewerAltitudeLevelAlpha : 1f;
             _BindData_paramIdOceans[lodIdx].set(
                     lt._renderData[lodIdx]._texelWidth,
                     lt._renderData[lodIdx]._textureRes, shapeWeight,
@@ -365,7 +365,7 @@ public class LodDataMgrAnimWaves extends LodDataMgr {
     }
     public static void BindNull(IPropertyWrapper properties, boolean sourceLod /*= false*/)
     {
-        properties.SetTexture(ParamIdSampler(sourceLod), TextureArrayHelpers.BlackTextureArray);
+        properties.SetTexture(ParamIdSampler(sourceLod), /*TextureArrayHelpers.BlackTextureArray*/null);
     }
 
 }

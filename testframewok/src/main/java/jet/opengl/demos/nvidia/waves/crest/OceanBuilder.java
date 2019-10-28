@@ -6,15 +6,22 @@ import org.lwjgl.util.vector.Vector3f;
 
 import java.util.ArrayList;
 
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgr;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrAnimWaves;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrDynWaves;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrFlow;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrFoam;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrSeaFloorDepth;
+import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrShadow;
 import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
 import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsAnimatedWaves;
+import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsFoam;
+import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsShadow;
+import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsWave;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackInt;
-import sun.rmi.runtime.Log;
 
 /** Instantiates all the ocean geometry, as a set of tiles. */
 public class OceanBuilder {
@@ -174,26 +181,40 @@ public class OceanBuilder {
         ocean._lodTransform.InitLODData(lodCount);
 
         // Create the LOD data managers
-        ocean._lodDataAnimWaves = LodDataMgr.Create<LodDataMgrAnimWaves, SimSettingsAnimatedWaves>(ocean.gameObject, ref ocean._simSettingsAnimatedWaves);
+//        ocean._lodDataAnimWaves = LodDataMgr.Create<LodDataMgrAnimWaves, SimSettingsAnimatedWaves>(ocean.gameObject, ref ocean._simSettingsAnimatedWaves);
+        ocean._simSettingsAnimatedWaves = new SimSettingsAnimatedWaves();
+        ocean._lodDataAnimWaves = new LodDataMgrAnimWaves();
+        ocean._lodDataAnimWaves.UseSettings(ocean._simSettingsAnimatedWaves);
         if (ocean.CreateDynamicWaveSim)
         {
-            ocean._lodDataDynWaves = LodDataMgr.Create<LodDataMgrDynWaves, SimSettingsWave>(ocean.gameObject, ref ocean._simSettingsDynamicWaves);
+//            ocean._lodDataDynWaves = LodDataMgr.Create<LodDataMgrDynWaves, SimSettingsWave>(ocean.gameObject, ref ocean._simSettingsDynamicWaves);
+            ocean._simSettingsDynamicWaves = new SimSettingsWave();
+            ocean._lodDataDynWaves = new LodDataMgrDynWaves();
+            ocean._lodDataDynWaves.UseSettings(ocean._simSettingsDynamicWaves);
         }
         if (ocean.CreateFlowSim)
         {
-            ocean._lodDataFlow = LodDataMgr.Create<LodDataMgrFlow, SimSettingsFlow>(ocean.gameObject, ref ocean._simSettingsFlow);
+//            ocean._lodDataFlow = LodDataMgr.Create<LodDataMgrFlow, SimSettingsFlow>(ocean.gameObject, ref ocean._simSettingsFlow);
+            ocean._lodDataFlow = new LodDataMgrFlow();
         }
         if (ocean.CreateFoamSim)
         {
-            ocean._lodDataFoam = LodDataMgr.Create<LodDataMgrFoam, SimSettingsFoam>(ocean.gameObject, ref ocean._simSettingsFoam);
+//            ocean._lodDataFoam = LodDataMgr.Create<LodDataMgrFoam, SimSettingsFoam>(ocean.gameObject, ref ocean._simSettingsFoam);
+            ocean._simSettingsFoam = new SimSettingsFoam();
+            ocean._lodDataFoam = new LodDataMgrFoam();
+            ocean._lodDataFoam.UseSettings(ocean._simSettingsFoam);
         }
         if (ocean.CreateShadowData)
         {
-            ocean._lodDataShadow = LodDataMgr.Create<LodDataMgrShadow, SimSettingsShadow>(ocean.gameObject, ref ocean._simSettingsShadow);
+//            ocean._lodDataShadow = LodDataMgr.Create<LodDataMgrShadow, SimSettingsShadow>(ocean.gameObject, ref ocean._simSettingsShadow);
+            ocean._simSettingsShadow = new SimSettingsShadow();
+            ocean._lodDataShadow = new LodDataMgrShadow();
+            ocean._lodDataShadow.UseSettings(ocean._simSettingsShadow);
         }
         if (ocean.CreateSeaFloorDepthData)
         {
-            ocean._lodDataSeaDepths = ocean.gameObject.AddComponent<LodDataMgrSeaFloorDepth>();
+//            ocean._lodDataSeaDepths = ocean.gameObject.AddComponent<LodDataMgrSeaFloorDepth>();
+            ocean._lodDataSeaDepths = new LodDataMgrSeaFloorDepth();
         }
 
         // Add any required GPU readbacks
@@ -201,16 +222,16 @@ public class OceanBuilder {
             SimSettingsAnimatedWaves ssaw = ocean._simSettingsAnimatedWaves;
             if (ssaw != null && ssaw.CollisionSource == SimSettingsAnimatedWaves.CollisionSources.OceanDisplacementTexturesGPU)
             {
-                ocean.gameObject.AddComponent<GPUReadbackDisps>();
+//                ocean.gameObject.AddComponent<GPUReadbackDisps>();  todo
             }
             if (ssaw != null && ssaw.CollisionSource == SimSettingsAnimatedWaves.CollisionSources.ComputeShaderQueries)
             {
-                ocean.gameObject.AddComponent<QueryDisplacements>();
+//                ocean.gameObject.AddComponent<QueryDisplacements>();  todo
             }
 
             if (ocean.CreateFlowSim)
             {
-                ocean.gameObject.AddComponent<QueryFlow>();
+//                ocean.gameObject.AddComponent<QueryFlow>();  todo
             }
         }
 

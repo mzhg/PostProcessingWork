@@ -2659,21 +2659,21 @@ public class DiffuseGlobalIllumination extends NvSampleApp {
         g_MainMesh.m_UseTexture = true;
         g_MainMeshSimplified.m_UseTexture = true;
 
-        Vector3f meshExtents;
-        Vector3f meshCenter;
+        ReadableVector3f meshExtents;
+        ReadableVector3f meshCenter;
 
         meshExtents = g_MainMesh.m_Mesh.getMeshBBoxExtents(0);
         meshCenter = g_MainMesh.m_Mesh.getMeshBBoxCenter(0);
-        g_MainMesh.setWorldMatrix(          0.01f,0.01f,0.01f,0,0,0,-meshCenter.x,-meshCenter.y,-meshCenter.z);
+        g_MainMesh.setWorldMatrix(          0.01f,0.01f,0.01f,0,0,0,-meshCenter.getX(),-meshCenter.getY(),-meshCenter.getZ());
         meshExtents = g_MainMeshSimplified.m_Mesh.getMeshBBoxExtents(0);
         meshCenter = g_MainMeshSimplified.m_Mesh.getMeshBBoxCenter(0);
-        g_MainMeshSimplified.setWorldMatrix(0.01f,0.01f,0.01f,0,0,0,-meshCenter.x,-meshCenter.y,-meshCenter.z);
+        g_MainMeshSimplified.setWorldMatrix(0.01f,0.01f,0.01f,0,0,0,-meshCenter.getX(),-meshCenter.getY(),-meshCenter.getZ());
 
 
         g_MainMovableMesh.m_Mesh.create( "..\\Media\\sponza\\flag.sdkmesh", true, null );
         meshExtents = g_MainMovableMesh.m_Mesh.getMeshBBoxExtents(0);
         meshCenter = g_MainMovableMesh.m_Mesh.getMeshBBoxCenter(0);
-        g_MainMovableMesh.setWorldMatrix(0.01f,0.01f,0.01f,0,0,0,-meshCenter.x,-meshCenter.y,-meshCenter.z);
+        g_MainMovableMesh.setWorldMatrix(0.01f,0.01f,0.01f,0,0,0,-meshCenter.getX(),-meshCenter.getY(),-meshCenter.getZ());
         g_MainMovableMesh.m_Mesh.initializeDefaultNormalmaps("defaultNormalTexture.dds");
 
         g_MainMesh.m_Mesh.ComputeSubmeshBoundingVolumes();

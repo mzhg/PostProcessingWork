@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.waves.crest.collision;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
+import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 
@@ -15,14 +16,14 @@ public class CollProviderNull implements ICollProvider {
     public boolean ComputeUndisplacedPosition(ReadableVector3f i_worldPos, Vector3f undisplacedWorldPos, float minSpatialLength)
     {
         undisplacedWorldPos.set(i_worldPos);
-        undisplacedWorldPos.y = OceanRenderer.Instance.SeaLevel;
+        undisplacedWorldPos.y = OceanRenderer.Instance.SeaLevel();
         return true;
     }
 
     public boolean ComputeUndisplacedPosition(ReadableVector3f i_worldPos, SamplingData i_samplingData, Vector3f undisplacedWorldPos)
     {
         undisplacedWorldPos.set(i_worldPos);
-        undisplacedWorldPos.y = OceanRenderer.Instance.SeaLevel;
+        undisplacedWorldPos.y = OceanRenderer.Instance.SeaLevel();
         return true;
     }
 
@@ -46,7 +47,7 @@ public class CollProviderNull implements ICollProvider {
 //        o_height = OceanRenderer.Instance.SeaLevel;
 //        return true;
 
-        return Numeric.encode(1, Float.floatToIntBits(OceanRenderer.Instance.SeaLevel));
+        return Numeric.encode(1, Float.floatToIntBits(OceanRenderer.Instance.SeaLevel()));
     }
 
     public boolean SampleNormal(ReadableVector3f i_undisplacedWorldPos, SamplingData i_samplingData, Vector3f o_normal)

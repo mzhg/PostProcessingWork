@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import jet.opengl.demos.nvidia.waves.crest.MonoBehaviour;
+import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.demos.nvidia.waves.crest.helpers.AsyncGPUReadbackRequest;
 import jet.opengl.demos.nvidia.waves.crest.helpers.PropertyWrapperComputeStandalone;
 import jet.opengl.postprocessing.buffer.BufferGL;
@@ -35,16 +36,16 @@ public abstract class QueryBase extends MonoBehaviour {
     GLSLProgram _shaderProcessQueries;
     PropertyWrapperComputeStandalone _wrapper;
 
-    System.Action<AsyncGPUReadbackRequest> _dataArrivedAction;
+//    System.Action<AsyncGPUReadbackRequest> _dataArrivedAction;
 
         final int s_maxQueryCount = 4096;
     // Must match value in compute shader
         final int s_computeGroupSize = 64;
     public static boolean s_useComputeCollQueries = true;
 
-    final static int sp_queryPositions_minGridSizes = Shader.PropertyToID("_QueryPositions_MinGridSizes");
-    final static int sp_MeshScaleLerp = Shader.PropertyToID("_MeshScaleLerp");
-    final static int sp_SliceCount = Shader.PropertyToID("_SliceCount");
+    final static int sp_queryPositions_minGridSizes =0; // Shader.PropertyToID("_QueryPositions_MinGridSizes");
+    final static int sp_MeshScaleLerp = 1; //Shader.PropertyToID("_MeshScaleLerp");
+    final static int sp_SliceCount = 2; // Shader.PropertyToID("_SliceCount");
 
     final float s_finiteDiffDx = 0.1f;
 
@@ -339,7 +340,7 @@ public abstract class QueryBase extends MonoBehaviour {
             // Retrieve Result heights
             if (heights != null)
             {
-                int seaLevel = OceanRenderer.Instance.SeaLevel;
+                float seaLevel = OceanRenderer.Instance.SeaLevel();
                 for (int i = 0; i < countPoints; i++)
                 {
                     float y = _queryResults.getFloat((i + segment.x) * Vector3f.SIZE + 4);
@@ -455,7 +456,7 @@ public abstract class QueryBase extends MonoBehaviour {
 
             ReadbackRequest request = new ReadbackRequest();
             request._dataTimestamp = time - deltaTime;
-            request._request = AsyncGPUReadback.Request(_computeBufResults, _dataArrivedAction);
+//            request._request = AsyncGPUReadback.Request(_computeBufResults, _dataArrivedAction);  todo
             request._segments = _segmentRegistrarRingBuffer.Current()._segments;
             _requests.add(request);
 
@@ -465,7 +466,7 @@ public abstract class QueryBase extends MonoBehaviour {
 
     void ExecuteQueries()
     {
-        _computeBufQueries.SetData(_queryPosXZ_minGridSize, 0, 0, _segmentRegistrarRingBuffer.Current()._numQueries);
+        /*_computeBufQueries.SetData(_queryPosXZ_minGridSize, 0, 0, _segmentRegistrarRingBuffer.Current()._numQueries);
         _shaderProcessQueries.SetBuffer(_kernelHandle, sp_queryPositions_minGridSizes, _computeBufQueries);
         BindInputsAndOutputs(_wrapper, _computeBufResults);
 
@@ -477,7 +478,7 @@ public abstract class QueryBase extends MonoBehaviour {
         _shaderProcessQueries.SetFloat(sp_SliceCount, OceanRenderer.Instance.CurrentLodCount);
 
         int numGroups = (int)Math.ceil((float)_segmentRegistrarRingBuffer.Current()._numQueries / (float)s_computeGroupSize) * s_computeGroupSize;
-        _shaderProcessQueries.Dispatch(_kernelHandle, numGroups, 1, 1);
+        _shaderProcessQueries.Dispatch(_kernelHandle, numGroups, 1, 1);*/
     }
 
     /// <summary>
@@ -539,12 +540,12 @@ public abstract class QueryBase extends MonoBehaviour {
 
     protected void OnEnable()
     {
-        _dataArrivedAction = new System.Action<AsyncGPUReadbackRequest>(DataArrived);
+//        _dataArrivedAction = new System.Action<AsyncGPUReadbackRequest>(DataArrived);
 
         _shaderProcessQueries = //Resources.Load<ComputeShader>(QueryShaderName());
                 GLSLProgram.createProgram(QueryShaderName(), null);
         _kernelHandle = _shaderProcessQueries./*FindKernel(QueryKernelName())*/getProgram();
-        _wrapper = new PropertyWrapperComputeStandalone(_shaderProcessQueries, _kernelHandle);
+//        _wrapper = new PropertyWrapperComputeStandalone(_shaderProcessQueries, _kernelHandle);
 
         _computeBufQueries = new BufferGL(/*s_maxQueryCount, 12, ComputeBufferType.Default*/);
         _computeBufResults = new BufferGL(/*s_maxQueryCount, 12, ComputeBufferType.Default*/);

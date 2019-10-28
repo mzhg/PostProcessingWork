@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.waves.crest.collision;
 import org.lwjgl.util.vector.Vector3f;
 
 import jet.opengl.demos.nvidia.waves.crest.MonoBehaviour;
+import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.postprocessing.util.Rectf;
 
 public class VisualiseCollisionArea extends MonoBehaviour {
@@ -17,12 +18,12 @@ public class VisualiseCollisionArea extends MonoBehaviour {
 
     void Update()
     {
-        if (OceanRenderer.Instance == null || OceanRenderer.Instance.CollisionProvider == null)
+        if (OceanRenderer.Instance == null || OceanRenderer.Instance.CollisionProvider() == null)
         {
             return;
         }
 
-        ICollProvider collProvider = OceanRenderer.Instance.CollisionProvider;
+        ICollProvider collProvider = OceanRenderer.Instance.CollisionProvider();
         Rectf thisRect = new Rectf(transform.getPositionX() - s_radius * s_steps / 2f, transform.getPositionZ() - s_radius * s_steps / 2f, s_radius * s_steps / 2f, s_radius * s_steps / 2f);
         if (!collProvider.GetSamplingData(thisRect, _objectWidth, _samplingData))
         {

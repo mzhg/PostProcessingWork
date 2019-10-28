@@ -58,13 +58,13 @@ public class FloatingOrigin extends MonoBehaviour {
     /// </summary>
     void MoveOriginTransforms(Vector3f newOrigin)
     {
-        Transform[] transforms = (_overrideTransformList != null && _overrideTransformList.length > 0) ? _overrideTransformList : FindObjectsOfType<Transform>();
+        Transform[] transforms = (_overrideTransformList != null && _overrideTransformList.length > 0) ? _overrideTransformList : /*FindObjectsOfType<Transform>()*/null;
         for (Transform t : transforms)
         {
-            if (t.parent == null)
+            /*if (t.parent == null)
             {
                 t.position -= newOrigin;
-            }
+            }*/
         }
     }
 
@@ -117,7 +117,7 @@ public class FloatingOrigin extends MonoBehaviour {
     {
         if (OceanRenderer.Instance!= null)
         {
-            var fos = OceanRenderer.Instance.GetComponentsInChildren<IFloatingOrigin>();
+            /*var fos = OceanRenderer.Instance.GetComponentsInChildren<IFloatingOrigin>();  todo
             foreach (var fo in fos)
             {
                 fo.SetOrigin(newOrigin);
@@ -128,7 +128,7 @@ public class FloatingOrigin extends MonoBehaviour {
             foreach (var gerstner in _overrideGerstnerList)
             {
                 gerstner.SetOrigin(newOrigin);
-            }
+            }*/
         }
     }
 

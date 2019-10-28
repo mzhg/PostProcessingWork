@@ -150,8 +150,8 @@ public abstract class LodDataMgr extends MonoBehaviour {
         properties.SetVectorArray(LodTransform.ParamIdOcean(sourceLod), _BindData_paramIdOceans);
     }
 
-    public static<LodDataType extends LodDataMgr, LodDataSettings extends  SimSettingsBase> LodDataType Create(GameObject attachGO, LodDataSettings settings)
-    /*where LodDataType : LodDataMgr where LodDataSettings : SimSettingsBase*/
+    /*public static<LodDataType extends LodDataMgr, LodDataSettings extends  SimSettingsBase> LodDataType Create(GameObject attachGO, LodDataSettings settings)
+    *//*where LodDataType : LodDataMgr where LodDataSettings : SimSettingsBase*//*
     {
         LodDataType sim = attachGO.AddComponent<LodDataType>();
 
@@ -162,7 +162,7 @@ public abstract class LodDataMgr extends MonoBehaviour {
         sim.UseSettings(settings);
 
         return sim;
-    }
+    }*/
 
     public void BuildCommandBuffer(OceanRenderer ocean, CommandBuffer buf) { }
 

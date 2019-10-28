@@ -28,7 +28,7 @@ import jet.opengl.postprocessing.util.Rectf;
 public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehaviour implements IFloatingOrigin {
     public boolean _doReadback = true;
 
-    protected LodDataType _lodComponent;
+    protected LodDataMgr _lodComponent;
 
     /// <summary>
     /// Minimum floating object width. The larger the objects that will float, the lower the resolution of the read data.
@@ -77,10 +77,10 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
 
     protected void Start()
     {
-        _lodComponent = OceanRenderer.Instance.GetComponent<LodDataType>();
+        _lodComponent = OceanRenderer.Instance/*.GetComponent<LodDataType>()*/._lodDataAnimWaves;
         if (OceanRenderer.Instance.CurrentLodCount() <= (CanUseLastTwoLODs() ? 0 : 1))
         {
-            LogUtil.e(LogUtil.LogType.DEFAULT, "No data components of type " + typeof(LodDataType).Name + " found in the scene. Disabling GPU readback.");
+//            LogUtil.e(LogUtil.LogType.DEFAULT, "No data components of type " + typeof(LodDataType).Name + " found in the scene. Disabling GPU readback.");
             enabled = false;
             return;
         }
@@ -220,9 +220,9 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
             lodData._requests.add(
                 new ReadbackRequest
                 (
-                    _request = AsyncGPUReadback.Request(target, 0, 0, target.width, 0, target.height, lodIndex, 1),
+                    /*_request = AsyncGPUReadback.Request(target, 0, 0, target.width, 0, target.height, lodIndex, 1),  todo
                             _renderData = renderData,
-                            _time = previousFrameTime,
+                            _time = previousFrameTime,*/
                 )
             );
         }

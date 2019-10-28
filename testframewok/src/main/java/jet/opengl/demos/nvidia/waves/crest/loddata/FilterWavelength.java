@@ -36,13 +36,13 @@ public class FilterWavelength implements LodDataMgr.IDrawFilter{
             {
                 isTransition = 1;
 //                return 1f - OceanRenderer.Instance.ViewerAltitudeLevelAlpha();
-                return Numeric.encode(Float.floatToIntBits(1f - OceanRenderer.Instance.ViewerAltitudeLevelAlpha()), isTransition);
+                return Numeric.encode(Float.floatToIntBits(1f - OceanRenderer.Instance.ViewerAltitudeLevelAlpha), isTransition);
             }
 
             if (_lodIdx == _lodCount - 1)
             {
 //                return OceanRenderer.Instance.ViewerAltitudeLevelAlpha();
-                return Numeric.encode(Float.floatToIntBits(OceanRenderer.Instance.ViewerAltitudeLevelAlpha()), isTransition);
+                return Numeric.encode(Float.floatToIntBits(OceanRenderer.Instance.ViewerAltitudeLevelAlpha), isTransition);
             }
         }
         else if (drawOctaveWavelength < _lodMaxWavelength)

@@ -10,7 +10,7 @@ import jet.opengl.postprocessing.util.Numeric;
 public class LodDataMgrFoam extends LodDataMgrPersistent {
 
     protected String ShaderSim () { return "UpdateFoam";  }
-    protected GLSLProgram krnl_ShaderSim () { return _shader.FindKernel(ShaderSim);}
+    protected GLSLProgram krnl_ShaderSim () { return /*_shader.FindKernel(ShaderSim)*/null;}
     public String SimName () { return "Foam"; }
     public int TextureFormat (){ return Settings()._renderTextureFormat; }
 

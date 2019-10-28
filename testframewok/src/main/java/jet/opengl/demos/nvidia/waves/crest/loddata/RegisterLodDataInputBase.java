@@ -52,7 +52,7 @@ public abstract class RegisterLodDataInputBase extends MonoBehaviour implements 
     {
         if ( weight > 0f)
         {
-            _materials[isTransition].SetFloat(sp_Weight, weight);
+//            _materials[isTransition].SetFloat(sp_Weight, weight);  todo
 
             buf.DrawRenderer( _materials[isTransition]);
         }

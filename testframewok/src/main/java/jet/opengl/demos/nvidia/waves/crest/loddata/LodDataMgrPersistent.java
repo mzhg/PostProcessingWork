@@ -115,7 +115,7 @@ public abstract class LodDataMgrPersistent extends LodDataMgr {
 
             SetAdditionalSimParams(_renderSimProperties);
 
-            buf.SetGlobalFloat(sp_LODChange, srcDataIdxChange);
+//            buf.SetGlobalFloat(sp_LODChange, srcDataIdxChange);  todo
 
             _renderSimProperties.SetTexture(
                     sp_LD_TexArray_Target,
@@ -126,7 +126,7 @@ public abstract class LodDataMgrPersistent extends LodDataMgr {
 
             for (int lodIdx = lodCount - 1; lodIdx >= 0; lodIdx--)
             {
-                buf.SetRenderTarget(_targets, _targets.depthBuffer, 0, CubemapFace.Unknown, lodIdx);
+//                buf.SetRenderTarget(_targets, _targets.depthBuffer, 0, CubemapFace.Unknown, lodIdx);  todo
                 SubmitDraws(lodIdx, buf);
             }
 

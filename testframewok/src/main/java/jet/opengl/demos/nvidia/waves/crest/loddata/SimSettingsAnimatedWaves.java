@@ -64,7 +64,7 @@ public class SimSettingsAnimatedWaves implements IReadbackSettingsProvider,SimSe
 //                Debug.Assert(result != null, "Sampling collision too early, collision system has not been initialised.");
                 break;
             case GerstnerWavesCPU:
-                result = FindObjectOfType<ShapeGerstnerBatched>();
+//                result = FindObjectOfType<ShapeGerstnerBatched>();  todo
                 break;
             case ComputeShaderQueries:
                 result = QueryDisplacements.Instance();
@@ -80,11 +80,11 @@ public class SimSettingsAnimatedWaves implements IReadbackSettingsProvider,SimSe
         if (result == null)
         {
             // this should not be hit - return null to create null ref exceptions
-            assert(false): "Could not create collision provider. Collision source = " + _collisionSource.toString();
+//            assert(false): "Could not create collision provider. Collision source = " + _collisionSource.toString();
             return null;
         }
 
-        if (_cachedHeightQueries)
+        if (CachedHeightQueries)
         {
             result = new CollProviderCache(result);
         }

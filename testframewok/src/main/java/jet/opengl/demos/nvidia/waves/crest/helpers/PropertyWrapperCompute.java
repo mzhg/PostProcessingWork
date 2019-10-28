@@ -30,13 +30,19 @@ public class PropertyWrapperCompute implements IPropertyWrapper {
         gl = GLFuncProviderFactory.getGLFuncProvider();
     }
 
-    public void SetFloat(int param, float value) { _commandBuffer.SetComputeFloatParam(_computeShader, param, value); }
-    public void SetFloatArray(int param, float[] value) { _commandBuffer.SetGlobalFloatArray(param, value); }
-    public void SetInt(int param, int value) { _commandBuffer.SetComputeIntParam(_computeShader, param, value); }
-    public void SetTexture(int param, TextureGL value) { _commandBuffer.SetComputeTextureParam(_computeShader, _computeKernel, param, value); }
-    public void SetVector(int param, ReadableVector4f value) { _commandBuffer.SetComputeVectorParam(_computeShader, param, value); }
-    public void SetVectorArray(int param, Vector4f[] value) { _commandBuffer.SetComputeVectorArrayParam(_computeShader, param, value); }
-    public void SetMatrix(int param, Matrix4f value) { _commandBuffer.SetComputeMatrixParam(_computeShader, param, value); }
+    public void SetFloat(int param, float value) { /*_commandBuffer.SetComputeFloatParam(_computeShader, param, value);*/ }
+    public void SetFloatArray(int param, float[] value) { /*_commandBuffer.SetGlobalFloatArray(param, value);*/ }
+
+    @Override
+    public void SetVector(int param, Vector4f value) {
+
+    }
+
+    public void SetInt(int param, int value) { /*_commandBuffer.SetComputeIntParam(_computeShader, param, value);*/ }
+    public void SetTexture(int param, TextureGL value) { /*_commandBuffer.SetComputeTextureParam(_computeShader, _computeKernel, param, value);*/ }
+    public void SetVector(int param, ReadableVector4f value) { /*_commandBuffer.SetComputeVectorParam(_computeShader, param, value);*/ }
+    public void SetVectorArray(int param, Vector4f[] value) { /*_commandBuffer.SetComputeVectorArrayParam(_computeShader, param, value);*/ }
+    public void SetMatrix(int param, Matrix4f value) { /*_commandBuffer.SetComputeMatrixParam(_computeShader, param, value);*/ }
 
     // NOTE: these MUST match the values in OceanLODData.hlsl
     // 64 recommended as a good common minimum: https://www.reddit.com/r/GraphicsProgramming/comments/aeyfkh/for_compute_shaders_is_there_an_ideal_numthreads/

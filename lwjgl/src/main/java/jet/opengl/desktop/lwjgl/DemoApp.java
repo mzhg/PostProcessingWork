@@ -24,6 +24,9 @@ import jet.opengl.demos.amdfx.geometry.GeometryFXDemo;
 import jet.opengl.demos.amdfx.tiledrendering.TiledLighting11;
 import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
 import jet.opengl.demos.nvidia.fire.PerlinFire;
+import jet.opengl.demos.nvidia.waves.samples.IslandDemo;
+import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
+import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.demos.unreal4.VolumetricFogDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
@@ -132,7 +135,9 @@ public class DemoApp {
 //        run(new ShaderNoise());
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
-//        run(new TestD3D11());
+        run(new TestD3D11());
+//        run(new SampleD3D11());
+//        run(new IslandDemo());
 //        run(new Chapman());
 //        run(new AtmosphereTest());
 //        run(new FaceWorkDemo());
@@ -147,7 +152,7 @@ public class DemoApp {
 //        run(new PerlinFire());
 //        run(new VolumetricFogDemo());
 //        run(new GeometryFXDemo());
-        run(new TiledLighting11());
+//        run(new TiledLighting11());
     }
 
     private static void testParaboloidMatrix(){

@@ -35,7 +35,7 @@ public class OceanChunkRenderer extends MonoBehaviour {
     void Start()
     {
 //        _rend = GetComponent<Renderer>();
-        _mesh = GetComponent<MeshFilter>().mesh;
+//        _mesh = GetComponent<MeshFilter>().mesh;  todo
         _boundsLocal = _mesh.bounds;
 
         UpdateMeshBounds();
@@ -103,7 +103,7 @@ public class OceanChunkRenderer extends MonoBehaviour {
 
         // per instance data
 
-        /*if (_mpb == null)
+        /*if (_mpb == null)  todo
         {
             _mpb = new PropertyWrapperMPB();
         }
@@ -116,7 +116,7 @@ public class OceanChunkRenderer extends MonoBehaviour {
         // blend furthest normals scale in/out to avoid pop, if scale could reduce
         boolean needToBlendOutNormals = _lodIndex == _totalLodCount - 1 && OceanRenderer.Instance.ScaleCouldDecrease();
         float farNormalsWeight = needToBlendOutNormals ? OceanRenderer.Instance.ViewerAltitudeLevelAlpha : 1f;
-        _mpb.SetVector(sp_InstanceData, new Vector4f(meshScaleLerp, farNormalsWeight, _lodIndex, 0));
+//        _mpb.SetVector(sp_InstanceData, new Vector4f(meshScaleLerp, farNormalsWeight, _lodIndex, 0));  todo
 
         // geometry data
         // compute grid size of geometry. take the long way to get there - make sure we land exactly on a power of two
@@ -128,7 +128,7 @@ public class OceanChunkRenderer extends MonoBehaviour {
         float pow = 1.4f; // fudge 2
         float normalScrollSpeed0 = (float) Math.pow(Math.log(1f + 2f * gridSizeLodData) * mul, pow);
         float normalScrollSpeed1 = (float) Math.pow(Math.log(1f + 4f * gridSizeLodData) * mul, pow);
-        _mpb.SetVector(sp_GeomData, new Vector4f(gridSizeLodData, gridSizeGeo, normalScrollSpeed0, normalScrollSpeed1));
+//        _mpb.SetVector(sp_GeomData, new Vector4f(gridSizeLodData, gridSizeGeo, normalScrollSpeed0, normalScrollSpeed1));  todo
 
         // Assign LOD data to ocean shader
         LodDataMgrAnimWaves ldaws = OceanRenderer.Instance._lodDataAnimWaves;
@@ -137,14 +137,14 @@ public class OceanChunkRenderer extends MonoBehaviour {
         LodDataMgrFlow ldflow = OceanRenderer.Instance._lodDataFlow;
         LodDataMgrShadow ldshadows = OceanRenderer.Instance._lodDataShadow;
 
-        _mpb.SetFloat(LodDataMgr.sp_LD_SliceIndex, _lodIndex);
-        ldaws.BindResultData(_mpb);
-        if (ldflow != null) ldflow.BindResultData(_mpb);
-        if (ldfoam != null) ldfoam.BindResultData(_mpb); else LodDataMgrFoam.BindNull(_mpb);
-        if (ldsds != null) ldsds.BindResultData(_mpb);
-        if (ldshadows != null) ldshadows.BindResultData(_mpb); else LodDataMgrShadow.BindNull(_mpb);
+//        _mpb.SetFloat(LodDataMgr.sp_LD_SliceIndex, _lodIndex);  todo
+        ldaws.BindResultData(/*_mpb*/null);
+        if (ldflow != null) ldflow.BindResultData(/*_mpb*/null);
+        if (ldfoam != null) ldfoam.BindResultData(/*_mpb*/null); else LodDataMgrFoam.BindNull(/*_mpb*/null, false);
+        if (ldsds != null) ldsds.BindResultData(/*_mpb*/null);
+        if (ldshadows != null) ldshadows.BindResultData(/*_mpb*/null); else LodDataMgrShadow.BindNull(/*_mpb*/null, false);
 
-        var reflTex = PreparedReflections.GetRenderTexture(_currentCamera.GetHashCode());
+        /*var reflTex = PreparedReflections.GetRenderTexture(_currentCamera.GetHashCode());  todo
         if (reflTex != null)
         {
             _mpb.SetTexture(sp_ReflectionTex, reflTex);
@@ -152,21 +152,21 @@ public class OceanChunkRenderer extends MonoBehaviour {
         else
         {
             _mpb.SetTexture(sp_ReflectionTex, Texture2D.blackTexture);
-        }
+        }*/
 
         // Hack - due to SV_IsFrontFace occasionally coming through as true for back faces,
         // add a param here that forces ocean to be in underwater state. I think the root
         // cause here might be imprecision or numerical issues at ocean tile boundaries, although
         // i'm not sure why cracks are not visible in this case.
         float heightOffset = OceanRenderer.Instance.ViewerHeightAboveWater();
-        _mpb.SetFloat(sp_ForceUnderwater, heightOffset < -2f ? 1f : 0f);
+        /*_mpb.SetFloat(sp_ForceUnderwater, heightOffset < -2f ? 1f : 0f);  todo
 
         _rend.SetPropertyBlock(_mpb.materialPropertyBlock);
 
         if (_drawRenderBounds)
         {
             _rend.bounds.DebugDraw();
-        }
+        }*/
     }
 
     // this is called every frame because the bounds are given in world space and depend on the transform scale, which
