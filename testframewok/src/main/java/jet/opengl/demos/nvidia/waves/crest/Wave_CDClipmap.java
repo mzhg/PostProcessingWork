@@ -1,150 +1,93 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrAnimWaves;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrDynWaves;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrFlow;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrFoam;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrSeaFloorDepth;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrShadow;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
-import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsAnimatedWaves;
-import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsFoam;
-import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsShadow;
-import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsWave;
+import jet.opengl.postprocessing.buffer.AttribDesc;
+import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.util.BoundingBox;
+import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.GLSLUtil;
+import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackInt;
 
-/** Instantiates all the ocean geometry, as a set of tiles. */
-public class OceanBuilder {
+public class Wave_CDClipmap {
 
-    public static void GenerateMesh(OceanRenderer ocean, int lodDataResolution, int geoDownSampleFactor, int lodCount)
-    {
-        if (lodCount < 1)
-        {
-            LogUtil.e(LogUtil.LogType.DEFAULT, ()->"Invalid LOD count: " + lodCount);
-            return;
-        }
+    private final Wave_CDClipmap_Params m_Params = new Wave_CDClipmap_Params();
+    private final Wave_LOD_Transform m_LodTransform = new Wave_LOD_Transform();
+    private final ArrayList<CDClipmapNode> m_QuadNodes = new ArrayList<>();
 
-/*#if UNITY_EDITOR
-        if (!UnityEditor.EditorApplication.isPlaying)
-        {
-            Debug.LogError("Ocean mesh meant to be (re)generated in play mode", ocean);
-            return;
-        }
-#endif*/
+    private final Vector3f m_EyePos = new Vector3f();
 
-        int oceanLayer = 0 ;//LayerMask.NameToLayer(ocean.LayerName);
-        /*if (oceanLayer == -1)
-        {
-            Debug.LogError("Invalid ocean layer: " + ocean.LayerName + " please add this layer.", ocean);
-            oceanLayer = 0;
-        }*/
+    private Wave_Mesh[] m_Meshes = new Wave_Mesh[PatchType.values().length];
 
-/*#if PROFILE_CONSTRUCTION
-        System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-        sw.Start();
-#endif*/
+    private float m_Scale = 1;
 
-        // create mesh data
-        Mesh[] meshInsts = new Mesh[PatchType.values().length];
-        // 4 tiles across a LOD, and support lowering density by a factor
-        int tileResolution = Math.round(0.25f * lodDataResolution / geoDownSampleFactor);
-        for (int i = 0; i < meshInsts.length; i++)
-        {
-            meshInsts[i] = BuildOceanPatch(PatchType.values()[i], tileResolution);
-        }
+    private float maxVertDispFromWaves = 0;
 
-        ocean._lodTransform = new LodTransform(); //ocean.gameObject.AddComponent<LodTransform>();
-        ocean._lodTransform.InitLODData(lodCount);
+    public void init(Wave_CDClipmap_Params params){
+        m_Params.set(params);
 
-        // Create the LOD data managers
-//        ocean._lodDataAnimWaves = LodDataMgr.Create<LodDataMgrAnimWaves, SimSettingsAnimatedWaves>(ocean.gameObject, ref ocean._simSettingsAnimatedWaves);
-        ocean._simSettingsAnimatedWaves = new SimSettingsAnimatedWaves();
-        ocean._lodDataAnimWaves = new LodDataMgrAnimWaves();
-        ocean._lodDataAnimWaves.UseSettings(ocean._simSettingsAnimatedWaves);
-        if (ocean.CreateDynamicWaveSim)
-        {
-//            ocean._lodDataDynWaves = LodDataMgr.Create<LodDataMgrDynWaves, SimSettingsWave>(ocean.gameObject, ref ocean._simSettingsDynamicWaves);
-            ocean._simSettingsDynamicWaves = new SimSettingsWave();
-            ocean._lodDataDynWaves = new LodDataMgrDynWaves();
-            ocean._lodDataDynWaves.UseSettings(ocean._simSettingsDynamicWaves);
-        }
-        if (ocean.CreateFlowSim)
-        {
-//            ocean._lodDataFlow = LodDataMgr.Create<LodDataMgrFlow, SimSettingsFlow>(ocean.gameObject, ref ocean._simSettingsFlow);
-            ocean._lodDataFlow = new LodDataMgrFlow();
-        }
-        if (ocean.CreateFoamSim)
-        {
-//            ocean._lodDataFoam = LodDataMgr.Create<LodDataMgrFoam, SimSettingsFoam>(ocean.gameObject, ref ocean._simSettingsFoam);
-            ocean._simSettingsFoam = new SimSettingsFoam();
-            ocean._lodDataFoam = new LodDataMgrFoam();
-            ocean._lodDataFoam.UseSettings(ocean._simSettingsFoam);
-        }
-        if (ocean.CreateShadowData)
-        {
-//            ocean._lodDataShadow = LodDataMgr.Create<LodDataMgrShadow, SimSettingsShadow>(ocean.gameObject, ref ocean._simSettingsShadow);
-            ocean._simSettingsShadow = new SimSettingsShadow();
-            ocean._lodDataShadow = new LodDataMgrShadow();
-            ocean._lodDataShadow.UseSettings(ocean._simSettingsShadow);
-        }
-        if (ocean.CreateSeaFloorDepthData)
-        {
-//            ocean._lodDataSeaDepths = ocean.gameObject.AddComponent<LodDataMgrSeaFloorDepth>();
-            ocean._lodDataSeaDepths = new LodDataMgrSeaFloorDepth();
-        }
-
-        // Add any required GPU readbacks
-        {
-            SimSettingsAnimatedWaves ssaw = ocean._simSettingsAnimatedWaves;
-            if (ssaw != null && ssaw.CollisionSource == SimSettingsAnimatedWaves.CollisionSources.OceanDisplacementTexturesGPU)
-            {
-//                ocean.gameObject.AddComponent<GPUReadbackDisps>();  todo
-            }
-            if (ssaw != null && ssaw.CollisionSource == SimSettingsAnimatedWaves.CollisionSources.ComputeShaderQueries)
-            {
-//                ocean.gameObject.AddComponent<QueryDisplacements>();  todo
-            }
-
-            if (ocean.CreateFlowSim)
-            {
-//                ocean.gameObject.AddComponent<QueryFlow>();  todo
-            }
-        }
-
-        // Remove existing LODs
-        /*for (int i = 0; i < ocean.transform.childCount; i++)
-        {
-            var child = ocean.transform.GetChild(i);
-            if (child.name.StartsWith("Tile_L"))
-            {
-                child.parent = null;
-                Object.Destroy(child.gameObject);
-                i--;
-            }
-        }*/
-
-        for (int i = 0; i < lodCount; i++)
-        {
-            CreateLOD(ocean, i, lodCount, meshInsts, lodDataResolution, geoDownSampleFactor, oceanLayer);
-        }
-
-/*#if PROFILE_CONSTRUCTION
-        sw.Stop();
-        Debug.Log( "Finished generating " + parms._lodCount.ToString() + " LODs, time: " + (1000.0*sw.Elapsed.TotalSeconds).ToString(".000") + "ms" );
-#endif*/
+        validParams();
+        generateMesh();
     }
 
-    private static Mesh BuildOceanPatch(PatchType pt, float vertDensity)
+    private void validParams(){
+        // Must be at least 0.25, and must be on a power of 2
+        m_Params.minScale = (float) Math.pow(2f, Math.round(Numeric.log2(Math.max(m_Params.minScale, 0.25f))));
+
+        // Max can be -1 which means no maximum
+        if (m_Params.maxScale != -1f)
+        {
+            // otherwise must be at least 0.25, and must be on a power of 2
+            m_Params.maxScale = (float) Math.pow(2f, Math.round(Numeric.log2(Math.max(m_Params.maxScale, m_Params.minScale))));
+        }
+
+        // Gravity 0 makes waves freeze which is weird but doesn't seem to break anything so allowing this for now
+//        m_Params.gravityMultiplier = Mathf.Max(m_Params.gravityMultiplier, 0f);
+
+        // LOD data resolution multiple of 2 for general GPU texture reasons (like pixel quads)
+        m_Params.lodDataResolution -= m_Params.lodDataResolution % 2;
+
+        m_Params.geometryDownSampleFactor = Numeric.nearestPowerOfTwo(Math.max(m_Params.geometryDownSampleFactor, 1));
+
+        int remGeo = m_Params.lodDataResolution % m_Params.geometryDownSampleFactor;
+        if (remGeo > 0)
+        {
+            int newLDR = m_Params.lodDataResolution - (m_Params.lodDataResolution % m_Params.geometryDownSampleFactor);
+//            Debug.LogWarning("Adjusted Lod Data Resolution from " + _lodDataResolution + " to " + newLDR + " to ensure the Geometry Down Sample Factor is a factor (" + _geometryDownSampleFactor + ").", this);
+            m_Params.lodDataResolution = newLDR;
+        }
+    }
+
+    private void generateMesh(){
+        // 4 tiles across a LOD, and support lowering density by a factor
+        int tileResolution = Math.round(0.25f * m_Params.lodDataResolution / m_Params.geometryDownSampleFactor);
+        for (int i = 0; i < m_Meshes.length; i++)
+        {
+            CommonUtil.safeRelease(m_Meshes[i]);
+            m_Meshes[i] = BuildOceanPatch(PatchType.values()[i], tileResolution);
+        }
+
+        m_LodTransform.InitLODData(m_Params.lodCount);
+
+        for (int i = 0; i < m_Params.lodCount; i++)
+        {
+            createLOD(m_Params.disableSkirt, i,m_Params.lodCount, m_Meshes, m_Params.lodDataResolution, m_Params.geometryDownSampleFactor, m_Params.uniformTiles);
+        }
+    }
+
+    private static Wave_Mesh BuildOceanPatch(PatchType pt, float vertDensity)
     {
         ArrayList<Vector3f> verts = new ArrayList();
         StackInt indices = new StackInt();
@@ -249,47 +192,35 @@ public class OceanBuilder {
             }
         }
 
-
         //////////////////////////////////////////////////////////////////////////////////
         // create mesh
 
-        Mesh mesh = new Mesh();
+        Wave_Mesh mesh = null;
         if (verts.size() > 0)
         {
-            Vector3f[] arrV = new Vector3f[verts.size()];
-            verts.toArray(arrV);
+            AttribDesc attribute_descs[] =
+            {
+                new AttribDesc(0, 3, GLenum.GL_FLOAT, false, 0, 0)	// vPos
+            };
 
-//            int[] arrI = new int[indices.size()];
-            int[] arrI = indices.toArray();
+            BufferGL vertexBuffer = new BufferGL();
+            vertexBuffer.initlize(GLenum.GL_ARRAY_BUFFER, Vector3f.SIZE*verts.size(), CacheBuffer.wrap(verts), GLenum.GL_STATIC_DRAW);
 
-//            mesh.SetIndices(null, MeshTopology.Triangles, 0);
-            mesh.vertices = arrV;
-//            mesh.normals = null;
-            mesh.SetIndices(arrI, /*MeshTopology.Triangles*/ GLenum.GL_TRIANGLES);
+            BufferGL indexBuffer = new BufferGL();
+            indexBuffer.initlize(GLenum.GL_ELEMENT_ARRAY_BUFFER, 4*indices.size(), CacheBuffer.wrap(indices.getData(),0, indices.size()), GLenum.GL_STATIC_DRAW);
 
-            // recalculate bounds. add a little allowance for snapping. in the chunk renderer script, the bounds will be expanded further
-            // to allow for horizontal displacement
-            mesh.RecalculateBounds();
-            BoundingBox bounds = mesh.bounds;
-//            bounds.extents = new Vector3(bounds.extents.x + dx, 100f, bounds.extents.z + dx);
-            Vector3f newExtents = Vector3f.sub(bounds._max, bounds._min, null);
-            newExtents.scale(0.5f);
-            newExtents.set(newExtents.x + dx, 100f, newExtents.z + dx);
-            Vector3f center = bounds.center(null);
-            bounds.setFromExtent(center, newExtents);
-
-//            mesh.bounds = bounds;
-            mesh.name = pt.toString();
+            mesh = new Wave_Mesh(attribute_descs, vertexBuffer, indexBuffer, 0);
+            mesh.setIndice(GLenum.GL_TRIANGLES, indices.size());
         }
         return mesh;
     }
 
-    private static void CreateLOD(OceanRenderer ocean, int lodIndex, int lodCount, Mesh[] meshData, int lodDataResolution, int geoDownSampleFactor, int oceanLayer)
+    private void createLOD(boolean disableSkirt, int lodIndex, int lodCount, Wave_Mesh[] meshData, int lodDataResolution, int geoDownSampleFactor, boolean uniformTiles)
     {
         float horizScale = (float) Math.pow(2f, lodIndex);
 
         boolean isBiggestLOD = lodIndex == lodCount - 1;
-        boolean generateSkirt = isBiggestLOD && !ocean._disableSkirt;
+        boolean generateSkirt = isBiggestLOD && !disableSkirt;
 
         Vector2f[] offsets;
         PatchType[] patchTypes;
@@ -351,7 +282,7 @@ public class OceanBuilder {
 
         // debug toggle to force all patches to be the same. they'll be made with a surrounding skirt to make sure patches
         // overlap
-        if (ocean._uniformTiles)
+        if (uniformTiles)
         {
             for (int i = 0; i < patchTypes.length; i++)
             {
@@ -363,18 +294,17 @@ public class OceanBuilder {
         for (int i = 0; i < offsets.length; i++)
         {
             // instantiate and place patch
-            GameObject patch = new GameObject(String.format("Tile_L{%d}", lodIndex));
-            patch.layer = oceanLayer;
-            patch.parent = ocean.transform;
+            CDClipmapNode patch = new CDClipmapNode(String.format("Tile_L{%d}", lodIndex));
             Vector2f pos = offsets[i];
 //            patch.transform.localPosition = horizScale * new Vector3(pos.x, 0f, pos.y);
             patch.transform.setPosition(horizScale * pos.x, 0, horizScale * pos.y);
             // scale only horizontally, otherwise culling bounding box will be scaled up in y
             patch.transform.setScale(horizScale, 1f, horizScale);
 
-            patch.renderer = new OceanChunkRenderer();
-            patch.renderer.SetInstanceData(lodIndex, lodCount, lodDataResolution, geoDownSampleFactor);
-            patch.mesh = meshData[patchTypes[i].ordinal()];
+//            patch.renderer = new OceanChunkRenderer();
+//            patch.renderer.SetInstanceData(lodIndex, lodCount, lodDataResolution, geoDownSampleFactor);
+//            patch.mesh = meshData[patchTypes[i].ordinal()];
+            patch.meshIndex = patchTypes[i].ordinal();
 
 //            var mr = patch.AddComponent<MeshRenderer>();
 
@@ -398,20 +328,21 @@ public class OceanBuilder {
                 if (Math.abs(pos.y) >= Math.abs(pos.x)) {
 //                    patch.transform.localEulerAngles = -Vector3.up * 90f * Mathf.Sign(pos.y);
                     Quaternion rot = new Quaternion();
-                    rot.setFromAxisAngle(0, 1, 0, (float)Math.toRadians(-90 * Math.signum(pos.y)));
+                    rot.setFromEulerAngles(0,-(float)Math.toRadians(90 * Sign(pos.y)),0);
                     patch.transform.setRotation(rot);
                 }else {
 //                    patch.transform.localEulerAngles = pos.x < 0f ? Vector3.up * 180f : Vector3.zero;
                     Quaternion rot = new Quaternion();
 
                     if(pos.x < 0f)
-                        rot.setFromAxisAngle(0, 1, 0, (float)Math.toRadians(180f));
+                        rot.setFromEulerAngles(0, (float)Math.toRadians(180), 0);
                     patch.transform.setRotation(rot);
                 }
             }
 
             // rotate the corner patches so the +x and +z sides point outwards
             boolean rotateXZOutwards = patchTypes[i] == PatchType.FatXZ || patchTypes[i] == PatchType.SlimXZ || patchTypes[i] == PatchType.FatXSlimZ || patchTypes[i] == PatchType.FatXZOuter;
+
             if (rotateXZOutwards)
             {
                 // xz direction before rotation
@@ -420,6 +351,7 @@ public class OceanBuilder {
                 // target xz direction is outwards vector given by local patch position - assumes this patch is a corner (checked below)
                 Vector3f to = patch.transform.getPosition(null);
                 to.normalise();
+//                patch.transform.setPosition(to.x, to.y, to.z);
                 if (Math.abs(patch.transform.getPositionX()) < 0.0001f || Math.abs(Math.abs(patch.transform.getPositionX()) - Math.abs(patch.transform.getPositionZ())) > 0.001f)
                 {
                     LogUtil.w(LogUtil.LogType.DEFAULT, "Skipped rotating a patch because it isn't a corner, click here to highlight.");
@@ -427,20 +359,116 @@ public class OceanBuilder {
                 }
 
                 // Detect 180 degree rotations as it doesn't always rotate around Y
+
                 if (Vector3f.dot(from, to) < -0.99f) {
                     Quaternion rot = new Quaternion();
-                    rot.setFromAxisAngle(0, 1, 0, (float)Math.toRadians(180));
+                    rot.setFromEulerAngles(0, (float)Math.toRadians(180), 0);
 //                    patch.transform.localEulerAngles = Vector3.up * 180f;
                     patch.transform.setRotation(rot);
                 }else {
 //                    patch.transform.localRotation = Quaternion.FromToRotation(from, to);
                     Quaternion rot = new Quaternion();
-                    Vector3f axis = Vector3f.cross(from, to, null);
-                    float angle = (float)Math.acos(Vector3f.dot(from, to));
-                    rot.setFromAxisAngle(axis, angle);
+                    rot.fromToRotation(from, to);
                     patch.transform.setRotation(rot);
                 }
             }
+
+            m_QuadNodes.add(patch);
         }
     }
+
+    private static float Sign(float f) { return f>=0 ? 1:-1;}
+
+    private void lateUpdate(Matrix4f cameraView) {
+        if (m_Params.followViewpoint)
+        {
+            lateUpdatePosition(cameraView);
+            lateUpdateScale();
+//            lateUpdateViewerHeight();
+        }
+    }
+
+    void lateUpdatePosition(Matrix4f cameraView) {
+        Matrix4f.decompseRigidMatrix(cameraView, m_EyePos, null, null);
+    }
+
+    void lateUpdateScale()
+    {
+        // reach maximum detail at slightly below sea level. this should combat cases where visual range can be lost
+        // when water height is low and camera is suspended in air. i tried a scheme where it was based on difference
+        // to water height but this does help with the problem of horizontal range getting limited at bad times.
+        float maxDetailY = m_Params.sea_level - maxVertDispFromWaves * m_Params.dropDetailHeightBasedOnWaves;
+        float camDistance = Math.abs(m_EyePos.y - maxDetailY);
+
+        // offset level of detail to keep max detail in a band near the surface
+        camDistance = Math.max(camDistance - 4f, 0f);
+
+        // scale ocean mesh based on camera distance to sea level, to keep uniform detail.
+        final float HEIGHT_LOD_MUL = 1f;
+        float level = camDistance * HEIGHT_LOD_MUL;
+        level = Math.max(level, m_Params.minScale);
+        if (m_Params.maxScale != -1f) level = Math.min(level, 1.99f * m_Params.maxScale);
+
+        float l2 = (float) (Math.log(level) / Math.log(2f));
+        float l2f = (float) Math.floor(l2);
+
+//        ViewerAltitudeLevelAlpha = l2 - l2f;
+
+        m_Scale = (float) Math.pow(2f, l2f);
+    }
+
+    public void getGloaltoWorldTransform(Matrix4f localToWord){
+        localToWord.setIdentity();
+
+        localToWord.m30 = m_EyePos.x;
+        localToWord.m31 = m_Params.sea_level;
+        localToWord.m32 = m_EyePos.z;
+
+        localToWord.scale(m_Scale, 1, m_Scale);
+    }
+
+    private GLSLProgram m_DebugProg;
+
+    public void debugDrawWave(Matrix4f cameraProj, Matrix4f cameraView){
+        if(m_DebugProg == null){
+            m_DebugProg = GLSLProgram.createProgram("nvidia/WaveWorks/shaders/DebugWave.vert","nvidia/WaveWorks/shaders/DebugWave.frag", null);
+        }
+
+        lateUpdate(cameraView);
+
+        GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glDisable(GLenum.GL_BLEND);
+        gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
+        m_DebugProg.enable();
+        GLSLUtil.setMat4(m_DebugProg, "g_View", cameraView);
+        GLSLUtil.setMat4(m_DebugProg, "g_Proj", cameraProj);
+
+        Matrix4f gloabl = CacheBuffer.getCachedMatrix();
+        Matrix4f local = CacheBuffer.getCachedMatrix();
+
+        getGloaltoWorldTransform(gloabl);
+
+        int count = 0;
+
+        for(CDClipmapNode node : m_QuadNodes){
+            node.transform.getMatrix(local);
+
+            Matrix4f world =  Matrix4f.mul(gloabl, local, local);
+
+            GLSLUtil.setMat4(m_DebugProg, "g_Local", world);
+            m_Meshes[node.meshIndex].Draw();
+
+            count++;
+
+//            if(count == 2)
+//            break;
+        }
+
+        CacheBuffer.free(gloabl);
+        CacheBuffer.free(local);
+        gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+    }
+
 }

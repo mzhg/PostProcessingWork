@@ -230,7 +230,7 @@ public class OceanRenderer extends MonoBehaviour {
         }
     }
 
-    void LateUpdate()
+    private void lateUpdate()
     {
         // set global shader params
         /*Shader.SetGlobalFloat(sp_texelsPerWave, MinTexelsPerWave);  todo

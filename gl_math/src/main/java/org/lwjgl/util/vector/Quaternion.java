@@ -838,7 +838,139 @@ public class Quaternion extends Vector implements ReadableVector4f, WritableVect
 		
 		return dest;
 	}
-	
+
+	public void fromToRotation(ReadableVector3f from, ReadableVector3f to)
+	{
+		Vector3f fromDir = new Vector3f(from);
+		Vector3f toDir = new Vector3f(to);
+
+		if (fromDir.isZero() || toDir.isZero()) return;
+
+		//fromDir
+		float max = Math.abs(fromDir.getX());
+		max = max > Math.abs(fromDir.getY()) ? max : Math.abs(fromDir.getY());
+		max = (max > Math.abs(fromDir.getZ())) ? max : Math.abs(fromDir.getZ());
+
+//		fromDir = fromDir / max;
+		fromDir.scale(1f/max);
+
+		//toDir
+		max = Math.abs(toDir.x);
+		max = (max > Math.abs(toDir.y)) ? max : Math.abs(toDir.y);
+		max = (max > Math.abs(toDir.z)) ? max : Math.abs(toDir.z);
+//		toDir = toDir / max;
+		toDir.scale(1f/max);
+
+		float miniThreshold = 0.001f;
+		fromDir.x = Math.abs(fromDir.x) <= miniThreshold ? 0 : fromDir.x;
+		fromDir.y = Math.abs(fromDir.y) <= miniThreshold ? 0 : fromDir.y;
+		fromDir.z = Math.abs(fromDir.z) <= miniThreshold ? 0 : fromDir.z;
+		toDir.x = Math.abs(toDir.x) <= miniThreshold ? 0 : toDir.x;
+		toDir.y = Math.abs(toDir.y) <= miniThreshold ?0: toDir.y;
+		toDir.z = Math.abs(toDir.z) <= miniThreshold ? 0 : toDir.z;
+
+		float fromDirZ = fromDir.z;
+		float toDirY = toDir.y;
+//		Vector3 mid = (fromDir.normalized + toDir.normalized).normalized;
+
+		fromDir.normalise();
+		toDir.normalise();
+		Vector3f mid = Vector3f.add(fromDir , toDir, null);
+		mid.normalise();
+		if (mid.isZero())
+		{
+			if (fromDir.x != 0 && fromDir.y == 0 && fromDir.z == 0) {
+//				return new Quaternion();
+				set(0, 1, 0, 0);
+				return;
+				//Y
+			}else if (fromDir.x == 0 && fromDir.y != 0 && fromDir.z == 0) {
+				set(1, 0, 0, 0);
+				return;
+				//Z
+			}else if (fromDir.x == 0 && fromDir.y == 0 && fromDir.z != 0) {
+				set(1, 0, 0, 0);
+				return;
+				//X
+			}else if (fromDir.x == 0 && fromDir.y != 0 && fromDir.z != 0) {
+				set(1, 0, 0, 0);
+				return;
+				//Y
+			}else if (fromDir.x != 0 && fromDir.y == 0 && fromDir.z != 0)
+			{
+				float X = toDir./*normalized.*/z;
+				float Z = fromDir./*normalized.*/x;
+				//正负判定
+				if (X + Z < 0 || (X + Z == 0 && X < 0)) {
+					set(-X, 0, -Z, 0);
+					return;
+				}else {
+					set(X, 0, Z, 0);
+					return;
+				}
+			}
+			//Z
+			else if (fromDir.x != 0 && fromDir.y != 0 && fromDir.z == 0)
+			{
+				float X = toDir./*normalized.*/y;
+				float Y = fromDir./*normalized.*/x;
+				//正负判定
+				if (X + Y < 0 || (X + Y == 0 && X < 0)) {
+					set(-X, -Y, 0, 0);
+					return;
+				}else {
+					set(X, Y, 0, 0);
+					return;
+				}
+			}
+			else
+			{
+				mid.y = fromDirZ;
+				mid.z = toDirY;
+//				mid = mid.normalized;
+				mid.normalise();
+			}
+		}
+
+//		q = new Quaternion(-toDir.normalized.x, -toDir.normalized.y, -toDir.normalized.z, 0) * new Quaternion(mid.normalized.x, mid.normalized.y, mid.normalized.z, 0);
+
+		mul(new Quaternion(-toDir.x, -toDir.y, -toDir.z, 0), new Quaternion(mid.x, mid.y, mid.z, 0), this);
+	}
+
+
+	public void setFromEulerAngles(ReadableVector3f euler) {
+		setFromEulerAngles(euler.getX(),euler.getY(),euler.getZ());
+	}
+
+	public void setFromEulerAngles(float eulerX, float eulerY, float eulerZ) {
+		float xDiv2 = eulerX / 2;
+		float yDiv2 = eulerY / 2;
+		float zDiv2 = eulerZ / 2;
+
+		double cosXDiv2 = Math.cos(xDiv2);
+		double sinXDiv2 = Math.sin(xDiv2);
+		double cosYDiv2 = Math.cos(yDiv2);
+		double sinYDiv2 = Math.sin(yDiv2);
+
+		if (zDiv2 == 0)
+		{
+			w = (float) (cosXDiv2 * cosYDiv2);
+			x = (float) (sinXDiv2 * cosYDiv2);
+			y = (float) (cosXDiv2 * sinYDiv2);
+			z = (float) (-sinXDiv2 * sinYDiv2);
+		}
+		else
+		{
+
+			double cosZDiv2 = Math.cos(zDiv2);
+			double sinZDiv2 = Math.sin(zDiv2);
+			w = (float) (cosXDiv2 * cosYDiv2 * cosZDiv2 + sinXDiv2 * sinYDiv2 * sinZDiv2);
+			x = (float) (sinXDiv2 * cosYDiv2 * cosZDiv2 + cosXDiv2 * sinYDiv2 * sinZDiv2);
+			y = (float) (cosXDiv2 * sinYDiv2 * cosZDiv2 - sinXDiv2 * cosYDiv2 * sinZDiv2);
+			z = (float) (cosXDiv2 * cosYDiv2 * sinZDiv2 - sinXDiv2 * sinYDiv2 * cosZDiv2);
+		}
+	}
+
 	@Override
 	public void setValue(int index, float v) {
 		switch (index) {

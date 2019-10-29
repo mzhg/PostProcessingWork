@@ -24,6 +24,7 @@ import jet.opengl.demos.amdfx.geometry.GeometryFXDemo;
 import jet.opengl.demos.amdfx.tiledrendering.TiledLighting11;
 import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
 import jet.opengl.demos.nvidia.fire.PerlinFire;
+import jet.opengl.demos.nvidia.waves.crest.Wave_CDClipmap_Test;
 import jet.opengl.demos.nvidia.waves.samples.IslandDemo;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
@@ -135,7 +136,8 @@ public class DemoApp {
 //        run(new ShaderNoise());
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
-        run(new TestD3D11());
+//        run(new TestD3D11());
+        run(new Wave_CDClipmap_Test());
 //        run(new SampleD3D11());
 //        run(new IslandDemo());
 //        run(new Chapman());
