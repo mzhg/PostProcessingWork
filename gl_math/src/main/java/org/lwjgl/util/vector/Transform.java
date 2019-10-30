@@ -78,7 +78,6 @@ public class Transform {
         mat.m32 = z;
 
         Quaternion.toMatrix4f(rotX,rotY,rotZ,rotW, mat);
-
         mat.scale(scaleX, scaleY, scaleZ);
 
         return mat;

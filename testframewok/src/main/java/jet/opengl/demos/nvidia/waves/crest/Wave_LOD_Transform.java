@@ -2,6 +2,7 @@ package jet.opengl.demos.nvidia.waves.crest;
 
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import jet.opengl.postprocessing.util.Rectf;
 
@@ -22,8 +23,9 @@ final class Wave_LOD_Transform {
         }
     }
 
-    public RenderData[] _renderData = null;
+    private RenderData[] _renderData = null;
 
+    private Vector4f[] _BindData_paramIdPosScales;
     private int lodCount;
     public int LodCount() { return lodCount;}
 
@@ -37,32 +39,45 @@ final class Wave_LOD_Transform {
         this.lodCount = lodCount;
 
         _renderData = new RenderData[lodCount];
+        _BindData_paramIdPosScales = new Vector4f[lodCount];
 //        _worldToCameraMatrix = new Matrix4f[lodCount];
 //        _projectionMatrix = new Matrix4f[lodCount];
 
         for (int i = 0; i < lodCount; i++)
         {
             _renderData[i] = new RenderData();
+            _BindData_paramIdPosScales[i] = new Vector4f();
         }
     }
 
-    public void UpdateTransforms(int lodDataResolution, float lodScale, ReadableVector3f eyePos, float seaLevel)
+    public void updateTransforms(int lodDataResolution, Wave_CDClipmap waveClipmap, ReadableVector3f eyePos, float seaLevel)
     {
         for (int lodIdx = 0; lodIdx < LodCount(); lodIdx++)
         {
+            float lodScale = waveClipmap.calcLodScale(lodIdx);
             float camOrthSize = 2f * lodScale;
 
             // find snap period
-            _renderData[lodIdx]._textureRes = OceanRenderer.Instance.LodDataResolution();
+            _renderData[lodIdx]._textureRes = lodDataResolution;
             _renderData[lodIdx]._texelWidth = 2f * camOrthSize / _renderData[lodIdx]._textureRes;
 
             // snap so that shape texels are stationary
             _renderData[lodIdx]._posSnapped.x = eyePos.getX() - (eyePos.getX() % _renderData[lodIdx]._texelWidth);
             _renderData[lodIdx]._posSnapped.y = seaLevel;
             _renderData[lodIdx]._posSnapped.z = eyePos.getZ() - (eyePos.getZ() % _renderData[lodIdx]._texelWidth);
+        }
 
+        for (int lodIdx = 0; lodIdx < LodCount(); lodIdx++)
+        {
+            // NOTE: gets zeroed by unity, see https://www.alanzucconi.com/2016/10/24/arrays-shaders-unity-5-4/
+            _BindData_paramIdPosScales[lodIdx].set(
+                    _renderData[lodIdx]._posSnapped.x, _renderData[lodIdx]._posSnapped.z,
+                    OceanRenderer.Instance.CalcLodScale(lodIdx), 0f);
+//            _BindData_paramIdOceans[lodIdx] = new Vector4(renderData[lodIdx]._texelWidth, renderData[lodIdx]._textureRes, 1f, 1f / renderData[lodIdx]._textureRes);
         }
     }
+
+    public Vector4f[] getPosScales(){ return _BindData_paramIdPosScales;}
 
     public float MaxWavelength(int lodIdx)
     {

@@ -25,7 +25,7 @@ public class Wave_CDClipmap_Params {
     /** Disable generating a wide strip of triangles at the outer edge to extend ocean to edge of view frustum.*/
     public boolean disableSkirt = false;
     /** Move ocean with viewpoint */
-    public boolean followViewpoint = false;
+    public boolean followViewpoint = true;
     /** Drops the height for maximum ocean detail based on waves. This means if there are big waves, max detail level is reached at a lower height, which can help visual range when there are very large waves and camera is at sea level.*/
     public float dropDetailHeightBasedOnWaves = 0.2f;
 

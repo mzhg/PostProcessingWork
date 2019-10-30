@@ -4,8 +4,9 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
-import java.lang.reflect.Array;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import jet.opengl.postprocessing.buffer.AttribDesc;
@@ -17,6 +18,7 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackInt;
@@ -34,6 +36,7 @@ public class Wave_CDClipmap {
     private float m_Scale = 1;
 
     private float maxVertDispFromWaves = 0;
+    private float viewerAltitudeLevelAlpha;
 
     public void init(Wave_CDClipmap_Params params){
         m_Params.set(params);
@@ -59,7 +62,7 @@ public class Wave_CDClipmap {
         // LOD data resolution multiple of 2 for general GPU texture reasons (like pixel quads)
         m_Params.lodDataResolution -= m_Params.lodDataResolution % 2;
 
-        m_Params.geometryDownSampleFactor = Numeric.nearestPowerOfTwo(Math.max(m_Params.geometryDownSampleFactor, 1));
+//        m_Params.geometryDownSampleFactor = Numeric.nearestPowerOfTwo(Math.max(m_Params.geometryDownSampleFactor, 1));
 
         int remGeo = m_Params.lodDataResolution % m_Params.geometryDownSampleFactor;
         if (remGeo > 0)
@@ -121,6 +124,10 @@ public class Wave_CDClipmap {
         float end_x = 0.5f + skirtXplus * dx;
         float end_z = 0.5f + skirtZplus * dx;
 
+        float xMin = 10000f;
+        float xMax = -xMin;
+        float zMin = 10000f;
+        float zMax = -xMin;
         for (float j = 0; j < sideLength_verts_z; j++)
         {
             // interpolate z across patch
@@ -141,6 +148,11 @@ public class Wave_CDClipmap {
 
                 // could store something in y, although keep in mind this is a shared mesh that is shared across multiple lods
                 verts.add(new Vector3f(x, 0f, z));
+
+                xMin = Math.min(x, xMin);
+                zMin = Math.min(z, zMin);
+                xMax = Math.max(x, xMax);
+                zMax = Math.max(z, zMax);
             }
         }
 
@@ -290,6 +302,10 @@ public class Wave_CDClipmap {
             }
         }
 
+        ByteBuffer debugMatrixs = DebugTools.loadBinary(String.format("E:\\textures\\Mat_Lod%d.dat", lodIndex));
+        if(lodIndex > 7)
+            throw new UnsupportedOperationException("invalid lod");
+
         // create the ocean patches
         for (int i = 0; i < offsets.length; i++)
         {
@@ -305,6 +321,10 @@ public class Wave_CDClipmap {
 //            patch.renderer.SetInstanceData(lodIndex, lodCount, lodDataResolution, geoDownSampleFactor);
 //            patch.mesh = meshData[patchTypes[i].ordinal()];
             patch.meshIndex = patchTypes[i].ordinal();
+            patch._lodDataResolution = lodDataResolution;
+            patch._lodIndex = lodIndex;
+            patch._totalLodCount = lodCount;
+            patch._geoDownSampleFactor = geoDownSampleFactor;
 
 //            var mr = patch.AddComponent<MeshRenderer>();
 
@@ -373,6 +393,12 @@ public class Wave_CDClipmap {
                 }
             }
 
+            Matrix4f combinedMat = new Matrix4f();
+            patch.transform.getMatrix(combinedMat);
+            Matrix4f debugMat = new Matrix4f();
+            debugMat.load(debugMatrixs);
+            patch.debugMatrix = debugMat;
+
             m_QuadNodes.add(patch);
         }
     }
@@ -380,6 +406,7 @@ public class Wave_CDClipmap {
     private static float Sign(float f) { return f>=0 ? 1:-1;}
 
     private void lateUpdate(Matrix4f cameraView) {
+
         if (m_Params.followViewpoint)
         {
             lateUpdatePosition(cameraView);
@@ -401,21 +428,46 @@ public class Wave_CDClipmap {
         float camDistance = Math.abs(m_EyePos.y - maxDetailY);
 
         // offset level of detail to keep max detail in a band near the surface
-        camDistance = Math.max(camDistance - 4f, 0f);
+        camDistance = Math.max(camDistance - 0, 0f);
 
         // scale ocean mesh based on camera distance to sea level, to keep uniform detail.
         final float HEIGHT_LOD_MUL = 1f;
         float level = camDistance * HEIGHT_LOD_MUL;
         level = Math.max(level, m_Params.minScale);
-        if (m_Params.maxScale != -1f) level = Math.min(level, 1.99f * m_Params.maxScale);
+        if (m_Params.maxScale != -1f) level = Math.min(level, 0.99f * m_Params.maxScale);
 
         float l2 = (float) (Math.log(level) / Math.log(2f));
         float l2f = (float) Math.floor(l2);
 
-//        ViewerAltitudeLevelAlpha = l2 - l2f;
-
+        viewerAltitudeLevelAlpha = l2 - l2f;
         m_Scale = (float) Math.pow(2f, l2f);
     }
+
+    void LateUpdateLods()
+    {
+        // Do any per-frame update for each LOD type.
+
+        m_LodTransform.updateTransforms(m_Params.lodDataResolution, this, m_EyePos, m_Params.sea_level);
+
+        /*if (_lodDataAnimWaves) _lodDataAnimWaves.UpdateLodData();
+        if (_lodDataDynWaves) _lodDataDynWaves.UpdateLodData();
+        if (_lodDataFlow) _lodDataFlow.UpdateLodData();
+        if (_lodDataFoam) _lodDataFoam.UpdateLodData();
+        if (_lodDataSeaDepths) _lodDataSeaDepths.UpdateLodData();
+        if (_lodDataShadow) _lodDataShadow.UpdateLodData();*/
+
+
+    }
+
+    public float getViewerAltitudeLevelAlpha() { return viewerAltitudeLevelAlpha;}
+
+    /** Could the ocean horizontal scale increase (for e.g. if the viewpoint gains altitude). Will be false if ocean already at maximum scale.*/
+    public boolean scaleCouldIncrease (){ return m_Params.maxScale == -1f || m_Scale < m_Params.maxScale * 0.99f; }
+
+    /** Could the ocean horizontal scale decrease (for e.g. if the viewpoint drops in altitude). Will be false if ocean already at minimum scale.*/
+    public boolean scaleCouldDecrease () { return m_Params.minScale == -1f || m_Scale > m_Params.minScale * 1.01f; }
+
+    public float calcLodScale(float lodIndex) { return (float) (m_Scale * Math.pow(2f, lodIndex)); }
 
     public void getGloaltoWorldTransform(Matrix4f localToWord){
         localToWord.setIdentity();
@@ -444,6 +496,8 @@ public class Wave_CDClipmap {
         m_DebugProg.enable();
         GLSLUtil.setMat4(m_DebugProg, "g_View", cameraView);
         GLSLUtil.setMat4(m_DebugProg, "g_Proj", cameraProj);
+        GLSLUtil.setFloat3(m_DebugProg, "_OceanCenterPosWorld", m_EyePos.x, m_Params.sea_level, m_EyePos.z);
+        GLSLUtil.setFloat4(m_DebugProg, "_LD_Pos_Scale", m_LodTransform.getPosScales());
 
         Matrix4f gloabl = CacheBuffer.getCachedMatrix();
         Matrix4f local = CacheBuffer.getCachedMatrix();
@@ -454,6 +508,12 @@ public class Wave_CDClipmap {
 
         for(CDClipmapNode node : m_QuadNodes){
             node.transform.getMatrix(local);
+//            local.load(node.debugMatrix);
+            node.update(this);
+
+            GLSLUtil.setFloat4(m_DebugProg, "_InstanceData", node.getInstanceData());
+            GLSLUtil.setFloat4(m_DebugProg, "_GeomData", node.getGeomData());
+            GLSLUtil.setInt(m_DebugProg, "_LD_SliceIndex", node._lodIndex);
 
             Matrix4f world =  Matrix4f.mul(gloabl, local, local);
 
