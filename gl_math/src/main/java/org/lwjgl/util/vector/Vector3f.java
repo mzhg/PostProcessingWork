@@ -378,6 +378,10 @@ public class Vector3f extends Vector implements Serializable, ReadableVector3f, 
 		return left.getX() * right.getX() + left.getY() * right.getY() + left.getZ() * right.getZ();
 	}
 
+	public static float dot(ReadableVector3f left, float rx, float ry, float rz){
+		return left.getX() * rx + left.getY() * ry + left.getZ() * rz;
+	}
+
 	/**
 	 * Calculate the angle between two vectors, in radians
 	 * @param a A vector

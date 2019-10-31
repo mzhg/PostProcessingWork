@@ -27,6 +27,16 @@ public class DepthStencilState {
         backFace.set(o.backFace);
     }
 
+    /** Reset the settings to defualt */
+    public void reset(){
+        depthEnable = false;
+        depthWriteMask = true;
+        depthFunc = GLenum.GL_LESS;
+        stencilEnable = false;
+        frontFace.reset();
+        backFace.reset();
+    }
+
     @Override
     public String toString() {
         return "DepthStencilState{" +

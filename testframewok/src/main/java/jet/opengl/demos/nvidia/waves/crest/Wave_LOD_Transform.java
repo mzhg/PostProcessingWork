@@ -23,7 +23,7 @@ final class Wave_LOD_Transform {
         }
     }
 
-    private RenderData[] _renderData = null;
+    RenderData[] _renderData = null;
 
     private Vector4f[] _BindData_paramIdPosScales;
     private int lodCount;
@@ -72,7 +72,7 @@ final class Wave_LOD_Transform {
             // NOTE: gets zeroed by unity, see https://www.alanzucconi.com/2016/10/24/arrays-shaders-unity-5-4/
             _BindData_paramIdPosScales[lodIdx].set(
                     _renderData[lodIdx]._posSnapped.x, _renderData[lodIdx]._posSnapped.z,
-                    OceanRenderer.Instance.CalcLodScale(lodIdx), 0f);
+                    waveClipmap.calcLodScale(lodIdx), 0f);
 //            _BindData_paramIdOceans[lodIdx] = new Vector4(renderData[lodIdx]._texelWidth, renderData[lodIdx]._textureRes, 1f, 1f / renderData[lodIdx]._textureRes);
         }
     }

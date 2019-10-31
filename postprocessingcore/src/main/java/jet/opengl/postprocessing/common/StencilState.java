@@ -13,6 +13,16 @@ public class StencilState {
     public int stencilMask = 0xFF;
     public int stencilRef = 0;
 
+    public void reset(){
+        stencilFailOp = GLenum.GL_KEEP;
+        stencilDepthFailOp = GLenum.GL_KEEP;
+        stencilPassOp = GLenum.GL_KEEP;
+        stencilFunc = GLenum.GL_ALWAYS;
+        stencilWriteMask = 0xFF;
+        stencilMask = 0xFF;
+        stencilRef = 0;
+    }
+
     public void set(StencilState o){
         stencilFailOp = o.stencilFailOp;
         stencilDepthFailOp = o.stencilDepthFailOp;

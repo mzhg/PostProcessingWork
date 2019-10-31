@@ -22,6 +22,16 @@ public class RasterizerState {
     public int colorWriteMask = MASK_ALL;
     public int fillMode = GLenum.GL_FILL;
 
+    /** Reset the settings to defualt */
+    public void reset(){
+         cullMode = GLenum.GL_BACK;
+         frontCounterClockwise = false;
+         cullFaceEnable = false;
+         rasterizedDiscardEnable = false;
+         colorWriteMask = MASK_ALL;
+         fillMode = GLenum.GL_FILL;
+    }
+
     public void set(RasterizerState o){
         cullMode = o.cullMode;
         frontCounterClockwise = o.frontCounterClockwise;

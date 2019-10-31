@@ -2,6 +2,9 @@
 
 layout(location = 0) in float4 In_Position;
 
+#ifndef _DEBUGVISUALISESHAPESAMPLE_ON
+#
+
 out Varyings
 {
 //    float4 positionCS : SV_POSITION;

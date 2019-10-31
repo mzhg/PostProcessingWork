@@ -1,133 +1,37 @@
-package jet.opengl.demos.nvidia.waves.crest.shapes;
+package jet.opengl.demos.nvidia.waves.crest;
 
+import org.lwjgl.util.vector.ReadableVector2f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
-import java.util.List;
-
-import jet.opengl.demos.nvidia.waves.crest.CommandBuffer;
-import jet.opengl.demos.nvidia.waves.crest.Mesh;
-import jet.opengl.demos.nvidia.waves.crest.MonoBehaviour;
-import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.demos.nvidia.waves.crest.collision.AvailabilityResult;
-import jet.opengl.demos.nvidia.waves.crest.collision.ICollProvider;
 import jet.opengl.demos.nvidia.waves.crest.collision.SamplingData;
-import jet.opengl.demos.nvidia.waves.crest.helpers.IFloatingOrigin;
-import jet.opengl.demos.nvidia.waves.crest.helpers.PropertyWrapperMaterial;
-import jet.opengl.demos.nvidia.waves.crest.loddata.ILodDataInput;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgr;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrAnimWaves;
-import jet.opengl.demos.nvidia.waves.crest.loddata.RegisterLodDataInputBase;
-import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.demos.nvidia.waves.ocean.Technique;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 
-public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider, IFloatingOrigin {
-//    [Tooltip("The spectrum that defines the ocean surface shape. Create asset of type Crest/Ocean Waves Spectrum.")]
-    public OceanWaveSpectrum _spectrum;
+final class Wave_Gerstner_Batched implements Wave_Const{
+    Wave_Spectrum _spectrum;
 
-//        [Tooltip("Wind direction (angle from x axis in degrees)"), Range(-180, 180)]
-    public float _windDirectionAngle = 0f;
-    public Vector2f WindDir(){
-        return new Vector2f((float)Math.cos(Math.PI * _windDirectionAngle / 180f), (float)Math.sin(Math.PI * _windDirectionAngle / 180f));
-    }
+    private Wave_Simulation_Params m_Params;
+    private Wave_CDClipmap m_Clipmap;
 
-    @Override
-    public void SetOrigin(ReadableVector3f newOrigin) {
+    private float[] _wavelengths;
+    private float[] _amplitudes;
+    private float[] _angleDegs;
+    private float[] _phases;
 
-    }
+    private GerstnerBatch[] _batches = null;
+    private Technique mGerstnerShader;
+    private boolean mDirectTowardsPoint = false;
 
-    public class GerstnerBatch implements ILodDataInput {
-        public GerstnerBatch(GLSLProgram gerstnerShader, boolean directTowardsPoint)
-        {
-            _materials = new PropertyWrapperMaterial[]
-            {
-//                    new PropertyWrapperMaterial(new Material(gerstnerShader)),
-//                    new PropertyWrapperMaterial(new Material(gerstnerShader))
-            };
+    private float m_TotalTime;
 
-            if (directTowardsPoint)
-            {
-//                _materials[0].material.EnableKeyword(DIRECT_TOWARDS_POINT_KEYWORD);
-//                _materials[1].material.EnableKeyword(DIRECT_TOWARDS_POINT_KEYWORD);
-            }
-        }
-
-        public PropertyWrapperMaterial GetMaterial(int isTransition) { return _materials[isTransition];};
-
-        // Two materials because as batch may be rendered twice if it has large wavelengths that are being transitioned back
-        // and forth across the last 2 lods.
-        PropertyWrapperMaterial[] _materials;
-
-        public float Wavelength;
-        public boolean Enabled ;
-
-        public void Draw(CommandBuffer buf, float weight, int isTransition)
-        {
-            if (Enabled && weight > 0f)
-            {
-                PropertyWrapperMaterial mat = GetMaterial(isTransition);
-                mat.SetFloat(RegisterLodDataInputBase.sp_Weight, weight);
-//                buf.DrawMesh(RasterMesh(), Matrix4x4.identity, mat.material);  todo
-            }
-        }
-
-        @Override
-        public float Wavelength() {
-            return 0;
-        }
-
-        @Override
-        public boolean Enabled() {
-            return false;
-        }
-    }
-
-    GerstnerBatch[] _batches = null;
-
-//        [Delayed, Tooltip("How many wave components to generate in each octave.")]
-    public int _componentsPerOctave = 8;
-
-//        [Range(0f, 1f)]
-    public float _weight = 1f;
-
-    public int _randomSeed = 0;
-
-    // Data for all components
-//        [Header("Wave data (usually populated at runtime)")]
-    public boolean _evaluateSpectrumAtRuntime = true;
-    public float[] _wavelengths;
-    public float[] _amplitudes;
-    public float[] _angleDegs;
-    public float[] _phases;
-
-//        [SerializeField, Tooltip("Make waves converge towards a point. Must be set at edit time only, applied on startup."), Header("Direct towards point")]
-    boolean _directTowardsPoint = false;
-//        [SerializeField, Tooltip("Target point XZ to converge to.")]
-    Vector2f _pointPositionXZ = new Vector2f();
-//        [SerializeField, Tooltip("Inner and outer radii. Influence at full strength at inner radius, fades off at outer radius.")]
-    Vector2f _pointRadii = new Vector2f(100f, 200f);
-    final String DIRECT_TOWARDS_POINT_KEYWORD = "_DIRECT_TOWARDS_POINT";
-
-    static Mesh _rasterMesh = null;
-
-    // Shader to be used to render evaluate Gerstner waves for each LOD
-    GLSLProgram _waveShader;
-
-    static int sp_TwoPiOverWavelengths = 0;//Shader.PropertyToID("_TwoPiOverWavelengths");
-    static int sp_Amplitudes = 1;//Shader.PropertyToID("_Amplitudes");
-    static int sp_WaveDirX = 2;//Shader.PropertyToID("_WaveDirX");
-    static int sp_WaveDirZ = 3;//Shader.PropertyToID("_WaveDirZ");
-    static int sp_Phases = 4;//Shader.PropertyToID("_Phases");
-    static int sp_ChopAmps = 5;//Shader.PropertyToID("_ChopAmps");
-    static int sp_NumInBatch = 6;//Shader.PropertyToID("_NumInBatch");
-    static int sp_AttenuationInShallows = 7;//Shader.PropertyToID("_AttenuationInShallows");
-    static int sp_NumWaveVecs = 8;//Shader.PropertyToID("_NumWaveVecs");
-    static int sp_TargetPointData = 9;//Shader.PropertyToID("_TargetPointData");
+    private Wave_Mesh m_QuadMesh;
 
     // IMPORTANT - this mirrors the constant with the same name in ShapeGerstnerBatch.shader, both must be updated together!
     static final int BATCH_SIZE = 32;
@@ -140,56 +44,78 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
     }
 
     // scratch data used by batching code
-    final static class UpdateBatchScratchData
-    {
-        public static Vector4f[] _twoPiOverWavelengthsBatch = new Vector4f[BATCH_SIZE / 4];
-        public static Vector4f[] _ampsBatch = new Vector4f[BATCH_SIZE / 4];
-        public static Vector4f[] _waveDirXBatch = new Vector4f[BATCH_SIZE / 4];
-        public static Vector4f[] _waveDirZBatch = new Vector4f[BATCH_SIZE / 4];
-        public static Vector4f[] _phasesBatch = new Vector4f[BATCH_SIZE / 4];
-        public static Vector4f[] _chopAmpsBatch = new Vector4f[BATCH_SIZE / 4];
+    private final static class UpdateBatchScratchData {
+        public static Vector4f[] _twoPiOverWavelengthsBatch = CommonUtil.initArray(new Vector4f[BATCH_SIZE / 4]);
+        public static Vector4f[] _ampsBatch = CommonUtil.initArray(new Vector4f[BATCH_SIZE / 4]);
+        public static Vector4f[] _waveDirXBatch = CommonUtil.initArray(new Vector4f[BATCH_SIZE / 4]);
+        public static Vector4f[] _waveDirZBatch = CommonUtil.initArray(new Vector4f[BATCH_SIZE / 4]);
+        public static Vector4f[] _phasesBatch = CommonUtil.initArray(new Vector4f[BATCH_SIZE / 4]);
+        public static Vector4f[] _chopAmpsBatch = CommonUtil.initArray(new Vector4f[BATCH_SIZE / 4]);
     }
 
-    void Start()
+    void init(Wave_Simulation_Params params, Wave_CDClipmap clipmap)
     {
+        m_Clipmap = clipmap;
+        m_Params = params;
+        m_TotalTime = 0;
         if (_spectrum == null)
         {
-            _spectrum = new OceanWaveSpectrum();
-            _spectrum.name = "Default Waves (auto)";
+            _spectrum = new Wave_Spectrum();
         }
-
-/*#if UNITY_EDITOR
-        _spectrum.Upgrade();
-#endif*/
 
         InitBatches();
     }
 
-    static Mesh RasterMesh()
+    private void InitBatches()
     {
-        if (_rasterMesh == null)
+        if (mGerstnerShader == null || mDirectTowardsPoint != m_Params.direct_towards_Point)
         {
-            // If not provided, use a quad which will render waves everywhere
-            _rasterMesh = new Mesh();
-            _rasterMesh.vertices = new Vector3f[] { new Vector3f(-0.5f, -0.5f, 0f), new Vector3f(0.5f, 0.5f, 0f), new Vector3f(0.5f, -0.5f, 0f), new Vector3f(-0.5f, 0.5f, 0f) };
-            _rasterMesh.uv = new Vector2f[] { new Vector2f(), new Vector2f(1,1), new Vector2f(1,0), new Vector2f(0,1) };
-            _rasterMesh.normals = new Vector3f[] { new Vector3f(0,0,-1), new Vector3f(0,0,-1), new Vector3f(0,0,-1), new Vector3f(0,0,-1) };
-            _rasterMesh.SetIndices(new int[] { 0, 1, 2, 1, 0, 3 }, GLenum.GL_TRIANGLES);
+//            _waveShader = Shader.Find("Crest/Inputs/Animated Waves/Gerstner Batch");
+//            Debug.Assert(_waveShader, "Could not load Gerstner wave shader, make sure it is packaged in the build.");
+            mGerstnerShader = ShaderManager.getInstance().getProgram("Crest/Inputs/Animated Waves/Gerstner Batch " + (m_Params.direct_towards_Point ? 0 : 1));
         }
 
-        return _rasterMesh;
+        _batches = new GerstnerBatch[MAX_LOD_COUNT];
+        for (int i = 0; i < _batches.length; i++)
+        {
+            _batches[i] = new GerstnerBatch();
+        }
     }
 
-    void InitPhases()
+    void update(float deltaTime)
     {
-        // Set random seed to get repeatable results
-//        Random.State randomStateBkp = Random.state;
-//        Random.InitState(_randomSeed);
+        m_TotalTime += deltaTime * m_Params.time_scale;
 
-        Numeric.setRandomSeed(_randomSeed);
-        int totalComps = _componentsPerOctave * OceanWaveSpectrum.NUM_OCTAVES;
+        if (m_Params.evaluate_spectrum_runtime)
+        {
+            UpdateWaveData();
+        }
+
+        ReportMaxDisplacement();
+    }
+
+    private void UpdateWaveData() {
+        // Set random seed to get repeatable results
+        Numeric.setRandomSeed(m_Params.random_seed);
+
+        _spectrum.GenerateWaveData(/*_componentsPerOctave*/m_Params.components_per_octave, _wavelengths,  _angleDegs);
+
+        UpdateAmplitudes();
+
+        // Won't run every time so put last in the random sequence
+        if (_phases == null || _phases.length != _wavelengths.length) {
+            InitPhases();
+        }
+    }
+
+    private void InitPhases()
+    {
+        final int _componentsPerOctave = m_Params.components_per_octave;
+        // Set random seed to get repeatable results
+        Numeric.setRandomSeed(m_Params.random_seed);
+        int totalComps = _componentsPerOctave * Wave_Spectrum.NUM_OCTAVES;
         _phases = new float[totalComps];
-        for (int octave = 0; octave < OceanWaveSpectrum.NUM_OCTAVES; octave++)
+        for (int octave = 0; octave < Wave_Spectrum.NUM_OCTAVES; octave++)
         {
             for (int i = 0; i < _componentsPerOctave; i++)
             {
@@ -198,61 +124,13 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
                 _phases[index] = 2f * Numeric.PI * rnd;
             }
         }
-
-//        Random.state = randomStateBkp;
-    }
-
-    public void SetOrigin(Vector3f newOrigin)
-    {
-        if (_phases == null) return;
-
-        float windAngle = _windDirectionAngle;
-        for (int i = 0; i < _phases.length; i++)
-        {
-            Vector3f direction = new Vector3f((float) Math.cos(Math.toRadians(windAngle + _angleDegs[i])), 0f, (float) Math.sin(Math.toRadians(windAngle + _angleDegs[i])));
-            float phaseOffsetMeters = Vector3f.dot(newOrigin, direction);
-
-            // wave number
-            float k = 2f * Numeric.PI / _wavelengths[i];
-
-            _phases[i] = (_phases[i] + phaseOffsetMeters * k) % (Numeric.PI * 2f);
-        }
-    }
-
-    void Update()
-    {
-        if (OceanRenderer.Instance == null) return;
-
-        if (_evaluateSpectrumAtRuntime)
-        {
-            UpdateWaveData();
-        }
-
-        ReportMaxDisplacement();
-    }
-
-    public void UpdateWaveData()
-    {
-        // Set random seed to get repeatable results
-//        Random.State randomStateBkp = Random.state;
-//        Random.InitState(_randomSeed);
-        Numeric.setRandomSeed(_randomSeed);
-
-        _spectrum.GenerateWaveData(_componentsPerOctave, _wavelengths,  _angleDegs);
-
-        UpdateAmplitudes();
-
-        // Won't run every time so put last in the random sequence
-        if (_phases == null || _phases.length != _wavelengths.length)
-        {
-            InitPhases();
-        }
-
-//        Random.state = randomStateBkp;
     }
 
     void UpdateAmplitudes()
     {
+        final int _componentsPerOctave = m_Params.components_per_octave;
+        final float _weight = m_Params.gertner_weight;
+
         if (_amplitudes == null || _amplitudes.length != _wavelengths.length)
         {
             _amplitudes = new float[_wavelengths.length];
@@ -266,7 +144,8 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
 
     private void ReportMaxDisplacement()
     {
-        assert (_spectrum._chopScales.length == OceanWaveSpectrum.NUM_OCTAVES) : "OceanWaveSpectrum {_spectrum.name} is out of date, please open this asset and resave in editor.";
+        assert (_spectrum._chopScales.length == Wave_Spectrum.NUM_OCTAVES) : "OceanWaveSpectrum {_spectrum.name} is out of date, please open this asset and resave in editor.";
+        final int _componentsPerOctave = m_Params.components_per_octave;
 
         float ampSum = 0f;
         for (int i = 0; i < _wavelengths.length; i++)
@@ -275,35 +154,6 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
         }
         OceanRenderer.Instance.ReportMaxDisplacementFromShape(ampSum * _spectrum._chop, ampSum, ampSum);
     }
-
-    void InitBatches()
-    {
-        if (_waveShader == null)
-        {
-//            _waveShader = Shader.Find("Crest/Inputs/Animated Waves/Gerstner Batch");
-//            Debug.Assert(_waveShader, "Could not load Gerstner wave shader, make sure it is packaged in the build.");
-            if (_waveShader == null)
-            {
-                return;
-            }
-        }
-
-        _batches = new GerstnerBatch[LodDataMgr.MAX_LOD_COUNT];
-        for (int i = 0; i < _batches.length; i++)
-        {
-            _batches[i] = new GerstnerBatch(_waveShader, _directTowardsPoint);
-        }
-
-        // Submit draws to create the Gerstner waves. LODs from 0 to N-2 render the Gerstner waves from their lod. Additionally, any waves
-        // in the biggest lod, or too big for the biggest lod, are rendered into both of the last two LODs N-1 and N-2, as this allows us to
-        // move these waves between LODs without pops when the camera changes heights and the LODs need to change scale.
-        List<ILodDataInput> registered = RegisterLodDataInputBase.GetRegistrar(LodDataMgrAnimWaves.class);
-        for (ILodDataInput batch : _batches)
-        {
-            registered.add(batch);
-        }
-    }
-
     /// <summary>
     /// Computes Gerstner params for a set of waves, for the given lod idx. Writes shader data to the given property.
     /// Returns number of wave components rendered in this batch.
@@ -315,12 +165,13 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
         int numComponents = lastComponentNonInc - firstComponent;
         int numInBatch = 0;
         int dropped = 0;
+        final int _componentsPerOctave = m_Params.components_per_octave;
 
         float twopi = 2f * Numeric.PI;
         float one_over_2pi = 1f / twopi;
-        float minWavelengthThisBatch = OceanRenderer.Instance._lodTransform.MaxWavelength(lodIdx) / 2f;
-        float maxWavelengthCurrentlyRendering = OceanRenderer.Instance._lodTransform.MaxWavelength(OceanRenderer.Instance.CurrentLodCount() - 1);
-        float viewerAltitudeLevelAlpha = OceanRenderer.Instance.ViewerAltitudeLevelAlpha;
+        float minWavelengthThisBatch = m_Clipmap.m_LodTransform.MaxWavelength(lodIdx) / 2f;
+        float maxWavelengthCurrentlyRendering = m_Clipmap.m_LodTransform.MaxWavelength(m_Clipmap.m_LodTransform.LodCount() - 1);
+        float viewerAltitudeLevelAlpha = m_Clipmap.getViewerAltitudeLevelAlpha();
 
         // register any nonzero components
         for (int i = 0; i < numComponents; i++)
@@ -343,14 +194,14 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
                     float chopScale = _spectrum._chopScales[(firstComponent + i) / _componentsPerOctave];
                     UpdateBatchScratchData._chopAmpsBatch[vi].set(ei, -chopScale * _spectrum._chop * amp);
 
-                    double angle = Math.toRadians (_windDirectionAngle + _angleDegs[firstComponent + i]);
+                    double angle = Math.toRadians (windDirectionAngle() + _angleDegs[firstComponent + i]);
                     UpdateBatchScratchData._waveDirXBatch[vi].set(ei, (float)Math.cos(angle));
                     UpdateBatchScratchData._waveDirZBatch[vi].set(ei, (float)Math.sin(angle));
 
                     // It used to be this, but I'm pushing all the stuff that doesn't depend on position into the phase.
                     //half4 angle = k * (C * _CrestTime + x) + _Phases[vi];
                     float gravityScale = _spectrum._gravityScales[(firstComponent + i) / _componentsPerOctave];
-                    float gravity = OceanRenderer.Instance.Gravity() * _spectrum._gravityScale;
+                    float gravity = OceanRenderer.Instance.Gravity() * /*_spectrum._gravityScale*/m_Params.gravityMultiplier;
                     float C = (float) Math.sqrt(wl * gravity * gravityScale * one_over_2pi);
                     float k = twopi / wl;
                     // Repeat every 2pi to keep angle bounded - helps precision on 16bit platforms
@@ -422,32 +273,27 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
 //                OceanRenderer.Instance._lodDataSeaDepths.BindResultData(mat, false);  todo
             }
 
-            if (_directTowardsPoint)
+            /*if (_directTowardsPoint)
             {
 //                mat.SetVector(sp_TargetPointData, new Vector4f(_pointPositionXZ.x, _pointPositionXZ.y, _pointRadii.x, _pointRadii.y));  todo
-            }
+            }*/
         }
 
         batch.Enabled = true;
     }
 
-    /// <summary>
-    /// More complicated than one would hope - loops over each component and assigns to a Gerstner batch which will render to a LOD.
-    /// the camera WL range does not always match the octave WL range (because the vertices per wave is not constrained to powers of
-    /// 2, unfortunately), so i cant easily just loop over octaves. also any WLs that either go to the last WDC, or don't fit in the last
-    /// WDC, are rendered into both the last and second-to-last WDCs, in order to transition them smoothly without pops in all scenarios.
-    /// </summary>
+    /**
+     * More complicated than one would hope - loops over each component and assigns to a Gerstner batch which will render to a LOD.
+     * the camera WL range does not always match the octave WL range (because the vertices per wave is not constrained to powers of
+     * 2, unfortunately), so i cant easily just loop over octaves. also any WLs that either go to the last WDC, or don't fit in the last
+     *  WDC, are rendered into both the last and second-to-last WDCs, in order to transition them smoothly without pops in all scenarios.
+     */
     void LateUpdate()
     {
-        if (OceanRenderer.Instance == null)
-        {
-            return;
-        }
-
         int componentIdx = 0;
 
         // seek forward to first wavelength that is big enough to render into current LODs
-        float minWl = OceanRenderer.Instance._lodTransform.MaxWavelength(0) / 2f;
+        float minWl = m_Clipmap.m_LodTransform.MaxWavelength(0) / 2f;
         while (_wavelengths[componentIdx] < minWl && componentIdx < _wavelengths.length)
         {
             componentIdx++;
@@ -485,33 +331,8 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
             }
 
             batch++;
-            lodIdx = Math.min(lodIdx + 1, OceanRenderer.Instance.CurrentLodCount() - 1);
+            lodIdx = Math.min(lodIdx + 1, m_Clipmap.m_LodTransform.LodCount() - 1);
             minWl *= 2f;
-        }
-    }
-
-    protected void OnDisable()
-    {
-        /*if (OceanRenderer.Instance != null && _batches != null)
-        {
-            var registered = RegisterLodDataInputBase.GetRegistrar(typeof(LodDataMgrAnimWaves));
-            foreach (var batch in _batches)
-            {
-                registered.Remove(batch);
-            }
-
-            _batches = null;
-        }*/
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        if (_directTowardsPoint)
-        {
-            /*Gizmos.color = Color.black;
-            Gizmos.DrawWireSphere(new Vector3(_pointPositionXZ.x, transform.position.y, _pointPositionXZ.y), _pointRadii.y);
-            Gizmos.color = Color.white;
-            Gizmos.DrawWireSphere(new Vector3(_pointPositionXZ.x, transform.position.y, _pointPositionXZ.y), _pointRadii.x);*/
         }
     }
 
@@ -535,7 +356,7 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
 
         Vector2f pos = new Vector2f(i_worldPos.getX(), i_worldPos.getZ());
         float mytime = /*OceanRenderer.Instance.CurrentTime()  todo*/ 0;
-        float windAngle = _windDirectionAngle;
+        float windAngle = windDirectionAngle();
         float minWaveLength = i_samplingData._minSpatialLength / 2f;
 
         for (int j = 0; j < _amplitudes.length; j++)
@@ -638,8 +459,8 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
         if (_amplitudes == null) return false;
 
         Vector2f pos = new Vector2f(i_undisplacedWorldPos.getX(), i_undisplacedWorldPos.getZ());
-        float mytime = /*OceanRenderer.Instance.CurrentTime()  todo*/  0;
-        float windAngle = _windDirectionAngle;
+        float mytime =m_TotalTime;
+        float windAngle = windDirectionAngle();
         float minWaveLength = i_samplingData._minSpatialLength / 2f;
 
         // base rate of change of our displacement function in x and z is unit
@@ -693,8 +514,8 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
         }
 
         Vector2f pos = new Vector2f(i_worldPos.getX(), i_worldPos.getZ());
-        float mytime = /*OceanRenderer.Instance.CurrentTime() todo*/ 0;
-        float windAngle = _windDirectionAngle;
+        float mytime = m_TotalTime;
+        float windAngle = windDirectionAngle();
         float minWavelength = i_samplingData._minSpatialLength / 2f;
 
         for (int j = 0; j < _amplitudes.length; j++)
@@ -807,5 +628,49 @@ public class ShapeGerstnerBatched extends MonoBehaviour implements ICollProvider
     public boolean RetrieveSucceeded(int queryStatus)
     {
         return queryStatus == 0;
+    }
+
+    // for inner use.
+    private ReadableVector2f WindDir(){
+        return m_Params.wind_dir;
+    }
+
+    /** Get the anlge along the z-axis. */
+    private float windDirectionAngle(){
+        float angle =  (float) Math.acos(m_Params.wind_dir.y);  // assum the dir had been normalized.
+        return m_Params.wind_dir.x >= 0 ? angle : -angle;
+    }
+
+    public void setOrigin(ReadableVector3f newOrigin)
+    {
+        if (_phases == null) return;
+
+        float windAngle = windDirectionAngle();
+        for (int i = 0; i < _phases.length; i++)
+        {
+//            var direction = new Vector3(Mathf.Cos((windAngle + _angleDegs[i]) * Mathf.Deg2Rad), 0f, Mathf.Sin((windAngle + _angleDegs[i]) * Mathf.Deg2Rad));
+            float directionZ = (float) Math.cos(Math.toRadians(windAngle + _angleDegs[i]));
+            float directionX = (float) Math.sin(Math.toRadians(windAngle + _angleDegs[i]));
+            float phaseOffsetMeters = Vector3f.dot(newOrigin, directionX,0,directionZ);
+
+            // wave number
+            float k = 2f * Numeric.PI / _wavelengths[i];
+            _phases[i] = (_phases[i] + phaseOffsetMeters * k) % (Numeric.PI * 2f);
+        }
+    }
+
+    private final class GerstnerBatch {
+        float Wavelength;
+        boolean Enabled ;
+
+        public void Draw(CommandBuffer buf, float weight, int isTransition)
+        {
+            if (Enabled && weight > 0f)
+            {
+                /*PropertyWrapperMaterial mat = GetMaterial(isTransition);
+                mat.SetFloat(RegisterLodDataInputBase.sp_Weight, weight);*/
+//                buf.DrawMesh(RasterMesh(), Matrix4x4.identity, mat.material);  todo
+            }
+        }
     }
 }

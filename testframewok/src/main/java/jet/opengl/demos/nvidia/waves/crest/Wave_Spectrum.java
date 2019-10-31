@@ -1,4 +1,4 @@
-package jet.opengl.demos.nvidia.waves.crest.shapes;
+package jet.opengl.demos.nvidia.waves.crest;
 
 import org.lwjgl.util.vector.ReadableVector2f;
 import org.lwjgl.util.vector.Vector2f;
@@ -6,35 +6,14 @@ import org.lwjgl.util.vector.Vector2f;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
-/** Ocean shape representation - power values for each octave of wave components. */
-public final class OceanWaveSpectrum {
-    private final static int NUM_OCTAVES = 14;
-    private static final float SMALLEST_WL_POW_2 = -4f;
+final class Wave_Spectrum {
 
-    public String name;
-
-//        [HideInInspector]
-    public float _windSpeed = 10f;
-
-//        [HideInInspector]
-    public float _fetch = 500000f;
+    public final static int NUM_OCTAVES = 14;
+    public static final float SMALLEST_WL_POW_2 = -4f;
 
     public static final float MIN_POWER_LOG = -6f;
     public static final float MAX_POWER_LOG = 5f;
 
-//        [Tooltip("Variance of wave directions, in degrees"), Range(0f, 180f)]
-    public float _waveDirectionVariance = 90f;
-
-//        [Tooltip("More gravity means faster waves."), Range(0f, 25f)]
-    public float _gravityScale = 1f;
-
-//        [HideInInspector]
-    public float _smallWavelengthMultiplier = 1f;
-
-//        [Tooltip("Multiplier"), Range(0f, 10f), SerializeField]
-    float _multiplier = 1f;
-
-//        [SerializeField]
     float[] _powerLog = new float[/*NUM_OCTAVES*/]
             { -6f, -6f, -6f, -4.0088496f, -3.4452133f, -2.6996124f, -2.615044f, -1.2080691f, -0.53905386f, 0.27448857f, 0.53627354f, 1.0282621f, 1.4403292f, -6f };
 
@@ -51,6 +30,13 @@ public final class OceanWaveSpectrum {
 
     //        [Tooltip("Scales horizontal displacement"), Range(0f, 2f)]
     public float _chop = 1f;
+
+    private Wave_Simulation_Params m_Params;
+
+    public float getAmplitudeScale(){ return m_Params.wave_amplitude;}
+    public float waveDirectionVariance(){
+        return m_Params.wind_dependency * 180f;
+    }
 
     public static float SmallWavelength(float octaveIndex) { return (float)Math.pow(2f, SMALLEST_WL_POW_2 + octaveIndex); }
 
@@ -106,7 +92,7 @@ public final class OceanWaveSpectrum {
         // Amplitude
         double a = Math.sqrt(a_2);
 
-        return (float) (a * rand0 * _multiplier);
+        return (float) (a * rand0 * getAmplitudeScale());
     }
 
     public static double ComputeWaveSpeed(double wavelength, double gravityMultiplier /*= 1f*/)
@@ -145,7 +131,7 @@ public final class OceanWaveSpectrum {
                 wavelengths[index] = (float) Numeric.mix(minWavelengthi, maxWavelengthi, Numeric.random());
 
                 double rnd = (i + Numeric.random()) * invComponentsPerOctave;
-                anglesDeg[index] = (float) ((2f * rnd - 1f) * _waveDirectionVariance);
+                anglesDeg[index] = (float) ((2f * rnd - 1f) * waveDirectionVariance());
             }
 
             minWavelength *= 2f;

@@ -26,7 +26,7 @@ import jet.opengl.postprocessing.util.StackInt;
 public class Wave_CDClipmap {
 
     private final Wave_CDClipmap_Params m_Params = new Wave_CDClipmap_Params();
-    private final Wave_LOD_Transform m_LodTransform = new Wave_LOD_Transform();
+    final Wave_LOD_Transform m_LodTransform = new Wave_LOD_Transform();
     private final ArrayList<CDClipmapNode> m_QuadNodes = new ArrayList<>();
 
     private final Vector3f m_EyePos = new Vector3f();
@@ -35,8 +35,11 @@ public class Wave_CDClipmap {
 
     private float m_Scale = 1;
 
-    private float maxVertDispFromWaves = 0;
     private float viewerAltitudeLevelAlpha;
+
+    private float m_MaxHorizDispFromShape = 0f;
+    private float m_MaxVertDispFromShape = 0f;
+    private float m_MaxVertDispFromWaves = 0f;
 
     public void init(Wave_CDClipmap_Params params){
         m_Params.set(params);
@@ -72,6 +75,8 @@ public class Wave_CDClipmap {
             m_Params.lodDataResolution = newLDR;
         }
     }
+
+    public int getLodDataResolution() { return m_Params.lodDataResolution;}
 
     private void generateMesh(){
         // 4 tiles across a LOD, and support lowering density by a factor
@@ -413,6 +418,8 @@ public class Wave_CDClipmap {
             lateUpdateScale();
 //            lateUpdateViewerHeight();
         }
+
+        LateUpdateLods();
     }
 
     void lateUpdatePosition(Matrix4f cameraView) {
@@ -424,7 +431,7 @@ public class Wave_CDClipmap {
         // reach maximum detail at slightly below sea level. this should combat cases where visual range can be lost
         // when water height is low and camera is suspended in air. i tried a scheme where it was based on difference
         // to water height but this does help with the problem of horizontal range getting limited at bad times.
-        float maxDetailY = m_Params.sea_level - maxVertDispFromWaves * m_Params.dropDetailHeightBasedOnWaves;
+        float maxDetailY = m_Params.sea_level - m_MaxVertDispFromWaves * m_Params.dropDetailHeightBasedOnWaves;
         float camDistance = Math.abs(m_EyePos.y - maxDetailY);
 
         // offset level of detail to keep max detail in a band near the surface
@@ -455,8 +462,19 @@ public class Wave_CDClipmap {
         if (_lodDataFoam) _lodDataFoam.UpdateLodData();
         if (_lodDataSeaDepths) _lodDataSeaDepths.UpdateLodData();
         if (_lodDataShadow) _lodDataShadow.UpdateLodData();*/
+    }
 
-
+    /**
+     * User shape inputs can report in how far they might displace the shape horizontally and vertically. The max value is
+     * saved here. Later the bounding boxes for the ocean tiles will be expanded to account for this potential displacement.
+     * @param maxHorizDisp
+     * @param maxVertDisp
+     * @param maxVertDispFromWaves
+     */
+    void ReportMaxDisplacementFromShape(float maxHorizDisp, float maxVertDisp, float maxVertDispFromWaves) {
+        m_MaxHorizDispFromShape += maxHorizDisp;
+        m_MaxVertDispFromShape += maxVertDisp;
+        m_MaxVertDispFromWaves += maxVertDispFromWaves;
     }
 
     public float getViewerAltitudeLevelAlpha() { return viewerAltitudeLevelAlpha;}
@@ -468,6 +486,8 @@ public class Wave_CDClipmap {
     public boolean scaleCouldDecrease () { return m_Params.minScale == -1f || m_Scale > m_Params.minScale * 1.01f; }
 
     public float calcLodScale(float lodIndex) { return (float) (m_Scale * Math.pow(2f, lodIndex)); }
+
+    public float getScale() { return m_Scale;}
 
     public void getGloaltoWorldTransform(Matrix4f localToWord){
         localToWord.setIdentity();

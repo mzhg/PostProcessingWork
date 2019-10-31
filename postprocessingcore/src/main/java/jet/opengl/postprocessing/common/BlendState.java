@@ -20,6 +20,20 @@ public class BlendState {
     public boolean sampleMask;
     public int sampleMaskValue = ~0;
 
+    public void reset(){
+        blendEnable = false;
+        srcBlend = GLenum.GL_ONE;
+        destBlend = GLenum.GL_ZERO;
+        blendOp = GLenum.GL_FUNC_ADD;
+        srcBlendAlpha = GLenum.GL_ONE;
+        destBlendAlpha = GLenum.GL_ZERO;
+        blendOpAlpha = GLenum.GL_FUNC_ADD;
+
+        // multi-sample
+        sampleMask = false;
+        sampleMaskValue = ~0;
+    }
+
     public boolean equals(BlendState that){
         if (blendEnable != that.blendEnable) return false;
         if (srcBlend != that.srcBlend) return false;

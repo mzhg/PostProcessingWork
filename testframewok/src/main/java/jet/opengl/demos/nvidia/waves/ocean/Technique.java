@@ -12,6 +12,15 @@ public class Technique extends GLSLProgram {
     protected final DepthStencilState mDepthStencil = new DepthStencilState();
     protected final BlendState  mBlend = new BlendState();
 
+    protected boolean mEnableState = true;
+
+    public void setStateEnabled(boolean flag){ mEnableState = flag;}
+    public boolean isStateEnabled() { return mEnableState;}
+
+    public RasterizerState getRaster(){ return mRaster;}
+    public DepthStencilState getDepthStencil(){ return mDepthStencil;}
+    public BlendState getBlend(){ return mBlend;}
+
     @Override
     public void enable() {
         throw new UnsupportedOperationException("Use the parameter function to instead this");
@@ -19,7 +28,7 @@ public class Technique extends GLSLProgram {
 
     /** Apply the params to the program and setup all of render states. Override this method should call super implements at the last line. */
     public void enable(TechniqueParams params){
-        if(!isComputeProgram()) {
+        if(!isComputeProgram() && mEnableState) {
             GLStateTracker stateTracker = GLStateTracker.getInstance();
             stateTracker.setRasterizerState(mRaster);
             stateTracker.setDepthStencilState(mDepthStencil);
