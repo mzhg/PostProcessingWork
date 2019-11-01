@@ -4,7 +4,6 @@ import com.nvidia.developer.opengl.models.obj.Material;
 
 import org.lwjgl.util.vector.Transform;
 
-import jdk.nashorn.internal.runtime.Debug;
 import jet.opengl.demos.intel.fluid.scene.Light;
 import jet.opengl.demos.nvidia.waves.crest.collision.CollProviderCache;
 import jet.opengl.demos.nvidia.waves.crest.collision.ICollProvider;

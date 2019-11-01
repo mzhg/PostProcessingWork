@@ -74,10 +74,10 @@ final class Wave_Spectrum {
         // https://hal.archives-ouvertes.fr/file/index/docid/307938/filename/frechot_realistic_simulation_of_ocean_surface_using_wave_spectra.pdf
         double wl_lo = Math.pow(2f, Math.floor(wl_pow2));
         double k_lo = 2f * Math.PI / wl_lo;
-        double omega_lo = k_lo * ComputeWaveSpeed(wl_lo, 1);
+        double omega_lo = k_lo * computeWaveSpeed(wl_lo, 1);
         double wl_hi = 2f * wl_lo;
         double k_hi = 2f * Math.PI / wl_hi;
-        double omega_hi = k_hi * ComputeWaveSpeed(wl_hi, 1);
+        double omega_hi = k_hi * computeWaveSpeed(wl_hi, 1);
 
         double domega = (omega_lo - omega_hi) / componentsPerOctave;
 
@@ -95,7 +95,7 @@ final class Wave_Spectrum {
         return (float) (a * rand0 * getAmplitudeScale());
     }
 
-    public static double ComputeWaveSpeed(double wavelength, double gravityMultiplier /*= 1f*/)
+    public static double computeWaveSpeed(double wavelength, double gravityMultiplier /*= 1f*/)
     {
         // wave speed of deep sea ocean waves: https://en.wikipedia.org/wiki/Wind_wave
         // https://en.wikipedia.org/wiki/Dispersion_(water_waves)#Wave_propagation_and_dispersion

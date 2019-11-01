@@ -8,8 +8,8 @@ import jet.opengl.postprocessing.util.Numeric;
 
 /** Ocean shape representation - power values for each octave of wave components. */
 public final class OceanWaveSpectrum {
-    private final static int NUM_OCTAVES = 14;
-    private static final float SMALLEST_WL_POW_2 = -4f;
+    final static int NUM_OCTAVES = 14;
+    static final float SMALLEST_WL_POW_2 = -4f;
 
     public String name;
 

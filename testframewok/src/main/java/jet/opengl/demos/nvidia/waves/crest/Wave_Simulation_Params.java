@@ -2,6 +2,8 @@ package jet.opengl.demos.nvidia.waves.crest;
 
 import org.lwjgl.util.vector.Vector2f;
 
+import jet.opengl.postprocessing.common.GLenum;
+
 /**
  * Created by Administrator on 2019/10/29.
  */
@@ -43,6 +45,12 @@ public class Wave_Simulation_Params {
     /** Inner and outer radii. Influence at full strength at inner radius, fades off at outer radius.*/
     public final Vector2f point_radii = new Vector2f(100f, 200f);
 
+    /**
+     * Ping pong between render targets to do the combine. Disabling this uses a compute shader instead which doesn't need
+     * to copy back and forth between targets, but has dodgy historical support as pre-DX11.3 hardware may not support typed UAV loads.
+     */
+    public boolean shape_combine_pass_pingpong;
+
     /** Used for the wave animation. */
     public int random_seed;
 
@@ -51,20 +59,58 @@ public class Wave_Simulation_Params {
 
     public boolean evaluate_spectrum_runtime = true;
 
-    /** The turbulent energy representing foam and bubbles spread in water starts generating on the tips of the waves if
-     Jacobian of wave curvature gets higher than this threshold. The range is [0,1], the typical values are [0.2,0.4] range.*/
-    public float foam_generation_threshold;
-    /** The amount of turbulent energy injected in areas defined by foam_generation_threshold parameter on each simulation step.
-      The range is [0,1], the typical values are [0,0.1] range.*/
-    public float foam_generation_amount;
-    /** The speed of spatial dissipation of turbulent energy. The range is [0,1], the typical values are in [0.5,1] range. */
-    public float foam_dissipation_speed;
-    /** In addition to spatial dissipation, the turbulent energy dissolves over time. This parameter sets the speed of
-    dissolving over time. The range is [0,1], the typical values are in [0.9,0.99] range. */
-    public float foam_falloff_speed;
+    public float min_gridsize = 0f;
+    //        [Range(0f, 32f), Tooltip("NOT CURRENTLY WORKING. The wave sim will not run if the simulation grid is bigger in resolution than this size. Zero means no constraint/unlimited resolutions. Useful to limit sim range for performance."),
+//    HideInInspector]
+    public float max_gridsize = 0f;
+
+    //        [Header("Stability")]
+//            [Range(0f, 1f), Tooltip("How much energy is dissipated each frame. Helps sim stability, but limits how far ripples will propagate. Set this as large as possible/acceptable.")]
+    public float damping = 0.25f;
+    //        [Range(0.1f, 3f), Tooltip("Stability measurement. Lower values means more stable sim, at the cost of more computation. This value should be set as large as possible until sim instabilities/flickering begin to appear.")]
+    public float courant_number = 1f;
+    //        [Range(1, 8), Tooltip("How many simulation substeps are allowed per frame. Run at target framerate with the OceanDebugGUI visible to see how many substeps are being done when the camera is close to the water, and set the limit to this value. If the max substeps is set lower than this value, the detailed/high frequency waves will propagate slower than they would in reality. For many applications this may not be an issue.")]
+    public int max_simsteps_perframe = 3;
+
+    //        [Header("Displacement Generation")]
+//            [Range(0f, 20f), Tooltip("Induce horizontal displacements to sharpen simulated waves.")]
+    public float horiz_displace = 3f;
+    //        [Range(0f, 1f), Tooltip("Clamp displacement to help prevent self-intersection in steep waves. Zero means unclamped.")]
+    public float displace_clamp = 0.3f;
+
+
+    //        [Range(0f, 3f), Tooltip("Foam will be generated in water shallower than this depth.")]
+    public float shoreline_foam_maxdepth = 0.65f;
+    //        [Range(0f, 5f), Tooltip("Scales intensity of foam generated in shallow water.")]
+    public float shoreline_foam_strength = 2f;
+    //        [Tooltip("The rendertexture format to use for the foam simulation")]
+    public int foam_texture_format = GLenum.GL_R16F;
+
+    /**Scales intensity of foam generated from waves(0,5f).*/
+    public float foam_strength = 1f;
+
+    /** Speed at which foam fades/dissipates. (0,20f)*/
+    public float foam_fade_rate = 0.8f;
+    /** How much of the waves generate foam. (0, 1f)*/
+    public float foam_coverage = 0.8f;
 
     /** Multiplier for physics gravity. More gravity means faster waves.*/
     public float gravityMultiplier = 1;
+
+    //    [Range(0f, 32f), Tooltip("Jitter diameter for soft shadows, controls softness of this shadowing component.")]
+    public float jitter_diameter_soft = 15f;
+
+    //        [Range(0f, 1f), Tooltip("Current frame weight for accumulation over frames for soft shadows. Roughly means 'responsiveness' for soft shadows.")]
+    public float current_frameweight_soft = 0.03f;
+
+    //        [Range(0f, 32f), Tooltip("Jitter diameter for hard shadows, controls softness of this shadowing component.")]
+    public float jitter_diameter_hard = 0.6f;
+
+    //        [Range(0f, 1f), Tooltip("Current frame weight for accumulation over frames for hard shadows. Roughly means 'responsiveness' for hard shadows.")]
+    public float ccurrent_frameWeight_hard = 0.15f;
+
+    //        [Tooltip("Whether to disable the null light warning, use this if you assign it dynamically and expect it to be null at points")]
+//    public boolean allowNullLight = false;
 
     /** Water depth information used for shallow water, shoreline foam, wave attenuation, among others*/
     public boolean createSeaFloorDepthData = true;
@@ -81,4 +127,17 @@ public class Wave_Simulation_Params {
 
     //        [Tooltip("Shadow information used for lighting water."), SerializeField]
     public boolean CreateShadowData = false;
+
+    /** Which octave to render into, for example set this to 2 to use render into the 2m-4m octave. These refer to the same octaves as the wave spectrum editor. Set this value to 0 to render into all LODs.*/
+    public float octave_wave_length = 0f;
+
+    /** Inform ocean how much this input will displace the ocean surface vertically. This is used to set bounding box heights for the ocean tiles.*/
+    public float max_displacement_Vertical;
+
+    /** Inform ocean how much this input will displace the ocean surface horizontally. This is used to set bounding box widths for the ocean tiles.*/
+    public float max_displacement_horizontal;
+
+    /** Use the bounding box of an attached renderer component to determine the max vertical displacement.*/
+    public boolean report_bounds_to_system = true;
+
 }

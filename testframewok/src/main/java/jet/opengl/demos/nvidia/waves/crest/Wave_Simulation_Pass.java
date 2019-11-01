@@ -4,8 +4,13 @@ import org.lwjgl.util.vector.Vector4f;
 
 import java.util.ArrayList;
 
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.texture.AttachType;
+import jet.opengl.postprocessing.texture.RenderTargets;
+import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 
@@ -17,9 +22,7 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
      */
     abstract int TextureFormat(); // { get; }
 
-    protected abstract int GetParamIdSampler(boolean sourceLod /*= false*/);
-
-    protected TextureGL _targets;
+    protected Texture2D _targets;
 
     protected Wave_Simulation m_Simulation;
     protected Wave_CDClipmap m_Clipmap;
@@ -27,6 +30,11 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
     protected final ArrayList<Wave_LodData_Input> m_Inputs = new ArrayList<>();
 
     protected static final Wave_FilterData g_FilterData = new Wave_FilterData();
+
+    protected RenderTargets m_FBO;
+    protected final TextureAttachDesc m_AttachDesc = new TextureAttachDesc();
+    protected GLFuncProvider gl;
+    protected final Wave_Simulation_ShaderData m_ShaderData = new Wave_Simulation_ShaderData();
 
     public void addLodDataInput(Wave_LodData_Input input){
         m_Inputs.add(input);
@@ -60,20 +68,22 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
         InitData();
     }
 
-    static TextureGL CreateLodDataTextures(Texture2DDesc desc, String name) {
-        TextureGL texture =  TextureUtils.createTexture2D(desc, null);
+    Texture2D CreateLodDataTextures(Texture2DDesc desc, String name) {
+        desc.arraySize = m_Clipmap.m_LodTransform.LodCount();
+        Texture2D texture =  TextureUtils.createTexture2D(desc, null);
         texture.setName(name);
         return texture;
     }
 
-    private void InitData() {
-//        (SystemInfo.SupportsRenderTextureFormat(TextureFormat), "The graphics device does not support the render texture format " + TextureFormat.ToString());
-
-//        Debug.Assert(OceanRenderer.Instance.CurrentLodCount <= MAX_LOD_COUNT);
+    protected void InitData() {
+        gl = GLFuncProviderFactory.getGLFuncProvider();
 
         int resolution = m_Clipmap.getLodDataResolution();
         Texture2DDesc desc = new Texture2DDesc(resolution, resolution, TextureFormat());
         _targets = CreateLodDataTextures(desc, SimName());
+
+        if(m_FBO == null)
+            m_FBO = new RenderTargets();
     }
 
     public void UpdateLodData() {
@@ -85,7 +95,7 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
             _targets.dispose();
 //            _targets.width = _targets.height = _shapeRes;
 //            _targets.Create();
-            Texture2DDesc desc = new Texture2DDesc(_shapeRes, _shapeRes, TextureFormat());
+            Texture2DDesc desc = new Texture2DDesc(_shapeRes, _shapeRes, 1, _targets.getArraySize(), TextureFormat(), 1);
             _targets = TextureUtils.createTexture2D(desc, null);
         }
 
@@ -104,6 +114,17 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
 
     public void BindResultData(Wave_Simulation_ShaderData properties, boolean blendOut /*= true*/) {
         BindData(properties, _targets, blendOut, m_Clipmap.m_LodTransform._renderData, false);
+    }
+
+    protected void setRenderTarget(TextureGL target, int layer){
+        m_AttachDesc.index = 0;
+        m_AttachDesc.layer = layer;
+        m_AttachDesc.level = 0;
+        m_AttachDesc.type = AttachType.TEXTURE_LAYER;
+
+        m_FBO.bind();
+        m_FBO.setRenderTexture(target, m_AttachDesc);
+        gl.glViewport(0,0,target.getWidth(), target.getHeight());
     }
 
     // Avoid heap allocations instead BindData
@@ -142,7 +163,7 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
 //        lt.SetViewProjectionMatrices(lodIdx, buf);
 
         for (Wave_LodData_Input draw : m_Inputs) {
-            draw.draw(1f, false);
+            draw.draw(1f, false, m_ShaderData);
         }
     }
 
@@ -159,11 +180,11 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
 
 //            int isTransition;
 //            float weight = filter.Filter(draw, out isTransition);
-            filter.Filter(draw, g_FilterData);
+            filter.Filter(draw, m_Clipmap, g_FilterData);
             float weight = g_FilterData.weight;
             boolean isTransition = g_FilterData.isTransition;
             if (weight > 0f) {
-                draw.draw(/*buf,*/ weight, isTransition);
+                draw.draw(/*buf,*/ weight, isTransition, m_ShaderData);
             }
         }
     }

@@ -21,10 +21,10 @@ public class Technique extends GLSLProgram {
     public DepthStencilState getDepthStencil(){ return mDepthStencil;}
     public BlendState getBlend(){ return mBlend;}
 
-    @Override
-    public void enable() {
-        throw new UnsupportedOperationException("Use the parameter function to instead this");
-    }
+//    @Override
+//    public void enable() {
+//        throw new UnsupportedOperationException("Use the parameter function to instead this");
+//    }
 
     /** Apply the params to the program and setup all of render states. Override this method should call super implements at the last line. */
     public void enable(TechniqueParams params){

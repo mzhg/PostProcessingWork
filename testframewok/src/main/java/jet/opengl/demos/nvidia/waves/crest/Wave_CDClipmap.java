@@ -486,6 +486,7 @@ public class Wave_CDClipmap {
     public boolean scaleCouldDecrease () { return m_Params.minScale == -1f || m_Scale > m_Params.minScale * 1.01f; }
 
     public float calcLodScale(float lodIndex) { return (float) (m_Scale * Math.pow(2f, lodIndex)); }
+    public float calcGridSize(int lodIndex) { return calcLodScale(lodIndex) / getLodDataResolution(); }
 
     public float getScale() { return m_Scale;}
 
