@@ -236,6 +236,13 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
     private GLFuncProvider gl;
     private RenderTargets mFbo;
 
+    @Override
+    protected void initRendering() {
+        InitApp();
+
+        ShaderManager.getInstance();
+    }
+
     //--------------------------------------------------------------------------------------
 // Initialize the app
 //--------------------------------------------------------------------------------------

@@ -24,10 +24,44 @@ final class ShaderManager {
 
     private ShaderManager(){
         Technique current;
-        mPrograms.put("Crest/Inputs/Animated Waves/Gerstner Batch 0", current = createTech("AnimWavesGerstnerBatch.vert", "AnimWavesGerstnerBatch.frag", CommonUtil.toArray(new Macro("_DIRECT_TOWARDS_POINT", 0))));
+        mPrograms.put("Crest/Inputs/Animated Waves/Gerstner Batch0", current = createTech("AnimWavesGerstnerBatch.vert", "AnimWavesGerstnerBatch.frag", CommonUtil.toArray(new Macro("_DIRECT_TOWARDS_POINT", 0))));
         setAnimWaveStates(current);
-        mPrograms.put("Crest/Inputs/Animated Waves/Gerstner Batch 1", current = createTech("AnimWavesGerstnerBatch.vert", "AnimWavesGerstnerBatch.frag", CommonUtil.toArray(new Macro("_DIRECT_TOWARDS_POINT", 1))));
+        mPrograms.put("Crest/Inputs/Animated Waves/Gerstner Batch1", current = createTech("AnimWavesGerstnerBatch.vert", "AnimWavesGerstnerBatch.frag", CommonUtil.toArray(new Macro("_DIRECT_TOWARDS_POINT", 1))));
         setAnimWaveStates(current);
+
+        mPrograms.put("Crest/Inputs/Dynamic Waves/Dampen Circle", current = createTech("DynWavesDampenCircle.vert","DynWavesDampenCircle.frag", null));
+        setDynWavesDampenStates(current);
+
+        mPrograms.put("Crest/Inputs/Depth/Ocean Depth From Geometry", current = createTech("OceanDepths.vert","OceanDepths.frag", null));
+        setMinBlend(current);
+        mPrograms.put("Crest/Inputs/Depth/Cached Depths", current = createTech("OceanDepthsCache.vert","OceanDepthsCache.frag", null));
+        setMinBlend(current);
+
+        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture00", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 0, "_SSSFROMALPHA_ON", 0)));
+        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture01", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 0, "_SSSFROMALPHA_ON", 1)));
+        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture10", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 1, "_SSSFROMALPHA_ON", 0)));
+        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture11", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 1, "_SSSFROMALPHA_ON", 1)));
+        mPrograms.put("Crest/Inputs/Animated Waves/Add Water Height From Geometry", current = createTech("AnimWavesAddHeightFromGeometry.vert","AnimWavesAddHeightFromGeometry.frag", null));
+        mPrograms.put("Crest/Inputs/Animated Waves/Push Water Under Convex Hull", current = createTech("AnimWavesRemoveGeometry.vert","AnimWavesRemoveGeometry.frag", null));
+        mPrograms.put("Crest/Inputs/Animated Waves/Set Water Height To Geometry", current = createTech("AnimWavesSetHeightToGeometry.vert","AnimWavesSetHeightToGeometry.frag", null));
+        mPrograms.put("Crest/Inputs/Animated Waves/Wave Particle", current = createTech("AnimWavesWaveParticle.vert","AnimWavesWaveParticle.frag", null));
+        mPrograms.put("Crest/Inputs/Dynamic Waves/Add Bump", current = createTech("DynWavesAddBump.vert","DynWavesAddBump.frag", null));
+        mPrograms.put("Crest/Inputs/Dynamic Waves/Object Interaction", current = createTech("DynWavesObjectInteraction.vert","DynWavesObjectInteraction.frag", null));
+        setDynWavesOIStates(current);
+
+        mPrograms.put("Crest/Inputs/Flow/Fixed Direction", current = createTech("FlowFixedDirection.vert","FlowFixedDirection.frag", null));
+        mPrograms.put("Crest/Inputs/Foam/Add From Texture", current = createTech("FoamAddFromTex.vert","FoamAddFromTex.frag", null));
+        mPrograms.put("Crest/Inputs/Foam/Add From Vert Colours", current = createTech("FoamAddFromVertCol..vert","FoamAddFromVertCol.frag", null));
+        setDynWavesOIStates(current);
+
+        mPrograms.put("Crest/Ocean Surface Alpha", current = createTech("OceanSurfaceAlpha.vert","OceanSurfaceAlpha.frag", null));
+        mPrograms.put("QueryDisplacements", current = createComputeTech("QueryDisplacements.comp"));
+        mPrograms.put("QueryFlow", current = createComputeTech("QueryFlow.comp"));
+        mPrograms.put("ShapeCombine", current = createComputeTech("ShapeCombine.comp"));
+        mPrograms.put("UpdateDynWaves", current = createComputeTech("UpdateDynWaves.comp"));
+        mPrograms.put("UpdateFoam", current = createComputeTech("UpdateFoam.comp"));
+        mPrograms.put("UpdateShadow", current = createComputeTech("UpdateShadow.comp"));
+        mPrograms.put("Hidden/Crest/Simulation/Combine Animated Wave LODs", current = createTech("ShapeCombine.vert","ShapeCombine.frag", null));
     }
 
     private static void setAnimWaveStates(Technique technique){
@@ -39,6 +73,37 @@ final class ShaderManager {
 
         technique.getDepthStencil().depthEnable  = false;
         technique.getRaster().cullFaceEnable = false;
+    }
+
+    private static void setDynWavesDampenStates(Technique technique){
+        technique.getBlend().blendEnable = true;
+        technique.getBlend().srcBlend  = GLenum.GL_SRC_ALPHA;
+        technique.getBlend().destBlend  = GLenum.GL_ONE_MINUS_SRC_ALPHA;
+        technique.getBlend().srcBlendAlpha  = GLenum.GL_SRC_ALPHA;
+        technique.getBlend().destBlendAlpha  = GLenum.GL_ONE_MINUS_SRC_ALPHA;
+        technique.getDepthStencil().depthEnable  = false;
+        technique.getRaster().cullFaceEnable = false;
+    }
+
+    private static void setMinBlend(Technique technique){
+        technique.getBlend().blendEnable = true;
+        technique.getBlend().srcBlend  = GLenum.GL_ONE;
+        technique.getBlend().destBlend  = GLenum.GL_ONE;
+        technique.getBlend().blendOp = GLenum.GL_MIN;
+
+        technique.getDepthStencil().depthEnable  = false;
+        technique.getRaster().cullFaceEnable = false;  // todo
+    }
+
+    private static void setDynWavesOIStates(Technique technique){
+        technique.getBlend().blendEnable = true;
+        technique.getBlend().srcBlend  = GLenum.GL_ONE;
+        technique.getBlend().destBlend  = GLenum.GL_ONE;
+
+        technique.getDepthStencil().depthEnable  = true;
+        technique.getDepthStencil().depthFunc = GLenum.GL_ALWAYS;
+        technique.getDepthStencil().depthWriteMask = false;
+        technique.getRaster().cullFaceEnable = false;  // todo
     }
 
     private static Technique newTechnique(){ return new Technique();}

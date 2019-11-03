@@ -453,7 +453,6 @@ public class Wave_CDClipmap {
     void LateUpdateLods()
     {
         // Do any per-frame update for each LOD type.
-
         m_LodTransform.updateTransforms(m_Params.lodDataResolution, this, m_EyePos, m_Params.sea_level);
 
         /*if (_lodDataAnimWaves) _lodDataAnimWaves.UpdateLodData();

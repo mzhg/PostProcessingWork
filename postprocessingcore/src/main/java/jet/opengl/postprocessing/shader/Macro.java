@@ -1,5 +1,8 @@
 package jet.opengl.postprocessing.shader;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jet.opengl.postprocessing.util.CommonUtil;
 
 /**
@@ -16,6 +19,33 @@ public class Macro {
     public Macro(String key, Object value) {
         this.key = key;
         this.value = value;
+    }
+
+    public static Macro[] asMacros(Object...args){
+        if(args == null) return null;
+        int count = args.length;
+        List<Macro> results = new ArrayList<>();
+        for(int i = 0; i < count; i++){
+            if(args[i] instanceof Macro){
+                results.add((Macro)args[i]);
+            }else if(args[i] instanceof CharSequence){
+                Object value = null;
+                if(i < count - 1){
+                    value = args[i+i];
+                    i++;
+                }
+
+                results.add(new Macro(args[i].toString(), value));
+            }
+        }
+
+        if(results.isEmpty()){
+            return null;
+        }else{
+            Macro[] values = new Macro[results.size()];
+            results.toArray(values);
+            return values;
+        }
     }
 
     @Override
