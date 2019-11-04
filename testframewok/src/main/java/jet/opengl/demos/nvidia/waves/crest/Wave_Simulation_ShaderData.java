@@ -7,11 +7,14 @@ import java.nio.ByteBuffer;
 import jet.opengl.demos.nvidia.waves.ocean.TechniqueParams;
 import jet.opengl.postprocessing.texture.TextureGL;
 
-final class Wave_Simulation_ShaderData implements TechniqueParams {
+class Wave_Simulation_ShaderData implements TechniqueParams {
 
     TextureGL _LD_TexArray_WaveBuffer;
     Vector4f[] _LD_Params_Source;
     Vector4f[] _LD_Params;
+
+    Vector4f[] _LD_Pos_Scale_Source;
+    Vector4f[] _LD_Pos_Scale;
 
     TextureGL _LD_TexArray_AnimatedWaves;
     TextureGL _LD_TexArray_AnimatedWaves_Source;
@@ -56,6 +59,18 @@ final class Wave_Simulation_ShaderData implements TechniqueParams {
     float _ShorelineFoamStrength;
 
     float _Weight;
+
+    Vector4f[] _TwoPiOverWavelengths;
+    Vector4f[] _Amplitudes;
+    Vector4f[] _WaveDirX;
+    Vector4f[] _WaveDirZ;
+    Vector4f[] _Phases;
+    Vector4f[] _ChopAmps;
+    int _NumInBatch;
+    float _AttenuationInShallows;
+    int _NumWaveVecs;
+
+    final Vector4f _TargetPointData = new Vector4f();
 
     @Override
     public ByteBuffer store(ByteBuffer buf) {

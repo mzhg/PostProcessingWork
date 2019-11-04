@@ -9,6 +9,9 @@ import org.lwjgl.util.vector.Vector4f;
 import jet.opengl.demos.nvidia.waves.crest.collision.AvailabilityResult;
 import jet.opengl.demos.nvidia.waves.crest.collision.SamplingData;
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
@@ -17,6 +20,7 @@ import jet.opengl.postprocessing.util.Rectf;
 final class Wave_Gerstner_Batched implements Wave_Const{
     Wave_Spectrum _spectrum;
 
+    private Wave_Simulation m_Simulation;
     private Wave_Simulation_Params m_Params;
     private Wave_CDClipmap m_Clipmap;
 
@@ -31,17 +35,10 @@ final class Wave_Gerstner_Batched implements Wave_Const{
 
     private float m_TotalTime;
 
-    private Wave_Mesh m_QuadMesh;
-
     // IMPORTANT - this mirrors the constant with the same name in ShapeGerstnerBatch.shader, both must be updated together!
     static final int BATCH_SIZE = 32;
 
-    enum CmdBufStatus
-    {
-        NoStatus,
-        NotAttached,
-        Attached
-    }
+    Wave_LodData_Input[] getBatches(){ return _batches;}
 
     // scratch data used by batching code
     private final static class UpdateBatchScratchData {
@@ -53,10 +50,11 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         public static Vector4f[] _chopAmpsBatch = CommonUtil.initArray(new Vector4f[BATCH_SIZE / 4]);
     }
 
-    void init(Wave_Simulation_Params params, Wave_CDClipmap clipmap)
+    void init(Wave_Simulation simulation, Wave_CDClipmap clipmap)
     {
         m_Clipmap = clipmap;
-        m_Params = params;
+        m_Simulation = simulation;
+        m_Params = m_Simulation.m_Params;
         m_TotalTime = 0;
         if (_spectrum == null)
         {
@@ -72,7 +70,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         {
 //            _waveShader = Shader.Find("Crest/Inputs/Animated Waves/Gerstner Batch");
 //            Debug.Assert(_waveShader, "Could not load Gerstner wave shader, make sure it is packaged in the build.");
-            mGerstnerShader = ShaderManager.getInstance().getProgram("Crest/Inputs/Animated Waves/Gerstner Batch " + (m_Params.direct_towards_Point ? 0 : 1));
+            mGerstnerShader = ShaderManager.getInstance().getProgram("Crest/Inputs/Animated Waves/Gerstner Batch" + (m_Params.direct_towards_Point ? 0 : 1));
         }
 
         _batches = new GerstnerBatch[MAX_LOD_COUNT];
@@ -82,7 +80,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         }
     }
 
-    void update(float deltaTime)
+    void update(float deltaTime, Wave_Simulation_ShaderData shaderData)
     {
         m_TotalTime += deltaTime * m_Params.time_scale;
 
@@ -92,11 +90,18 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         }
 
         ReportMaxDisplacement();
+
+        lateUpdate(shaderData);
     }
 
     private void UpdateWaveData() {
         // Set random seed to get repeatable results
         Numeric.setRandomSeed(m_Params.random_seed);
+
+        int totalComponents = Wave_Spectrum.NUM_OCTAVES * m_Params.components_per_octave;
+
+        if (_wavelengths == null || _wavelengths.length != totalComponents) _wavelengths = new float[totalComponents];
+        if (_angleDegs == null || _angleDegs.length != totalComponents) _angleDegs = new float[totalComponents];
 
         _spectrum.GenerateWaveData(/*_componentsPerOctave*/m_Params.components_per_octave, _wavelengths,  _angleDegs);
 
@@ -126,7 +131,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         }
     }
 
-    void UpdateAmplitudes()
+    private void UpdateAmplitudes()
     {
         final int _componentsPerOctave = m_Params.components_per_octave;
         final float _weight = m_Params.gertner_weight;
@@ -152,13 +157,17 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         {
             ampSum += _amplitudes[i] * _spectrum._chopScales[i / _componentsPerOctave];
         }
-        OceanRenderer.Instance.ReportMaxDisplacementFromShape(ampSum * _spectrum._chop, ampSum, ampSum);
+        m_Clipmap.ReportMaxDisplacementFromShape(ampSum * _spectrum._chop, ampSum, ampSum);
     }
-    /// <summary>
-    /// Computes Gerstner params for a set of waves, for the given lod idx. Writes shader data to the given property.
-    /// Returns number of wave components rendered in this batch.
-    /// </summary>
-    void UpdateBatch(int lodIdx, int firstComponent, int lastComponentNonInc, GerstnerBatch batch)
+
+    /**
+     * Computes Gerstner params for a set of waves, for the given lod idx. Writes shader data to the given property.Returns number of wave components rendered in this batch.
+     * @param lodIdx
+     * @param firstComponent
+     * @param lastComponentNonInc
+     * @param batch
+     */
+    private void UpdateBatch(int lodIdx, int firstComponent, int lastComponentNonInc, GerstnerBatch batch, Wave_Simulation_ShaderData shaderData)
     {
         batch.Enabled = false;
 
@@ -205,7 +214,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
                     float C = (float) Math.sqrt(wl * gravity * gravityScale * one_over_2pi);
                     float k = twopi / wl;
                     // Repeat every 2pi to keep angle bounded - helps precision on 16bit platforms
-                    UpdateBatchScratchData._phasesBatch[vi].set(ei, (_phases[firstComponent + i] + k * C * /*OceanRenderer.Instance.CurrentTime() todo*/ 1) % (Numeric.PI * 2f));
+                    UpdateBatchScratchData._phasesBatch[vi].set(ei, (_phases[firstComponent + i] + k * C * /*OceanRenderer.Instance.CurrentTime()*/ m_TotalTime) % (Numeric.PI * 2f));
 
                     numInBatch++;
                 }
@@ -251,9 +260,9 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         }
 
         // apply the data to the shape property
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 1; i++)
         {
-            /*var mat = batch.GetMaterial(i);  todo
+            /*var mat = batch.GetMaterial(i);
             mat.SetVectorArray(sp_TwoPiOverWavelengths, UpdateBatchScratchData._twoPiOverWavelengthsBatch);
             mat.SetVectorArray(sp_Amplitudes, UpdateBatchScratchData._ampsBatch);
             mat.SetVectorArray(sp_WaveDirX, UpdateBatchScratchData._waveDirXBatch);
@@ -261,22 +270,34 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             mat.SetVectorArray(sp_Phases, UpdateBatchScratchData._phasesBatch);
             mat.SetVectorArray(sp_ChopAmps, UpdateBatchScratchData._chopAmpsBatch);
             mat.SetFloat(sp_NumInBatch, numInBatch);
-            mat.SetFloat(sp_AttenuationInShallows, OceanRenderer.Instance._simSettingsAnimatedWaves.AttenuationInShallows);
+            mat.SetFloat(sp_AttenuationInShallows, OceanRenderer.Instance._simSettingsAnimatedWaves.AttenuationInShallows);*/
 
             int numVecs = (numInBatch + 3) / 4;
-            mat.SetInt(sp_NumWaveVecs, numVecs);
+            /*mat.SetInt(sp_NumWaveVecs, numVecs);
             mat.SetFloat(LodDataMgr.sp_LD_SliceIndex, lodIdx - i);
             OceanRenderer.Instance._lodDataAnimWaves.BindResultData(mat);*/
 
-            if (OceanRenderer.Instance._lodDataSeaDepths != null)
+            shaderData._TwoPiOverWavelengths = UpdateBatchScratchData._twoPiOverWavelengthsBatch;
+            shaderData._Amplitudes = UpdateBatchScratchData._ampsBatch;
+            shaderData._WaveDirX = UpdateBatchScratchData._waveDirXBatch;
+            shaderData._WaveDirZ = UpdateBatchScratchData._waveDirZBatch;
+            shaderData._Phases = UpdateBatchScratchData._phasesBatch;
+            shaderData._ChopAmps = UpdateBatchScratchData._phasesBatch;
+            shaderData._NumInBatch = numInBatch;
+            shaderData._AttenuationInShallows = m_Params.attenuation_in_shallows;
+            shaderData._NumWaveVecs = numVecs;
+            shaderData._LD_SliceIndex = lodIdx - i;
+            m_Simulation._lodDataAnimWaves.BindResultData(shaderData);
+
+            if (m_Simulation._lodDataSeaDepths != null)
             {
-//                OceanRenderer.Instance._lodDataSeaDepths.BindResultData(mat, false);  todo
+                m_Simulation._lodDataSeaDepths.BindResultData(shaderData, false);
             }
 
-            /*if (_directTowardsPoint)
+            if (m_Params.direct_towards_Point)
             {
-//                mat.SetVector(sp_TargetPointData, new Vector4f(_pointPositionXZ.x, _pointPositionXZ.y, _pointRadii.x, _pointRadii.y));  todo
-            }*/
+                shaderData._TargetPointData.set(m_Params.point_positionXZ.x, m_Params.point_positionXZ.y, m_Params.point_radii.x, m_Params.point_radii.y);
+            }
         }
 
         batch.Enabled = true;
@@ -288,7 +309,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
      * 2, unfortunately), so i cant easily just loop over octaves. also any WLs that either go to the last WDC, or don't fit in the last
      *  WDC, are rendered into both the last and second-to-last WDCs, in order to transition them smoothly without pops in all scenarios.
      */
-    void LateUpdate()
+    private void lateUpdate(Wave_Simulation_ShaderData shaderData)
     {
         int componentIdx = 0;
 
@@ -325,7 +346,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             // One or more wavelengths - update the batch
             if (componentIdx > startCompIdx)
             {
-                UpdateBatch(lodIdx, startCompIdx, componentIdx, _batches[batch]);
+                UpdateBatch(lodIdx, startCompIdx, componentIdx, _batches[batch], shaderData);
 
                 _batches[batch].Wavelength = minWl;
             }
@@ -336,7 +357,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         }
     }
 
-    float ComputeWaveSpeed(float wavelength/*, float depth*/)
+    private float computeWaveSpeed(float wavelength/*, float depth*/)
     {
         // wave speed of deep sea ocean waves: https://en.wikipedia.org/wiki/Wind_wave
         // https://en.wikipedia.org/wiki/Dispersion_(water_waves)#Wave_propagation_and_dispersion
@@ -355,7 +376,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         if (_amplitudes == null) return false;
 
         Vector2f pos = new Vector2f(i_worldPos.getX(), i_worldPos.getZ());
-        float mytime = /*OceanRenderer.Instance.CurrentTime()  todo*/ 0;
+        float mytime = /*OceanRenderer.Instance.CurrentTime()*/ m_TotalTime;
         float windAngle = windDirectionAngle();
         float minWaveLength = i_samplingData._minSpatialLength / 2f;
 
@@ -364,7 +385,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             if (_amplitudes[j] <= 0.001f) continue;
             if (_wavelengths[j] < minWaveLength) continue;
 
-            float C = ComputeWaveSpeed(_wavelengths[j]);
+            float C = computeWaveSpeed(_wavelengths[j]);
 
             // direction
             Vector2f D = new Vector2f((float)Math.cos(Math.toRadians(windAngle + _angleDegs[j])), (float)Math.sin(Math.toRadians(windAngle + _angleDegs[j])));
@@ -472,7 +493,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             if (_amplitudes[j] <= 0.001f) continue;
             if (_wavelengths[j] < minWaveLength) continue;
 
-            float C = ComputeWaveSpeed(_wavelengths[j]);
+            float C = computeWaveSpeed(_wavelengths[j]);
 
             // direction
 //            var D = new Vector2(Mathf.Cos((windAngle + _angleDegs[j]) * Mathf.Deg2Rad), Mathf.Sin((windAngle + _angleDegs[j]) * Mathf.Deg2Rad));
@@ -523,7 +544,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             if (_amplitudes[j] <= 0.001f) continue;
             if (_wavelengths[j] < minWavelength) continue;
 
-            float C = ComputeWaveSpeed(_wavelengths[j]);
+            float C = computeWaveSpeed(_wavelengths[j]);
 
             // direction
 //            Vector2 D = new Vector2(Mathf.Cos((windAngle + _angleDegs[j]) * Mathf.Deg2Rad), Mathf.Sin((windAngle + _angleDegs[j]) * Mathf.Deg2Rad));
@@ -659,18 +680,33 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         }
     }
 
-    private final class GerstnerBatch {
+    private final class GerstnerBatch implements Wave_LodData_Input{
         float Wavelength;
         boolean Enabled ;
 
-        public void Draw(CommandBuffer buf, float weight, int isTransition)
-        {
-            if (Enabled && weight > 0f)
-            {
-                /*PropertyWrapperMaterial mat = GetMaterial(isTransition);
-                mat.SetFloat(RegisterLodDataInputBase.sp_Weight, weight);*/
-//                buf.DrawMesh(RasterMesh(), Matrix4x4.identity, mat.material);  todo
+        @Override
+        public void draw(float weight, boolean isTransition, Wave_Simulation_ShaderData shaderData) {
+            if (Enabled && weight > 0f){
+                shaderData._Weight = weight;
+                mGerstnerShader.enable(shaderData);
+
+                GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+                gl.glBindVertexArray(0);
+                gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
+                gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+                gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
             }
+        }
+
+        @Override
+        public float wavelength() {
+            return Wavelength;
+        }
+
+        @Override
+        public boolean enabled() {
+            return Enabled;
         }
     }
 }

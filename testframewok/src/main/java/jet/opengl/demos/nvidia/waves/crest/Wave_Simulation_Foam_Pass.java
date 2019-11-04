@@ -1,6 +1,7 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.Numeric;
 
 /** A persistent foam simulation that moves around with a displacement LOD. The input is fully combined water surface shape. */
@@ -82,5 +83,13 @@ final class Wave_Simulation_Foam_Pass extends Wave_Simulation_Persistent_Pass{
             properties._LD_TexArray_Foam_Source = null;
         }else
             properties._LD_TexArray_Foam = null;
+    }
+
+    @Override
+    protected void applySampler(Wave_Simulation_ShaderData properties, boolean sourceLod, TextureGL applyData) {
+        if(sourceLod){
+            properties._LD_TexArray_Foam_Source = applyData;
+        }else
+            properties._LD_TexArray_Foam = applyData;
     }
 }

@@ -1,25 +1,15 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
-import jet.opengl.demos.nvidia.waves.crest.helpers.IPropertyWrapper;
-import jet.opengl.demos.nvidia.waves.crest.helpers.PropertyWrapperMaterial;
-import jet.opengl.demos.nvidia.waves.crest.loddata.FilterWavelength;
-import jet.opengl.demos.nvidia.waves.crest.loddata.ILodDataInput;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgr;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrAnimWaves;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrDynWaves;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrFlow;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
-import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsAnimatedWaves;
-import jet.opengl.demos.nvidia.waves.crest.loddata.SimSettingsBase;
+import java.io.IOException;
+
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.core.PostProcessingDefaultProgram;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
-import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 
 final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
@@ -32,8 +22,6 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
     private Texture2D _waveBuffers;
     private Texture2D _combineBuffer;
 
-    final String ShaderName = "ShapeCombine";
-
     private Technique krnl_ShapeCombine = null;
     private Technique krnl_ShapeCombine_DISABLE_COMBINE = null;
     private Technique krnl_ShapeCombine_FLOW_ON = null;
@@ -43,12 +31,13 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
     private Technique krnl_ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON = null;
     private Technique krnl_ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE = null;
 
-    //    PropertyWrapperCompute _combineProperties;
     private Technique _combineMaterial;
+    private PostProcessingDefaultProgram _copyBack;
 
     private Wave_Length_Filter _filterWavelength = new Wave_Length_Filter();
     private FilterNoLodPreference _filterNoLodPreference = new FilterNoLodPreference();
-    static int sp_LD_TexArray_AnimatedWaves_Compute = 0 ; //Shader.PropertyToID("_LD_TexArray_AnimatedWaves_Compute");
+
+    private Wave_Gerstner_Batched _gerstnerBatched;
 
     protected void InitData()
     {
@@ -82,6 +71,10 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
         _waveBuffers = CreateLodDataTextures(desc, "WaveBuffer");
 
         _combineBuffer = TextureUtils.createTexture2D(desc, null);
+        _combineBuffer.setMagFilter(GLenum.GL_NEAREST);
+        _combineBuffer.setMinFilter(GLenum.GL_NEAREST);
+        _combineBuffer.setWrapS(GLenum.GL_CLAMP_TO_EDGE);
+        _combineBuffer.setWrapT(GLenum.GL_CLAMP_TO_EDGE);
 
         /*var combineShader = Shader.Find("Hidden/Crest/Simulation/Combine Animated Wave LODs");
         _combineMaterial = new PropertyWrapperMaterial[OceanRenderer.Instance.CurrentLodCount];
@@ -91,6 +84,19 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             _combineMaterial[i] = new PropertyWrapperMaterial(mat);
         }*/
         _combineMaterial = ShaderManager.getInstance().getProgram("Hidden/Crest/Simulation/Combine Animated Wave LODs");
+
+        try {
+            _copyBack = new PostProcessingDefaultProgram();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        _gerstnerBatched = new Wave_Gerstner_Batched();
+        _gerstnerBatched.init(m_Simulation, m_Clipmap);
+
+        for(Wave_LodData_Input input : _gerstnerBatched.getBatches()){
+            addLodDataInput(input);
+        }
     }
 
     private final class FilterNoLodPreference implements Wave_DrawFilter
@@ -102,9 +108,11 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
         }
     }
 
-    public void BuildCommandBuffer()
+    public void BuildCommandBuffer(float deltaTime)
     {
-        super.BuildCommandBuffer();
+        super.BuildCommandBuffer(deltaTime);
+
+        _gerstnerBatched.update(deltaTime, m_ShaderData);
 
         int lodCount = m_Clipmap.m_LodTransform.LodCount();
 
@@ -149,7 +157,6 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
     void CombinePassPingPong()
     {
         int lodCount = m_Clipmap.m_LodTransform.LodCount();
-        final int shaderPassCombineIntoAux = 0, shaderPassCopyResultBack = 1;
 
         // combine waves
         for (int lodIdx = lodCount - 1; lodIdx >= 0; lodIdx--)
@@ -207,8 +214,13 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             buf.DrawProcedural(Matrix4x4.identity, _combineMaterial[lodIdx].material, shaderPassCopyResultBack, MeshTopology.Triangles, 3);*/
 
             setRenderTarget(_targets, lodIdx);
-            m_ShaderData._CombineBuffer = _combineBuffer;
-            _combineMaterial.enable(m_ShaderData);   // todo don't forget to change the shader.
+            /*m_ShaderData._CombineBuffer = _combineBuffer;
+            _combineMaterial.enable(m_ShaderData);*/
+            gl.glActiveTexture(GLenum.GL_TEXTURE0);
+            gl.glBindTexture(_combineBuffer.getTarget(), _combineBuffer.getTexture());
+            _copyBack.enable();
+
+            gl.glDisable(GLenum.GL_CULL_FACE);
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         }
     }
@@ -253,8 +265,6 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
                 selectedShaderKernel = combineShaderKernel_lastLOD;
             }
 
-//            _combineProperties.Initialise(buf, _combineShader, selectedShaderKernel);
-
             // The per-octave wave buffers
             BindWaveBuffer(/*_combineProperties*/m_ShaderData, false);
             // Bind this LOD data (displacements)
@@ -294,7 +304,11 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             m_ShaderData._LD_SliceIndex = lodIdx;
             selectedShaderKernel.enable(m_ShaderData);
 
-//            gl.glDispatchCompute();  todo
+            gl.glDispatchCompute(
+                    m_Clipmap.m_LodTransform.LodCount() / THREAD_GROUP_SIZE_X,
+                    m_Clipmap.m_LodTransform.LodCount() / THREAD_GROUP_SIZE_Y,
+                    1
+            );
         }
     }
 
@@ -380,6 +394,15 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             properties._LD_TexArray_AnimatedWaves_Source = null;
         }else{
             properties._LD_TexArray_AnimatedWaves = null;
+        }
+    }
+
+    @Override
+    protected void applySampler(Wave_Simulation_ShaderData properties, boolean sourceLod, TextureGL applyData) {
+        if(sourceLod){
+            properties._LD_TexArray_AnimatedWaves_Source = applyData;
+        }else{
+            properties._LD_TexArray_AnimatedWaves = applyData;
         }
     }
 }

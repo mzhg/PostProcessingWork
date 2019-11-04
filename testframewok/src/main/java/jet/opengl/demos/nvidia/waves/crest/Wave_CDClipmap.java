@@ -4,7 +4,6 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
-import org.lwjgl.util.vector.Vector4f;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -36,6 +35,7 @@ public class Wave_CDClipmap {
     private float m_Scale = 1;
 
     private float viewerAltitudeLevelAlpha;
+    private float viewerHeightAboveWater;
 
     private float m_MaxHorizDispFromShape = 0f;
     private float m_MaxVertDispFromShape = 0f;
@@ -410,23 +410,23 @@ public class Wave_CDClipmap {
 
     private static float Sign(float f) { return f>=0 ? 1:-1;}
 
-    private void lateUpdate(Matrix4f cameraView) {
+    public void updateWave(Matrix4f cameraView) {
 
         if (m_Params.followViewpoint)
         {
             lateUpdatePosition(cameraView);
             lateUpdateScale();
-//            lateUpdateViewerHeight();
+            lateUpdateViewerHeight();
         }
 
         LateUpdateLods();
     }
 
-    void lateUpdatePosition(Matrix4f cameraView) {
+    private void lateUpdatePosition(Matrix4f cameraView) {
         Matrix4f.decompseRigidMatrix(cameraView, m_EyePos, null, null);
     }
 
-    void lateUpdateScale()
+    private void lateUpdateScale()
     {
         // reach maximum detail at slightly below sea level. this should combat cases where visual range can be lost
         // when water height is low and camera is suspended in air. i tried a scheme where it was based on difference
@@ -450,17 +450,18 @@ public class Wave_CDClipmap {
         m_Scale = (float) Math.pow(2f, l2f);
     }
 
+    private void lateUpdateViewerHeight(){
+        // todo  need readback.
+
+        viewerHeightAboveWater = m_EyePos.y - m_Params.sea_level;
+    }
+
+    public float getViewerHeightAboveWater(){ return viewerHeightAboveWater;}
+
     void LateUpdateLods()
     {
         // Do any per-frame update for each LOD type.
         m_LodTransform.updateTransforms(m_Params.lodDataResolution, this, m_EyePos, m_Params.sea_level);
-
-        /*if (_lodDataAnimWaves) _lodDataAnimWaves.UpdateLodData();
-        if (_lodDataDynWaves) _lodDataDynWaves.UpdateLodData();
-        if (_lodDataFlow) _lodDataFlow.UpdateLodData();
-        if (_lodDataFoam) _lodDataFoam.UpdateLodData();
-        if (_lodDataSeaDepths) _lodDataSeaDepths.UpdateLodData();
-        if (_lodDataShadow) _lodDataShadow.UpdateLodData();*/
     }
 
     /**
@@ -501,12 +502,34 @@ public class Wave_CDClipmap {
 
     private GLSLProgram m_DebugProg;
 
+    int getNodeCount() { return m_QuadNodes.size();}
+    void getNodeInfo(int index, Wave_Simulation simulation, Wave_Shading_ShaderData shaderData, Matrix4f nodeTransform){
+        CDClipmapNode node = m_QuadNodes.get(index);
+        node.transform.getMatrix(nodeTransform);
+        node.getData(this, simulation, shaderData);
+        shaderData._InstanceData = node.getInstanceData();
+        shaderData._GeomData = node.getGeomData();
+        shaderData._LD_SliceIndex = node._lodIndex;
+    }
+
+    void drawNode(int index){
+        CDClipmapNode node = m_QuadNodes.get(index);
+        m_Meshes[node.meshIndex].Draw();
+    }
+
+    void getData(Wave_Shading_ShaderData shaderData, Matrix4f clipmapTransform){
+        shaderData._OceanCenterPosWorld.set(m_EyePos.x, m_Params.sea_level, m_EyePos.z);
+        shaderData._LD_Pos_Scale = m_LodTransform.getPosScales();
+
+        getGloaltoWorldTransform(clipmapTransform);
+    }
+
     public void debugDrawWave(Matrix4f cameraProj, Matrix4f cameraView){
         if(m_DebugProg == null){
             m_DebugProg = GLSLProgram.createProgram("nvidia/WaveWorks/shaders/DebugWave.vert","nvidia/WaveWorks/shaders/DebugWave.frag", null);
         }
 
-        lateUpdate(cameraView);
+        updateWave(cameraView);
 
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
         gl.glEnable(GLenum.GL_DEPTH_TEST);
@@ -524,12 +547,10 @@ public class Wave_CDClipmap {
 
         getGloaltoWorldTransform(gloabl);
 
-        int count = 0;
-
         for(CDClipmapNode node : m_QuadNodes){
             node.transform.getMatrix(local);
 //            local.load(node.debugMatrix);
-            node.update(this);
+            node.getData(this, null, null);
 
             GLSLUtil.setFloat4(m_DebugProg, "_InstanceData", node.getInstanceData());
             GLSLUtil.setFloat4(m_DebugProg, "_GeomData", node.getGeomData());
@@ -539,11 +560,6 @@ public class Wave_CDClipmap {
 
             GLSLUtil.setMat4(m_DebugProg, "g_Local", world);
             m_Meshes[node.meshIndex].Draw();
-
-            count++;
-
-//            if(count == 2)
-//            break;
         }
 
         CacheBuffer.free(gloabl);

@@ -55,6 +55,10 @@ bool IsUnderwater(const float facing)
     return backface || _ForceUnderwater > 0.0;
 }
 
+#ifndef _WIREFRAME_ONE
+#define _WIREFRAME_ONE 0
+#endif
+
 void main()
 {
     const bool underwater = IsUnderwater(facing);
@@ -155,5 +159,9 @@ void main()
     #endif
 
     OutColor = float4(col, 1.);
+
+    #if _WIREFRAME_ONE
+    OutColor = float4(1,1,1,1.);
+    #endif
 }
 

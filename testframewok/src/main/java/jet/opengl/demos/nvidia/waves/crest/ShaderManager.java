@@ -106,7 +106,8 @@ final class ShaderManager {
         technique.getRaster().cullFaceEnable = false;  // todo
     }
 
-    private static Technique newTechnique(){ return new Technique();}
+    private static Technique newTechnique(){ return new Wave_Simulation_Technique();}
+    private static Technique shadingTechnique(){ return new Wave_Shading_Technique();}
 
     private static ShaderManager gInstance;
 
@@ -119,7 +120,7 @@ final class ShaderManager {
     public Technique getWaveRender(WaveRenderDesc desc){
         Technique technique = mPrograms.get(desc);
         if(technique == null){
-            technique = createTech("Ocean.vert", "Ocean.frag", desc.getMacros());
+            technique = createTech("Ocean.vert", "Ocean.frag", desc.getMacros(), ShaderManager::shadingTechnique);
             mPrograms.put(desc.clone(), technique);
         }
 

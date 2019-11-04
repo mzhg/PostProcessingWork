@@ -113,16 +113,16 @@ public class Wave_Simulation_Params {
 //    public boolean allowNullLight = false;
 
     /** Water depth information used for shallow water, shoreline foam, wave attenuation, among others*/
-    public boolean createSeaFloorDepthData = true;
+    public boolean create_seafloordepth = true;
 
     //        [Tooltip("Simulation of foam created in choppy water and dissipating over time."), SerializeField]
-    public boolean CreateFoamSim = true;
+    public boolean create_foam = true;
 
     //        [Tooltip("Dynamic waves generated from interactions with objects such as boats."), SerializeField]
-    public boolean CreateDynamicWaveSim = false;
+    public boolean create_dynamic_wave = false;
 
     //        [Tooltip("Horizontal motion of water body, akin to water currents."), SerializeField]
-    public boolean CreateFlowSim = false;
+    public boolean create_flow = false;
 //    public SimSettingsFlow _simSettingsFlow;
 
     //        [Tooltip("Shadow information used for lighting water."), SerializeField]
@@ -140,4 +140,58 @@ public class Wave_Simulation_Params {
     /** Use the bounding box of an attached renderer component to determine the max vertical displacement.*/
     public boolean report_bounds_to_system = true;
 
+    /** How much waves are dampened in shallow water. (0,1f)*/
+    public float attenuation_in_shallows = 0.95f;
+
+    public Wave_Simulation_Params() {}
+
+    public Wave_Simulation_Params(Wave_Simulation_Params o) {
+        set(o);
+    }
+
+    public void set(Wave_Simulation_Params o){
+        wave_amplitude = o.wave_amplitude;
+        wind_dir.set(o.wind_dir);
+        wind_speed = o.wind_speed;
+        fetch = o.fetch;
+        wind_dependency = o.wind_dependency;
+        choppy_scale = o.choppy_scale;
+        small_wave_fraction = o.small_wave_fraction;
+        time_scale = o.time_scale;
+        components_per_octave = o.components_per_octave;
+        direct_towards_Point = o.direct_towards_Point;
+        point_positionXZ.set(o.point_positionXZ);
+        point_radii.set(o.point_radii);
+        shape_combine_pass_pingpong = o.shape_combine_pass_pingpong;
+        random_seed = o.random_seed;
+        gertner_weight = o.gertner_weight;
+        evaluate_spectrum_runtime = o.evaluate_spectrum_runtime;
+        min_gridsize = o.min_gridsize;
+        max_gridsize = o.max_gridsize;
+        damping = o.damping;
+        courant_number = o.courant_number;
+        max_simsteps_perframe = o.max_simsteps_perframe;
+        horiz_displace = o.horiz_displace;
+        displace_clamp = o.displace_clamp;
+        shoreline_foam_maxdepth = o.shoreline_foam_maxdepth;
+        shoreline_foam_strength = o.shoreline_foam_strength;
+        foam_texture_format = o.foam_texture_format;
+        foam_strength = o.foam_strength;
+        foam_fade_rate = o.foam_fade_rate;
+        foam_coverage = o.foam_coverage;
+        gravityMultiplier = o.gravityMultiplier;
+        jitter_diameter_soft = o.jitter_diameter_soft;
+        current_frameweight_soft = o.current_frameweight_soft;
+        jitter_diameter_hard = o.jitter_diameter_hard;
+        ccurrent_frameWeight_hard = o.ccurrent_frameWeight_hard;
+        create_seafloordepth = o.create_seafloordepth;
+        create_foam = o.create_foam;
+        create_dynamic_wave = o.create_dynamic_wave;
+        create_flow = o.create_flow;
+        CreateShadowData = o.CreateShadowData;
+        octave_wave_length = o.octave_wave_length;
+        max_displacement_Vertical = o.max_displacement_Vertical;
+        max_displacement_horizontal = o.max_displacement_horizontal;
+        report_bounds_to_system = o.report_bounds_to_system;
+    }
 }

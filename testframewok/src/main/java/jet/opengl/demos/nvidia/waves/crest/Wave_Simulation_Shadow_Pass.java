@@ -206,4 +206,13 @@ final class Wave_Simulation_Shadow_Pass extends Wave_Simulation_Pass {
             properties._LD_TexArray_Shadow = null;
         }
     }
+
+    @Override
+    protected void applySampler(Wave_Simulation_ShaderData properties, boolean sourceLod, TextureGL applyData) {
+        if(sourceLod){
+            properties._LD_TexArray_Shadow_Source = applyData;
+        }else{
+            properties._LD_TexArray_Shadow = applyData;
+        }
+    }
 }

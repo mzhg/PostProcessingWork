@@ -21,6 +21,7 @@ final class WaveRenderDesc implements Cloneable{
     boolean debugVisualiseShapeSample;
     boolean debugVisualiseFlow;
     boolean debugDisableSmoothlod;
+    boolean debugWireframe;
 
     public Macro[] getMacros(){
         return new Macro[]{
@@ -41,6 +42,7 @@ final class WaveRenderDesc implements Cloneable{
           new Macro("_DEBUGVISUALISESHAPESAMPLE_ON", debugVisualiseShapeSample),
           new Macro("_DEBUGVISUALISEFLOW_ON", debugVisualiseFlow),
           new Macro("_DEBUGDISABLESMOOTHLOD_ON", debugDisableSmoothlod),
+          new Macro("_WIREFRAME_ONE", debugWireframe),
         };
     }
 
@@ -68,6 +70,7 @@ final class WaveRenderDesc implements Cloneable{
         if (debugDisableShapeTextures != that.debugDisableShapeTextures) return false;
         if (debugVisualiseShapeSample != that.debugVisualiseShapeSample) return false;
         if (debugVisualiseFlow != that.debugVisualiseFlow) return false;
+        if (debugWireframe != that.debugWireframe) return false;
         return debugDisableSmoothlod == that.debugDisableSmoothlod;
     }
 
@@ -91,6 +94,7 @@ final class WaveRenderDesc implements Cloneable{
         result = 31 * result + (debugVisualiseShapeSample ? 1 : 0);
         result = 31 * result + (debugVisualiseFlow ? 1 : 0);
         result = 31 * result + (debugDisableSmoothlod ? 1 : 0);
+        result = 31 * result + (debugWireframe ? 1 : 0);
         return result;
     }
 

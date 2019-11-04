@@ -46,9 +46,9 @@ abstract class Wave_Simulation_Persistent_Pass extends Wave_Simulation_Pass{
     /** int numSubsteps in the first, float substepDt in the second*/
     public abstract long GetSimSubstepData(float frameDt/*, out int numSubsteps, out float substepDt*/);
 
-    public void BuildCommandBuffer()
+    public void BuildCommandBuffer(float deltaTime)
     {
-        super.BuildCommandBuffer();
+        super.BuildCommandBuffer(deltaTime);
 
         int lodCount = m_Clipmap.m_LodTransform.LodCount();
 

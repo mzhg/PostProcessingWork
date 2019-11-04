@@ -2,6 +2,7 @@ package jet.opengl.demos.nvidia.waves.crest;
 
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.Numeric;
 
 final class Wave_Simulation_Dynamic_Pass extends Wave_Simulation_Persistent_Pass {
@@ -93,12 +94,12 @@ final class Wave_Simulation_Dynamic_Pass extends Wave_Simulation_Persistent_Pass
     /** present int first, active in second. */
     public long CountWaveSims(int countFrom)
     {
-        int o_present = OceanRenderer.Instance.CurrentLodCount();
+        int o_present = m_Clipmap.m_LodTransform.LodCount();
         int o_active = 0;
         for (int i = 0; i < o_present; i++)
         {
             if (i < countFrom) continue;
-            if (!OceanRenderer.Instance._lodDataDynWaves.SimActive(i)) continue;
+            if (!m_Simulation._lodDataDynWaves.simActive(i)) continue;
 
             o_active++;
         }
@@ -147,6 +148,15 @@ final class Wave_Simulation_Dynamic_Pass extends Wave_Simulation_Persistent_Pass
             properties._LD_TexArray_DynamicWaves_Source = null;
         }else{
             properties._LD_TexArray_DynamicWaves = null;
+        }
+    }
+
+    @Override
+    protected void applySampler(Wave_Simulation_ShaderData properties, boolean sourceLod, TextureGL applyData) {
+        if(sourceLod){
+            properties._LD_TexArray_DynamicWaves_Source = applyData;
+        }else{
+            properties._LD_TexArray_DynamicWaves = applyData;
         }
     }
 }

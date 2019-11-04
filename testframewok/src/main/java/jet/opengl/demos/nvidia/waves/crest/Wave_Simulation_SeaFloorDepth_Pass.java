@@ -1,6 +1,7 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 /** Renders depth of the ocean (height of sea level above ocean floor), by rendering the relative height of tagged objects from top down.*/
@@ -13,9 +14,9 @@ final class Wave_Simulation_SeaFloorDepth_Pass extends Wave_Simulation_Pass{
     public final String ShaderName = "Crest/Inputs/Depth/Cached Depths";
 
     @Override
-    public void BuildCommandBuffer()
+    public void BuildCommandBuffer(float deltaTime)
     {
-        super.BuildCommandBuffer();
+        super.BuildCommandBuffer(deltaTime);
 
         // if there is nothing in the scene tagged up for depth rendering, and we have cleared the RTs, then we can early out
         if (m_Inputs.size() == 0 && _targetsClear)
@@ -57,6 +58,15 @@ final class Wave_Simulation_SeaFloorDepth_Pass extends Wave_Simulation_Pass{
             properties._LD_TexArray_SeaFloorDepth_Source = null;
         }else{
             properties._LD_TexArray_SeaFloorDepth = null;
+        }
+    }
+
+    @Override
+    protected void applySampler(Wave_Simulation_ShaderData properties, boolean sourceLod, TextureGL applyData) {
+        if(sourceLod){
+            properties._LD_TexArray_SeaFloorDepth_Source = applyData;
+        }else{
+            properties._LD_TexArray_SeaFloorDepth = applyData;
         }
     }
 }

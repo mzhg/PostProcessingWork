@@ -30,7 +30,7 @@ final class CDClipmapNode {
         this.name = name;
     }
 
-    public void update(Wave_CDClipmap waveClipmap){
+    public void getData(Wave_CDClipmap waveClipmap, Wave_Simulation simulation, Wave_Shading_ShaderData shaderData){
         // blend LOD 0 shape in/out to avoid pop, if the ocean might scale up later (it is smaller than its maximum scale)
         boolean needToBlendOutShape = _lodIndex == 0 && waveClipmap.scaleCouldIncrease();
         float meshScaleLerp = needToBlendOutShape ? waveClipmap.getViewerAltitudeLevelAlpha() : 0f;
@@ -55,35 +55,40 @@ final class CDClipmapNode {
         geomData.set(gridSizeLodData, gridSizeGeo, normalScrollSpeed0, normalScrollSpeed1);
 
         // Assign LOD data to ocean shader
-        /*var ldaws = waveClipmap._lodDataAnimWaves;
-        var ldsds = waveClipmap._lodDataSeaDepths;
-        var ldfoam = waveClipmap._lodDataFoam;
-        var ldflow = waveClipmap._lodDataFlow;
-        var ldshadows = waveClipmap._lodDataShadow;
+        if(simulation != null){
+            Wave_Simulation_Pass ldaws = simulation._lodDataAnimWaves;
+            Wave_Simulation_Pass ldsds = simulation._lodDataSeaDepths;
+            Wave_Simulation_Pass ldfoam = simulation._lodDataFoam;
+            Wave_Simulation_Pass ldflow = simulation._lodDataFlow;
+            Wave_Simulation_Pass ldshadows = simulation._lodDataShadow;
 
-        _mpb.SetFloat(LodDataMgr.sp_LD_SliceIndex, _lodIndex);
-        ldaws.BindResultData(_mpb);
-        if (ldflow) ldflow.BindResultData(_mpb);
-        if (ldfoam) ldfoam.BindResultData(_mpb); else LodDataMgrFoam.BindNull(_mpb);
-        if (ldsds) ldsds.BindResultData(_mpb);
-        if (ldshadows) ldshadows.BindResultData(_mpb); else LodDataMgrShadow.BindNull(_mpb);
+//            _mpb.SetFloat(LodDataMgr.sp_LD_SliceIndex, _lodIndex);
+            shaderData._LD_SliceIndex = _lodIndex;
 
-        var reflTex = PreparedReflections.GetRenderTexture(_currentCamera.GetHashCode());
-        if (reflTex)
-        {
-            _mpb.SetTexture(sp_ReflectionTex, reflTex);
+            ldaws.BindResultData(shaderData);
+            if (ldflow!=null) ldflow.BindResultData(shaderData);
+            if (ldfoam!=null) ldfoam.BindResultData(shaderData); else Wave_Simulation_Foam_Pass.BindNull(shaderData, false);
+            if (ldsds!=null) ldsds.BindResultData(shaderData);
+            if (ldshadows!=null) ldshadows.BindResultData(shaderData); else Wave_Simulation_Shadow_Pass.BindNull(shaderData, false);
+
+            /*var reflTex = PreparedReflections.GetRenderTexture(_currentCamera.GetHashCode());  todo should not here.
+            if (reflTex)
+            {
+                _mpb.SetTexture(sp_ReflectionTex, reflTex);
+            }
+            else
+            {
+                _mpb.SetTexture(sp_ReflectionTex, Texture2D.blackTexture);
+            }*/
+
+            // Hack - due to SV_IsFrontFace occasionally coming through as true for back faces,
+            // add a param here that forces ocean to be in underwater state. I think the root
+            // cause here might be imprecision or numerical issues at ocean tile boundaries, although
+            // i'm not sure why cracks are not visible in this case.
+            float heightOffset = waveClipmap.getViewerHeightAboveWater();
+//            _mpb.SetFloat(sp_ForceUnderwater, heightOffset < -2f ? 1f : 0f);
+            shaderData._ForceUnderwater = heightOffset < -2f ? 1f : 0f;
         }
-        else
-        {
-            _mpb.SetTexture(sp_ReflectionTex, Texture2D.blackTexture);
-        }
-
-        // Hack - due to SV_IsFrontFace occasionally coming through as true for back faces,
-        // add a param here that forces ocean to be in underwater state. I think the root
-        // cause here might be imprecision or numerical issues at ocean tile boundaries, although
-        // i'm not sure why cracks are not visible in this case.
-        var heightOffset = waveClipmap.ViewerHeightAboveWater;
-        _mpb.SetFloat(sp_ForceUnderwater, heightOffset < -2f ? 1f : 0f);*/
     }
 
 }

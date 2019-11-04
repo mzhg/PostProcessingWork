@@ -112,8 +112,8 @@ final class Wave_Spectrum {
     {
         int totalComponents = NUM_OCTAVES * componentsPerOctave;
 
-        if (wavelengths == null || wavelengths.length != totalComponents) wavelengths = new float[totalComponents];
-        if (anglesDeg == null || anglesDeg.length != totalComponents) anglesDeg = new float[totalComponents];
+        if (wavelengths == null || wavelengths.length != totalComponents) throw new IllegalArgumentException("Invalid wavelengths");
+        if (anglesDeg == null || anglesDeg.length != totalComponents) throw new IllegalArgumentException("Invalid anglesDeg");
 
         double minWavelength = Math.pow(2f, SMALLEST_WL_POW_2);
         double invComponentsPerOctave = 1f / componentsPerOctave;

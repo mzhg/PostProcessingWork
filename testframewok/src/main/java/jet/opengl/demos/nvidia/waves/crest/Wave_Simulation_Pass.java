@@ -13,6 +13,7 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.CommonUtil;
 
 abstract class Wave_Simulation_Pass implements Wave_Const{
     /** Get the name of the shader of the simulation */
@@ -128,33 +129,42 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
     }
 
     // Avoid heap allocations instead BindData
-    private Vector4f[] _BindData_paramIdPosScales = new Vector4f[MAX_LOD_COUNT];
+    private Vector4f[] _BindData_paramIdPosScales = CommonUtil.initArray(new Vector4f[MAX_LOD_COUNT]);
     // Used in child
-    protected Vector4f[] _BindData_paramIdOceans = new Vector4f[MAX_LOD_COUNT];
+    protected Vector4f[] _BindData_paramIdOceans = CommonUtil.initArray(new Vector4f[MAX_LOD_COUNT]);
 
     protected void BindData(Wave_Simulation_ShaderData properties, TextureGL applyData, boolean blendOut, Wave_LOD_Transform.RenderData[] renderData, boolean sourceLod /*= false*/) {
         if (applyData != null) {
-//            properties.SetTexture(GetParamIdSampler(sourceLod), applyData);  todo
+            applySampler(m_ShaderData, sourceLod, applyData);
         }
 
-        for (int lodIdx = 0; lodIdx < OceanRenderer.Instance.CurrentLodCount(); lodIdx++) {
+        // TODO The code below shoud move to the Wave_LOD_Transform class to avoid redunt invoking.
+        final int lodCount = m_Clipmap.m_LodTransform.LodCount();
+        for (int lodIdx = 0; lodIdx < lodCount; lodIdx++) {
             // NOTE: gets zeroed by unity, see https://www.alanzucconi.com/2016/10/24/arrays-shaders-unity-5-4/
             _BindData_paramIdPosScales[lodIdx].set(
                     renderData[lodIdx]._posSnapped.x, renderData[lodIdx]._posSnapped.z,
-                    OceanRenderer.Instance.CalcLodScale(lodIdx), 0f);
+                    m_Clipmap.calcLodScale(lodIdx), 0f);
             _BindData_paramIdOceans[lodIdx].set(renderData[lodIdx]._texelWidth, renderData[lodIdx]._textureRes, 1f, 1f / renderData[lodIdx]._textureRes);
         }
 
         // Duplicate the last element as the shader accesses element {slice index + 1] in a few situations. This way going
         // off the end of this parameter is the same as going off the end of the texture array with our clamped sampler.
-        _BindData_paramIdPosScales[OceanRenderer.Instance.CurrentLodCount()] = _BindData_paramIdPosScales[OceanRenderer.Instance.CurrentLodCount() - 1];
-        _BindData_paramIdOceans[OceanRenderer.Instance.CurrentLodCount()] = _BindData_paramIdOceans[OceanRenderer.Instance.CurrentLodCount() - 1];
+        _BindData_paramIdPosScales[lodCount].set(_BindData_paramIdPosScales[lodCount - 1]);
+        _BindData_paramIdOceans[lodCount].set(_BindData_paramIdOceans[lodCount - 1]);
 
-//        properties.SetVectorArray(LodTransform.ParamIdPosScale(sourceLod), _BindData_paramIdPosScales);
-//        properties.SetVectorArray(LodTransform.ParamIdOcean(sourceLod), _BindData_paramIdOceans);
+        if(sourceLod){
+            properties._LD_Pos_Scale_Source = _BindData_paramIdPosScales;
+            properties._LD_Params_Source = _BindData_paramIdOceans;
+        }else{
+            properties._LD_Pos_Scale = _BindData_paramIdPosScales;
+            properties._LD_Params = _BindData_paramIdOceans;
+        }
     }
 
-    public void BuildCommandBuffer() { }
+    public void BuildCommandBuffer(float deltaTime) { }
+
+    protected abstract void applySampler(Wave_Simulation_ShaderData properties,boolean sourceLod, TextureGL applyData);
 
     protected final void SubmitDraws(int lodIdx) {
         Wave_LOD_Transform lt = m_Clipmap.m_LodTransform;
