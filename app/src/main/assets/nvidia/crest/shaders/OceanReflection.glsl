@@ -77,12 +77,12 @@ void ApplyReflectionSky(in const float3 i_view, in const float3 i_n_pixel, in co
     // sample sky cubemap
     #if _OVERRIDEREFLECTIONCUBEMAP_ON
     // User-provided cubemap
-    float4 val = texCUBE(_ReflectionCubemapOverride, refl);
+    float4 val = texture(_ReflectionCubemapOverride, refl);
     skyColour = val.rgb;
     #else
     // Unity specular reflection cubemap
-    float4 val = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, refl, 0.);
-    skyColour = DecodeHDR(val, unity_SpecCube0_HDR);
+    float4 val = textureLod(unity_SpecCube0, refl, 0.);
+    skyColour = /*DecodeHDR(val, unity_SpecCube0_HDR)*/val.xyz;
     #endif
 
     #endif

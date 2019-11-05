@@ -31,7 +31,7 @@ public class Macro {
             }else if(args[i] instanceof CharSequence){
                 Object value = null;
                 if(i < count - 1){
-                    value = args[i+i];
+                    value = args[i+1];
                     i++;
                 }
 

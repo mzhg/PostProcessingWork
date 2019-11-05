@@ -37,31 +37,42 @@ final class ShaderManager {
         mPrograms.put("Crest/Inputs/Depth/Cached Depths", current = createTech("OceanDepthsCache.vert","OceanDepthsCache.frag", null));
         setMinBlend(current);
 
-        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture00", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 0, "_SSSFROMALPHA_ON", 0)));
-        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture01", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 0, "_SSSFROMALPHA_ON", 1)));
-        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture10", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 1, "_SSSFROMALPHA_ON", 0)));
-        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture11", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 1, "_SSSFROMALPHA_ON", 1)));
+//        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture00", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 0, "_SSSFROMALPHA_ON", 0)));
+//        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture01", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 0, "_SSSFROMALPHA_ON", 1)));
+//        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture10", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 1, "_SSSFROMALPHA_ON", 0)));
+//        mPrograms.put("Crest/Inputs/Animated Waves/Add From Texture11", current = createTech("AnimWavesAddFromTex.vert","AnimWavesAddFromTex.frag", Macro.asMacros("_HEIGHTSONLY_ON", 1, "_SSSFROMALPHA_ON", 1)));
         mPrograms.put("Crest/Inputs/Animated Waves/Add Water Height From Geometry", current = createTech("AnimWavesAddHeightFromGeometry.vert","AnimWavesAddHeightFromGeometry.frag", null));
-        mPrograms.put("Crest/Inputs/Animated Waves/Push Water Under Convex Hull", current = createTech("AnimWavesRemoveGeometry.vert","AnimWavesRemoveGeometry.frag", null));
-        mPrograms.put("Crest/Inputs/Animated Waves/Set Water Height To Geometry", current = createTech("AnimWavesSetHeightToGeometry.vert","AnimWavesSetHeightToGeometry.frag", null));
+        mPrograms.put("Crest/Inputs/Animated Waves/Push Water Under Convex Hull", current = createTech("AnimWavesAddHeightFromGeometry.vert","AnimWavesRemoveGeometry.frag", null));
+//        mPrograms.put("Crest/Inputs/Animated Waves/Set Water Height To Geometry", current = createTech("AnimWavesSetHeightToGeometry.vert","AnimWavesSetHeightToGeometry.frag", null));
         mPrograms.put("Crest/Inputs/Animated Waves/Wave Particle", current = createTech("AnimWavesWaveParticle.vert","AnimWavesWaveParticle.frag", null));
-        mPrograms.put("Crest/Inputs/Dynamic Waves/Add Bump", current = createTech("DynWavesAddBump.vert","DynWavesAddBump.frag", null));
+        mPrograms.put("Crest/Inputs/Dynamic Waves/Add Bump", current = createTech("AnimWavesWaveParticle.vert","DynWavesAddBump.frag", null));
         mPrograms.put("Crest/Inputs/Dynamic Waves/Object Interaction", current = createTech("DynWavesObjectInteraction.vert","DynWavesObjectInteraction.frag", null));
         setDynWavesOIStates(current);
 
         mPrograms.put("Crest/Inputs/Flow/Fixed Direction", current = createTech("FlowFixedDirection.vert","FlowFixedDirection.frag", null));
-        mPrograms.put("Crest/Inputs/Foam/Add From Texture", current = createTech("FoamAddFromTex.vert","FoamAddFromTex.frag", null));
-        mPrograms.put("Crest/Inputs/Foam/Add From Vert Colours", current = createTech("FoamAddFromVertCol..vert","FoamAddFromVertCol.frag", null));
+//        mPrograms.put("Crest/Inputs/Foam/Add From Texture", current = createTech("FoamAddFromTex.vert","FoamAddFromTex.frag", null));
+        mPrograms.put("Crest/Inputs/Foam/Add From Vert Colours", current = createTech("FoamAddFromVertCol.vert","FoamAddFromVertCol.frag", null));
         setDynWavesOIStates(current);
 
         mPrograms.put("Crest/Ocean Surface Alpha", current = createTech("OceanSurfaceAlpha.vert","OceanSurfaceAlpha.frag", null));
         mPrograms.put("QueryDisplacements", current = createComputeTech("QueryDisplacements.comp"));
         mPrograms.put("QueryFlow", current = createComputeTech("QueryFlow.comp"));
         mPrograms.put("ShapeCombine", current = createComputeTech("ShapeCombine.comp"));
+        mPrograms.put("ShapeCombine_DISABLE_COMBINE", current = createComputeTech("ShapeCombine.comp", "_DISABLE_COMBINE"));
+        mPrograms.put("ShapeCombine_FLOW_ON", current = createComputeTech("ShapeCombine.comp", "_FLOW_ON"));
+        mPrograms.put("ShapeCombine_FLOW_ON_DISABLE_COMBINE", current = createComputeTech("ShapeCombine.comp", "_FLOW_ON","_DISABLE_COMBINE"));
+        mPrograms.put("ShapeCombine_DYNAMIC_WAVE_SIM_ON", current = createComputeTech("ShapeCombine.comp", "_DYNAMIC_WAVE_SIM_ON"));
+        mPrograms.put("ShapeCombine_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE", current = createComputeTech("ShapeCombine.comp", "_DYNAMIC_WAVE_SIM_ON","_DISABLE_COMBINE"));
+        mPrograms.put("ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON", current = createComputeTech("ShapeCombine.comp", "_DYNAMIC_WAVE_SIM_ON","_FLOW_ON"));
+        mPrograms.put("ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE", current = createComputeTech("ShapeCombine.comp", "_DYNAMIC_WAVE_SIM_ON","_FLOW_ON","_DISABLE_COMBINE"));
+
         mPrograms.put("UpdateDynWaves", current = createComputeTech("UpdateDynWaves.comp"));
         mPrograms.put("UpdateFoam", current = createComputeTech("UpdateFoam.comp"));
-        mPrograms.put("UpdateShadow", current = createComputeTech("UpdateShadow.comp"));
-        mPrograms.put("Hidden/Crest/Simulation/Combine Animated Wave LODs", current = createTech("ShapeCombine.vert","ShapeCombine.frag", null));
+//        mPrograms.put("UpdateShadow", current = createComputeTech("UpdateShadow.comp"));
+        mPrograms.put("Hidden/Crest/Simulation/Combine Animated Wave LODs00", current = createFragTech("ShapeCombine.frag"));
+        mPrograms.put("Hidden/Crest/Simulation/Combine Animated Wave LODs01", current = createFragTech("ShapeCombine.frag", "_FLOW_ON"));
+        mPrograms.put("Hidden/Crest/Simulation/Combine Animated Wave LODs10", current = createFragTech("ShapeCombine.frag", "_DYNAMIC_WAVE_SIM_ON"));
+        mPrograms.put("Hidden/Crest/Simulation/Combine Animated Wave LODs11", current = createFragTech("ShapeCombine.frag", "_FLOW_ON","_DYNAMIC_WAVE_SIM_ON"));
     }
 
     private static void setAnimWaveStates(Technique technique){
@@ -179,11 +190,11 @@ final class ShaderManager {
         return technique;
     }
 
-    private static Technique createComputeTech(String compute){
-        return createComputeTech(compute, ShaderManager::newTechnique);
+    private static Technique createComputeTech(String compute, String...macros){
+        return createComputeTech(compute, ShaderManager::newTechnique, macros);
     }
 
-    private static Technique createComputeTech(String compute, ShaderManager.CreateTechnique creator){
+    private static Technique createComputeTech(String compute, ShaderManager.CreateTechnique creator, String...macros){
         Technique technique = creator.newInstance();
 
         CharSequence source = null;
@@ -194,23 +205,36 @@ final class ShaderManager {
         }
 
         ShaderSourceItem item = new ShaderSourceItem(source, ShaderType.COMPUTE);
+        item.macros = wrap(macros);
         technique.setSourceFromStrings(item);
 
         return technique;
     }
 
-    private static Technique createFragTech(String frag){
-        return createFragTech(frag, ShaderManager::newTechnique);
+    private static Technique createFragTech(String frag, String...args){
+        return createFragTech(frag, ShaderManager::newTechnique,args);
     }
 
-    private static Technique createFragTech(String frag, ShaderManager.CreateTechnique creator){
+    private static Technique createFragTech(String frag, ShaderManager.CreateTechnique creator, String...args){
         Technique technique = creator.newInstance();
         try {
-            technique.setSourceFromFiles(DEFUALT_VERT, PATH+frag);
+            technique.setSourceFromFiles(DEFUALT_VERT, PATH+frag, wrap(args));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         return technique;
+    }
+
+    private static Macro[] wrap(String...args){
+        if(args!= null && args.length > 0){
+            Macro[] macros = new Macro[args.length];
+            for(int i = 0; i < macros.length;i++){
+                macros[i] = new Macro(args[i], 1);
+            }
+
+            return macros;
+        }
+        return null;
     }
 }

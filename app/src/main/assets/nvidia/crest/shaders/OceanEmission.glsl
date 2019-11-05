@@ -174,7 +174,7 @@ void ApplyCaustics(in const float3 i_view, in const float3 i_lightDir, in const 
     }
     #endif // _SHADOWS_ON
 
-    io_sceneColour *= 1.0 + causticsStrength * (0.5*tex2Dlod(_CausticsTexture, cuv1).x + 0.5*textureLod(_CausticsTexture, cuv2).x - _CausticsTextureAverage);
+    io_sceneColour *= 1.0 + causticsStrength * (0.5*textureLod(_CausticsTexture, cuv1).x + 0.5*textureLod(_CausticsTexture, cuv2).x - _CausticsTextureAverage);
 }
 #endif // _CAUSTICS_ON
 
@@ -201,7 +201,7 @@ in const float3 i_bubbleCol, in sampler2D i_normals, in sampler2D i_cameraDepths
     if (!i_underwater)
     {
         const float2 refractOffset = _RefractionStrength * i_n_pixel.xz * min(1.0, 0.5*(i_sceneZ - i_pixelZ)) / i_sceneZ;
-        const float sceneZRefract = LinearEyeDepth(tex2D(i_cameraDepths, i_uvDepth + refractOffset).x);
+        const float sceneZRefract = LinearEyeDepth(texture(i_cameraDepths, i_uvDepth + refractOffset).x);
         float2 uvBackgroundRefract;
 
         // Compute depth fog alpha based on refracted position if it landed on an underwater surface, or on unrefracted depth otherwise

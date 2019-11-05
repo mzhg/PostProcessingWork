@@ -1,4 +1,4 @@
-#include "OceanHelpers.hlsl"
+#include "OceanHelpers.glsl"
 
 in Varyings
 {
@@ -17,11 +17,11 @@ in Varyings
 
 out vec4 OutColor;
 
-#include "OceanFoam.hlsl"
-#include "OceanEmission.hlsl"
-#include "OceanReflection.hlsl"
+#include "OceanFoam.glsl"
+#include "OceanEmission.glsl"
+#include "OceanReflection.glsl"
 uniform sampler2D _Normals;
-#include "OceanNormalMapping.hlsl"
+#include "OceanNormalMapping.glsl"
 
 uniform sampler2D _CameraDepthTexture;
 
@@ -61,7 +61,7 @@ bool IsUnderwater(const float facing)
 
 void main()
 {
-    const bool underwater = IsUnderwater(facing);
+    const bool underwater = IsUnderwater(float(gl_FrontFacing));
     const float lodAlpha = _input.lodAlpha_worldXZUndisplaced_oceanDepth.x;
 
     half3 view = normalize(_WorldSpaceCameraPos - _input.worldPos);
@@ -70,12 +70,12 @@ void main()
     float pixelZ = LinearEyeDepth(gl_FragCoord.z);
     half3 screenPos = _input.foam_screenPosXYW.yzw;
     half2 uvDepth = screenPos.xy / screenPos.z;
-    float sceneZ01 = tex2D(_CameraDepthTexture, uvDepth).x;
+    float sceneZ01 = texture(_CameraDepthTexture, uvDepth).x;
     float sceneZ = LinearEyeDepth(sceneZ01);
 
     float3 lightDir = WorldSpaceLightDir(_input.worldPos);
     // Soft shadow, hard shadow
-    float2 shadow = 1.0
+    float2 shadow = float2(1.0)
     #if _SHADOWS_ON
     - _input.flow_shadow.zw
     #endif

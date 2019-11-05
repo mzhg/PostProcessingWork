@@ -11,13 +11,6 @@ uniform float _Weight;
 uniform float _AttenuationInShallows;
 uniform uint _NumWaveVecs;
 
-uniform float4 _TwoPiOverWavelengths[BATCH_SIZE / 4];
-uniform float4 _Amplitudes[BATCH_SIZE / 4];
-uniform float4 _WaveDirX[BATCH_SIZE / 4];
-uniform float4 _WaveDirZ[BATCH_SIZE / 4];
-uniform float4 _Phases[BATCH_SIZE / 4];
-uniform float4 _ChopAmps[BATCH_SIZE / 4];
-
 uniform float4 _TargetPointData;
 
 out Varyings

@@ -12,11 +12,19 @@ void Flow(out float2 offsets, out float2 weights)
 {
     const float period = 3.0 * _LD_Params[_LD_SliceIndex].x;
     const float half_period = period / 2.0;
-    offsets = fmod(float2(_CrestTime, _CrestTime + half_period), period);
+    offsets = mod(float2(_CrestTime, _CrestTime + half_period), float2(period));
     weights.x = offsets.x / half_period;
     if (weights.x > 1.0) weights.x = 2.0 - weights.x;
     weights.y = 1.0 - weights.x;
 }
+
+#ifndef _DYNAMIC_WAVE_SIM_ON
+#define _DYNAMIC_WAVE_SIM_ON 0
+#endif
+
+#ifndef _FLOW_ON
+#define _FLOW_ON 0
+#endif
 
 void main()
 {
@@ -49,12 +57,18 @@ void main()
     #endif
 
     float w, h, d;
-    _LD_TexArray_AnimatedWaves.GetDimensions(w, h, d);
+//    _LD_TexArray_AnimatedWaves.GetDimensions(w, h, d);
+    {
+        int3 dim = textureSize(_LD_TexArray_AnimatedWaves,0);
+        w = dim.x;
+        h = dim.y;
+        d = dim.z;
+    }
 
     // waves to combine down from the next lod up the chain
     if (_LD_SliceIndex < d - 1.0)
     {
-        float4 dataNextLod = _LD_TexArray_AnimatedWaves.SampleLevel(LODData_linear_clamp_sampler, uv_nextLod, 0.0);
+        float4 dataNextLod = textureLod(_LD_TexArray_AnimatedWaves, uv_nextLod, 0.0);  //LODData_linear_clamp_sampler
         result += dataNextLod.xyz;
         sss += dataNextLod.w;
     }

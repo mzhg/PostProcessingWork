@@ -16,7 +16,7 @@
 #define THREAD_GROUP_SIZE_Y 8
 
 // 'Current' target/source slice index
-uniform float _LD_SliceIndex;
+uniform int _LD_SliceIndex;
 #define Texture2DArray sampler2DArray
 
 // Samplers and data associated with a LOD.
@@ -30,7 +30,7 @@ layout(binding = 5) uniform sampler2DArray _LD_TexArray_DynamicWaves;
 layout(binding = 6) uniform sampler2DArray _LD_TexArray_Shadow;
 // _LD_Params: float4(world texel size, texture resolution, shape weight multiplier, 1 / texture resolution)
 uniform float4 _LD_Params[MAX_LOD_COUNT + 1];
-uniform float3 _LD_Pos_Scale[MAX_LOD_COUNT + 1];
+uniform float4 _LD_Pos_Scale[MAX_LOD_COUNT + 1];
 
 // These are used in lods where we operate on data from
 // previously calculated lods. Used in simulations and
@@ -65,7 +65,7 @@ float2 LD_WorldToUV(in float2 i_samplePos, in float2 i_centerPos, in float i_res
     return (i_samplePos - i_centerPos) / (i_texelSize * i_res) + 0.5;
 }
 
-float3 WorldToUV(in float2 i_samplePos, in uint i_sliceIndex) {
+float3 WorldToUV(in float2 i_samplePos, in int i_sliceIndex) {
     const float2 result = LD_WorldToUV(
     i_samplePos,
     _LD_Pos_Scale[i_sliceIndex].xy,
@@ -75,7 +75,7 @@ float3 WorldToUV(in float2 i_samplePos, in uint i_sliceIndex) {
     return float3(result, i_sliceIndex);
 }
 
-float3 WorldToUV_BiggerLod(in float2 i_samplePos, in uint i_sliceIndex_BiggerLod) {
+float3 WorldToUV_BiggerLod(in float2 i_samplePos, in int i_sliceIndex_BiggerLod) {
     const float2 result = LD_WorldToUV(
     i_samplePos, _LD_Pos_Scale[i_sliceIndex_BiggerLod].xy,
     _LD_Params[i_sliceIndex_BiggerLod].y,
@@ -84,7 +84,7 @@ float3 WorldToUV_BiggerLod(in float2 i_samplePos, in uint i_sliceIndex_BiggerLod
     return float3(result, i_sliceIndex_BiggerLod);
 }
 
-float3 WorldToUV_Source(in float2 i_samplePos, in uint i_sliceIndex_Source) {
+float3 WorldToUV_Source(in float2 i_samplePos, in int i_sliceIndex_Source) {
     const float2 result = LD_WorldToUV(
     i_samplePos,
     _LD_Pos_Scale_Source[i_sliceIndex_Source].xy,
@@ -99,7 +99,7 @@ float2 LD_UVToWorld(in float2 i_uv, in float2 i_centerPos, in float i_res, in fl
     return i_texelSize * i_res * (i_uv - 0.5) + i_centerPos;
 }
 
-float2 UVToWorld(in float2 i_uv, in float i_sliceIndex) { return LD_UVToWorld(i_uv, _LD_Pos_Scale[i_sliceIndex].xy, _LD_Params[i_sliceIndex].y, _LD_Params[i_sliceIndex].x); }
+float2 UVToWorld(in float2 i_uv, in int i_sliceIndex) { return LD_UVToWorld(i_uv, _LD_Pos_Scale[i_sliceIndex].xy, _LD_Params[i_sliceIndex].y, _LD_Params[i_sliceIndex].x); }
 
 // Shortcuts if _LD_SliceIndex is set
 float3 WorldToUV(in float2 i_samplePos) { return WorldToUV(i_samplePos, _LD_SliceIndex); }
@@ -116,7 +116,7 @@ float2 IDtoUV(in float2 i_id, in float i_width, in float i_height)
 // Sampling functions
 void SampleDisplacements(Texture2DArray i_dispSampler, in float3 i_uv_slice, in float i_wt, inout float3 io_worldPos, inout float io_sss)
 {
-    const half4 data = i_dispSampler.SampleLevel(LODData_linear_clamp_sampler, i_uv_slice, 0.0);
+    const half4 data = textureLod(i_dispSampler, i_uv_slice, 0.0);   //LODData_linear_clamp_sampler
     io_worldPos += i_wt * data.xyz;
     io_sss += i_wt * data.a;
 }
@@ -167,3 +167,47 @@ void SampleShadow(in Texture2DArray i_oceanShadowSampler, in float3 i_uv_slice, 
 // zw: normalScrollSpeed0, normalScrollSpeed1
 uniform float4 _GeomData;
 uniform float3 _OceanCenterPosWorld;
+
+uniform float4 ScreenParams;  // xy: Screen Size; zw: Invert screen size.
+
+//float4 pos, the input of ComputeScreenPos(), is [-w,w]
+//usually we input the result of MVP transform directly, just like the reply above
+float4 ComputeScreenPos (float4 pos) {
+
+    const float2 _ProjectionParams = float2(1,1);
+    float4 o = pos * 0.5f; //now o.xy is [-0.5w,0.5w], and o.w is half of pos.w also
+
+    //UNITY_HALF_TEXEL_OFFSET is only for DirectX9, which is quite old in 2016, still Unity
+    //will support it
+    #if defined(UNITY_HALF_TEXEL_OFFSET)
+    o.xy = float2(o.x, o.y*_ProjectionParams.x) + o.w * _ScreenParams.zw;
+    #else
+
+    o.xy = float2(o.x, o.y*_ProjectionParams.x) + o.w;
+    //now result o.xy is [-0.5w + 0.5w,0.5w + 0.5w] = [0,w]
+    //opengl & directx have different conventions of clip space y(start from top/start from bottom)
+    //o.y*_ProjectionParams.x will make it behave the same in different platform
+    //otherwise you will see the sampled texture flipped upsidedown
+    #endif
+    o.zw = pos.zw; //must keep the w, for tex2Dproj() to use
+    return o;
+}
+
+float4 ComputeGrabScreenPos(float4 clipPos)
+{
+    return ComputeScreenPos(clipPos);
+}
+
+uniform float3 _WorldSpaceCameraPos;
+uniform float4 _WorldSpaceLightPos0; // Directional lights: (world space direction, 0). Other lights: (world space position, 1).
+uniform samplerCube unity_SpecCube0;
+uniform float2 _CameraRange;  // x: Near; y: Far
+
+float LinearEyeDepth(float dDepth)
+{
+    float mZFar =_CameraRange.y;
+    float mZNear = _CameraRange.x;
+    float fCamSpaceZ = mZFar*mZNear/(mZFar-dDepth*(mZFar-mZNear));
+
+    return fCamSpaceZ;
+}

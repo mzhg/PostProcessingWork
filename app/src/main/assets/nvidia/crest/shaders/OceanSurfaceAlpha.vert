@@ -1,8 +1,11 @@
-#include "OceanHelpers.hlsl"
+#include "OceanHelpers.glsl"
 
 uniform sampler2D _MainTex;
 uniform float4 _MainTex_ST;
 uniform float _Alpha;
+
+// MeshScaleLerp, FarNormalsWeight, LODIndex (debug), unused
+uniform float4 _InstanceData;
 
 out float2 uv;
 

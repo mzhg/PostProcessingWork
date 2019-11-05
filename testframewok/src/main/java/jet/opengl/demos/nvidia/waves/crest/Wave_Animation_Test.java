@@ -5,7 +5,6 @@ import com.nvidia.developer.opengl.app.NvSampleApp;
 
 import org.lwjgl.util.vector.Matrix4f;
 
-import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -18,15 +17,20 @@ public class Wave_Animation_Test extends NvSampleApp {
     private Wave_Simulation_Params m_Simulation_Params = new Wave_Simulation_Params();
     private Wave_Simulation mAnimation;
 
-    private Technique m_WaveShaderWireframe;
+    private Wave_Renderer m_Renderer;
 
     private final Matrix4f mProj = new Matrix4f();
     private final Matrix4f mView = new Matrix4f();
 
     private GLFuncProvider gl;
     protected void initRendering(){
+        getGLContext().setSwapInterval(0);
+
         mCDClipmap = new Wave_CDClipmap();
         mCDClipmap.init(m_Clipmap_Params);
+
+        m_Renderer = new Wave_Renderer();
+        m_Renderer.init(mCDClipmap, mAnimation);
 
         gl = GLFuncProviderFactory.getGLFuncProvider();
 
@@ -43,7 +47,8 @@ public class Wave_Animation_Test extends NvSampleApp {
 
         m_transformer.getModelViewMat(mView);
 
-        mCDClipmap.debugDrawWave(mProj, mView);
+        mCDClipmap.updateWave(mView);
+        m_Renderer.waveShading(mProj, mView, true);
     }
 
     @Override

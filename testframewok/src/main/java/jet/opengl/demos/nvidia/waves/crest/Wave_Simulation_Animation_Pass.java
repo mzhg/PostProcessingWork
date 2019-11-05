@@ -83,7 +83,8 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             Material mat = new Material(combineShader);
             _combineMaterial[i] = new PropertyWrapperMaterial(mat);
         }*/
-        _combineMaterial = ShaderManager.getInstance().getProgram("Hidden/Crest/Simulation/Combine Animated Wave LODs");
+        final String materialName = String.format("Hidden/Crest/Simulation/Combine Animated Wave LODs%d%d", m_Simulation.m_Params.create_dynamic_wave?1:0,m_Simulation.m_Params.create_flow?1:0);
+        _combineMaterial = ShaderManager.getInstance().getProgram(materialName);
 
         try {
             _copyBack = new PostProcessingDefaultProgram();

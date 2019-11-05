@@ -28,7 +28,7 @@ float ComputeWaveSpeed(float wavelength, float g)
     return sqrt(wavelength*g*one_over_2pi);
 }
 
-layout(binding = 0, rg16f) uniform image _LD_TexArray_Target;
+layout(binding = 0, rg16f) uniform image2DArray _LD_TexArray_Target;
 
 //[numthreads(THREAD_GROUP_SIZE_X,THREAD_GROUP_SIZE_Y,1)]
 layout (local_size_x = THREAD_GROUP_SIZE_X, local_size_y = THREAD_GROUP_SIZE_Y) in;
@@ -36,12 +36,12 @@ layout (local_size_x = THREAD_GROUP_SIZE_X, local_size_y = THREAD_GROUP_SIZE_Y) 
 void main()
 {
     uint3 id = SV_DispatchThreadID;
-    const float sliceIndex = id.z;
-    const float sliceIndexSource = id.z + _LODChange;
+    const int sliceIndex = int(id.z);
+    const int sliceIndexSource = int(id.z + _LODChange);
     float width; float height; float depth;
     {
 //        _LD_TexArray_DynamicWaves_Source.GetDimensions(width, height, depth);
-        int3 dim = imageSize(_LD_TexArray_DynamicWaves_Source);
+        int3 dim = textureSize(_LD_TexArray_DynamicWaves_Source, 0);
         width = dim.x;
         height = dim.y;
         depth = dim.z;
@@ -80,8 +80,9 @@ void main()
     // so make any off-array reads 0 manually
     const bool insideTarget = sliceIndexSource <= depth && sliceIndexSource >= 0;
 
-    float fxm, fym, fxp, fyp; float2 ft_v;
-    ft_v = fxm = fym = fxp = fyp = 0.0;
+    float fxm, fym, fxp, fyp;
+    fxm = fym = fxp = fyp = 0.0;
+    float2 ft_v = float2(0);
 
     if (insideTarget)
     {
@@ -121,5 +122,6 @@ void main()
     float depthMul = 1.0 - (1.0 - saturate(2.0 * waterDepth / wavelength)) * dt * 2.0;
     ftp *= depthMul;
 
-    _LD_TexArray_Target[id] = float2(ftp, vtp);
+//    _LD_TexArray_Target[id] = float2(ftp, vtp);
+    imageStore(_LD_TexArray_Target, int3(id), float4(ftp, vtp,0,0));
 }

@@ -20,7 +20,7 @@ out Varyings
 
 void main()
 {
-    float3 vertexWorldPos = mul(unity_ObjectToWorld, In_Position);
+    float4 vertexWorldPos = mul(unity_ObjectToWorld, In_Position);
 
     o.normal = normalize(mul(unity_ObjectToWorld, float4(In_Normal, 0.)).xyz);
 
@@ -44,9 +44,8 @@ void main()
     float3 offset = o.normal * _FactorOrthogonal * pow(saturate(1. - angleFactor), .2) * velMag;
     offset += vel * _FactorParallel * pow(angleFactor, .5);
     o.offsetDist = length(offset);
-    vertexWorldPos += offset;
+    vertexWorldPos.xyz += offset;
 
-    gl_Position = mul(UNITY_MATRIX_VP, float4(vertexWorldPos, 1.));
-
-    o.col = 1.0;
+    gl_Position = mul(UNITY_MATRIX_VP, vertexWorldPos);
+    o.col = float4(1.0);
 }

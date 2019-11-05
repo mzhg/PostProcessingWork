@@ -15,7 +15,8 @@ uniform float _SimDeltaTime;
 uniform float _SimDeltaTimePrev;
 uniform float _LODChange;
 
-RWTexture2DArray<float> _LD_TexArray_Target;
+//RWTexture2DArray<float> _LD_TexArray_Target;
+layout(binding = 0, r32f) uniform image2DArray _LD_TexArray_Target;
 
 //[numthreads(THREAD_GROUP_SIZE_X,THREAD_GROUP_SIZE_Y,1)]
 //void UpdateFoam(uint3 id : SV_DispatchThreadID)
@@ -24,12 +25,12 @@ void main()
 {
     uint3 id = SV_DispatchThreadID;
     // lod data 1 is current frame, compute world pos from quad uv
-    const float sliceIndex = id.z;
-    const float sliceIndexSource = id.z + _LODChange;
+    const int sliceIndex = int(id.z);
+    const int sliceIndexSource = int(id.z + _LODChange);
     float width; float height; float depth;
     {
 //    _LD_TexArray_Foam_Source.GetDimensions(width, height, depth);
-        int3 dim = imageSize(_LD_TexArray_Foam_Source);
+        int3 dim = textureSize(_LD_TexArray_Foam_Source,0);
         width = dim.x;
         height = dim.y;
         depth = dim.z;
@@ -38,7 +39,7 @@ void main()
     const float2 worldPosXZ = UVToWorld(input_uv, sliceIndex);
     const float3 uv_slice = float3(input_uv, id.z);
 
-    half2 velocity = _LD_TexArray_Flow.SampleLevel(LODData_linear_clamp_sampler, uv_slice, 0).xy;
+    half2 velocity = textureLod(_LD_TexArray_Flow, uv_slice, 0).xy;  // LODData_linear_clamp_sampler
     const float2 worldPosXZ_flowed = worldPosXZ - _SimDeltaTime * velocity;
 
     float foam = 0.0;
@@ -53,16 +54,16 @@ void main()
     }
     else if (max(r.x, r.y) <= r_max)
     {
-        foam = _LD_TexArray_Foam_Source.SampleLevel(LODData_linear_clamp_sampler, uv_slice_source, 0).x;
+        foam = textureLod(_LD_TexArray_Foam_Source, uv_slice_source, 0).x;  //LODData_linear_clamp_sampler
     }
     else if (sliceIndexSource + 1.0 < depth)
     {
         // Try again from larger cascade
-        float3 uv_slice_source_nextlod = WorldToUV_Source(worldPosXZ_flowed, sliceIndexSource + 1.0);
+        float3 uv_slice_source_nextlod = WorldToUV_Source(worldPosXZ_flowed, sliceIndexSource + 1);
         half2 r2 = abs(uv_slice_source_nextlod.xy - 0.5);
         if (max(r2.x, r2.y) <= r_max)
         {
-            foam = _LD_TexArray_Foam_Source.SampleLevel(LODData_linear_clamp_sampler, uv_slice_source_nextlod, 0.0).x;
+            foam = textureLod(_LD_TexArray_Foam_Source, uv_slice_source_nextlod, 0.0).x;  //LODData_linear_clamp_sampler
         }
     }
 
@@ -71,9 +72,9 @@ void main()
 
     // sample displacement texture and generate foam from it
     const float3 dd = float3(_LD_Params[sliceIndex].w, 0.0, _LD_Params[sliceIndex].x);
-    half3 s = SampleLod(_LD_TexArray_AnimatedWaves, uv_slice).xyz;
-    half3 sx = SampleLodLevel(_LD_TexArray_AnimatedWaves, uv_slice + float3(dd.xy, 0), dd.y).xyz;
-    half3 sz = SampleLodLevel(_LD_TexArray_AnimatedWaves, uv_slice + float3(dd.yx, 0), dd.y).xyz;
+    float3 s = SampleLod(_LD_TexArray_AnimatedWaves, uv_slice).xyz;
+    float3 sx = SampleLodLevel(_LD_TexArray_AnimatedWaves, uv_slice + float3(dd.xy, 0), dd.y).xyz;
+    float3 sz = SampleLodLevel(_LD_TexArray_AnimatedWaves, uv_slice + float3(dd.yx, 0), dd.y).xyz;
     float3 disp = s.xyz;
     float3 disp_x = dd.zyy + sx.xyz;
     float3 disp_z = dd.yyz + sz.xyz;
@@ -90,5 +91,6 @@ void main()
     float signedOceanDepth = SampleLodLevel(_LD_TexArray_SeaFloorDepth, uv_slice_displaced, 1).x + disp.y;
     foam += _ShorelineFoamStrength * _SimDeltaTime * saturate(1.0 - signedOceanDepth / _ShorelineFoamMaxDepth);
 
-    _LD_TexArray_Target[id] = foam;
+//    _LD_TexArray_Target[id] = foam;
+    imageStore(_LD_TexArray_Target, int3(id), float4(foam));
 }

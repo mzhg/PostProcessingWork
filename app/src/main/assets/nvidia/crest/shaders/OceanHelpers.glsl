@@ -5,7 +5,7 @@
 // Ocean LOD data - data, samplers and functions associated with LODs
 
 
-#include "OceanLODData.hlsl"
+#include "OceanLODData.glsl"
 
 float ComputeLodAlpha(float3 i_worldPos, float i_meshScaleAlpha)
 {
@@ -39,7 +39,8 @@ void SnapAndTransitionVertLayout(float i_meshScaleAlpha, inout float3 io_worldPo
 
     // snap the verts to the grid
     // The snap size should be twice the original size to keep the shape of the eight triangles (otherwise the edge layout changes).
-    io_worldPos.xz -= frac(unity_ObjectToWorld._m03_m23 / GRID_SIZE_2) * GRID_SIZE_2; // caution - sign of frac might change in non-hlsl shaders
+    float2 worldXZ = float2(unity_ObjectToWorld[3][0], unity_ObjectToWorld[3][2]);
+    io_worldPos.xz -= frac(/*unity_ObjectToWorld._m03_m23*/worldXZ / GRID_SIZE_2) * GRID_SIZE_2; // caution - sign of frac might change in non-hlsl shaders
 
     // compute lod transition alpha
     o_lodAlpha = ComputeLodAlpha(io_worldPos, i_meshScaleAlpha);

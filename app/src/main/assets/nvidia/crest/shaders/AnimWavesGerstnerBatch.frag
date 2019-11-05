@@ -8,11 +8,28 @@ in Varyings
 
 layout(location = 0) out float4 OutColor;
 
+// IMPORTANT - this mirrors the constant with the same name in ShapeGerstnerBatched.cs, both must be updated together!
+#define BATCH_SIZE 32
+#define PI 3.141593
+
+uniform float _Weight;
+uniform float _AttenuationInShallows;
+uniform uint _NumWaveVecs;
+
+uniform float4 _TwoPiOverWavelengths[BATCH_SIZE / 4];
+uniform float4 _Amplitudes[BATCH_SIZE / 4];
+uniform float4 _WaveDirX[BATCH_SIZE / 4];
+uniform float4 _WaveDirZ[BATCH_SIZE / 4];
+uniform float4 _Phases[BATCH_SIZE / 4];
+uniform float4 _ChopAmps[BATCH_SIZE / 4];
+
+uniform float4 _TargetPointData;
+
 void main()
 {
     float2 displacementNormalized = float2(0.0);
 
-    const float4 oneMinusAttenuation = 1.0 - (float4)_AttenuationInShallows;
+    const float oneMinusAttenuation = 1.0 - _AttenuationInShallows;
 
     // sample ocean depth (this render target should 1:1 match depth texture, so UVs are trivial)
     const float depth = texture(_LD_TexArray_SeaFloorDepth, _input.uv_slice).x;
@@ -23,8 +40,8 @@ void main()
     float preferDist = length(offset);
     float preferWt = smoothstep(_TargetPointData.w, _TargetPointData.z, preferDist);
     half2 preferredDir = preferWt * offset / preferDist;
-    float4 preferredDirX = preferredDir.x;
-    float4 preferredDirZ = preferredDir.y;
+    float preferredDirX = preferredDir.x;
+    float preferredDirZ = preferredDir.y;
 #endif
 
     float3 result = float3(0);
@@ -37,7 +54,7 @@ void main()
     // optimisation - do this outside the loop below - take the median wavelength for depth weighting, intead of computing
     // per component. computing per component makes little difference to the end result
     float depth_wt = saturate(depth * _TwoPiOverWavelengths[_NumWaveVecs / 2].x / PI);
-    float4 wt = _AttenuationInShallows * depth_wt + oneMinusAttenuation;
+    float4 wt = float4(_AttenuationInShallows * depth_wt + oneMinusAttenuation);
 
     // gerstner computation is vectorized - processes 4 wave components at once
     for (uint vi = 0; vi < _NumWaveVecs; vi++)
@@ -69,7 +86,7 @@ void main()
         result.y += dot(resulty, wt);
         result.z += dot(resultz, wt);
 
-        float4 sssFactor = min(1.0, _TwoPiOverWavelengths[vi]);
+        float4 sssFactor = min(float4(1.0), _TwoPiOverWavelengths[vi]);
         displacementNormalized.x += dot(resultx * sssFactor, wt);
         displacementNormalized.y += dot(resultz * sssFactor, wt);
     }

@@ -3,7 +3,7 @@
 // Must match value in script
 #define GROUP_SIZE 64
 
-layout(binding = 0) uniform sampler2D _QueryPositions_MinGridSizes;
+layout(binding = 0) uniform samplerBuffer _QueryPositions_MinGridSizes;
 layout(binding = 0) buffer BF0
 {
     float3 _ResultDisplacements[];
@@ -12,7 +12,7 @@ layout(binding = 0) buffer BF0
 uniform float _MeshScaleLerp;
 uniform float _SliceCount;
 
-void PosToSliceIndices(const float2 worldXZ, const float minSlice, out uint slice0, out uint slice1, out float lodAlpha)
+void PosToSliceIndices(const float2 worldXZ, const float minSlice, out int slice0, out int slice1, out float lodAlpha)
 {
     const float2 offsetFromCenter = abs(worldXZ - _OceanCenterPosWorld.xz);
     const float taxicab = max(offsetFromCenter.x, offsetFromCenter.y);
@@ -20,7 +20,7 @@ void PosToSliceIndices(const float2 worldXZ, const float minSlice, out uint slic
     const float sliceNumber = clamp(log2(taxicab / radius0), minSlice, _SliceCount - 1.0);
 
     lodAlpha = frac(sliceNumber);
-    slice0 = uint(sliceNumber);
+    slice0 = int(sliceNumber);
     slice1 = slice0 + 1;
 
     // lod alpha is remapped to ensure patches weld together properly. patches can vary significantly in shape (with
@@ -38,7 +38,7 @@ void PosToSliceIndices(const float2 worldXZ, const float minSlice, out uint slic
 
 float3 ComputeDisplacement(float2 undispPos, float minSlice)
 {
-    uint slice0, slice1;
+    int slice0, slice1;
     float lodAlpha;
     PosToSliceIndices(undispPos, minSlice, slice0, slice1, lodAlpha);
 
@@ -49,8 +49,8 @@ float3 ComputeDisplacement(float2 undispPos, float minSlice)
     const float wt_1 = (1. - wt_0) * _LD_Params[slice1].z;
 
     return
-    wt_0 * _LD_TexArray_AnimatedWaves.SampleLevel(LODData_linear_clamp_sampler, uv0, 0).xyz +
-    wt_1 * _LD_TexArray_AnimatedWaves.SampleLevel(LODData_linear_clamp_sampler, uv1, 0).xyz;
+    wt_0 * textureLod(_LD_TexArray_AnimatedWaves, uv0, 0).xyz +    //LODData_linear_clamp_sampler
+    wt_1 * textureLod(_LD_TexArray_AnimatedWaves, uv1, 0).xyz;
 }
 
 //[numthreads(GROUP_SIZE, 1, 1)]
@@ -59,7 +59,7 @@ layout (local_size_x = GROUP_SIZE, local_size_y = 1) in;
 void main()
 {
     uint3 id = SV_DispatchThreadID;
-    float3 data = _QueryPositions_MinGridSizes[id.x];
+    float3 data =/* _QueryPositions_MinGridSizes[id.x]*/texelFetch(_QueryPositions_MinGridSizes, int(id.x)).xyz;
     const float2 queryPosXZ = data.xy;
     const float minGridSize = data.z;
 

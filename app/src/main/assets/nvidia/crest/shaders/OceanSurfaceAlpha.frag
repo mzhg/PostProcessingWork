@@ -11,5 +11,5 @@ void main()
 
 //    UNITY_APPLY_FOG(input.fogCoord, col);
 
-    col.a *= _Alpha;
+    Color.a *= _Alpha;
 }

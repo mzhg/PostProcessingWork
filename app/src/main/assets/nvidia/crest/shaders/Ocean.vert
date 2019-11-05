@@ -1,9 +1,6 @@
-#include "OceanHelpers.hlsl"
+#include "OceanHelpers.glsl"
 
 layout(location = 0) in float4 In_Position;
-
-#ifndef _DEBUGVISUALISESHAPESAMPLE_ON
-#
 
 out Varyings
 {
@@ -28,7 +25,7 @@ uniform float4 _InstanceData;
 void main()
 {
     // Move to world space
-    o.worldPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0));
+    o.worldPos = mul(unity_ObjectToWorld, float4(In_Position.xyz, 1.0)).xyz;
 
     // Vertex snapping and lod transition
     float lodAlpha;

@@ -14,9 +14,9 @@ void main()
 
     float3 worldPos = mul(unity_ObjectToWorld, In_Position).xyz;
     float3 centerPos; // = unity_ObjectToWorld._m03_m13_m23;
-    centerPos.x = unity_ObjectToWorld.m30;
-    centerPos.y = unity_ObjectToWorld.m31;
-    centerPos.z = unity_ObjectToWorld.m32;
+    centerPos.x = unity_ObjectToWorld[3][0];
+    centerPos.y = unity_ObjectToWorld[3][1];
+    centerPos.z = unity_ObjectToWorld[3][2];
     worldOffsetScaled.xy = worldPos.xz - centerPos.xz;
 
     // shape is symmetric around center with known radius - fix the vert positions to perfectly wrap the shape.
