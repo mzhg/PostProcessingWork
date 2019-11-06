@@ -62,7 +62,7 @@ public class Wave_Renderer {
         CacheBuffer.free(clipmapTransform);
         CacheBuffer.free(nodeTransform);
 
-        if(frameCount == 300)
+//        if(frameCount == 300)
         m_ShadingShader.printOnce();
 
         frameCount++;

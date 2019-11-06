@@ -399,11 +399,11 @@ public class Wave_CDClipmap {
                 }
             }
 
-            Matrix4f combinedMat = new Matrix4f();
-            patch.transform.getMatrix(combinedMat);
-            Matrix4f debugMat = new Matrix4f();
-            debugMat.load(debugMatrixs);
-            patch.debugMatrix = debugMat;
+            if(debugMatrixs != null) {
+                Matrix4f debugMat = new Matrix4f();
+                debugMat.load(debugMatrixs);
+                patch.debugMatrix = debugMat;
+            }
 
             m_QuadNodes.add(patch);
         }

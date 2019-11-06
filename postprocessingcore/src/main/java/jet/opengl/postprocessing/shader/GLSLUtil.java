@@ -467,17 +467,19 @@ public final class GLSLUtil {
 
 			case GLenum.GL_FLOAT_VEC3:
 			{
-				FloatBuffer buf = CacheBuffer.getCachedFloatBuffer(size * 3);
-				gl.glGetUniformfv(programId, location, buf);
+				FloatBuffer buf = CacheBuffer.getCachedFloatBuffer(3);
 				int count = size;
 				if(count == 1){
+					gl.glGetUniformfv(programId, location, buf);
 					Vector3f out = new Vector3f();
 					out.load(buf);
 					return out;
 				}else{
 					Vector3f[] out = new Vector3f[count];
 					for(int i = 0; i < count; i++){
+						gl.glGetUniformfv(programId, location + i, buf);
 						out[i] = new Vector3f(buf.get(), buf.get(), buf.get());
+						buf.flip();
 					}
 
 					return out;
@@ -486,17 +488,19 @@ public final class GLSLUtil {
 
 			case GLenum.GL_FLOAT_VEC4:
 			{
-				FloatBuffer buf = CacheBuffer.getCachedFloatBuffer(size << 2);
-				gl.glGetUniformfv(programId, location, buf);
+				FloatBuffer buf = CacheBuffer.getCachedFloatBuffer(4);
 				int count = size;
 				if(count == 1){
+					gl.glGetUniformfv(programId, location, buf);
 					Vector4f out = new Vector4f();
 					out.load(buf);
 					return out;
 				}else{
 					Vector4f[] out = new Vector4f[count];
 					for(int i = 0; i < count; i++){
+						gl.glGetUniformfv(programId, location + i, buf);
 						out[i] = new Vector4f(buf.get(), buf.get(), buf.get(), buf.get());
+						buf.flip();
 					}
 
 					return out;
@@ -505,16 +509,18 @@ public final class GLSLUtil {
 
 			case GLenum.GL_DOUBLE_VEC2:
 			{
-				DoubleBuffer buf = CacheBuffer.getCachedDoubleBuffer(size << 1);
-				gl.glGetUniformdv(programId, location, buf);
+				DoubleBuffer buf = CacheBuffer.getCachedDoubleBuffer(2);
 				int count = size;
 				if(count == 1){
+					gl.glGetUniformdv(programId, location, buf);
 					Vector2f out = new Vector2f((float)buf.get(), (float)buf.get());
 					return out;
 				}else{
 					Vector2f[] out = new Vector2f[count];
 					for(int i = 0; i < count; i++){
+						gl.glGetUniformdv(programId, location+i, buf);
 						out[i] = new Vector2f((float)buf.get(), (float)buf.get());
+						buf.flip();
 					}
 
 					return out;
@@ -523,16 +529,18 @@ public final class GLSLUtil {
 
 			case GLenum.GL_DOUBLE_VEC3:
 			{
-				DoubleBuffer buf = CacheBuffer.getCachedDoubleBuffer(size * 3);
-				gl.glGetUniformdv(programId, location, buf);
+				DoubleBuffer buf = CacheBuffer.getCachedDoubleBuffer(3);
 				int count = size;
 				if(count == 1){
+					gl.glGetUniformdv(programId, location, buf);
 					Vector3f out = new Vector3f((float)buf.get(), (float)buf.get(), (float)buf.get());
 					return out;
 				}else{
 					Vector3f[] out = new Vector3f[count];
 					for(int i = 0; i < count; i++){
+						gl.glGetUniformdv(programId, location+i, buf);
 						out[i] = new Vector3f((float)buf.get(), (float)buf.get(), (float)buf.get());
+						buf.flip();
 					}
 
 					return out;
@@ -541,33 +549,37 @@ public final class GLSLUtil {
 
 			case GLenum.GL_DOUBLE_VEC4:
 			{
-				DoubleBuffer buf = CacheBuffer.getCachedDoubleBuffer(size << 2);
-				gl.glGetUniformdv(programId, location, buf);
+				DoubleBuffer buf = CacheBuffer.getCachedDoubleBuffer(4);
 				int count = size;
 				if(count == 1){
+					gl.glGetUniformdv(programId, location, buf);
 					Vector4f out = new Vector4f((float)buf.get(), (float)buf.get(), (float)buf.get(), (float)buf.get());
 					return out;
 				}else{
 					Vector4f[] out = new Vector4f[count];
 					for(int i = 0; i < count; i++){
+						gl.glGetUniformdv(programId, location+i, buf);
 						out[i] = new Vector4f((float)buf.get(), (float)buf.get(), (float)buf.get(), (float)buf.get());
+						buf.flip();
 					}
 					return out;
 				}
 			}
 			case GLenum.GL_FLOAT_MAT2:
 			{
-				FloatBuffer buf = CacheBuffer.getCachedFloatBuffer(size << 2);
-				gl.glGetUniformfv(programId, location, buf);
+				FloatBuffer buf = CacheBuffer.getCachedFloatBuffer(4);
 				if(size == 1){
+					gl.glGetUniformfv(programId, location, buf);
 					Matrix2f mat = new Matrix2f();
 					mat.load(buf);
 					return mat;
 				}else{
 					Matrix2f mats[] = new Matrix2f[size];
 					for(int i = 0; i < size; i++){
+						gl.glGetUniformfv(programId, location+i, buf);
 						mats[i] = new Matrix2f();
 						mats[i].load(buf);
+						buf.flip();
 					}
 
 					return mats;
