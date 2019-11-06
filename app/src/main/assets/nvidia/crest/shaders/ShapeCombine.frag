@@ -100,5 +100,5 @@ void main()
         }
 #endif // _DYNAMIC_WAVE_SIM_ON
 
-        OutColor = half4(result, sss);
+        OutColor = float4(result, sss);
 }

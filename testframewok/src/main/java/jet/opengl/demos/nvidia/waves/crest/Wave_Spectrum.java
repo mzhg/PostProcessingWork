@@ -33,6 +33,10 @@ final class Wave_Spectrum {
 
     private Wave_Simulation_Params m_Params;
 
+    Wave_Spectrum(Wave_Simulation_Params params){
+        m_Params = params;
+    }
+
     public float getAmplitudeScale(){ return m_Params.wave_amplitude;}
     public float waveDirectionVariance(){
         return m_Params.wind_dependency * 180f;

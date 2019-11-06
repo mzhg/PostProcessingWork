@@ -39,7 +39,7 @@ void main()
     float2 offset = _input.worldPos.xy - _TargetPointData.xy;
     float preferDist = length(offset);
     float preferWt = smoothstep(_TargetPointData.w, _TargetPointData.z, preferDist);
-    half2 preferredDir = preferWt * offset / preferDist;
+    float2 preferredDir = preferWt * offset / preferDist;
     float preferredDirX = preferredDir.x;
     float preferredDirZ = preferredDir.y;
 #endif

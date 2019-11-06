@@ -34,6 +34,8 @@ final class Wave_Gerstner_Batched implements Wave_Const{
     private boolean mDirectTowardsPoint = false;
 
     private float m_TotalTime;
+    private int m_DummyVAO;
+    private GLFuncProvider gl;
 
     // IMPORTANT - this mirrors the constant with the same name in ShapeGerstnerBatch.shader, both must be updated together!
     static final int BATCH_SIZE = 32;
@@ -52,16 +54,19 @@ final class Wave_Gerstner_Batched implements Wave_Const{
 
     void init(Wave_Simulation simulation, Wave_CDClipmap clipmap)
     {
+        gl = GLFuncProviderFactory.getGLFuncProvider();
+        m_DummyVAO = gl.glGenVertexArray();
         m_Clipmap = clipmap;
         m_Simulation = simulation;
         m_Params = m_Simulation.m_Params;
         m_TotalTime = 0;
         if (_spectrum == null)
         {
-            _spectrum = new Wave_Spectrum();
+            _spectrum = new Wave_Spectrum(m_Params);
         }
 
         InitBatches();
+
     }
 
     private void InitBatches()
@@ -70,7 +75,10 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         {
 //            _waveShader = Shader.Find("Crest/Inputs/Animated Waves/Gerstner Batch");
 //            Debug.Assert(_waveShader, "Could not load Gerstner wave shader, make sure it is packaged in the build.");
-            mGerstnerShader = ShaderManager.getInstance().getProgram("Crest/Inputs/Animated Waves/Gerstner Batch" + (m_Params.direct_towards_Point ? 0 : 1));
+            String shaderName = "Crest/Inputs/Animated Waves/Gerstner Batch" + (m_Params.direct_towards_Point ? 0 : 1);
+            mGerstnerShader = ShaderManager.getInstance().getProgram(shaderName);
+            mGerstnerShader.setName(shaderName);
+            mGerstnerShader.setStateEnabled(false);
         }
 
         _batches = new GerstnerBatch[MAX_LOD_COUNT];
@@ -80,7 +88,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         }
     }
 
-    void update(float deltaTime, Wave_Simulation_ShaderData shaderData)
+    void update(float deltaTime)
     {
         m_TotalTime += deltaTime * m_Params.time_scale;
 
@@ -91,7 +99,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
 
         ReportMaxDisplacement();
 
-        lateUpdate(shaderData);
+        lateUpdate();
     }
 
     private void UpdateWaveData() {
@@ -167,7 +175,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
      * @param lastComponentNonInc
      * @param batch
      */
-    private void UpdateBatch(int lodIdx, int firstComponent, int lastComponentNonInc, GerstnerBatch batch, Wave_Simulation_ShaderData shaderData)
+    private void UpdateBatch(int lodIdx, int firstComponent, int lastComponentNonInc, GerstnerBatch batch)
     {
         batch.Enabled = false;
 
@@ -197,24 +205,24 @@ final class Wave_Gerstner_Batched implements Wave_Const{
                     int vi = numInBatch / 4;
                     int ei = numInBatch - vi * 4;
 
-                    UpdateBatchScratchData._twoPiOverWavelengthsBatch[vi].set(ei, 2f * Numeric.PI / wl);
-                    UpdateBatchScratchData._ampsBatch[vi].set(ei, amp);
+                    UpdateBatchScratchData._twoPiOverWavelengthsBatch[vi].setValue(ei, 2f * Numeric.PI / wl);
+                    UpdateBatchScratchData._ampsBatch[vi].setValue(ei, amp);
 
                     float chopScale = _spectrum._chopScales[(firstComponent + i) / _componentsPerOctave];
-                    UpdateBatchScratchData._chopAmpsBatch[vi].set(ei, -chopScale * _spectrum._chop * amp);
+                    UpdateBatchScratchData._chopAmpsBatch[vi].setValue(ei, -chopScale * _spectrum._chop * amp);
 
                     double angle = Math.toRadians (windDirectionAngle() + _angleDegs[firstComponent + i]);
-                    UpdateBatchScratchData._waveDirXBatch[vi].set(ei, (float)Math.cos(angle));
-                    UpdateBatchScratchData._waveDirZBatch[vi].set(ei, (float)Math.sin(angle));
+                    UpdateBatchScratchData._waveDirXBatch[vi].setValue(ei, (float)Math.cos(angle));
+                    UpdateBatchScratchData._waveDirZBatch[vi].setValue(ei, (float)Math.sin(angle));
 
                     // It used to be this, but I'm pushing all the stuff that doesn't depend on position into the phase.
                     //half4 angle = k * (C * _CrestTime + x) + _Phases[vi];
                     float gravityScale = _spectrum._gravityScales[(firstComponent + i) / _componentsPerOctave];
-                    float gravity = OceanRenderer.Instance.Gravity() * /*_spectrum._gravityScale*/m_Params.gravityMultiplier;
+                    float gravity = 9.8f * /*_spectrum._gravityScale*/m_Params.gravityMultiplier;
                     float C = (float) Math.sqrt(wl * gravity * gravityScale * one_over_2pi);
                     float k = twopi / wl;
                     // Repeat every 2pi to keep angle bounded - helps precision on 16bit platforms
-                    UpdateBatchScratchData._phasesBatch[vi].set(ei, (_phases[firstComponent + i] + k * C * /*OceanRenderer.Instance.CurrentTime()*/ m_TotalTime) % (Numeric.PI * 2f));
+                    UpdateBatchScratchData._phasesBatch[vi].setValue(ei, (_phases[firstComponent + i] + k * C * /*OceanRenderer.Instance.CurrentTime()*/ m_TotalTime) % (Numeric.PI * 2f));
 
                     numInBatch++;
                 }
@@ -247,12 +255,12 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             {
                 for (int ei = ei_last; ei < 4; ei++)
                 {
-                    UpdateBatchScratchData._twoPiOverWavelengthsBatch[vi].set(ei, 1f); // wary of NaNs
-                    UpdateBatchScratchData._ampsBatch[vi].set(ei, 0);
-                    UpdateBatchScratchData._waveDirXBatch[vi].set(ei, 0);
-                    UpdateBatchScratchData._waveDirZBatch[vi].set(ei, 0);
-                    UpdateBatchScratchData._phasesBatch[vi].set(ei, 0);
-                    UpdateBatchScratchData._chopAmpsBatch[vi].set(ei, 0);
+                    UpdateBatchScratchData._twoPiOverWavelengthsBatch[vi].setValue(ei, 1f); // wary of NaNs
+                    UpdateBatchScratchData._ampsBatch[vi].setValue(ei, 0);
+                    UpdateBatchScratchData._waveDirXBatch[vi].setValue(ei, 0);
+                    UpdateBatchScratchData._waveDirZBatch[vi].setValue(ei, 0);
+                    UpdateBatchScratchData._phasesBatch[vi].setValue(ei, 0);
+                    UpdateBatchScratchData._chopAmpsBatch[vi].setValue(ei, 0);
                 }
 
                 ei_last = 0;
@@ -271,7 +279,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             mat.SetVectorArray(sp_ChopAmps, UpdateBatchScratchData._chopAmpsBatch);
             mat.SetFloat(sp_NumInBatch, numInBatch);
             mat.SetFloat(sp_AttenuationInShallows, OceanRenderer.Instance._simSettingsAnimatedWaves.AttenuationInShallows);*/
-
+            Wave_Simulation_ShaderData shaderData = batch.mShaderData;
             int numVecs = (numInBatch + 3) / 4;
             /*mat.SetInt(sp_NumWaveVecs, numVecs);
             mat.SetFloat(LodDataMgr.sp_LD_SliceIndex, lodIdx - i);
@@ -282,7 +290,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             shaderData._WaveDirX = UpdateBatchScratchData._waveDirXBatch;
             shaderData._WaveDirZ = UpdateBatchScratchData._waveDirZBatch;
             shaderData._Phases = UpdateBatchScratchData._phasesBatch;
-            shaderData._ChopAmps = UpdateBatchScratchData._phasesBatch;
+            shaderData._ChopAmps = UpdateBatchScratchData._chopAmpsBatch;
             shaderData._NumInBatch = numInBatch;
             shaderData._AttenuationInShallows = m_Params.attenuation_in_shallows;
             shaderData._NumWaveVecs = numVecs;
@@ -309,7 +317,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
      * 2, unfortunately), so i cant easily just loop over octaves. also any WLs that either go to the last WDC, or don't fit in the last
      *  WDC, are rendered into both the last and second-to-last WDCs, in order to transition them smoothly without pops in all scenarios.
      */
-    private void lateUpdate(Wave_Simulation_ShaderData shaderData)
+    private void lateUpdate()
     {
         int componentIdx = 0;
 
@@ -346,7 +354,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             // One or more wavelengths - update the batch
             if (componentIdx > startCompIdx)
             {
-                UpdateBatch(lodIdx, startCompIdx, componentIdx, _batches[batch], shaderData);
+                UpdateBatch(lodIdx, startCompIdx, componentIdx, _batches[batch]);
 
                 _batches[batch].Wavelength = minWl;
             }
@@ -684,18 +692,28 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         float Wavelength;
         boolean Enabled ;
 
+        private final Wave_Simulation_ShaderData mShaderData = new Wave_Simulation_ShaderData();
+
         @Override
         public void draw(float weight, boolean isTransition, Wave_Simulation_ShaderData shaderData) {
             if (Enabled && weight > 0f){
-                shaderData._Weight = weight;
-                mGerstnerShader.enable(shaderData);
+                mShaderData._Weight = weight;
+                mGerstnerShader.enable(mShaderData);
 
-                GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
-                gl.glBindVertexArray(0);
-                gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
-                gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+                gl.glDisable(GLenum.GL_CULL_FACE);
+                gl.glDisable(GLenum.GL_DEPTH_TEST);
+                gl.glEnable(GLenum.GL_BLEND);
+                gl.glBlendFunc(GLenum.GL_ONE, GLenum.GL_ONE);
+                gl.glBlendEquation(GLenum.GL_FUNC_ADD);
+                gl.glColorMask(true, true, true, true);
+                gl.glDisable(GLenum.GL_SCISSOR_TEST);
 
+                gl.glBindVertexArray(m_DummyVAO);
                 gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+                gl.glBindVertexArray(0);
+                mGerstnerShader.printOnce();
+
+                gl.glDisable(GLenum.GL_BLEND);
             }
         }
 

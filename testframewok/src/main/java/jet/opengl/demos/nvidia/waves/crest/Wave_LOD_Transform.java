@@ -5,6 +5,7 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Rectf;
 
 final class Wave_LOD_Transform {
@@ -34,7 +35,12 @@ final class Wave_LOD_Transform {
     RenderData[] _renderDataSource = null;
 
     private Vector4f[] _BindData_paramIdPosScales;
+    // Used in child
+    private Vector4f[] _BindData_paramIdOceans;
     private int lodCount;
+    private Wave_CDClipmap m_Clipmap;
+
+    Wave_LOD_Transform(Wave_CDClipmap clipmap) {m_Clipmap = clipmap;}
     public int LodCount() { return lodCount;}
 
     /*Matrix4f[] _worldToCameraMatrix;
@@ -49,6 +55,7 @@ final class Wave_LOD_Transform {
         _renderData = new RenderData[lodCount];
         _renderDataSource = new RenderData[lodCount];
         _BindData_paramIdPosScales = new Vector4f[lodCount];
+        _BindData_paramIdOceans = new Vector4f[lodCount];
 //        _worldToCameraMatrix = new Matrix4f[lodCount];
 //        _projectionMatrix = new Matrix4f[lodCount];
 
@@ -57,6 +64,7 @@ final class Wave_LOD_Transform {
             _renderData[i] = new RenderData();
             _renderDataSource[i] = new RenderData();
             _BindData_paramIdPosScales[i] = new Vector4f();
+            _BindData_paramIdOceans[i] = new Vector4f();
         }
     }
 
@@ -92,18 +100,28 @@ final class Wave_LOD_Transform {
             _BindData_paramIdPosScales[lodIdx].set(
                     _renderData[lodIdx]._posSnapped.x, _renderData[lodIdx]._posSnapped.z,
                     waveClipmap.calcLodScale(lodIdx), 0f);
-//            _BindData_paramIdOceans[lodIdx] = new Vector4(renderData[lodIdx]._texelWidth, renderData[lodIdx]._textureRes, 1f, 1f / renderData[lodIdx]._textureRes);
+            _BindData_paramIdOceans[lodIdx].set(_renderData[lodIdx]._texelWidth, _renderData[lodIdx]._textureRes, 1f, 1f / _renderData[lodIdx]._textureRes);
         }
     }
+
+    /*public void bindData(Wave_Simulation_ShaderData shaderData, boolean sourceLod){
+        if(sourceLod){
+            shaderData._LD_Pos_Scale_Source = _BindData_paramIdPosScales;
+            shaderData._LD_Params_Source = _BindData_paramIdOceans;
+        }else{
+            shaderData._LD_Pos_Scale = _BindData_paramIdPosScales;
+            shaderData._LD_Params = _BindData_paramIdOceans;
+        }
+    }*/
 
     public Vector4f[] getPosScales(){ return _BindData_paramIdPosScales;}
 
     public float MaxWavelength(int lodIdx)
     {
-        float oceanBaseScale = OceanRenderer.Instance.Scale;
+        float oceanBaseScale = m_Clipmap.getScale();
         float maxDiameter = (float) (4f * oceanBaseScale * Math.pow(2f, lodIdx));
-        float maxTexelSize = maxDiameter / OceanRenderer.Instance.LodDataResolution();
-        return 2f * maxTexelSize * OceanRenderer.Instance.MinTexelsPerWave;
+        float maxTexelSize = maxDiameter / m_Clipmap.getLodDataResolution();
+        return 2f * maxTexelSize * /*OceanRenderer.Instance.MinTexelsPerWave*/m_Clipmap.getMinTexelsPerWave();
     }
 
 

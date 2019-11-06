@@ -29,6 +29,7 @@ public class GLSLProgram implements OpenGLProgram{
 	private String m_name = getClass().getSimpleName();
 
 	private boolean m_computeProgram = false;
+	private boolean m_printOnce = false;
 
 	/**
 	 * Creates and returns a shader object from a array of #{@link ShaderSourceItem}.<br>
@@ -563,5 +564,12 @@ public class GLSLProgram implements OpenGLProgram{
 		GLSLProgram program = new GLSLProgram();
 		program.setSourceFromStrings(vs_item,tc_item, te_item, gs_item, ps_item);
 		return program;
+	}
+
+	public void printOnce(){
+		if(!m_printOnce){
+			m_printOnce = true;
+			printPrograminfo();
+		}
 	}
 }

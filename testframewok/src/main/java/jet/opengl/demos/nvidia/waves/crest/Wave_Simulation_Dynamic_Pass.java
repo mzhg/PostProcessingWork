@@ -120,8 +120,6 @@ final class Wave_Simulation_Dynamic_Pass extends Wave_Simulation_Persistent_Pass
 
     public long GetSimSubstepData(float frameDt/*, out int numSubsteps, out float substepDt*/)
     {
-        OceanRenderer ocean = OceanRenderer.Instance;
-
         // lod 0 will always be most demanding - wave speed is square root of wavelength, so waves will be fast relative to stability in
         // lowest lod, and slow relative to stability in largest lod.
         float maxDt = maxSimDt(0);

@@ -7,6 +7,7 @@ import org.lwjgl.util.vector.Matrix4f;
 
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
 
 public class Wave_Animation_Test extends NvSampleApp {
@@ -29,6 +30,10 @@ public class Wave_Animation_Test extends NvSampleApp {
         mCDClipmap = new Wave_CDClipmap();
         mCDClipmap.init(m_Clipmap_Params);
 
+        m_Simulation_Params.shape_combine_pass_pingpong = false;
+        mAnimation = new Wave_Simulation();
+        mAnimation.init(mCDClipmap, m_Simulation_Params);
+
         m_Renderer = new Wave_Renderer();
         m_Renderer.init(mCDClipmap, mAnimation);
 
@@ -45,10 +50,18 @@ public class Wave_Animation_Test extends NvSampleApp {
         gl.glClearDepthf(1);
         gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
 
-        m_transformer.getModelViewMat(mView);
+        GLStateTracker tracker = GLStateTracker.getInstance();
+        tracker.saveStates();
 
+        m_transformer.getModelViewMat(mView);
         mCDClipmap.updateWave(mView);
+        mAnimation.update(getFrameDeltaTime());
+
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
         m_Renderer.waveShading(mProj, mView, true);
+
+        tracker.restoreStates();
     }
 
     @Override

@@ -4,8 +4,10 @@ import org.lwjgl.util.vector.Vector4f;
 
 import java.util.ArrayList;
 
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.AttachType;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
@@ -48,20 +50,10 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
 //    public static int sp_LD_SliceIndex = 0; //Shader.PropertyToID("_LD_SliceIndex");
 //    protected static int sp_LODChange = 1; //Shader.PropertyToID("_LODChange");
 
-    // shape texture resolution
-    private int _shapeRes = -1;
-
     // ocean scale last frame - used to detect scale changes
     float _oceanLocalScalePrev = -1f;
 
     int ScaleDifferencePow2;
-
-    public Wave_Simulation_Pass() {
-        for (int i = 0; i < _BindData_paramIdPosScales.length; i++) {
-            _BindData_paramIdPosScales[i] = new Vector4f();
-            _BindData_paramIdOceans[i] = new Vector4f();
-        }
-    }
 
     void init(Wave_CDClipmap clipmap, Wave_Simulation simulation) {
         m_Clipmap = clipmap;
@@ -89,14 +81,12 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
 
     public void UpdateLodData() {
         int width = m_Clipmap.getLodDataResolution();
-        // debug functionality to resize RT if different size was specified.
-        if (_shapeRes == -1) {
-            _shapeRes = width;
-        } else if (width != _shapeRes) {
-            _targets.dispose();
-//            _targets.width = _targets.height = _shapeRes;
-//            _targets.Create();
-            Texture2DDesc desc = new Texture2DDesc(_shapeRes, _shapeRes, 1, _targets.getArraySize(), TextureFormat(), 1);
+
+        if (_targets == null || width != _targets.getWidth()) {
+            CommonUtil.safeRelease(_targets);
+
+            GLCheck.checkError();
+            Texture2DDesc desc = new Texture2DDesc(width, width, 1, m_Clipmap.m_LodTransform.LodCount(), TextureFormat(), 1);
             _targets = TextureUtils.createTexture2D(desc, null);
         }
 
@@ -123,6 +113,9 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
         m_AttachDesc.level = 0;
         m_AttachDesc.type = AttachType.TEXTURE_LAYER;
 
+        if(target.getTarget() == GLenum.GL_TEXTURE_2D)
+            throw new IllegalArgumentException("Invalid texture: Must be a Texture2DArray");
+
         m_FBO.bind();
         m_FBO.setRenderTexture(target, m_AttachDesc);
         gl.glViewport(0,0,target.getWidth(), target.getHeight());
@@ -135,7 +128,7 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
 
     protected void BindData(Wave_Simulation_ShaderData properties, TextureGL applyData, boolean blendOut, Wave_LOD_Transform.RenderData[] renderData, boolean sourceLod /*= false*/) {
         if (applyData != null) {
-            applySampler(m_ShaderData, sourceLod, applyData);
+            applySampler(properties, sourceLod, applyData);
         }
 
         // TODO The code below shoud move to the Wave_LOD_Transform class to avoid redunt invoking.
@@ -178,11 +171,6 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
     }
 
     protected final void SubmitDrawsFiltered(int lodIdx, Wave_DrawFilter filter) {
-        Wave_LOD_Transform lt = m_Clipmap.m_LodTransform;
-//        lt._renderData[lodIdx].Validate(0, this);
-
-//        lt.SetViewProjectionMatrices(lodIdx, buf);  todo
-
         for (Wave_LodData_Input draw : m_Inputs) {
             if (!draw.enabled()) {
                 continue;

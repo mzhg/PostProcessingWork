@@ -1,6 +1,8 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.postprocessing.common.GLenum;
@@ -10,6 +12,7 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.Rectf;
 
 final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
@@ -66,10 +69,11 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
         krnl_ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON = ShaderManager.getInstance().getProgram("ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON");
         krnl_ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE = ShaderManager.getInstance().getProgram("ShapeCombine_FLOW_ON_DYNAMIC_WAVE_SIM_ON_DISABLE_COMBINE");
 
-        int resolution = OceanRenderer.Instance.LodDataResolution();
+        int resolution = m_Clipmap.getLodDataResolution();
         Texture2DDesc desc = new Texture2DDesc(resolution, resolution, TextureFormat());
         _waveBuffers = CreateLodDataTextures(desc, "WaveBuffer");
 
+        desc.arraySize = 1;
         _combineBuffer = TextureUtils.createTexture2D(desc, null);
         _combineBuffer.setMagFilter(GLenum.GL_NEAREST);
         _combineBuffer.setMinFilter(GLenum.GL_NEAREST);
@@ -85,6 +89,7 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
         }*/
         final String materialName = String.format("Hidden/Crest/Simulation/Combine Animated Wave LODs%d%d", m_Simulation.m_Params.create_dynamic_wave?1:0,m_Simulation.m_Params.create_flow?1:0);
         _combineMaterial = ShaderManager.getInstance().getProgram(materialName);
+        _combineMaterial.setName("AnimCombinePass");
 
         try {
             _copyBack = new PostProcessingDefaultProgram();
@@ -113,26 +118,29 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
     {
         super.BuildCommandBuffer(deltaTime);
 
-        _gerstnerBatched.update(deltaTime, m_ShaderData);
+        _gerstnerBatched.update(deltaTime);
 
-        int lodCount = m_Clipmap.m_LodTransform.LodCount();
+        final int lodCount = m_Clipmap.m_LodTransform.LodCount();
 
         // lod-dependent data
         _filterWavelength._lodCount = lodCount;
+        gl.glClearTexImage(_waveBuffers.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
+        gl.glClearTexImage(_targets.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
         for (int lodIdx = lodCount - 1; lodIdx >= 0; lodIdx--)
         {
 //            buf.SetRenderTarget(_waveBuffers, 0, CubemapFace.Unknown, lodIdx);
 //            buf.ClearRenderTarget(false, true, new Color(0f, 0f, 0f, 0f));
             setRenderTarget(_waveBuffers, lodIdx);
-            gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0f,0f,0f,0f));
 
             // draw any data with lod preference
             _filterWavelength._lodIdx = lodIdx;
             _filterWavelength._lodMaxWavelength = m_Clipmap.m_LodTransform.MaxWavelength(lodIdx);
             _filterWavelength._lodMinWavelength = _filterWavelength._lodMaxWavelength / 2f;
-            _filterWavelength._globalMaxWavelength = m_Clipmap.m_LodTransform.MaxWavelength(OceanRenderer.Instance.CurrentLodCount() - 1);
+            _filterWavelength._globalMaxWavelength = m_Clipmap.m_LodTransform.MaxWavelength(lodCount - 1);
             SubmitDrawsFiltered(lodIdx, _filterWavelength);
         }
+
+        saveTextur(_waveBuffers, "WaveBuffer.txt");
 
         // Combine the LODs - copy results from biggest LOD down to LOD 0
         if (m_Simulation.m_Params.shape_combine_pass_pingpong)
@@ -153,12 +161,15 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             // draw any data that did not express a preference for one lod or another
             SubmitDrawsFiltered(lodIdx, _filterNoLodPreference);
         }
+
+        saveTextur(_targets, "AnimWave.txt");
     }
 
     void CombinePassPingPong()
     {
         int lodCount = m_Clipmap.m_LodTransform.LodCount();
-
+        gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glDisable(GLenum.GL_BLEND);
         // combine waves
         for (int lodIdx = lodCount - 1; lodIdx >= 0; lodIdx--)
         {
@@ -213,15 +224,15 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             /*buf.SetRenderTarget(_targets, 0, CubemapFace.Unknown, lodIdx);
             _combineMaterial[lodIdx].SetTexture(Shader.PropertyToID("_CombineBuffer"), _combineBuffer);
             buf.DrawProcedural(Matrix4x4.identity, _combineMaterial[lodIdx].material, shaderPassCopyResultBack, MeshTopology.Triangles, 3);*/
+            _combineMaterial.printOnce();
 
             setRenderTarget(_targets, lodIdx);
             /*m_ShaderData._CombineBuffer = _combineBuffer;
             _combineMaterial.enable(m_ShaderData);*/
-            gl.glActiveTexture(GLenum.GL_TEXTURE0);
-            gl.glBindTexture(_combineBuffer.getTarget(), _combineBuffer.getTexture());
+            gl.glBindTextureUnit(0,_combineBuffer.getTexture());
+            gl.glBindSampler(0,0);
             _copyBack.enable();
 
-            gl.glDisable(GLenum.GL_CULL_FACE);
             gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         }
     }
@@ -233,8 +244,8 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
         Technique combineShaderKernel = krnl_ShapeCombine;
         Technique combineShaderKernel_lastLOD = krnl_ShapeCombine_DISABLE_COMBINE;
         {
-            boolean isFlowOn = OceanRenderer.Instance._lodDataFlow != null;
-            boolean isDynWavesOn = OceanRenderer.Instance._lodDataDynWaves != null;
+            boolean isFlowOn = m_Simulation._lodDataFlow != null;
+            boolean isDynWavesOn = m_Simulation._lodDataDynWaves != null;
             // set the shader kernels that we will use.
             if (isFlowOn && isDynWavesOn)
             {
@@ -310,6 +321,9 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
                     m_Clipmap.m_LodTransform.LodCount() / THREAD_GROUP_SIZE_Y,
                     1
             );
+
+            selectedShaderKernel.setName("Combine Compute");
+            selectedShaderKernel.printOnce();
         }
     }
 
@@ -326,11 +340,11 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
 
         Wave_LOD_Transform lt = m_Clipmap.m_LodTransform;
 
-        for (int lodIdx = 0; lodIdx < OceanRenderer.Instance.CurrentLodCount(); lodIdx++)
+        for (int lodIdx = 0; lodIdx < m_Clipmap.m_LodTransform.LodCount(); lodIdx++)
         {
             // need to blend out shape if this is the largest lod, and the ocean might get scaled down later (so the largest lod will disappear)
-            boolean needToBlendOutShape = lodIdx == OceanRenderer.Instance.CurrentLodCount() - 1 && OceanRenderer.Instance.ScaleCouldDecrease() && blendOut;
-            float shapeWeight = needToBlendOutShape ? OceanRenderer.Instance.ViewerAltitudeLevelAlpha : 1f;
+            boolean needToBlendOutShape = lodIdx == m_Clipmap.m_LodTransform.LodCount() - 1 && m_Clipmap.scaleCouldDecrease() && blendOut;
+            float shapeWeight = needToBlendOutShape ? m_Clipmap.getViewerAltitudeLevelAlpha() : 1f;
             _BindData_paramIdOceans[lodIdx].set(
                     lt._renderData[lodIdx]._texelWidth,
                     lt._renderData[lodIdx]._textureRes, shapeWeight,
@@ -404,6 +418,20 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             properties._LD_TexArray_AnimatedWaves_Source = applyData;
         }else{
             properties._LD_TexArray_AnimatedWaves = applyData;
+        }
+    }
+
+    private static final HashSet<String> gSavedTextures = new HashSet<>();
+    static void saveTextur(TextureGL tex, String filename){
+        filename = "E:/textures/crest/" +filename;
+        if(!gSavedTextures.contains(filename)){
+            try {
+                DebugTools.saveTextureAsText(tex.getTarget(),tex.getTexture(), 0, filename);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            gSavedTextures.add(filename);
         }
     }
 }

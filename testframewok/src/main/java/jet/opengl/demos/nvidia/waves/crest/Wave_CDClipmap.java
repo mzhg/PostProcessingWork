@@ -25,7 +25,7 @@ import jet.opengl.postprocessing.util.StackInt;
 public class Wave_CDClipmap {
 
     private final Wave_CDClipmap_Params m_Params = new Wave_CDClipmap_Params();
-    final Wave_LOD_Transform m_LodTransform = new Wave_LOD_Transform();
+    Wave_LOD_Transform m_LodTransform;
     private final ArrayList<CDClipmapNode> m_QuadNodes = new ArrayList<>();
 
     private final Vector3f m_EyePos = new Vector3f();
@@ -43,7 +43,7 @@ public class Wave_CDClipmap {
 
     public void init(Wave_CDClipmap_Params params){
         m_Params.set(params);
-
+        m_LodTransform = new Wave_LOD_Transform(this);
         validParams();
         generateMesh();
     }
@@ -77,6 +77,7 @@ public class Wave_CDClipmap {
     }
 
     public int getLodDataResolution() { return m_Params.lodDataResolution;}
+    public float getMinTexelsPerWave() { return m_Params.minTexelsPerWave;}
 
     private void generateMesh(){
         // 4 tiles across a LOD, and support lowering density by a factor
@@ -412,6 +413,10 @@ public class Wave_CDClipmap {
 
     public void updateWave(Matrix4f cameraView) {
 
+        m_MaxHorizDispFromShape = 0;
+        m_MaxVertDispFromShape = 0;
+        m_MaxVertDispFromWaves = 0;
+
         if (m_Params.followViewpoint)
         {
             lateUpdatePosition(cameraView);
@@ -458,7 +463,7 @@ public class Wave_CDClipmap {
 
     public float getViewerHeightAboveWater(){ return viewerHeightAboveWater;}
 
-    void LateUpdateLods()
+    private void LateUpdateLods()
     {
         // Do any per-frame update for each LOD type.
         m_LodTransform.updateTransforms(m_Params.lodDataResolution, this, m_EyePos, m_Params.sea_level);
@@ -519,7 +524,7 @@ public class Wave_CDClipmap {
 
     void getData(Wave_Shading_ShaderData shaderData, Matrix4f clipmapTransform){
         shaderData._OceanCenterPosWorld.set(m_EyePos.x, m_Params.sea_level, m_EyePos.z);
-        shaderData._LD_Pos_Scale = m_LodTransform.getPosScales();
+//        m_LodTransform.bindData(shaderData, false);
 
         getGloaltoWorldTransform(clipmapTransform);
     }

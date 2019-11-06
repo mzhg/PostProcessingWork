@@ -14,8 +14,6 @@ public class Wave_Renderer {
     private Wave_CDClipmap m_Clipmap;
     private Wave_Simulation m_Simulation;
 
-    private boolean m_printOnce;
-
     private Technique m_ShadingShader;
 
     public void init(Wave_CDClipmap clipmap, Wave_Simulation simulation){
@@ -50,7 +48,7 @@ public class Wave_Renderer {
         m_Clipmap.getData(m_ShaderData, clipmapTransform);
         int nodeCount = m_Clipmap.getNodeCount();
         for(int i = 0; i < nodeCount; i++){
-            m_Clipmap.getNodeInfo(i, null, m_ShaderData, nodeTransform);
+            m_Clipmap.getNodeInfo(i, m_Simulation, m_ShaderData, nodeTransform);
             Matrix4f.mul(clipmapTransform, nodeTransform, m_ShaderData.unity_ObjectToWorld);
 
             m_ShadingShader.enable(m_ShaderData);
@@ -64,9 +62,11 @@ public class Wave_Renderer {
         CacheBuffer.free(clipmapTransform);
         CacheBuffer.free(nodeTransform);
 
-        if(!m_printOnce){
-            m_ShadingShader.printPrograminfo();
-            m_printOnce = true;
-        }
+        if(frameCount == 300)
+        m_ShadingShader.printOnce();
+
+        frameCount++;
     }
+
+    private int frameCount = 0;
 }

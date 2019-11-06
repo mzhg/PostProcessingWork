@@ -10,9 +10,9 @@ import jet.opengl.postprocessing.common.GLenum;
 
 public class Wave_Simulation_Params {
     /** Global scale factor for simulated wave amplitude*/
-    public float wave_amplitude;
+    public float wave_amplitude = 1;
     /** The direction of the wind inducing the waves. x along the x-axis, y along the z-axis in the right hand coordinate */
-    public final Vector2f wind_dir=new Vector2f();
+    public final Vector2f wind_dir=new Vector2f(0.8f, 0.6f);
     /**The speed of the wind inducing the waves. If GFSDK_WaveWorks_Simulation_Settings.UseBeaufortScale is set, this is
      interpreted as a Beaufort scale value. Otherwise, it is interpreted as metres per second*/
     public float wind_speed = 10;

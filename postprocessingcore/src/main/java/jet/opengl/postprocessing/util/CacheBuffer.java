@@ -520,6 +520,20 @@ public class CacheBuffer {
 		buffer.flip();
 		return buffer;
 	}
+
+	public static FloatBuffer wrapNotNull(ReadableVector4f[] vec){
+		int size = vec.length;
+		FloatBuffer buffer = getCachedFloatBuffer(size * 4);
+		for(int i = 0; i < size; i++){
+			if(vec[i] != null)
+				vec[i].store(buffer);
+			else
+				buffer.put(0).put(0).put(0).put(0);
+		}
+
+		buffer.flip();
+		return buffer;
+	}
 	
 	public static ByteBuffer wrap(Buffer buf){
 		if(buf == null){
