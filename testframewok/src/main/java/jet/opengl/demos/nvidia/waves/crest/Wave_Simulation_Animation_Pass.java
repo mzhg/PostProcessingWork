@@ -1,7 +1,6 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
@@ -11,7 +10,6 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
-import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.Rectf;
 
@@ -41,6 +39,12 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
     private FilterNoLodPreference _filterNoLodPreference = new FilterNoLodPreference();
 
     private Wave_Gerstner_Batched _gerstnerBatched;
+
+    private Wave_Demo_Animation _animType;
+
+    public Wave_Simulation_Animation_Pass(Wave_Demo_Animation animType){
+        _animType = animType;
+    }
 
     protected void InitData()
     {
@@ -98,7 +102,7 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
         }
 
         _gerstnerBatched = new Wave_Gerstner_Batched();
-        _gerstnerBatched.init(m_Simulation, m_Clipmap);
+        _gerstnerBatched.init(m_Simulation, m_Clipmap, _animType);
 
         for(Wave_LodData_Input input : _gerstnerBatched.getBatches()){
             addLodDataInput(input);
@@ -352,9 +356,9 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
         }
 //        properties.SetVectorArray(LodTransform.ParamIdOcean(sourceLod), _BindData_paramIdOceans);
         if(sourceLod){
-            properties._LD_Params_Source = _BindData_paramIdOceans;
+            properties._LD_Params_Source = Wave_Gerstner_Batched.copyArray(_BindData_paramIdOceans, properties._LD_Params_Source);
         }else{
-            properties._LD_Params = _BindData_paramIdOceans;
+            properties._LD_Params = Wave_Gerstner_Batched.copyArray(_BindData_paramIdOceans, properties._LD_Params);
         }
     }
 

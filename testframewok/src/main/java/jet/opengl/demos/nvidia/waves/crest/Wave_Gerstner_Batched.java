@@ -52,7 +52,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         public static Vector4f[] _chopAmpsBatch = CommonUtil.initArray(new Vector4f[BATCH_SIZE / 4]);
     }
 
-    void init(Wave_Simulation simulation, Wave_CDClipmap clipmap)
+    void init(Wave_Simulation simulation, Wave_CDClipmap clipmap, Wave_Demo_Animation animation)
     {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         m_DummyVAO = gl.glGenVertexArray();
@@ -62,11 +62,10 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         m_TotalTime = 0;
         if (_spectrum == null)
         {
-            _spectrum = new Wave_Spectrum(m_Params);
+            _spectrum = new Wave_Spectrum(m_Params, animation);
         }
 
         InitBatches();
-
     }
 
     private void InitBatches()
@@ -222,7 +221,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
                     float C = (float) Math.sqrt(wl * gravity * gravityScale * one_over_2pi);
                     float k = twopi / wl;
                     // Repeat every 2pi to keep angle bounded - helps precision on 16bit platforms
-                    UpdateBatchScratchData._phasesBatch[vi].setValue(ei, (_phases[firstComponent + i] + k * C * /*OceanRenderer.Instance.CurrentTime()*/ m_TotalTime) % (Numeric.PI * 2f));
+                    UpdateBatchScratchData._phasesBatch[vi].setValue(ei, Numeric.fmod(_phases[firstComponent + i] + k * C * /*OceanRenderer.Instance.CurrentTime()*/ m_TotalTime, Numeric.PI * 2f));
 
                     numInBatch++;
                 }
@@ -285,12 +284,12 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             mat.SetFloat(LodDataMgr.sp_LD_SliceIndex, lodIdx - i);
             OceanRenderer.Instance._lodDataAnimWaves.BindResultData(mat);*/
 
-            shaderData._TwoPiOverWavelengths = UpdateBatchScratchData._twoPiOverWavelengthsBatch;
-            shaderData._Amplitudes = UpdateBatchScratchData._ampsBatch;
-            shaderData._WaveDirX = UpdateBatchScratchData._waveDirXBatch;
-            shaderData._WaveDirZ = UpdateBatchScratchData._waveDirZBatch;
-            shaderData._Phases = UpdateBatchScratchData._phasesBatch;
-            shaderData._ChopAmps = UpdateBatchScratchData._chopAmpsBatch;
+            shaderData._TwoPiOverWavelengths = copyArray(UpdateBatchScratchData._twoPiOverWavelengthsBatch, shaderData._TwoPiOverWavelengths);
+            shaderData._Amplitudes = copyArray(UpdateBatchScratchData._ampsBatch, shaderData._Amplitudes);
+            shaderData._WaveDirX = copyArray(UpdateBatchScratchData._waveDirXBatch, shaderData._WaveDirX);
+            shaderData._WaveDirZ = copyArray(UpdateBatchScratchData._waveDirZBatch, shaderData._WaveDirZ);
+            shaderData._Phases = copyArray(UpdateBatchScratchData._phasesBatch, shaderData._Phases);
+            shaderData._ChopAmps = copyArray(UpdateBatchScratchData._chopAmpsBatch, shaderData._ChopAmps);
             shaderData._NumInBatch = numInBatch;
             shaderData._AttenuationInShallows = m_Params.attenuation_in_shallows;
             shaderData._NumWaveVecs = numVecs;
@@ -309,6 +308,18 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         }
 
         batch.Enabled = true;
+    }
+
+    static final Vector4f[] copyArray(Vector4f[] src, Vector4f[] dest){
+        if(dest == null){
+            dest = CommonUtil.initArray(new Vector4f[src.length]);
+        }
+
+        for(int i = 0; i < src.length; i++){
+            dest[i].set(src[i]);
+        }
+
+        return dest;
     }
 
     /**
@@ -678,13 +689,13 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         for (int i = 0; i < _phases.length; i++)
         {
 //            var direction = new Vector3(Mathf.Cos((windAngle + _angleDegs[i]) * Mathf.Deg2Rad), 0f, Mathf.Sin((windAngle + _angleDegs[i]) * Mathf.Deg2Rad));
-            float directionZ = (float) Math.cos(Math.toRadians(windAngle + _angleDegs[i]));
-            float directionX = (float) Math.sin(Math.toRadians(windAngle + _angleDegs[i]));
+            float directionZ = (float) Math.sin(Math.toRadians(windAngle + _angleDegs[i]));
+            float directionX = (float) Math.cos(Math.toRadians(windAngle + _angleDegs[i]));
             float phaseOffsetMeters = Vector3f.dot(newOrigin, directionX,0,directionZ);
 
             // wave number
             float k = 2f * Numeric.PI / _wavelengths[i];
-            _phases[i] = (_phases[i] + phaseOffsetMeters * k) % (Numeric.PI * 2f);
+            _phases[i] = Numeric.fmod (_phases[i] + phaseOffsetMeters * k, Numeric.PI * 2f);
         }
     }
 

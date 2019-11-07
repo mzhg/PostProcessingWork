@@ -3,6 +3,8 @@ package jet.opengl.demos.nvidia.waves.crest;
 import org.lwjgl.util.vector.ReadableVector2f;
 import org.lwjgl.util.vector.Vector2f;
 
+import java.util.Arrays;
+
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 
@@ -33,8 +35,31 @@ final class Wave_Spectrum {
 
     private Wave_Simulation_Params m_Params;
 
-    Wave_Spectrum(Wave_Simulation_Params params){
+    Wave_Spectrum(Wave_Simulation_Params params, Wave_Demo_Animation animation){
         m_Params = params;
+
+        switch (animation){
+            case Calm:
+                setWaveCalm(false, false, false);
+                break;
+            case  BoatScene:
+                setWaveBoatScene(false, false, false);
+                break;
+            case Dead:
+                setWaveDead(false, false, false);
+                break;
+            case Moderate:
+                setWaveModerate(false, false, false);
+                break;
+            case ModerateSmooth:
+                setWaveModerateSmooth(false, false, false);
+                break;
+            case Whirlpool:
+                setWaveWhirlpool(false, false, false);
+                break;
+            default:
+                throw new IllegalArgumentException("Unkown animation type:" + animation);
+        }
     }
 
     public float getAmplitudeScale(){ return m_Params.wave_amplitude;}
@@ -252,5 +277,277 @@ final class Wave_Spectrum {
         double gamma = 3.3f;
 
         return (float) (PiersonMoskowitzSpectrum(gravity, windspeed, frequency_peak, alpha, wavelength) * Math.pow(gamma, r));
+    }
+
+    void setWaveBoatScene(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
+        m_Params.wind_dependency = 0.5f;
+        m_Params.gravityMultiplier = 1;
+        m_Params.wave_amplitude = 1;
+
+        _powerLog[0] =-5.743933f;
+        _powerLog[1] =-5.141876f;
+        _powerLog[2] =-4.539827f;
+        _powerLog[3] =-3.937812f;
+        _powerLog[4] =-3.33593f;
+        _powerLog[5] =-2.734585f;
+        _powerLog[6] =-2.135383f;
+        _powerLog[7] =-1.544757f;
+        _powerLog[8] =-0.988432f;
+        _powerLog[9] =-0.569311f;
+        _powerLog[10] =-0.699007f;
+        _powerLog[11] =-3.023971f;
+        _powerLog[12] =-6;
+        _powerLog[13] =-6;
+
+        for(int i = 0; i < 14; i++){
+            _powerDisabled[i] = !(i < 10);
+        }
+
+        _chop = 1.69f;
+
+        Arrays.fill(_chopScales, 1);
+        Arrays.fill(_gravityScales, 1);
+        _gravityScales[10] = 1.5f;
+
+        m_Params.wind_speed = 36/3.6f;
+        float _smallWavelengthMultiplier = 1;
+
+        if (applyPhillipsSpectrum)
+        {
+            ApplyPhillipsSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        if (applyPiersonMoskowitzSpectrum)
+        {
+            ApplyPiersonMoskowitzSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+//        spec._fetch = EditorGUILayout.Slider(s_labelFetch, spec._fetch, 0f, 1000000f);
+        m_Params.fetch =500_000f;
+        if (applyJONSWAPSpectrum)
+        {
+            ApplyJONSWAPSpectrum(m_Params.wind_speed, m_Params.fetch, _smallWavelengthMultiplier);
+        }
+    }
+
+    void setWaveCalm(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
+        m_Params.wind_dependency = 56f/180f;
+        m_Params.gravityMultiplier = 3.1f;
+        m_Params.wave_amplitude = 1;
+
+        _powerLog[0] =-5.207515f;
+        _powerLog[1] =-4.455008f;
+        _powerLog[2] =-3.702701f;
+        _powerLog[3] =-2.9512f;
+        _powerLog[4] =-2.202921f;
+        _powerLog[5] =-1.467531f;
+        _powerLog[6] =-0.783695f;
+        _powerLog[7] =-0.3060761f;
+        _powerLog[8] =-0.6533254f;
+        _powerLog[9] =-4.300048f;
+        _powerLog[10] =-6;
+        _powerLog[11] =-6;
+        _powerLog[12] =-6;
+        _powerLog[13] =-6;
+
+        Arrays.fill(_powerDisabled, false);
+
+        _chop = 1.245f;
+
+        Arrays.fill(_chopScales, 1);
+        Arrays.fill(_gravityScales, 1);
+        _chopScales[0] = 0.85f;
+
+        m_Params.wind_speed = 36/3.6f;
+        float _smallWavelengthMultiplier = 1;
+
+        if (applyPhillipsSpectrum)
+        {
+            ApplyPhillipsSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        if (applyPiersonMoskowitzSpectrum)
+        {
+            ApplyPiersonMoskowitzSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        m_Params.fetch =500_000f;
+        if (applyJONSWAPSpectrum)
+        {
+            ApplyJONSWAPSpectrum(m_Params.wind_speed, m_Params.fetch, _smallWavelengthMultiplier);
+        }
+    }
+
+    void setWaveDead(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
+        m_Params.wind_dependency = 56f/180f;
+        m_Params.gravityMultiplier = 1f;
+        m_Params.wave_amplitude = 1;
+
+        Arrays.fill(_powerDisabled, true);
+
+        _chop = 1.f;
+
+        Arrays.fill(_chopScales, 1);
+        Arrays.fill(_gravityScales, 1);
+
+        m_Params.wind_speed = 36/3.6f;
+        float _smallWavelengthMultiplier = 1;
+
+        if (applyPhillipsSpectrum)
+        {
+            ApplyPhillipsSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        if (applyPiersonMoskowitzSpectrum)
+        {
+            ApplyPiersonMoskowitzSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        m_Params.fetch =385_738f;
+        if (applyJONSWAPSpectrum)
+        {
+            ApplyJONSWAPSpectrum(m_Params.wind_speed, m_Params.fetch, _smallWavelengthMultiplier);
+        }
+    }
+
+    void setWaveModerate(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
+        m_Params.wind_dependency = 90f/180f;
+        m_Params.gravityMultiplier = 1f;
+        m_Params.wave_amplitude = 1;
+
+        _powerLog[0] =-5.743932f;
+        _powerLog[1] =-5.141873f;
+        _powerLog[2] =-4.539814f;
+        _powerLog[3] =-3.93776f;
+        _powerLog[4] =-3.335723f;
+        _powerLog[5] =-2.733756f;
+        _powerLog[6] =-2.132066f;
+        _powerLog[7] =-1.531488f;
+        _powerLog[8] =-0.9353552f;
+        _powerLog[9] =-0.3570041f;
+        _powerLog[10] =0.1502203f;
+        _powerLog[11] =0.3729381f;
+        _powerLog[12] =-0.5423706f;
+        _powerLog[13] =-6;
+
+        Arrays.fill(_powerDisabled, false);
+
+        _chop = 1.54f;
+
+        Arrays.fill(_chopScales, 1);
+        Arrays.fill(_gravityScales, 1);
+
+        m_Params.wind_speed = 60/3.6f;
+        float _smallWavelengthMultiplier = 1;
+
+        if (applyPhillipsSpectrum)
+        {
+            ApplyPhillipsSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        if (applyPiersonMoskowitzSpectrum)
+        {
+            ApplyPiersonMoskowitzSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        m_Params.fetch =1_000_000f;
+        if (applyJONSWAPSpectrum)
+        {
+            ApplyJONSWAPSpectrum(m_Params.wind_speed, m_Params.fetch, _smallWavelengthMultiplier);
+        }
+    }
+
+    void setWaveModerateSmooth(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
+        m_Params.wind_dependency = 90f/180f;
+        m_Params.gravityMultiplier = 1f;
+        m_Params.wave_amplitude = 1;
+
+        _powerLog[0] =-6;
+        _powerLog[1] =-6;
+        _powerLog[2] =-6;
+        _powerLog[3] =-4.904258f;
+        _powerLog[4] =-4.593173f;
+        _powerLog[5] =-3.343004f;
+        _powerLog[6] =-3.166065f;
+        _powerLog[7] =-3.090722f;
+        _powerLog[8] =-1.50334f;
+        _powerLog[9] =0.2974477f;
+        _powerLog[10] =0.5362735f;
+        _powerLog[11] =1.028262f;
+        _powerLog[12] =2.790329f;
+        _powerLog[13] =3;
+
+        Arrays.fill(_powerDisabled, false);
+
+        _chop = 1;
+
+        Arrays.fill(_chopScales, 1);
+        Arrays.fill(_gravityScales, 1);
+
+        m_Params.wind_speed = 36/3.6f;
+        float _smallWavelengthMultiplier = 1;
+
+        if (applyPhillipsSpectrum)
+        {
+            ApplyPhillipsSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        if (applyPiersonMoskowitzSpectrum)
+        {
+            ApplyPiersonMoskowitzSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        m_Params.fetch =500000;
+        if (applyJONSWAPSpectrum)
+        {
+            ApplyJONSWAPSpectrum(m_Params.wind_speed, m_Params.fetch, _smallWavelengthMultiplier);
+        }
+    }
+
+    void setWaveWhirlpool(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
+        m_Params.wind_dependency = 90f/180f;
+        m_Params.gravityMultiplier = 1f;
+        m_Params.wave_amplitude = 1;
+
+        _powerLog[0] =-5.207943f;
+        _powerLog[1] =-4.456718f;
+        _powerLog[2] =-3.709543f;
+        _powerLog[3] =-2.978567f;
+        _powerLog[4] =-2.312389f;
+        _powerLog[5] =-1.905401f;
+        _powerLog[6] =-2.535175f;
+        _powerLog[7] =-6;
+        _powerLog[8] =-6;
+        _powerLog[9] =-6;
+        _powerLog[10] =-6;
+        _powerLog[11] =-6;
+        _powerLog[12] =-6;
+        _powerLog[13] =-6;
+
+        Arrays.fill(_powerDisabled, false);
+
+        _chop = 1.5f;
+
+        Arrays.fill(_chopScales, 1);
+        Arrays.fill(_gravityScales, 1);
+
+        m_Params.wind_speed = 17/3.6f;
+        float _smallWavelengthMultiplier = 1;
+
+        if (applyPhillipsSpectrum)
+        {
+            ApplyPhillipsSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        if (applyPiersonMoskowitzSpectrum)
+        {
+            ApplyPiersonMoskowitzSpectrum(m_Params.wind_speed, _smallWavelengthMultiplier);
+        }
+
+        m_Params.fetch =500000;
+        if (applyJONSWAPSpectrum)
+        {
+            ApplyJONSWAPSpectrum(m_Params.wind_speed, m_Params.fetch, _smallWavelengthMultiplier);
+        }
     }
 }

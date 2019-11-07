@@ -11,11 +11,11 @@ public class Wave_Simulation {
     Wave_Simulation_Foam_Pass _lodDataFoam;
     Wave_Simulation_Shadow_Pass _lodDataShadow;
 
-    public void init(Wave_CDClipmap clipmap, Wave_Simulation_Params params){
+    public void init(Wave_CDClipmap clipmap, Wave_Simulation_Params params, Wave_Demo_Animation animation){
         m_Params.set(params);
 
         // Create the LOD data managers
-        _lodDataAnimWaves = new Wave_Simulation_Animation_Pass();
+        _lodDataAnimWaves = new Wave_Simulation_Animation_Pass(animation);
         _lodDataAnimWaves.init(clipmap, this);
         if (m_Params.create_dynamic_wave) {
             _lodDataDynWaves = new Wave_Simulation_Dynamic_Pass();

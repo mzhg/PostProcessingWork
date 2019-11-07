@@ -161,7 +161,10 @@ void main()
     OutColor = float4(col, 1.);
 
     #if _WIREFRAME_ONE
-    OutColor = float4(1,1,1,1.);
+    float height = _input.worldPos.y;
+    float r = smoothstep(0.0, 1.0, height/10.6f);
+//    float r = 1;
+    OutColor = float4(r,r,r,1.);
     #endif
 }
 

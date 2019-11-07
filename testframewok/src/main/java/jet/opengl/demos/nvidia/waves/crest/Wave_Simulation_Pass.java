@@ -150,8 +150,8 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
             properties._LD_Pos_Scale_Source = _BindData_paramIdPosScales;
             properties._LD_Params_Source = _BindData_paramIdOceans;
         }else{
-            properties._LD_Pos_Scale = _BindData_paramIdPosScales;
-            properties._LD_Params = _BindData_paramIdOceans;
+            properties._LD_Pos_Scale = Wave_Gerstner_Batched.copyArray(_BindData_paramIdPosScales, properties._LD_Pos_Scale);
+            properties._LD_Params = Wave_Gerstner_Batched.copyArray(_BindData_paramIdOceans, properties._LD_Params_Source);
         }
     }
 

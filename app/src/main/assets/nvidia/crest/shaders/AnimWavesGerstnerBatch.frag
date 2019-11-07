@@ -14,7 +14,7 @@ layout(location = 0) out float4 OutColor;
 
 uniform float _Weight;
 uniform float _AttenuationInShallows;
-uniform uint _NumWaveVecs;
+uniform int _NumWaveVecs;
 
 uniform float4 _TwoPiOverWavelengths[BATCH_SIZE / 4];
 uniform float4 _Amplitudes[BATCH_SIZE / 4];
@@ -57,7 +57,7 @@ void main()
     float4 wt = float4(_AttenuationInShallows * depth_wt + oneMinusAttenuation);
 
     // gerstner computation is vectorized - processes 4 wave components at once
-    for (uint vi = 0; vi < _NumWaveVecs; vi++)
+    for (int vi = 0; vi < _NumWaveVecs; vi++)
     {
         // direction
         float4 Dx = _WaveDirX[vi];

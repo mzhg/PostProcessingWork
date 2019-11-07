@@ -7,10 +7,6 @@
 #define PI 3.141593
 #endif
 
-uniform float _Weight;
-uniform float _AttenuationInShallows;
-uniform uint _NumWaveVecs;
-
 uniform float4 _TargetPointData;
 
 out Varyings

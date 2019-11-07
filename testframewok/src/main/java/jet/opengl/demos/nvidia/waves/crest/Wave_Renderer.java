@@ -25,7 +25,14 @@ public class Wave_Renderer {
         m_Desc.debugWireframe = wireframe;
 
         GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        gl.glClearColor(1,0,0,0);
+        gl.glClearDepthf(1);
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
+
         gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glDepthFunc(GLenum.GL_LESS);
+        gl.glDepthMask(true);
         gl.glDisable(GLenum.GL_CULL_FACE);
         gl.glDisable(GLenum.GL_BLEND);
 
@@ -37,7 +44,7 @@ public class Wave_Renderer {
 //        m_ShadingShader.getBlend().blendEnable = false;
         m_ShadingShader.setStateEnabled(false);
         if(wireframe){
-            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
+//            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
         }
 
         final Matrix4f clipmapTransform = CacheBuffer.getCachedMatrix();
@@ -56,7 +63,7 @@ public class Wave_Renderer {
         }
 
         if(wireframe){
-            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+//            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
         }
 
         CacheBuffer.free(clipmapTransform);

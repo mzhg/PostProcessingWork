@@ -18,7 +18,7 @@ public class Wave_Simulation_Params {
     public float wind_speed = 10;
 
     /** Length of area that wind excites waves. Applies only to JONSWAP*/
-    public float fetch = 500000f;
+    public float fetch = 500_000f;
 
     /** waveDirectionVariance.<p> The degree to which waves appear to move in the wind direction (vs. standing waves), in the [0,1] range */
     public float wind_dependency = 0.5f;

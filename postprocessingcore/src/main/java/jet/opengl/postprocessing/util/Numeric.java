@@ -1061,4 +1061,8 @@ public final class Numeric {
 
 		return ((val + alignment - 1) & ~(alignment - 1));
 	}
+
+	public static float fmod(float t, float length){
+		return (float) (t - Math.floor(t/length) * length);
+	}
 }

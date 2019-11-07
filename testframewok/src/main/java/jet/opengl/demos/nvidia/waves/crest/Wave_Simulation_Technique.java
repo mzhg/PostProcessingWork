@@ -67,7 +67,7 @@ class Wave_Simulation_Technique extends Technique {
         if(ldParamsIndex >= 0) gl.glUniform4fv(ldParamsIndex, CacheBuffer.wrapNotNull(shaderData._LD_Params));
         if(ldPosScaleIndex >= 0) gl.glUniform4fv(ldPosScaleIndex, CacheBuffer.wrapNotNull(shaderData._LD_Pos_Scale));
         if(ldSliceIndex >= 0) gl.glUniform1i(ldSliceIndex, shaderData._LD_SliceIndex);
-        if(numWaveVecsIndex >= 0) gl.glUniform1ui(numWaveVecsIndex, shaderData._NumWaveVecs);
+        if(numWaveVecsIndex >= 0) gl.glUniform1i(numWaveVecsIndex, shaderData._NumWaveVecs);
         if(phasesIndex >= 0) gl.glUniform4fv(phasesIndex, CacheBuffer.wrapNotNull(shaderData._Phases));
         if(targetPointIndex >= 0) gl.glUniform4fv(targetPointIndex, CacheBuffer.wrap(shaderData._TargetPointData));
         if(twoPiWaveLenthIndex >= 0) gl.glUniform4fv(twoPiWaveLenthIndex, CacheBuffer.wrapNotNull(shaderData._TwoPiOverWavelengths));

@@ -18,7 +18,6 @@ class Wave_Simulation_ShaderData implements TechniqueParams {
 
     TextureGL _LD_TexArray_AnimatedWaves;
     TextureGL _LD_TexArray_AnimatedWaves_Source;
-    TextureGL _CombineBuffer;
     TextureGL _LD_TexArray_AnimatedWaves_Compute;
 
     TextureGL _LD_TexArray_DynamicWaves;

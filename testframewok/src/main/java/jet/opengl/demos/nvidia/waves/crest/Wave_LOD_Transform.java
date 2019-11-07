@@ -6,6 +6,7 @@ import org.lwjgl.util.vector.Vector4f;
 
 import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 
 final class Wave_LOD_Transform {
@@ -81,9 +82,10 @@ final class Wave_LOD_Transform {
             _renderData[lodIdx]._texelWidth = 2f * camOrthSize / _renderData[lodIdx]._textureRes;
 
             // snap so that shape texels are stationary
-            _renderData[lodIdx]._posSnapped.x = eyePos.getX() - (eyePos.getX() % _renderData[lodIdx]._texelWidth);
+            _renderData[lodIdx]._posSnapped.x = eyePos.getX() - Numeric.fmod(eyePos.getX(), _renderData[lodIdx]._texelWidth);
             _renderData[lodIdx]._posSnapped.y = seaLevel;
-            _renderData[lodIdx]._posSnapped.z = eyePos.getZ() - (eyePos.getZ() % _renderData[lodIdx]._texelWidth);
+            _renderData[lodIdx]._posSnapped.z = eyePos.getZ() - Numeric.fmod(eyePos.getZ(), _renderData[lodIdx]._texelWidth);
+
 
             // detect first update and populate the render data if so - otherwise it can give divide by 0s and other nastiness
             if (_renderDataSource[lodIdx]._textureRes == 0f)

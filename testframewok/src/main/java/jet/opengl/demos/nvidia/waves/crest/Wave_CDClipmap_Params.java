@@ -8,18 +8,18 @@ public class Wave_CDClipmap_Params {
     public float minTexelsPerWave = 3;
 
     /** The smallest scale the ocean can be. */
-    public float minScale = 8f;
+    public float minScale = 2f;
 
     /** The largest scale the ocean can be (-1 for unlimited).*/
     public float maxScale = 256f;
 
     /** Resolution of ocean LOD data. Use even numbers like 256 or 384. This is 4x the old 'Base Vert Density' param, so if you used 64 for this param, set this to 256.*/
-    public int lodDataResolution = 256;
+    public int lodDataResolution = 384;
 
     /** How much of the water shape gets tessellated by geometry. If set to e.g. 4, every geometry quad will span 4x4 LOD data texels. Use power of 2 values like 1, 2, 4...*/
-    public int geometryDownSampleFactor = 2;
+    public int geometryDownSampleFactor = 4;
     /** Number of ocean tile scales/LODs to generate, Range(2, LodDataMgr.MAX_LOD_COUNT)]*/
-    public int lodCount = 8;
+    public int lodCount = 7;
     /** Whether to generate ocean geometry tiles uniformly (with overlaps). */
     public boolean uniformTiles = false;
     /** Disable generating a wide strip of triangles at the outer edge to extend ocean to edge of view frustum.*/

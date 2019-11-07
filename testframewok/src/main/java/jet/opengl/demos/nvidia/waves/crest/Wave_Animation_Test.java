@@ -27,12 +27,14 @@ public class Wave_Animation_Test extends NvSampleApp {
     protected void initRendering(){
         getGLContext().setSwapInterval(0);
 
+        m_Clipmap_Params.sea_level = 5;
         mCDClipmap = new Wave_CDClipmap();
         mCDClipmap.init(m_Clipmap_Params);
 
-        m_Simulation_Params.shape_combine_pass_pingpong = false;
+        m_Simulation_Params.shape_combine_pass_pingpong = true;
+        m_Simulation_Params.random_seed = 1000000;
         mAnimation = new Wave_Simulation();
-        mAnimation.init(mCDClipmap, m_Simulation_Params);
+        mAnimation.init(mCDClipmap, m_Simulation_Params, Wave_Demo_Animation.Moderate);
 
         m_Renderer = new Wave_Renderer();
         m_Renderer.init(mCDClipmap, mAnimation);
@@ -40,16 +42,11 @@ public class Wave_Animation_Test extends NvSampleApp {
         gl = GLFuncProviderFactory.getGLFuncProvider();
 
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
-        m_transformer.setTranslation(0, -5.1f, 0.1f);
+        m_transformer.setTranslation(0.5f, -10.1f, 0.5f);
     }
 
     @Override
     public void display() {
-        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
-        gl.glClearColor(1,0,0,0);
-        gl.glClearDepthf(1);
-        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
-
         GLStateTracker tracker = GLStateTracker.getInstance();
         tracker.saveStates();
 
