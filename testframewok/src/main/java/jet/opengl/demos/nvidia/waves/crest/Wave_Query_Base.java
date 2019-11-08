@@ -1,5 +1,6 @@
-package jet.opengl.demos.nvidia.waves.crest.collision;
+package jet.opengl.demos.nvidia.waves.crest;
 
+import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2i;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -8,15 +9,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import jet.opengl.demos.nvidia.waves.crest.MonoBehaviour;
-import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
-import jet.opengl.demos.nvidia.waves.crest.SamplingData;
 import jet.opengl.demos.nvidia.waves.crest.helpers.AsyncGPUReadbackRequest;
-import jet.opengl.demos.nvidia.waves.crest.helpers.PropertyWrapperComputeStandalone;
+import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.postprocessing.buffer.BufferGL;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.shader.GLSLProgram;
-import jet.opengl.postprocessing.util.BufferUtils;
+import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.LogUtil;
 
 /**
@@ -24,41 +23,49 @@ import jet.opengl.postprocessing.util.LogUtil;
  * the data and then transferring back the results asynchronously. An exception to this is water surface velocities - these can
  * not be computed on the GPU and are instead computed on the CPU by retaining last frames' query results and computing finite diffs.
  */
-public abstract class QueryBase extends MonoBehaviour {
-    protected int _kernelHandle;
+abstract class Wave_Query_Base {
+    protected Technique _kernelHandle;
 
     protected abstract String QueryShaderName();
-//    protected abstract String QueryKernelName();
 
     static final int s_maxRequests = 4;
     static final int s_maxGuids = 64;
 
 //    protected virtual ComputeShader ShaderProcessQueries => _shaderProcessQueries;
-    GLSLProgram _shaderProcessQueries;
-    PropertyWrapperComputeStandalone _wrapper;
+//    Technique _shaderProcessQueries;
 
 //    System.Action<AsyncGPUReadbackRequest> _dataArrivedAction;
 
-        final int s_maxQueryCount = 4096;
+    private static     final int s_maxQueryCount = 4096;
     // Must match value in compute shader
-        final int s_computeGroupSize = 64;
+    private static    final int s_computeGroupSize = 64;
     public static boolean s_useComputeCollQueries = true;
 
-    final static int sp_queryPositions_minGridSizes =0; // Shader.PropertyToID("_QueryPositions_MinGridSizes");
-    final static int sp_MeshScaleLerp = 1; //Shader.PropertyToID("_MeshScaleLerp");
-    final static int sp_SliceCount = 2; // Shader.PropertyToID("_SliceCount");
+    private final static int sp_queryPositions_minGridSizes =0; // Shader.PropertyToID("_QueryPositions_MinGridSizes");
+    private final static int sp_MeshScaleLerp = 1; //Shader.PropertyToID("_MeshScaleLerp");
+    private final static int sp_SliceCount = 2; // Shader.PropertyToID("_SliceCount");
 
-    final float s_finiteDiffDx = 0.1f;
+    private static final float s_finiteDiffDx = 0.1f;
 
-    BufferGL _computeBufQueries;
-    BufferGL _computeBufResults;
+    private BufferGL _computeBufQueries;
+    private BufferGL _computeBufResults;
 
-    Vector3f[] _queryPosXZ_minGridSize = new Vector3f[s_maxQueryCount];
+    private Vector3f[] _queryPosXZ_minGridSize = CommonUtil.initArray(new Vector3f[s_maxQueryCount]);
 
-    /// <summary>
-    /// Holds information about all query points. Maps from unique hash code to position in point array.
-    /// </summary>
-    class SegmentRegistrar
+    protected Wave_CDClipmap m_Clipmap;
+    protected Wave_Simulation m_Simulation;
+
+    private final Wave_Simulation_ShaderData m_ShaderData = new Wave_Simulation_ShaderData();
+
+    public void init(Wave_CDClipmap clipmap, Wave_Simulation simulation){
+        m_Clipmap = clipmap;
+        m_Simulation = simulation;
+
+        OnEnable();
+    }
+
+    /** Holds information about all query points. Maps from unique hash code to position in point array.*/
+    private final class SegmentRegistrar
     {
 //        public Dictionary<int, Vector2Int> _segments = new Dictionary<int, Vector2Int>();
         public  final HashMap<Integer, Vector2i> _segments = new HashMap<>();
@@ -69,7 +76,7 @@ public abstract class QueryBase extends MonoBehaviour {
     /// Since query results return asynchronously and may not return at all (in theory), we keep a ringbuffer
     /// of the registrars of the last frames so that when data does come back it can be interpreted correctly.
     /// </summary>
-    class SegmentRegistrarRingBuffer
+    private final class SegmentRegistrarRingBuffer
     {
         // Requests in flight plus 2 held values, plus one current
         final static int s_poolSize = s_maxRequests + 2 + 1;
@@ -164,26 +171,26 @@ public abstract class QueryBase extends MonoBehaviour {
         }
     }
 
-    SegmentRegistrarRingBuffer _segmentRegistrarRingBuffer = new SegmentRegistrarRingBuffer();
+    private SegmentRegistrarRingBuffer _segmentRegistrarRingBuffer = new SegmentRegistrarRingBuffer();
 
-    ByteBuffer _queryResults;
-    float _queryResultsTime = -1f;
-    HashMap<Integer, Vector2i> _resultSegments;
+    private Vector3f[] _queryResults;
+    private float _queryResultsTime = -1f;
+    private HashMap<Integer, Vector2i> _resultSegments;
 
-    ByteBuffer _queryResultsLast;
-    float _queryResultsTimeLast = -1f;
-    HashMap<Integer, Vector2i> _resultSegmentsLast;
+    private Vector3f[] _queryResultsLast;
+    private float _queryResultsTimeLast = -1f;
+    private HashMap<Integer, Vector2i> _resultSegmentsLast;
 
-    class ReadbackRequest
+    private final class ReadbackRequest
     {
         public AsyncGPUReadbackRequest _request;
         public float _dataTimestamp;
         public HashMap<Integer, Vector2i> _segments;
     }
 
-    ArrayList<ReadbackRequest> _requests = new ArrayList<>();
+    private ArrayList<ReadbackRequest> _requests = new ArrayList<>();
 
-    public interface QueryStatus
+    protected interface QueryStatus
     {
         int
         OK = 0,
@@ -194,13 +201,18 @@ public abstract class QueryBase extends MonoBehaviour {
         InvalidDtForVelocity = 16;
     }
 
-    protected abstract void BindInputsAndOutputs(PropertyWrapperComputeStandalone wrapper, BufferGL resultsBuffer);
+    protected abstract void bindInputsAndOutputs(Wave_Simulation_ShaderData wrapper, BufferGL resultsBuffer);
 
-    /// <summary>
-    /// Takes a unique request ID and some world space XZ positions, and computes the displacement vector that lands at this position,
-    /// to a good approximation. The world space height of the water at that position is then SeaLevel + displacement.y.
-    /// </summary>
-    protected boolean UpdateQueryPoints(int i_ownerHash, SamplingData i_samplingData, Vector3f[] queryPoints, Vector3f[] queryNormals)
+    /**
+     * Takes a unique request ID and some world space XZ positions, and computes the displacement vector that lands at this position,
+     * to a good approximation. The world space height of the water at that position is then SeaLevel + displacement.y.
+     * @param i_ownerHash
+     * @param i_samplingData
+     * @param queryPoints
+     * @param queryNormals
+     * @return
+     */
+    protected boolean updateQueryPoints(int i_ownerHash, SamplingData i_samplingData, Vector3f[] queryPoints, Vector3f[] queryNormals)
     {
         boolean segmentRetrieved = false;
         Vector2i segment;
@@ -253,7 +265,7 @@ public abstract class QueryBase extends MonoBehaviour {
         // in the last LOD - then this is the best we can do.
         // i_samplingData._minSpatialLength
         float minWavelength = i_samplingData._minSpatialLength / 2f;
-        float minGridSize = minWavelength / OceanRenderer.Instance.MinTexelsPerWave;
+        float minGridSize = minWavelength / m_Clipmap.getMinTexelsPerWave();
 
         for (int pointi = 0; pointi < countPts; pointi++)
         {
@@ -283,26 +295,22 @@ public abstract class QueryBase extends MonoBehaviour {
         return true;
     }
 
-    /// <summary>
-    /// Signal that we're no longer servicing queries. Note this leaves an air bubble in the query buffer.
-    /// </summary>
+    /** Signal that we're no longer servicing queries. Note this leaves an air bubble in the query buffer. */
     public void RemoveQueryPoints(int guid)
     {
         _segmentRegistrarRingBuffer.RemoveRegistrations(guid);
     }
 
-    /// <summary>
-    /// Remove air bubbles from the query array. Currently this lazily just nukes all the registered
-    /// query IDs so they'll be recreated next time (generating garbage). TODO..
-    /// </summary>
+    /**
+     * Remove air bubbles from the query array. Currently this lazily just nukes all the registered
+     * query IDs so they'll be recreated next time (generating garbage). TODO..
+     */
     public void CompactQueryStorage()
     {
         _segmentRegistrarRingBuffer.ClearAvailable();
     }
 
-    /// <summary>
-    /// Copy out displacements, heights, normals. Pass null if info is not required.
-    /// </summary>
+    /** Copy out displacements, heights, normals. Pass null if info is not required.*/
     protected boolean RetrieveResults(int guid, Vector3f[] displacements, float[] heights, Vector3f[] normals)
     {
         if (_resultSegments == null)
@@ -331,21 +339,22 @@ public abstract class QueryBase extends MonoBehaviour {
             if (displacements != null)
             {
 //                _queryResults.Slice(segment.x, countPoints).CopyTo(displacements);
-                _queryResults.position(segment.x * Vector3f.SIZE);
                 for(int i = 0; i < countPoints; i++)
                 {
-                    displacements[i].load(_queryResults);
+                    if(displacements[i] == null)
+                        displacements[i] = new Vector3f(_queryResults[i+segment.x]);
+                    else
+                        displacements[i].set(_queryResults[i+segment.x]);
                 }
             }
 
             // Retrieve Result heights
             if (heights != null)
             {
-                float seaLevel = OceanRenderer.Instance.SeaLevel();
+                float seaLevel = m_Clipmap.getSeaLevel();
                 for (int i = 0; i < countPoints; i++)
                 {
-                    float y = _queryResults.getFloat((i + segment.x) * Vector3f.SIZE + 4);
-                    heights[i] = seaLevel + y /*_queryResults[i + segment.x].y*/;
+                    heights[i] = seaLevel + _queryResults[i + segment.x].y;
                 }
             }
         }
@@ -354,45 +363,43 @@ public abstract class QueryBase extends MonoBehaviour {
         {
             int firstNorm = segment.x + countPoints;
 
-//            int dx = -Vector3.right * s_finiteDiffDx;
-//            int dz = -Vector3.forward * s_finiteDiffDx;
-
-            Vector3f p = new Vector3f();
-            Vector3f px = new Vector3f();
-            Vector3f pz = new Vector3f();
+//            var dx = -Vector3.right * s_finiteDiffDx;
+//            var dz = -Vector3.forward * s_finiteDiffDx;
+            Vector3f dx = CacheBuffer.getCachedVec3();
+            Vector3f dz = CacheBuffer.getCachedVec3();
             for (int i = 0; i < countNorms; i++)
             {
-//                var p = _queryResults[firstNorm + 3 * i + 0];
+                dx.set(-s_finiteDiffDx, 0,0);
+                dz.set(0, 0,-s_finiteDiffDx);
+
+                ReadableVector3f p = _queryResults[firstNorm + 3 * i + 0];
 //                var px = dx + _queryResults[firstNorm + 3 * i + 1];
 //                var pz = dz + _queryResults[firstNorm + 3 * i + 2];
-                load3(p, _queryResults, firstNorm + 3 * i + 0);
-                load3(px, _queryResults, firstNorm + 3 * i + 1);
-                load3(pz, _queryResults, firstNorm + 3 * i + 2);
-
-                px.x -= s_finiteDiffDx;
-                pz.z -= s_finiteDiffDx;
+                Vector3f.add(dx,_queryResults[firstNorm + 3 * i + 1], dx);
+                Vector3f.add(dz,_queryResults[firstNorm + 3 * i + 2], dz);
 
 //                normals[i] = Vector3.Cross(p - px, p - pz).normalized;
-//                normals[i].y *= -1f;
-                normals[i] = Vector3f.computeNormal(p, px, pz, normals[i]);
+                Vector3f.computeNormal(p, dx, dz, normals[i]);
                 normals[i].normalise();
+//                normals[i].y *= -1f;  todo
             }
+
+            CacheBuffer.free(dx);
+            CacheBuffer.free(dz);
         }
 
         return true;
     }
 
-    private static void load3(Vector3f out, ByteBuffer buf, int v3Pos)
-    {
-        out.x = buf.getFloat(v3Pos * Vector3f.SIZE);
-        out.y = buf.getFloat(v3Pos * Vector3f.SIZE + 4);
-        out.z = buf.getFloat(v3Pos * Vector3f.SIZE + 8);
-    }
-
-    /// <summary>
-    /// Compute time derivative of the displacements by calculating difference from last query. More complicated than it would seem - results
-    /// may not be available in one or both of the results, or the query locations in the array may change.
-    /// </summary>
+    /**
+     * Compute time derivative of the displacements by calculating difference from last query. More complicated than it would seem - results
+     * may not be available in one or both of the results, or the query locations in the array may change.
+     * @param i_ownerHash
+     * @param i_samplingData
+     * @param i_queryPositions
+     * @param results
+     * @return
+     */
     protected int CalculateVelocities(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPositions, Vector3f[] results)
     {
         // Need at least 2 returned results to do finite difference
@@ -422,17 +429,15 @@ public abstract class QueryBase extends MonoBehaviour {
         float dt = _queryResultsTime - _queryResultsTimeLast;
         if (dt < 0.0001f)
         {
-            return (int)QueryStatus.InvalidDtForVelocity;
+            return QueryStatus.InvalidDtForVelocity;
         }
 
         int count = results.length;
         for (int i = 0; i < count; i++)
         {
 //            results[i] = (_queryResults[i + segment.x] - _queryResultsLast[i + segmentLast.x]) / dt;
-            int offset = (i + segment.x) * Vector3f.SIZE;
-            results[i].x = (_queryResults.getFloat(offset) - _queryResultsLast.getFloat(offset))/dt;  offset += 4;
-            results[i].y = (_queryResults.getFloat(offset) - _queryResultsLast.getFloat(offset))/dt;  offset += 4;
-            results[i].z = (_queryResults.getFloat(offset) - _queryResultsLast.getFloat(offset))/dt;
+            Vector3f.sub(_queryResults[i + segment.x], _queryResultsLast[i + segmentLast.x], results[i]);
+            results[i].scale(1.0f/dt);
         }
 
         return 0;
@@ -443,7 +448,7 @@ public abstract class QueryBase extends MonoBehaviour {
     // the last frames displacements.
     // - It should run after FixedUpdate, as physics objects will update query points there. Also it computes the displacement timestamps
     // using Time.time and Time.deltaTime, which would be incorrect if it were in FixedUpdate.
-    void Update(float time, float deltaTime)
+    void update(float time, float deltaTime)
     {
         if (_segmentRegistrarRingBuffer.Current()._numQueries > 0)
         {
@@ -467,24 +472,30 @@ public abstract class QueryBase extends MonoBehaviour {
 
     void ExecuteQueries()
     {
-        /*_computeBufQueries.SetData(_queryPosXZ_minGridSize, 0, 0, _segmentRegistrarRingBuffer.Current()._numQueries);
-        _shaderProcessQueries.SetBuffer(_kernelHandle, sp_queryPositions_minGridSizes, _computeBufQueries);
-        BindInputsAndOutputs(_wrapper, _computeBufResults);
+//        _computeBufQueries.SetData(_queryPosXZ_minGridSize, 0, 0, _segmentRegistrarRingBuffer.Current()._numQueries);
+        ByteBuffer bytes = CacheBuffer.wrap(Vector3f.SIZE, _queryPosXZ_minGridSize, 0, _segmentRegistrarRingBuffer.Current()._numQueries);
+        _computeBufQueries.update(0, bytes);
+
+//        _shaderProcessQueries.SetBuffer(_kernelHandle, sp_queryPositions_minGridSizes, _computeBufQueries);
+        m_ShaderData._QueryPositions_MinGridSizes = _computeBufQueries;
+        bindInputsAndOutputs(m_ShaderData, _computeBufResults);
 
         // LOD 0 is blended in/out when scale changes, to eliminate pops
-        float needToBlendOutShape = OceanRenderer.Instance.ScaleCouldIncrease;
-        float meshScaleLerp = needToBlendOutShape>0 ? OceanRenderer.Instance.ViewerAltitudeLevelAlpha : 0f;
-        _shaderProcessQueries.SetFloat(sp_MeshScaleLerp, meshScaleLerp);
+        boolean needToBlendOutShape = m_Clipmap.scaleCouldIncrease();
+        float meshScaleLerp = needToBlendOutShape ? m_Clipmap.getViewerAltitudeLevelAlpha() : 0f;
+//        _shaderProcessQueries.SetFloat(sp_MeshScaleLerp, meshScaleLerp);
+        m_ShaderData._MeshScaleLerp = meshScaleLerp;
 
-        _shaderProcessQueries.SetFloat(sp_SliceCount, OceanRenderer.Instance.CurrentLodCount);
+//        _shaderProcessQueries.SetFloat(sp_SliceCount, OceanRenderer.Instance.CurrentLodCount);
+        m_ShaderData._SliceCount = m_Clipmap.m_LodTransform.LodCount();
 
         int numGroups = (int)Math.ceil((float)_segmentRegistrarRingBuffer.Current()._numQueries / (float)s_computeGroupSize) * s_computeGroupSize;
-        _shaderProcessQueries.Dispatch(_kernelHandle, numGroups, 1, 1);*/
+//        _shaderProcessQueries.Dispatch(_kernelHandle, numGroups, 1, 1);
+        _kernelHandle.enable(m_ShaderData);
+        GLFuncProviderFactory.getGLFuncProvider().glDispatchCompute(numGroups, 1, 1);
     }
 
-    /// <summary>
-    /// Called when a compute buffer has been read back from the GPU to the CPU.
-    /// </summary>
+    /** Called when a compute buffer has been read back from the GPU to the CPU. */
     void DataArrived(AsyncGPUReadbackRequest req)
     {
         // Can get callbacks after disable, so detect this.
@@ -517,7 +528,7 @@ public abstract class QueryBase extends MonoBehaviour {
             // Update "last" results
 //            Swap(ref _queryResults, ref _queryResultsLast);
             {
-                ByteBuffer tmp = _queryResults;
+                Vector3f[] tmp = _queryResults;
                 _queryResults = _queryResultsLast;
                 _queryResultsLast = tmp;
             }
@@ -539,13 +550,15 @@ public abstract class QueryBase extends MonoBehaviour {
         }
     }
 
-    protected void OnEnable()
+    private void OnEnable()
     {
 //        _dataArrivedAction = new System.Action<AsyncGPUReadbackRequest>(DataArrived);
 
-        _shaderProcessQueries = //Resources.Load<ComputeShader>(QueryShaderName());
-                GLSLProgram.createProgram(QueryShaderName(), null);
-        _kernelHandle = _shaderProcessQueries./*FindKernel(QueryKernelName())*/getProgram();
+//        _shaderProcessQueries = //Resources.Load<ComputeShader>(QueryShaderName());
+//                GLSLProgram.createProgram(QueryShaderName(), null);
+//        _kernelHandle = _shaderProcessQueries./*FindKernel(QueryKernelName())*/getProgram();
+
+        _kernelHandle = ShaderManager.getInstance().getProgram(QueryShaderName());
 //        _wrapper = new PropertyWrapperComputeStandalone(_shaderProcessQueries, _kernelHandle);
 
         _computeBufQueries = new BufferGL(/*s_maxQueryCount, 12, ComputeBufferType.Default*/);
@@ -554,8 +567,8 @@ public abstract class QueryBase extends MonoBehaviour {
         _computeBufQueries.initlize(GLenum.GL_SHADER_STORAGE_BUFFER, s_maxQueryCount * 12 , null, GLenum.GL_DYNAMIC_COPY);
         _computeBufResults.initlize(GLenum.GL_SHADER_STORAGE_BUFFER, s_maxQueryCount * 12 , null, GLenum.GL_DYNAMIC_COPY);
 
-        _queryResults = BufferUtils.createByteBuffer(s_maxQueryCount * Vector3f.SIZE); // new NativeArray<Vector3>(, Allocator.Persistent, NativeArrayOptions.ClearMemory);
-        _queryResultsLast = BufferUtils.createByteBuffer(s_maxQueryCount * Vector3f.SIZE); //new NativeArray<Vector3>(s_maxQueryCount, Allocator.Persistent, NativeArrayOptions.ClearMemory);
+        _queryResults = CommonUtil.initArray(new Vector3f[s_maxQueryCount]);
+        _queryResultsLast = CommonUtil.initArray(new Vector3f[s_maxQueryCount]);
     }
 
     protected void OnDisable()
@@ -569,18 +582,18 @@ public abstract class QueryBase extends MonoBehaviour {
         _segmentRegistrarRingBuffer.ClearAll();
     }
 
-    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPoints, Vector3f[] o_resultDisps, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
+    public int query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPoints, Vector3f[] o_resultDisps, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
     {
-        int result = (int)QueryStatus.OK;
+        int result = QueryStatus.OK;
 
-        if (!UpdateQueryPoints(i_ownerHash, i_samplingData, i_queryPoints, o_resultNorms != null ? i_queryPoints : null))
+        if (!updateQueryPoints(i_ownerHash, i_samplingData, i_queryPoints, o_resultNorms != null ? i_queryPoints : null))
         {
-            result |= (int)QueryStatus.PostFailed;
+            result |= QueryStatus.PostFailed;
         }
 
         if (!RetrieveResults(i_ownerHash, o_resultDisps, null, o_resultNorms))
         {
-            result |= (int)QueryStatus.RetrieveFailed;
+            result |= QueryStatus.RetrieveFailed;
         }
 
         if (o_resultVels != null)
@@ -591,8 +604,8 @@ public abstract class QueryBase extends MonoBehaviour {
         return result;
     }
 
-    public boolean RetrieveSucceeded(int queryStatus)
+    public boolean retrieveSucceeded(int queryStatus)
     {
-        return (queryStatus & (int)QueryStatus.RetrieveFailed) == 0;
+        return (queryStatus & QueryStatus.RetrieveFailed) == 0;
     }
 }

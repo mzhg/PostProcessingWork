@@ -1,5 +1,7 @@
 package jet.opengl.demos.nvidia.waves.crest.helpers;
 
+import org.lwjgl.util.vector.Vector3f;
+
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 
@@ -13,4 +15,7 @@ public class AsyncGPUReadbackRequest {
 
     public boolean GetData(ByteBuffer dest){  return true;}
     public boolean GetData(ShortBuffer dest){  return true;}
+
+    public boolean GetData(Vector3f[] dest){ return true;}
+    public boolean GetData(short[] dest){ return true;}
 }

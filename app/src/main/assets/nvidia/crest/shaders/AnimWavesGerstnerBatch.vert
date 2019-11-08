@@ -7,8 +7,6 @@
 #define PI 3.141593
 #endif
 
-uniform float4 _TargetPointData;
-
 out Varyings
 {
     float2 worldPos;

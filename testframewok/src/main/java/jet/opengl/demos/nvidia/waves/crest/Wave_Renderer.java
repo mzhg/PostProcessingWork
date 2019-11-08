@@ -44,7 +44,7 @@ public class Wave_Renderer {
 //        m_ShadingShader.getBlend().blendEnable = false;
         m_ShadingShader.setStateEnabled(false);
         if(wireframe){
-//            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
+            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);
         }
 
         final Matrix4f clipmapTransform = CacheBuffer.getCachedMatrix();
@@ -63,7 +63,7 @@ public class Wave_Renderer {
         }
 
         if(wireframe){
-//            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+            gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
         }
 
         CacheBuffer.free(clipmapTransform);

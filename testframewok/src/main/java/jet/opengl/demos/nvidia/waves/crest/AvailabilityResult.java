@@ -1,4 +1,4 @@
-package jet.opengl.demos.nvidia.waves.crest.collision;
+package jet.opengl.demos.nvidia.waves.crest;
 
 /**
  * Collision diagnostics result.

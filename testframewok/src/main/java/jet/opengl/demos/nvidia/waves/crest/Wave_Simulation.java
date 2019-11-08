@@ -11,6 +11,8 @@ public class Wave_Simulation {
     Wave_Simulation_Foam_Pass _lodDataFoam;
     Wave_Simulation_Shadow_Pass _lodDataShadow;
 
+    Wave_Collision_Provider collision_provider;
+
     public void init(Wave_CDClipmap clipmap, Wave_Simulation_Params params, Wave_Demo_Animation animation){
         m_Params.set(params);
 

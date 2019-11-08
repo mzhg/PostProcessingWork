@@ -3,8 +3,10 @@ package jet.opengl.demos.nvidia.waves.crest.collision;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
+import jet.opengl.demos.nvidia.waves.crest.AvailabilityResult;
 import jet.opengl.demos.nvidia.waves.crest.CrestConst;
 import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
+import jet.opengl.demos.nvidia.waves.crest.SamplingData;
 import jet.opengl.demos.nvidia.waves.crest.helpers.PropertyWrapperComputeStandalone;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.util.Rectf;

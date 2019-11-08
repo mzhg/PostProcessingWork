@@ -1,4 +1,4 @@
-package jet.opengl.demos.nvidia.waves.crest.gpureadback;
+package jet.opengl.demos.nvidia.waves.crest;
 
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
@@ -9,36 +9,35 @@ import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Queue;
 
-import jet.opengl.demos.nvidia.waves.crest.MonoBehaviour;
-import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
-import jet.opengl.demos.nvidia.waves.crest.AvailabilityResult;
-import jet.opengl.demos.nvidia.waves.crest.SamplingData;
+import jet.opengl.demos.nvidia.waves.crest.gpureadback.GPUReadbackBase;
+import jet.opengl.demos.nvidia.waves.crest.gpureadback.IReadbackSettingsProvider;
 import jet.opengl.demos.nvidia.waves.crest.helpers.AsyncGPUReadbackRequest;
 import jet.opengl.demos.nvidia.waves.crest.helpers.IFloatingOrigin;
 import jet.opengl.demos.nvidia.waves.crest.helpers.Time;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgr;
 import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.BufferUtils;
+import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 
-public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehaviour implements IFloatingOrigin {
-    public boolean _doReadback = true;
+/** Base class for reading back GPU data of a particular type to the CPU. */
+class Wave_GPUReadbackBase implements IFloatingOrigin {
+    private boolean _doReadback = true;
 
-    protected LodDataMgr _lodComponent;
+    protected Wave_Simulation_Pass _lodComponent;
 
-    /// <summary>
-    /// Minimum floating object width. The larger the objects that will float, the lower the resolution of the read data.
-    /// If an object is small, the highest resolution LODs will be sample for physics. This is an optimisation. Set to 0
-    /// to disable this optimisation and always copy high res data.
-    /// </summary>
+    /**
+     * Minimum floating object width. The larger the objects that will float, the lower the resolution of the read data.
+     * If an object is small, the highest resolution LODs will be sample for physics. This is an optimisation. Set to 0
+     * to disable this optimisation and always copy high res data.
+     */
     protected float _minGridSize = 0f;
-    /// <summary>
-    /// Similar to the minimum width, but this setting will exclude the larger LODs from being copied. Set to 0 to disable
-    /// this optimisation and always copy low res data.
-    /// </summary>
+    /**
+     * Similar to the minimum width, but this setting will exclude the larger LODs from being copied. Set to 0 to disable
+     * this optimisation and always copy low res data.
+     */
     protected float _maxGridSize = 0f;
 
     protected IReadbackSettingsProvider _settingsProvider;
@@ -47,15 +46,14 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
 
     protected static class PerLodData
     {
-        public ReadbackData _resultData;
-        public ReadbackData _resultDataPrevFrame;
-        public Queue<ReadbackRequest> _requests = new ArrayDeque<>();
+        public Wave_GPUReadbackBase.ReadbackData _resultData;
+        public Wave_GPUReadbackBase.ReadbackData _resultDataPrevFrame;
+        public Queue<Wave_GPUReadbackBase.ReadbackRequest> _requests = new ArrayDeque<>();
 
-        public int _lastUpdateFrame = -1;
         public boolean _activelyBeingRendered = true;
     }
 
-    SortedListCachedArrays/*<float, PerLodData>*/ _perLodData = new SortedListCachedArrays/*<float, PerLodData>*/();
+    private final SortedListCachedArrays2/*<float, PerLodData>*/ _perLodData = new SortedListCachedArrays2/*<float, PerLodData>*/();
 
     protected static class ReadbackRequest
     {
@@ -64,22 +62,30 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
         public float _time;
     }
 
-    final static int MAX_REQUESTS = 4;
+    private final static int MAX_REQUESTS = 4;
 
-    TexFormat _textureFormat = TexFormat.NotSet;
+    private Wave_GPUReadbackBase.TexFormat _textureFormat = Wave_GPUReadbackBase.TexFormat.NotSet;
 
-    /// <summary>
-    /// When we do a readback we will get the rendered state for the previous time. This is associated with Time.time
-    /// at the previous frame. This member stores this value.
-    /// </summary>
-    float _prevFrameTime = 0f;
+    /**
+     * When we do a readback we will get the rendered state for the previous time. This is associated with Time.time
+     * at the previous frame. This member stores this value.
+     */
+    private float _prevFrameTime = 0f;
 
-    protected void Start()
+    Wave_CDClipmap m_Clipmap;
+    Wave_Simulation m_Simulation;
+
+    protected boolean enabled = true;
+
+    void init(Wave_CDClipmap clipmap, Wave_Simulation simulation)
     {
-        _lodComponent = OceanRenderer.Instance/*.GetComponent<LodDataType>()*/._lodDataAnimWaves;
-        if (OceanRenderer.Instance.CurrentLodCount() <= (CanUseLastTwoLODs() ? 0 : 1))
+        m_Clipmap = clipmap;
+        m_Simulation = simulation;
+
+        _lodComponent = simulation._lodDataAnimWaves;
+        if (clipmap.m_LodTransform.LodCount() <= (CanUseLastTwoLODs() ? 0 : 1))
         {
-//            LogUtil.e(LogUtil.LogType.DEFAULT, "No data components of type " + typeof(LodDataType).Name + " found in the scene. Disabling GPU readback.");
+            LogUtil.e(LogUtil.LogType.DEFAULT, "No data components of type " + _lodComponent.getClass().getSimpleName() + " found in the scene. Disabling GPU readback.");
             enabled = false;
             return;
         }
@@ -94,16 +100,16 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
         SetTextureFormat(_lodComponent.TextureFormat());
     }
 
-    protected void Update()
+    void update(float runningTime, float deltaTime)
     {
         UpdateGridSizes();
 
         ProcessRequestsInternal(true);
 
-        _prevFrameTime = Time.time;
+        _prevFrameTime = runningTime;
     }
 
-    void UpdateGridSizes()
+    private void UpdateGridSizes()
     {
         if (_settingsProvider != null)
         {
@@ -118,16 +124,15 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
         assert(_maxGridSize > 0f);
     }
 
-    public void ProcessRequests()
+    public void processRequests()
     {
         // can process any newly arrived requests but don't queue up new ones
         ProcessRequestsInternal(false);
     }
 
-    void ProcessRequestsInternal(boolean runningFromUpdate)
+    private void ProcessRequestsInternal(boolean runningFromUpdate)
     {
-        OceanRenderer ocean = OceanRenderer.Instance;
-        int lodCount = ocean.CurrentLodCount();
+        final int lodCount = m_Clipmap.m_LodTransform.LodCount();
 
         // When viewer changes altitude, lods will start/stop updating. Mark ones that are/arent being rendered!
         for (int i = 0; i < _perLodData.KeyArray.length; i++)
@@ -135,8 +140,8 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
             int lastUsableIndex = CanUseLastTwoLODs() ? (lodCount - 1) : (lodCount - 3);
 
             _perLodData.ValueArray[i]._activelyBeingRendered =
-                    _perLodData.KeyArray[i] >= ocean._lodTransform._renderData[0]._texelWidth &&
-                            _perLodData.KeyArray[i] <= ocean._lodTransform._renderData[lastUsableIndex]._texelWidth;
+                    _perLodData.KeyArray[i] >= m_Clipmap.m_LodTransform._renderData[0]._texelWidth &&
+                            _perLodData.KeyArray[i] <= m_Clipmap.m_LodTransform._renderData[lastUsableIndex]._texelWidth;
 
             if (!_perLodData.ValueArray[i]._activelyBeingRendered)
             {
@@ -147,9 +152,9 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
             }
         }
 
-        LodTransform lt = ocean._lodTransform;
+        Wave_LOD_Transform lt = m_Clipmap.m_LodTransform;
 
-        for (int lodIndex = 0; lodIndex < ocean.CurrentLodCount(); lodIndex++)
+        for (int lodIndex = 0; lodIndex < lodCount; lodIndex++)
         {
             Float lodTexelWidth = lt._renderData[lodIndex]._texelWidth;
 
@@ -170,10 +175,10 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
                     // create native arrays
                     assert(_textureFormat != TexFormat.NotSet) :  "ReadbackLodData: Texture format must be set.";
                     int num = _textureFormat.ordinal() * tex.getWidth() * tex.getHeight();
-                    if (resultData._resultData._data == null || resultData._resultData._data.capacity() != num)
+                    if (resultData._resultData._data == null || resultData._resultData._data.length != num)
                     {
-                        resultData._resultData._data = BufferUtils.createShortBuffer(num);  //new NativeArray<ushort>(num, Allocator.Persistent);
-                        resultData._resultDataPrevFrame._data = BufferUtils.createShortBuffer(num);  //new NativeArray<ushort>(num, Allocator.Persistent);
+                        resultData._resultData._data = new short[num];  //new NativeArray<ushort>(num, Allocator.Persistent);
+                        resultData._resultDataPrevFrame._data = new short[num];  //new NativeArray<ushort>(num, Allocator.Persistent);
                     }
 
                     _perLodData.Add(lodTexelWidth, resultData);
@@ -196,10 +201,8 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
         }
     }
 
-    /// <summary>
-    /// Request current contents of cameras shape texture. queue pattern inspired by: https://github.com/keijiro/AsyncCaptureTest
-    /// </summary>
-    void EnqueueReadbackRequest(TextureGL target, int lodIndex, LodTransform.RenderData renderData, float previousFrameTime)
+    /** Request current contents of cameras shape texture. queue pattern inspired by: https://github.com/keijiro/AsyncCaptureTest*/
+   private  void EnqueueReadbackRequest(TextureGL target, int lodIndex, Wave_LOD_Transform.RenderData renderData, float previousFrameTime)
     {
         if (!_doReadback)
         {
@@ -217,17 +220,17 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
         if (lodData._requests.size() < MAX_REQUESTS)
         {
             lodData._requests.add(
-                new ReadbackRequest
-                (
+                    new ReadbackRequest
+                            (
                     /*_request = AsyncGPUReadback.Request(target, 0, 0, target.width, 0, target.height, lodIndex, 1),  todo
                             _renderData = renderData,
                             _time = previousFrameTime,*/
-                )
+                            )
             );
         }
     }
 
-    void ProcessArrivedRequests(PerLodData lodData) {
+    private void ProcessArrivedRequests(PerLodData lodData) {
         Queue<ReadbackRequest> requests = lodData._requests;
 
         if (!lodData._activelyBeingRendered) {
@@ -236,13 +239,6 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
             requests.clear();
             return;
         }
-
-        // Physics stuff may call update from FixedUpdate() - therefore check if this component was already
-        // updated this frame.
-        if (lodData._lastUpdateFrame == Time.frameCount) {
-            return;
-        }
-        lodData._lastUpdateFrame = Time.frameCount;
 
         // remove any failed readback requests
         for (int i = 0; i < MAX_REQUESTS && requests.size() > 0; i++) {
@@ -276,11 +272,11 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
                 ReadbackData resultLast = lodData._resultDataPrevFrame;
 
                 // copy result into resultLast
-                resultLast._renderData = result._renderData;
+                resultLast._renderData = result._renderData;  // todo here is struct copy
                 resultLast._time = result._time;
 //                Swap(ref result._data, ref resultLast._data);
                 {
-                    ShortBuffer tmp = result._data;
+                    short[] tmp = result._data;
                     result._data = resultLast._data;
                     resultLast._data = tmp;
                 }
@@ -289,7 +285,7 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
 //                var data = request._request.GetData < ushort > ();
 //                data.CopyTo(result._data);
                 request._request.GetData(result._data);
-                result._renderData = request._renderData;
+                result._renderData = request._renderData;  // todo here is struct copy
                 result._time = request._time;
 
 //                UnityEngine.Profiling.Profiler.EndSample();
@@ -339,7 +335,7 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
 
     public static class ReadbackData
     {
-        public ShortBuffer _data;
+        public short[] _data;
         public LodTransform.RenderData _renderData;
         public float _time;
 
@@ -365,9 +361,9 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
             int y = (int)Math.floor(v * _renderData._textureRes);
             int idx = 4 * (y * (int)_renderData._textureRes + x);
 
-            o_displacement.x = Numeric.convertHFloatToFloat(_data.get(idx + 0));
-            o_displacement.y = Numeric.convertHFloatToFloat(_data.get(idx + 1));
-            o_displacement.z = Numeric.convertHFloatToFloat(_data.get(idx + 2));
+            o_displacement.x = Numeric.convertHFloatToFloat(_data[idx + 0]);
+            o_displacement.y = Numeric.convertHFloatToFloat(_data[idx + 1]);
+            o_displacement.z = Numeric.convertHFloatToFloat(_data[idx + 2]);
 
             return true;
         }
@@ -403,18 +399,18 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
             int idx10 = 4 * (z1 * width + x0);
             int idx11 = 4 * (z1 * width + x1);
 
-            float x00 = Numeric.convertHFloatToFloat(_data.get(idx00 + 0));
-            float y00 = Numeric.convertHFloatToFloat(_data.get(idx00 + 1));
-            float z00 = Numeric.convertHFloatToFloat(_data.get(idx00 + 2));
-            float x01 = Numeric.convertHFloatToFloat(_data.get(idx01 + 0));
-            float y01 = Numeric.convertHFloatToFloat(_data.get(idx01 + 1));
-            float z01 = Numeric.convertHFloatToFloat(_data.get(idx01 + 2));
-            float x10 = Numeric.convertHFloatToFloat(_data.get(idx10 + 0));
-            float y10 = Numeric.convertHFloatToFloat(_data.get(idx10 + 1));
-            float z10 = Numeric.convertHFloatToFloat(_data.get(idx10 + 2));
-            float x11 = Numeric.convertHFloatToFloat(_data.get(idx11 + 0));
-            float y11 = Numeric.convertHFloatToFloat(_data.get(idx11 + 1));
-            float z11 = Numeric.convertHFloatToFloat(_data.get(idx11 + 2));
+            float x00 = Numeric.convertHFloatToFloat(_data[idx00 + 0]);
+            float y00 = Numeric.convertHFloatToFloat(_data[idx00 + 1]);
+            float z00 = Numeric.convertHFloatToFloat(_data[idx00 + 2]);
+            float x01 = Numeric.convertHFloatToFloat(_data[idx01 + 0]);
+            float y01 = Numeric.convertHFloatToFloat(_data[idx01 + 1]);
+            float z01 = Numeric.convertHFloatToFloat(_data[idx01 + 2]);
+            float x10 = Numeric.convertHFloatToFloat(_data[idx10 + 0]);
+            float y10 = Numeric.convertHFloatToFloat(_data[idx10 + 1]);
+            float z10 = Numeric.convertHFloatToFloat(_data[idx10 + 2]);
+            float x11 = Numeric.convertHFloatToFloat(_data[idx11 + 0]);
+            float y11 = Numeric.convertHFloatToFloat(_data[idx11 + 1]);
+            float z11 = Numeric.convertHFloatToFloat(_data[idx11 + 2]);
 
             float xf = u_texels % 1f;
             float zf = v_texels % 1f;
@@ -444,8 +440,8 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
             int x = (int)Math.floor(u * _renderData._textureRes);
             int y = (int)Math.floor(v * _renderData._textureRes);
             int idx = 2 * (y * (int)_renderData._textureRes + x);
-            flow.x = Numeric.convertHFloatToFloat(_data.get(idx + 0));
-            flow.y = Numeric.convertHFloatToFloat(_data.get(idx + 1));
+            flow.x = Numeric.convertHFloatToFloat(_data[idx + 0]);
+            flow.y = Numeric.convertHFloatToFloat(_data[idx + 1]);
 
             return true;
         }
@@ -490,7 +486,7 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
 
             // The smallest wavelengths should repeat no more than twice across the smaller spatial length. Unless we're
             // in the last LOD - then this is the best we can do.
-            float minWavelength = texelWidth * OceanRenderer.Instance.MinTexelsPerWave;
+            float minWavelength = texelWidth * m_Clipmap.getMinTexelsPerWave();
             if (minSpatialLength / minWavelength > 2f)
             {
                 continue;
@@ -504,7 +500,7 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
         return lastCandidate;
     }
 
-    public AvailabilityResult CheckAvailability(ReadableVector3f i_worldPos, SamplingData i_samplingData)
+    public AvailabilityResult checkAvailability(ReadableVector3f i_worldPos, SamplingData i_samplingData)
     {
         assert(i_samplingData._minSpatialLength >= 0f && i_samplingData._tag != null);
 
@@ -586,7 +582,7 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
         results[2] = maxQueueLength;
     }
 
-    public boolean GetSamplingData(Rectf i_displacedSamplingArea, float i_minSpatialLength, SamplingData o_samplingData)
+    public boolean getSamplingData(Rectf i_displacedSamplingArea, float i_minSpatialLength, SamplingData o_samplingData)
     {
         o_samplingData._minSpatialLength = i_minSpatialLength;
 
@@ -601,7 +597,7 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
         return o_samplingData._tag != null;
     }
 
-    public void ReturnSamplingData(SamplingData i_data)
+    public void returnSamplingData(SamplingData i_data)
     {
         i_data._tag = null;
     }
@@ -622,5 +618,4 @@ public class GPUReadbackBase<LodDataType extends LodDataMgr> extends MonoBehavio
             }
         }
     }
-
 }

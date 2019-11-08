@@ -1,22 +1,19 @@
-package jet.opengl.demos.nvidia.waves.crest.gpureadback;
+package jet.opengl.demos.nvidia.waves.crest;
 
 import org.lwjgl.util.vector.ReadableVector3f;
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
-import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
-import jet.opengl.demos.nvidia.waves.crest.collision.ICollProvider;
-import jet.opengl.demos.nvidia.waves.crest.SamplingData;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgrAnimWaves;
+import jet.opengl.demos.nvidia.waves.crest.gpureadback.IReadbackSettingsProvider;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 
 /**
  * Reads back displacements - this is the ocean shape, which includes any dynamic waves and any custom shape.
  */
-public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> implements ICollProvider {
-    PerLodData _areaData;
+final class Wave_GPUReadbackDisps extends Wave_GPUReadbackBase implements Wave_Collision_Provider {
 
-    public static GPUReadbackDisps Instance;
+    private PerLodData _areaData;
 
     protected boolean CanUseLastTwoLODs()
     {
@@ -28,26 +25,28 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
 //        }
     }
 
-    protected  void Start()
-    {
-        super.Start();
+    @Override
+    void init(Wave_CDClipmap clipmap, Wave_Simulation simulation) {
+        super.init(clipmap, simulation);
 
         if (enabled == false)
         {
             return;
         }
+//        _settingsProvider = OceanRenderer.Instance._simSettingsAnimatedWaves;
 
-        Instance = this;
-
-        _settingsProvider = OceanRenderer.Instance._simSettingsAnimatedWaves;
+        _settingsProvider = new IReadbackSettingsProvider() {
+            @Override
+            public void GetMinMaxGridSizes(Vector2f gridSize) {
+                // Wavelengths that repeat twice or more across the object are irrelevant and don't need to be read back.
+                gridSize.x = 0.5f * m_Simulation.m_Params.min_object_width / m_Clipmap.getMinTexelsPerWave();
+                gridSize.y = 0.5f * m_Simulation.m_Params.max_object_width / m_Clipmap.getMinTexelsPerWave();
+            }
+        };
     }
 
-    private void OnDestroy()
-    {
-        Instance = null;
-    }
-
-    public boolean ComputeUndisplacedPosition(ReadableVector3f i_worldPos, SamplingData i_samplingData, final Vector3f undisplacedWorldPos)
+    @Override
+    public boolean computeUndisplacedPosition(ReadableVector3f i_worldPos, SamplingData i_samplingData, Vector3f undisplacedWorldPos)
     {
         // Tag should not be null if the collision source is GPU readback.
         assert(i_samplingData._tag != null): "Invalid sampling data - LOD to sample from was unspecified.";
@@ -76,7 +75,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return true;
     }
 
-    public boolean ComputeUndisplacedPosition(ReadableVector3f i_worldPos, Vector3f undisplacedWorldPos, float minSpatialLength)
+    public boolean computeUndisplacedPosition(ReadableVector3f i_worldPos, Vector3f undisplacedWorldPos, float minSpatialLength)
     {
         // FPI - guess should converge to location that displaces to the target position
         Vector3f guess = new Vector3f(i_worldPos);
@@ -85,7 +84,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         // be some error here. one could also terminate iteration based on the size of the error, this is
         // worth trying but is left as future work for now.
         Vector3f disp = new Vector3f();
-        for (int i = 0; i < 4 && SampleDisplacement(guess, disp, minSpatialLength); i++)
+        for (int i = 0; i < 4 && sampleDisplacement(guess, disp, minSpatialLength); i++)
         {
             float errorx = guess.x + disp.x - i_worldPos.getX();
             float errorz = guess.z + disp.z - i_worldPos.getZ();
@@ -99,7 +98,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return true;
     }
 
-    public boolean SampleDisplacement(ReadableVector3f i_worldPos, Vector3f o_displacement)
+    public boolean sampleDisplacement(ReadableVector3f i_worldPos, Vector3f o_displacement)
     {
         PerLodData data = GetData(new Rectf(i_worldPos.getX(), i_worldPos.getZ(), 0f, 0f), 0f);
         if (data == null)
@@ -110,7 +109,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return data._resultData.InterpolateARGB16(i_worldPos, o_displacement);
     }
 
-    public boolean SampleDisplacement(ReadableVector3f i_worldPos, Vector3f o_displacement, float minSpatialLength)
+    public boolean sampleDisplacement(ReadableVector3f i_worldPos, Vector3f o_displacement, float minSpatialLength)
     {
         PerLodData data = GetData(new Rectf(i_worldPos.getX(), i_worldPos.getZ(), 0f, 0f), minSpatialLength);
         if (data == null)
@@ -121,7 +120,8 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return data._resultData.InterpolateARGB16(i_worldPos, o_displacement);
     }
 
-    public boolean SampleDisplacement(ReadableVector3f i_worldPos, SamplingData i_data, Vector3f o_displacement)
+    @Override
+    public boolean sampleDisplacement(ReadableVector3f i_worldPos, SamplingData i_data, Vector3f o_displacement)
     {
         PerLodData lodData = (PerLodData)i_data._tag;
         if (lodData == null)
@@ -132,23 +132,24 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return lodData._resultData.InterpolateARGB16(i_worldPos, o_displacement);
     }
 
-    public long SampleHeight(ReadableVector3f i_worldPos, SamplingData i_samplingData/*, out float height*/)
+    public void sampleHeight(ReadableVector3f i_worldPos, SamplingData i_samplingData/*, out float height*/, SamplingHeight height)
     {
         Vector3f posFlatland = new Vector3f(i_worldPos);
         posFlatland.y = OceanRenderer.Instance.transform.getPositionY();
 
         Vector3f undisplacedPos = new Vector3f();
-        ComputeUndisplacedPosition(posFlatland, i_samplingData, undisplacedPos);
+        computeUndisplacedPosition(posFlatland, i_samplingData, undisplacedPos);
 
         Vector3f disp = new Vector3f();
-        SampleDisplacement(undisplacedPos, i_samplingData, disp);
+        sampleDisplacement(undisplacedPos, i_samplingData, disp);
 
-//        height = posFlatland.y + disp.y;
+        height.height = posFlatland.y + disp.y;
+        height.valid = true;
 //        return true;
-        return Numeric.encode(1, Float.floatToIntBits(posFlatland.y + disp.y));
+//        return Numeric.encode(1, Float.floatToIntBits(posFlatland.y + disp.y));
     }
 
-    public long SampleDisplacementVel(ReadableVector3f i_worldPos, SamplingData i_samplingData, Vector3f o_displacement, /*out bool o_displacementValid,*/ Vector3f o_displacementVel/*, out bool o_velValid*/)
+    public long sampleDisplacementVel(ReadableVector3f i_worldPos, SamplingData i_samplingData, Vector3f o_displacement, /*out bool o_displacementValid,*/ Vector3f o_displacementVel/*, out bool o_velValid*/)
     {
         PerLodData lodData = (PerLodData)i_samplingData._tag;
 
@@ -187,7 +188,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return Numeric.encode(o_displacementValid ? 1:0, o_velValid?1:0);
     }
 
-    public boolean SampleNormal(ReadableVector3f i_undisplacedWorldPos, SamplingData i_samplingData, Vector3f o_normal)
+    public boolean sampleNormal(ReadableVector3f i_undisplacedWorldPos, SamplingData i_samplingData, Vector3f o_normal)
     {
         PerLodData lodData = (PerLodData)i_samplingData._tag;
         float gridSize = lodData._resultData._renderData._texelWidth;
@@ -219,7 +220,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return true;
     }
 
-    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPoints, Vector3f[] o_resultDisps, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
+    public int query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPoints, Vector3f[] o_resultDisps, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
     {
         int status = 0;
 
@@ -229,7 +230,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
             {
                 if (o_resultVels == null)
                 {
-                    if (!SampleDisplacement(i_queryPoints[i], i_samplingData, o_resultDisps[i]))
+                    if (!sampleDisplacement(i_queryPoints[i], i_samplingData, o_resultDisps[i]))
                     {
                         status = 1 | status;
                     }
@@ -237,7 +238,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
                 else
                 {
 //                    bool dispValid, velValid;
-                    long dispAndVel = SampleDisplacementVel(i_queryPoints[i], i_samplingData, o_resultDisps[i], /*dispValid,*/ o_resultVels[i]/*, velValid*/);
+                    long dispAndVel = sampleDisplacementVel(i_queryPoints[i], i_samplingData, o_resultDisps[i], /*dispValid,*/ o_resultVels[i]/*, velValid*/);
                     boolean dispValid = Numeric.decodeFirst(dispAndVel) != 0;
                     boolean velValid = Numeric.decodeSecond(dispAndVel) != 0;
                     if (!dispValid || !velValid)
@@ -253,9 +254,9 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
             for (int i = 0; i < o_resultNorms.length; i++)
             {
                 Vector3f undispPos = new Vector3f();
-                if (ComputeUndisplacedPosition(i_queryPoints[i], i_samplingData, undispPos))
+                if (computeUndisplacedPosition(i_queryPoints[i], i_samplingData, undispPos))
                 {
-                    SampleNormal(undispPos, i_samplingData, o_resultNorms[i]);
+                    sampleNormal(undispPos, i_samplingData, o_resultNorms[i]);
                 }
                 else
                 {
@@ -268,7 +269,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return status;
     }
 
-    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPoints, float[] o_resultHeights, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
+    public int query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryPoints, float[] o_resultHeights, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
     {
         int status = 0;
 
@@ -279,7 +280,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
                 if (o_resultVels == null)
                 {
                     Vector3f disp = new Vector3f();
-                    if (SampleDisplacement(i_queryPoints[i], i_samplingData, disp))
+                    if (sampleDisplacement(i_queryPoints[i], i_samplingData, disp))
                     {
                         o_resultHeights[i] = OceanRenderer.Instance.SeaLevel() + disp.y;
                     }
@@ -292,10 +293,10 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
                 {
                     Vector3f disp = new Vector3f();
 //                    bool dispValid, velValid;
-                    long dispAndVel = SampleDisplacementVel(i_queryPoints[i], i_samplingData, disp, /*out dispValid, out*/ o_resultVels[i]/*, out velValid*/);
+                    long dispAndVel = sampleDisplacementVel(i_queryPoints[i], i_samplingData, disp, /*out dispValid, out*/ o_resultVels[i]/*, out velValid*/);
                     if (/*dispValid && velValid*/dispAndVel > 1)
                     {
-                        o_resultHeights[i] = OceanRenderer.Instance.SeaLevel() + disp.y;
+                        o_resultHeights[i] = m_Clipmap.getSeaLevel() + disp.y;
                     }
                     else
                     {
@@ -310,9 +311,9 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
             for (int i = 0; i < o_resultNorms.length; i++)
             {
                 Vector3f undispPos = new Vector3f();
-                if (ComputeUndisplacedPosition(i_queryPoints[i], i_samplingData, undispPos))
+                if (computeUndisplacedPosition(i_queryPoints[i], i_samplingData, undispPos))
                 {
-                    SampleNormal(undispPos, i_samplingData, o_resultNorms[i]);
+                    sampleNormal(undispPos, i_samplingData, o_resultNorms[i]);
                 }
                 else
                 {
@@ -325,7 +326,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return status;
     }
 
-    public int Query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryDisplacementToPoints, Vector3f[] i_queryNormalAtPoint, Vector3f[] o_resultDisps, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
+    public int query(int i_ownerHash, SamplingData i_samplingData, Vector3f[] i_queryDisplacementToPoints, Vector3f[] i_queryNormalAtPoint, Vector3f[] o_resultDisps, Vector3f[] o_resultNorms, Vector3f[] o_resultVels)
     {
         int status = 0;
 
@@ -335,7 +336,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
             {
 //                var dispValid = false;
 //                var velValid = false;
-                long dispAndVel = SampleDisplacementVel(i_queryDisplacementToPoints[i], i_samplingData, o_resultDisps[i], /*out dispValid, out*/ o_resultVels[i]/*, out velValid*/);
+                long dispAndVel = sampleDisplacementVel(i_queryDisplacementToPoints[i], i_samplingData, o_resultDisps[i], /*out dispValid, out*/ o_resultVels[i]/*, out velValid*/);
                 boolean dispValid = Numeric.decodeFirst(dispAndVel) != 0;
                 boolean velValid = Numeric.decodeSecond(dispAndVel) != 0;
                 if (!dispValid || !velValid)
@@ -350,9 +351,9 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
             for (int i = 0; i < o_resultNorms.length; i++)
             {
                 Vector3f undispPos = new Vector3f();
-                if (ComputeUndisplacedPosition(i_queryNormalAtPoint[i], i_samplingData, undispPos))
+                if (computeUndisplacedPosition(i_queryNormalAtPoint[i], i_samplingData, undispPos))
                 {
-                    SampleNormal(undispPos, i_samplingData, o_resultNorms[i]);
+                    sampleNormal(undispPos, i_samplingData, o_resultNorms[i]);
                 }
                 else
                 {
@@ -365,7 +366,7 @@ public class GPUReadbackDisps extends GPUReadbackBase<LodDataMgrAnimWaves> imple
         return status;
     }
 
-    public boolean RetrieveSucceeded(int queryStatus)
+    public boolean retrieveSucceeded(int queryStatus)
     {
         return queryStatus == 0;
     }

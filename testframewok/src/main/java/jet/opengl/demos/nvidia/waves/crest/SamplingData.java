@@ -1,4 +1,4 @@
-package jet.opengl.demos.nvidia.waves.crest.collision;
+package jet.opengl.demos.nvidia.waves.crest;
 
 /** Sampling state used to speed up queries. */
 public class SamplingData {

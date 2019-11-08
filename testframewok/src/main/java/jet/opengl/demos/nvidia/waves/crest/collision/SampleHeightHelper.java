@@ -4,9 +4,9 @@ import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
 import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
+import jet.opengl.demos.nvidia.waves.crest.SamplingData;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
-import jet.opengl.postprocessing.util.Recti;
 
 /**
  * Helper to obtain the ocean surface height at a single location. This is not particularly efficient to sample a single height,

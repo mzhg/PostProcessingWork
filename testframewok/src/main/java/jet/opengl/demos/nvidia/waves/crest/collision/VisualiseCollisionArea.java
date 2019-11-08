@@ -4,6 +4,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 import jet.opengl.demos.nvidia.waves.crest.MonoBehaviour;
 import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
+import jet.opengl.demos.nvidia.waves.crest.SamplingData;
 import jet.opengl.postprocessing.util.Rectf;
 
 public class VisualiseCollisionArea extends MonoBehaviour {

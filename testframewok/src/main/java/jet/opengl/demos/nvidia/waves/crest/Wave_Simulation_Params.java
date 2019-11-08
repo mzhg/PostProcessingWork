@@ -143,6 +143,13 @@ public class Wave_Simulation_Params {
     /** How much waves are dampened in shallow water. (0,1f)*/
     public float attenuation_in_shallows = 0.95f;
 
+    ////////// -------------------------------- Readback configs ------------------------------
+    /** Minimum floating object width. The larger the objects that will float, the lower the resolution of the read data. If an object is small, the highest resolution LODs will be sample for physics. This is an optimisation. Set to 0 to disable this optimisation and always copy high res data.*/
+    public float min_object_width = 3;
+
+    /** Similar to the minimum width, but this setting will exclude the larger LODs from being copied. Set to 0 to disable this optimisation and always copy low res data. */
+    public float max_object_width = 500;
+
     public Wave_Simulation_Params() {}
 
     public Wave_Simulation_Params(Wave_Simulation_Params o) {
@@ -193,5 +200,7 @@ public class Wave_Simulation_Params {
         max_displacement_Vertical = o.max_displacement_Vertical;
         max_displacement_horizontal = o.max_displacement_horizontal;
         report_bounds_to_system = o.report_bounds_to_system;
+        min_object_width = o.min_object_width;
+        max_object_width = o.max_object_width;
     }
 }

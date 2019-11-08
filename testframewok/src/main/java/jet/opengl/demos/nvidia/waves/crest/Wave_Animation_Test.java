@@ -33,6 +33,7 @@ public class Wave_Animation_Test extends NvSampleApp {
 
         m_Simulation_Params.shape_combine_pass_pingpong = true;
         m_Simulation_Params.random_seed = 1000000;
+        m_Simulation_Params.direct_towards_Point = false;
         mAnimation = new Wave_Simulation();
         mAnimation.init(mCDClipmap, m_Simulation_Params, Wave_Demo_Animation.Moderate);
 
@@ -42,7 +43,7 @@ public class Wave_Animation_Test extends NvSampleApp {
         gl = GLFuncProviderFactory.getGLFuncProvider();
 
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
-        m_transformer.setTranslation(0.5f, -10.1f, 0.5f);
+        m_transformer.setTranslation(0.567f, -10.1f, 0.6f);
     }
 
     @Override

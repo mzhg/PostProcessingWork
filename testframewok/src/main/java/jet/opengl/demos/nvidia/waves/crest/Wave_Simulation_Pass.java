@@ -147,11 +147,11 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
         _BindData_paramIdOceans[lodCount].set(_BindData_paramIdOceans[lodCount - 1]);
 
         if(sourceLod){
-            properties._LD_Pos_Scale_Source = _BindData_paramIdPosScales;
-            properties._LD_Params_Source = _BindData_paramIdOceans;
+            properties._LD_Pos_Scale_Source = Wave_Gerstner_Batched.copyArray(_BindData_paramIdPosScales, properties._LD_Pos_Scale_Source);
+            properties._LD_Params_Source = Wave_Gerstner_Batched.copyArray(_BindData_paramIdOceans,properties._LD_Params_Source);
         }else{
             properties._LD_Pos_Scale = Wave_Gerstner_Batched.copyArray(_BindData_paramIdPosScales, properties._LD_Pos_Scale);
-            properties._LD_Params = Wave_Gerstner_Batched.copyArray(_BindData_paramIdOceans, properties._LD_Params_Source);
+            properties._LD_Params = Wave_Gerstner_Batched.copyArray(_BindData_paramIdOceans, properties._LD_Params);
         }
     }
 

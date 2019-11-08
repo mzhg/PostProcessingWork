@@ -1001,11 +1001,11 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                    context->End(m_d3d._11.m_readback_queries[readbackSlot]);
 
                     _11.m_readback_buffers[readbackSlot[0]].bind();GLCheck.checkError();
-                    gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, _11.m_fbo_displacement);
+                    gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, _11.m_fbo_displacement);
                     gl.glReadPixels(0,0, _11.m_texture_Displacement.getWidth(), _11.m_texture_Displacement.getHeight(),
                             TextureUtils.measureFormat(_11.m_texture_Displacement.getFormat()),
                             TextureUtils.measureDataType(_11.m_texture_Displacement.getFormat()), null);
-                    gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+                    gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, 0);
                     _11.m_readback_buffers[readbackSlot[0]].unbind();
                     _11.m_readback_queries[readbackSlot[0]] = gl.glFenceSync();
                 }

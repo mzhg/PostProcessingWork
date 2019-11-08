@@ -6,9 +6,16 @@ import org.lwjgl.util.vector.Vector3f;
 import java.util.HashMap;
 import java.util.Map;
 
+import jet.opengl.demos.nvidia.waves.crest.AvailabilityResult;
+import jet.opengl.demos.nvidia.waves.crest.SamplingData;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 
+/**
+ * Provides a cache layer on top of a collision provider, with the specific purpose of caching height requests.
+ * Sampling water height in Crest involves inverting a displacement texture on the fly, so using a cache gives
+ * a big speedup. Code based on pull request #14 from user dizzy2003.
+ */
 public class CollProviderCache implements ICollProvider {
     public float _cacheBucketSize = 0.1f;
 

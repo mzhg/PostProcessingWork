@@ -5,6 +5,7 @@ import org.lwjgl.util.vector.Vector4f;
 import java.nio.ByteBuffer;
 
 import jet.opengl.demos.nvidia.waves.ocean.TechniqueParams;
+import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.texture.TextureGL;
 
 class Wave_Simulation_ShaderData implements TechniqueParams {
@@ -36,6 +37,7 @@ class Wave_Simulation_ShaderData implements TechniqueParams {
     TextureGL _LD_TexArray_Shadow_Source;
 
     int _LD_SliceIndex;
+    int _SliceCount;
     TextureGL _LD_TexArray_Target;
 
     float _SimDeltaTime;
@@ -70,6 +72,12 @@ class Wave_Simulation_ShaderData implements TechniqueParams {
     int _NumWaveVecs;
 
     final Vector4f _TargetPointData = new Vector4f();
+
+    BufferGL _QueryPositions_MinGridSizes;  // for the readback
+    float _MeshScaleLerp;
+
+    BufferGL _ResultDisplacements;
+    BufferGL _ResultFlows;
 
     @Override
     public ByteBuffer store(ByteBuffer buf) {

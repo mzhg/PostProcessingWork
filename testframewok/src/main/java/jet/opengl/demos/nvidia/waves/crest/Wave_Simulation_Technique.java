@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.waves.crest;
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.demos.nvidia.waves.ocean.TechniqueParams;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.util.CacheBuffer;
@@ -42,8 +43,11 @@ class Wave_Simulation_Technique extends Technique {
         if(!mInitlized){
             mInitlized = true;
 
-            if(g_DefualtSampler == 0)
-                g_DefualtSampler = SamplerUtils.getDefaultSampler();
+            if(g_DefualtSampler == 0) {
+                SamplerDesc desc = new SamplerDesc();
+//                desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_REPEAT;
+                g_DefualtSampler = SamplerUtils.createSampler(desc);
+            }
 
             ldParamsIndex = gl.glGetUniformLocation(m_program, "_LD_Params");
             ldPosScaleIndex = gl.glGetUniformLocation(m_program, "_LD_Pos_Scale");
@@ -88,6 +92,7 @@ class Wave_Simulation_Technique extends Technique {
             gl.glBindSampler(unit, g_DefualtSampler);
         }else{
             gl.glBindTextureUnit(unit, 0);
+            gl.glBindSampler(unit, 0);
         }
     }
 

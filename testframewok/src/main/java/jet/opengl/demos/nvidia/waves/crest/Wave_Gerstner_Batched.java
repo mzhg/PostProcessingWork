@@ -6,8 +6,6 @@ import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
-import jet.opengl.demos.nvidia.waves.crest.collision.AvailabilityResult;
-import jet.opengl.demos.nvidia.waves.crest.collision.SamplingData;
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -74,7 +72,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         {
 //            _waveShader = Shader.Find("Crest/Inputs/Animated Waves/Gerstner Batch");
 //            Debug.Assert(_waveShader, "Could not load Gerstner wave shader, make sure it is packaged in the build.");
-            String shaderName = "Crest/Inputs/Animated Waves/Gerstner Batch" + (m_Params.direct_towards_Point ? 0 : 1);
+            String shaderName = "Crest/Inputs/Animated Waves/Gerstner Batch" + (m_Params.direct_towards_Point ? 1 : 0);
             mGerstnerShader = ShaderManager.getInstance().getProgram(shaderName);
             mGerstnerShader.setName(shaderName);
             mGerstnerShader.setStateEnabled(false);
@@ -267,7 +265,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         }
 
         // apply the data to the shape property
-        for (int i = 0; i < 1; i++)
+//        for (int i = 0; i < 2; i++)
         {
             /*var mat = batch.GetMaterial(i);
             mat.SetVectorArray(sp_TwoPiOverWavelengths, UpdateBatchScratchData._twoPiOverWavelengthsBatch);
@@ -293,7 +291,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
             shaderData._NumInBatch = numInBatch;
             shaderData._AttenuationInShallows = m_Params.attenuation_in_shallows;
             shaderData._NumWaveVecs = numVecs;
-            shaderData._LD_SliceIndex = lodIdx - i;
+
             m_Simulation._lodDataAnimWaves.BindResultData(shaderData);
 
             if (m_Simulation._lodDataSeaDepths != null)
@@ -306,6 +304,9 @@ final class Wave_Gerstner_Batched implements Wave_Const{
                 shaderData._TargetPointData.set(m_Params.point_positionXZ.x, m_Params.point_positionXZ.y, m_Params.point_radii.x, m_Params.point_radii.y);
             }
         }
+
+        batch.mTransitionLodIdx[0] = lodIdx;
+        batch.mTransitionLodIdx[1] = lodIdx-1;
 
         batch.Enabled = true;
     }
@@ -704,11 +705,13 @@ final class Wave_Gerstner_Batched implements Wave_Const{
         boolean Enabled ;
 
         private final Wave_Simulation_ShaderData mShaderData = new Wave_Simulation_ShaderData();
+        private final int[] mTransitionLodIdx = {-1,-1};
 
         @Override
         public void draw(float weight, boolean isTransition, Wave_Simulation_ShaderData shaderData) {
             if (Enabled && weight > 0f){
                 mShaderData._Weight = weight;
+                mShaderData._LD_SliceIndex = mTransitionLodIdx[isTransition?1:0];
                 mGerstnerShader.enable(mShaderData);
 
                 gl.glDisable(GLenum.GL_CULL_FACE);
