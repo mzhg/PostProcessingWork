@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import jet.opengl.demos.nvidia.waves.crest.helpers.AsyncGPUReadbackRequest;
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -462,7 +461,7 @@ abstract class Wave_Query_Base {
 
             ReadbackRequest request = new ReadbackRequest();
             request._dataTimestamp = time - deltaTime;
-//            request._request = AsyncGPUReadback.Request(_computeBufResults, _dataArrivedAction);  todo
+            request._request = AsyncGPUReadbackRequest.create(m_Simulation, _computeBufResults);
             request._segments = _segmentRegistrarRingBuffer.Current()._segments;
             _requests.add(request);
 
@@ -553,7 +552,7 @@ abstract class Wave_Query_Base {
     private void OnEnable()
     {
 //        _dataArrivedAction = new System.Action<AsyncGPUReadbackRequest>(DataArrived);
-
+        m_Simulation.setAsyncGPUReadbackFinish(this::DataArrived);
 //        _shaderProcessQueries = //Resources.Load<ComputeShader>(QueryShaderName());
 //                GLSLProgram.createProgram(QueryShaderName(), null);
 //        _kernelHandle = _shaderProcessQueries./*FindKernel(QueryKernelName())*/getProgram();

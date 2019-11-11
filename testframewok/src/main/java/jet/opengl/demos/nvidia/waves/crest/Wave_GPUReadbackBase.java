@@ -4,20 +4,14 @@ import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
-import java.nio.ShortBuffer;
 import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Queue;
 
-import jet.opengl.demos.nvidia.waves.crest.gpureadback.GPUReadbackBase;
 import jet.opengl.demos.nvidia.waves.crest.gpureadback.IReadbackSettingsProvider;
-import jet.opengl.demos.nvidia.waves.crest.helpers.AsyncGPUReadbackRequest;
 import jet.opengl.demos.nvidia.waves.crest.helpers.IFloatingOrigin;
-import jet.opengl.demos.nvidia.waves.crest.helpers.Time;
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.TextureGL;
-import jet.opengl.postprocessing.util.BufferUtils;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
@@ -58,8 +52,14 @@ class Wave_GPUReadbackBase implements IFloatingOrigin {
     protected static class ReadbackRequest
     {
         public AsyncGPUReadbackRequest _request;
-        public LodTransform.RenderData _renderData;
+        public final Wave_LOD_Transform.RenderData _renderData;
         public float _time;
+
+        ReadbackRequest(AsyncGPUReadbackRequest request, Wave_LOD_Transform.RenderData renderData, float time){
+            _request = request;
+            _renderData = new Wave_LOD_Transform.RenderData(renderData);
+            _time = time;
+        }
     }
 
     private final static int MAX_REQUESTS = 4;
@@ -222,9 +222,9 @@ class Wave_GPUReadbackBase implements IFloatingOrigin {
             lodData._requests.add(
                     new ReadbackRequest
                             (
-                    /*_request = AsyncGPUReadback.Request(target, 0, 0, target.width, 0, target.height, lodIndex, 1),  todo
-                            _renderData = renderData,
-                            _time = previousFrameTime,*/
+                            AsyncGPUReadbackRequest.create(m_Simulation, target, lodIndex),
+                                renderData,
+                            previousFrameTime
                             )
             );
         }
@@ -285,7 +285,7 @@ class Wave_GPUReadbackBase implements IFloatingOrigin {
 //                var data = request._request.GetData < ushort > ();
 //                data.CopyTo(result._data);
                 request._request.GetData(result._data);
-                result._renderData = request._renderData;  // todo here is struct copy
+                result._renderData.set(request._renderData);
                 result._time = request._time;
 
 //                UnityEngine.Profiling.Profiler.EndSample();
@@ -336,7 +336,7 @@ class Wave_GPUReadbackBase implements IFloatingOrigin {
     public static class ReadbackData
     {
         public short[] _data;
-        public LodTransform.RenderData _renderData;
+        public Wave_LOD_Transform.RenderData _renderData;
         public float _time;
 
         public boolean Valid () { return _time >= 0f; }

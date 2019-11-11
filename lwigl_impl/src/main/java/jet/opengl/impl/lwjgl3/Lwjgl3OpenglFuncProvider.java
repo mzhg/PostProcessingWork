@@ -301,6 +301,11 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glReadPixels(int x, int y, int width, int height, int format, int type, long offset) {
+        GL11.glReadPixels(x, y, width, height, format, type, offset);
+    }
+
+    @Override
     public void glScissor(int x, int y, int width, int height) {
         GL11.glScissor(x, y, width, height);
     }
@@ -1990,4 +1995,72 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
         info.evictedMemory = GL11.glGetInteger(NVXGPUMemoryInfo.GL_GPU_MEMORY_INFO_EVICTED_MEMORY_NVX);
     }
 
+    @Override
+    public int glCreateBuffer() {
+        return GL45.glCreateBuffers();
+    }
+
+    @Override
+    public void glBufferStorage(int target, long size, int flags) {
+        GL44.glBufferStorage(target, size, flags);
+    }
+
+    @Override
+    public void glBufferStorage(int target, Buffer data, int flags) {
+        if(data instanceof ByteBuffer){
+            GL44.glBufferStorage(target, (ByteBuffer)data, flags);
+        }else if(data instanceof  ShortBuffer){
+            GL44.glBufferStorage(target, (ShortBuffer)data, flags);
+        }else if(data instanceof FloatBuffer){
+            GL44.glBufferStorage(target, (FloatBuffer)data, flags);
+        }else if(data instanceof IntBuffer){
+            GL44.glBufferStorage(target, (IntBuffer)data, flags);
+        }else if(data instanceof DoubleBuffer){
+            GL44.glBufferStorage(target, (DoubleBuffer)data, flags);
+        }else{
+            throw new UnsupportedOperationException("Unkown data type: " + data.getClass().getName());
+        }
+    }
+
+    @Override
+    public void glNamedBufferStorage(int buffer, long size, int flags) {
+        GL45.glNamedBufferStorage(buffer, size, flags);
+    }
+
+    @Override
+    public void glNamedBufferStorage(int buffer, Buffer data, int flags) {
+        if(data instanceof ByteBuffer){
+            GL45.glNamedBufferStorage(buffer, (ByteBuffer)data, flags);
+        }else if(data instanceof  ShortBuffer){
+            GL45.glNamedBufferStorage(buffer, (ShortBuffer)data, flags);
+        }else if(data instanceof FloatBuffer){
+            GL45.glNamedBufferStorage(buffer, (FloatBuffer)data, flags);
+        }else if(data instanceof IntBuffer){
+            GL45.glNamedBufferStorage(buffer, (IntBuffer)data, flags);
+        }else if(data instanceof DoubleBuffer){
+            GL45.glNamedBufferStorage(buffer, (DoubleBuffer)data, flags);
+        }else{
+            throw new UnsupportedOperationException("Unkown data type: " + data.getClass().getName());
+        }
+    }
+
+    public void glCopyNamedBufferSubData(int readBuffer, int writeBuffer, long readOffset, long writeOffset, long size){
+        GL45.glCopyNamedBufferSubData(readBuffer, writeBuffer, readOffset, writeOffset, size);
+    }
+
+    public ByteBuffer glMapNamedBufferRange(
+            int buffer,
+            long offset,
+            long length,
+            int access, ByteBuffer old_buffer){
+        return GL45.glMapNamedBufferRange(buffer, offset, length, access, old_buffer);
+    }
+
+    public ByteBuffer glMapNamedBufferRange(
+            int buffer,
+            long offset,
+            long length,
+            int access){
+        return GL45.glMapNamedBufferRange(buffer, offset, length, access);
+    }
 }

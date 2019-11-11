@@ -106,6 +106,7 @@ public interface GLFuncProvider {
     public void glPolygonOffset (float factor, float units);
 
     public void glReadPixels (int x, int y, int width, int height, int format, int type, ByteBuffer pixels);
+    public void glReadPixels (int x, int y, int width, int height, int format, int type, long offset);
 
     public void glScissor (int x, int y, int width, int height);
 
@@ -1660,4 +1661,27 @@ public interface GLFuncProvider {
     void glClearNamedBufferSubData(int buffer, int internalformat, long offset, long size, int format, int type, Buffer data);
 
     void glGetMemoryInfo(GPUMemoryInfo info);
+
+    int glCreateBuffer();
+
+    void glBufferStorage(int target, long size, int flags);
+
+    void glBufferStorage(int target, Buffer data, int flags);
+
+    void glNamedBufferStorage(int buffer, long size, int flags);
+    void glNamedBufferStorage(int buffer, Buffer data, int flags);
+
+    void glCopyNamedBufferSubData(int readBuffer, int writeBuffer, long readOffset, long writeOffset, long size);
+
+    ByteBuffer glMapNamedBufferRange(
+            int buffer,
+            long offset,
+            long length,
+            int access, ByteBuffer old_buffer);
+
+    ByteBuffer glMapNamedBufferRange(
+            int buffer,
+            long offset,
+            long length,
+            int access);
 }

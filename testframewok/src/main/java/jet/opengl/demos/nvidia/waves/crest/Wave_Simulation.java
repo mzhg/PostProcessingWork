@@ -1,5 +1,7 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
+import java.util.ArrayDeque;
+
 public class Wave_Simulation {
 
     final Wave_Simulation_Params m_Params = new Wave_Simulation_Params();
@@ -12,6 +14,9 @@ public class Wave_Simulation {
     Wave_Simulation_Shadow_Pass _lodDataShadow;
 
     Wave_Collision_Provider collision_provider;
+    private AsyncGPUReadbackRequest.AsyncGPUReadbackFinished mGPUReadbackCallback;
+
+    private final ArrayDeque<AsyncGPUReadbackRequest> mGPUReadbackTasks = new ArrayDeque<>();
 
     public void init(Wave_CDClipmap clipmap, Wave_Simulation_Params params, Wave_Demo_Animation animation){
         m_Params.set(params);
@@ -41,9 +46,28 @@ public class Wave_Simulation {
         }
     }
 
+    void addGPUReadback(AsyncGPUReadbackRequest request){
+        mGPUReadbackTasks.add(request);
+    }
+
     public void update(float deltaTime){
         lateUpdateLods();
         Build(deltaTime);
+
+        if(mGPUReadbackTasks.isEmpty())  return;
+
+        AsyncGPUReadbackRequest request = mGPUReadbackTasks.peekFirst();
+        if(request.update()){
+            mGPUReadbackTasks.pollFirst();
+
+            if(mGPUReadbackCallback != null){
+                mGPUReadbackCallback.onAsyncGPUReadbackFinish(request);
+            }
+        }
+    }
+
+    public void setAsyncGPUReadbackFinish(AsyncGPUReadbackRequest.AsyncGPUReadbackFinished callback){
+        mGPUReadbackCallback = callback;
     }
 
     private void lateUpdateLods()

@@ -253,6 +253,11 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     }
 
     @Override
+    public void glReadPixels(int x, int y, int width, int height, int format, int type, long offset) {
+        gl.glReadPixels(x, y, width, height, format, type, offset);
+    }
+
+    @Override
     public void glScissor(int x, int y, int width, int height) {
         gl.glScissor(x, y, width, height);
     }
@@ -1975,5 +1980,46 @@ public class JoglOpenglFuncProvider implements GLFuncProvider {
     @Override
     public void glGetMemoryInfo(GPUMemoryInfo info) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int glCreateBuffer() {
+        gl.glCreateBuffers(1, intValues, 0);
+        return intValues[0];
+    }
+
+    @Override
+    public void glBufferStorage(int target, long size, int flags) {
+        gl.glBufferStorage(target, size, null, flags);
+    }
+
+    @Override
+    public void glBufferStorage(int target, Buffer data, int flags) {
+        gl.glBufferStorage(target, BufferUtils.measureSize(data), data, flags);
+    }
+
+    @Override
+    public void glNamedBufferStorage(int buffer, long size, int flags) {
+        gl.glNamedBufferStorage(buffer, size, null, flags);
+    }
+
+    @Override
+    public void glNamedBufferStorage(int buffer, Buffer data, int flags) {
+        gl.glNamedBufferStorage(buffer, BufferUtils.measureSize(data), data, flags);
+    }
+
+    @Override
+    public void glCopyNamedBufferSubData(int readBuffer, int writeBuffer, long readOffset, long writeOffset, long size) {
+        gl.glCopyNamedBufferSubData(readBuffer, writeBuffer, readOffset, writeOffset, size);
+    }
+
+    @Override
+    public ByteBuffer glMapNamedBufferRange(int buffer, long offset, long length, int access, ByteBuffer old_buffer) {
+        throw new UnsupportedOperationException("Unsupporte the 'glMapNamedBufferRange' in gogl");
+    }
+
+    @Override
+    public ByteBuffer glMapNamedBufferRange(int buffer, long offset, long length, int access) {
+        return gl.glMapNamedBufferRange(buffer, offset, length, access);
     }
 }

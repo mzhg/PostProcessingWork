@@ -11,7 +11,7 @@ import java.util.Map;
 import jet.opengl.demos.nvidia.waves.crest.MonoBehaviour;
 import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.demos.nvidia.waves.crest.SamplingData;
-import jet.opengl.demos.nvidia.waves.crest.helpers.AsyncGPUReadbackRequest;
+import jet.opengl.demos.nvidia.waves.crest.AsyncGPUReadbackRequest;
 import jet.opengl.demos.nvidia.waves.crest.helpers.PropertyWrapperComputeStandalone;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLenum;

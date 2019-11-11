@@ -13,7 +13,7 @@ import jet.opengl.demos.nvidia.waves.crest.MonoBehaviour;
 import jet.opengl.demos.nvidia.waves.crest.OceanRenderer;
 import jet.opengl.demos.nvidia.waves.crest.AvailabilityResult;
 import jet.opengl.demos.nvidia.waves.crest.SamplingData;
-import jet.opengl.demos.nvidia.waves.crest.helpers.AsyncGPUReadbackRequest;
+import jet.opengl.demos.nvidia.waves.crest.AsyncGPUReadbackRequest;
 import jet.opengl.demos.nvidia.waves.crest.helpers.IFloatingOrigin;
 import jet.opengl.demos.nvidia.waves.crest.helpers.Time;
 import jet.opengl.demos.nvidia.waves.crest.loddata.LodDataMgr;

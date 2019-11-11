@@ -10,13 +10,17 @@ import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 
 final class Wave_LOD_Transform {
-    final class RenderData
+    static final class RenderData
     {
         public float _texelWidth;
         public float _textureRes;
         public final Vector3f _posSnapped = new Vector3f();
 
         private final Rectf tempRect = new Rectf();
+
+        RenderData(){}
+        public RenderData(RenderData ohs){ set(ohs);}
+
 
         public Rectf RectXZ()
         {
