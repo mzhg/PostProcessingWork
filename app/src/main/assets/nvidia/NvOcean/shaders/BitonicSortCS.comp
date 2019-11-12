@@ -11,11 +11,12 @@ void main()
     int GI = int(SV_GroupIndex);
 
     // Load shared data
-    shared_data[GI] = g_ParticleDepthSortUAV[DTid.x];
+    shared_data[GI] = g_ParticleDepthSortUAV[int(DTid.x)];
     GroupMemoryBarrierWithGroupSync();
 
     // Sort the shared data
-    for (int j = g_iDepthSortLevel >> 1 ; j > 0 ; j >>= 1)
+    int iDepthSortLevel = int(g_iDepthSortLevel);
+    for (int j = iDepthSortLevel >> 1 ; j > 0 ; j >>= 1)
     {
         DepthSortEntry result;
         if(bool(shared_data[GI & ~j].ViewZ > shared_data[GI | j].ViewZ) == bool(g_iDepthSortLevelMask & DTid.x))
@@ -28,5 +29,5 @@ void main()
     }
 
     // Store shared data
-    g_ParticleDepthSortUAV[DTid.x] = shared_data[GI];
+    g_ParticleDepthSortUAV[int(DTid.x)] = shared_data[GI];
 }

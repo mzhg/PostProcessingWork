@@ -12,9 +12,9 @@ in GS_PSM_PARTICLE_OUTPUT
 
 void main()
 {
-    float4 tex = GetParticleRGBA(g_samplerDiffuse,In.TextureUVAndOpacity.xy,In.TextureUVAndOpacity.z);
+    float4 tex = GetParticleRGBA(/*g_samplerDiffuse,*/In.TextureUVAndOpacity.xy,In.TextureUVAndOpacity.z);
 
-    float4 Output = tex.a;
+    float4 Output = float4(tex.a);
     Output *= g_PSMOpacityMultiplier;
     if(In.SubLayer == 0)
     Output *= float4(1,0,0,0);

@@ -42,8 +42,8 @@ layout(binding = 1) buffer SimulationVelocities
     float g_SimulationVelocities[];
 };
 
-uniform float4x3 g_CurrEmitterMatrix;
-uniform float4x3 g_PrevEmitterMatrix;
+uniform float4x4 g_CurrEmitterMatrix;
+uniform float4x4 g_PrevEmitterMatrix;
 uniform float2 g_EmitAreaScale;
 uniform float3 g_EmitMinMaxVelocityAndSpread;
 uniform float2 g_EmitInterpScaleAndOffset;
@@ -55,7 +55,6 @@ uniform float g_NoiseSpatialScale;
 uniform float g_NoiseTimeScale;
 
 //Buffer<float2> g_RandomUV;
-layout(binding = 1) uniform samplerBuffer g_RenderInstanceData;
 uniform uint g_RandomOffset;
 
 uniform float  g_PSMOpacityMultiplier;
@@ -101,7 +100,7 @@ const float PI = 3.141592654f;
 //-----------------------------------------------------------------------------------
 // Texture & Samplers
 //-----------------------------------------------------------------------------------
-texture2D g_texDiffuse;
+uniform sampler2D g_texDiffuse;
 /*sampler g_samplerDiffuse = sampler_state
 {
 Filter = MIN_MAG_MIP_LINEAR;
@@ -194,7 +193,7 @@ struct GS_PARTICLE_COORDS {
 float4 GetParticleInstanceData(in uint PrimID)
 {
     uint particle_index = g_ParticleDepthSortSRV[PrimID].ParticleIndex;
-    return g_RenderInstanceData.Load(particle_index);
+    return texelFetch(g_RenderInstanceData, int(particle_index));
 }
 
 void CalcParticleCoords( float4 InstanceData, in float2 CornerCoord, out float3 ViewPos, out float2 UV, out float Opacity)
@@ -220,11 +219,11 @@ GS_PARTICLE_COORDS CalcParticleCoords(in float4 InstanceData, int i)
     return result;
 }
 
-float4 GetParticleRGBA(SamplerState s, float2 uv, float alphaMult)
+float4 GetParticleRGBA(/*SamplerState s,*/ float2 uv, float alphaMult)
 {
     const float base_alpha = 16.f/255.f;
 
-    float4 raw_tex = g_texDiffuse.Sample(s, uv);
+    float4 raw_tex = texture(g_texDiffuse, uv);
     raw_tex.a = saturate((raw_tex.a - base_alpha)/(1.f - base_alpha));
     raw_tex.a *= alphaMult * 0.3f;
     return raw_tex;

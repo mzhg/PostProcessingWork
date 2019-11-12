@@ -17,9 +17,9 @@ void main()
 
     float4 linearColor = texture(g_texColor, m_f4UVAndScreenPos.xy);   // DefaultSampler
 
-    for (uint s=0; s<4; ++s)
+    for (int s=0; s<4; ++s)
     {
-        float sampleDepth = texelFetch(g_texDepthMS, int2(gl_FragCoord.xy), s);
+        float sampleDepth = texelFetch(g_texDepthMS, int2(gl_FragCoord.xy), s).x;
         float4 sampleClipPos = float4(0, 0, sampleDepth, 1.0);
         float4 sampleViewSpace = mul(sampleClipPos, g_matProjInv);
         sampleViewSpace.z /= sampleViewSpace.w;
@@ -32,7 +32,7 @@ void main()
         {
             for (int j=-radius; j<=radius; ++j)
             {
-                int2 iCoarseCoord = int2(In.Position.xy) / 2 + int2(i, j);
+                int2 iCoarseCoord = int2(gl_FragCoord.xy) / 2 + int2(i, j);
                 float4 color = texelFetch(g_texColor,iCoarseCoord,0);
                 float depth = texelFetch(g_texDepth,iCoarseCoord,0).x;
 

@@ -18,9 +18,9 @@ void main()
 {
     float3 nml = normalize(i.world_normal);
     float4 result = g_DiffuseColor;
-    float rustmap = 1.0-g_texRustMap.Sample(g_samplerDiffuse,i.rustmap_uv).r;
+    float rustmap = 1.0-texture(g_texRustMap,i.rustmap_uv).r;  //g_samplerDiffuse
     rustmap = 0.7*rustmap*abs(nml.z)*1.0*saturate(0.6-i.model_z*0.02);
-    float4 rust = g_texRust.Sample(g_samplerDiffuse,i.rust_uv);
+    float4 rust = texture(g_texRust,i.rust_uv);  //g_samplerDiffuse
     result = lerp(result, result*rust,saturate(rustmap));
 
     float hemisphere_term = 0.5f + 0.25f * nml.y;	// Hemisphere lighting against world 'up'

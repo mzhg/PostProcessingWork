@@ -29,7 +29,7 @@ void main()
     float lightning_scatter_factor;
 
     // applying wake normal to surface normal
-    float4 wake = g_texWakeMap.Sample(g_samplerTrilinearClamp, In.wake_uv).rgba-float4(0.5,0.5,0.0,0.5);
+    float4 wake = texture(g_texWakeMap, In.wake_uv).rgba-float4(0.5,0.5,0.0,0.5);  //g_samplerTrilinearClamp
     wake.rgb *= 2.0;
     wake.rgb = (mul(g_matWorldToShip,float4(wake.rbg,0.0))).rbg;
 
@@ -38,7 +38,7 @@ void main()
     }
 
     // fetching wake energy
-    float4 wake_energy = g_bWakeEnabled ? g_texShipFoamMap.Sample(g_samplerTrilinearClamp, In.wake_uv) : 0.f;
+    float4 wake_energy = g_bWakeEnabled ? texture(g_texShipFoamMap, In.wake_uv) : float4(0.f);  //g_samplerTrilinearClamp
 
 
     float3 pixel_to_lightning_vector=normalize(g_LightningPosition - In.world_pos);
@@ -49,17 +49,17 @@ void main()
     // Super-sample the fresnel term
     float3 ramp = float3(0.f);
 //    [unroll]
-    float4 attr36_ddx = ddx(In.NV_ocean_interp.nv_waveworks_attr36);
-    float4 attr36_ddy = ddy(In.NV_ocean_interp.nv_waveworks_attr36);
-    float4 attr37_ddx = ddx(In.NV_ocean_interp.nv_waveworks_attr37);
-    float4 attr37_ddy = ddy(In.NV_ocean_interp.nv_waveworks_attr37);
+    float4 attr36_ddx = ddx(In.NV_ocean_interp.tex_coord_cascade01);
+    float4 attr36_ddy = ddy(In.NV_ocean_interp.tex_coord_cascade01);
+    float4 attr37_ddx = ddx(In.NV_ocean_interp.tex_coord_cascade23);
+    float4 attr37_ddy = ddy(In.NV_ocean_interp.tex_coord_cascade23);
     for(int sx = -FRESNEL_TERM_SUPERSAMPLES_RADIUS; sx <= FRESNEL_TERM_SUPERSAMPLES_RADIUS; ++sx)
     {
         float fx = float(sx)/float(FRESNEL_TERM_SUPERSAMPLES_INTERVALS);
 
         GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT ssx_interp = In.NV_ocean_interp;
-        ssx_interp.nv_waveworks_attr36 += fx * attr36_ddx;
-        ssx_interp.nv_waveworks_attr37 += fx * attr37_ddx;
+        ssx_interp.tex_coord_cascade01 += fx * attr36_ddx;
+        ssx_interp.tex_coord_cascade23 += fx * attr37_ddx;
 
 //    [unroll]
         for(int sy = -FRESNEL_TERM_SUPERSAMPLES_RADIUS; sy <= FRESNEL_TERM_SUPERSAMPLES_RADIUS; ++sy)
@@ -67,15 +67,15 @@ void main()
             float fy = float(sy)/float(FRESNEL_TERM_SUPERSAMPLES_INTERVALS);
 
             GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT ssxy_interp = ssx_interp;
-            ssxy_interp.nv_waveworks_attr36 += fy * attr36_ddy;
-            ssxy_interp.nv_waveworks_attr37 += fy * attr37_ddy;
+            ssxy_interp.tex_coord_cascade01 += fy * attr36_ddy;
+            ssxy_interp.tex_coord_cascade23 += fy * attr37_ddy;
 
             GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES ss_surface_attributes = GFSDK_WaveWorks_GetSurfaceAttributes(ssxy_interp);
 
             float cos_angle = dot(ss_surface_attributes.normal, surface_attributes.eye_dir);
 
             // ramp.x for fresnel term. ramp.y for atmosphere blending
-            ramp += g_texColorMap.Sample(g_samplerColorMap, cos_angle).xyz;
+            ramp += texture(g_texColorMap, float2(cos_angle, 0)).xyz;  //g_samplerColorMap
         }
     }
 
@@ -117,11 +117,11 @@ void main()
     if(g_bGustsEnabled) {
         // applying wind gust map
         // local gust map
-        float gust_factor = g_texGustMap.Sample(g_samplerAnisotropic,(In.world_pos.xy + g_GustUV.xy)*0.0003).r;
-        gust_factor *= g_texGustMap.Sample(g_samplerAnisotropic,(In.world_pos.xy + g_GustUV.zw)*0.001).r;
+        float gust_factor = texture(g_texGustMap,(In.world_pos.xy + g_GustUV.xy)*0.0003).r;  //g_samplerAnisotropic
+        gust_factor *= texture(g_texGustMap,(In.world_pos.xy + g_GustUV.zw)*0.001).r;  //g_samplerAnisotropic
 
         // distant gusts kicking in at very steep angles
-        gust_factor += 3.0*g_texGustMap.Sample(g_samplerAnisotropic,(In.world_pos.xy + g_GustUV.zw)*0.0001).r
+        gust_factor += 3.0*texture(g_texGustMap,(In.world_pos.xy + g_GustUV.zw)*0.0001).r   //g_samplerAnisotropic
         *saturate(10.0*(-pixel_to_eye_vector.z+0.05));
 
         fresnel_factor *= (1.0 - 0.4*gust_factor);
@@ -144,9 +144,10 @@ void main()
         #if ENABLE_SHADOWS
         if (beam_attn * dot(g_SpotlightColor[ix].xyz, g_SpotlightColor[ix].xyz) > 0.01f)
         {
-            shadow = GetShadowValue(g_SpotlightResource[ix], g_SpotlightMatrix[ix], In.eye_pos.xyz);
+            sampler2DShadow spotShadow = sampler2DShadow(g_SpotlightResource[ix]);
+            shadow = GetShadowValue(spotShadow, g_SpotlightMatrix[ix], In.eye_pos.xyz);
         }
-            #endif
+        #endif
         surface_lighting += beam_attn * g_SpotlightColor[ix].xyz * saturate(dot(pixel_to_light_nml,surface_attributes.normal)) * shadow;
         dynamic_lighting += beam_attn * g_SpotlightColor[ix].xyz * shadow;
     }
@@ -162,8 +163,8 @@ void main()
 
     // reflection color
     float3 cube_map_sample_vector = reflected_eye_to_pixel_vector;
-    float3 refl_lower = g_texCubeMap0.Sample(g_samplerCubeMap, rotateXY(cube_map_sample_vector,g_SkyCube0RotateSinCos)).xyz;
-    float3 refl_upper = g_texCubeMap1.Sample(g_samplerCubeMap, rotateXY(cube_map_sample_vector,g_SkyCube1RotateSinCos)).xyz;
+    float3 refl_lower = texture(g_texCubeMap0, rotateXY(cube_map_sample_vector,g_SkyCube0RotateSinCos)).xyz;  //g_samplerCubeMap
+    float3 refl_upper = texture(g_texCubeMap1, rotateXY(cube_map_sample_vector,g_SkyCube1RotateSinCos)).xyz;
     float3 cloudy_reflection_color = g_LightColor*lerp(g_SkyColor,g_SkyCubeMult.xyz * lerp(refl_lower,refl_upper,g_CubeBlend), ramp.y);
 
     AtmosphereColorsType AtmosphereColors;
@@ -174,14 +175,14 @@ void main()
 
     float2 reflection_disturbance_viewspace = mul(float4(surface_attributes.normal.x,surface_attributes.normal.y,0,0),g_matView).xz * 0.05;
 
-    float2 reflectionCoords = In.pos_clip.xy * g_ScreenSizeInv.xy + reflection_disturbance_viewspace;
+    float2 reflectionCoords = gl_FragCoord.xy * g_ScreenSizeInv.xy + reflection_disturbance_viewspace;
 
-    float4 planar_reflection = g_texReflection.SampleLevel(g_samplerPointClamp, reflectionCoords,0);
+    float4 planar_reflection = textureLod(g_texReflection, reflectionCoords,0);   //g_samplerPointClamp
     float reflectionFactor = 0;
 
     //if (planar_reflection.a)
     {
-        float3 planar_reflection_pos = g_texReflectionPos.SampleLevel(g_samplerPointClamp, reflectionCoords, 0).xyz;
+        float3 planar_reflection_pos = textureLod(g_texReflectionPos, reflectionCoords, 0).xyz;  //g_samplerPointClamp
 
         float pixelDistance = dot(g_ViewForward.xzy, planar_reflection_pos.xyz - In.world_pos.xzy);
         pixelDistance = pixelDistance > 0 ? 1.0 : 0.0;
@@ -193,7 +194,7 @@ void main()
         reflectionFactor = min(pow(reflectionFactor, 8.0) * 8.0, 1.0) * pixelDistance;
     }
 
-    reflection_color = lerp(reflection_color,planar_reflection.rgb * reflectionFactor, any(planar_reflection.a * reflectionFactor));
+    reflection_color = lerp(reflection_color,planar_reflection.rgb * reflectionFactor, float(any(bool(planar_reflection.a * reflectionFactor))));
 
     //adding static foam map for ship
     surface_attributes.foam_turbulent_energy += 1.0*wake_energy.g*(1.0 + surface_attributes.foam_surface_folding*0.6-0.3);
@@ -205,7 +206,7 @@ void main()
     }
 
     //adding local foam generated by spray (uses same UV as wake map and static foam map)
-    surface_attributes.foam_turbulent_energy += 0.2*g_texLocalFoamMap.Sample(g_samplerTrilinearClamp, float2(In.foam_uv.x,1.0-In.foam_uv.y)).r;
+    surface_attributes.foam_turbulent_energy += 0.2*texture(g_texLocalFoamMap, float2(In.foam_uv.x,1.0-In.foam_uv.y)).r;  //g_samplerTrilinearClamp
 
     float hullFoamFactor = 0;
 
@@ -216,7 +217,7 @@ void main()
 
         // Sample the vessel hull profile and depress the surface where necessary
         float2 hull_profile_uv = g_HullProfileCoordOffsetAndScale[i].xy + In.world_pos.xy * g_HullProfileCoordOffsetAndScale[i].zw;
-        float4 hull_profile_sample = g_texHullProfileMap[i].SampleLevel(g_samplerHullProfileBorder, hull_profile_uv, 6);
+        float4 hull_profile_sample = textureLod(g_texHullProfileMap[i], hull_profile_uv, 6);  //g_samplerHullProfileBorder
         float hull_profile_height = g_HullProfileHeightOffsetAndHeightScaleAndTexelSize[i].x + g_HullProfileHeightOffsetAndHeightScaleAndTexelSize[i].y * hull_profile_sample.x;
         float hull_profile_blend = hull_profile_sample.y;
 
@@ -225,13 +226,13 @@ void main()
     /* */
 
     // low frequency foam map
-    float foam_intensity_map_lf = 1.0*g_texFoamIntensityMap.Sample(g_samplerTrilinear, In.world_pos_undisplaced.xy*0.1*float2(1,1)).x - 1.0;
+    float foam_intensity_map_lf = 1.0*texture(g_texFoamIntensityMap, In.world_pos_undisplaced.xy*0.1*float2(1,1)).x - 1.0;  //g_samplerTrilinear
 
     // high frequency foam map
-    float foam_intensity_map_hf = 1.0*g_texFoamIntensityMap.Sample(g_samplerTrilinear, In.world_pos_undisplaced.xy*0.4*float2(1,1)).x - 1.0;
+    float foam_intensity_map_hf = 1.0*texture(g_texFoamIntensityMap, In.world_pos_undisplaced.xy*0.4*float2(1,1)).x - 1.0;
 
     // ultra high frequency foam map
-    float foam_intensity_map_uhf = 1.0*g_texFoamIntensityMap.Sample(g_samplerTrilinear, In.world_pos_undisplaced.xy*0.7*float2(1,1)).x;
+    float foam_intensity_map_uhf = 1.0*texture(g_texFoamIntensityMap, In.world_pos_undisplaced.xy*0.7*float2(1,1)).x;
 
     float foam_intensity;
     foam_intensity = saturate(foam_intensity_map_hf + min(3.5,1.0*(surface_attributes.foam_turbulent_energy + hullFoamFactor) -0.2));
@@ -244,7 +245,7 @@ void main()
 
     foam_intensity *= 1.0+0.8*saturate(surface_attributes.foam_surface_folding);
 
-    float foam_bubbles = g_texFoamDiffuseMap.Sample(g_samplerTrilinear, In.world_pos_undisplaced.xy*0.25).r;
+    float foam_bubbles = texture(g_texFoamDiffuseMap, In.world_pos_undisplaced.xy*0.25).r;  //g_samplerTrilinear
     foam_bubbles = saturate(5.0*(foam_bubbles-0.8));
 
     // applying foam hats

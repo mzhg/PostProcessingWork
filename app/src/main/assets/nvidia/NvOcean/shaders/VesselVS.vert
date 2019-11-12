@@ -18,9 +18,9 @@ out VS_OUT
 void main()
 {
     gl_Position = mul(vPos, g_matWorldViewProj);
-    o.world_normal = mul(vNml, (float3x3)g_matWorld);
-    o.world_pos = mul(vPos, (float4x3)g_matWorld);
-    o.eye_pos = mul(vPos, (float4x3)g_matWorldView);
+    o.world_normal = mul(vNml, float3x3(g_matWorld));
+    o.world_pos = mul(vPos, g_matWorld).xyz;
+    o.eye_pos = mul(vPos, g_matWorldView).xyz;
     o.rust_uv = vPos.yz*0.006;
     o.rustmap_uv = float2(-vPos.z*0.000345 + 0.495,0.945-vPos.y*0.000345+  vPos.z*0.00001);//vTex;
     o.model_z = vPos.y - vPos.z*vPos.z*0.00005 + vPos.z*0.05 - 80.0;

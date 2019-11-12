@@ -2,7 +2,7 @@
 
 out VS_OUT
 {
-    float m_uv;
+    float2 m_uv;
 }O;
 
 void main()

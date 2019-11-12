@@ -22,7 +22,7 @@ void main()
 
         // Sample the vessel hull profile and depress the surface where necessary
         float2 hull_profile_uv = g_HullProfileCoordOffsetAndScale[i].xy + wvo.pos_world.xy * g_HullProfileCoordOffsetAndScale[i].zw;
-        float4 hull_profile_sample = g_texHullProfileMap[i].SampleLevel(g_samplerHullProfile, hull_profile_uv, mip_level);
+        float4 hull_profile_sample = textureLod(g_texHullProfileMap[i], hull_profile_uv, mip_level);  // g_samplerHullProfile
 
         float hull_profile_height = g_HullProfileHeightOffsetAndHeightScaleAndTexelSize[i].x + g_HullProfileHeightOffsetAndHeightScaleAndTexelSize[i].y * hull_profile_sample.x;
         Output.hull_proximity += hull_profile_sample.y;

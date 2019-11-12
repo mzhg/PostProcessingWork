@@ -1,3 +1,4 @@
+#include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
 #include "ocean_shader_common.h"
 #include "shader_common.fxh"
 #include "atmospheric.glsl"
@@ -26,7 +27,7 @@ uniform float4		g_SpotlightColor[MaxNumSpotlights];
 
 #if ENABLE_SHADOWS
 uniform float4x4    g_SpotlightMatrix[MaxNumSpotlights];
-uniform Texture2D   g_SpotlightResource[MaxNumSpotlights];
+uniform sampler2DShadow   g_SpotlightResource[MaxNumSpotlights];
 #endif
 
 //-----------------------------------------------------------------------------------

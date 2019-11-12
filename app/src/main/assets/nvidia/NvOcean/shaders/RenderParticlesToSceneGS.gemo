@@ -32,7 +32,7 @@ float CalcPSMFadeFactor(float3 PSMCoords)
 
 void main()
 {
-    int PrimID = gl_PrimitiveIDn;
+    int PrimID = gl_PrimitiveIDIn;
     float4 InstanceData = GetParticleInstanceData(PrimID);
 
     // Fade particles that are near the bounds of the PSM, and kill any that go outside
@@ -45,7 +45,7 @@ void main()
     float fog_factor = exp(dot(CentreViewPos,CentreViewPos)*g_FogExponent);
 
 //    [unroll]
-    for(uint i = 0; i != 4; ++i) {
+    for(int i = 0; i != 4; ++i) {
 
         GS_PARTICLE_COORDS particleCoords = CalcParticleCoords(InstanceData,i);
 

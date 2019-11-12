@@ -1,0 +1,20 @@
+#include "ocean_spray.glsl"
+
+layout(binding = 2) uniform DispatchArguments //: register(b2)
+{
+    uint g_ParticleCount;
+};
+
+layout (local_size_x = SprayParticlesCSBlocksSize, local_size_y = 1) in;
+void main()
+{
+    int particle_index = int(SV_DispatchThreadID.x);
+
+    SprayParticleData particleData = g_SprayParticleDataSRV[particle_index];
+    float view_z = max(0,mul(float4(particleData.position_and_mass.xyz,1), g_matView).z);
+
+    if (particle_index >= g_ParticleCount) view_z = 0;
+
+    g_ParticleDepthSortUAV[particle_index].ParticleIndex = particle_index;
+    g_ParticleDepthSortUAV[particle_index].ViewZ = view_z;
+}

@@ -1,0 +1,24 @@
+#include "ocean_spray.glsl"
+
+layout (local_size_x = SprayParticlesCSBlocksSize, local_size_y = 1) in;
+void main()
+{
+    uint3 Gid = SV_GroupID;
+    uint3 DTid = SV_DispatchThreadID;
+    uint3 GTid = SV_GroupThreadID;
+    uint GI = SV_GroupIndex;
+
+    uint particleID = SV_DispatchThreadID.x;
+
+    if (particleID >= g_ParticlesNum) return;
+
+    SprayParticleData particleData;
+    particleData.position_and_mass = texelFetch(g_RenderInstanceData, int(particleID));
+    particleData.velocity_and_time = texelFetch(g_RenderVelocityAndTimeData, int(particleID));
+
+    particleData.velocity_and_time.w = 0;
+
+    uint particleSlot = atomicCounterIncrement(g_SprayParticleCount);
+//    g_SprayParticleData.Append(particleData);
+    g_SprayParticleData[int(particleSlot)] = particleData;
+}

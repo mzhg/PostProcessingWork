@@ -15,7 +15,7 @@ void main()
     float3 illumination = g_LightColor*0.5 + g_AmbientColor*0.5 + g_LightningColor*0.5;
     illumination *= CalcPSMShadowFactor(In.PSMCoords);
 
-    float4 tex = GetParticleRGBA(g_samplerDiffuse,In.TextureUVAndOpacity.xy,In.TextureUVAndOpacity.z);
+    float4 tex = GetParticleRGBA(/*g_samplerDiffuse,*/In.TextureUVAndOpacity.xy,In.TextureUVAndOpacity.z);
 
     float4 Output = float4(illumination * tex.rgb, tex.a);
     Output.rgb = lerp(g_AmbientColor*0.5 + g_LightningColor*0.5,Output.rgb,In.FogFactor);

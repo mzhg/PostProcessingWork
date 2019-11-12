@@ -1,5 +1,5 @@
 #include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
-#include "atmospheric.fxh"
+#include "atmospheric.glsl"
 
 //------------------------------------------------------------------------------------
 // Global variables

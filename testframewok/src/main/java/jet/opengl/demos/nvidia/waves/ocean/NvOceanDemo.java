@@ -99,11 +99,11 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
 
     GFSDK_WaveWorks_Savestate g_hOceanSavestate = null;
     GFSDK_WaveWorks_Simulation g_hOceanSimulation = null;
-    OceanSurfaceState       g_OceanSurfState;
+    final OceanSurfaceState       g_OceanSurfState = new OceanSurfaceState();
     OceanSurface			g_pOceanSurf = null;
-    OceanVesselDynamicState g_HeroVesselState;
+    final OceanVesselDynamicState g_HeroVesselState= new OceanVesselDynamicState();
     OceanVessel			g_pHeroVessel = null;
-    OceanVesselDynamicState g_CameraVesselState;
+    final OceanVesselDynamicState g_CameraVesselState = new OceanVesselDynamicState();
     OceanVessel			g_pCameraVessel = null;
     OceanSpray				g_pOceanSpray = null;
     final GFSDK_WaveWorks_Simulation_Params g_ocean_simulation_param = new GFSDK_WaveWorks_Simulation_Params();
@@ -238,9 +238,26 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
 
     @Override
     protected void initRendering() {
+        ModifyDeviceSettings();
         InitApp();
 
+        OnD3D11CreateDevice();
         ShaderManager.getInstance();
+    }
+
+    @Override
+    protected void reshape(int width, int height) {
+        if(width <=0 || height <=0)
+            return;
+
+        OnD3D11ResizedSwapChain(width, height);
+    }
+
+    @Override
+    public void display() {
+        UpdatePresetTransition(getFrameDeltaTime());
+        OnFrameMove(getTotalTime(), getFrameDeltaTime());
+        OnD3D11FrameRender(getTotalTime(), getFrameDeltaTime());
     }
 
     //--------------------------------------------------------------------------------------
@@ -308,7 +325,8 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         SetVesselMode_OnBoard();
 
         // Init sky maps
-        Arrays.fill(g_SkyMaps, 0);
+        for(int i = 0; i < g_SkyMaps.length; i++)
+            g_SkyMaps[i] = new OceanSkyMapInfo();
         g_SkyMaps[SkyMap_Cloudy].m_SkyDomeFileName = (".\\media\\sky_blue_cube.dds");
         g_SkyMaps[SkyMap_Cloudy].m_ReflectFileName = (".\\media\\reflect_sky_blue_cube.dds");
         g_SkyMaps[SkyMap_Cloudy].m_Orientation = 0.35f * Numeric.PI;
@@ -331,7 +349,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         g_CameraVesselState.setHeading((g_ocean_simulation_param.wind_dir), kVesselSpeed);
     }
 
-    void UpdatePresetTransition(float fElapsedTime)
+    private void UpdatePresetTransition(float fElapsedTime)
     {
 	    final float fTargetPreset = (float)g_TargetPreset;
         if(g_CurrentPreset != fTargetPreset)
@@ -368,7 +386,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
 // DXUT will not correct invalid device settings so care must be taken
 // to return valid device settings, otherwise IDirect3D9::CreateDevice() will fail.
 //--------------------------------------------------------------------------------------
-    void ModifyDeviceSettings( /*DXUTDeviceSettings* pDeviceSettings, void* pUserContext*/ )
+    private void ModifyDeviceSettings( /*DXUTDeviceSettings* pDeviceSettings, void* pUserContext*/ )
     {
         /*IDXGIAdapter* adapter = NULL;
         DXGI_ADAPTER_DESC ad;
@@ -414,7 +432,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
     //--------------------------------------------------------------------------------------
 // Create any D3D11 resources that aren't dependant on the back buffer
 //--------------------------------------------------------------------------------------
-    void OnD3D11CreateDevice( /*ID3D11Device* pd3dDevice, const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc,
+    private void OnD3D11CreateDevice( /*ID3D11Device* pd3dDevice, const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc,
                                           void* pUserContext*/ )
     {
 
@@ -640,7 +658,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         g_pOceanSpray.init(g_pHeroVessel.getHullSensors());
     }
 
-    void ReleaseViewDependentResources()
+    private void ReleaseViewDependentResources()
     {
         // MSAA targets
         CommonUtil.safeRelease(g_pColorBuffer);
@@ -677,7 +695,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         CommonUtil.safeRelease(g_pReflectionViewDepthSRV);
     }
 
-    void CreateViewDependentResources( /*ID3D11Device* pd3dDevice, const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc*/ int width, int height, int format)
+    private void CreateViewDependentResources( /*ID3D11Device* pd3dDevice, const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc*/ int width, int height, int format)
     {
 
         ReleaseViewDependentResources();
@@ -875,7 +893,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
     //--------------------------------------------------------------------------------------
 // Create any D3D11 resources that depend on the back buffer
 //--------------------------------------------------------------------------------------
-    void OnD3D11ResizedSwapChain( int width, int height )
+    private void OnD3D11ResizedSwapChain( int width, int height )
     {
         boolean fullScreen = true;
 //        IDXGIOutput* pUnused=NULL;
@@ -951,7 +969,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
     //--------------------------------------------------------------------------------------
 // Handle updates to the scene.  This is called regardless of which D3D API is used
 //--------------------------------------------------------------------------------------
-    void OnFrameMove( float fTime, float fElapsedTime )
+    private void OnFrameMove( float fTime, float fElapsedTime )
     {
         UpdatePresetTransition(fElapsedTime);
 
@@ -1025,7 +1043,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
     //--------------------------------------------------------------------------------------
 // Render the scene using the D3D11 device
 //--------------------------------------------------------------------------------------
-    void OnD3D11FrameRender( /*ID3D11Device* pd3dDevice, ID3D11DeviceContext* pDC,*/ float fTime,
+    private void OnD3D11FrameRender( /*ID3D11Device* pd3dDevice, ID3D11DeviceContext* pDC,*/ float fTime,
                                       float fElapsedTime/*, void* pUserContext*/ )
     {
         // getting simulation timings
@@ -1536,7 +1554,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
     //--------------------------------------------------------------------------------------
 // Release D3D11 resources created in OnD3D11CreateDevice
 //--------------------------------------------------------------------------------------
-    void OnD3D11DestroyDevice( /*void* pUserContext*/ )
+    private void OnD3D11DestroyDevice( /*void* pUserContext*/ )
     {
         /*g_DialogResourceManager.OnD3D11DestroyDevice();
         g_SettingsDlg.OnD3D11DestroyDevice();
@@ -1603,7 +1621,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
     private final Vector4f[] displacements = CommonUtil.initArray(new Vector4f[num_markers]);
     private final Vector4f[] position = CommonUtil.initArray(new Vector4f[num_markers]);
 
-    void RenderMarkers(/*ID3D11DeviceContext* pDC*/)
+    private void RenderMarkers(/*ID3D11DeviceContext* pDC*/)
     {
 
         ReadableVector3f eye_pos = g_Camera.getPosition();
@@ -1710,7 +1728,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         CacheBuffer.free(temp);
     }
 
-    void DownsampleDepth(/*ID3D11DeviceContext* pDC*/)
+    private void DownsampleDepth(/*ID3D11DeviceContext* pDC*/)
     {
 //        pDC->OMSetRenderTargets(0, NULL, g_pDepthBufferResolvedDSV);
         mFbo.bind();
@@ -1730,7 +1748,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
 //        g_pDepthMapMSVariable->SetResource(NULL);
     }
 
-    void InterpolateDepth(/*ID3D11DeviceContext* pDC*/)
+    private void InterpolateDepth(/*ID3D11DeviceContext* pDC*/)
     {
         /*D3DXMATRIX matProj = *g_Camera.GetProjMatrix();
         D3DXMATRIX matProjInv; todo
@@ -1758,7 +1776,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
 
     private final Vector4f[] far_plane_quad = CommonUtil.initArray(new Vector4f[4]);
     private final Matrix4f prePostMat = new Matrix4f(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1);
-    void RenderSkybox(/*ID3D11DeviceContext* pDC*/)
+    private void RenderSkybox(/*ID3D11DeviceContext* pDC*/)
     {
         /*D3DXMATRIX matView = D3DXMATRIX(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1) * *g_Camera.GetViewMatrix();
         matView._41 = 0.f; // Zero out the translation, to avoid precision issues at large distances from origin
@@ -1840,7 +1858,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         pDC->Draw(4, 0);*/
     }
 
-    void RenderLogo(/*ID3D11DeviceContext* pDC,*/ Texture2D pSRV, BufferGL pVB)
+    private void RenderLogo(/*ID3D11DeviceContext* pDC,*/ Texture2D pSRV, BufferGL pVB)
     {
         /*g_pLogoTextureVariable->SetResource(pSRV);
 
@@ -1863,7 +1881,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         g_pOceanSurf.m_pQuadLayout.unbind();
     }
 
-    void SetVesselMode_OnBoard()
+    private void SetVesselMode_OnBoard()
     {
 //        g_Camera.SetEnablePositionMovement(FALSE);
 
@@ -1875,14 +1893,14 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         g_VesselMode = VesselMode_OnBoard;
     }
 
-    void SetVesselMode_External()
+    private void SetVesselMode_External()
     {
 //        g_Camera.SetEnablePositionMovement(TRUE);
 //        g_Camera.AssimilateVesselBorneXform();
         g_VesselMode = VesselMode_External;
     }
 
-    void CycleVesselMode()
+    private void CycleVesselMode()
     {
         g_VesselMode = ((g_VesselMode+1) % Num_VesselModes);
 
@@ -1898,7 +1916,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         // GFSDK_WaveWorks_Simulation_UpdateProperties(g_hOceanSimulation, g_ocean_simulation_settings, g_ocean_simulation_param);
     }
 
-    void GetOceanSurfaceLookAtPoint(Vector3f result)
+    private void GetOceanSurfaceLookAtPoint(Vector3f result)
     {
         ReadableVector3f eye_pos = g_Camera.getPosition();
         ReadableVector3f lookat = g_Camera.getLookAt();

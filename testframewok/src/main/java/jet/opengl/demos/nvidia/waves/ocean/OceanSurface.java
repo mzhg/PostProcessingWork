@@ -141,7 +141,7 @@ final class OceanSurface implements OceanConst, Disposeable {
     private BufferGL            m_pDrawParticlesBufferUAV;
 
     private OceanSurfaceTechnique         m_pRenderSprayParticlesTechnique;
-    private OceanSurfaceTechnique         m_pSimulateSprayParticlesTechnique;
+    private OceanSprayTechnique         m_pSimulateSprayParticlesTechnique;
     private OceanSurfaceTechnique         m_pDispatchArgumentsTechnique;
 
     /*ID3DX11EffectVectorVariable* m_pViewRightVariable;
@@ -443,9 +443,9 @@ final class OceanSurface implements OceanConst, Disposeable {
                 m_pDrawParticlesCB.initlize(GLenum.GL_UNIFORM_BUFFER, 16, null, GLenum.GL_DYNAMIC_COPY);
             }
 
-            m_pRenderSprayParticlesTechnique = ShaderManager.getInstance().getProgram("RenderSprayParticles");
-            m_pSimulateSprayParticlesTechnique = ShaderManager.getInstance().getProgram("SimulateSprayParticles");
-            m_pDispatchArgumentsTechnique = ShaderManager.getInstance().getProgram("PrepareDispatchArguments");
+//            m_pRenderSprayParticlesTechnique = ShaderManager.getInstance().getProgram("RenderSprayParticles");
+//            m_pSimulateSprayParticlesTechnique = ShaderManager.getInstance().getProgram("SimulateSprayParticles");
+//            m_pDispatchArgumentsTechnique = ShaderManager.getInstance().getProgram("PrepareDispatchArguments");
 
             /*m_pViewRightVariable = m_pOceanFX -> GetVariableByName("g_ViewRight")->AsVector();
             m_pViewUpVariable = m_pOceanFX -> GetVariableByName("g_ViewUp")->AsVector();

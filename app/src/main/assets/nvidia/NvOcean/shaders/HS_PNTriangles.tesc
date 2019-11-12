@@ -20,6 +20,13 @@ patch out HS_ConstantOutput
 
 layout (vertices = 3) out;
 
+float CalcTessFactorMultFromProximity(float proximity)
+{
+    const float max_proximity = 0.5f;
+    const float max_mult = 4.f;
+    return 1.f + (max_mult-1.f) * saturate(proximity/max_proximity);
+}
+
 void main()
 {
     Outputs[gl_InvocationID].worldspace_position = I[gl_InvocationID].worldspace_position;

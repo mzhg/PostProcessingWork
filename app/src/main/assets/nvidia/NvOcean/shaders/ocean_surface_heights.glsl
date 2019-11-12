@@ -1,3 +1,4 @@
+#include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
 #include "ocean_shader_common.h"
 
 //------------------------------------------------------------------------------------
@@ -50,7 +51,7 @@ float3 GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(float2 In)
 #define GFSDK_WAVEWORKS_BEGIN_ATTR_PS_CBUFFER(Label) cbuffer Label {
 #define GFSDK_WAVEWORKS_END_ATTR_PS_CBUFFER };
 
-#include "GFSDK_WaveWorks_Attributes.fxh"
+#include "../../../shader_libs/WaveWork/GFSDK_WaveWorks_Attributes.glsl"
 
 //------------------------------------------------------------------------------------
 // Constants

@@ -16,10 +16,10 @@ void main()
 
     // blur with variable size kernel is done by doing 4 bilinear samples,
     // each sample is slightly offset from the center point
-    float foam1	= texture(g_texLocalFoamSource, In.uv + UVOffset + BlurUV).r;    //g_samplerTrilinearClamp
-    float foam2	= texture(g_texLocalFoamSource, In.uv + UVOffset - BlurUV).r;
-    float foam3	= texture(g_texLocalFoamSource, In.uv + UVOffset + BlurUV*2.0).r;
-    float foam4	= texture(g_texLocalFoamSource, In.uv + UVOffset - BlurUV*2.0).r;
+    float foam1	= texture(g_texLocalFoamSource, m_f4UVAndScreenPos.xy + UVOffset + BlurUV).r;    //g_samplerTrilinearClamp
+    float foam2	= texture(g_texLocalFoamSource, m_f4UVAndScreenPos.xy + UVOffset - BlurUV).r;
+    float foam3	= texture(g_texLocalFoamSource, m_f4UVAndScreenPos.xy + UVOffset + BlurUV*2.0).r;
+    float foam4	= texture(g_texLocalFoamSource, m_f4UVAndScreenPos.xy + UVOffset - BlurUV*2.0).r;
     float sum = min(5.0,(foam1 + foam2 + foam3 + foam4)*0.25*Fade); // added clamping to 5
     OutColor = vec4(sum,sum,sum,sum);
 }

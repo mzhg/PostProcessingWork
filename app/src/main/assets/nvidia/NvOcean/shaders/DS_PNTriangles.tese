@@ -19,7 +19,7 @@ out DS_OUTPUT
     float                               penetration /*: PENETRATION*/;
 }Output;
 
-in out HS_ConstantOutput
+patch in HS_ConstantOutput
 {
     float fTargetEdgeLength[3] /*: TargetEdgeLength*/;
     float fHullProxMult[3] /*: HullProxMult*/;
@@ -29,6 +29,7 @@ layout(triangles, fractional_odd_spacing, cw) in;
 
 void main()
 {
+    float3 f3BarycentricCoords = gl_TessCoord.xyz;
     GFSDK_WAVEWORKS_VERTEX_OUTPUT NV_ocean = GFSDK_WaveWorks_GetDisplacedVertexAfterTessellation(I[0].worldspace_position, I[1].worldspace_position, I[2].worldspace_position, f3BarycentricCoords);
 
     float3 pos_world = NV_ocean.pos_world;
@@ -51,7 +52,7 @@ void main()
 
     if(g_bWakeEnabled) {
         // fetching wakes
-        float4 wake = g_texWakeMap.SampleLevel(g_samplerTrilinearClamp, wake_uv,0);
+        float4 wake = textureLod(g_texWakeMap, wake_uv,0);  //g_samplerTrilinearClamp
 
         // applying displacement added by wakes
         float3 wake_displacement;
@@ -73,7 +74,7 @@ void main()
 
         // Sample the vessel hull profile and depress the surface where necessary
         float2 hull_profile_uv = g_HullProfileCoordOffsetAndScale[i].xy + NV_ocean.pos_world.xy * g_HullProfileCoordOffsetAndScale[i].zw;
-        float4 hull_profile_sample = g_texHullProfileMap[i].SampleLevel(g_samplerHullProfile, hull_profile_uv, mip_level);
+        float4 hull_profile_sample = textureLod(g_texHullProfileMap[i], hull_profile_uv, mip_level);  //g_samplerHullProfile
         float hull_profile_height = g_HullProfileHeightOffsetAndHeightScaleAndTexelSize[i].x + g_HullProfileHeightOffsetAndHeightScaleAndTexelSize[i].y * hull_profile_sample.x;
         float hull_profile_blend = hull_profile_sample.y;
 

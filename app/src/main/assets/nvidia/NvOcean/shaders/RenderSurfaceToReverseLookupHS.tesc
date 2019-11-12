@@ -2,12 +2,12 @@
 
 out HS_OUT
 {
-    float m_uv;
+    float2 m_uv;
 }O[];
 
 in VS_OUT
 {
-    float m_uv;
+    float2 m_uv;
 }I[];
 
 layout (vertices = 4) out;

@@ -1,10 +1,5 @@
 #include "ocean_spray.glsl"
 
-float2 rotate_2d(float2 v, float2 rot)
-{
-    return float2(v.x * rot.x + v.y * rot.y, v.x * -rot.y + v.y * rot.x);
-}
-
 layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;
 
@@ -17,6 +12,7 @@ out GS_FOAM_PARTICLE_OUTPUT {
 
 void main()
 {
+    int PrimID = gl_PrimitiveIDIn;
     PARTICLE_INSTANCE_DATA InstanceData = GetParticleInstanceData(PrimID);
 
     // Only downward-moving particles are eligible for foam injection
@@ -39,7 +35,7 @@ void main()
     // necessary for perfection here...
     float relative_penetration = 0.15f*(-InstanceData.velocity.y * g_SimulationTime)/particle_scale;
 
-    for(uint i = 0; i != 4; ++i) {
+    for(int i = 0; i != 4; ++i) {
 
         HS_PARTICLE_COORDS particleCoords = CalcParticleCoords(InstanceData,i);
 

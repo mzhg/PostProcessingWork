@@ -2,6 +2,8 @@
 
 layout(binding = 0, r32ui) uniform uimage3D g_PSMPropagationMapUAV;
 
+#define PSMPropagationCSBlockSize 16
+
 layout (local_size_x = PSMPropagationCSBlockSize, local_size_y = PSMPropagationCSBlockSize) in;
 void main()
 {

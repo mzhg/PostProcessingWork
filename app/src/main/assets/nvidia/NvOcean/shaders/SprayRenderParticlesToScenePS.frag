@@ -1,3 +1,4 @@
+#define _FRAG_SHADER
 #include "ocean_spray.glsl"
 
 in DS_SCENE_PARTICLE_OUTPUT {
@@ -26,7 +27,7 @@ void main()
     }
 
     // disable PSM on spray dynamic_lighting *= CalcPSMShadowFactor(In.PSMCoords);
-    float4 result = GetParticleRGBA(g_SamplerTrilinearClamp, In.TextureUVAndOpacity.xy, In.TextureUVAndOpacity.z);
+    float4 result = GetParticleRGBA(/*g_SamplerTrilinearClamp,*/ In.TextureUVAndOpacity.xy, In.TextureUVAndOpacity.z);
 
     result.rgb *= In.Lighting;
 
@@ -34,7 +35,7 @@ void main()
     result.a = 0.125 * In.TextureUVAndOpacity.z;
 
 //    #if USE_DOWNSAMPLING
-    float depth = texelFetch(g_texDepth, int2(glFragCoord), 0); // coarse depth
+    float depth = texelFetch(g_texDepth, int2(gl_FragCoord), 0).x; // coarse depth
 //    #else
 //    float depth = g_texDepth.Load((int2)In.Position.xy, 0); // fine depth
 //    #endif

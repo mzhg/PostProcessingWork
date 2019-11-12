@@ -1,0 +1,21 @@
+#include "ocean_spray.glsl"
+
+
+layout (local_size_x = 1, local_size_y = 1) in;
+
+layout(binding = 0) buffer DispatchArgumentsBuffer
+{
+    uint4 u_DispatchArgumentsBuffer[];
+};
+
+layout(binding = 2) uniform DispatchArguments //: register(b2)
+{
+    uint g_ParticleCount;
+};
+
+void main()
+{
+    float blocksNum = ceil(float(g_ParticleCount) / SimulateSprayParticlesCSBlocksSize);
+
+    u_DispatchArgumentsBuffer[0] = uint4(blocksNum, 1, 1, 0);
+}

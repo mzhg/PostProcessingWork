@@ -1,0 +1,76 @@
+#include "ocean_spray.glsl"
+
+layout(binding = 2) uniform DispatchArguments //: register(b2)
+{
+    uint g_ParticleCount;
+};
+
+float3 CollisionAvoidanceAcceleration(float3 position)
+{
+    float3 vessel_pos = mul(float4(position,1),g_worldToVessel).xyz;
+    float3 accel_vessel_direction = float3(0.f);
+    float accel_magnitude = 0.f;
+
+    // Apply at all heights
+    {
+        float collison_profile = 0.5f*kVesselWidth*saturate((0.5f*kVesselLength-vessel_pos.z)/(kVesselWidth));
+        float rear_exclude = (vessel_pos.z < -20.f && vessel_pos.y > 0.f) ? 0.f : 1.f;
+        float range = abs(vessel_pos.x) - collison_profile;
+        float range_mult = saturate(1.f-range/kCollisionAccelerationRange);
+        accel_magnitude = kMaximumCollisionAcceleration * range_mult * rear_exclude;
+        accel_vessel_direction = float3(vessel_pos.x/abs(vessel_pos.x),0,0);
+    }
+
+    return accel_magnitude * mul(accel_vessel_direction,float3x3(g_vesselToWorld));
+}
+
+layout (local_size_x = SprayParticlesCSBlocksSize, local_size_y = 1) in;
+void main()
+{
+    uint particleID = SV_DispatchThreadID.x;
+
+    if (particleID >= min(g_ParticleCount, SPRAY_PARTICLE_COUNT)) return;
+
+    SprayParticleData particleData = g_SprayParticleDataSRV[particleID];
+
+    int num_steps = int(ceil(g_SimulationTime / kMaxSimulationTimeStep));
+    num_steps = min(num_steps, 3);
+    float time_step = g_SimulationTime / float(num_steps);
+
+    // kill particles by life-time
+    if (particleData.velocity_and_time.w + time_step * num_steps > kParticleTTL) return;
+
+    // Kill rules:
+    //  1/ particle must be heading down
+    //  2/ particle must be its own size inside the surface
+    if(particleData.velocity_and_time.y < 0.f) {
+        float2 lookup_uv = rotate_2d(particleData.position_and_mass.xz+g_worldToHeightLookupOffset,g_worldToHeightLookupRot)*g_worldToHeightLookupScale;
+        if(lookup_uv.x > 0.f && lookup_uv.y > 0.f && lookup_uv.x < 1.f && lookup_uv.y < 1.f) {
+            float3 lookup_value = textureLod(g_texHeightLookup,lookup_uv,0.f).xyz;   //g_SamplerTrilinearClamp
+            float depth_of_centre_below = lookup_value.z - particleData.position_and_mass.y;
+            float conservative_velocity_scale = CalcVelocityScale(length(particleData.velocity_and_time.xyz)) * CalcTimeScale(particleData.velocity_and_time.w);
+            if(depth_of_centre_below > conservative_velocity_scale) {
+                return;	// KILLED!
+            }
+        }
+    }
+
+    // updating particle times
+    particleData.velocity_and_time.w += time_step * num_steps;
+    for(int step = 0; step != num_steps; ++step)
+    {
+        // updating spray particles positions
+        float3 positionDelta = particleData.velocity_and_time.xyz * time_step;
+        particleData.position_and_mass.xyz += positionDelta;
+
+        // updating spray particles speeds
+        float3 accel = -kParticleDrag * (particleData.velocity_and_time.xyz - g_WindSpeed)/particleData.position_and_mass.w;
+        accel.y -= kGravity;//*1.1*particleData.position_and_mass.w;
+        accel += CollisionAvoidanceAcceleration(particleData.position_and_mass.xyz);
+        particleData.velocity_and_time.xyz += accel * time_step;
+    }
+
+    uint particleSlot = atomicCounterIncrement(g_SprayParticleCount);
+//    g_SprayParticleData.Append(particleData);
+    g_SprayParticleData[int(particleSlot)] = particleData;
+}

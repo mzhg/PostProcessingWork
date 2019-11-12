@@ -2,7 +2,7 @@
 
 in HS_OUT
 {
-    float m_uv;
+    float2 m_uv;
 }I[];
 
 out float4 m_Color;
@@ -11,14 +11,15 @@ layout(quads, equal_spacing, cw) in;
 void main()
 {
     float2 f2BilerpCoords = gl_TessCoord.xy;
-    float2 uv01 = lerp(I[0].uv,I[1].uv,f2BilerpCoords.y);
-    float2 uv23 = lerp(I[2].uv,I[3].uv,f2BilerpCoords.y);
+    float2 uv01 = lerp(I[0].m_uv,I[1].m_uv,f2BilerpCoords.y);
+    float2 uv23 = lerp(I[2].m_uv,I[3].m_uv,f2BilerpCoords.y);
 
     float2 water_in = lerp(uv01,uv23,f2BilerpCoords.x);
 
     float3 undisplaced_coords = GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(water_in);
 
-    GFSDK_WAVEWORKS_VERTEX_OUTPUT water_out = GFSDK_WaveWorks_GetDisplacedVertexAfterTessellation(float4(undisplaced_coords,1.f),0.f,0.f,float3(1,0,0));
+    const float4 zero4 = float4(0);
+    GFSDK_WAVEWORKS_VERTEX_OUTPUT water_out = GFSDK_WaveWorks_GetDisplacedVertexAfterTessellation(float4(undisplaced_coords,1.f),zero4,zero4,float3(1,0,0));
 
     float2 clip_uv = rotate_2d(water_out.pos_world.xy-g_clipToWorldOffset.xy,float2(g_clipToWorldRot.x,-g_clipToWorldRot.y)) * g_worldToClipScale.xy;
 

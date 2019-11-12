@@ -1,5 +1,7 @@
 #include "ocean_smoke.glsl"
 
+uniform sampler2D g_RandomUV;
+
 layout (local_size_x = EmitParticlesCSBlocksSize, local_size_y = 1) in;
 void main()
 {
@@ -11,29 +13,30 @@ void main()
     if(DTid.x >= g_ParticleCount)
     return;
 
-    uint random_wrap_index;
-    g_RandomUV.GetDimensions(random_wrap_index);
-    uint random_index = (g_RandomOffset + 2 * DTid.x) % random_wrap_index;
+    int random_wrap_index;
+//    g_RandomUV.GetDimensions(random_wrap_index);
+    random_wrap_index = textureSize(g_RandomUV,0).x;
+    int random_index = int(g_RandomOffset + 2 * DTid.x) % random_wrap_index;
 
     float emit_interp = g_EmitInterpScaleAndOffset.y + g_EmitInterpScaleAndOffset.x * float(DTid.x);
 
-    float2 random_uv_0 = g_RandomUV.Load(random_index);
-    float2 random_uv_1 = g_RandomUV.Load(random_index+1);
+    float2 random_uv_0 = texelFetch(g_RandomUV, int2(random_index, 0), 0).xy;
+    float2 random_uv_1 = texelFetch(g_RandomUV, int2(random_index+1, 0), 0).xy;
     float r = sqrt(random_uv_0.x);
     float theta_pos = 2.f * PI * random_uv_0.y;
     float2 random_unit_circle = float2(r * cos(theta_pos), r *sin(theta_pos));
     float4 emit_pos_local = float4(g_EmitAreaScale.x * random_unit_circle.x,0.f,g_EmitAreaScale.y * random_unit_circle.y,1.f);
 
-    float3 prev_emit_pos_world = mul(emit_pos_local, g_PrevEmitterMatrix);
-    float3 curr_emit_pos_world = mul(emit_pos_local, g_CurrEmitterMatrix);
+    float3 prev_emit_pos_world = mul(emit_pos_local, g_PrevEmitterMatrix).xyz;
+    float3 curr_emit_pos_world = mul(emit_pos_local, g_CurrEmitterMatrix).xyz;
 
     float3 emit_velocity_local;
     emit_velocity_local.y = 1.f;
     emit_velocity_local.xz = g_EmitMinMaxVelocityAndSpread.z * random_unit_circle;
     emit_velocity_local *= lerp(g_EmitMinMaxVelocityAndSpread.x,g_EmitMinMaxVelocityAndSpread.y,random_uv_1.x);
 
-    float3 prev_emit_vel_world = mul(emit_velocity_local, (float3x3)g_PrevEmitterMatrix);
-    float3 curr_emit_vel_world = mul(emit_velocity_local, (float3x3)g_CurrEmitterMatrix);
+    float3 prev_emit_vel_world = mul(emit_velocity_local, float3x3(g_PrevEmitterMatrix));
+    float3 curr_emit_vel_world = mul(emit_velocity_local, float3x3(g_CurrEmitterMatrix));
 
     float3 emit_pos_world = lerp(prev_emit_pos_world,curr_emit_pos_world,emit_interp);
     float3 emit_vel_world = lerp(prev_emit_vel_world,curr_emit_vel_world,emit_interp);
@@ -51,9 +54,9 @@ void main()
     simulate(instance_data, velocity, pre_roll_time);
 
     // Calc particle index
-    uint particle_wrap_index;
-    g_SimulationInstanceData.GetDimensions(particle_wrap_index);
-    uint particle_index = (4 * (g_ParticleIndexOffset + DTid.x)) % particle_wrap_index;
+    int particle_wrap_index = g_SimulationInstanceData.length();
+//    g_SimulationInstanceData.GetDimensions(particle_wrap_index);
+    int particle_index = int(4 * (g_ParticleIndexOffset + DTid.x)) % particle_wrap_index;
 
     // Calc view-space z for depth sort (clamp to 0 to ensure pow-2 pad entries sort to end)
     float view_z = max(0,mul(float4(instance_data.xyz,1), g_matView).z);

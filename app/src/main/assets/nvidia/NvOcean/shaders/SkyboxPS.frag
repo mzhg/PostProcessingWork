@@ -11,7 +11,7 @@ in VS_OUTPUT
 
 void main()
 {
-    float3 n = normalize(In.EyeVec);
+    float3 n = normalize(Iutput.EyeVec);
     float4 lower = texture(g_texSkyCube0, rotateXY(n,g_SkyCube0RotateSinCos));
     float4 upper = texture(g_texSkyCube1, rotateXY(n,g_SkyCube1RotateSinCos));
     float4 sky_color = g_SkyCubeMult * lerp(lower,upper,g_SkyCubeBlend);
@@ -24,8 +24,8 @@ void main()
     fog_factor = kMinFogFactor + (1.f - kMinFogFactor) * fog_factor;
     sky_color.rgb = lerp(g_FogColor + g_LightningColor*0.5,sky_color.rgb,fog_factor);
 
-    AtmosphereColorsType AtmosphereColors = CalculateAtmosphericScattering(In.EyeVec,g_LightPos, 15.0);
+    AtmosphereColorsType AtmosphereColors = CalculateAtmosphericScattering(Iutput.EyeVec,g_LightPos, 15.0);
     float3 clear_color= AtmosphereColors.RayleighColor + AtmosphereColors.MieColor*5.0;
-    float3 result = lerp(clear_color, sky_color, g_CloudFactor);
+    float3 result = lerp(clear_color, sky_color.rgb, g_CloudFactor);
     OutColor = float4(result,1.0);
 }

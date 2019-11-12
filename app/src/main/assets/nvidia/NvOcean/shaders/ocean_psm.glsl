@@ -71,8 +71,8 @@ float3 CalcPSMShadowFactor(float3 PSMCoords)
     float3 lower_uvz = float3(PSMCoords.xy,(0.5f+slice_lower)/float(PSMMapD));
     float3 upper_uvz = float3(PSMCoords.xy,(0.5f+slice_upper)/float(PSMMapD));
 
-    float4 raw_lower_vals = slice_lower < 1.f ? 1.f : g_PSMMap.SampleLevel(g_SamplerPSM, lower_uvz, 0);
-    float raw_upper_val = slice_upper < 1.f ? 1.f : g_PSMMap.SampleLevel(g_SamplerPSM, upper_uvz, 0).r;
+    float4 raw_lower_vals = slice_lower < 1.f ? float4(1.f) : textureLod(g_PSMMap, lower_uvz, 0);   // g_SamplerPSM
+    float raw_upper_val = slice_upper < 1.f ? 1.f : textureLod(g_PSMMap, upper_uvz, 0).r;  //g_SamplerPSM
     float lower_val;
     float upper_val;
     float slice_lerp = 2.f * frac(slice);
@@ -86,5 +86,5 @@ float3 CalcPSMShadowFactor(float3 PSMCoords)
 
     float shadow_factor = lerp(lower_val,upper_val,frac(slice_lerp));
 
-    return pow(shadow_factor,g_PSMTint);
+    return pow(float3(shadow_factor),g_PSMTint);
 }

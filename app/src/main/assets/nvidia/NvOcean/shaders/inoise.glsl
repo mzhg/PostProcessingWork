@@ -21,7 +21,7 @@ const int permutation[] = { 151,160,137,91,90,15,
 };
 
 // gradients for 3d noise
-const float3 g[] = {
+const float g[] = {
 1,1,0,
 -1,1,0,
 1,-1,0,
@@ -41,7 +41,7 @@ const float3 g[] = {
 };
 
 // gradients for 4D noise
-const float4 g4[] = {
+const float g4[] = {
 0, -1, -1, -1,
 0, -1, -1, 1,
 0, -1, 1, -1,
@@ -242,25 +242,38 @@ float perm(float x)
     return textureLod(permTexture, float2(x, 0), 0).x;   //permSampler
 }
 
-/*float4 perm2d(float2 p)
+uniform sampler2D permSampler2d;
+uniform sampler2D permGradSampler;
+
+float4 perm2d(float2 p)
 {
     return texture(permSampler2d, p);
 }
 
-float grad(float x, float3 p)
+/*float grad(float x, float3 p)
 {
     return dot(tex1D(gradSampler, x*16).xyz, p);
-}
+}*/
 
 float gradperm(float x, float3 p)
 {
-    return dot(tex1D(permGradSampler, x).xyz, p);
-}*/
+    return dot(texture(permGradSampler,float2(x, 0)).xyz, p);
+}
 
 // 4d versions
 float grad(float x, float4 p)
 {
     return dot(textureLod(gradTexture4d, float2(x,0), 0), p);   //gradSampler4d
+}
+
+float3 fmod(float3 v, float3 d)
+{
+    return v - (floor(v/d) * d);
+}
+
+float4 fmod(float4 v, float4 d)
+{
+    return v - (floor(v/d) * d);
 }
 
 /*float gradperm(float x, float4 p)
@@ -274,7 +287,7 @@ float grad(float x, float4 p)
 // original version
 float inoise(float3 p)
 {
-    float3 P = fmod(floor(p), 256.0);	// FIND UNIT CUBE THAT CONTAINS POINT
+    float3 P = fmod(floor(p), float3(256.0));	// FIND UNIT CUBE THAT CONTAINS POINT
     p -= floor(p);                      // FIND RELATIVE X,Y,Z OF POINT IN CUBE.
     float3 f = fade(p);                 // COMPUTE FADE CURVES FOR EACH OF X,Y,Z.
 
@@ -307,7 +320,7 @@ float inoise(float3 p)
 // optimized version
 float inoise(float3 p)
 {
-    float3 P = fmod(floor(p), 256.0);	// FIND UNIT CUBE THAT CONTAINS POINT
+    float3 P = fmod(floor(p), float3(256.0));	// FIND UNIT CUBE THAT CONTAINS POINT
     p -= floor(p);                      // FIND RELATIVE X,Y,Z OF POINT IN CUBE.
     float3 f = fade(p);                 // COMPUTE FADE CURVES FOR EACH OF X,Y,Z.
 
@@ -334,7 +347,7 @@ float inoise(float3 p)
 // 4D noise
 float inoise(float4 p)
 {
-    float4 P = fmod(floor(p), 256.0);	// FIND UNIT HYPERCUBE THAT CONTAINS POINT
+    float4 P = fmod(floor(p), float4(256.0));	// FIND UNIT HYPERCUBE THAT CONTAINS POINT
     p -= floor(p);                      // FIND RELATIVE X,Y,Z OF POINT IN CUBE.
     float4 f = fade(p);                 // COMPUTE FADE CURVES FOR EACH OF X,Y,Z, W
     P = P / 256.0;

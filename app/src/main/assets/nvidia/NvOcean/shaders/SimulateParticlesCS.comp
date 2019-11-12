@@ -11,9 +11,9 @@ void main()
     if(DTid.x >= g_ParticleCount)
         return;
 
-    uint particle_wrap_index;
-    g_SimulationInstanceData.GetDimensions(particle_wrap_index);
-    uint particle_index = (4 * (g_ParticleIndexOffset + DTid.x)) % particle_wrap_index;
+    int particle_wrap_index = g_SimulationInstanceData.length();
+//    g_SimulationInstanceData.GetDimensions(particle_wrap_index);
+    int particle_index = int(4 * (g_ParticleIndexOffset + DTid.x)) % particle_wrap_index;
 
     float4 velocity;
     velocity.x = g_SimulationVelocities[particle_index+0];

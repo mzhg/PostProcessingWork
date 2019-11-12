@@ -21,12 +21,11 @@ void main()
 {
 //    _output[gl_InvocationID].worldspace_position = _inputs[gl_InvocationID].worldspace_position;
 
-    VS_SCENE_PARTICLE_OUTPUT InstanceData;
+    PARTICLE_INSTANCE_DATA InstanceData;
     InstanceData.position_and_mass = _inputs[0].position_and_mass;
     InstanceData.orientation_and_decimation = _inputs[0].orientation_and_decimation;
     InstanceData.velocity = _inputs[0].velocity;
     InstanceData.time = _inputs[0].time;
-    InstanceData.FogFactor = _inputs[0].FogFactor;
 
     HS_PARTICLE_COORDS particleCoords = CalcParticleCoords(/*I[0].*/InstanceData,gl_InvocationID);
 

@@ -40,14 +40,16 @@ const float2 g_SamplePositions[] = float2[](
     float2(0.08265103f, -0.8939569f)
 );
 
-float GetShadowValue(sampler2DShadow shadowMap, float4x4 lightMatrix, float3 fragmentPos, uniform bool simpleShadows=false)
+float GetShadowValue(sampler2DShadow shadowMap, float4x4 lightMatrix, float3 fragmentPos, bool simpleShadows=false)
 {
     float4 clipPos = mul(float4(fragmentPos, 1.0f), lightMatrix);
 
-    clipPos.z *= 0.99999;
+//    clipPos.z *= 0.99999;
     clipPos.xyz /= clipPos.w;
-    clipPos.x = clipPos.x * 0.5f + 0.5f;
-    clipPos.y = 0.5f - clipPos.y * 0.5f;
+//    clipPos.x = clipPos.x * 0.5f + 0.5f;
+//    clipPos.y = 0.5f - clipPos.y * 0.5f;
+    clipPos.xyz = 0.5 * clipPos.xyz + 0.5;
+    clipPos.z -= 0.0001;
 
     if (    clipPos.x < 0 || clipPos.x > 1 ||
             clipPos.y < 0 || clipPos.y > 1 )
@@ -57,7 +59,7 @@ float GetShadowValue(sampler2DShadow shadowMap, float4x4 lightMatrix, float3 fra
 
 	if (simpleShadows)
 	{
-		return textureLod(shadowMap, clipPos.xyz);   //g_samplerShadow
+		return textureLod(shadowMap, clipPos.xyz, 0.0);   //g_samplerShadow
 	}
 
     float shadow = 0;
@@ -68,7 +70,8 @@ float GetShadowValue(sampler2DShadow shadowMap, float4x4 lightMatrix, float3 fra
         float2 offset = g_SamplePositions[nSample];
         float weight = 1.0;
         offset *= (1.0f / kSpotlightShadowResolution) * 2.25;
-        float _sample = shadowMap.SampleCmpLevelZero(g_samplerShadow, clipPos.xy + offset, clipPos.z);
+        float _sample = //shadowMap.SampleCmpLevelZero(g_samplerShadow, clipPos.xy + offset, clipPos.z);
+                        textureLod(shadowMap, float3(clipPos.xy + offset, clipPos.z), 0);
         shadow += _sample * weight;
         totalWeight += weight;
     }

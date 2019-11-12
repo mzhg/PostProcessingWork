@@ -1,3 +1,8 @@
+#extension GL_NV_shader_buffer_load : enable
+#extension GL_NV_bindless_texture : enable
+#extension GL_NV_gpu_shader5 : enable
+
+#include "../../../shader_libs/PostProcessingHLSLCompatiable.glsl"
 #include "ocean_shader_common.h"
 #include "shader_common.fxh"
 #include "atmospheric.glsl"
@@ -97,7 +102,7 @@ uniform bool		g_bWakeEnabled;
 
 #if ENABLE_SHADOWS
 uniform float4x4    g_SpotlightMatrix[MaxNumSpotlights];
-layout(binding = 0) uniform uint64_t  g_SpotlightResource[MaxNumSpotlights];
+uniform uint64_t  g_SpotlightResource[MaxNumSpotlights];
 #endif
 
 float3 rotateXY(float3 xyz, float2 sc)
@@ -141,12 +146,12 @@ struct SprayParticleData
 //AppendStructuredBuffer<SprayParticleData> g_SprayParticleData : register(u1);
 //StructuredBuffer<SprayParticleData>       g_SprayParticleDataSRV;
 
-layout(binding = 0) buffer SprayParticleData
+layout(binding = 0) buffer SprayParticleData0
 {
     SprayParticleData g_SprayParticleData[];
 };
 
-layout(binding = 1) readonly buffer SprayParticleData
+layout(binding = 1) readonly buffer SprayParticleData1
 {
     SprayParticleData g_SprayParticleDataSRV[];
 };

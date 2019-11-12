@@ -8,31 +8,33 @@ out GS_PSM_PARTICLE_OUTPUT
     flat uint SubLayer        /*: TEXCOORD1*/;
 }outvert;
 
+layout(points) in;
+layout(triangle_strip, max_vertices = 4) out;
+
 void main()
 {
-    int PrimID = gl_PrimitiveIDn;
+    int PrimID = gl_PrimitiveIDIn;
     PARTICLE_INSTANCE_DATA InstanceData = GetParticleInstanceData(PrimID);
     float3 CentreViewPos = mul(float4(InstanceData.position_and_mass.xyz,1), g_matView).xyz;
 
     // Dispatch to PSM layer-slice
     float linearZ = mul(float4(CentreViewPos,1.f), g_matProj).z;
     float slice = g_PSMSlices * linearZ + 1.f;	// +1 because zero slice reserved for coverage
-    uint sublayer = 2.f * frac(slice);
+    uint sublayer = uint(2.f * frac(slice));
 
     if(slice < 0.f || slice > g_PSMSlices)
         return;
 
     slice = floor(slice);
 
-    for(uint i = 0; i != 4; ++i) {
+    for(int i = 0; i != 4; ++i) {
 
         HS_PARTICLE_COORDS particleCoords = CalcParticleCoords(InstanceData,i);
 
-        GS_PSM_PARTICLE_OUTPUT outvert;
         outvert.TextureUVAndOpacity = particleCoords.TextureUVAndOpacity;
         gl_Position = mul(float4(particleCoords.ViewPos,1.f), g_matProj);
         outvert.SubLayer = sublayer;
-        gl_Layer = slice;
+        gl_Layer = int(slice);
 //        outstream.Append(outvert);
         EmitVertex();
     }

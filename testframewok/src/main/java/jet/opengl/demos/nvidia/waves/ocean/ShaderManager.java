@@ -39,10 +39,10 @@ final class ShaderManager{
         current.NoDepthStencil().SolidNoCull().Opaque();
 
         // ocean_smoke.fx
-        mPrograms.put("RenderSmokeToSceneTech", current = createTech(ShaderManager::SmokeTechnique, "RenderParticlesToSceneGS.gemo", ShaderType.GEOMETRY, "RenderParticlesToScenePS.frag", ShaderType.FRAGMENT));
+        mPrograms.put("RenderSmokeToSceneTech", current = createTech(ShaderManager::SmokeTechnique, "DummyVS.vert", ShaderType.VERTEX, "RenderParticlesToSceneGS.gemo", ShaderType.GEOMETRY, "RenderParticlesToScenePS.frag", ShaderType.FRAGMENT));
         current.ReadOnlyDepth().SolidNoCull().TranslucentBlendRGB();
 
-        mPrograms.put("RenderSmokeToPSMTech", current = createTech(ShaderManager::SmokeTechnique,"RenderParticlesToPSMGS.gemo", ShaderType.GEOMETRY, "RenderParticlesToPSMPS.frag", ShaderType.FRAGMENT));
+        mPrograms.put("RenderSmokeToPSMTech", current = createTech(ShaderManager::SmokeTechnique,"DummyVS.vert", ShaderType.VERTEX, "RenderParticlesToPSMGS.gemo", ShaderType.GEOMETRY, "RenderParticlesToPSMPS.frag", ShaderType.FRAGMENT));
         current.NoDepthStencil().SolidNoCull().PSMBlend();
 
         mPrograms.put("EmitParticlesTech", createTech(ShaderManager::SmokeTechnique, "EmitParticlesCS.comp", ShaderType.COMPUTE));
@@ -51,13 +51,13 @@ final class ShaderManager{
         mPrograms.put("MatrixTransposeTech", createTech(ShaderManager::SmokeTechnique, "MatrixTransposeCS.comp", ShaderType.COMPUTE));
 
         // ocean_spray.fx
-        mPrograms.put("RenderSprayToSceneTech", current = createTech(ShaderManager::SprayTechnique, "RenderParticlesToSceneVS", ShaderType.VERTEX, "RenderParticlesToSceneHS.tesc", ShaderType.TESS_CONTROL, "RenderParticlesToSceneDS.tese", ShaderType.TESS_EVAL, "RenderParticlesToScenePS.frag", ShaderType.FRAGMENT));
+        mPrograms.put("RenderSprayToSceneTech", current = createTech(ShaderManager::SprayTechnique, "RenderParticlesToSceneVS.vert", ShaderType.VERTEX, "RenderParticlesToSceneHS.tesc", ShaderType.TESS_CONTROL, "RenderParticlesToSceneDS.tese", ShaderType.TESS_EVAL, "SprayRenderParticlesToScenePS.frag", ShaderType.FRAGMENT));
         current.ReadDepth().SolidNoCull().Translucent();
 
-        mPrograms.put("RenderSprayToFoamTech", current = createTech(ShaderManager::SprayTechnique,"RenderParticlesToFoamGS.gemo",ShaderType.GEOMETRY, "RenderParticlesToFoamPS.frag", ShaderType.FRAGMENT));
+        mPrograms.put("RenderSprayToFoamTech", current = createTech(ShaderManager::SprayTechnique,"DummyVS.vert", ShaderType.VERTEX,"RenderParticlesToFoamGS.gemo",ShaderType.GEOMETRY, "RenderParticlesToFoamPS.frag", ShaderType.FRAGMENT));
         current.NoDepthStencil().SolidNoCull().AddBlend();
 
-        mPrograms.put("RenderSprayToPSMTech", current = createTech(ShaderManager::SprayTechnique, "RenderParticlesToPSMGS.gemo", ShaderType.GEOMETRY,"RenderParticlesToPSMPS.frag", ShaderType.FRAGMENT));
+        mPrograms.put("RenderSprayToPSMTech", current = createTech(ShaderManager::SprayTechnique, "DummyVS.vert", ShaderType.VERTEX,"SprayRenderParticlesToPSMGS.gemo", ShaderType.GEOMETRY,"SprayRenderParticlesToPSMPS.frag", ShaderType.FRAGMENT));
         current.NoDepthStencil().SolidNoCull().PSMBlend();
 
         mPrograms.put("InitSprayParticles", createTech(ShaderManager::SprayTechnique, "InitSprayParticlesCS.comp", ShaderType.COMPUTE));
@@ -66,31 +66,31 @@ final class ShaderManager{
         mPrograms.put("InitSortTech", createTech(ShaderManager::SprayTechnique, "InitSortCS.comp", ShaderType.COMPUTE));
 //        mPrograms.put("BitonicSortTech", createTech(ShaderManager::SprayTechnique, "BitonicSortCS.comp", ShaderType.COMPUTE));
 
-        mPrograms.put("SensorVisualizationTech", current = createTech("SensorVisualizationVS.vert", "SensorVisualizationPS.frag", ShaderManager::SprayTechnique));
-        current.EnableDepth().SolidNoCull().Opaque();
+//        mPrograms.put("SensorVisualizationTech", current = createTech("SensorVisualizationVS.vert", "SensorVisualizationPS.frag", ShaderManager::SprayTechnique));  todo
+//        current.EnableDepth().SolidNoCull().Opaque();
 
-        mPrograms.put("AudioVisualizationTech", current = createTech("AudioVisualizationVS.vert", "AudioVisualizationPS.frag", ShaderManager::SprayTechnique));
-        current.NoDepthStencil().SolidNoCull().Translucent();
+//        mPrograms.put("AudioVisualizationTech", current = createTech("AudioVisualizationVS.vert", "AudioVisualizationPS.frag", ShaderManager::SprayTechnique));  todo
+//        current.NoDepthStencil().SolidNoCull().Translucent();
 
         // ocean_surface.fx
         mPrograms.put("RenderOceanSurfTech_Pass_PatchSolid", current = createTech(ShaderManager::SurfaceTechnique, "OceanWaveVS.vert", ShaderType.VERTEX, "HS_PNTriangles.tesc", ShaderType.TESS_CONTROL, "DS_PNTriangles.tese", ShaderType.TESS_EVAL, "OceanWavePS.frag", ShaderType.FRAGMENT));
         current.EnableDepth().SolidFront().Opaque();
 
-        mPrograms.put("RenderOceanSurfTech_Pass_PatchWireframe", current = createTech(ShaderManager::SurfaceTechnique, "OceanWaveVS.vert", ShaderType.VERTEX, "HS_PNTriangles.tesc", ShaderType.TESS_CONTROL, "DS_PNTriangles.tese", ShaderType.TESS_EVAL, "OceanWireframePS.frag", ShaderType.FRAGMENT));
+        mPrograms.put("RenderOceanSurfTech_Pass_PatchWireframe", current = createTech(ShaderManager::SurfaceTechnique, "OceanWaveVS.vert", ShaderType.VERTEX, "HS_PNTriangles.tesc", ShaderType.TESS_CONTROL, "DS_PNTriangles.tese", ShaderType.TESS_EVAL, "MarkerPS.frag", ShaderType.FRAGMENT));
         current.EnableDepth().Wireframe().Opaque();
 
-        mPrograms.put("RenderMarkerTech", current = createTech("DisplayBufferVS.vert", "DisplayBufferPS.frag"));
-        current.AlwaysDepth().SolidFront().Translucent();
+//        mPrograms.put("RenderMarkerTech", current = createTech("DisplayBufferVS.vert", "DisplayBufferPS.frag"));  todo
+//        current.AlwaysDepth().SolidFront().Translucent();
 
-        mPrograms.put("LocalFoamMapTech", current = createFragTech("ShiftFadeBlurLocalFoamPixelShader.frag"));
+        mPrograms.put("LocalFoamMapTech", current = createFragTech("ShiftFadeBlurLocalFoamPixelShader.frag", ShaderManager::SurfaceTechnique));
         current.DisableDepth().SolidFront().Opaque();
 
         // ocean_surface_heights.fx
-        mPrograms.put("RenderSurfaceToReverseLookupTech", current = createTech(ShaderManager::SHeightTechnique, "RenderSurfaceToReverseLookupVS.vert", ShaderType.VERTEX, "RenderSurfaceToReverseLookupHS.tesc", ShaderType.TESS_CONTROL, "RenderSurfaceToReverseLookupDS.tese", ShaderType.TESS_EVAL, "RenderSurfaceToReverseLookupPS.frag", ShaderType.FRAGMENT));
+        mPrograms.put("RenderSurfaceToReverseLookupTech", current = createTech(ShaderManager::SHeightTechnique, "RenderSurfaceToReverseLookupVS.vert", ShaderType.VERTEX, "RenderSurfaceToReverseLookupHS.tesc", ShaderType.TESS_CONTROL, "RenderSurfaceToReverseLookupDS.tese", ShaderType.TESS_EVAL, "ParticlePS.frag", ShaderType.FRAGMENT));
         current.NoDepthStencil().SolidNoCull().Opaque();
 
 //        mPrograms.put("RenderQuadToUITech")
-        mPrograms.put("RenderMarkerTech", current = createTech("RenderMarkerVS.vert", "RenderMarkerPS.frag", ShaderManager::SHeightTechnique));
+        mPrograms.put("RenderMarkerTech", current = createTech("MarkerVS.vert", "MarkerPS.frag", ShaderManager::newTechnique));
         current.EnableDepth().SolidNoCull().Opaque();
 
         // ocean_vessel.fx
@@ -106,8 +106,8 @@ final class ShaderManager{
         mPrograms.put("RenderVesselToHullProfileTech", current=createTech("VesselVS.vert", "VesselToHullProfilePS.frag", ShaderManager::VesselTechnique));
         current.EnableDepth().SolidBack().Opaque();
 
-        mPrograms.put("RenderQuadToCrackFixTech", current=createTech("QuadToCrackFixVS.vert", "QuadToCrackFixPS.frag", ShaderManager::VesselTechnique));
-        current.DisableDepth().SolidNoCull().Opaque();
+//        mPrograms.put("RenderQuadToCrackFixTech", current=createTech("QuadToCrackFixVS.vert", "QuadToCrackFixPS.frag", ShaderManager::VesselTechnique));  todo
+//        current.DisableDepth().SolidNoCull().Opaque();
 
         // skybox.fx
         mPrograms.put("SkyboxTech", current=createTech("SkyboxVS.vert","SkyboxPS.frag",ShaderManager::SkyboxTechnique));
@@ -127,7 +127,15 @@ final class ShaderManager{
     private static Technique createTech(String vert, String frag, CreateTechnique creator){
         Technique technique = creator.newInstance();
         try {
-            technique.setSourceFromFiles(PATH + vert, PATH+frag);
+            if(vert != null && !vert.equals(DEFUALT_VERT)){
+                vert = PATH + vert;
+            }
+
+            if(frag != null &&  !frag.equals(DEFUALT_FRAG)){
+                frag = PATH + frag;
+            }
+
+            technique.setSourceFromFiles(vert, frag);
         } catch (IOException e) {
             e.printStackTrace();
         }

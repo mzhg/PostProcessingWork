@@ -34,7 +34,7 @@ uniform float4		g_SpotlightColor[MaxNumSpotlights];
 
 #if ENABLE_SHADOWS
 uniform float4x4    g_SpotlightMatrix[MaxNumSpotlights];
-uniform Texture2D   g_SpotlightResource[MaxNumSpotlights];
+uniform sampler2DShadow   g_SpotlightResource[MaxNumSpotlights];
 #endif
 
 //Buffer<float4> g_RenderInstanceData;
@@ -66,7 +66,7 @@ uniform float4x4	g_vesselToWorld;
 uniform float2		g_worldToHeightLookupScale;
 uniform float2		g_worldToHeightLookupOffset;
 uniform float2		g_worldToHeightLookupRot;
-uniform Texture2D   g_texHeightLookup;
+uniform sampler2D   g_texHeightLookup;
 
 // We use these to feed particles back into foam map
 uniform float4x4	g_matWorldToFoam;
@@ -105,7 +105,7 @@ layout(binding = 2)  buffer  ParticleDepthSortUAV
     DepthSortEntry[] g_ParticleDepthSortUAV;
 };
 
-layout(binding = 3)  buffer SprayParticleData
+layout(binding = 3)  buffer SprayParticleData3
 {
     SprayParticleData[] g_SprayParticleData;
 };
@@ -138,12 +138,12 @@ float2( 1,-1)
 //-----------------------------------------------------------------------------------
 layout(binding = 3) uniform sampler2D	g_texSplash;
 
-sampler g_SamplerTrilinearClamp
+/*sampler g_SamplerTrilinearClamp
 {
     Filter = MIN_MAG_MIP_LINEAR;
     AddressU = Clamp;
     AddressV = Clamp;
-};
+};*/
 
 //--------------------------------------------------------------------------------------
 // Structs
@@ -152,7 +152,7 @@ sampler g_SamplerTrilinearClamp
 
 struct PARTICLE_INSTANCE_DATA {
     float4 position_and_mass			/*: PosMass*/;
-    float3 orientation_and_decimation	/*: OriDec;*/
+    float3 orientation_and_decimation	/*: OriDec*/;
     float3 velocity						/*: Vel*/;
     float time							/*: T*/;
 };
@@ -294,10 +294,26 @@ HS_PARTICLE_COORDS CalcParticleCoords(in PARTICLE_INSTANCE_DATA InstanceData, in
     return result;
 }
 
-float4 GetParticleRGBA(SamplerState s, float2 uv, float alphaMult)
+#ifdef _FRAG_SHADER
+
+void clip(float v)
 {
-    float4 splash = g_texSplash.SampleBias(s, uv, -1.0);
+    if(v < 0.0)
+        discard;
+}
+
+float4 GetParticleRGBA(/*SamplerState s,*/ float2 uv, float alphaMult)
+{
+    float4 splash = //g_texSplash.SampleBias(s, uv, -1.0);
+                      textureOffset(g_texSplash, uv, int2(-1)/*, -1.0*/);  // TODO the bias can't negative
     float alpha_threshold = 1.0 - alphaMult * 0.6;
     clip(splash.r-alpha_threshold);
     return float4(kFoamColor, 1.0);
+}
+
+#endif
+
+float2 rotate_2d(float2 v, float2 rot)
+{
+    return float2(v.x * rot.x + v.y * rot.y, v.x * -rot.y + v.y * rot.x);
 }
