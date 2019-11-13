@@ -1,6 +1,6 @@
 #include "OceanLODData.glsl"
 
-uniform float _Radius;
+uniform float _Radius = 3;
 
 out float2 worldOffsetScaledXZ;
 

@@ -3,6 +3,9 @@ package jet.opengl.demos.nvidia.waves.crest;
 import org.lwjgl.util.vector.Transform;
 
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
+import jet.opengl.postprocessing.common.GLFuncProvider;
+import jet.opengl.postprocessing.common.GLFuncProviderFactory;
+import jet.opengl.postprocessing.common.GLenum;
 
 class Wave_Simulation_Common_Input implements Wave_LodData_Input{
 
@@ -10,10 +13,22 @@ class Wave_Simulation_Common_Input implements Wave_LodData_Input{
     private Wave_Mesh  _mesh;
     private final Transform transform = new Transform();
 
+    private float _waveLenght;
+    private boolean _enabled = true;
+    public void setWaveLegnth(float waveLenght){
+        _waveLenght = waveLenght;
+    }
+
+    public void setEnabled(boolean enabled){
+        _enabled = enabled;
+    }
+
     Wave_Simulation_Common_Input(Technique material, Wave_Mesh mesh){
          _material = material;
         _mesh = mesh;
      }
+
+     public Transform getTransform() { return transform;}
 
      protected void update(){}
 
@@ -23,22 +38,31 @@ class Wave_Simulation_Common_Input implements Wave_LodData_Input{
 
          if (weight > 0f)
          {
-//             _materials[isTransition].SetFloat(sp_Weight, weight);
              shaderData._Weight = weight;
-             // TODO don't forget the transform
+             transform.getMatrix(shaderData.unity_ObjectToWorld);
              _material.enable(shaderData);
-//             buf.DrawRenderer(_renderer, _materials[isTransition]);
-            _mesh.Draw();
+
+             GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+             gl.glEnable(GLenum.GL_BLEND);
+             gl.glBlendFunc(GLenum.GL_ONE, GLenum.GL_ONE);
+             gl.glBlendEquation(GLenum.GL_FUNC_ADD);
+             if(_mesh != null)
+                 _mesh.Draw();
+             else{
+                 gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
+             }
+
+             _material.printOnce();
          }
      }
 
     @Override
     public float wavelength() {
-        return 0;
+        return _waveLenght;
     }
 
     @Override
     public boolean enabled() {
-        return true;
+        return _enabled;
     }
 }

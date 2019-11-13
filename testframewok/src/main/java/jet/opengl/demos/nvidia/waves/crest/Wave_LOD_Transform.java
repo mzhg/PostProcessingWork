@@ -1,5 +1,6 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -48,10 +49,11 @@ final class Wave_LOD_Transform {
     Wave_LOD_Transform(Wave_CDClipmap clipmap) {m_Clipmap = clipmap;}
     public int LodCount() { return lodCount;}
 
-    /*Matrix4f[] _worldToCameraMatrix;
-    Matrix4f[] _projectionMatrix;
+    private Matrix4f[] _worldToCameraMatrix;
+    private Matrix4f[] _projectionMatrix;
     public Matrix4f GetWorldToCameraMatrix(int lodIdx) { return _worldToCameraMatrix[lodIdx]; }
-    public Matrix4f GetProjectionMatrix(int lodIdx) { return _projectionMatrix[lodIdx]; }*/
+    public Matrix4f GetProjectionMatrix(int lodIdx) { return _projectionMatrix[lodIdx]; }
+
 
     public void InitLODData(int lodCount)
     {
@@ -61,8 +63,8 @@ final class Wave_LOD_Transform {
         _renderDataSource = new RenderData[lodCount];
         _BindData_paramIdPosScales = new Vector4f[lodCount];
         _BindData_paramIdOceans = new Vector4f[lodCount];
-//        _worldToCameraMatrix = new Matrix4f[lodCount];
-//        _projectionMatrix = new Matrix4f[lodCount];
+        _worldToCameraMatrix = new Matrix4f[lodCount];
+        _projectionMatrix = new Matrix4f[lodCount];
 
         for (int i = 0; i < lodCount; i++)
         {
@@ -70,11 +72,15 @@ final class Wave_LOD_Transform {
             _renderDataSource[i] = new RenderData();
             _BindData_paramIdPosScales[i] = new Vector4f();
             _BindData_paramIdOceans[i] = new Vector4f();
+
+            _worldToCameraMatrix[i] = new Matrix4f();
+            _projectionMatrix[i] = new Matrix4f();
         }
     }
 
     public void updateTransforms(int lodDataResolution, Wave_CDClipmap waveClipmap, ReadableVector3f eyePos, float seaLevel)
     {
+        Vector3f center = new Vector3f();
         for (int lodIdx = 0; lodIdx < LodCount(); lodIdx++)
         {
             _renderDataSource[lodIdx].set(_renderData[lodIdx]);
@@ -98,6 +104,12 @@ final class Wave_LOD_Transform {
                 _renderDataSource[lodIdx]._texelWidth = _renderData[lodIdx]._texelWidth;
                 _renderDataSource[lodIdx]._textureRes = _renderData[lodIdx]._textureRes;
             }
+
+            ReadableVector3f cameraPos = _renderData[lodIdx]._posSnapped;
+            Vector3f.add(cameraPos, Vector3f.Y_AXIS, center);
+            Matrix4f.lookAt(cameraPos, center, Vector3f.Z_AXIS, _worldToCameraMatrix[lodIdx]);   // todo look down
+            _worldToCameraMatrix[lodIdx].scale(-1,1,-1);
+            Matrix4f.ortho(-2f * lodScale, 2f * lodScale, -2f * lodScale, 2f * lodScale, -1000, 1000, _projectionMatrix[lodIdx]);
         }
 
         for (int lodIdx = 0; lodIdx < LodCount(); lodIdx++)

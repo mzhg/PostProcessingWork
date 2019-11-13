@@ -1,7 +1,6 @@
 #include "OceanLODData.glsl"
 
-uniform float _Radius;
-uniform float _Amplitude;
+uniform float _Amplitude = 2;
 // TODO add this for all ocean inputs?
 uniform float _Weight;
 

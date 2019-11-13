@@ -45,6 +45,7 @@ final class ShaderManager {
         mPrograms.put("Crest/Inputs/Animated Waves/Push Water Under Convex Hull", current = createTech("AnimWavesAddHeightFromGeometry.vert","AnimWavesRemoveGeometry.frag", null));
 //        mPrograms.put("Crest/Inputs/Animated Waves/Set Water Height To Geometry", current = createTech("AnimWavesSetHeightToGeometry.vert","AnimWavesSetHeightToGeometry.frag", null));
         mPrograms.put("Crest/Inputs/Animated Waves/Wave Particle", current = createTech("AnimWavesWaveParticle.vert","AnimWavesWaveParticle.frag", null));
+        setAnimWaveStates(current);
         mPrograms.put("Crest/Inputs/Dynamic Waves/Add Bump", current = createTech("AnimWavesWaveParticle.vert","DynWavesAddBump.frag", null));
         mPrograms.put("Crest/Inputs/Dynamic Waves/Object Interaction", current = createTech("DynWavesObjectInteraction.vert","DynWavesObjectInteraction.frag", null));
         setDynWavesOIStates(current);
@@ -81,6 +82,8 @@ final class ShaderManager {
         technique.getBlend().destBlend  = GLenum.GL_ONE;
         technique.getBlend().srcBlendAlpha  = GLenum.GL_ONE;
         technique.getBlend().destBlendAlpha  = GLenum.GL_ONE;
+        technique.getBlend().blendOp = GLenum.GL_FUNC_ADD;
+        technique.getBlend().blendOpAlpha = GLenum.GL_FUNC_ADD;
 
         technique.getDepthStencil().depthEnable  = false;
         technique.getRaster().cullFaceEnable = false;
@@ -92,6 +95,9 @@ final class ShaderManager {
         technique.getBlend().destBlend  = GLenum.GL_ONE_MINUS_SRC_ALPHA;
         technique.getBlend().srcBlendAlpha  = GLenum.GL_SRC_ALPHA;
         technique.getBlend().destBlendAlpha  = GLenum.GL_ONE_MINUS_SRC_ALPHA;
+        technique.getBlend().blendOp = GLenum.GL_FUNC_ADD;
+        technique.getBlend().blendOpAlpha = GLenum.GL_FUNC_ADD;
+
         technique.getDepthStencil().depthEnable  = false;
         technique.getRaster().cullFaceEnable = false;
     }

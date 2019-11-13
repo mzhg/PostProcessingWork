@@ -134,7 +134,7 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             SubmitDrawsFiltered(lodIdx, _filterWavelength);
         }
 
-        saveTextur(_waveBuffers, "WaveBuffer.txt");
+//        saveTextur(_waveBuffers, "WaveBuffer.txt");
 
         // Combine the LODs - copy results from biggest LOD down to LOD 0
         if (m_Simulation.m_Params.shape_combine_pass_pingpong)

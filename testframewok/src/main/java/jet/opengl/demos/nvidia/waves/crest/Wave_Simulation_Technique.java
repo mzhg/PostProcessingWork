@@ -25,6 +25,9 @@ class Wave_Simulation_Technique extends Technique {
     private int waveDirYIndex;
     private int weightIndex;
 
+    private int worldIndex;
+    private int vpIndex;
+
     private boolean mInitlized;
 
     private static int g_DefualtSampler;
@@ -63,6 +66,9 @@ class Wave_Simulation_Technique extends Technique {
             waveDirXIndex = gl.glGetUniformLocation(m_program, "_WaveDirX");
             waveDirYIndex = gl.glGetUniformLocation(m_program, "_WaveDirZ");
             weightIndex = gl.glGetUniformLocation(m_program, "_Weight");
+
+            worldIndex = gl.glGetUniformLocation(m_program, "unity_ObjectToWorld");
+            vpIndex = gl.glGetUniformLocation(m_program, "UNITY_MATRIX_VP");
         }
 
         if(amplitudesIndex >=0) gl.glUniform4fv(amplitudesIndex, CacheBuffer.wrapNotNull(shaderData._Amplitudes));
@@ -78,6 +84,9 @@ class Wave_Simulation_Technique extends Technique {
         if(waveDirXIndex >= 0) gl.glUniform4fv(waveDirXIndex, CacheBuffer.wrapNotNull(shaderData._WaveDirX));
         if(waveDirYIndex >= 0) gl.glUniform4fv(waveDirYIndex, CacheBuffer.wrapNotNull(shaderData._WaveDirZ));
         if(weightIndex >=0) gl.glUniform1f(weightIndex, shaderData._Weight);
+
+        if(vpIndex >= 0) gl.glUniformMatrix4fv(vpIndex, false, CacheBuffer.wrap(shaderData.UNITY_MATRIX_VP));
+        if(worldIndex >= 0) gl.glUniformMatrix4fv(worldIndex, false, CacheBuffer.wrap(shaderData.unity_ObjectToWorld));
 
         bindTexture(0, shaderData._LD_TexArray_AnimatedWaves);
         bindTexture(1, shaderData._LD_TexArray_WaveBuffer);

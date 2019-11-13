@@ -440,7 +440,7 @@ public class Wave_CDClipmap {
         float camDistance = Math.abs(m_EyePos.y - maxDetailY);
 
         // offset level of detail to keep max detail in a band near the surface
-        camDistance = Math.max(camDistance - 4, 0f);
+        camDistance = Math.max(camDistance - 1, 0f);
 
         // scale ocean mesh based on camera distance to sea level, to keep uniform detail.
         final float HEIGHT_LOD_MUL = 1f;

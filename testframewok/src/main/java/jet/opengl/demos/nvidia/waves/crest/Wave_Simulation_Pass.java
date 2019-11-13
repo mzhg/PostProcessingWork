@@ -1,5 +1,6 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.util.ArrayList;
@@ -161,16 +162,21 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
 
     protected final void SubmitDraws(int lodIdx) {
         Wave_LOD_Transform lt = m_Clipmap.m_LodTransform;
-//        lt._renderData[lodIdx].Validate(0, this);
+        Matrix4f.mul(lt.GetProjectionMatrix(lodIdx), lt.GetWorldToCameraMatrix(lodIdx), m_ShaderData.UNITY_MATRIX_VP);
 
-//        lt.SetViewProjectionMatrices(lodIdx, buf);
-
+        m_ShaderData._LD_SliceIndex = lodIdx;
+//        BindResultData(m_ShaderData);
         for (Wave_LodData_Input draw : m_Inputs) {
             draw.draw(1f, false, m_ShaderData);
         }
     }
 
     protected final void SubmitDrawsFiltered(int lodIdx, Wave_DrawFilter filter) {
+        Wave_LOD_Transform lt = m_Clipmap.m_LodTransform;
+        Matrix4f.mul(lt.GetProjectionMatrix(lodIdx), lt.GetWorldToCameraMatrix(lodIdx), m_ShaderData.UNITY_MATRIX_VP);
+
+        m_ShaderData._LD_SliceIndex = lodIdx;
+//        BindResultData(m_ShaderData);
         for (Wave_LodData_Input draw : m_Inputs) {
             if (!draw.enabled()) {
                 continue;

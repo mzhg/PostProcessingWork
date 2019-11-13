@@ -1,5 +1,7 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
+import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.nio.ByteBuffer;
@@ -60,7 +62,6 @@ class Wave_Simulation_ShaderData implements TechniqueParams {
     float _ShorelineFoamStrength;
 
     float _Weight;
-
     Vector4f[] _TwoPiOverWavelengths;
     Vector4f[] _Amplitudes;
     Vector4f[] _WaveDirX;
@@ -78,6 +79,9 @@ class Wave_Simulation_ShaderData implements TechniqueParams {
 
     BufferGL _ResultDisplacements;
     BufferGL _ResultFlows;
+
+    final Matrix4f unity_ObjectToWorld = new Matrix4f();
+    final Matrix4f UNITY_MATRIX_VP = new Matrix4f();
 
     @Override
     public ByteBuffer store(ByteBuffer buf) {
