@@ -215,7 +215,7 @@ final class Wave_Gerstner_Batched implements Wave_Const{
                     // It used to be this, but I'm pushing all the stuff that doesn't depend on position into the phase.
                     //half4 angle = k * (C * _CrestTime + x) + _Phases[vi];
                     float gravityScale = _spectrum._gravityScales[(firstComponent + i) / _componentsPerOctave];
-                    float gravity = 9.8f * /*_spectrum._gravityScale*/m_Params.gravityMultiplier;
+                    float gravity = 9.8f * _spectrum._gravityScale;
                     float C = (float) Math.sqrt(wl * gravity * gravityScale * one_over_2pi);
                     float k = twopi / wl;
                     // Repeat every 2pi to keep angle bounded - helps precision on 16bit platforms

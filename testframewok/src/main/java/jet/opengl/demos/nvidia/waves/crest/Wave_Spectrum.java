@@ -32,6 +32,7 @@ final class Wave_Spectrum {
 
     //        [Tooltip("Scales horizontal displacement"), Range(0f, 2f)]
     public float _chop = 1f;
+    float _gravityScale = 1;
 
     private Wave_Simulation_Params m_Params;
 
@@ -281,7 +282,7 @@ final class Wave_Spectrum {
 
     void setWaveBoatScene(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
         m_Params.wind_dependency = 0.5f;
-        m_Params.gravityMultiplier = 1;
+        _gravityScale = 1;
         m_Params.wave_amplitude = 1;
 
         _powerLog[0] =-5.743933f;
@@ -332,7 +333,7 @@ final class Wave_Spectrum {
 
     void setWaveCalm(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
         m_Params.wind_dependency = 56f/180f;
-        m_Params.gravityMultiplier = 3.1f;
+        _gravityScale = 3.1f;
         m_Params.wave_amplitude = 1;
 
         _powerLog[0] =-5.207515f;
@@ -380,7 +381,7 @@ final class Wave_Spectrum {
 
     void setWaveDead(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
         m_Params.wind_dependency = 56f/180f;
-        m_Params.gravityMultiplier = 1f;
+        _gravityScale = 1f;
         m_Params.wave_amplitude = 1;
 
         Arrays.fill(_powerDisabled, true);
@@ -412,7 +413,7 @@ final class Wave_Spectrum {
 
     void setWaveModerate(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
         m_Params.wind_dependency = 90f/180f;
-        m_Params.gravityMultiplier = 1f;
+        _gravityScale = 1f;
         m_Params.wave_amplitude = 1;
 
         _powerLog[0] =-5.743932f;
@@ -459,7 +460,7 @@ final class Wave_Spectrum {
 
     void setWaveModerateSmooth(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
         m_Params.wind_dependency = 90f/180f;
-        m_Params.gravityMultiplier = 1f;
+        _gravityScale = 1f;
         m_Params.wave_amplitude = 1;
 
         _powerLog[0] =-6;
@@ -506,7 +507,7 @@ final class Wave_Spectrum {
 
     void setWaveWhirlpool(boolean applyPhillipsSpectrum, boolean applyPiersonMoskowitzSpectrum, boolean applyJONSWAPSpectrum){
         m_Params.wind_dependency = 90f/180f;
-        m_Params.gravityMultiplier = 1f;
+        _gravityScale = 1f;
         m_Params.wave_amplitude = 1;
 
         _powerLog[0] =-5.207943f;

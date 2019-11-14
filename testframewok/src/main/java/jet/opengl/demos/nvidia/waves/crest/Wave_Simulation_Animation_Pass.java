@@ -163,7 +163,6 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
     {
         int lodCount = m_Clipmap.m_LodTransform.LodCount();
         gl.glDisable(GLenum.GL_CULL_FACE);
-        gl.glDisable(GLenum.GL_BLEND);
         // combine waves
         for (int lodIdx = lodCount - 1; lodIdx >= 0; lodIdx--)
         {
@@ -305,14 +304,13 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
 
             _combineProperties.SetFloat(sp_LD_SliceIndex, lodIdx);
             _combineProperties.DispatchShader();*/
-
             m_ShaderData._LD_TexArray_AnimatedWaves_Compute = DataTexture();
             m_ShaderData._LD_SliceIndex = lodIdx;
             selectedShaderKernel.enable(m_ShaderData);
 
             gl.glDispatchCompute(
-                    m_Clipmap.m_LodTransform.LodCount() / THREAD_GROUP_SIZE_X,
-                    m_Clipmap.m_LodTransform.LodCount() / THREAD_GROUP_SIZE_Y,
+                    m_Clipmap.getLodDataResolution() / THREAD_GROUP_SIZE_X,
+                    m_Clipmap.getLodDataResolution() / THREAD_GROUP_SIZE_Y,
                     1
             );
 

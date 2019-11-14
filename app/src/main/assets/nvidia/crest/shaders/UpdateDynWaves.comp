@@ -28,7 +28,7 @@ float ComputeWaveSpeed(float wavelength, float g)
     return sqrt(wavelength*g*one_over_2pi);
 }
 
-layout(binding = 0, rg16f) uniform image2DArray _LD_TexArray_Target;
+layout(binding = 1, rg16f) uniform image2DArray _LD_TexArray_Target;
 
 //[numthreads(THREAD_GROUP_SIZE_X,THREAD_GROUP_SIZE_Y,1)]
 layout (local_size_x = THREAD_GROUP_SIZE_X, local_size_y = THREAD_GROUP_SIZE_Y) in;

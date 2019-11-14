@@ -1087,7 +1087,7 @@ public final class GLSLUtil {
 	public static void setFloat(GLSLProgram prog, String name, float v){
 		int index = prog.getUniformLocation(name, true);
 		if(index >=0)
-			GLFuncProviderFactory.getGLFuncProvider().glUniform1f(index, v);
+			GLFuncProviderFactory.getGLFuncProvider().glProgramUniform1f(prog.getProgram(), index, v);
 	}
 
 	public static void setFloat2(GLSLProgram prog, String name, float x, float y){

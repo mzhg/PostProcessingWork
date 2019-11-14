@@ -1,6 +1,7 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -52,8 +53,9 @@ class Wave_Simulation_ShaderData implements TechniqueParams {
 
     float _Damping;
     float _Gravity;
+    float _TexelsPerWave;
 
-    final Vector4f _LaplacianAxisX = new Vector4f();
+    final Vector2f _LaplacianAxisX = new Vector2f();
 
     float _FoamFadeRate;
     float _WaveFoamStrength;

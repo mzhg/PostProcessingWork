@@ -34,6 +34,9 @@ class Wave_Simulation_Common_Input implements Wave_LodData_Input{
 
      @Override
      public void draw(float weight, boolean isTransition, Wave_Simulation_ShaderData shaderData) {
+        if(!enabled())
+            return;
+
          update();
 
          if (weight > 0f)

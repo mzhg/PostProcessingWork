@@ -2,8 +2,8 @@
 
 uniform float _Radius;
 uniform float _Amplitude;
-uniform float _SimCount;
-uniform float _SimDeltaTime;
+uniform float _SimCount = 0;
+uniform float _SimDeltaTime = 0;
 
 in float2 worldOffsetScaledXZ;
 

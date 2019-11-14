@@ -29,7 +29,7 @@ final class Wave_Simulation_Dynamic_Pass extends Wave_Simulation_Persistent_Pass
     {
         super.InitData();
 
-        _active = new boolean[OceanRenderer.Instance.CurrentLodCount()];
+        _active = new boolean[m_Clipmap.m_LodTransform.LodCount()];
         for (int i = 0; i < _active.length; i++) _active[i] = true;
     }
 
@@ -69,7 +69,7 @@ final class Wave_Simulation_Dynamic_Pass extends Wave_Simulation_Persistent_Pass
 
         float laplacianKernelAngle = _rotateLaplacian ? Numeric.PI * 2f * Numeric.random() : 0f;
 //        simMaterial.SetVector(sp_LaplacianAxisX, new Vector4f((float)Math.cos(laplacianKernelAngle), (float)Math.sin(laplacianKernelAngle),0,0));
-        simMaterial._LaplacianAxisX.set((float)Math.sin(laplacianKernelAngle), (float)Math.cos(laplacianKernelAngle),0,0);
+        simMaterial._LaplacianAxisX.set((float)Math.sin(laplacianKernelAngle), (float)Math.cos(laplacianKernelAngle));
         // assign sea floor depth - to slot 1 current frame data. minor bug here - this depth will actually be from the previous frame,
         // because the depth is scheduled to render just before the animated waves, and this sim happens before animated waves.
         if (m_Simulation._lodDataSeaDepths!= null)

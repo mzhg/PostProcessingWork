@@ -43,7 +43,7 @@ layout(binding = 11) uniform sampler2DArray _LD_TexArray_Flow_Source;
 layout(binding = 12) uniform sampler2DArray _LD_TexArray_DynamicWaves_Source;
 layout(binding = 13) uniform sampler2DArray _LD_TexArray_Shadow_Source;
 uniform float4 _LD_Params_Source[MAX_LOD_COUNT + 1];
-uniform float3 _LD_Pos_Scale_Source[MAX_LOD_COUNT + 1];
+uniform float4 _LD_Pos_Scale_Source[MAX_LOD_COUNT + 1];
 
 uniform mat4 UNITY_MATRIX_VP;
 uniform mat4 unity_ObjectToWorld;

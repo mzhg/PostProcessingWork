@@ -2,6 +2,7 @@ package jet.opengl.demos.nvidia.waves.crest;
 
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.demos.nvidia.waves.ocean.TechniqueParams;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
@@ -27,6 +28,18 @@ class Wave_Simulation_Technique extends Technique {
 
     private int worldIndex;
     private int vpIndex;
+
+    private int displaceClampIndex;
+    private int horizDisplaceIndex;
+
+    private int dampingIndex;
+    private int gravityIndex;
+    private int ldParamsSourceIndex;
+    private int ldPosScaleSourceIndex;
+    private int lodChangeIndex;
+    private int laplacianAxisXIndex;
+    private int simDeltaTime;
+    private int texelsPerWave;
 
     private boolean mInitlized;
 
@@ -69,7 +82,29 @@ class Wave_Simulation_Technique extends Technique {
 
             worldIndex = gl.glGetUniformLocation(m_program, "unity_ObjectToWorld");
             vpIndex = gl.glGetUniformLocation(m_program, "UNITY_MATRIX_VP");
+
+            displaceClampIndex = gl.glGetUniformLocation(m_program, "_DisplaceClamp");
+            horizDisplaceIndex = gl.glGetUniformLocation(m_program, "_HorizDisplace");
+
+            dampingIndex = gl.glGetUniformLocation(m_program, "_Damping");
+            gravityIndex = gl.glGetUniformLocation(m_program, "_Gravity");
+            ldParamsSourceIndex = gl.glGetUniformLocation(m_program, "_LD_Params_Source");
+            ldPosScaleSourceIndex = gl.glGetUniformLocation(m_program, "_LD_Pos_Scale_Source");
+            lodChangeIndex = gl.glGetUniformLocation(m_program, "_LODChange");
+            laplacianAxisXIndex = gl.glGetUniformLocation(m_program, "_LaplacianAxisX");
+            simDeltaTime = gl.glGetUniformLocation(m_program, "_SimDeltaTime");
+            texelsPerWave = gl.glGetUniformLocation(m_program, "_TexelsPerWave");
         }
+
+        if(dampingIndex >=0) gl.glUniform1f(dampingIndex, shaderData._Damping);
+        GLCheck.checkError();
+        if(gravityIndex >=0) gl.glUniform1f(gravityIndex, shaderData._Gravity);
+        if(lodChangeIndex >=0) gl.glUniform1f(lodChangeIndex, shaderData._LODChange);
+        if(simDeltaTime >=0) gl.glUniform1f(simDeltaTime, shaderData._SimDeltaTime);
+        if(texelsPerWave >=0) gl.glUniform1f(texelsPerWave, shaderData._TexelsPerWave);
+        if(laplacianAxisXIndex >=0) gl.glUniform2f(laplacianAxisXIndex, shaderData._LaplacianAxisX.x, shaderData._LaplacianAxisX.y);
+        if(ldParamsSourceIndex >= 0) gl.glUniform4fv(ldParamsSourceIndex, CacheBuffer.wrapNotNull(shaderData._LD_Params_Source));
+        if(ldPosScaleSourceIndex >= 0) gl.glUniform4fv(ldPosScaleSourceIndex, CacheBuffer.wrapNotNull(shaderData._LD_Pos_Scale_Source));
 
         if(amplitudesIndex >=0) gl.glUniform4fv(amplitudesIndex, CacheBuffer.wrapNotNull(shaderData._Amplitudes));
         if(attenuationInShallowsIndex >=0) gl.glUniform1f(attenuationInShallowsIndex, shaderData._AttenuationInShallows);
@@ -88,11 +123,18 @@ class Wave_Simulation_Technique extends Technique {
         if(vpIndex >= 0) gl.glUniformMatrix4fv(vpIndex, false, CacheBuffer.wrap(shaderData.UNITY_MATRIX_VP));
         if(worldIndex >= 0) gl.glUniformMatrix4fv(worldIndex, false, CacheBuffer.wrap(shaderData.unity_ObjectToWorld));
 
+        if(displaceClampIndex >=0) gl.glUniform1f(displaceClampIndex, shaderData._DisplaceClamp);
+        if(horizDisplaceIndex >=0) gl.glUniform1f(horizDisplaceIndex, shaderData._HorizDisplace);
+
         bindTexture(0, shaderData._LD_TexArray_AnimatedWaves);
         bindTexture(1, shaderData._LD_TexArray_WaveBuffer);
         bindTexture(2, shaderData._LD_TexArray_SeaFloorDepth);
+        bindTexture(4, shaderData._LD_TexArray_Flow);
+        bindTexture(5, shaderData._LD_TexArray_DynamicWaves);
+        bindTexture(12, shaderData._LD_TexArray_DynamicWaves_Source);
 
         bindImage(0, shaderData._LD_TexArray_AnimatedWaves_Compute, true);
+        bindImage(1, shaderData._LD_TexArray_Target, true);
     }
 
     private void bindTexture(int unit, TextureGL texture){
