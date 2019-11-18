@@ -41,9 +41,13 @@ class Wave_Simulation_Technique extends Technique {
     private int simDeltaTime;
     private int texelsPerWave;
 
+    private int crestTime;
+
     private boolean mInitlized;
 
     private static int g_DefualtSampler;
+
+    static float g_CrestTime;
 
     @Override
     public final void enable() {
@@ -61,7 +65,7 @@ class Wave_Simulation_Technique extends Technique {
 
             if(g_DefualtSampler == 0) {
                 SamplerDesc desc = new SamplerDesc();
-//                desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_REPEAT;
+                desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_REPEAT;
                 g_DefualtSampler = SamplerUtils.createSampler(desc);
             }
 
@@ -94,7 +98,10 @@ class Wave_Simulation_Technique extends Technique {
             laplacianAxisXIndex = gl.glGetUniformLocation(m_program, "_LaplacianAxisX");
             simDeltaTime = gl.glGetUniformLocation(m_program, "_SimDeltaTime");
             texelsPerWave = gl.glGetUniformLocation(m_program, "_TexelsPerWave");
+            crestTime = gl.glGetUniformLocation(m_program, "_CrestTime");
         }
+
+        if(crestTime >=0) gl.glUniform1f(crestTime, g_CrestTime);
 
         if(dampingIndex >=0) gl.glUniform1f(dampingIndex, shaderData._Damping);
         GLCheck.checkError();

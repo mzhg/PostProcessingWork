@@ -165,7 +165,7 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
         Matrix4f.mul(lt.GetProjectionMatrix(lodIdx), lt.GetWorldToCameraMatrix(lodIdx), m_ShaderData.UNITY_MATRIX_VP);
 
         m_ShaderData._LD_SliceIndex = lodIdx;
-//        BindResultData(m_ShaderData);
+        BindResultData(m_ShaderData);
         for (Wave_LodData_Input draw : m_Inputs) {
             draw.draw(1f, false, m_ShaderData);
         }
@@ -176,7 +176,7 @@ abstract class Wave_Simulation_Pass implements Wave_Const{
         Matrix4f.mul(lt.GetProjectionMatrix(lodIdx), lt.GetWorldToCameraMatrix(lodIdx), m_ShaderData.UNITY_MATRIX_VP);
 
         m_ShaderData._LD_SliceIndex = lodIdx;
-//        BindResultData(m_ShaderData);
+        BindResultData(m_ShaderData);
         for (Wave_LodData_Input draw : m_Inputs) {
             if (!draw.enabled()) {
                 continue;

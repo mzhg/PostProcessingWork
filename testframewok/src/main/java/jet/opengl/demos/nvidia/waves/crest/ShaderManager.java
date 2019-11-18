@@ -44,10 +44,17 @@ final class ShaderManager {
         mPrograms.put("Crest/Inputs/Animated Waves/Add Water Height From Geometry", current = createTech("AnimWavesAddHeightFromGeometry.vert","AnimWavesAddHeightFromGeometry.frag", null));
         mPrograms.put("Crest/Inputs/Animated Waves/Push Water Under Convex Hull", current = createTech("AnimWavesAddHeightFromGeometry.vert","AnimWavesRemoveGeometry.frag", null));
 //        mPrograms.put("Crest/Inputs/Animated Waves/Set Water Height To Geometry", current = createTech("AnimWavesSetHeightToGeometry.vert","AnimWavesSetHeightToGeometry.frag", null));
-        mPrograms.put("Crest/Inputs/Animated Waves/Wave Particle", current = createTech("AnimWavesWaveParticle.vert","AnimWavesWaveParticle.frag", null));
+        mPrograms.put("Crest/Inputs/Animated Waves/Wave Particle", current = createTech("AnimWavesWaveParticle1.vert","AnimWavesWaveParticle1.frag", null));
         setAnimWaveStates(current);
         mPrograms.put("Crest/Inputs/Dynamic Waves/Add Bump", current = createTech("AnimWavesWaveParticle.vert","DynWavesAddBump.frag", null));
+        setDynWavesOIStates(current);
         mPrograms.put("Crest/Inputs/Dynamic Waves/Object Interaction", current = createTech("DynWavesObjectInteraction.vert","DynWavesObjectInteraction.frag", null));
+        setDynWavesOIStates(current);
+
+        mPrograms.put("Crest/Inputs/Animated Waves/Whirlpool", current = createTech("AnimWavesWaveParticle1.vert","AnimWavesWhirlpool.frag", null));
+        setDynWavesOIStates(current);
+
+        mPrograms.put("Crest/Inputs/Flow/Whirlpool", current = createTech("AnimWavesWaveParticle1.vert","FlowWhirlpool.frag", null));
         setDynWavesOIStates(current);
 
         mPrograms.put("Crest/Inputs/Flow/Fixed Direction", current = createTech("FlowFixedDirection.vert","FlowFixedDirection.frag", null));

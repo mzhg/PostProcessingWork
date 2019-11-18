@@ -7,15 +7,19 @@ import jet.opengl.postprocessing.util.CacheBuffer;
 /** A persistent flow simulation that moves around with a displacement LOD. The input is fully combined water surface shape.*/
 final class Wave_Simulation_Flow_Pass extends Wave_Simulation_Pass {
     public String SimName () { return "Flow"; }
-    public int TextureFormat () { return GLenum.GL_R16F; }
+    public int TextureFormat () { return GLenum.GL_RG16F; }
 
     boolean _targetsClear = false;
 
     private final String FLOW_KEYWORD = "_FLOW_ON";   // todo
 
+    private static boolean g_PrintOnce;
+
     public void BuildCommandBuffer(float deltaTime)
     {
         super.BuildCommandBuffer(deltaTime);
+
+        gl.glClearTexImage(_targets.getTexture(), 0, GLenum.GL_RG, GLenum.GL_FLOAT, null);
 
         // if there is nothing in the scene tagged up for depth rendering, and we have cleared the RTs, then we can early out
         if (m_Inputs.size() == 0 && _targetsClear)
@@ -31,10 +35,13 @@ final class Wave_Simulation_Flow_Pass extends Wave_Simulation_Pass {
             SubmitDraws(lodIdx, buf);*/
 
             setRenderTarget(_targets, lodIdx);
-            gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0.f, 0.f, 0.f,0.f));
             m_ShaderData._LD_SliceIndex = lodIdx;
             SubmitDraws(lodIdx);
         }
+
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        Wave_Simulation_Animation_Pass.saveTextur(_targets, "Flow.txt");
+
 
         // targets have now been cleared, we can early out next time around
         if (m_Inputs.size() == 0)

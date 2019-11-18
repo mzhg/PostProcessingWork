@@ -433,6 +433,7 @@ public class Wave_CDClipmap {
 
     private void lateUpdateScale()
     {
+        float oldScale = m_Scale;
         // reach maximum detail at slightly below sea level. this should combat cases where visual range can be lost
         // when water height is low and camera is suspended in air. i tried a scheme where it was based on difference
         // to water height but this does help with the problem of horizontal range getting limited at bad times.
@@ -458,7 +459,7 @@ public class Wave_CDClipmap {
     private void lateUpdateViewerHeight(){
         // todo  need readback.
 
-        viewerHeightAboveWater = m_EyePos.y - m_Params.sea_level;
+        viewerHeightAboveWater = m_EyePos.y;
     }
 
     public float getViewerHeightAboveWater(){ return viewerHeightAboveWater;}

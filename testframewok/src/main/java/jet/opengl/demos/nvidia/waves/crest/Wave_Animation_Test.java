@@ -31,18 +31,35 @@ public class Wave_Animation_Test extends NvSampleApp {
     private Technique m_RippleShader;
     private Wave_Simulation_Common_Input m_RippleInput;
 
+    private Technique _flowMaterial;
+    private Technique _displacementMaterial;
+    private Technique _dampDynWavesMaterial;
+
+//     [Range(0, 1000), SerializeField]
+    float _amplitude = 20;
+//        [Range(0, 1000), SerializeField]
+    float _radius = 80f;
+//        [Range(0, 1000), SerializeField]
+    float _eyeRadius = 1f;
+//        [Range(0, 1000), SerializeField]
+    float _maxSpeed = 10f;
+
     private final Matrix4f mProj = new Matrix4f();
     private final Matrix4f mView = new Matrix4f();
 
     private GLFuncProvider gl;
+
     protected void initRendering(){
         getGLContext().setSwapInterval(0);
 
         m_Clipmap_Params.sea_level = 5;
+        m_Clipmap_Params.lodDataResolution = 256;
+        m_Clipmap_Params.geometryDownSampleFactor = 2;
+
         mCDClipmap = new Wave_CDClipmap();
         mCDClipmap.init(m_Clipmap_Params);
 
-        m_Simulation_Params.shape_combine_pass_pingpong = false;
+        m_Simulation_Params.shape_combine_pass_pingpong = true;
         m_Simulation_Params.random_seed = 1000000;
         m_Simulation_Params.direct_towards_Point = false;
         m_Simulation_Params.max_displacement_Vertical = 5.5f;
@@ -54,24 +71,34 @@ public class Wave_Animation_Test extends NvSampleApp {
         m_Simulation_Params.max_simsteps_perframe = 3;
         m_Simulation_Params.horiz_displace = 6;
         m_Simulation_Params.displace_clamp = 0.3f;
-        m_Simulation_Params.gravityMultiplier = 12f;
+        m_Simulation_Params.gravityMultiplier = 12;
+
+        m_Simulation_Params.create_flow = true;
 
         mAnimation = new Wave_Simulation();
-        mAnimation.init(mCDClipmap, m_Simulation_Params, Wave_Demo_Animation.BoatScene);
+        mAnimation.init(mCDClipmap, m_Simulation_Params, Wave_Demo_Animation.Whirlpool);
 
         AttribDesc attribute_descs[] =
         {
-                new AttribDesc(0, 3, GLenum.GL_FLOAT, false, 0, 0)	// vPos
+                new AttribDesc(0, 3, GLenum.GL_FLOAT, false, 20, 0),	// vPos
+                new AttribDesc(1, 2, GLenum.GL_FLOAT, false, 20, 12)	// UV
         };
 
-        Vector3f[] verts = {
-                new Vector3f(-1, 0, 1), new Vector3f(1,0,1), new Vector3f(-1, 0, -1), new Vector3f(1,0,-1)
+//        Vector3f[] verts = {
+//                new Vector3f(-1, 0, 1), new Vector3f(1,0,1), new Vector3f(-1, 0, -1), new Vector3f(1,0,-1)
+//        };
+
+        float[] _verts = {
+           -1,0,1, 0, 0,
+           1,0,1, 1, 0,
+           -1,0,-1, 1, 1,
+           1,0,-1, 0, 1,
         };
 
         int[] indices = {0,1,3, 0, 3,2};
 
         BufferGL vertexBuffer = new BufferGL();
-        vertexBuffer.initlize(GLenum.GL_ARRAY_BUFFER, Vector3f.SIZE*verts.length, CacheBuffer.wrap(verts), GLenum.GL_STATIC_DRAW);
+        vertexBuffer.initlize(GLenum.GL_ARRAY_BUFFER, 4*_verts.length, CacheBuffer.wrap(_verts), GLenum.GL_STATIC_DRAW);
 
         BufferGL indexBuffer = new BufferGL();
         indexBuffer.initlize(GLenum.GL_ELEMENT_ARRAY_BUFFER, 4*indices.length, CacheBuffer.wrap(indices), GLenum.GL_STATIC_DRAW);
@@ -84,29 +111,64 @@ public class Wave_Animation_Test extends NvSampleApp {
 
             Technique waveParticleShader = ShaderManager.getInstance().getProgram("Crest/Inputs/Animated Waves/Wave Particle");
             waveParticleShader.setName("Wave Particle");
+            waveParticleShader.setStateEnabled(false);
 
-            Wave_Simulation_Animation_Input waveParticles = new Wave_Simulation_Animation_Input(waveParticleShader, mesh,mAnimation, mCDClipmap);
+            Wave_Simulation_Animation_Input waveParticles = new Wave_Simulation_Animation_Input(waveParticleShader, null,mAnimation, mCDClipmap);
 
             waveParticles.setWaveLegnth(11);
-            waveParticles.getTransform().setPosition(-5, 0, -5);
+            waveParticles.getTransform().setPosition(-25, 0, -25);
 
             mAnimation._lodDataAnimWaves.addLodDataInput(waveParticles);
         }
 
         // Add the ripple
-        if(m_Simulation_Params.create_dynamic_wave){
+        if(m_Simulation_Params.create_dynamic_wave /*&& !m_Simulation_Params.create_flow*/){
             Technique rippleShader = ShaderManager.getInstance().getProgram("Crest/Inputs/Dynamic Waves/Add Bump");
             rippleShader.setName("Ripple");
 
             Wave_Simulation_Common_Input rippleInput = new Wave_Simulation_Common_Input(rippleShader, mesh);
-            rippleInput.getTransform().setPosition(5, 0, 5);
+            rippleInput.getTransform().setPosition(25, 0, 25);
             mAnimation._lodDataDynWaves.addLodDataInput(rippleInput);
 
             m_RippleShader = rippleShader;
             m_RippleInput = rippleInput;
-
+            m_RippleShader.setStateEnabled(false);
             GLSLUtil.setFloat(m_RippleShader, "_Amplitude", -1333);
             GLSLUtil.setFloat(m_RippleShader, "_Radius", 1f);
+        }
+
+        // Add the whirlpool
+        if(m_Simulation_Params.create_flow){
+
+            final Vector3f whirlPoolLocation = new Vector3f();
+            {
+                _displacementMaterial = ShaderManager.getInstance().getProgram("Crest/Inputs/Animated Waves/Whirlpool");
+                _displacementMaterial.setName("Displacement");
+                _displacementMaterial.setStateEnabled(false);
+
+                Wave_Simulation_Animation_Input displacementInput = new Wave_Simulation_Animation_Input(_displacementMaterial, null,mAnimation, mCDClipmap);
+                displacementInput.getTransform().setPosition(whirlPoolLocation);
+                mAnimation._lodDataAnimWaves.addLodDataInput(displacementInput);
+            }
+
+            {
+                _flowMaterial = ShaderManager.getInstance().getProgram("Crest/Inputs/Flow/Whirlpool");
+                _flowMaterial.setName("Flow");
+                _flowMaterial.setStateEnabled(false);
+
+                Wave_Simulation_Common_Input flowInput = new Wave_Simulation_Common_Input(_flowMaterial, null);
+                flowInput.getTransform().setPosition(whirlPoolLocation);
+                flowInput.getTransform().setScale(_radius, 1, _radius);
+                mAnimation._lodDataFlow.addLodDataInput(flowInput);
+            }
+
+            {
+                _dampDynWavesMaterial = ShaderManager.getInstance().getProgram("Crest/Inputs/Dynamic Waves/Dampen Circle");
+                _dampDynWavesMaterial.setName("Dampen Circle");
+                Wave_Simulation_Common_Input dampDynWavesInput = new Wave_Simulation_Common_Input(_dampDynWavesMaterial, mesh);
+                dampDynWavesInput.getTransform().setPosition(whirlPoolLocation);
+                mAnimation._lodDataDynWaves.addLodDataInput(dampDynWavesInput);
+            }
         }
 
         m_Renderer = new Wave_Renderer();
@@ -116,6 +178,7 @@ public class Wave_Animation_Test extends NvSampleApp {
 
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
         m_transformer.setTranslation(0.567f, -10.1f, 0.6f);
+        m_transformer.setMaxTranslationVel(3 * m_transformer.getMaxTranslationVel(0));
     }
 
     @Override
@@ -123,7 +186,10 @@ public class Wave_Animation_Test extends NvSampleApp {
         GLStateTracker tracker = GLStateTracker.getInstance();
         tracker.saveStates();
 
+        Wave_Simulation_Technique.g_CrestTime = getTotalTime();
+
         updateRipple();
+        UpdateMaterials();
 
         m_transformer.getModelViewMat(mView);
         mCDClipmap.updateWave(mView);
@@ -137,7 +203,7 @@ public class Wave_Animation_Test extends NvSampleApp {
     }
 
     private void updateRipple(){
-        if(!m_Simulation_Params.create_dynamic_wave)
+        if(!(m_Simulation_Params.create_dynamic_wave /*&& !m_Simulation_Params.create_flow*/))
             return;
 
         if(!m_RippleEnabled)
@@ -195,6 +261,30 @@ public class Wave_Animation_Test extends NvSampleApp {
         float dt = Float.intBitsToFloat(Numeric.decodeSecond(value));
 //        _mat.SetFloat("_SimDeltaTime", dt);
         GLSLUtil.setFloat(m_RippleShader, "_SimDeltaTime", dt);
+    }
+
+    private void UpdateMaterials()
+    {
+//        _flowMaterial.SetFloat("_EyeRadiusProportion", _eyeRadius / _radius);
+//        _flowMaterial.SetFloat("_MaxSpeed", _maxSpeed);
+
+        if(m_Simulation_Params.create_flow) {
+
+            mCDClipmap.ReportMaxDisplacementFromShape(0, _amplitude, 0);
+
+            if(_flowMaterial != null) {
+                GLSLUtil.setFloat(_flowMaterial, "_EyeRadiusProportion", _eyeRadius / _radius);
+                GLSLUtil.setFloat(_flowMaterial, "_MaxSpeed", _maxSpeed);
+            }
+
+//        _displacementMaterial.SetFloat("_Radius", _radius * 0.25f);
+//        _displacementMaterial.SetFloat("_Amplitude", _amplitude);
+
+            if(_displacementMaterial!= null) {
+                GLSLUtil.setFloat(_displacementMaterial, "_Radius", _radius * 0.25f);
+                GLSLUtil.setFloat(_displacementMaterial, "_Amplitude", _amplitude);
+            }
+        }
     }
 
     @Override

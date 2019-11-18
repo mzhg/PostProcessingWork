@@ -31,6 +31,12 @@ public class Transform {
         this.z = z;
     }
 
+    public void setPosition(ReadableVector3f pos){
+        x = pos.getX();
+        y = pos.getY();
+        z = pos.getZ();
+    }
+
     public Vector3f getPosition(Vector3f pos){
         if(pos != null){
             pos.set(x,y,z);

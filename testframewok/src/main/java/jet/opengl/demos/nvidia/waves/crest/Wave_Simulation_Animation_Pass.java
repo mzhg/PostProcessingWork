@@ -84,6 +84,7 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
         final String materialName = String.format("Hidden/Crest/Simulation/Combine Animated Wave LODs%d%d", m_Simulation.m_Params.create_dynamic_wave?1:0,m_Simulation.m_Params.create_flow?1:0);
         _combineMaterial = ShaderManager.getInstance().getProgram(materialName);
         _combineMaterial.setName("AnimCombinePass");
+        _combineMaterial.setStateEnabled(false);
 
         try {
             _copyBack = new PostProcessingDefaultProgram();
@@ -134,7 +135,7 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             SubmitDrawsFiltered(lodIdx, _filterWavelength);
         }
 
-//        saveTextur(_waveBuffers, "WaveBuffer.txt");
+        saveTextur(_waveBuffers, "WaveBuffer.txt");
 
         // Combine the LODs - copy results from biggest LOD down to LOD 0
         if (m_Simulation.m_Params.shape_combine_pass_pingpong)
@@ -163,6 +164,8 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
     {
         int lodCount = m_Clipmap.m_LodTransform.LodCount();
         gl.glDisable(GLenum.GL_CULL_FACE);
+        gl.glDisable(GLenum.GL_BLEND);
+
         // combine waves
         for (int lodIdx = lodCount - 1; lodIdx >= 0; lodIdx--)
         {

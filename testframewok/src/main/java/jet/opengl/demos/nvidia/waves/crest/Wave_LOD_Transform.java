@@ -5,8 +5,6 @@ import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
-import jet.opengl.demos.nvidia.waves.crest.loddata.LodTransform;
-import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.Rectf;
 
@@ -108,7 +106,7 @@ final class Wave_LOD_Transform {
             ReadableVector3f cameraPos = _renderData[lodIdx]._posSnapped;
             Vector3f.add(cameraPos, Vector3f.Y_AXIS, center);
             Matrix4f.lookAt(cameraPos, center, Vector3f.Z_AXIS, _worldToCameraMatrix[lodIdx]);   // todo look down
-            _worldToCameraMatrix[lodIdx].scale(-1,1,-1);
+//            _worldToCameraMatrix[lodIdx].scale(1,1,-1);
             Matrix4f.ortho(-2f * lodScale, 2f * lodScale, -2f * lodScale, 2f * lodScale, -1000, 1000, _projectionMatrix[lodIdx]);
         }
 

@@ -15,6 +15,7 @@ class Wave_Simulation_Common_Input implements Wave_LodData_Input{
 
     private float _waveLenght;
     private boolean _enabled = true;
+    private int m_dummy;
     public void setWaveLegnth(float waveLenght){
         _waveLenght = waveLenght;
     }
@@ -47,6 +48,7 @@ class Wave_Simulation_Common_Input implements Wave_LodData_Input{
 
              GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
              gl.glEnable(GLenum.GL_BLEND);
+             gl.glDisable(GLenum.GL_CULL_FACE);
              gl.glBlendFunc(GLenum.GL_ONE, GLenum.GL_ONE);
              gl.glBlendEquation(GLenum.GL_FUNC_ADD);
              if(_mesh != null)
@@ -56,6 +58,8 @@ class Wave_Simulation_Common_Input implements Wave_LodData_Input{
              }
 
              _material.printOnce();
+
+             gl.glDisable(GLenum.GL_BLEND);
          }
      }
 

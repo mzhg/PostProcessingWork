@@ -2,7 +2,6 @@ package jet.opengl.demos.nvidia.waves.crest;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
-import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.nio.ByteBuffer;

@@ -12,6 +12,14 @@ in float2 worldOffsetScaled;
 
 layout(location = 0) out float4 OutColor;
 
+#ifndef ADD_WAVE_PARTICLE
+#define ADD_WAVE_PARTICLE 0
+#endif
+
+#ifndef ADD_WAVE_BUMP
+#define ADD_WAVE_BUMP 0
+#endif
+
 void main()
 {
     // power 4 smoothstep - no normalize needed
