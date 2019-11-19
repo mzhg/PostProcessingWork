@@ -134,7 +134,16 @@ void main ()
         // convert dynamic wave sim to displacements
 
         float waveSimY = SampleLod(_LD_TexArray_DynamicWaves, uv_thisLod).x;
+        if(isnan(waveSimY) || isinf(waveSimY))
+        {
+            waveSimY = 0.0;
+        }
+
         result.y += waveSimY;
+
+//        const float _MIN_f16 = -256.0 * 256.0;
+//        const float _MAX_f16 = -_MIN_f16;
+//        result.y = clamp(result.y, _MIN_f16, _MAX_f16);
 
         const float2 invRes = float2(_LD_Params[_LD_SliceIndex].w, 0.0);
         const float waveSimY_px = SampleLod(_LD_TexArray_DynamicWaves, uv_thisLod + float3(invRes.xy, 0)).x;

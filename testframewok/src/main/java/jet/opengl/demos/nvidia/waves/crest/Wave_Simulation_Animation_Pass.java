@@ -317,6 +317,8 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
                     1
             );
 
+            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+            gl.glBindImageTexture(0, 0, 0, true, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
             selectedShaderKernel.setName("Combine Compute");
             selectedShaderKernel.printOnce();
         }

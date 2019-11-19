@@ -107,6 +107,7 @@ abstract class Wave_Simulation_Persistent_Pass extends Wave_Simulation_Pass{
             gl.glDispatchCompute(LodDataResolution / THREAD_GROUP_SIZE_X,
                     LodDataResolution / THREAD_GROUP_SIZE_Y,
                     lodCount);
+            gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
             gl.glBindImageTexture(1, 0, 0, true, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
 
             currentTech.printOnce();

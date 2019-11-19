@@ -163,11 +163,11 @@ public class Wave_Animation_Test extends NvSampleApp {
             }
 
             {
-                _dampDynWavesMaterial = ShaderManager.getInstance().getProgram("Crest/Inputs/Dynamic Waves/Dampen Circle");
+                /*_dampDynWavesMaterial = ShaderManager.getInstance().getProgram("Crest/Inputs/Dynamic Waves/Dampen Circle");
                 _dampDynWavesMaterial.setName("Dampen Circle");
                 Wave_Simulation_Common_Input dampDynWavesInput = new Wave_Simulation_Common_Input(_dampDynWavesMaterial, mesh);
                 dampDynWavesInput.getTransform().setPosition(whirlPoolLocation);
-                mAnimation._lodDataDynWaves.addLodDataInput(dampDynWavesInput);
+                mAnimation._lodDataDynWaves.addLodDataInput(dampDynWavesInput);*/
             }
         }
 
