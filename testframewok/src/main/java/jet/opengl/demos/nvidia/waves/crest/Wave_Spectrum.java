@@ -102,6 +102,7 @@ final class Wave_Spectrum {
 
         // The amplitude calculation follows this nice paper from Frechot:
         // https://hal.archives-ouvertes.fr/file/index/docid/307938/filename/frechot_realistic_simulation_of_ocean_surface_using_wave_spectra.pdf
+        // Equation (18)
         double wl_lo = Math.pow(2f, Math.floor(wl_pow2));
         double k_lo = 2f * Math.PI / wl_lo;
         double omega_lo = k_lo * computeWaveSpeed(wl_lo, 1);

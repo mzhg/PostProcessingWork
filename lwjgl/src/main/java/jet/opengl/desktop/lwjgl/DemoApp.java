@@ -140,8 +140,8 @@ public class DemoApp {
 //        run(new LightingVolumeDemo());
 //        run(new TestD3D11());
 //        run(new Wave_CDClipmap_Test());
-        run(new Wave_Animation_Test());
-//        run(new NvOceanDemo());
+//        run(new Wave_Animation_Test());
+        run(new NvOceanDemo());
 //        run(new SampleD3D11());
 //        run(new IslandDemo());
 //        run(new Chapman());

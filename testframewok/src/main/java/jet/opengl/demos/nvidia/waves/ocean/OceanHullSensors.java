@@ -16,6 +16,7 @@ import org.lwjgl.util.vector.Vector4f;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackInt;
 
@@ -24,28 +25,28 @@ final class OceanHullSensors implements D3D9Enums, OceanConst{
             MaxNumRimSensors = 2000;
 
     private int				m_NumSensors;
-    private final Vector3f[] m_SensorPositions = new Vector3f[MaxNumSensors];
-    private final Vector3f[] m_SensorNormals = new Vector3f[MaxNumSensors];
+    private final Vector3f[] m_SensorPositions = CommonUtil.initArray(new Vector3f[MaxNumSensors]);
+    private final Vector3f[] m_SensorNormals = CommonUtil.initArray(new Vector3f[MaxNumSensors]);
     private float			m_MeanSensorRadius;
 
     private int				m_NumRimSensors;
-    private final Vector3f[]		m_RimSensorPositions = new Vector3f[MaxNumRimSensors];
-    private final Vector3f[]		m_RimSensorNormals = new Vector3f[MaxNumRimSensors];
+    private final Vector3f[]		m_RimSensorPositions = CommonUtil.initArray(new Vector3f[MaxNumRimSensors]);
+    private final Vector3f[]		m_RimSensorNormals = CommonUtil.initArray(new Vector3f[MaxNumRimSensors]);
     private float			m_MeanRimSensorSeparation;
 
     private final Vector3f		m_sensorBoundsMinCorner = new Vector3f();
     private final Vector3f		m_sensorBoundsMaxCorner = new Vector3f();
 
     // Sensor data
-    private final Vector2f[]	m_ReadbackCoords = new Vector2f[MaxNumSensors];
-    private final Vector4f[] 	m_Displacements = new Vector4f[MaxNumSensors];
-    private final Vector3f[]		m_WorldSensorPositions = new Vector3f[MaxNumSensors];
-    private final Vector3f[]		m_WorldSensorNormals = new Vector3f[MaxNumSensors];
+    private final Vector2f[]	m_ReadbackCoords = CommonUtil.initArray(new Vector2f[MaxNumSensors]);
+    private final Vector4f[] 	m_Displacements = CommonUtil.initArray(new Vector4f[MaxNumSensors]);
+    private final Vector3f[]		m_WorldSensorPositions = CommonUtil.initArray(new Vector3f[MaxNumSensors]);
+    private final Vector3f[]		m_WorldSensorNormals = CommonUtil.initArray(new Vector3f[MaxNumSensors]);
 
-    private final Vector2f[]	m_RimReadbackCoords = new Vector2f[MaxNumRimSensors];
-    private final Vector4f[] 	m_RimDisplacements = new Vector4f[MaxNumRimSensors];
-    private final Vector3f[]		m_WorldRimSensorPositions = new Vector3f[MaxNumRimSensors];
-    private final Vector3f[]		m_WorldRimSensorNormals = new Vector3f[MaxNumRimSensors];
+    private final Vector2f[]	m_RimReadbackCoords = CommonUtil.initArray(new Vector2f[MaxNumRimSensors]);
+    private final Vector4f[] 	m_RimDisplacements = CommonUtil.initArray(new Vector4f[MaxNumRimSensors]);
+    private final Vector3f[]		m_WorldRimSensorPositions = CommonUtil.initArray(new Vector3f[MaxNumRimSensors]);
+    private final Vector3f[]		m_WorldRimSensorNormals = CommonUtil.initArray(new Vector3f[MaxNumRimSensors]);
 
     // Diagnostic visualisations
 //    ID3D11Device* m_pd3dDevice;

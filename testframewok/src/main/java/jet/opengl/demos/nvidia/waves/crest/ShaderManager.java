@@ -29,6 +29,8 @@ final class ShaderManager {
         mPrograms.put("Crest/Inputs/Animated Waves/Gerstner Batch1", current = createTech("AnimWavesGerstnerBatch.vert", "AnimWavesGerstnerBatch.frag", CommonUtil.toArray(new Macro("_DIRECT_TOWARDS_POINT", 1))));
         setAnimWaveStates(current);
 
+        mPrograms.put("StatisticModel", current = createTech("AnimWavesGerstnerBatch.vert", "AnimWavesGerstnerBatch.frag", CommonUtil.toArray(new Macro("_DIRECT_TOWARDS_POINT", 0))));
+
         mPrograms.put("Crest/Inputs/Dynamic Waves/Dampen Circle", current = createTech("DynWavesDampenCircle.vert","DynWavesDampenCircle.frag", null));
         setDynWavesDampenStates(current);
 

@@ -158,8 +158,8 @@ final class OceanSurfaceTest {
         if(null == m_hOceanQuadTree)
         {
             m_hOceanQuadTree = GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_CreateD3D11(params);
-            GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_AllocPatch(m_hOceanQuadTree,0,0, 3, true);
-            GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_AllocPatch(m_hOceanQuadTree,1,0, 3, true);
+//            GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_AllocPatch(m_hOceanQuadTree,0,0, 3, true);
+//            GFSDK_WaveWorks.GFSDK_WaveWorks_Quadtree_AllocPatch(m_hOceanQuadTree,1,0, 3, true);
         }
         else
         {

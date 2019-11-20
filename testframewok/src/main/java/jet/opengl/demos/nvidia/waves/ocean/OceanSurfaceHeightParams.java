@@ -11,14 +11,14 @@ import jet.opengl.postprocessing.texture.Texture2D;
 final class OceanSurfaceHeightParams implements TechniqueParams {
     float g_numQuadsW;
     float g_numQuadsH;
-    Vector4f g_quadScale;
-    Vector2f g_quadUVDims;
-    Vector4f g_srcUVToWorldScale;
-    Vector4f g_srcUVToWorldRot;
-    Vector4f g_srcUVToWorldOffset;
-    Vector2f g_worldToClipScale;
-    Vector2f g_clipToWorldRot;
-    Vector2f g_clipToWorldOffset;
+    final Vector4f g_quadScale = new Vector4f();
+    final Vector2f g_quadUVDims = new Vector2f();
+    final Vector4f g_srcUVToWorldScale = new Vector4f();
+    final Vector4f g_srcUVToWorldRot = new Vector4f();
+    final Vector4f g_srcUVToWorldOffset = new Vector4f();
+    final Vector2f g_worldToClipScale = new Vector2f();
+    final Vector2f g_clipToWorldRot = new Vector2f();
+    final Vector2f g_clipToWorldOffset = new Vector2f();
 
     final Vector2f g_worldToUVScale = new Vector2f();
     final Vector2f g_worldToUVOffset = new Vector2f();

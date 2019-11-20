@@ -6,6 +6,9 @@ import com.nvidia.developer.opengl.models.sdkmesh.SDKMeshVertexBufferHeader;
 import com.nvidia.developer.opengl.models.sdkmesh.SDKmesh;
 import com.nvidia.developer.opengl.models.sdkmesh.VertexElement9;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jet.opengl.demos.intel.cput.D3D11_INPUT_ELEMENT_DESC;
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 
@@ -20,11 +23,16 @@ final class BoatMesh extends SDKmesh implements D3D9Enums, OceanConst {
         // Translate from D3D9 decl...
         SDKMeshVertexBufferHeader pVBHeader = m_pVertexBufferArray[m_pMeshArray[ iMesh ].vertexBuffers[iVB]];
 
-        D3D11_INPUT_ELEMENT_DESC[] vertex_layout = new D3D11_INPUT_ELEMENT_DESC[MAX_VERTEX_ELEMENTS];
+//        D3D11_INPUT_ELEMENT_DESC[] vertex_layout = new D3D11_INPUT_ELEMENT_DESC[MAX_VERTEX_ELEMENTS];
+        List<D3D11_INPUT_ELEMENT_DESC > vertex_layout = new ArrayList<>();
         for(int num_layout_elements = 0; num_layout_elements < pVBHeader.decl.length; num_layout_elements ++) {
 
             VertexElement9 d3d9_decl_element = pVBHeader.decl[num_layout_elements];
-            D3D11_INPUT_ELEMENT_DESC d3d11_layout_element = vertex_layout[num_layout_elements];
+            if(d3d9_decl_element.stream < 0 || d3d9_decl_element.stream >= MAX_D3D10_VERTEX_STREAMS)
+                break;
+
+            D3D11_INPUT_ELEMENT_DESC d3d11_layout_element = new D3D11_INPUT_ELEMENT_DESC();
+            vertex_layout.add(d3d11_layout_element);
 
             // Translate usage
             switch(d3d9_decl_element.usage) {
@@ -63,7 +71,7 @@ final class BoatMesh extends SDKmesh implements D3D9Enums, OceanConst {
             ++num_layout_elements;
         }
 
-        return ID3D11InputLayout.createInputLayoutFrom(vertex_layout);
+        return ID3D11InputLayout.createInputLayoutFrom(vertex_layout.toArray(new D3D11_INPUT_ELEMENT_DESC[vertex_layout.size()]));
 //        return pd3dDevice->CreateInputLayout(vertex_layout, num_layout_elements, pShaderBytecodeWithInputSignature, BytecodeLength, pIL);
     }
 

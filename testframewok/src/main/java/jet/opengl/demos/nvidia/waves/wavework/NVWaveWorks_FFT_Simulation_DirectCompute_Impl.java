@@ -435,14 +435,14 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 //                buffer_desc.ByteWidth = gauss_size * sizeof(float2);
 //                buffer_desc.StructureByteStride = sizeof(float2);
 //                V_RETURN(device->CreateBuffer(&buffer_desc, nullptr, &m_d3d._11.m_buffer_Gauss));
-                _11.m_buffer_Gauss = CreateBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, gauss_size * Vector2f.SIZE, GLenum.GL_DYNAMIC_COPY);
+                _11.m_buffer_Gauss = CreateBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, gauss_size * Vector2f.SIZE, GLenum.GL_STATIC_READ);
                 System.out.println("The length of the m_buffer_Gauss is "+gauss_size * Vector2f.SIZE);
 
                 // omega
 //                buffer_desc.ByteWidth = omega_size * sizeof(float);
 //                buffer_desc.StructureByteStride = sizeof(float);
 //                V_RETURN(device->CreateBuffer(&buffer_desc, nullptr, &m_d3d._11.m_buffer_Omega));
-                _11.m_buffer_Omega = CreateBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, omega_size * 4, GLenum.GL_DYNAMIC_COPY);
+                _11.m_buffer_Omega = CreateBuffer(GLenum.GL_SHADER_STORAGE_BUFFER, omega_size * 4, GLenum.GL_STATIC_READ);
                 System.out.println("The length of the m_buffer_Omega is " + omega_size * 4);
 
 //                buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
@@ -906,7 +906,7 @@ final class NVWaveWorks_FFT_Simulation_DirectCompute_Impl implements  NVWaveWork
 				*/
 //                    context->ClearUnorderedAccessViewFloat(m_d3d._11.m_uav_Displacement, zeros);
                     gl.glClearTexImage(_11.m_uav_Displacement.getTexture(), 0, TextureUtils.measureFormat(_11.m_uav_Displacement.getFormat()),
-                            TextureUtils.measureDataType(_11.m_uav_Displacement.getFormat()), (ByteBuffer) null);
+                            TextureUtils.measureDataType(_11.m_uav_Displacement.getFormat()), null);
                 }
                 GLCheck.checkError();
                 if(m_H0Dirty)

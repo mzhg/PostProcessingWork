@@ -6,6 +6,7 @@ import org.lwjgl.util.vector.Vector4f;
 
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureGL;
+import jet.opengl.postprocessing.util.CommonUtil;
 
 final class OceanEnvironment {
     static final int MaxNumSpotlights = 11;
@@ -20,12 +21,12 @@ final class OceanEnvironment {
     float sky_interp;
     float fog_exponent;
 
-    final Vector4f[] spotlight_position = new Vector4f[MaxNumSpotlights];
-    final Vector4f[] spotlight_axis_and_cos_angle = new Vector4f[MaxNumSpotlights];
-    final Vector4f[] spotlight_color = new Vector4f[MaxNumSpotlights];
+    final Vector4f[] spotlight_position = CommonUtil.initArray(new Vector4f[MaxNumSpotlights]);
+    final Vector4f[] spotlight_axis_and_cos_angle = CommonUtil.initArray(new Vector4f[MaxNumSpotlights]);
+    final Vector4f[] spotlight_color = CommonUtil.initArray(new Vector4f[MaxNumSpotlights]);
 
     final Matrix4f spotlights_to_world_matrix = new Matrix4f();
-    final Matrix4f[] spotlight_shadow_matrix = new Matrix4f[MaxNumSpotlights];
+    final Matrix4f[] spotlight_shadow_matrix = CommonUtil.initArray(new Matrix4f[MaxNumSpotlights]);
     final Texture2D[] spotlight_shadow_resource = new Texture2D[MaxNumSpotlights];
     Texture2D pPlanarReflectionSRV;
     Texture2D pPlanarReflectionDepthSRV;

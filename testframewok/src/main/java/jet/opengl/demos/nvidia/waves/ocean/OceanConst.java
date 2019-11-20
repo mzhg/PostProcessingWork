@@ -6,6 +6,8 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.TextureCube;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.FileLoader;
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.NvImage;
 
 interface OceanConst {
@@ -62,15 +64,24 @@ interface OceanConst {
     float kMaxSimulationTimeStep = 0.06f;
 
     boolean ENABLE_SPRAY_PARTICLES = true;
+    String MEDIA_PATH = "E:\\SDK\\WaveWorks\\demo";
 
     static Texture2D CreateTexture2DFromFileSRGB(String filename){
         NvImage.loadAsSRGB(true);
 
+        FileLoader old = FileUtils.g_IntenalFileLoader;
         try {
+            FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
+            if(filename.startsWith(".")){
+                filename = MEDIA_PATH + filename.substring(1);
+            }
+
             int texture = NvImage.uploadTextureFromDDSFile(filename);
             return TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, texture);
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            FileUtils.setIntenalFileLoader(old);
         }
 
         return null;
@@ -79,11 +90,19 @@ interface OceanConst {
     static TextureCube CreateTextureCubeFromFileSRGB(String filename){
         NvImage.loadAsSRGB(true);
 
+        FileLoader old = FileUtils.g_IntenalFileLoader;
         try {
+            FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
+            if(filename.startsWith(".")){
+                filename = MEDIA_PATH + filename.substring(1);
+            }
+
             int texture = NvImage.uploadTextureFromDDSFile(filename);
-            return TextureUtils.createTextureCube(GLenum.GL_TEXTURE_2D, texture);
+            return TextureUtils.createTextureCube(GLenum.GL_TEXTURE_CUBE_MAP, texture);
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            FileUtils.setIntenalFileLoader(old);
         }
 
         return null;
@@ -92,11 +111,19 @@ interface OceanConst {
     static Texture2D CreateTexture2DFromFile(String filename){
         NvImage.loadAsSRGB(false);
 
+        FileLoader old = FileUtils.g_IntenalFileLoader;
         try {
+            FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
+            if(filename.startsWith(".")){
+                filename = MEDIA_PATH + filename.substring(1);
+            }
+
             int texture = NvImage.uploadTextureFromDDSFile(filename);
             return TextureUtils.createTexture2D(GLenum.GL_TEXTURE_2D, texture);
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            FileUtils.setIntenalFileLoader(old);
         }
 
         return null;

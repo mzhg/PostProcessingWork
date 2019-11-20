@@ -749,11 +749,11 @@ final class OceanSurfaceHeights implements OceanConst{
         clipToWorldOffset.y += clipToWorld_additional_offset.y;
 
 //        m_pWorldToClipScaleVariable->SetFloatVector((FLOAT*)&worldToClipScale);
-        m_TechParams.g_worldToClipScale = worldToClipScale;
+        m_TechParams.g_worldToClipScale.set(worldToClipScale);
 //        m_pClipToWorldRotationVariable->SetFloatVector((FLOAT*)&m_UVToWorldRotation);
-        m_TechParams.g_clipToWorldRot = m_UVToWorldRotation;
+        m_TechParams.g_clipToWorldRot.set(m_UVToWorldRotation);
 //        m_pClipToWorldOffsetVariable->SetFloatVector((FLOAT*)&clipToWorldOffset);
-        m_TechParams.g_clipToWorldOffset = clipToWorldOffset;
+        m_TechParams.g_clipToWorldOffset.set(clipToWorldOffset);
 
         // Quads setup
         float quadsWH[] = {quads_w,(quads_h)};

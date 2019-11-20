@@ -10,7 +10,6 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
-import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3D;
 import jet.opengl.postprocessing.texture.Texture3DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
@@ -77,8 +76,8 @@ final class OceanPSM implements OceanConst{
         V_RETURN(D3DX11CreateEffectFromMemory(pEffectBuffer->GetBufferPointer(), pEffectBuffer->GetBufferSize(), 0, m_pd3dDevice, &m_pFX));
         pEffectBuffer->Release();*/
 
-        m_pPropagatePSMTechnique = GLSLProgram.createProgram(SHADER_PATH + "PropagatePSMTech.comp", null);
-        m_pRenderPSMToUITechnique = GLSLProgram.createProgram(SHADER_PATH + "RenderPSMToUITech.comp", null);
+        m_pPropagatePSMTechnique = ShaderManager.getInstance().getProgram("PropagatePSMTech");
+        m_pRenderPSMToUITechnique = ShaderManager.getInstance().getProgram("RenderPSMToUITech");
 
 //        m_pPSMPropagationMapUAVVariable = m_pFX->GetVariableByName("g_PSMPropagationMapUAV")->AsUnorderedAccessView();
 //        m_pPSMMapVariable = m_pFX->GetVariableByName("g_PSMMap")->AsShaderResource();

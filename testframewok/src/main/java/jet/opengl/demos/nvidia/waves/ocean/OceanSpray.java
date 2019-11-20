@@ -104,11 +104,11 @@ final class OceanSpray implements OceanConst, Disposeable {
     private BufferGL           m_pDepthSort2UAV;
 
     private OceanHullSensors   m_pHullSensors;
-    private final Vector3f[]   m_SprayGeneratorShipSpaceSprayDir = new Vector3f[NUMSPRAYGENERATORS];
-    private final Vector3f[]   m_SprayGeneratorWorldSpaceSprayDir = new Vector3f[NUMSPRAYGENERATORS];
-    private final Vector4f[]   m_displacementsOld = new Vector4f[NUMSPRAYGENERATORS];
-    private final Vector3f[]   m_displacementsSpeed = new Vector3f[NUMSPRAYGENERATORS];
-    private final Vector3f[]   m_WorldSensorPositionsOld = new Vector3f[NUMSPRAYGENERATORS];
+    private final Vector3f[]   m_SprayGeneratorShipSpaceSprayDir = CommonUtil.initArray(new Vector3f[NUMSPRAYGENERATORS]);
+    private final Vector3f[]   m_SprayGeneratorWorldSpaceSprayDir = CommonUtil.initArray(new Vector3f[NUMSPRAYGENERATORS]);
+    private final Vector4f[]   m_displacementsOld = CommonUtil.initArray(new Vector4f[NUMSPRAYGENERATORS]);
+    private final Vector3f[]   m_displacementsSpeed = CommonUtil.initArray(new Vector3f[NUMSPRAYGENERATORS]);
+    private final Vector3f[]   m_WorldSensorPositionsOld = CommonUtil.initArray(new Vector3f[NUMSPRAYGENERATORS]);
 
     private BufferGL	       m_pSensorsVisualizationVertexBuffer;
     private BufferGL	       m_pSensorsVisualizationIndexBuffer;
@@ -116,19 +116,19 @@ final class OceanSpray implements OceanConst, Disposeable {
 
     private final int[]		   m_sprayAmount = new int[NUMSPRAYGENERATORS];
     private final float[]	   m_sprayVizualisationFade = new float[NUMSPRAYGENERATORS];
-    private final Vector3f[]   m_spraySpeed = new Vector3f[NUMSPRAYGENERATORS];
-    private final Vector3f[]   m_sprayOffset = new Vector3f[NUMSPRAYGENERATORS];
+    private final Vector3f[]   m_spraySpeed = CommonUtil.initArray(new Vector3f[NUMSPRAYGENERATORS]);
+    private final Vector3f[]   m_sprayOffset = CommonUtil.initArray(new Vector3f[NUMSPRAYGENERATORS]);
 
-    private final Vector3f[]   m_hullSpeed = new Vector3f[NUMSPRAYGENERATORS];
+    private final Vector3f[]   m_hullSpeed = CommonUtil.initArray(new Vector3f[NUMSPRAYGENERATORS]);
 
-    private final Vector3f[]   m_WorldRimSensorPositionsOld = new Vector3f[NUMRIMSPRAYGENERATORS];
-    private final Vector3f[]   m_RimSprayGeneratorShipSpaceSprayDir = new Vector3f[NUMRIMSPRAYGENERATORS];
-    private final Vector3f[]   m_RimSprayGeneratorWorldSpaceSprayDir = new Vector3f[NUMRIMSPRAYGENERATORS];
+    private final Vector3f[]   m_WorldRimSensorPositionsOld = CommonUtil.initArray(new Vector3f[NUMRIMSPRAYGENERATORS]);
+    private final Vector3f[]   m_RimSprayGeneratorShipSpaceSprayDir = CommonUtil.initArray(new Vector3f[NUMRIMSPRAYGENERATORS]);
+    private final Vector3f[]   m_RimSprayGeneratorWorldSpaceSprayDir = CommonUtil.initArray(new Vector3f[NUMRIMSPRAYGENERATORS]);
     private final int[]		   m_rimSprayAmount = new int[NUMRIMSPRAYGENERATORS];
     private final float[]	   m_rimSprayVizualisationFade = new float[NUMRIMSPRAYGENERATORS];
 
-    private final Vector3f[]   m_particlePosition = new Vector3f[NUMSPRAYPARTICLES];
-    private final Vector3f[]   m_particleSpeed = new Vector3f[NUMSPRAYPARTICLES];
+    private final Vector3f[]   m_particlePosition = CommonUtil.initArray(new Vector3f[NUMSPRAYPARTICLES]);
+    private final Vector3f[]   m_particleSpeed = CommonUtil.initArray(new Vector3f[NUMSPRAYPARTICLES]);
     private final float[]	   m_particleTime = new float[NUMSPRAYPARTICLES];
     private final float[]	   m_particleScale = new float[NUMSPRAYPARTICLES];
     private final short[]	   m_particleOrientations = new short[2*NUMSPRAYPARTICLES];

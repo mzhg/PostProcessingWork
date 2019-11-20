@@ -27,6 +27,7 @@ import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation_Stats;
 import jet.opengl.demos.scene.CameraData;
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLHelper;
@@ -531,6 +532,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
         g_pSkyboxLayout = ID3D11InputLayout.createInputLayoutFrom(sky_layout);
 
 //        ID3D11Resource* pD3D11Resource = NULL;
+        GLCheck.checkError();
         for(int i = 0; i != NumSkyMaps; ++i) {
             OceanSkyMapInfo sm = g_SkyMaps[i];
            /* V_RETURN(CreateTextureFromFileSRGB(pd3dDevice, sm.m_SkyDomeFileName, &pD3D11Resource));

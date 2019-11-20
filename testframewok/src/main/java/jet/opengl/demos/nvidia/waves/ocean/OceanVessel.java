@@ -6,7 +6,6 @@ import com.nvidia.developer.opengl.models.sdkmesh.SDKmeshMaterial;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.ReadableVector2f;
 import org.lwjgl.util.vector.ReadableVector3f;
-import org.lwjgl.util.vector.Vector;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -14,6 +13,7 @@ import org.lwjgl.util.vector.Vector4f;
 import java.io.IOException;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.StringTokenizer;
 
 import jet.opengl.demos.intel.cput.ID3D11InputLayout;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks;
@@ -23,7 +23,6 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
-import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
@@ -33,6 +32,8 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.CommonUtil;
+import jet.opengl.postprocessing.util.FileLoader;
+import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.NvImage;
 import jet.opengl.postprocessing.util.StringUtils;
@@ -202,9 +203,341 @@ final class OceanVessel implements OceanConst, Disposeable {
     private OceanHullSensors m_pHullSensors;
     private boolean m_bFirstSensorUpdate;
 
-    private void parseConfig(String cfg_string){throw new UnsupportedOperationException(); }
-    private Spotlight processGlobalConfigLine(String line) { throw new UnsupportedOperationException();}
-    private Spotlight processSpotlightConfigLine(String line, Spotlight pSpot) { throw new UnsupportedOperationException();}
+    private void parseConfig(String cfg_string){
+//        final HashMap<String,String> values = new HashMap<>();
+        StringTokenizer tokenizer = new StringTokenizer(cfg_string, "\n");
+
+        Spotlight pCurrSpotlight = null;
+        int lineNumber = 0;
+        while (tokenizer.hasMoreElements()){
+            String token = tokenizer.nextToken().trim();
+
+            if(token.length() == 0)
+                continue;
+
+            lineNumber++;
+
+            if(null == pCurrSpotlight) {
+                pCurrSpotlight = processGlobalConfigLine(token);
+            } else {
+                pCurrSpotlight = processSpotlightConfigLine(token, pCurrSpotlight);
+            }
+        }
+    }
+
+    private Spotlight processGlobalConfigLine(String line) {
+        int spaceIndex = line.indexOf(' ');
+        String name = spaceIndex>0? line.substring(0, spaceIndex) : line;
+        String value = spaceIndex > 0 ? line.substring(spaceIndex+1).trim() : null;
+        if(name.equals("Length")){
+            m_Length = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("CameraHeightAboveWater")){
+            m_CameraHeightAboveWater = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("CameraLongitudinalOffset")){
+            m_CameraLongitudinalOffset = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("HeightDrag")){
+            m_HeightDrag = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("PitchDrag")){
+            m_PitchDrag = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("YawDrag")){
+            m_YawDrag = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("YawCoefficient")){
+            m_YawCoefficient = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("RollDrag")){
+            m_RollDrag = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("MetacentricHeight")){
+            m_MetacentricHeight = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("MassMult")){
+            m_MassMult = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("PitchInertiaMult")){
+            m_RollInertiaMult = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("InitialPitch")){
+            m_InitialPitch = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("InitialHeight")){
+            m_InitialHeight = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("LongitudinalCOM")){
+            m_LongitudinalCOM = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("DiffuseGamma")){
+            m_DiffuseGamma = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeEmitRate")){
+            m_SmokeParticleEmitRate = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeEmitMinVelocity")){
+            m_SmokeParticleEmitMinVelocity = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeEmitMaxVelocity")){
+            m_SmokeParticleEmitMaxVelocity = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeMinBuoyancy")){
+            m_SmokeParticleMinBuoyancy = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeMaxBuoyancy")){
+            m_SmokeParticleMaxBuoyancy = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeCoolingRate")){
+            m_SmokeParticleCoolingRate = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeEmitSpread")){
+            m_SmokeParticleEmitSpread = Float.parseFloat(value);
+            return null;
+        }
+        if(name.equals("SmokeParticleBeginSize")){
+            m_SmokeParticleBeginSize = Float.parseFloat(value);
+            return null;
+        }
+        if(name.equals("SmokeParticleEndSize")){
+            m_SmokeParticleEndSize = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeWindDrag")){
+            m_SmokeWindDrag = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("PSMMinCornerX")){
+            m_PSMMinCorner.x = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("PSMMinCornerY")){
+            m_PSMMinCorner.y = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("PSMMinCornerZ")){
+            m_PSMMinCorner.z = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("PSMMaxCornerX")){
+            m_PSMMaxCorner.x = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("PSMMaxCornerY")){
+            m_PSMMaxCorner.y = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("PSMMaxCornerZ")){
+            m_PSMMaxCorner.z = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokePSMBoundsFadeMargin")){
+            m_SmokePSMBoundsFadeMargin = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeWindNoiseLevel")){
+            m_SmokeWindNoiseLevel = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeWindNoiseSpatialScale")){
+            m_SmokeWindNoiseSpatialScale = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeWindNoiseTimeScale")){
+            m_SmokeWindNoiseTimeScale = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeShadowOpacity")){
+            m_SmokeShadowOpacity = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeTintR")){
+            m_SmokeTint.x = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("SmokeTintG")){
+            m_SmokeTint.y = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("PSMRes")){
+            m_PSMRes = Integer.parseInt(value);
+            return null;
+        }
+
+        if(name.equals("FunnelLongitudinalOffset")){
+            m_FunnelLongitudinalOffset = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("FunnelHeightAboveWater")){
+            m_FunnelHeightAboveWater = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("FunnelXSize")){
+            m_FunnelMouthSize.x = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("FunnelYSize")){
+            m_FunnelMouthSize.y = Float.parseFloat(value);
+            return null;
+        }
+
+        if(name.equals("NumSmokeParticles")){
+            m_NumSmokeParticles = Integer.parseInt(value);
+            return null;
+        }
+
+        if(name.equals("NumSurfaceHeightSamples")){
+            m_NumSurfaceHeightSamples = Integer.parseInt(value);
+            return null;
+        }
+
+        if(name.equals("HullProfileTextureWH")){
+            m_HullProfileTextureWH = Integer.parseInt(value);
+            return null;
+        }
+
+        if(name.equals("Mesh")){
+            m_MeshFileName = OceanConst.MEDIA_PATH + value.substring(1);
+            return null;
+        }
+
+        if(name.equals("SmokeTexture")){
+            m_SmokeTextureFileName = OceanConst.MEDIA_PATH + value.substring(1);
+            return null;
+        }
+
+        if(name.equals("BeginSpotlight")){
+            Spotlight newLight = new Spotlight();
+            m_Spotlights.add(newLight);
+            return newLight;
+        }
+
+        return null;
+    }
+
+    private Spotlight processSpotlightConfigLine(String line, Spotlight pSpot) {
+        int spaceIndex = line.indexOf(' ');
+        String name = spaceIndex>0? line.substring(0, spaceIndex) : line;
+        String value = spaceIndex > 0 ? line.substring(spaceIndex+1).trim() : null;
+
+        if(name.equals("x")){
+            pSpot.position.x = Float.parseFloat(value);
+            return pSpot;
+        }
+
+        if(name.equals("y")){
+            pSpot.position.y = Float.parseFloat(value);
+            return pSpot;
+        }
+
+        if(name.equals("z")){
+            pSpot.position.z = Float.parseFloat(value);
+            return pSpot;
+        }
+
+        if(name.equals("axis-x")){
+            pSpot.axis.x = Float.parseFloat(value);
+            return pSpot;
+        }
+
+        if(name.equals("axis-y")){
+            pSpot.axis.y = Float.parseFloat(value);
+            return pSpot;
+        }
+
+        if(name.equals("axis-z")){
+            pSpot.axis.z = Float.parseFloat(value);
+            return pSpot;
+        }
+
+        if(name.equals("r")){
+            pSpot.color.x = Float.parseFloat(value);
+            return pSpot;
+        }
+
+        if(name.equals("g")){
+            pSpot.color.y = Float.parseFloat(value);
+            return pSpot;
+        }
+
+        if(name.equals("b")){
+            pSpot.color.z = Float.parseFloat(value);
+            return pSpot;
+        }
+
+        if(name.equals("beam_angle")){
+            pSpot.beam_angle = Float.parseFloat(value) * Numeric.PI/180;
+            return pSpot;
+        }
+
+        if(name.equals("EndSpotlight")){
+            pSpot.axis.normalise();
+            return null;
+        }
+
+        return pSpot;
+    }
 
     OceanVessel(OceanVesselDynamicState pDynamicState){
         m_pDynamicState = pDynamicState;
@@ -270,10 +603,14 @@ final class OceanVessel implements OceanConst, Disposeable {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         // Load the mesh
         m_pMesh = new BoatMesh();
+        FileLoader old = FileUtils.g_IntenalFileLoader;
         try {
+            FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
             m_pMesh.create(m_MeshFileName);
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            FileUtils.setIntenalFileLoader(old);
         }
 
         // Get the bounding box and figure out the scale needed to achieve the desired length,
@@ -537,7 +874,7 @@ final class OceanVessel implements OceanConst, Disposeable {
             V_RETURN(m_pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &m_pRustMapSRV));
             SAFE_RELEASE(pD3D11Resource);*/
 
-            m_pRustMapSRV = OceanConst.CreateTexture2DFromFileSRGB(SHADER_PATH + "\\media\\rustmap.dds");
+            m_pRustMapSRV = OceanConst.CreateTexture2DFromFile(SHADER_PATH + ".\\media\\rustmap.dds");
         }
 
         if(null == m_pRustSRV)
@@ -547,7 +884,7 @@ final class OceanVessel implements OceanConst, Disposeable {
             V_RETURN(m_pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &m_pRustSRV));
             SAFE_RELEASE(pD3D11Resource);*/
 
-            m_pRustSRV = OceanConst.CreateTexture2DFromFileSRGB(SHADER_PATH + "\\media\\rust.dds");
+            m_pRustSRV = OceanConst.CreateTexture2DFromFile(SHADER_PATH + ".\\media\\rust.dds");
         }
 
         if(null == m_pBumpSRV)
@@ -557,7 +894,7 @@ final class OceanVessel implements OceanConst, Disposeable {
             V_RETURN(m_pd3dDevice->CreateShaderResourceView(pD3D11Resource, NULL, &m_pBumpSRV));
             SAFE_RELEASE(pD3D11Resource);*/
 
-            m_pBumpSRV = OceanConst.CreateTexture2DFromFileSRGB(SHADER_PATH + "\\media\\foam_intensity_perlin2.dds");
+            m_pBumpSRV = OceanConst.CreateTexture2DFromFile(SHADER_PATH + ".\\media\\foam_intensity_perlin2.dds");
         }
 
         Vector2f UVToWorldScale = new Vector2f();
@@ -744,7 +1081,7 @@ final class OceanVessel implements OceanConst, Disposeable {
 
                 m_pDynamicState.m_LocalToWorld.m30 = m_pDynamicState.m_Position.x + nominal_displacement[0].x;
                 m_pDynamicState.m_LocalToWorld.m31 = sea_level + m_pDynamicState.m_Height;
-                m_pDynamicState.m_LocalToWorld.m32 = m_pDynamicState.m_Position.y + nominal_displacement[1].y;
+                m_pDynamicState.m_LocalToWorld.m32 = m_pDynamicState.m_Position.y + nominal_displacement[0].y;
 
                 m_pHullSensors.update(m_pSurfaceHeights,m_pDynamicState.m_LocalToWorld);
                 m_pDynamicState.m_bFirstUpdate = false;
