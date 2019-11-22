@@ -2,6 +2,9 @@ package jet.opengl.demos.nvidia.waves.crest;
 
 import com.nvidia.developer.opengl.app.NvCameraMotionType;
 import com.nvidia.developer.opengl.app.NvSampleApp;
+import com.nvidia.developer.opengl.ui.NvTweakVarbool;
+import com.nvidia.developer.opengl.ui.NvUIEventResponse;
+import com.nvidia.developer.opengl.ui.NvUIReaction;
 
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
@@ -34,6 +37,7 @@ public class Wave_Animation_Test extends NvSampleApp {
     private Technique _flowMaterial;
     private Technique _displacementMaterial;
     private Technique _dampDynWavesMaterial;
+    private NvTweakVarbool _capatureFrame;
 
 //     [Range(0, 1000), SerializeField]
     float _amplitude = 20;
@@ -59,7 +63,7 @@ public class Wave_Animation_Test extends NvSampleApp {
         mCDClipmap = new Wave_CDClipmap();
         mCDClipmap.init(m_Clipmap_Params);
 
-        m_Simulation_Params.shape_combine_pass_pingpong = true;
+        m_Simulation_Params.shape_combine_pass_pingpong = false;
         m_Simulation_Params.random_seed = 1000000;
         m_Simulation_Params.direct_towards_Point = false;
         m_Simulation_Params.max_displacement_Vertical = 5.5f;
@@ -200,6 +204,7 @@ public class Wave_Animation_Test extends NvSampleApp {
         m_Renderer.waveShading(mProj, mView, true);
 
         tracker.restoreStates();
+        Wave_Simulation.g_CapatureFrame = false;
     }
 
     private void updateRipple(){
@@ -295,4 +300,19 @@ public class Wave_Animation_Test extends NvSampleApp {
         gl.glViewport(0,0, width, height);
         Matrix4f.perspective(60, (float)width/height, 0.1f, 1000, mProj);
     }
+
+    @Override
+    public void initUI() {
+        _capatureFrame = (NvTweakVarbool) mTweakBar.addButton("Capature Frame", 10086);
+    }
+
+    protected int handleReaction(NvUIReaction react){
+        if(react.code == 10086){
+            Wave_Simulation.g_CapatureFrame = true;
+            return NvUIEventResponse.nvuiEventHandled;
+        }
+
+        return super.handleReaction(react);
+    }
+
 }

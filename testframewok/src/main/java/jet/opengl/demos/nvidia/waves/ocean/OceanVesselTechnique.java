@@ -6,6 +6,6 @@ final class OceanVesselTechnique extends Technique {
     public void enable(TechniqueParams params) {
         super.enable(params);
 
-        throw new UnsupportedOperationException();
+        OceanVesselParams vesselParams = (OceanVesselParams)params;
     }
 }

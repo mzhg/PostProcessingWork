@@ -3,6 +3,7 @@ package jet.opengl.postprocessing.util;
 import org.lwjgl.util.vector.Matrix2f;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.ReadableVector;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
@@ -30,6 +31,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1995,6 +1997,62 @@ public final class DebugTools {
             e.printStackTrace();
         }
 
+    }
+
+    public static void statisticizePixels(String filename/*, int width, int height*/){
+        List<float[]> samples = new ArrayList<>();
+        final float[] sums = new float[4];
+        final float[] mins = new float[4];
+        final float[] maxs = new float[4];
+
+        for(int i = 0; i < 4; i++){
+            sums[i] = 0;
+            mins[i] = Float.MAX_VALUE;
+            maxs[i] = -Float.MAX_VALUE;
+        }
+
+        File file = new File(filename);
+        String simpleName = file.getName();
+        int dot = simpleName.lastIndexOf('.');
+        if(dot > 0)
+            simpleName = simpleName.substring(0, dot);
+
+        try(BufferedReader in = new BufferedReader(new FileReader(file))){
+            String line;
+
+            List<float[]> tmpSamples = new ArrayList<>();
+            while ((line = in.readLine()) != null){
+                extractValues(line, tmpSamples);
+
+                for(float[] s : tmpSamples){
+                    for(int i = 0; i < s.length;i++){
+                        sums[i] += s[i];
+
+                        mins[i] = Math.min(mins[i], s[i]);
+                        maxs[i] = Math.max(maxs[i], s[i]);
+                    }
+                }
+
+                samples.addAll(tmpSamples);
+                tmpSamples.clear();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        final int sampleCount = samples.size();
+
+        System.out.println("-------------------------" + simpleName + "----------------------------");
+        System.out.println("SampleCount = " + sampleCount);
+        System.out.println("Sample Info:");
+
+        final String[] tokens = {"R", "G", "B", "A"};
+        int channelCount = samples.get(0).length;
+        for(int i = 0; i < channelCount; i++){
+            System.out.println(String.format("%s: Average: %f; Max: %f; Min: %f", tokens[i], sums[i]/sampleCount, maxs[i], mins[i]));
+        }
     }
 
     public static String getTextFromClipBoard(){

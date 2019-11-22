@@ -788,6 +788,8 @@ final class OceanSurfaceHeights implements OceanConst{
         gl.glPatchParameteri(GLenum.GL_PATCH_VERTICES, 4);
         gl.glDrawArrays(GLenum.GL_PATCHES, 0, 4*quads_w*quads_h);
 
+        m_pRenderSurfaceToReverseLookupTechnique.printOnce();
+
         // Restore viewports
 //        pDC->RSSetViewports(num_original_viewports,original_viewports);
     }

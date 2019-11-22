@@ -57,7 +57,8 @@ class Wave_Simulation_Common_Input implements Wave_LodData_Input{
                  gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
              }
 
-             _material.printOnce();
+             if(Wave_Simulation.g_CapatureFrame)
+                _material.printPrograminfo();
 
              gl.glDisable(GLenum.GL_BLEND);
          }

@@ -6,6 +6,7 @@ import java.util.HashSet;
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.PostProcessingDefaultProgram;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
@@ -135,7 +136,7 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             SubmitDrawsFiltered(lodIdx, _filterWavelength);
         }
 
-        saveTextur(_waveBuffers, "WaveBuffer.txt");
+//        saveTextur(_waveBuffers, "WaveBuffer.txt");
 
         // Combine the LODs - copy results from biggest LOD down to LOD 0
         if (m_Simulation.m_Params.shape_combine_pass_pingpong)
@@ -157,7 +158,7 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             SubmitDrawsFiltered(lodIdx, _filterNoLodPreference);
         }
 
-        saveTextur(_targets, "AnimWave.txt");
+//        saveTextur(_targets, "AnimWave.txt");
     }
 
     void CombinePassPingPong()
@@ -311,6 +312,15 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             m_ShaderData._LD_SliceIndex = lodIdx;
             selectedShaderKernel.enable(m_ShaderData);
 
+            if(Wave_Simulation.g_CapatureFrame){
+                if(m_ShaderData._LD_TexArray_DynamicWaves != null)
+                    saveTextur(m_ShaderData._LD_TexArray_DynamicWaves, "DynamicWave.txt");
+                if(m_ShaderData._LD_TexArray_Flow != null)
+                    saveTextur(m_ShaderData._LD_TexArray_Flow, "FlowWave.txt");
+                if(m_ShaderData._LD_TexArray_Flow != null)
+                    saveTextur(m_ShaderData._LD_TexArray_WaveBuffer, "WaveBuffer.txt");
+            }
+
             gl.glDispatchCompute(
                     m_Clipmap.getLodDataResolution() / THREAD_GROUP_SIZE_X,
                     m_Clipmap.getLodDataResolution() / THREAD_GROUP_SIZE_Y,
@@ -318,7 +328,13 @@ final class Wave_Simulation_Animation_Pass extends Wave_Simulation_Pass {
             );
 
             gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+            GLSLUtil.fenceSync();
             gl.glBindImageTexture(0, 0, 0, true, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
+
+            if(Wave_Simulation.g_CapatureFrame){
+                saveTextur(m_ShaderData._LD_TexArray_AnimatedWaves_Compute, "AnimatedCompute.txt");
+            }
+
             selectedShaderKernel.setName("Combine Compute");
             selectedShaderKernel.printOnce();
         }

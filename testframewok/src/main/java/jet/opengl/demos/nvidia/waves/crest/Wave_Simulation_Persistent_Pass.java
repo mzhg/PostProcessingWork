@@ -3,6 +3,7 @@ package jet.opengl.demos.nvidia.waves.crest;
 import jet.opengl.demos.nvidia.waves.crest.helpers.TextureArrayHelpers;
 import jet.opengl.demos.nvidia.waves.ocean.Technique;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.util.Numeric;
@@ -53,7 +54,7 @@ abstract class Wave_Simulation_Persistent_Pass extends Wave_Simulation_Pass{
 //        gl.glClearTexImage(_sources.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
 //        gl.glClearTexImage(_targets.getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, null);
 
-        int lodCount = m_Clipmap.m_LodTransform.LodCount();
+        final int lodCount = m_Clipmap.m_LodTransform.LodCount();
 
         m_ShaderData._TexelsPerWave = m_Clipmap.getMinTexelsPerWave();
 
@@ -108,9 +109,14 @@ abstract class Wave_Simulation_Persistent_Pass extends Wave_Simulation_Pass{
                     LodDataResolution / THREAD_GROUP_SIZE_Y,
                     lodCount);
             gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+            GLSLUtil.fenceSync();
+
             gl.glBindImageTexture(1, 0, 0, true, 0, GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
 
-            currentTech.printOnce();
+            if(Wave_Simulation.g_CapatureFrame)
+                currentTech.printPrograminfo();
+
+            currentTech.disable();
 
             for (int lodIdx = lodCount - 1; lodIdx >= 0; lodIdx--)
             {

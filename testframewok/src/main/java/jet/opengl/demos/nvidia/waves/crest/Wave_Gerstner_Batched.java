@@ -725,7 +725,8 @@ final class Wave_Gerstner_Batched implements Wave_Const{
                 gl.glBindVertexArray(m_DummyVAO);
                 gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
                 gl.glBindVertexArray(0);
-                mGerstnerShader.printOnce();
+                if(Wave_Simulation.g_CapatureFrame)
+                    mGerstnerShader.printPrograminfo();
 
                 gl.glDisable(GLenum.GL_BLEND);
             }

@@ -60,7 +60,7 @@ void main()
 
     const float3 uv_slice = float3(input_uv, sliceIndex);
 
-    const half2 velocity = SampleLod(_LD_TexArray_Flow, uv_slice).xy;
+    const half2 velocity = SampleLod(_LD_TexArray_Flow, uv_slice).xy;  // Todo Involved the flow may produce cray wave.
     const float3 uv_source = WorldToUV_Source(worldPosXZ - (dt * velocity), sliceIndexSource);
 
     // weighting for source position - weight 0 for off texture accesses to stop streaky artifacts

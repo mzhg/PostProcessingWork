@@ -1,8 +1,8 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.texture.TextureGL;
-import jet.opengl.postprocessing.util.CacheBuffer;
 
 /** A persistent flow simulation that moves around with a displacement LOD. The input is fully combined water surface shape.*/
 final class Wave_Simulation_Flow_Pass extends Wave_Simulation_Pass {
@@ -39,8 +39,9 @@ final class Wave_Simulation_Flow_Pass extends Wave_Simulation_Pass {
             SubmitDraws(lodIdx);
         }
 
+        GLSLUtil.fenceSync();
         gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
-        Wave_Simulation_Animation_Pass.saveTextur(_targets, "Flow.txt");
+//        Wave_Simulation_Animation_Pass.saveTextur(_targets, "Flow.txt");
 
 
         // targets have now been cleared, we can early out next time around

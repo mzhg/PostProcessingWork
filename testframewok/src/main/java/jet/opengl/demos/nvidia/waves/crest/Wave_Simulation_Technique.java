@@ -65,7 +65,7 @@ class Wave_Simulation_Technique extends Technique {
 
             if(g_DefualtSampler == 0) {
                 SamplerDesc desc = new SamplerDesc();
-                desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_REPEAT;
+                desc.wrapR = desc.wrapS = desc.wrapT = GLenum.GL_CLAMP_TO_EDGE;
                 g_DefualtSampler = SamplerUtils.createSampler(desc);
             }
 
@@ -141,7 +141,7 @@ class Wave_Simulation_Technique extends Technique {
         bindTexture(12, shaderData._LD_TexArray_DynamicWaves_Source);
 
         bindImage(0, shaderData._LD_TexArray_AnimatedWaves_Compute, true);
-        bindImage(1, shaderData._LD_TexArray_Target, true);
+        bindImage(1, shaderData._LD_TexArray_Target, false);
     }
 
     private void bindTexture(int unit, TextureGL texture){

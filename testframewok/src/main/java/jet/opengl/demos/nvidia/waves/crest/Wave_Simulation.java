@@ -4,6 +4,8 @@ import java.util.ArrayDeque;
 
 public class Wave_Simulation {
 
+    static boolean g_CapatureFrame;
+
     final Wave_Simulation_Params m_Params = new Wave_Simulation_Params();
 
     Wave_Simulation_Animation_Pass _lodDataAnimWaves;

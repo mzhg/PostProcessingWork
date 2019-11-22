@@ -12,7 +12,7 @@ final class OceanVesselParams implements TechniqueParams {
     Matrix4f    g_matWorldViewProj;
     Matrix4f	g_matWorldView;
     Matrix4f	g_matWorld;
-    Vector4f    g_DiffuseColor;
+    final Vector4f    g_DiffuseColor = new Vector4f();
     Vector3f    g_LightDirection;
     Vector3f	g_LightColor;
     Vector3f	g_AmbientColor;

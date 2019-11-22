@@ -41,7 +41,7 @@ final class BoatMesh extends SDKmesh implements D3D9Enums, OceanConst {
                 case D3DDECLUSAGE_TEXCOORD: d3d11_layout_element.SemanticName = "TEXCOORD"; break;
                 case D3DDECLUSAGE_COLOR: d3d11_layout_element.SemanticName = "COLOR"; break;
                 default:
-                    return null;	// Whoops, this usage not handled yet!
+                    throw new IllegalArgumentException("Unkown usage: " + d3d9_decl_element.usage);
             }
 
             // Translate usage index
@@ -55,7 +55,7 @@ final class BoatMesh extends SDKmesh implements D3D9Enums, OceanConst {
                 case D3DDECLTYPE_FLOAT4: d3d11_layout_element.Format = DXGI_FORMAT_R32G32B32A32_FLOAT; break;
                 case D3DDECLTYPE_D3DCOLOR: d3d11_layout_element.Format = DXGI_FORMAT_R8G8B8A8_UNORM; break;
                 default:
-                    return null;	// Whoops, this format not handled yet!
+                    throw new IllegalArgumentException("Unkown type: " + d3d9_decl_element.type);
             }
 
             // Translate stream
@@ -67,8 +67,6 @@ final class BoatMesh extends SDKmesh implements D3D9Enums, OceanConst {
             // No instancing
             d3d11_layout_element.InputSlotClass = /*D3D11_INPUT_PER_VERTEX_DATA*/0;
             d3d11_layout_element.InstanceDataStepRate = 0;
-
-            ++num_layout_elements;
         }
 
         return ID3D11InputLayout.createInputLayoutFrom(vertex_layout.toArray(new D3D11_INPUT_ELEMENT_DESC[vertex_layout.size()]));

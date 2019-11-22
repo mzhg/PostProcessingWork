@@ -106,8 +106,8 @@ final class ShaderManager{
         mPrograms.put("RenderVesselToHullProfileTech", current=createTech("VesselVS.vert", "VesselToHullProfilePS.frag", ShaderManager::VesselTechnique));
         current.EnableDepth().SolidBack().Opaque();
 
-//        mPrograms.put("RenderQuadToCrackFixTech", current=createTech("QuadToCrackFixVS.vert", "QuadToCrackFixPS.frag", ShaderManager::VesselTechnique));  todo
-//        current.DisableDepth().SolidNoCull().Opaque();
+        mPrograms.put("RenderQuadToCrackFixTech", current=createTech(DEFUALT_VERT, "QuadToCrackFixPS.frag", ShaderManager::VesselTechnique));
+        current.DisableDepth().SolidNoCull().Opaque();
 
         // skybox.fx
         mPrograms.put("SkyboxTech", current=createTech("SkyboxVS.vert","SkyboxPS.frag",ShaderManager::SkyboxTechnique));

@@ -19,8 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import javax.naming.Name;
-
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -1155,5 +1153,22 @@ public final class GLSLUtil {
 		int index = prog.getUniformLocation(name, true);
 		if(index >=0)
 			GLFuncProviderFactory.getGLFuncProvider().glUniform1ui(index, v);
+	}
+
+	public static void fenceSync(){
+		GLCheck.checkError();
+
+		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
+		long s = gl.glFenceSync();
+
+		while (gl.glClientWaitSync(s, 0, 1_000_000) == GLenum.GL_TIMEOUT_EXPIRED){
+			/*try { TODO This cause the rendering unsmoothly.
+				Thread.currentThread().sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}*/
+		}
+
+		gl.glDeleteSync(s);
 	}
 }

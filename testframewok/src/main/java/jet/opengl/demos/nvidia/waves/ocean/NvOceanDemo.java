@@ -714,7 +714,7 @@ public class NvOceanDemo extends NvSampleApp implements OceanConst {
 //                desc.SampleDesc = g_SwapChainDesc.SampleDesc;
 //                V_RETURN(pd3dDevice->CreateTexture2D(&desc, NULL, &g_pColorBuffer));
                 Texture2DDesc desc = new Texture2DDesc(width, height, format);
-                desc.sampleCount = 4;
+                desc.sampleCount = 1;
 
                 g_pColorBuffer = g_pColorBufferRTV = g_pColorBufferSRV = TextureUtils.createTexture2D(desc, null);
 

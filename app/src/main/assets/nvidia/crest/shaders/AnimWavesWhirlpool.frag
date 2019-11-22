@@ -22,7 +22,8 @@ void main()
 
     float3 centerPos = float3(unity_ObjectToWorld[3][0],unity_ObjectToWorld[3][1],unity_ObjectToWorld[3][2]);
     float2 worldOffsetScaledXZ = worldPos - centerPos.xz;
-    float m_LengthToCenter = length(worldOffsetScaledXZ);
+    float leng2 = dot(worldOffsetScaledXZ, worldOffsetScaledXZ);
+    float m_LengthToCenter = sqrt(max(0.001, leng2));
 
     // power 4 smoothstep - no normalize needed
     // credit goes to stubbe's shadertoy: https://www.shadertoy.com/view/4ldSD2
@@ -32,12 +33,11 @@ void main()
     if(r2 >= 1.0)
     {
         OutColor = float4(0.0, 0, 0.0, 0.0);
-        return;
     }
-
-    r2 = 1.0 - r2;
-
-    float y = r2 * r2 * _Amplitude;
-
-    OutColor = float4(0.0, -y, 0.0, 0.0);
+    else
+    {
+        r2 = 1.0 - r2;
+        float y = r2 * r2 * _Amplitude;
+        OutColor = float4(0.0, -y, 0.0, 0.0);
+    }
 }

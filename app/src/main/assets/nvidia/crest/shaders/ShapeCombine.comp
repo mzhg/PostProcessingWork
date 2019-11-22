@@ -41,7 +41,7 @@ void Flow(out float2 offsets, out float2 weights)
     const float half_period = period / 2.0;
     offsets = mod(float2(_CrestTime, _CrestTime + half_period), float2(period));
     weights.x = offsets.x / half_period;
-    if (weights.x > 1.0) weights.x = 2.0 - weights.x;
+    if (weights.x > 1.0) weights.x = clamp(2.0 - weights.x, 0.0, 1.0);
     weights.y = 1.0 - weights.x;
 }
 
@@ -134,14 +134,15 @@ void main ()
         // convert dynamic wave sim to displacements
 
         float waveSimY = SampleLod(_LD_TexArray_DynamicWaves, uv_thisLod).x;
-        if(isnan(waveSimY) || isinf(waveSimY))
-        {
-            waveSimY = 0.0;
-        }
-
         result.y += waveSimY;
 
-//        const float _MIN_f16 = -256.0 * 256.0;
+//        if(isnan(result.y) || isinf(result.y))
+//        {
+//            result.y = 0.0;
+//        }
+
+
+    //        const float _MIN_f16 = -256.0 * 256.0;
 //        const float _MAX_f16 = -_MIN_f16;
 //        result.y = clamp(result.y, _MIN_f16, _MAX_f16);
 

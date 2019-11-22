@@ -246,7 +246,7 @@ final class OceanSurface implements OceanConst, Disposeable {
             m_pRenderSurfaceLocalFoamMapVariable = m_pOceanFX->GetVariableByName("g_texLocalFoamMap")->AsShaderResource();*/
 
             m_pShiftFadeBlurLocalFoamTechnique = ShaderManager.getInstance().getProgram("LocalFoamMapTech");
-            m_pShiftFadeBlurLocalFoamShadedPass = ShaderManager.getInstance().getProgram("Pass_Solid");
+            m_pShiftFadeBlurLocalFoamShadedPass = m_pShiftFadeBlurLocalFoamTechnique;
             /*m_pShiftFadeBlurLocalFoamTextureVariable = m_pOceanFX->GetVariableByName("g_texLocalFoamSource")->AsShaderResource();
             m_pShiftFadeBlurLocalFoamUVOffsetBlurVariable = m_pOceanFX->GetVariableByName("g_UVOffsetBlur")->AsVector();
             m_pShiftFadeBlurLocalFoamFadeAmountVariable = m_pOceanFX->GetVariableByName("g_FadeAmount")->AsScalar();

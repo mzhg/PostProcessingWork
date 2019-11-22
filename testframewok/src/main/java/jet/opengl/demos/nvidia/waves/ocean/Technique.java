@@ -6,6 +6,7 @@ import jet.opengl.postprocessing.common.GLStateTracker;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.common.RasterizerState;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.texture.TextureGL;
 
 public class Technique extends GLSLProgram {
     protected final RasterizerState mRaster = new RasterizerState();
@@ -374,5 +375,23 @@ public class Technique extends GLSLProgram {
         mBlend.blendOp = GLenum.GL_ADD;
 
         return this;
+    }
+
+    void bindTexture(int unit, TextureGL texture, int sampler){
+        if(texture != null){
+            gl.glBindTextureUnit(unit, texture.getTexture());
+            gl.glBindSampler(unit, sampler);
+        }else{
+            gl.glBindTextureUnit(unit, 0);
+            gl.glBindSampler(unit, 0);
+        }
+    }
+
+    void bindImage(int unit, TextureGL texture, boolean read){
+        if(texture != null){
+            gl.glBindImageTexture(unit, texture.getTexture(), 0, true, 0, read? GLenum.GL_READ_WRITE:GLenum.GL_WRITE_ONLY, texture.getFormat());
+        }else{
+            gl.glBindImageTexture(unit, 0, 0, true, 0, read? GLenum.GL_READ_WRITE:GLenum.GL_WRITE_ONLY, GLenum.GL_RGBA8);
+        }
     }
 }

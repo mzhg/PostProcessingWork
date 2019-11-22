@@ -11,6 +11,7 @@ import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
@@ -20,6 +21,7 @@ import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks;
 import jet.opengl.demos.nvidia.waves.wavework.GFSDK_WaveWorks_Simulation;
 import jet.opengl.demos.scene.CameraData;
 import jet.opengl.postprocessing.common.Disposeable;
+import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -59,9 +61,9 @@ final class OceanVessel implements OceanConst, Disposeable {
     private ID3D11InputLayout m_pLayout;
 
 //    ID3DX11Effect* m_pFX;
-    private Technique m_pRenderToSceneTechnique;
-    private Technique m_pRenderToShadowMapTechnique;
-    private Technique m_pRenderToHullProfileTechnique;
+    private Technique[] m_pRenderToSceneTechnique = new Technique[2];
+    private Technique[] m_pRenderToShadowMapTechnique = new Technique[2];
+    private Technique[] m_pRenderToHullProfileTechnique = new Technique[2];
     private Technique m_pRenderQuadToUITechnique;
     private Technique m_pRenderQuadToCrackFixTechnique;
     private Technique m_pWireframeOverrideTechnique;
@@ -674,9 +676,12 @@ final class OceanVessel implements OceanConst, Disposeable {
         V_RETURN(D3DX11CreateEffectFromMemory(pEffectBuffer->GetBufferPointer(), pEffectBuffer->GetBufferSize(), 0, m_pd3dDevice, &m_pFX));
         pEffectBuffer->Release();*/
 
-        m_pRenderToSceneTechnique = ShaderManager.getInstance().getProgram("RenderVesselToSceneTech");
-        m_pRenderToShadowMapTechnique = ShaderManager.getInstance().getProgram("RenderVesselToShadowMapTech");
-        m_pRenderToHullProfileTechnique = ShaderManager.getInstance().getProgram("RenderVesselToHullProfileTech");
+        m_pRenderToSceneTechnique[0] = ShaderManager.getInstance().getProgram("RenderVesselToSceneTech0");
+        m_pRenderToSceneTechnique[1] = ShaderManager.getInstance().getProgram("RenderVesselToSceneTech1");
+        m_pRenderToShadowMapTechnique[0] = ShaderManager.getInstance().getProgram("RenderVesselToShadowMapTech");
+        m_pRenderToShadowMapTechnique[1] = m_pRenderToShadowMapTechnique[0];
+        m_pRenderToHullProfileTechnique[0] = ShaderManager.getInstance().getProgram("RenderVesselToHullProfileTech");
+        m_pRenderToHullProfileTechnique[1] = m_pRenderToHullProfileTechnique[0];
         m_pRenderQuadToUITechnique = ShaderManager.getInstance().getProgram("RenderQuadToUITech");
         m_pRenderQuadToCrackFixTechnique = ShaderManager.getInstance().getProgram("RenderQuadToCrackFixTech");
         m_pWireframeOverrideTechnique = ShaderManager.getInstance().getProgram("WireframeOverrideTech");
@@ -762,7 +767,7 @@ final class OceanVessel implements OceanConst, Disposeable {
             tex_desc.arraySize = 1;
 //            tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 //            tex_desc.CPUAccessFlags = 0;
-            tex_desc.format = DXGI_FORMAT_R16G16_UNORM;
+            tex_desc.format = /*DXGI_FORMAT_R16G16_UNORM*/ GLenum.GL_RG16F;
             tex_desc.mipLevels = 1;
 //            tex_desc.MiscFlags = 0;
 //            tex_desc.SampleDesc.Count = 1;
@@ -791,7 +796,7 @@ final class OceanVessel implements OceanConst, Disposeable {
             depth_tex_desc.arraySize = 1;
 //            depth_tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 //            depth_tex_desc.CPUAccessFlags = 0;
-            depth_tex_desc.format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            depth_tex_desc.format = GLenum.GL_DEPTH_COMPONENT32F;
             depth_tex_desc.mipLevels = 1;
 //            depth_tex_desc.MiscFlags = 0;
 //            depth_tex_desc.SampleDesc.Count = 1;
@@ -911,7 +916,7 @@ final class OceanVessel implements OceanConst, Disposeable {
     }
 
     private void renderVessel(	//ID3D11DeviceContext* pDC,
-                                  Technique pTechnique,
+                                  Technique[] pTechnique,
                                   OceanVesselSubset pSubsetOverride,
                                   boolean wireframe,
                                   boolean depthOnly){
@@ -957,7 +962,7 @@ final class OceanVessel implements OceanConst, Disposeable {
 //                m_pWireframeOverrideTechnique -> GetPassByIndex(0)->Apply(0, pDC);
                 m_pWireframeOverrideTechnique.enable(m_TechParams);
             }else{
-                pTechnique.enable(m_TechParams);
+                pTechnique[0].enable(m_TechParams);
             }
 //            pDC->DrawIndexed(pSubsetOverride->index_count, 0, 0);
             gl.glDrawElements(GLenum.GL_POINTS, pSubsetOverride.index_count, pSubsetOverride.ib_format, 0);
@@ -972,7 +977,7 @@ final class OceanVessel implements OceanConst, Disposeable {
 //                m_pWireframeOverrideTechnique -> GetPassByIndex(0)->Apply(0, pDC);
                 m_pWireframeOverrideTechnique.enable(m_TechParams);
             }else{
-                pTechnique.enable(m_TechParams);
+                pTechnique[0].enable(m_TechParams);
             }
             for (int subset = 0; subset < mesh.getNumSubsets(0); ++subset)
             {
@@ -1010,10 +1015,10 @@ final class OceanVessel implements OceanConst, Disposeable {
                         // HACK to render the hull with no backface culling but the rest with backface
                         if(pSubset.materialID != 0) {
 //                        pTechnique -> GetPassByIndex(0)->Apply(0, pDC);
-                            pTechnique.enable(m_TechParams);
+                            pTechnique[0].enable(m_TechParams);
                         }else {
 //                        pTechnique -> GetPassByIndex(1)->Apply(0, pDC);
-                            pTechnique.enable(m_TechParams);  // todo
+                            pTechnique[1].enable(m_TechParams);
                         }
                     }
                 }
@@ -1610,11 +1615,17 @@ final class OceanVessel implements OceanConst, Disposeable {
         pDC->ClearRenderTargetView(m_pHullProfileRTV[0], rtvClearColor);
         pDC->OMSetRenderTargets( 1, &m_pHullProfileRTV[0], m_pHullProfileDSV);*/
 
+        GLCheck.checkError();
         gl.glClearTexImage(m_pHullProfileDSV.getTexture(), 0, GLenum.GL_DEPTH_COMPONENT, GLenum.GL_FLOAT, CacheBuffer.wrap(1.f));
-        gl.glClearTexImage(m_pHullProfileRTV[0].getTexture(), 0, GLenum.GL_RGBA, GLenum.GL_FLOAT, CacheBuffer.wrap(1.f, 0.f, 0.f, 0.f));
+
+//        ByteBuffer rtvClearColor = CacheBuffer.getCachedByteBuffer(4);
+//        rtvClearColor.putShort(Numeric.convertFloatToHFloat(1.f));
+//        rtvClearColor.putShort(Numeric.convertFloatToHFloat(0.f));
+//        rtvClearColor.flip();
+//        gl.glClearTexImage(m_pHullProfileRTV[0].getTexture(), 0, GLenum.GL_RG, GLenum.GL_HALF_FLOAT, rtvClearColor);
         mFbo.bind();
         mFbo.setRenderTexture(m_pHullProfileRTV[0], null);
-
+        gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(1.f, 0.f, 0.f, 0.f));
         /*D3D11_VIEWPORT vp;
         vp.TopLeftX = vp.TopLeftY = 0.f;
         vp.Height = vp.Width = FLOAT(m_HullProfileTextureWH);
