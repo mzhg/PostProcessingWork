@@ -135,7 +135,8 @@ public final class TestD3D11 extends NvSampleApp {
         IsSamplers.createSamplers();
 
         gl = GLFuncProviderFactory.getGLFuncProvider();
-        m_transformer.setTranslation(0.f, -100.534f, 0.f);
+        m_transformer.setTranslation(10.f, -100.534f, 201.f);
+        m_transformer.setMaxTranslationVel(8 * m_transformer.getMaxTranslationVel(0));
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
 
         // Ocean sim
@@ -593,10 +594,10 @@ public final class TestD3D11 extends NvSampleApp {
         g_ocean_param_quadtree.use_tessellation     = true;
         g_ocean_param_quadtree.enable_CPU_timers	= true;
 
-        g_ocean_simulation_param.time_scale				= 1.0f;
+        g_ocean_simulation_param.time_scale				= 0.5f;
         g_ocean_simulation_param.wave_amplitude			= 1.0f;
-        g_ocean_simulation_param.wind_dir			    .set(-0.8f, -0.6f);
-        g_ocean_simulation_param.wind_speed				= 119.0f;
+        g_ocean_simulation_param.wind_dir			    .set(0.8f, -0.6f);
+        g_ocean_simulation_param.wind_speed				= 9.0f;
         g_ocean_simulation_param.wind_dependency			= 0.98f;
         g_ocean_simulation_param.choppy_scale				= 1.f;
         g_ocean_simulation_param.small_wave_fraction		= 0.f;

@@ -20,6 +20,7 @@ import java.util.Arrays;
 
 import jet.opengl.demos.nvidia.waves.crest.Wave_Animation_Test;
 import jet.opengl.demos.nvidia.waves.ocean.NvOceanDemo;
+import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
@@ -127,10 +128,10 @@ public class DemoApp {
 //        run(new ShaderNoise());
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
-//        run(new TestD3D11());
+        run(new TestD3D11());
 //        run(new Wave_CDClipmap_Test());
 //        run(new Wave_Animation_Test());
-        run(new NvOceanDemo());
+//        run(new NvOceanDemo());
 //        run(new SampleD3D11());
 //        run(new IslandDemo());
 //        run(new Chapman());
