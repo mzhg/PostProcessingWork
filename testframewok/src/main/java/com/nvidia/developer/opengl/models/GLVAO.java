@@ -408,19 +408,14 @@ public class GLVAO implements Disposeable{
 	}
 	
 	public void draw(int mode, int instanceCount){
+		if(instanceCount < 1)
+			throw new IllegalArgumentException("instanceCount < 1");
+
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		if(element != null){
-			if(instanceCount > 1){
-				gl.glDrawElementsInstanced(mode, elementCount, elementType, 0, instanceCount);
-			}else{
-				gl.glDrawElements(mode, elementCount, elementType, 0);
-			}
+			gl.glDrawElementsInstanced(mode, elementCount, elementType, 0, instanceCount);
 		}else{
-			if(instanceCount > 1){
-				gl.glDrawArraysInstanced(mode, 0, vertexCount, instanceCount);
-			}else{
-				gl.glDrawArrays(mode, 0, vertexCount);
-			}
+			gl.glDrawArraysInstanced(mode, 0, vertexCount, instanceCount);
 		}
 	}
 	
