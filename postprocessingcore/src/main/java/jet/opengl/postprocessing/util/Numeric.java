@@ -1018,6 +1018,10 @@ public final class Numeric {
 		return Math.log(x)/ Math.log(2);
 	}
 
+	public static float log2(float x){
+		return (float)log2((double)x);
+	}
+
 	public static final int countTrailingZeros(int value)
 	{
 		if (value == 0)

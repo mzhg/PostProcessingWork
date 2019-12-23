@@ -1,0 +1,69 @@
+
+layout(binding = 0) uniform sampler2D DepthBuffer;
+layout(binding = 0,r16f) uniform image2D HZBuffer;
+
+layout(local_size_x = 4, local_size_y= 4)in;
+
+uniform mat4 gPrevViewProjInv;
+uniform mat4 gViewProj;
+
+void main()
+{
+    ivec3 DispatchThread = ivec3(gl_GlobalInvocationID);
+    int WidthDst, HeightDst;
+    {
+        ivec2 size = imageSize(HZBuffer);
+        WidthDst = size.x;
+        HeightDst = size.y;
+    }
+
+    if(DispatchThread.x >= WidthDst || DispatchThread.y >= HeightDst)  return;
+
+    const vec2 InvSize = 1.0/vec2(WidthDst, HeightDst);
+    const vec2 InUV = (vec2(DispatchThread) + 0.5) * InvSize;
+
+    vec2 UV[4];
+    vec4 Depth;
+    const float STEP = 0.25;
+#if STAGE == 0
+    const vec2 MinBound = vec2(-1);
+    const vec2 MaxBound = vec2(+1);
+    UV[0] = min(InUV + vec2(-STEP,-STEP) * InvSize, MaxBound);
+    UV[1] = min(InUV + vec2(+STEP,-STEP) * InvSize, MaxBound);
+    UV[2] = min(InUV + vec2(-STEP,+STEP) * InvSize, MaxBound);
+    UV[3] = min(InUV + vec2(+STEP,+STEP) * InvSize, MaxBound);
+
+    Depth.x = textureLod(DepthBuffer, UV[0], 0).r;
+    Depth.y = textureLod(DepthBuffer, UV[1], 0).r;
+    Depth.z = textureLod(DepthBuffer, UV[2], 0).r;
+    Depth.w = textureLod(DepthBuffer, UV[3], 0).r;
+
+    float MaxDepth = max(max(Depth.x,Depth.y), max(Depth.w, Depth.z));
+    imageStore(HZBuffer, DispatchThread.xy, vec4(MaxDepth, 0, 0,0));
+
+    #if REPROJECTION
+    vec4 ClipPos = vec4(InUV * 2 - 1, 2 * MaxDepth - 1, 1.0);
+    vec4 PrevWorldPos = gPrevViewProjInv * ClipPos;
+    PrevWorldPos /= PrevWorldPos.w;
+
+    vec4 NDCPosition = gViewProj * PrevWorldPos;
+    NDCPosition.xyz /= NDCPosition.w;
+    NDCPosition.xyz = NDCPosition.xyz * 0.5 + 0.5;
+    ivec2 OutputPos = ivec2(NDCPosition.xy * vec2(WidthDst, HeightDst));
+    imageStore(HZBuffer, OutputPos, vec4(NDCPosition.z, 0,0,0));
+    #endif
+#else  //STAGE == 1
+    UV[0] = InUV + vec2(-STEP,-STEP) * InvSize;
+    UV[1] = InUV + vec2(+STEP,-STEP) * InvSize;
+    UV[2] = InUV + vec2(-STEP,+STEP) * InvSize;
+    UV[3] = InUV + vec2(+STEP,+STEP) * InvSize;
+
+    Depth.x = textureLod(DepthBuffer, UV[0], 0).r;
+    Depth.y = textureLod(DepthBuffer, UV[1], 0).r;
+    Depth.z = textureLod(DepthBuffer, UV[2], 0).r;
+    Depth.w = textureLod(DepthBuffer, UV[3], 0).r;
+
+    float MaxDepth = max(max(Depth.x,Depth.y), max(Depth.w, Depth.z));
+    imageStore(HZBuffer, DispatchThread.xy, vec4(MaxDepth, 0, 0,0));
+#endif
+}

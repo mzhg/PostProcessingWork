@@ -1,8 +1,10 @@
 package jet.opengl.demos.gpupro.culling;
 
-class OcclusionTester {
+interface OcclusionTester {
 
-    void culling(Renderer renderer, Scene scene){
+    void newFrame(int frameNumber);
 
-    }
+    void cullingCoarse(Renderer renderer, Scene scene);
+
+    void cullingFine(Renderer renderer, Scene scene);
 }

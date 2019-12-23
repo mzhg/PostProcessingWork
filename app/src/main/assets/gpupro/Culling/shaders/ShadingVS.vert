@@ -2,6 +2,8 @@ layout(location = 0) in vec4 In_Position;
 layout(location = 1) in vec3 In_Normal;
 layout(location = 2) in vec2 In_TexCoord;
 
+uniform mat4 gModel;
+uniform mat4 gNormal;
 uniform mat4 gProj;
 uniform mat4 gView;
 
@@ -21,7 +23,7 @@ layout(binding = 0) uniform Instance
 void main()
 {
     vec4 WorldPos = gInstance[gl_InstanceID] * In_Position;
-    gl_Position = gProj *gView*In_Position;
+    gl_Position = gProj *gView*WorldPos;
 
     _output.WorldPos = WorldPos.xyz;
     _output.TexCoord = In_TexCoord;

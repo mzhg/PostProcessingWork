@@ -16,6 +16,7 @@ final class Mesh {
     GLVAO mVao;
 
     MeshType mType;
+    int frameNumber;
 
     final BoundingBox mAABB = new BoundingBox();
     final Matrix4f mWorld = new Matrix4f();

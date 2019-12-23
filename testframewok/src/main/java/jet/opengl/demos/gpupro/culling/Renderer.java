@@ -17,6 +17,8 @@ abstract class Renderer implements Disposeable {
     GLFuncProvider gl;
     RenderTargets mFBO;
 
+    int mFrameNumber;
+
     private int m_BlitFBO;
     private final Texture2D[] mOutput = new Texture2D[2];
 
@@ -51,7 +53,7 @@ abstract class Renderer implements Disposeable {
         gl.glViewport(0, 0, mColorBuffer.getWidth(), mColorBuffer.getHeight());
     }
 
-    abstract void render(Scene scene);
+    abstract void render(Scene scene, boolean clearFBO);
 
     void present(){
         gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, m_BlitFBO);

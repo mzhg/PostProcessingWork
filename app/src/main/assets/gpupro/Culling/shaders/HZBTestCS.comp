@@ -1,0 +1,102 @@
+layout(local_size_x = 32, local_size_y= 1)in;
+
+struct BoundingBox
+{
+    vec4 Center;
+    vec4 Extent;
+};
+
+layout(binding = 1) readonly buffer OccluderBuffer
+{
+    BoundingBox Occluders[];
+};
+
+layout(binding = 2) buffer OccluderVisible
+{
+    int VisibleBuffer[];
+};
+
+layout(binding = 0) uniform sampler2D HZBTexture;
+
+uniform mat4 gViewProj;
+uniform vec3 HZBUvFactor;
+
+void main()
+{
+    int OccluderIndex = int(gl_GlobalInvocationID.x);
+    const int OccluderCount = Occluders.length();
+
+    if(OccluderIndex < OccluderCount)
+    {
+        BoundingBox box = Occluders[OccluderIndex];
+        vec3 BoundsCenter = box.Center.xyz;
+        vec3 BoundsExtent = box.Extent.xyz;
+
+        // Could frustume cull here
+        vec3 BoundsMin = BoundsCenter - BoundsExtent;
+        vec3 BoundsMax = BoundsCenter + BoundsExtent;
+        vec3 Bounds[2] = {BoundsMin, BoundsMax};
+
+        // Screen rect from bounds
+        vec3 RectMin = vec3(1000);
+        vec3 RectMax = vec3(-1000);
+
+        for(int i = 0;i<8;i++)
+        {
+            vec3 PointSrc;
+            PointSrc.x = Bounds[(i>>0)&1].x;
+            PointSrc.y = Bounds[(i>>1)&1].y;
+            PointSrc.z = Bounds[(i>>2)&1].z;
+
+            vec4 PointClip = gViewProj * vec4(PointSrc,1);
+            vec3 PointScreen = PointClip.xyz / PointClip.w;
+
+            RectMin = min(PointScreen, RectMin);
+            RectMax = max(PointScreen, RectMax);
+        }
+
+        // Camera culling if CPU doesn't do it.
+        for(int i = 0; i < 3; i++)  // testing XY
+        {
+            if(RectMin[i] > 1 || RectMax[i] < -1)
+            {
+                VisibleBuffer[OccluderIndex] = 0;
+                return;
+            }
+        }
+
+        vec4 Rect = clamp(vec4(RectMin.xy, RectMax.xy) * 0.5 + 0.5, vec4(0), vec4(1));
+        ivec2 HZBSize = textureSize(HZBTexture, 0);
+        vec4 RectPixels = Rect * vec4(HZBSize.xyxy);
+        vec2 RectSize = (RectPixels.zw-RectPixels.xy)*0.5f;
+        float Level = max(ceil( log2( max( RectSize.x, RectSize.y ) ) ), HZBUvFactor.z);
+
+        // Check if we can drop one level lower
+        float LevelLower = max(Level - 1, 0);
+        vec4 LowerRect = RectPixels * exp2(-LevelLower);
+        vec2 LowerRectSize = ceil(LowerRect.zw)-floor(LowerRect.xy);
+        if(LowerRectSize.x <= 4.0 && LowerRectSize.y <= 4.0)
+        {
+            Level = LevelLower;
+        }
+
+        // 4x4 samples
+        vec2 Scale = HZBUvFactor.xy * (Rect.zw-Rect.xy)/3;
+        vec2 Bias = HZBUvFactor.xy * Rect.xy;
+
+        vec4 MaxDepth = vec4(1);
+        for(int i = 0; i < 4; i++)
+        {
+            vec4 Depth;
+            Depth.x = textureLod(HZBTexture, vec2(i,0) * Scale + Bias, Level).r;
+            Depth.y = textureLod(HZBTexture, vec2(i,1) * Scale + Bias, Level).r;
+            Depth.z = textureLod(HZBTexture, vec2(i,2) * Scale + Bias, Level).r;
+            Depth.w = textureLod(HZBTexture, vec2(i,3) * Scale + Bias, Level).r;
+            MaxDepth = max(MaxDepth, Depth);
+        }
+
+        MaxDepth.x = max(max(MaxDepth.x,MaxDepth.y),max(MaxDepth.z,MaxDepth.w));
+
+        VisibleBuffer[OccluderIndex] = (RectMin.z * 0.5 + 0.5) <= MaxDepth.x ? 1:0;
+    }
+}

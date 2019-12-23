@@ -1,0 +1,111 @@
+#define THREAD_GROUP_SIZE 64
+
+shared uint visibleInstanceIndexCounter;
+
+layout(local_size_x = THREAD_GROUP_SIZE)in;
+
+struct MeshInfo
+{
+    int numInstances;
+    int instanceOffset;
+    int meshType;
+    int meshTypeOffset;
+    int materialID;
+    int numIndices;
+    int firstIndex;
+};
+
+layout(binding = 0) readonly buffer MeshInfoBuffer
+{
+    MeshInfo meshInfoBuffer[];
+};
+
+layout(binding = 1) readonly buffer OccluderVisible
+{
+    uint VisibleBuffer[];
+};
+
+layout(binding = 2)  buffer VisibleInstanceIndexBuffer
+{
+    uint visibleInstanceIndexBuffer[];
+};
+
+layout(binding = 3)  buffer OccludedInstanceIndexBuffer
+{
+    uint occludedInstanceIndexBuffer[];
+};
+
+#define NUM_FILL_PASS_TYPES 0
+
+struct DrawIndirectCmd
+{
+    int instanceCount;
+    int instanceOffset;
+    int materialID;
+    int indexCountPerInstance;
+    int startIndexLocation;
+    int baseVertexLocation;
+    int startInstanceLocation;
+};
+
+layout(binding = 4) buffer DrawIndirectCmds
+{
+    DrawIndirectCmd drawIndirectCmd[];
+};
+
+void main()
+{
+    ivec3 groupID = ivec3(gl_WorkGroupID);
+    int groupIndex = int(gl_LocalInvocationIndex);
+    if(groupIndex == 0)
+    {
+        visibleInstanceIndexCounter = 0;
+    }
+
+    barrier();
+
+    MeshInfo meshInfo = meshInfoBuffer[groupID.x];
+    for(int i = 0; i < meshInfo.numInstances; i+=THREAD_GROUP_SIZE)
+    {
+        int elementIndex = groupIndex + i;
+        if(elementIndex < meshInfo.numInstances)
+        {
+            int instanceIndex = meshInfo.instanceOffset + elementIndex;
+            if(VisibleBuffer[instanceIndex] > 0)
+            {
+                int index = atomicAdd(visibleInstanceIndexCounter, 1);
+                visibleInstanceIndexBuffer[meshInfo.instanceOffset + index + NUM_FILL_PASS_TYPES] = instanceIndex;
+            }
+            else
+            {
+                // Occluded instances will be rendered as occludees to determine fasle nagatives.
+                int index = atomicAdd(drawIndirectCmd[0].instanceCount, 1);
+                occludedInstanceIndexBuffer[index] = instanceIndex;
+            }
+        }
+    }
+
+    barrier();
+
+    if(groupIndex == 0)
+    {
+        if(visibleInstanceIndexCounter > 0)
+        {
+            // Increment counter of visible meshes.
+            int cmdIndex = tomicAdd(visibleInstanceIndexBuffer[meshInfo.meshType], 1);
+            cmdIndex += meshInfo.meshTypeOffset + 1;
+
+            // Visible instances will be rendered directly as meshes into GBuffers.
+            DrawIndirectCmd cmd;
+            cmd.instanceOffset = meshInfo.instanceOffset;
+            cmd.materialID = meshInfo.materialID;
+            cmd.indexCountPerInstance = meshInfo.numIndices;
+            cmd.instanceCount = int(visibleInstanceIndexCounter);
+            cmd.startIndexLocation = mesh.firstIndex;
+            cmd.baseVertexLocation = 0;
+            cmd.startInstanceLocation = 0;
+            drawIndirectCmd[cmdIndex] = cmd;
+        }
+    }
+
+}
