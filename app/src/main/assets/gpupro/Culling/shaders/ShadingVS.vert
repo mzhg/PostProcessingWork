@@ -18,6 +18,7 @@ layout(binding = 0) uniform Instance
 {
     mat4 gInstance[64];
     mat4 gNormalMats[64];
+    int gMaterialID[64];
 };
 
 void main()

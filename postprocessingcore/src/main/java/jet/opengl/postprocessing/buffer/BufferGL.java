@@ -128,7 +128,7 @@ public class BufferGL implements Disposeable{
                 throw new IllegalStateException("The buffer hasn't inilized!");
 
             if(offset < 0 || size < 0 || offset > m_bufferSize || size > m_bufferSize || offset + size > m_bufferSize){
-                throw new IndexOutOfBoundsException();
+                throw new IndexOutOfBoundsException(String.format("BufferSize = %d, offset = %d, size = %d", m_bufferSize,offset,size));
             }
         }
 

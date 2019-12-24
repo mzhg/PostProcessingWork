@@ -56,7 +56,7 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         mScene = new Scene();
         buildBaseMesh();
         buildModles();
-        mScene.update();
+        mScene.buildMeshInformations();
 
         mRenderer = new ForwardRenderer();
         mRenderer.onCreate();
@@ -64,7 +64,8 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
         m_transformer.setTranslation(1,1,1);
 
-        mCulling = new HZBOcclusionTester();
+//        mCulling = new HZBOcclusionTester();
+        mCulling = new DawnCulling();
 
         try {
             mVisualTexture = new VisualDepthTextureProgram(false);

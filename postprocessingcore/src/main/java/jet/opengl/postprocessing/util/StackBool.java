@@ -62,7 +62,7 @@ public class StackBool {
 
 	public void clear() {
 		size = 0;
-		if (items.length >= 256) {
+		if (items.length >= 2048) {
 			items = Numeric.EMPTY_BOOL;
 		}
 	}

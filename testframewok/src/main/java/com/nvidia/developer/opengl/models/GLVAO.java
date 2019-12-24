@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
+import jet.opengl.demos.intel.fluid.impulsion.DynaWorld;
 import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
@@ -29,7 +30,9 @@ public class GLVAO implements Disposeable{
 	
 	private boolean programed = true;
 	boolean prepared;
-	
+
+	GLVAO(){}
+
 	/*public */GLVAO(Model parent) {
 //		this.parent = parent;
 
@@ -43,12 +46,20 @@ public class GLVAO implements Disposeable{
 //		}else{
 //			connects = new AttribConnect[]
 //		}
-		
+
+		build(attribs, infos, parent.element, parent.dymatic, parent.sperate_buffer);
+	}
+
+	/*public static GLVAO create(List<AttribArray> attribs, List<AttribInfo>  infos, AttribArray element){
+
+	}*/
+
+	private void build(List<AttribArray> attribs, List<AttribInfo>  infos,  AttribArray element,boolean dymatic, boolean sperate_buffer){
 		attribInfos = new AttribInfo[infos.size()];
 		for(int i = 0; i < attribInfos.length; i++)
 			attribInfos[i] = new AttribInfo();
-		
-		if(parent.dymatic || parent.sperate_buffer){
+
+		if(dymatic || sperate_buffer){
 			// Generate the separate buffer.
 			glbuffers = new GLBuffer[attribs.size()];
 			for(int i = 0; i < glbuffers.length; i++){
@@ -58,9 +69,9 @@ public class GLVAO implements Disposeable{
 				attribInfos[i].size = info.size;
 				attribInfos[i].type = info.type;
 				attribInfos[i].offset = 0;
-				attribInfos[i].modified = attrib.modified;  // record the 
+				attribInfos[i].modified = attrib.modified;  // record the
 				attribInfos[i].divisor = attrib.divisor;
-				
+
 				if(attrib != null){
 					GLBuffer buffer = glbuffers[i] = new GLBuffer(GLenum.GL_ARRAY_BUFFER, GLenum.GL_DYNAMIC_DRAW);
 					int size = attrib.getByteSize();
@@ -72,13 +83,13 @@ public class GLVAO implements Disposeable{
 						vertexCount = attrib.getSize();
 				}
 			}
-			
+
 		}else{
 			// Generate the combined gl-buffer-object.
 			glbuffers = new GLBuffer[1];
 			GLBuffer buffer = glbuffers[0] = new GLBuffer(GLenum.GL_ARRAY_BUFFER, GLenum.GL_STATIC_DRAW);
-			validIds = new byte[parent.size()];
-			
+			validIds = new byte[/*parent.size()*/ attribs.size()];
+
 			// measure the attribute informations.
 			int bufferSize = 0;
 			stride = 0;
@@ -94,17 +105,17 @@ public class GLVAO implements Disposeable{
 					attribInfos[i].type = info.type;
 					attribInfos[i].modified = attrib.modified;
 					attribInfos[i].divisor = attrib.divisor;
-					
+
 					int cmpSize = attrib.getByteSize()/attrib.getSize();
 					stride += cmpSize;
-					
+
 					if(attrib.divisor == 0){
 						vertexCount = attrib.getSize();
 					}
 					validIds[validIndex ++] = (byte)i;
 				}
 			}
-			
+
 			// fill the data
 			ByteBuffer buf = CacheBuffer.getCachedByteBuffer(bufferSize);
 			for(int j = 0; j < vertexCount; j++){
@@ -116,7 +127,7 @@ public class GLVAO implements Disposeable{
 				}
 			}
 			buf.flip();
-			
+
 			// generate the gl buffer
 			buffer.bind();
 			buffer.load(buf);
@@ -125,11 +136,11 @@ public class GLVAO implements Disposeable{
 
 		GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 		gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
-		
-		if(parent.element != null){
-			createElementBuffer(parent);
+
+		if(element != null){
+			createElementBuffer(element, dymatic);
 		}
-		
+
 		// Generate the VAO if the video card supported.
 		if(programed){ // TODO Need precise check
 			vaoID = gl.glGenVertexArray();
@@ -317,7 +328,7 @@ public class GLVAO implements Disposeable{
 		//update the element buffer
 		if(parent.element != null){
 			if(element == null){
-				createElementBuffer(parent);
+				createElementBuffer(parent.element, parent.dymatic);
 			}else{
 				if(elementID != parent.element.getUniqueID() || elementModified != parent.element.modified){
 					int bufferSize = parent.element.getByteSize();
@@ -365,17 +376,17 @@ public class GLVAO implements Disposeable{
 		}
 	}
 	
-	void createElementBuffer(Model parent){
-		element = new GLBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, parent.dymatic ? GLenum.GL_DYNAMIC_DRAW : GLenum.GL_STATIC_DRAW);
-		ByteBuffer buf = CacheBuffer.getCachedByteBuffer(parent.element.getByteSize());
-		parent.element.store(buf);
+	void createElementBuffer(AttribArray elementSource, boolean dymatic){
+		element = new GLBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, dymatic ? GLenum.GL_DYNAMIC_DRAW : GLenum.GL_STATIC_DRAW);
+		ByteBuffer buf = CacheBuffer.getCachedByteBuffer(elementSource.getByteSize());
+		elementSource.store(buf);
 		buf.flip();
 		element.load(buf);
 		element.unbind();
-		elementCount = parent.element.getSize();
-		elementType = fixElementType(parent.element.getType());
-		elementID = parent.element.getUniqueID();
-		elementModified = parent.element.modified;
+		elementCount = elementSource.getSize();
+		elementType = fixElementType(elementSource.getType());
+		elementID = elementSource.getUniqueID();
+		elementModified = elementSource.modified;
 	}
 	
 	private static ByteBuffer wrap(AttribArray attrib){

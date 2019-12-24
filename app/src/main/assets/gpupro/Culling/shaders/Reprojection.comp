@@ -6,12 +6,15 @@
 layout(local_size_x = REPROJECTION_THREAD_GROUP_SIZE, local_size_y= REPROJECTION_THREAD_GROUP_SIZE)in;
 
 layout(binding = 0) uniform sampler2D PrevDepthTexture;
-layout(binding = 0, r32f) uniform image2D DepthTexture;
+layout(binding = 0, r32ui) uniform uimage2D DepthTexture;
 
-float max(vec4 v)
+float max4(vec4 v)
 {
     return max(max(v.x,v.y), max(v.z,v.y));
 }
+
+uniform mat4 gPrevViewProjInv;
+uniform mat4 gViewProj;
 
 void main()
 {
@@ -27,22 +30,22 @@ void main()
 
         // down-sample depth (gather and max operations can be replaced by using a max sampler if device supports MinMaxFiltering)
         vec4 dephtValues00 = textureGather(PrevDepthTexture, texCoords + vec2(-offsetX, -offsetY));
-        float depth = max(dephtValues00);
+        float depth = max4(dephtValues00);
 
         vec4 depthValues10 = textureGather(PrevDepthTexture, texCoords+vec2(offsetX, -offsetY));
-        depth = max(max(depthValues10), depth);
+        depth = max(max4(depthValues10), depth);
 
         vec4 depthValues01 = textureGather(PrevDepthTexture, texCoords+vec2(-offsetX, offsetY));
-        depth = max(max(depthValues01), depth);
+        depth = max(max4(depthValues01), depth);
 
         vec4 depthValues11 = textureGather(PrevDepthTexture, texCoords+vec2(offsetX, offsetY));
-        depth = max(max(depthValues11), depth);
+        depth = max(max4(depthValues11), depth);
 
-        vec4 ClipPos = vec4(InUV * 2 - 1, 2 * depth - 1, 1.0);
-        vec4 PrevWorldPos = gPrevWorldProjInv * ClipPos;
+        vec4 ClipPos = vec4(texCoords * 2 - 1, 2 * depth - 1, 1.0);
+        vec4 PrevWorldPos = gPrevViewProjInv * ClipPos;
         PrevWorldPos /= PrevWorldPos.w;
 
-        vec4 NDCPosition = gWorldProj * PrevWorldPos;
+        vec4 NDCPosition = gViewProj * PrevWorldPos;
         NDCPosition.xyz /= NDCPosition.w;
         NDCPosition.xyz = NDCPosition.xyz * 0.5 + 0.5;
         ivec2 outputPos = ivec2(NDCPosition.xy * screenSize);
@@ -52,7 +55,8 @@ void main()
 
         // Convert depth into Unit for atomic max operation. since bound color buffer is initialized to zero,
         // first invert depth, perform atomix max, and the invert depth back when copied into final depth buffer.
-        uint invDepth = floatBitsToUint(clamp(1.f-depthF));
+//        uint invDepth = floatBitsToUint(clamp(1.f-depthF, 0.0, 1.0));
+        uint invDepth = uint(float(0xFFFFFFFFu) * clamp(depthF, 0.0, 1.0));
 
         // write re-projected depth to new location
         imageAtomicMax(DepthTexture, outputPos, invDepth);
