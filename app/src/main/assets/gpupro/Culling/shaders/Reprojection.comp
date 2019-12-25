@@ -55,8 +55,8 @@ void main()
 
         // Convert depth into Unit for atomic max operation. since bound color buffer is initialized to zero,
         // first invert depth, perform atomix max, and the invert depth back when copied into final depth buffer.
-//        uint invDepth = floatBitsToUint(clamp(1.f-depthF, 0.0, 1.0));
-        uint invDepth = uint(float(0xFFFFFFFFu) * clamp(depthF, 0.0, 1.0));
+        uint invDepth = floatBitsToUint(clamp(1.f-depthF, 0.0, 1.0));
+//        uint invDepth = uint(float(0xFFFFFFFFu) * clamp(depthF, 0.0, 1.0));
 
         // write re-projected depth to new location
         imageAtomicMax(DepthTexture, outputPos, invDepth);

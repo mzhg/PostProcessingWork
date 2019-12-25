@@ -11,6 +11,7 @@ uniform vec4 gColor;
 layout(binding = 0) uniform sampler2D gDiffuse;
 
 out vec4 OutColor;
+layout(early_fragment_tests) in;
 
 void main()
 {
