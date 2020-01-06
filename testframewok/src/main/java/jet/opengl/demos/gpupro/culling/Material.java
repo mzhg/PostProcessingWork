@@ -11,6 +11,8 @@ final class Material {
     Vector4f mColor = new Vector4f();
     Texture2D mDiffuse;
 
+    boolean mTransparency = false;
+
     void apply(GLSLProgram prog){
         if(mDiffuse != null){
             GLFuncProviderFactory.getGLFuncProvider().glBindTextureUnit(0, mDiffuse.getTexture());

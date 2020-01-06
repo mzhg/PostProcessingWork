@@ -613,6 +613,22 @@ public final class TextureUtils {
 		if(desc.height == 0 )
 			throw new IllegalArgumentException("height can't be 0.");
 	}
+
+	public static Texture2D resizeTexture2D(Texture2D origin, int width, int height, int format){
+		if(origin == null || origin.getWidth() != width || origin.getHeight() != height || origin.getFormat() != format){
+			Texture2DDesc desc = (origin != null ? origin.getDesc() : new Texture2DDesc());
+			desc.width = width;
+			desc.height =height;
+			desc.format = format;
+
+			if(origin != null)
+				origin.dispose();
+
+			origin = createTexture2D(desc, null);
+		}
+
+		return origin;
+	}
 	
 	public static Texture2D createTexture2D(Texture2DDesc textureDesc, TextureDataDesc dataDesc){
 		return createTexture2D(textureDesc, dataDesc, null);

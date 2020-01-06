@@ -1,7 +1,5 @@
 package jet.opengl.demos.intel.oit;
 
-import com.nvidia.developer.opengl.app.GLEventListener;
-
 import java.io.IOException;
 import java.nio.IntBuffer;
 
@@ -17,7 +15,6 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.Macro;
-import jet.opengl.postprocessing.texture.FramebufferGL;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
@@ -29,9 +26,9 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 
 final class AOITTechnique implements Disposeable{
-    static final int NUM_BLUR_LEVELS = 4;
-    static final int NUM_BLURRED_RESOURCES = 4;
-    static final int MAX_SHADER_VARIATIONS = 6;
+    private static final int NUM_BLUR_LEVELS = 4;
+    private static final int NUM_BLURRED_RESOURCES = 4;
+    private static final int MAX_SHADER_VARIATIONS = 6;
 
     GLSLProgram[] m_pAOITSPResolvePS = new GLSLProgram[MAX_SHADER_VARIATIONS];
 //    ID3D11ShaderReflection* m_pAOITSPResolvePSReflection[MAX_SHADER_VARIATIONS];

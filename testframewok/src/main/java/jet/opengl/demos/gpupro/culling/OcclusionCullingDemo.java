@@ -64,8 +64,8 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
         m_transformer.setTranslation(1,1,1);
 
-//        mCulling = new HZBOcclusionTester();
-        mCulling = new DawnCulling();
+        mCulling = new HZBOcclusionTester();
+//        mCulling = new DawnCulling();
 
         try {
             mVisualTexture = new VisualDepthTextureProgram(false);
@@ -157,6 +157,7 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         model.mMaterial = new Material();
         model.mMaterial.mColor.set(0.7f, 0.8f, 0.6f, 1);
 
+        Numeric.setRandomSeed(1000000);
         for (int i = 0; i < 1000; i++){
             float rnd = Numeric.random();
             MeshType type  = rnd < 0.5 ? MeshType.Cube : MeshType.Sphere;
@@ -166,6 +167,7 @@ public final class OcclusionCullingDemo extends NvSampleApp {
             mesh.count = 1;
             mesh.mAABB.set(new Vector3f(-1,-1,-1),new Vector3f(1,1,1));
             mesh.mWorld.translate(Numeric.random(-10,10),Numeric.random(-10,10),Numeric.random(-10,10));
+            mesh.mWorld.scale(Numeric.random(0.001f, 10),Numeric.random(0.001f, 10),Numeric.random(0.001f, 10));
             BoundingBox.transform(mesh.mWorld, mesh.mAABB, mesh.mAABB);
 
             model.mMeshes.add(mesh );

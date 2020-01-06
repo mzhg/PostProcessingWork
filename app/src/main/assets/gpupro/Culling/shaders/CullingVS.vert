@@ -7,7 +7,7 @@ layout(binding = 0) readonly buffer InstanceBuffer
 };
 
 uniform mat4 gViewProj;
-uniform float gBoundingBoxScaling = 1.5;
+uniform float gBoundingBoxScaling = 1.6;
 void main()
 {
     int vertexID = gl_VertexID;

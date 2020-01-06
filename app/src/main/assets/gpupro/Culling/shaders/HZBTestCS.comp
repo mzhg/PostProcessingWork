@@ -20,11 +20,13 @@ layout(binding = 0) uniform sampler2D HZBTexture;
 
 uniform mat4 gViewProj;
 uniform vec3 HZBUvFactor;
+uniform int OccluderCount;
+uniform float gBoundingBoxScaling = 1.;
 
 void main()
 {
     int OccluderIndex = int(gl_GlobalInvocationID.x);
-    const int OccluderCount = Occluders.length();
+//    const int OccluderCount = Occluders.length();
 
     if(OccluderIndex < OccluderCount)
     {
@@ -33,8 +35,8 @@ void main()
         vec3 BoundsExtent = box.Extent.xyz;
 
         // Could frustume cull here
-        vec3 BoundsMin = BoundsCenter - BoundsExtent;
-        vec3 BoundsMax = BoundsCenter + BoundsExtent;
+        vec3 BoundsMin = BoundsCenter - BoundsExtent * gBoundingBoxScaling;
+        vec3 BoundsMax = BoundsCenter + BoundsExtent * gBoundingBoxScaling;
         vec3 Bounds[2] = {BoundsMin, BoundsMax};
 
         // Screen rect from bounds
@@ -56,7 +58,7 @@ void main()
         }
 
         // Camera culling if CPU doesn't do it.
-        for(int i = 0; i < 3; i++)  // testing XY
+        for(int i = 0; i < 2; i++)  // testing XY
         {
             if(RectMin[i] > 1 || RectMax[i] < -1)
             {
@@ -81,10 +83,10 @@ void main()
         }
 
         // 4x4 samples
-        vec2 Scale = HZBUvFactor.xy * (Rect.zw-Rect.xy)/3;
-        vec2 Bias = HZBUvFactor.xy * Rect.xy;
+        vec2 Scale = /*HZBUvFactor.xy **/ (Rect.zw-Rect.xy)/3;
+        vec2 Bias = /*HZBUvFactor.xy **/ Rect.xy;
 
-        vec4 MaxDepth = vec4(1);
+        vec4 MaxDepth = vec4(-1);
         for(int i = 0; i < 4; i++)
         {
             vec4 Depth;

@@ -234,8 +234,8 @@ class HZBOcclusionTester implements OcclusionTester{
 
             Vector3f.add(boundingBox._min, extent, center);
 
-            center.store(boundingBoxes);boundingBoxes.putFloat(0);
-            extent.store(boundingBoxes);boundingBoxes.putFloat(0);
+            center.store(boundingBoxes);boundingBoxes.putInt(0);
+            extent.store(boundingBoxes);boundingBoxes.putInt(0);
         }
 
         boundingBoxes.flip();
@@ -243,7 +243,7 @@ class HZBOcclusionTester implements OcclusionTester{
 
         CacheBuffer.free(center);
         CacheBuffer.free(extent);
-        gl.glClearNamedBufferData(m_MeshVisiableBuffer.getBuffer(), GLenum.GL_RGBA32I,GLenum.GL_RGBA,  GLenum.GL_INT, null);
+        gl.glClearNamedBufferData(m_MeshVisiableBuffer.getBuffer(), GLenum.GL_R32UI,GLenum.GL_RED_INTEGER,  GLenum.GL_UNSIGNED_INT, null);
         GLCheck.checkError();
     }
 
@@ -264,20 +264,22 @@ class HZBOcclusionTester implements OcclusionTester{
 //                FMath::Max(HZBMipmapCounts - kHZBTestMaxMipmap, 0.0f)
 //			);
 
-        final float HZBUvFactorX = scene.mViewWidth/(2.0f * mHZBuffer.getWidth());
-        final float HZBUvFactorY = scene.mViewHeight/(2.0f * mHZBuffer.getHeight());
+        final float HZBUvFactorX = scene.mViewWidth/(1.0f * mHZBuffer.getWidth());
+        final float HZBUvFactorY = scene.mViewHeight/(1.0f * mHZBuffer.getHeight());
         final float HZBUvFactorZ = Math.max(HZBMipmapCounts - kHZBTestMaxMipmap, 0.0f);
+        final int numMeshes = bCoarse ? scene.mExpandMeshes.size() : m_InvisiableMeshIdx.size();
+        final int numGroupX = Numeric.divideAndRoundUp(numMeshes, 32);
 
         mHZBTester.enable();
         GLSLUtil.setMat4(mHZBTester, "gViewProj", viewProj);
         GLSLUtil.setFloat3(mHZBTester, "HZBUvFactor", HZBUvFactorX, HZBUvFactorY,HZBUvFactorZ);
+        GLSLUtil.setInt(mHZBTester, "OccluderCount", numMeshes);
 
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, m_MeshBoundingBoxes.getBuffer());
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 2, m_MeshVisiableBuffer.getBuffer());
         gl.glBindTextureUnit(0, mHZBuffer.getTexture());
         gl.glBindSampler(0, m_PointMipmapSampler);
 
-        final int numGroupX = Numeric.divideAndRoundUp(scene.mExpandMeshes.size(), 32);
         gl.glDispatchCompute(numGroupX, 1, 1);
         gl.glMemoryBarrier(GLenum.GL_SHADER_STORAGE_BARRIER_BIT);
         mHZBTester.printOnce();
@@ -288,20 +290,25 @@ class HZBOcclusionTester implements OcclusionTester{
 
         CacheBuffer.free(viewProj);
         ByteBuffer results = m_MeshVisiableBuffer.map(GLenum.GL_MAP_READ_BIT);
-        final int numMeshes = bCoarse ? scene.mExpandMeshes.size() : m_InvisiableMeshIdx.size();
         if(bCoarse)
             m_InvisiableMeshIdx.clear();
+
+        int cullingCount = 0;
         for(int meshIdx = 0; meshIdx < numMeshes; meshIdx++){
             boolean visible = (results.getInt(meshIdx * 4) == 1);
             scene.mExpandMeshVisible.set(bCoarse ? meshIdx : m_InvisiableMeshIdx.get(meshIdx),visible);
             if(!visible && bCoarse){
                 m_InvisiableMeshIdx.push(meshIdx);
             }
+
+            if(!visible){
+                cullingCount++;
+            }
         }
 
-        if(mFrameNumber % 60 == 0){
-            System.out.println("Culling Count: " + m_InvisiableMeshIdx.size());
-        }
         m_MeshVisiableBuffer.unmap();
+        if(mFrameNumber % 60 == 0){
+            System.out.println((bCoarse ? "Culling Count: ": "Fine Count: ") + cullingCount);
+        }
     }
 }

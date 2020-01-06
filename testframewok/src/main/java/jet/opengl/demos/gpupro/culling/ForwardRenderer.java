@@ -77,7 +77,7 @@ final class ForwardRenderer extends Renderer{
             }
         }*/
 
-        final int numMeshes = scene.mExpandMeshes.size();
+        final int numMeshes = scene.mSolidMeshes.size();
         for(int meshIdx = 0; meshIdx < numMeshes; meshIdx++){
             Mesh mesh = scene.mExpandMeshes.get(meshIdx);
             if(scene.mExpandMeshVisible.get(meshIdx) && mesh.frameNumber < mFrameNumber){

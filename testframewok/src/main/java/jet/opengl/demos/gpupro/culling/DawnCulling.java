@@ -130,6 +130,7 @@ final class DawnCulling implements  OcclusionTester, Disposeable {
         gl.glBindTextureUnit(0, 0);
         gl.glBindSampler(0, 0);
         gl.glBindImageTexture(0, 0, 0, false, 0, GLenum.GL_READ_WRITE, mReprojection.getFormat());
+        GLCheck.checkError();
         mReprojectProg.printOnce();
     }
 
@@ -247,7 +248,7 @@ final class DawnCulling implements  OcclusionTester, Disposeable {
 
         if(mFrameNumber % 60 == 0){
             if(bCoarse)
-                System.out.println("Culling Count: " + m_InvisiableMeshIdx.size());
+                System.out.println("Culling Count: " + numCulling);
             else
                 System.out.println("Fine Culling Count: " + numCulling);
         }

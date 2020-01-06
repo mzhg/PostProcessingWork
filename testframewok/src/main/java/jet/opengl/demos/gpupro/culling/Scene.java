@@ -16,8 +16,6 @@ import jet.opengl.postprocessing.util.StackBool;
 import jet.opengl.postprocessing.util.StackInt;
 
 final class Scene {
-
-
     // The model sources.
     final List<Model> mModels = new ArrayList<>();
 
@@ -29,7 +27,11 @@ final class Scene {
     final StackInt mMeshModels = new StackInt();
     final HashMap<MeshType, List<Pair<Mesh, Integer>>> instanceMeshes = new HashMap<>();
 
-    final List<InstanceMesh> mInstanceMeshes = new ArrayList<>();
+    final StackInt mSolidMeshes = new StackInt();
+    final StackInt mTransparencyMeshes = new StackInt();
+
+    final List<InstanceMesh> mInstanceSolidMeshes = new ArrayList<>();
+    final List<InstanceMesh> mInstanceTransparancyMeshes = new ArrayList<>();
     static final Pool<InstanceMesh> gInstanceMeshCache = new Pool<>(()->new InstanceMesh());
     static final Pool<InstanceData> gTransfomCache = new Pool<>(()->new InstanceData());
 
@@ -50,7 +52,6 @@ final class Scene {
         mMaterials.clear();
         mMeshMaterials.clear();
         mMeshModels.clear();
-        mInstanceMeshes.clear();
         instanceMeshes.clear();
 
         int modelIndex = 0;
@@ -71,6 +72,13 @@ final class Scene {
                 }
 
                 instances.add(new Pair<>(mesh, mExpandMeshes.size()));
+
+                final int meshIdx = mExpandMeshes.size();
+                if(model.mMaterial.mTransparency){
+                    mTransparencyMeshes.push(meshIdx);
+                }else{
+                    mSolidMeshes.push(meshIdx);
+                }
             }
 
             modelIndex++;
@@ -102,37 +110,64 @@ final class Scene {
         // camera culling
     }
 
-    void prepareInstanceRender(){
-        if(!mInstanceMeshes.isEmpty()){
-            gInstanceMeshCache.freeAll(mInstanceMeshes);
-            for(InstanceMesh mesh : mInstanceMeshes){
+    private void freeAllInstance(List<InstanceMesh> instanceMeshes){
+        if(!instanceMeshes.isEmpty()){
+            gInstanceMeshCache.freeAll(instanceMeshes);
+            for(InstanceMesh mesh : instanceMeshes){
                 mesh.reset();
             }
 
-            mInstanceMeshes.clear();
+            instanceMeshes.clear();
         }
+    }
+
+    void prepareInstanceRender(){
+        freeAllInstance(mInstanceSolidMeshes);
+        freeAllInstance(mInstanceTransparancyMeshes);
 
         for(Map.Entry<MeshType, List<Pair<Mesh, Integer>>> entry : instanceMeshes.entrySet()){
             List<Pair<Mesh, Integer>> meshes = entry.getValue();
             if(meshes == null || meshes.isEmpty())
                 continue;
 
-            InstanceMesh instanceMesh = gInstanceMeshCache.obtain();
-            instanceMesh.mType = entry.getKey();
-            instanceMesh.mMesh = meshes.get(0).first.mVao;
+            InstanceMesh instanceSolidMesh = gInstanceMeshCache.obtain();
+            instanceSolidMesh.mType = entry.getKey();
+            instanceSolidMesh.mMesh = meshes.get(0).first.mVao;
+
+            InstanceMesh instanceTransparencyMesh = gInstanceMeshCache.obtain();
+            instanceTransparencyMesh.mType = entry.getKey();
+            instanceTransparencyMesh.mMesh = meshes.get(0).first.mVao;
 
             int instanceCount = meshes.size();
             for(int i = 0; i < instanceCount; i++){
                 Pair<Mesh, Integer> instance = meshes.get(i);
 
                 if(mExpandMeshVisible.get(instance.second)){
+                    final int materialID = mMeshMaterials.get(instance.second);
                     InstanceData data = gTransfomCache.obtain();
                     data.mMeshIndex = instance.second;
 
-                    data.mMaterialID = mMeshMaterials.get(instance.second);
+                    data.mMaterialID =materialID;
                     data.mWorld = instance.first.mWorld;
-                    instanceMesh.mData.add(data);
+
+                    if(!mMaterials.get(materialID).mTransparency) {
+                        instanceSolidMesh.mData.add(data);
+                    }else{
+                        instanceTransparencyMesh.mData.add(data);
+                    }
                 }
+            }
+
+            if(instanceSolidMesh.mData.size() > 0) {
+                mInstanceSolidMeshes.add(instanceSolidMesh);
+            }else{
+                gInstanceMeshCache.free(instanceSolidMesh);
+            }
+
+            if(instanceTransparencyMesh.mData.size() > 0) {
+                mInstanceTransparancyMeshes.add(instanceTransparencyMesh);
+            }else{
+                gInstanceMeshCache.free(instanceTransparencyMesh);
             }
         }
     }
