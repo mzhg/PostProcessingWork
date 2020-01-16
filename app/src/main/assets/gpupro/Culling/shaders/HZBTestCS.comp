@@ -58,7 +58,7 @@ void main()
         }
 
         // Camera culling if CPU doesn't do it.
-        for(int i = 0; i < 2; i++)  // testing XY
+        for(int i = 0; i < 3; i++)  // testing XY
         {
             if(RectMin[i] > 1 || RectMax[i] < -1)
             {
@@ -70,8 +70,8 @@ void main()
         vec4 Rect = clamp(vec4(RectMin.xy, RectMax.xy) * 0.5 + 0.5, vec4(0), vec4(1));
         ivec2 HZBSize = textureSize(HZBTexture, 0);
         vec4 RectPixels = Rect * vec4(HZBSize.xyxy);
-        vec2 RectSize = (RectPixels.zw-RectPixels.xy)*0.5f;
-        float Level = max(ceil( log2( max( RectSize.x, RectSize.y ) ) ), HZBUvFactor.z);
+        vec2 RectSize = (RectPixels.zw-RectPixels.xy+1);
+        float Level = max(ceil( log2( max( RectSize.x, RectSize.y ) ) ), /*HZBUvFactor.z*/0);
 
         // Check if we can drop one level lower
         float LevelLower = max(Level - 1, 0);
@@ -79,7 +79,7 @@ void main()
         vec2 LowerRectSize = ceil(LowerRect.zw)-floor(LowerRect.xy);
         if(LowerRectSize.x <= 4.0 && LowerRectSize.y <= 4.0)
         {
-            Level = LevelLower;
+//            Level = LevelLower;
         }
 
         // 4x4 samples
@@ -90,10 +90,15 @@ void main()
         for(int i = 0; i < 4; i++)
         {
             vec4 Depth;
-            Depth.x = textureLod(HZBTexture, vec2(i,0) * Scale + Bias, Level).r;
-            Depth.y = textureLod(HZBTexture, vec2(i,1) * Scale + Bias, Level).r;
-            Depth.z = textureLod(HZBTexture, vec2(i,2) * Scale + Bias, Level).r;
-            Depth.w = textureLod(HZBTexture, vec2(i,3) * Scale + Bias, Level).r;
+//            Depth.x = textureLod(HZBTexture, vec2(i,0) * Scale + Bias, Level).r;
+//            Depth.y = textureLod(HZBTexture, vec2(i,1) * Scale + Bias, Level).r;
+//            Depth.z = textureLod(HZBTexture, vec2(i,2) * Scale + Bias, Level).r;
+//            Depth.w = textureLod(HZBTexture, vec2(i,3) * Scale + Bias, Level).r;
+
+            Depth.x = textureLodOffset(HZBTexture, Bias, Level, ivec2(i,0)).r;
+            Depth.y = textureLodOffset(HZBTexture, Bias, Level, ivec2(i,1)).r;
+            Depth.z = textureLodOffset(HZBTexture, Bias, Level, ivec2(i,2)).r;
+            Depth.w = textureLodOffset(HZBTexture, Bias, Level, ivec2(i,3)).r;
             MaxDepth = max(MaxDepth, Depth);
         }
 

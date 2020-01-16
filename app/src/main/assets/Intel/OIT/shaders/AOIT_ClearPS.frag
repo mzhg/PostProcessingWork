@@ -35,7 +35,7 @@ void main()
 
 	uint data = 0x1; // is clear
 //	gAOITSPClearMaskUAV[pixelAddr] = data;
-    imageStore(gAOITSPClearMaskUAV, pixelAddr, uint4());
+    imageStore(gAOITSPClearMaskUAV, int2(pixelAddr), uint4(data));
 }
 
 #endif // H_AIOT_RESOLVE

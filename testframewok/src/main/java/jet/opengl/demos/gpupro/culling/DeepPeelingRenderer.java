@@ -62,7 +62,7 @@ final class DeepPeelingRenderer extends TransparencyRenderer{
     }
 
     @Override
-    void renderScene(Scene scene) {
+    void renderScene(Renderer sceneRender, Scene scene) {
 
         // ---------------------------------------------------------------------
         // 1. Peel the first layer

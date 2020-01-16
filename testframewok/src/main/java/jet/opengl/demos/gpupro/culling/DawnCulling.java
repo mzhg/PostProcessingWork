@@ -1,6 +1,10 @@
 package jet.opengl.demos.gpupro.culling;
 
+import com.nvidia.developer.opengl.models.GLVAO;
+import com.nvidia.developer.opengl.models.ModelGenerator;
+
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector4f;
 
 import java.nio.ByteBuffer;
 
@@ -18,6 +22,7 @@ import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackInt;
@@ -42,6 +47,8 @@ final class DawnCulling implements  OcclusionTester, Disposeable {
     private BufferGL mVisibilityBuffer;
     static final int REPROJECTION_THREAD_GROUP_SIZE = 32;
 
+    private GLVAO mCubeVao;
+
     @Override
     public void newFrame(int frameNumber) {
         mFrameNumber = frameNumber;
@@ -51,6 +58,7 @@ final class DawnCulling implements  OcclusionTester, Disposeable {
 
         if(mFramebuffer == null){
             mFramebuffer = new RenderTargets();
+            mCubeVao = ModelGenerator.genCube(2, false, false, false).genVAO();
         }
     }
 
@@ -173,15 +181,18 @@ final class DawnCulling implements  OcclusionTester, Disposeable {
     private void fillVisibilityBuffer(Scene scene, boolean bCoarse, Texture2D sceneDepth){
         final int numMeshes = bCoarse ? scene.mExpandMeshes.size() : m_InvisiableMeshIdx.size();
 
-        if(mMeshWorldMats == null || mMeshWorldMats.getBufferSize() < numMeshes * Matrix4f.SIZE){
+        if(mMeshWorldMats == null || mMeshWorldMats.getBufferSize() < numMeshes * Vector4f.SIZE * 2){
             SAFE_RELEASE(mMeshWorldMats);
             mMeshWorldMats = new BufferGL();
-            mMeshWorldMats.initlize(GLenum.GL_SHADER_STORAGE_BUFFER, numMeshes * Matrix4f.SIZE, null, GLenum.GL_DYNAMIC_DRAW);
+            mMeshWorldMats.initlize(GLenum.GL_SHADER_STORAGE_BUFFER, numMeshes * Vector4f.SIZE * 2, null, GLenum.GL_DYNAMIC_DRAW);
         }
 
-        ByteBuffer boundingBoxes = CacheBuffer.getCachedByteBuffer(numMeshes * Matrix4f.SIZE);
+        ByteBuffer boundingBoxes = CacheBuffer.getCachedByteBuffer(numMeshes * Vector4f.SIZE * 2);
         for(int meshIdx = 0; meshIdx < numMeshes; meshIdx++){
-            scene.mExpandMeshes.get(bCoarse ? meshIdx : m_InvisiableMeshIdx.get(meshIdx)).mWorld.store(boundingBoxes);
+//            scene.mExpandMeshes.get(bCoarse ? meshIdx : m_InvisiableMeshIdx.get(meshIdx)).mWorld.store(boundingBoxes);
+            BoundingBox aabb = scene.mExpandMeshes.get(bCoarse ? meshIdx : m_InvisiableMeshIdx.get(meshIdx)).mAABB;
+            aabb._min.store(boundingBoxes); boundingBoxes.putInt(0);
+            aabb._max.store(boundingBoxes); boundingBoxes.putInt(0);
         }
         boundingBoxes.flip();
         mMeshWorldMats.update(0, boundingBoxes);
@@ -192,7 +203,6 @@ final class DawnCulling implements  OcclusionTester, Disposeable {
             mFillVisibilittProg.setName("FillVisibility");
         }
 
-        GLCheck.checkError();
         mFramebuffer.bind();
         mFramebuffer.setRenderTexture(bCoarse ? mHZBuffer: sceneDepth, null);
         if(bCoarse)
@@ -216,17 +226,23 @@ final class DawnCulling implements  OcclusionTester, Disposeable {
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, mMeshWorldMats.getBuffer());
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, mVisibilityBuffer.getBuffer());
 
-        gl.glBindVertexArray(0);
+//        gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_LINE);  todo this is not a good way
+
+        /*gl.glBindVertexArray(0);
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
 
-        gl.glDrawArraysInstanced(GLenum.GL_TRIANGLES, 0, 36,numMeshes);
+        gl.glDrawArraysInstanced(GLenum.GL_TRIANGLES, 0, 36,numMeshes);*/
+        mCubeVao.bind();
+        mCubeVao.draw(GLenum.GL_TRIANGLES, numMeshes);
+        mCubeVao.unbind();
 
         gl.glDepthMask(true);
         gl.glColorMask(true, true, true, true);
 
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 0, 0);
         gl.glBindBufferBase(GLenum.GL_SHADER_STORAGE_BUFFER, 1, 0);
+//        gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
         mFillVisibilittProg.printOnce();
 
         if(bCoarse)

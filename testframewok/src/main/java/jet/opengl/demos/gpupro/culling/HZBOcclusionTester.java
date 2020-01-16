@@ -96,12 +96,16 @@ class HZBOcclusionTester implements OcclusionTester{
 
         // View.ViewRect.{Width,Height}() are most likely to be < 2^24, so the float
         // conversion won't loss any precision (assuming float have 23bits for mantissa)
-	    final int NumMipsX = (int) Math.max(Math.ceil(Numeric.log2(depth.getWidth())) - 1, 1);
+	    /*final int NumMipsX = (int) Math.max(Math.ceil(Numeric.log2(depth.getWidth())) - 1, 1);
         final int NumMipsY = (int) Math.max(Math.ceil(Numeric.log2(depth.getHeight())) - 1, 1);
         final int NumMips = Math.max(NumMipsX, NumMipsY);
 
         final int HZBSizeX = 1 << NumMipsX;
-        final int HZBSizeY = 1 << NumMipsY;
+        final int HZBSizeY = 1 << NumMipsY;*/
+
+        final int HZBSizeX = depth.getWidth()/2;
+        final int HZBSizeY = depth.getHeight()/2;
+        final int NumMips = Numeric.calculateMipLevels(HZBSizeX, HZBSizeY);
 
         if(mHZBuffer == null || mHZBuffer.getWidth() != HZBSizeX || mHZBuffer.getHeight() != HZBSizeY){
             CommonUtil.safeRelease(mHZBuffer);
@@ -264,8 +268,8 @@ class HZBOcclusionTester implements OcclusionTester{
 //                FMath::Max(HZBMipmapCounts - kHZBTestMaxMipmap, 0.0f)
 //			);
 
-        final float HZBUvFactorX = scene.mViewWidth/(1.0f * mHZBuffer.getWidth());
-        final float HZBUvFactorY = scene.mViewHeight/(1.0f * mHZBuffer.getHeight());
+        final float HZBUvFactorX = scene.mViewWidth/(2.0f * mHZBuffer.getWidth());
+        final float HZBUvFactorY = scene.mViewHeight/(2.0f * mHZBuffer.getHeight());
         final float HZBUvFactorZ = Math.max(HZBMipmapCounts - kHZBTestMaxMipmap, 0.0f);
         final int numMeshes = bCoarse ? scene.mExpandMeshes.size() : m_InvisiableMeshIdx.size();
         final int numGroupX = Numeric.divideAndRoundUp(numMeshes, 32);

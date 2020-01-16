@@ -64,8 +64,8 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
         m_transformer.setTranslation(1,1,1);
 
-        mCulling = new HZBOcclusionTester();
-//        mCulling = new DawnCulling();
+//        mCulling = new HZBOcclusionTester();
+        mCulling = new DawnCulling();
 
         try {
             mVisualTexture = new VisualDepthTextureProgram(false);
@@ -99,14 +99,14 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         if(mOcclusionEnabled){
             mCulling.newFrame(getFrameCount());
             mCulling.cullingCoarse(mRenderer, mScene);
-            mRenderer.render(mScene, true);
+            mRenderer.renderSolid(mScene, true);
 
             if(mFineOcclusion){
                 mCulling.cullingFine(mRenderer, mScene);
-                mRenderer.render(mScene, false);
+                mRenderer.renderSolid(mScene, false);
             }
         }else{
-            mRenderer.render(mScene, true);
+            mRenderer.renderSolid(mScene, true);
         }
 
         mRenderer.present();

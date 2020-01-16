@@ -48,7 +48,7 @@ void main()
 		float3 color = float3(0);
 		for(uint i = 0; i < AOIT_NODE_COUNT; i++) {
 #ifdef dohdr
-			color += trans * FromRGBE(UnpackRGBA(nodeArray[i].color));
+			color += trans * FromRGBE(UnpackRGBA(nodeArray[i].color)).rgb;
 #else
 			color += trans * UnpackRGB(nodeArray[i].color);
 #endif

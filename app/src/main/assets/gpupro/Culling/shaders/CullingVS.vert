@@ -1,9 +1,15 @@
-
+layout(location = 0) in vec3 P;
 out flat int occludeeID;
+
+struct AABBWorld
+{
+    vec4 Min;
+    vec4 Max;
+};
 
 layout(binding = 0) readonly buffer InstanceBuffer
 {
-    mat4 instanceBuffer[];
+    AABBWorld instanceBuffer[];
 };
 
 uniform mat4 gViewProj;
@@ -29,7 +35,7 @@ void main()
     // | /   |
     // 24--- 3
 
-    int face_idx = vertexID / 6;
+    /*int face_idx = vertexID / 6;  todo the procedure cube vertex is not correct.
     int vtx_idx = vertexID % 6;
     vec3 P;
     P.x = ((vtx_idx % 3) == 2) ? -1.0 : 1.0;
@@ -41,10 +47,15 @@ void main()
     P.xzy = P.xyz;
     // else if ((face_idx % 3) == 2)
     //    P.xyz = P.xyz;
-    P *= ((vtx_idx / 3) == 0) ? 1.0 : -1.0;
+    P *= ((vtx_idx / 3) == 0) ? 1.0 : -1.0;*/
 
-    mat4 instanceMatrix = instanceBuffer[instanceID];
-    vec4 poisitionWS = instanceMatrix * vec4(P * gBoundingBoxScaling, 1);
+//    mat4 instanceMatrix = instanceBuffer[instanceID];
+    AABBWorld Bounds = instanceBuffer[instanceID];
+    vec4 poisitionWS; // = instanceMatrix * vec4(P * gBoundingBoxScaling, 1);
+    poisitionWS.x = (P.x > 0.0) ? Bounds.Max.x : Bounds.Min.x;
+    poisitionWS.y = (P.y > 0.0) ? Bounds.Max.y : Bounds.Min.y;
+    poisitionWS.z = (P.z > 0.0) ? Bounds.Max.z : Bounds.Min.z;
+    poisitionWS.w = 1;
     gl_Position = gViewProj * poisitionWS;
 
     // When camera is inside the bounding box, it is possible that the bounding box is fully occluded even
@@ -52,6 +63,6 @@ void main()
     // in fornt of the near plane to avoid culling such objects.
     if(gl_Position.w < 0.0)
     {
-        gl_Position = vec4(clamp(gl_Position.xy, vec2(-0.99), vec2(0.99)), 0,1);
+        gl_Position = vec4(clamp(gl_Position.xy, vec2(-0.99), vec2(0.99)), 0,1);  // todo this can move into the camera culling.
     }
 }

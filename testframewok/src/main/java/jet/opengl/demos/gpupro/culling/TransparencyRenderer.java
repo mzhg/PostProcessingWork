@@ -16,5 +16,5 @@ abstract class TransparencyRenderer implements Disposeable {
 
     abstract OITType getType();
 
-    abstract void renderScene(Scene scene);
+    abstract void renderScene(Renderer sceneRender, Scene scene);
 }

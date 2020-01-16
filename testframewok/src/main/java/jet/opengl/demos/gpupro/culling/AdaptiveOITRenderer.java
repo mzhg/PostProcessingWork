@@ -35,7 +35,7 @@ final class AdaptiveOITRenderer extends TransparencyRenderer{
     }
 
     @Override
-    void renderScene(Scene scene) {
+    void renderScene(Renderer sceneRender, Scene scene) {
         gl.glClearTexImage(mFragmentListFirstNodeOffset.getTexture(), 0, TextureUtils.measureFormat(mFragmentListFirstNodeOffset.getFormat()),
                 TextureUtils.measureDataType(mFragmentListFirstNodeOffset.getFormat()), null);
 //        FillFragmentListConstants( mLisTexNodeCount * 2);

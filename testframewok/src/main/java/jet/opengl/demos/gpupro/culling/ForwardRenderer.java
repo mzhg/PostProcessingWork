@@ -35,7 +35,7 @@ final class ForwardRenderer extends Renderer{
     }
 
     @Override
-    public void render(Scene scene,boolean clearFBO) {
+    public void renderSolid(Scene scene,boolean clearFBO) {
         setOutputRenderTaget();
         if(clearFBO) {
             gl.glClearBufferfv(GLenum.GL_COLOR, 0, CacheBuffer.wrap(0.1f, 0.1f, 0.1f, 1f));
@@ -80,10 +80,13 @@ final class ForwardRenderer extends Renderer{
         final int numMeshes = scene.mSolidMeshes.size();
         for(int meshIdx = 0; meshIdx < numMeshes; meshIdx++){
             Mesh mesh = scene.mExpandMeshes.get(meshIdx);
+
             if(scene.mExpandMeshVisible.get(meshIdx) && mesh.frameNumber < mFrameNumber){
                 Material material = scene.mMaterials.get(scene.mMeshMaterials.get(meshIdx));  // the material that the mesh related to
-                Model model = scene.mModels.get(scene.mMeshModels.get(meshIdx));
+                if(material.mTransparency)
+                    continue;
 
+                Model model = scene.mModels.get(scene.mMeshModels.get(meshIdx));
                 material.apply(mShadingProg);
 
                 Matrix4f world = Matrix4f.mul(model.mWorld, mesh.mWorld, tmp);
@@ -119,6 +122,58 @@ final class ForwardRenderer extends Renderer{
                 renderAABBLines(mesh.mAABB);
             }
         }*/
+
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
+    }
+
+    @Override
+    void renderTransparency(Scene scene, GLSLProgram prog, boolean writeFBO) {
+        setOutputRenderTaget();
+        if(!writeFBO) {
+            gl.glColorMask(false, false, false, false);
+        }
+        gl.glEnable(GLenum.GL_DEPTH_TEST);
+        gl.glDisable(GLenum.GL_CULL_FACE);
+
+        prog.enable();
+        GLSLUtil.setMat4(prog, "gProj", scene.mProj);
+        GLSLUtil.setMat4(prog, "gView", scene.mView);
+        GLSLUtil.setFloat3(prog, "gEyePos", scene.mEye);
+
+
+        final int numMeshes = scene.mSolidMeshes.size();
+        for(int meshIdx = 0; meshIdx < numMeshes; meshIdx++){
+            Mesh mesh = scene.mExpandMeshes.get(meshIdx);
+
+            if(scene.mExpandMeshVisible.get(meshIdx) && mesh.frameNumber < mFrameNumber){
+                Material material = scene.mMaterials.get(scene.mMeshMaterials.get(meshIdx));  // the material that the mesh related to
+                if(!material.mTransparency)
+                    continue;
+
+                Model model = scene.mModels.get(scene.mMeshModels.get(meshIdx));
+                material.apply(mShadingProg);
+
+                Matrix4f world = Matrix4f.mul(model.mWorld, mesh.mWorld, tmp);
+                mInstanceBuffer.update(0, CacheBuffer.wrap(world));  // pass-in the world matrix
+
+                Matrix4f.getNormalMatrix(world, world);
+                mInstanceBuffer.update(Matrix4f.SIZE * 64, CacheBuffer.wrap(world));  // pass in the normal matrix
+
+                gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, mInstanceBuffer.getBuffer());
+
+                mesh.mVao.bind();
+                mesh.mVao.draw(GLenum.GL_TRIANGLES);
+                mesh.mVao.unbind();
+
+                mesh.frameNumber = mFrameNumber;
+            }
+        }
+
+        mShadingProg.printOnce();
+
+        if(!writeFBO) {
+            gl.glColorMask(true, true, true, true);
+        }
 
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, 0);
     }

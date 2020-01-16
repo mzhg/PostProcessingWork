@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 
 import jet.opengl.demos.gpupro.culling.OcclusionCullingDemo;
+import jet.opengl.demos.gpupro.culling.OrderIndependentTransparencyDemo;
 import jet.opengl.demos.nvidia.waves.crest.Wave_Animation_Test;
 import jet.opengl.demos.nvidia.waves.ocean.NvOceanDemo;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
@@ -133,6 +134,7 @@ public class DemoApp {
 //        run(new Wave_CDClipmap_Test());
 //        run(new Wave_Animation_Test());
         run(new OcclusionCullingDemo());
+//        run(new OrderIndependentTransparencyDemo());
 //        run(new NvOceanDemo());
 //        run(new SampleD3D11());
 //        run(new IslandDemo());

@@ -18,7 +18,7 @@ final class RasterOrderOITRenderer extends TransparencyRenderer{
     private static final int MAX_SHADER_VARIATIONS = 6;
     private GLSLProgram[] m_pAOITSPResolvePS = new GLSLProgram[MAX_SHADER_VARIATIONS];
     private GLSLProgram[] m_pAOITSPClearPS = new GLSLProgram[MAX_SHADER_VARIATIONS];
-
+    private GLSLProgram m_ROIRecord;
 
     private BufferGL[]          mAOITSPColorData = new BufferGL[MAX_SHADER_VARIATIONS];
     private BufferGL[]			mAOITSPDepthData = new BufferGL[MAX_SHADER_VARIATIONS];
@@ -65,6 +65,11 @@ final class RasterOrderOITRenderer extends TransparencyRenderer{
 //        CPUTFileSystem::GetExecutableDirectory(&ExecutableDirectory);
 
         final String shaderPath = "Intel/OIT/shaders/";
+
+        final String[] names = {
+                "Node2", "Node4", "Node8", "Node2_HDR", "Node4_HDR", "Node8_HDR"
+        };
+
         for (int i = 0; i < MAX_SHADER_VARIATIONS; ++i)
         {
             switch(i)
@@ -80,12 +85,18 @@ final class RasterOrderOITRenderer extends TransparencyRenderer{
             try {
                 m_pAOITSPResolvePS[i] = GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert",
                         shaderPath + "AOIT_ResolvePS.frag", pFinalShaderMacros);
+                m_pAOITSPResolvePS[i].setName("AOIT_ResolvePS_"+names[i]);
                 m_pAOITSPClearPS[i] = GLSLProgram.createFromFiles("shader_libs/PostProcessingDefaultScreenSpaceVS.vert",
                         shaderPath + "AOIT_ClearPS.frag", pFinalShaderMacros);
+                m_pAOITSPClearPS[i].setName("AOIT_ClearPS_"+names[i]);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+
+        final String root = "gpupro/Culling/shaders/";
+        m_ROIRecord = GLSLProgram.createProgram(root + "ShadingVS.vert", root + "ROTShadingPS.frag", null);
+        m_ROIRecord.setName("ROTShadingPS");
 
         m_pConstBuffer = new BufferGL();
         m_pConstBuffer.initlize(GLenum.GL_UNIFORM_BUFFER, 16, null, GLenum.GL_DYNAMIC_DRAW);
@@ -227,6 +238,7 @@ final class RasterOrderOITRenderer extends TransparencyRenderer{
         SAFE_RELEASE( pBackupState );*/
         gl.glDisable(GLenum.GL_STENCIL_TEST);
         gl.glDisable(GLenum.GL_BLEND);
+        m_pAOITSPResolvePS[NodeIndex].printPrograminfo();
     }
 
     @Override
@@ -291,8 +303,15 @@ final class RasterOrderOITRenderer extends TransparencyRenderer{
     }
 
     @Override
-    void renderScene(Scene scene) {
+    void renderScene(Renderer sceneRender,Scene scene) {
+        // todo parepare for the rendering
 
+        m_ROIRecord.enable();
+        sceneRender.renderTransparency(scene, m_ROIRecord, false);
+        m_ROIRecord.printPrograminfo();
+
+        int TwoNodeIndex = 0;
+        Resolve(sceneRender.mColorBuffer, sceneRender.mDepthBuffer, TwoNodeIndex);
     }
 
     @Override

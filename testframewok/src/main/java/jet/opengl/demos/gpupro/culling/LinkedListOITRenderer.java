@@ -122,7 +122,7 @@ final class LinkedListOITRenderer extends TransparencyRenderer{
     }
 
     @Override
-    void renderScene(Scene scene) {
+    void renderScene(Renderer sceneRender, Scene scene) {
         // Tile size
         int uTileWidth  = ( ( mScreenWidth  + (NUMBER_OF_TILES_X-1) ) / NUMBER_OF_TILES_X );
         int uTileHeight = ( ( mScreenHeight + (NUMBER_OF_TILES_Y-1) ) / NUMBER_OF_TILES_Y );

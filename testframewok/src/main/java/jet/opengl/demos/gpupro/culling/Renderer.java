@@ -4,6 +4,7 @@ import jet.opengl.postprocessing.common.Disposeable;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
@@ -53,7 +54,8 @@ abstract class Renderer implements Disposeable {
         gl.glViewport(0, 0, mColorBuffer.getWidth(), mColorBuffer.getHeight());
     }
 
-    abstract void render(Scene scene, boolean clearFBO);
+    abstract void renderSolid(Scene scene, boolean clearFBO);
+    abstract void renderTransparency(Scene scene, GLSLProgram prog, boolean writeFBO);
 
     void present(){
         gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, m_BlitFBO);

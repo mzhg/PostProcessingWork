@@ -209,7 +209,7 @@ struct ATSPNode
 RasterizerOrderedTexture2D<uint> gAOITSPClearMaskUAV        : register( u1 );
 #else
 //RWTexture2D<uint> gAOITSPClearMaskUAV        : register(u1);
-layout(r32ui, binding = 0) uniform image2D gAOITSPClearMaskUAV;
+layout(r32ui, binding = 0) uniform uimage2D gAOITSPClearMaskUAV;
 #endif
 //RWStructuredBuffer<AOITSPDepthData> _AOITSPDepthDataUAV     : register( u2 );
 //RWStructuredBuffer<AOITSPColorData> _AOITSPColorDataUAV     : register( u3 );
@@ -375,15 +375,15 @@ void AOITSPClearData(inout AOITSPData data, float depth, float4 color)
 	uint packedColor = PackRGBA(ToRGBE(float4(0, 0, 0,1)));
 
 #if AOIT_NODE_COUNT == 2
-	data.depth[0] = 0;
+	data.depth[0] = float4(0);
 	data.color[0][0] = asuint((asuint(depth) & AOIT_TRANS_MASK) | (uint(saturate(1.0f - color.w) * 255 + 0.5) & uint(AOIT_MAX_UNNORM_TRANS)));
 	data.color[0][1] = asuint((asuint(float(AOIT_EMPTY_NODE_DEPTH)) & AOIT_TRANS_MASK) | uint(saturate(1.0f - color.w) * 255 + 0.5));
 	data.color[0][2] = PackRGBA(ToRGBE(float4(color.www * color.xyz,1)));
 	data.color[0][3] = packedColor;
 #else
 	for (uint i = 0; i < AOIT_RT_COUNT; i++) {
-		data.depth[i] = asfloat(((asuint(AOIT_EMPTY_NODE_DEPTH) & AOIT_TRANS_MASK)) | uint(saturate(1.0f - color.w) * 255 + 0.5));
-		data.color[i] = packedColor;
+		data.depth[i] = asfloat(((asuint(AOIT_EMPTY_NODE_DEPTH) & AOIT_TRANS_MASK)) | uint(saturate(1.0f - color.w) * 255 + 0.5)).xxxx;
+		data.color[i] = packedColor.xxxx;
 	}
 	data.depth[0][0] = asfloat(((asuint(depth) & AOIT_TRANS_MASK)) | ((uint(saturate(1.0f - color.w) * 255 + 0.5)) & uint(AOIT_MAX_UNNORM_TRANS)));
 	data.color[0][0] = PackRGBA(ToRGBE(float4(color.www * color.xyz, 1)));
@@ -396,15 +396,15 @@ void AOITSPClearData(inout AOITSPData data, float depth, float4 color)
 	uint packedColor = PackRGBA(float4(0, 0, 0, 1.0f - color.w));
 
 #if AOIT_NODE_COUNT == 2
-	data.depth[0] = 0;
+	data.depth[0] = float4(0);
 	data.color[0][0] = asuint(depth);
 	data.color[0][1] = asuint(float(AOIT_EMPTY_NODE_DEPTH));
 	data.color[0][2] = PackRGBA(float4(color.www * color.xyz, 1.0f - color.w));
 	data.color[0][3] = packedColor;
 #else
 	for(uint i = 0; i < AOIT_RT_COUNT; i++) {
-		data.depth[i] = AOIT_EMPTY_NODE_DEPTH;
-		data.color[i] = packedColor;
+		data.depth[i] = float4(AOIT_EMPTY_NODE_DEPTH);
+		data.color[i] = uint4(packedColor);
 	}
 	data.depth[0][0] = depth;
 	data.color[0][0] = PackRGBA(float4(color.www * color.xyz, 1.0f - color.w));
@@ -419,7 +419,7 @@ void AOITSPLoadDataSRV(in uint2 pixelAddr, out ATSPNode nodeArray[AOIT_NODE_COUN
 {
 	AOITSPData data;
 	uint addr  = AOITAddrGenSRV(pixelAddr);
-	data.color = _AOITSPColorDataSRV[addr];
+	data.color = _AOITSPColorDataSRV[addr].color;
 
 #if AOIT_NODE_COUNT == 2
 	for(uint j = 0; j < 2; j++) {
@@ -429,7 +429,7 @@ void AOITSPLoadDataSRV(in uint2 pixelAddr, out ATSPNode nodeArray[AOIT_NODE_COUN
         nodeArray[j] = node;
 	}
 #else
-	data.depth = _AOITSPDepthDataSRV[addr];
+	data.depth = _AOITSPDepthDataSRV[addr].depth;
 	for(uint i = 0; i < AOIT_RT_COUNT; i++) {
 		for(uint j = 0; j < 4; j++) {
             ATSPNode node = { 0, float(asuint(data.depth[i][j]) & uint(AOIT_MAX_UNNORM_TRANS)),
@@ -444,7 +444,7 @@ void AOITSPLoadDataSRV(in uint2 pixelAddr, out ATSPNode nodeArray[AOIT_NODE_COUN
 {
 	AOITSPData data;
 	uint addr = AOITAddrGenSRV(pixelAddr);
-	data.color = _AOITSPColorDataSRV[addr];
+	data.color = _AOITSPColorDataSRV[addr].color;
 
 #if AOIT_NODE_COUNT == 2
 	for (uint j = 0; j < 2; j++) {
@@ -470,7 +470,7 @@ void AOITSPLoadDataUAV(in uint2 pixelAddr, out ATSPNode nodeArray[AOIT_NODE_COUN
 {
 	AOITSPData data;
 	uint addr  = AOITAddrGenUAV(pixelAddr);
-	data.color = _AOITSPColorDataUAV[addr];
+	data.color = _AOITSPColorDataUAV[addr].color;
 
 #if AOIT_NODE_COUNT == 2
 	for(uint j = 0; j < 2; j++) {
@@ -479,7 +479,7 @@ void AOITSPLoadDataUAV(in uint2 pixelAddr, out ATSPNode nodeArray[AOIT_NODE_COUN
         nodeArray[j] = node;
 	}
 #else
-	data.depth = _AOITSPDepthDataUAV[addr];
+	data.depth = _AOITSPDepthDataUAV[addr].depth;
 	for(uint i = 0; i < AOIT_RT_COUNT; i++) {
 		for(uint j = 0; j < 4; j++) {
             ATSPNode node = { asfloat(asuint(data.depth[i][j]) & uint(AOIT_TRANS_MASK)),
@@ -495,7 +495,7 @@ void AOITSPLoadDataUAV(in uint2 pixelAddr, out ATSPNode nodeArray[AOIT_NODE_COUN
 {
 	AOITSPData data;
 	uint addr = AOITAddrGenUAV(pixelAddr);
-	data.color = _AOITSPColorDataUAV[addr];
+	data.color = _AOITSPColorDataUAV[addr].color;
 
 #if AOIT_NODE_COUNT == 2
 	for (uint j = 0; j < 2; j++) {
@@ -505,7 +505,7 @@ void AOITSPLoadDataUAV(in uint2 pixelAddr, out ATSPNode nodeArray[AOIT_NODE_COUN
 		nodeArray[j] = node;
 	}
 #else
-	data.depth = _AOITSPDepthDataUAV[addr];
+	data.depth = _AOITSPDepthDataUAV[addr].depth;
 	for (uint i = 0; i < AOIT_RT_COUNT; i++) {
 		for (uint j = 0; j < 4; j++) {
 			ATSPNode node = { data.depth[i][j],
@@ -537,10 +537,10 @@ void AOITSPStoreDataUAV(in uint2 pixelAddr, ATSPNode nodeArray[AOIT_NODE_COUNT])
 			data.color[i][j] = (nodeArray[4 * i + j].color);
 		}
 	}
-	_AOITSPDepthDataUAV[addr] = data.depth;
+	_AOITSPDepthDataUAV[addr].depth = data.depth;
 #endif
 
-	_AOITSPColorDataUAV[addr] = data.color;
+	_AOITSPColorDataUAV[addr].color = data.color;
 }
 #else
 void AOITSPStoreDataUAV(in uint2 pixelAddr, ATSPNode nodeArray[AOIT_NODE_COUNT])
@@ -562,10 +562,10 @@ void AOITSPStoreDataUAV(in uint2 pixelAddr, ATSPNode nodeArray[AOIT_NODE_COUNT])
 				((uint(nodeArray[4 * i + j].trans)) << 24U);
 		}
 	}
-	_AOITSPDepthDataUAV[addr] = data.depth;
+	_AOITSPDepthDataUAV[addr].depth = data.depth;
 #endif
 
-	_AOITSPColorDataUAV[addr] = data.color;
+	_AOITSPColorDataUAV[addr].color = data.color;
 }
 #endif
 
@@ -584,22 +584,22 @@ void AOITSPStoreDataUAV(in uint2 pixelAddr, ATSPNode nodeArray[AOIT_NODE_COUNT])
 
 void AOITLoadControlSurface(in uint data, inout AOITCtrlSurface surface)
 {
-	surface.clear	= data & 0x1u ? true : false;
-	surface.opaque  = data & 0x2u ? true : false;
+	surface.clear	= bool(data & 0x1u) /*? true : false*/;
+	surface.opaque  = bool(data & 0x2u) /*? true : false*/;
 	surface.depth   = asfloat((data & 0xFFFFFFFCU) | 0x3U);
 }
 
 void AOITLoadControlSurfaceUAV(in uint2 pixelAddr, inout AOITCtrlSurface surface)
 {
 //	uint data = gAOITSPClearMaskUAV[pixelAddr];
-    uint data = imageLoad(gAOITSPClearMaskUAV, pixelAddr).x;
+    uint data = imageLoad(gAOITSPClearMaskUAV, int2(pixelAddr)).x;
 	AOITLoadControlSurface(data, surface);
 }
 
 void AOITLoadControlSurfaceSRV(in uint2 pixelAddr, inout AOITCtrlSurface surface)
 {
 //	uint data = gAOITSPClearMaskSRV[pixelAddr];
-    uint data = texelFetch(gAOITSPClearMaskSRV, pixelAddr, 0).x;
+    uint data = texelFetch(gAOITSPClearMaskSRV, int2(pixelAddr), 0).x;
 	AOITLoadControlSurface(data, surface);
 }
 
@@ -610,7 +610,7 @@ void AOITStoreControlSurface(in uint2 pixelAddr, in AOITCtrlSurface surface)
 	data |= surface.opaque ? 0x2u : 0x0u;
 	data |= surface.clear  ? 0x1u : 0x0u;
 //	gAOITSPClearMaskUAV[pixelAddr] = data;
-    imageStore(gAOITSPClearMaskUAV, pixelAddr, uint4(data,0,0,0));
+    imageStore(gAOITSPClearMaskUAV, int2(pixelAddr), uint4(data,0,0,0));
 }
 
 void WriteNewPixelToAOIT(float2 Position, float  surfaceDepth, float4 surfaceColor)
@@ -618,7 +618,6 @@ void WriteNewPixelToAOIT(float2 Position, float  surfaceDepth, float4 surfaceCol
 	// From now on serialize all UAV accesses (with respect to other fragments shaded in flight which map to the same pixel)
 	ATSPNode nodeArray[AOIT_NODE_COUNT];
 	uint2 pixelAddr = uint2(Position.xy);
-
 
 	// Load AOIT control surface
 	AOITCtrlSurface ctrlSurface;
@@ -634,9 +633,9 @@ void WriteNewPixelToAOIT(float2 Position, float  surfaceDepth, float4 surfaceCol
 		// Store AOIT data
 		uint addr = AOITAddrGenUAV(pixelAddr);
 #if AOIT_NODE_COUNT != 2
-		_AOITSPDepthDataUAV[addr] = data.depth;
+		_AOITSPDepthDataUAV[addr].depth = data.depth;
 #endif
-		_AOITSPColorDataUAV[addr] = data.color;
+		_AOITSPColorDataUAV[addr].color = data.color;
 
 		// Update control surface
         // ( depth and opaque flag can be used to branch out early if adding behind already near-opaque contents of AOIT )
@@ -646,7 +645,7 @@ void WriteNewPixelToAOIT(float2 Position, float  surfaceDepth, float4 surfaceCol
 		// AOITStoreControlSurface(pixelAddr, ctrlSurface);
 
 //        gAOITSPClearMaskUAV[pixelAddr] = 0;
-        imageStore(gAOITSPClearMaskUAV, pixelAddr, uint4(0));
+        imageStore(gAOITSPClearMaskUAV, int2(pixelAddr), uint4(0));
 	}
 	else
 	{
