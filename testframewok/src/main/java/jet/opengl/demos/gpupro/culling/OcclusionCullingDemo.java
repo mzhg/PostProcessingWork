@@ -42,17 +42,19 @@ public final class OcclusionCullingDemo extends NvSampleApp {
     private NvUIText mCullingInfo;
     private VisualDepthTextureProgram mVisualTexture;
     private int m_PointSampler;
+
+    private GLFuncProvider gl;
     @Override
     public void initUI() {
         mTweakBar.addValue("Occlusion Enabled", createControl("mOcclusionEnabled"));
         mTweakBar.addValue("Fine Occlusion", createControl("mFineOcclusion"));
         mTweakBar.addValue("Visual HZB", createControl("mShowHZBuffer"));
         mTweakBar.addValue("HZB Slice", createControl("mHZBSlice"), 0, 9);
-
     }
 
     @Override
     protected void initRendering() {
+        gl = GLFuncProviderFactory.getGLFuncProvider();
         mScene = new Scene();
         buildBaseMesh();
         buildModles();
@@ -65,7 +67,7 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         m_transformer.setTranslation(1,1,1);
 
 //        mCulling = new HZBOcclusionTester();
-        mCulling = new DawnCulling();
+        mCulling = new HZBOcclusionUE4Profie();
 
         try {
             mVisualTexture = new VisualDepthTextureProgram(false);
@@ -81,6 +83,7 @@ public final class OcclusionCullingDemo extends NvSampleApp {
 //            m_PointMipmapSampler = SamplerUtils.createSampler(desc);
         }
         getGLContext().setSwapInterval(0);
+//        mCulling = new DawnCulling();
     }
 
     @Override
@@ -96,24 +99,54 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         mScene.updateCamera(m_transformer);
 
         mRenderer.mFrameNumber = getFrameCount();
-        if(mOcclusionEnabled){
-            mCulling.newFrame(getFrameCount());
-            mCulling.cullingCoarse(mRenderer, mScene);
-            mRenderer.renderSolid(mScene, true);
 
-            if(mFineOcclusion){
-                mCulling.cullingFine(mRenderer, mScene);
-                mRenderer.renderSolid(mScene, false);
+        boolean isDeferredCulling = (mCulling instanceof HZBOcclusionUE4Profie);
+        HZBOcclusionUE4Profie UE4Culling = null;
+        if(isDeferredCulling)
+            UE4Culling = (HZBOcclusionUE4Profie)mCulling;
+
+        boolean isSceneRendered = false;
+        if(mOcclusionEnabled){
+            if(!isDeferredCulling) {
+                mCulling.newFrame(getFrameCount());
+                mCulling.cullingCoarse(mRenderer, mScene);
+                mRenderer.renderSolid(mScene, true);
+
+                if (mFineOcclusion) {
+                    mCulling.cullingFine(mRenderer, mScene);
+                    mRenderer.renderSolid(mScene, false);
+                }
+
+                isSceneRendered = true;
+
+            }else{
+                if(UE4Culling.isValid()){
+                    UE4Culling.getResults(mScene);
+                }
             }
-        }else{
+        }
+
+        if(!isSceneRendered) {
             mRenderer.renderSolid(mScene, true);
+        }
+
+        if(mOcclusionEnabled && isDeferredCulling){
+            UE4Culling.newFrame(getFrameCount());
+            UE4Culling.cullingCoarse(mRenderer, mScene);
+            gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
         }
 
         mRenderer.present();
         GLCheck.checkError();
 
-        if(mShowHZBuffer){
-            visualTexture(((HZBOcclusionTester)mCulling).getHZBSlice(mHZBSlice));
+        if(mShowHZBuffer && mOcclusionEnabled){
+            if(UE4Culling != null){
+                visualTexture(UE4Culling.getHZBSlice(mHZBSlice));
+            }else if(mCulling instanceof HZBOcclusionTester){
+                visualTexture(((HZBOcclusionTester)mCulling).getHZBSlice(mHZBSlice));
+            }else{
+                visualTexture(((DawnCulling)mCulling).getHZBSlice());
+            }
         }
     }
 

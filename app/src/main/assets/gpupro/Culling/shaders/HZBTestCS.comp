@@ -70,8 +70,8 @@ void main()
         vec4 Rect = clamp(vec4(RectMin.xy, RectMax.xy) * 0.5 + 0.5, vec4(0), vec4(1));
         ivec2 HZBSize = textureSize(HZBTexture, 0);
         vec4 RectPixels = Rect * vec4(HZBSize.xyxy);
-        vec2 RectSize = (RectPixels.zw-RectPixels.xy+1);
-        float Level = max(ceil( log2( max( RectSize.x, RectSize.y ) ) ), /*HZBUvFactor.z*/0);
+        vec2 RectSize = (RectPixels.zw-RectPixels.xy) * 0.5;
+        float Level = max(ceil( log2( max( RectSize.x, RectSize.y ) ) ), HZBUvFactor.z);
 
         // Check if we can drop one level lower
         float LevelLower = max(Level - 1, 0);
@@ -79,14 +79,17 @@ void main()
         vec2 LowerRectSize = ceil(LowerRect.zw)-floor(LowerRect.xy);
         if(LowerRectSize.x <= 4.0 && LowerRectSize.y <= 4.0)
         {
-//            Level = LevelLower;
+            Level = LevelLower;
         }
 
         // 4x4 samples
-        vec2 Scale = /*HZBUvFactor.xy **/ (Rect.zw-Rect.xy)/3;
-        vec2 Bias = /*HZBUvFactor.xy **/ Rect.xy;
+        vec2 Scale = HZBUvFactor.xy * (Rect.zw-Rect.xy)/3;
+        vec2 Bias = HZBUvFactor.xy * Rect.xy;
 
         vec4 MaxDepth = vec4(-1);
+
+#define UE4_profile 1
+#ifdef UE4_profile
         for(int i = 0; i < 4; i++)
         {
             vec4 Depth;
@@ -101,6 +104,12 @@ void main()
             Depth.w = textureLodOffset(HZBTexture, Bias, Level, ivec2(i,3)).r;
             MaxDepth = max(MaxDepth, Depth);
         }
+#else
+        MaxDepth.x = textureLod(HZBTexture, Rect.xy, Level).x;
+        MaxDepth.y = textureLod(HZBTexture, Rect.zy, Level).x;
+        MaxDepth.z = textureLod(HZBTexture, Rect.xw, Level).x;
+        MaxDepth.w = textureLod(HZBTexture, Rect.zw, Level).x;
+#endif
 
         MaxDepth.x = max(max(MaxDepth.x,MaxDepth.y),max(MaxDepth.z,MaxDepth.w));
 

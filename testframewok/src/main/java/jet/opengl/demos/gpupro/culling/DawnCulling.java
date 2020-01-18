@@ -271,6 +271,8 @@ final class DawnCulling implements  OcclusionTester, Disposeable {
         mVisibilityBuffer.unmap();
     }
 
+    public Texture2D getHZBSlice() { return mHZBuffer;}
+
     @Override
     public void dispose() {
         SAFE_RELEASE(mHZBuffer);

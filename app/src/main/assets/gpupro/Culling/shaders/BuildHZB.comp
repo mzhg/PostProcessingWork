@@ -7,6 +7,10 @@ layout(local_size_x = 4, local_size_y= 4)in;
 uniform mat4 gPrevViewProjInv;
 uniform mat4 gViewProj;
 
+uniform vec2 InvSize;
+uniform vec4 InputUvFactorAndOffset;
+uniform vec2 InputViewportMaxBound;
+
 void main()
 {
     ivec3 DispatchThread = ivec3(gl_GlobalInvocationID);
@@ -19,19 +23,21 @@ void main()
 
     if(DispatchThread.x >= WidthDst || DispatchThread.y >= HeightDst)  return;
 
-    const vec2 InvSize = 1.0/vec2(WidthDst, HeightDst);
-    const vec2 InUV = (vec2(DispatchThread) + 0.5) * InvSize;
+    const vec2 _InvSize = 1.0/vec2(WidthDst, HeightDst);
+    const vec2 ViewUV = (vec2(DispatchThread) + 0.5) * _InvSize;
 
     vec2 UV[4];
     vec4 Depth;
     const float STEP = 0.25;
 #if STAGE == 0
+    const vec2 InUV = ViewUV * InputUvFactorAndOffset.xy + InputUvFactorAndOffset.zw;
+
     const vec2 MinBound = vec2(-1);
     const vec2 MaxBound = vec2(+1);
-    UV[0] = min(InUV + vec2(-STEP,-STEP) * InvSize, MaxBound);
-    UV[1] = min(InUV + vec2(+STEP,-STEP) * InvSize, MaxBound);
-    UV[2] = min(InUV + vec2(-STEP,+STEP) * InvSize, MaxBound);
-    UV[3] = min(InUV + vec2(+STEP,+STEP) * InvSize, MaxBound);
+    UV[0] = min(InUV + vec2(-STEP,-STEP) * InvSize, InputViewportMaxBound);
+    UV[1] = min(InUV + vec2(+STEP,-STEP) * InvSize, InputViewportMaxBound);
+    UV[2] = min(InUV + vec2(-STEP,+STEP) * InvSize, InputViewportMaxBound);
+    UV[3] = min(InUV + vec2(+STEP,+STEP) * InvSize, InputViewportMaxBound);
 
     Depth.x = textureLod(DepthBuffer, UV[0], 0).r;
     Depth.y = textureLod(DepthBuffer, UV[1], 0).r;
@@ -53,6 +59,9 @@ void main()
     imageStore(HZBuffer, OutputPos, vec4(NDCPosition.z, 0,0,0));
     #endif
 #else  //STAGE == 1
+
+    const vec2 InUV = ViewUV;
+
     UV[0] = InUV + vec2(-STEP,-STEP) * InvSize;
     UV[1] = InUV + vec2(+STEP,-STEP) * InvSize;
     UV[2] = InUV + vec2(-STEP,+STEP) * InvSize;

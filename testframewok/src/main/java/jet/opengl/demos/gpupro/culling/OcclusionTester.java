@@ -7,4 +7,6 @@ interface OcclusionTester {
     void cullingCoarse(Renderer renderer, Scene scene);
 
     void cullingFine(Renderer renderer, Scene scene);
+
+    default boolean isValid() { return true;}
 }

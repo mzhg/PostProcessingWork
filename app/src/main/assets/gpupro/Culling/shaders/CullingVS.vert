@@ -63,6 +63,7 @@ void main()
     // in fornt of the near plane to avoid culling such objects.
     if(gl_Position.w < 0.0)
     {
-        gl_Position = vec4(clamp(gl_Position.xy, vec2(-0.99), vec2(0.99)), 0,1);  // todo this can move into the camera culling.
+        // todo this can move into the camera culling and not necessary rendered in the second pass.
+        gl_Position = vec4(clamp(gl_Position.xy, vec2(-0.99), vec2(0.99)), 0,1);
     }
 }

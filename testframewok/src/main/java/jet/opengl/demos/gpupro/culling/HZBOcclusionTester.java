@@ -32,6 +32,8 @@ class HZBOcclusionTester implements OcclusionTester{
     private Texture2D mHZBuffer;
     private final GLSLProgram[][] mBuildHZB = new GLSLProgram[2][2];
     private GLSLProgram mHZBTester;
+    private GLSLProgram mReprojection;
+    private Texture2D mReprojectDepth;
 
     private final List<Texture2D> mHZBMipLevels = new ArrayList<>();
     private boolean m_bCoarseTesting;
@@ -64,7 +66,8 @@ class HZBOcclusionTester implements OcclusionTester{
             }
 
             updateResources(renderer.mDepthBuffer);
-            generateHZB(renderer.mDepthBuffer, 1, scene);
+            reprojectionFull(renderer.mDepthBuffer, scene);
+            generateHZB(mReprojectDepth, 0, scene);
             packingMeshInfomations(scene, false);
             HizTesting(scene, true);
         }finally {
@@ -96,16 +99,16 @@ class HZBOcclusionTester implements OcclusionTester{
 
         // View.ViewRect.{Width,Height}() are most likely to be < 2^24, so the float
         // conversion won't loss any precision (assuming float have 23bits for mantissa)
-	    /*final int NumMipsX = (int) Math.max(Math.ceil(Numeric.log2(depth.getWidth())) - 1, 1);
+	    final int NumMipsX = (int) Math.max(Math.ceil(Numeric.log2(depth.getWidth())) - 1, 1);
         final int NumMipsY = (int) Math.max(Math.ceil(Numeric.log2(depth.getHeight())) - 1, 1);
         final int NumMips = Math.max(NumMipsX, NumMipsY);
 
         final int HZBSizeX = 1 << NumMipsX;
-        final int HZBSizeY = 1 << NumMipsY;*/
+        final int HZBSizeY = 1 << NumMipsY;
 
-        final int HZBSizeX = depth.getWidth()/2;
+        /*final int HZBSizeX = depth.getWidth()/2;
         final int HZBSizeY = depth.getHeight()/2;
-        final int NumMips = Numeric.calculateMipLevels(HZBSizeX, HZBSizeY);
+        final int NumMips = Numeric.calculateMipLevels(HZBSizeX, HZBSizeY);*/
 
         if(mHZBuffer == null || mHZBuffer.getWidth() != HZBSizeX || mHZBuffer.getHeight() != HZBSizeY){
             CommonUtil.safeRelease(mHZBuffer);
@@ -118,6 +121,11 @@ class HZBOcclusionTester implements OcclusionTester{
             for(int i = 0; i < NumMips; i++){
                 mHZBMipLevels.add(TextureUtils.createTextureView(mHZBuffer, GLenum.GL_TEXTURE_2D, i, 1, 0,1));
             }
+
+            desc.width = depth.getWidth();
+            desc.height = depth.getHeight();
+            desc.mipLevels = 1;
+            mReprojectDepth = TextureUtils.createTexture2D(desc, null);
 
             GLCheck.checkError();
         }
@@ -134,6 +142,9 @@ class HZBOcclusionTester implements OcclusionTester{
             mBuildHZB[0][1].setName("BuildHZB_Copy_Reproject");
             mBuildHZB[1][0].setName("BuildHZB_Down");
             mBuildHZB[1][1].setName("BuildHZB_Down_Reproject");
+
+            mReprojection = GLSLProgram.createProgram(root + "ReprojectionFull.comp", null);
+            mReprojection.setName("ReprojectionFull");
         }
 
         if(mHZBTester == null){
@@ -152,16 +163,57 @@ class HZBOcclusionTester implements OcclusionTester{
         GLCheck.checkError();
     }
 
+    private void reprojectionFull(Texture2D depth, Scene scene){
+        mReprojection.enable();
+
+        gl.glClearTexImage(mReprojectDepth.getTexture(), 0, GLenum.GL_RED, GLenum.GL_FLOAT, CacheBuffer.wrap(1.f));
+
+        gl.glBindImageTexture(0, mReprojectDepth.getTexture(), 0, false, 0, GLenum.GL_READ_WRITE, mReprojectDepth.getFormat());
+        gl.glBindTextureUnit(0,depth.getTexture());
+        gl.glBindSampler(0, m_PointSampler);
+
+        {
+            final Matrix4f tmp = CacheBuffer.getCachedMatrix();
+            Matrix4f viewProj = Matrix4f.mul(scene.mProj, scene.mView, tmp);
+            GLSLUtil.setMat4(mReprojection, "gViewProj",viewProj);
+
+            Matrix4f.mul(scene.mProj, scene.mPrevView, tmp);
+            Matrix4f.invert(tmp, tmp);
+            GLSLUtil.setMat4(mReprojection, "gPrevViewProjInv",tmp);
+
+            CacheBuffer.free(tmp);
+        }
+
+        int numGroupX = Numeric.divideAndRoundUp(depth.getWidth(), 32);
+        int numGroupY = Numeric.divideAndRoundUp(depth.getHeight(), 32);
+        gl.glDispatchCompute(numGroupX, numGroupY, 1);
+        gl.glMemoryBarrier(GLenum.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        GLCheck.checkError();
+        mReprojection.printOnce();
+    }
+
     private void generateHZB(Texture2D depth, int reprojection, Scene scene){
         int downsampling = 0;
 
         // Create HZB of first mipLevel
         mBuildHZB[downsampling][reprojection].enable();
-        gl.glClearTexImage(mHZBuffer.getTexture(), 0, GLenum.GL_RED, GLenum.GL_HALF_FLOAT, CacheBuffer.wrap(1.f));
+        gl.glClearTexImage(mHZBuffer.getTexture(), 0, GLenum.GL_RED, GLenum.GL_FLOAT, CacheBuffer.wrap(1.f));
 
         gl.glBindImageTexture(0, mHZBuffer.getTexture(), 0, false, 0, GLenum.GL_READ_WRITE, mHZBuffer.getFormat());
         gl.glBindTextureUnit(0,depth.getTexture());
         gl.glBindSampler(0, m_PointSampler);
+
+        // Parameters
+        {
+//            uniform vec2 InvSize;
+//            uniform vec4 InputUvFactorAndOffset;
+//            uniform vec2 InputViewportMaxBound;
+
+            GLSLUtil.setFloat2(mBuildHZB[downsampling][reprojection], "InvSize", 1.f/depth.getWidth(), 1.f/depth.getHeight());
+            GLSLUtil.setFloat4(mBuildHZB[downsampling][reprojection],"InputUvFactorAndOffset", 2.0f * mHZBuffer.getWidth()/depth.getWidth(),
+                    2.0f * mHZBuffer.getHeight()/depth.getHeight(),0,0);
+            GLSLUtil.setFloat2(mBuildHZB[downsampling][reprojection], "InputViewportMaxBound", 1 - 0.5f/depth.getWidth(), 1-0.5f/depth.getHeight());
+        }
 
         if(reprojection != 0){
             final Matrix4f tmp = CacheBuffer.getCachedMatrix();
@@ -192,6 +244,8 @@ class HZBOcclusionTester implements OcclusionTester{
 
             gl.glBindImageTexture(0, dst.getTexture(), 0, false, 0, GLenum.GL_READ_WRITE, mHZBuffer.getFormat());
             gl.glBindTextureUnit(0,src.getTexture());
+
+            GLSLUtil.setFloat2(mBuildHZB[downsampling][reprojection], "InvSize", 1.f/src.getWidth(), 1.f/src.getHeight());
 
             numGroupX = Numeric.divideAndRoundUp(dst.getWidth(), 4);
             numGroupY = Numeric.divideAndRoundUp(dst.getHeight(), 4);

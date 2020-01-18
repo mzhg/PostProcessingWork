@@ -1,0 +1,48 @@
+
+#ifndef REPROJECTION_THREAD_GROUP_SIZE
+#define REPROJECTION_THREAD_GROUP_SIZE 32
+#endif
+
+layout(local_size_x = REPROJECTION_THREAD_GROUP_SIZE, local_size_y= REPROJECTION_THREAD_GROUP_SIZE)in;
+
+layout(binding = 0) uniform sampler2D PrevDepthTexture;
+layout(binding = 0, r16f) uniform image2D DepthTexture;
+
+float max4(vec4 v)
+{
+    return max(max(v.x,v.y), max(v.z,v.y));
+}
+
+uniform mat4 gPrevViewProjInv;
+uniform mat4 gViewProj;
+
+void main()
+{
+
+    const ivec2 OutputDim = imageSize(DepthTexture);
+    ivec3 dispatchThreadID = ivec3(gl_GlobalInvocationID);
+    if(dispatchThreadID.x < OutputDim.x && dispatchThreadID.y < OutputDim.y)
+    {
+        const vec2 screenSize = vec2(OutputDim);
+        vec2 texCoords = (vec2(dispatchThreadID.xy) + 0.5)/screenSize;
+
+        float depth = texelFetch(PrevDepthTexture, dispatchThreadID.xy, 0).x;
+
+        vec4 ClipPos = vec4(texCoords * 2 - 1, 2 * depth - 1, 1.0);
+        vec4 PrevWorldPos = gPrevViewProjInv * ClipPos;
+        PrevWorldPos /= PrevWorldPos.w;
+
+        vec4 NDCPosition = gViewProj * PrevWorldPos;
+        NDCPosition.xyz /= NDCPosition.w;
+        NDCPosition.xyz = NDCPosition.xyz * 0.5 + 0.5;
+        ivec2 outputPos = ivec2(NDCPosition.xy * screenSize);
+
+        // prevent output of larget depth values behind camera
+        float depthF = NDCPosition.w < 0.0f ? depth : NDCPosition.z;
+        // write re-projected depth to new location
+        imageStore(DepthTexture, outputPos, vec4(depthF,0,0,0));
+
+        // write re-projected depth to current location to handle holes from re-projection
+//        imageAtomicMax(DepthTexture, dispatchThreadID.xy, invDepth);
+    }
+}
