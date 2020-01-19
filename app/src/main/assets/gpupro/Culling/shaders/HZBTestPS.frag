@@ -12,7 +12,7 @@ void main()
 {
     vec2 InUV = m_f4UVAndScreenPos.xy;
     vec4 BoundsCenter = textureLod( BoundsCenterTexture, InUV, 0 );
-    vec4 BoundsExtent = textureLod( BoundsExtentTexture, InUV, 0 ) * 1.5;
+    vec4 BoundsExtent = textureLod( BoundsExtentTexture, InUV, 0 );
 //    BoundsCenter.xyz += View.PreViewTranslation.xyz;
 
 #if 1
@@ -57,7 +57,7 @@ void main()
     }
 
 #if 0
-    if( RectMax.z >= 1 )
+    if( RectMin.z <= -1 )
     {
         // Crosses near plane
         OutColor = 1;

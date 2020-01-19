@@ -66,8 +66,8 @@ class HZBOcclusionTester implements OcclusionTester{
             }
 
             updateResources(renderer.mDepthBuffer);
-            reprojectionFull(renderer.mDepthBuffer, scene);
-            generateHZB(mReprojectDepth, 0, scene);
+//            reprojectionFull(renderer.mDepthBuffer, scene);
+            generateHZB(renderer.mDepthBuffer, 1, scene);
             packingMeshInfomations(scene, false);
             HizTesting(scene, true);
         }finally {
@@ -114,7 +114,7 @@ class HZBOcclusionTester implements OcclusionTester{
             CommonUtil.safeRelease(mHZBuffer);
             mHZBMipLevels.clear();
 
-            Texture2DDesc desc = new Texture2DDesc(HZBSizeX, HZBSizeY, GLenum.GL_R16F);
+            Texture2DDesc desc = new Texture2DDesc(HZBSizeX, HZBSizeY, GLenum.GL_R32F);
             desc.mipLevels =NumMips;
             mHZBuffer = TextureUtils.createTexture2D(desc, null);
 
@@ -281,6 +281,7 @@ class HZBOcclusionTester implements OcclusionTester{
 
 //        if(!fillData) return;
 
+        final float NeverOcclusionTestDistanceSquare = 1f;
         Vector3f center = CacheBuffer.getCachedVec3();
         Vector3f extent = CacheBuffer.getCachedVec3();
         ByteBuffer boundingBoxes = CacheBuffer.getCachedByteBuffer(boundingBoxBytes);
@@ -292,8 +293,16 @@ class HZBOcclusionTester implements OcclusionTester{
 
             Vector3f.add(boundingBox._min, extent, center);
 
+            float nearCamera;
+            {
+                float distSquFromCenterToEye = Vector3f.distanceSquare(center, scene.mEye);
+                float extentSqu = Vector3f.lengthSquared(extent);
+
+                nearCamera = (distSquFromCenterToEye - extentSqu) > NeverOcclusionTestDistanceSquare ? 1: 0;
+            }
+
             center.store(boundingBoxes);boundingBoxes.putInt(0);
-            extent.store(boundingBoxes);boundingBoxes.putInt(0);
+            extent.store(boundingBoxes);boundingBoxes.putFloat(nearCamera);
         }
 
         boundingBoxes.flip();
