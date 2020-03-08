@@ -1457,6 +1457,9 @@ public interface GLFuncProvider {
 
     void glGetTexImage(int target, int level, int format, int type, ByteBuffer result);
 
+    void glGetTextureImage(int texture, int level, int format, int type, ByteBuffer pixels);
+    void glGetTextureImage(int texture, int level, int format, int type, int bufSize, long address);
+
     void glGetIntegerv(int pname, IntBuffer values);
 
     void glTextureView(int dstTexture, int target, int srcTexture, int srcFormat, int minlevel, int numlevels, int minlayer, int numlayers);

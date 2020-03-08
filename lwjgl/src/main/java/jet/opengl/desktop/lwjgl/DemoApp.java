@@ -20,6 +20,7 @@ import java.util.Arrays;
 
 import jet.opengl.demos.gpupro.culling.OcclusionCullingDemo;
 import jet.opengl.demos.gpupro.culling.OrderIndependentTransparencyDemo;
+import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
 import jet.opengl.demos.nvidia.waves.crest.Wave_Animation_Test;
 import jet.opengl.demos.nvidia.waves.ocean.NvOceanDemo;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;

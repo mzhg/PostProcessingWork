@@ -29,13 +29,14 @@ public class Macro {
             if(args[i] instanceof Macro){
                 results.add((Macro)args[i]);
             }else if(args[i] instanceof CharSequence){
+                String key = args[i].toString();
                 Object value = null;
                 if(i < count - 1){
                     value = args[i+1];
                     i++;
                 }
 
-                results.add(new Macro(args[i].toString(), value));
+                results.add(new Macro(key, value));
             }
         }
 

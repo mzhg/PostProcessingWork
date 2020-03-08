@@ -10,6 +10,7 @@ import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector2i;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
+import org.lwjgl.util.vector.Vector4i;
 
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
@@ -1147,6 +1148,18 @@ public final class GLSLUtil {
 		int index = prog.getUniformLocation(name, true);
 		if(index >=0)
 			GLFuncProviderFactory.getGLFuncProvider().glUniform1i(index, v);
+	}
+
+	public static void setInt4(GLSLProgram prog, String name, int x, int y, int z, int w){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform4i(index, x,y,z,w);
+	}
+
+	public static void setInt4(GLSLProgram prog, String name, Vector4i iv){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniform4i(index, iv.x,iv.y,iv.z,iv.w);
 	}
 
 	public static void setUInt(GLSLProgram prog, String name, int v){

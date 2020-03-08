@@ -18,6 +18,12 @@ final class Mesh {
     MeshType mType;
     int frameNumber;
 
+    final int objectID;
+
     final BoundingBox mAABB = new BoundingBox();
     final Matrix4f mWorld = new Matrix4f();
+
+    Mesh(int objectID){
+        this.objectID = objectID;
+    }
 }

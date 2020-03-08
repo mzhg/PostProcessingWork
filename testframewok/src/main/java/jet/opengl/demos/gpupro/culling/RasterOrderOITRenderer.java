@@ -48,6 +48,9 @@ final class RasterOrderOITRenderer extends TransparencyRenderer{
     private int m_pPointSampler;
     private int mLisTexNodeCount = 1 << 22;
 
+    private RenderInput mInput = new RenderInput();
+    private RenderOutput mOutput = new RenderOutput();
+
     @Override
     protected void onCreate() {
         super.onCreate();
@@ -307,7 +310,11 @@ final class RasterOrderOITRenderer extends TransparencyRenderer{
         // todo parepare for the rendering
 
         m_ROIRecord.enable();
-        sceneRender.renderTransparency(scene, m_ROIRecord, false);
+
+        mInput.clearFBO = false;
+        mInput.transparencyRenderProg = m_ROIRecord;
+        mInput.writeFBO = false;
+        sceneRender.renderTransparency(scene, mInput, mOutput);
         m_ROIRecord.printPrograminfo();
 
         int TwoNodeIndex = 0;

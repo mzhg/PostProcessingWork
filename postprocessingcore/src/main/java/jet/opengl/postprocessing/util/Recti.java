@@ -27,6 +27,20 @@ public class Recti {
                 width == rect.width && height == rect.height);
     }
 
+    public void addPoint(int x, int y){
+        if(!isValid()){
+            set(x,y,1,1);
+        }else{
+            int maxx = Math.max(x, getMaxX());
+            int maxy = Math.max(y, getMaxY());
+
+            int minx = Math.min(x, this.x);
+            int miny = Math.min(y, this.y);
+
+            set(minx,miny,maxx- minx,maxy-miny);
+        }
+    }
+
     public void set(Recti o){
         x =o.x;
         y =o.y;

@@ -1519,6 +1519,16 @@ public class Lwjgl3OpenglFuncProvider implements GLFuncProvider{
     }
 
     @Override
+    public void glGetTextureImage(int texture, int level, int format, int type, ByteBuffer pixels) {
+        GL45.glGetTextureImage(texture, level, format, type, pixels);
+    }
+
+    @Override
+    public void glGetTextureImage(int texture, int level, int format, int type, int bufSize, long address) {
+        GL45.glGetTextureImage(texture, level, format, type, bufSize, address);
+    }
+
+    @Override
     public void glGetIntegerv(int pname, IntBuffer values) {
         GL11.glGetIntegerv(pname, values);
     }

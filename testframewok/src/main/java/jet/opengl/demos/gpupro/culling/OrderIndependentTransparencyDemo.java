@@ -42,6 +42,10 @@ public class OrderIndependentTransparencyDemo extends NvSampleApp {
 
     private VisualDepthTextureProgram mVisualTexture;
     private int m_PointSampler;
+
+    private RenderInput mInput = new RenderInput();
+    private RenderOutput mOutput = new RenderOutput();
+
     @Override
     public void initUI() {
         mTweakBar.addValue("Occlusion Enabled", createControl("mOcclusionEnabled"));
@@ -102,14 +106,19 @@ public class OrderIndependentTransparencyDemo extends NvSampleApp {
         if(mOcclusionEnabled){
             mCulling.newFrame(getFrameCount());
             mCulling.cullingCoarse(mRenderer, mScene);
-            mRenderer.renderSolid(mScene, true);
+
+            mInput.clearFBO = true;
+            mRenderer.renderSolid(mScene, mInput,mOutput);
 
             if(mFineOcclusion){
                 mCulling.cullingFine(mRenderer, mScene);
-                mRenderer.renderSolid(mScene, false);
+
+                mInput.clearFBO = false;
+                mRenderer.renderSolid(mScene, mInput,mOutput);
             }
         }else{
-            mRenderer.renderSolid(mScene, true);
+            mInput.clearFBO = true;
+            mRenderer.renderSolid(mScene, mInput,mOutput);
         }
 
         if(mTransparencyRenderer != null)
@@ -167,7 +176,7 @@ public class OrderIndependentTransparencyDemo extends NvSampleApp {
         for (int i = 0; i < 10; i++){
             float rnd = Numeric.random();
             MeshType type  = rnd < 0.5 ? MeshType.Cube : MeshType.Sphere;
-            Mesh mesh = new Mesh();
+            Mesh mesh = new Mesh(i);
             mesh.mVao = type == MeshType.Cube ? mCubeVao : mSphereVao;
             mesh.mType = type;
             mesh.count = 1;

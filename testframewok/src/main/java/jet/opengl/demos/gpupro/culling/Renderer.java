@@ -54,8 +54,8 @@ abstract class Renderer implements Disposeable {
         gl.glViewport(0, 0, mColorBuffer.getWidth(), mColorBuffer.getHeight());
     }
 
-    abstract void renderSolid(Scene scene, boolean clearFBO);
-    abstract void renderTransparency(Scene scene, GLSLProgram prog, boolean writeFBO);
+    abstract void renderSolid(Scene scene, RenderInput input, RenderOutput output);
+    abstract void renderTransparency(Scene scene, RenderInput input, RenderOutput output);
 
     void present(){
         gl.glBindFramebuffer(GLenum.GL_READ_FRAMEBUFFER, m_BlitFBO);
