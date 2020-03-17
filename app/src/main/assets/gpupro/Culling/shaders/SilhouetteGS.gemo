@@ -1,0 +1,141 @@
+
+in VS_OUT
+{
+    vec3 WorldPos;
+    vec2 TexCoord;
+    vec3 Normal;
+}_input[];
+
+// 目前存在的问题
+// 1 几何着色器没有判断正面和反面
+// 2 是否只需要提交生成的三角形而不是全部的三角形
+// 3 增加其它属性，比如距离原始三角形边的距离，可用于控制混合强度
+
+layout (triangles) in;
+layout (triangle_strip, max_vertices=12) out;
+
+// The noperspective qualifier indicates that the values are to be interpolated
+// linearly, instead of the default perspective correct interpolation.
+noperspective out vec3 GEdgeDistance;
+
+uniform mat4 gModel;
+uniform mat4 gNormal;
+uniform mat4 gProj;
+uniform mat4 gView;
+
+//uniform vec3 gEyePos;
+//uniform vec3 gCameraForward;
+uniform float gSilhouetteWeight = 0.03;
+
+in gl_PerVertex {
+    vec4 gl_Position;
+}gl_in[];
+
+float sinaTheta(vec3 V, vec3 E)
+{
+//    return 1;
+    float cosTheta01 = dot(V, E);
+    float sinaTheta01 = sqrt(1- cosTheta01 * cosTheta01);
+
+    return sinaTheta01;
+}
+
+void OutputTriangle(vec3 P0, vec3 P1, vec3 P2)
+{
+//    float a = length(p1 - p2);
+//    float b = length(p2 - p0);
+//    float c = length(p1 - p0);
+//    float alpha = acos( (b*b + c*c - a*a) / (2.0*b*c) );
+//    float beta = acos( (a*a + c*c - b*b) / (2.0*a*c) );
+//    float ha = abs( c * sin( beta ) );
+//    float hb = abs( c * sin( alpha ) );
+//    float hc = abs( b * sin( alpha ) );
+
+    gl_Position = gProj * /*gView **/ vec4(P0, 1);
+    EmitVertex();
+
+    gl_Position = gProj * /*gView **/ vec4(P1, 1);
+    EmitVertex();
+
+    gl_Position = gProj * /*gView **/ vec4(P2, 1);
+    EmitVertex();
+
+    EndPrimitive();
+}
+
+bool isCCWFace()
+{
+    vec3 P0 = gl_in[0].gl_Position.xyz/gl_in[0].gl_Position.w;
+    vec3 P1 = gl_in[1].gl_Position.xyz/gl_in[1].gl_Position.w;
+    vec3 P2 = gl_in[2].gl_Position.xyz/gl_in[2].gl_Position.w;
+
+    vec3 E01 = P1- P0;
+    vec3 E02 = P2- P0;
+
+    vec3 v = cross(E01, E02);
+    return v.z >= 0.0;
+}
+
+void main()
+{
+    if(!isCCWFace())
+        return;
+
+    vec3 P0 = (gView * vec4(_input[0].WorldPos,1)).xyz;
+    vec3 P1 = (gView * vec4(_input[1].WorldPos,1)).xyz;
+    vec3 P2 = (gView * vec4(_input[2].WorldPos,1)).xyz;
+
+    float Z0 = -P0.z;
+    float Z1 = -P1.z;
+    float Z2 = -P2.z;
+
+    vec3 E01 = normalize(P1 - P0);
+    vec3 E12 = normalize(P2 - P1);
+    vec3 E20 = normalize(P0 - P2);
+
+    vec3 N = cross(E01, E12);
+
+    const vec3 gEyePos = vec3(0);
+    const vec3 gCameraForward = vec3(0,0,1);
+    vec3 V0 = -normalize(P0 - gEyePos);
+    vec3 V1 = -normalize(P1 - gEyePos);
+    vec3 V2 = -normalize(P2 - gEyePos);
+
+    vec3 expandEdge0 = cross(E01, N);
+    vec3 expandEdge1 = cross(E12, N);
+    vec3 expandEdge2 = cross(E20, N);
+
+    const float low = 0.0f;
+    const float high = 0.9f;
+//    float VN0 = clamp(dot(V0, gCameraForward)/ dot(V0, N), low, high);
+//    float VN1 = clamp(dot(V1, gCameraForward)/ dot(V1, N), low, high);
+//    float VN2 = clamp(dot(V2, gCameraForward)/ dot(V2, N), low, high);
+
+    float VN0 = dot(V0, gCameraForward)/ max(dot(V0, N), 0.3);
+    float VN1 = dot(V1, gCameraForward)/ max(dot(V1, N), 0.3);
+    float VN2 = dot(V2, gCameraForward)/ max(dot(V2, N), 0.3);
+
+    vec3 P10 = P0 + gSilhouetteWeight * expandEdge0 * Z0 * sinaTheta(V0, E01) * VN0;
+    vec3 P11 = P1 + gSilhouetteWeight * expandEdge0 * Z1 * sinaTheta(V1, -E01) * VN1;
+
+    vec3 P12 = P1 + gSilhouetteWeight * expandEdge1 * Z1 * sinaTheta(V1, E12) * VN1;
+    vec3 P13 = P2 + gSilhouetteWeight * expandEdge1 * Z2 * sinaTheta(V2, -E12) * VN2;
+
+    vec3 P14 = P2 + gSilhouetteWeight * expandEdge2 * Z2 * sinaTheta(V2, E20) * VN2;
+    vec3 P15 = P0 + gSilhouetteWeight * expandEdge2 * Z0 * sinaTheta(V0, -E20) * VN0;
+
+
+//    vec3 P10 = P0 + gSilhouetteWeight * expandEdge0 * Z0;
+//    vec3 P11 = P1 + gSilhouetteWeight * expandEdge0 * Z1;
+//
+//    vec3 P12 = P1 + gSilhouetteWeight * expandEdge1 * Z1;
+//    vec3 P13 = P2 + gSilhouetteWeight * expandEdge1 * Z2;
+//
+//    vec3 P14 = P2 + gSilhouetteWeight * expandEdge2 * Z2;
+//    vec3 P15 = P0 + gSilhouetteWeight * expandEdge2 * Z0;
+
+    OutputTriangle(P10, P11, P15);
+    OutputTriangle(P12, P13, P11);
+    OutputTriangle(P14, P15, P13);
+    OutputTriangle(P11, P13, P15);
+}

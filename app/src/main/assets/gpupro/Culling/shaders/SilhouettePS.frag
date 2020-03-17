@@ -13,6 +13,7 @@ uniform mat4 gView;
 #define FRONT 1
 #define BACK  2
 
+#if RENDER_FACE == FRONT
 in VS_OUT
 {
     vec3 WorldSilhouette;
@@ -20,6 +21,7 @@ in VS_OUT
     vec2 TexCoord;
     vec3 Normal;
 }_input;
+#endif
 
 void main()
 {

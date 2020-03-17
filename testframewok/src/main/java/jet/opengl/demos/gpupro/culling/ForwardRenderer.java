@@ -33,6 +33,7 @@ final class ForwardRenderer extends Renderer{
 
     private GLSLProgram mSihouetteFrontRender;
     private GLSLProgram mSihouetteBackRender;
+    private GLSLProgram mSihouetteGSRender;
 
     @Override
     void onCreate() {
@@ -43,8 +44,11 @@ final class ForwardRenderer extends Renderer{
         mLineRender = GLSLProgram.createProgram(root + "ShadingVS.vert", root + "LinePS.frag", null);
 
         mSihouetteBackRender = GLSLProgram.createProgram(root + "SilhouetteBackVS.vert", root + "SilhouettePS.frag", Macro.asMacros("RENDER_FACE", 2));
+        mSihouetteBackRender.setName("SilhouetteBack");
         mSihouetteFrontRender = GLSLProgram.createProgram(root + "SilhouetteFrontVS.vert", root + "SilhouettePS.frag", Macro.asMacros("RENDER_FACE", 1));
-
+        mSihouetteFrontRender.setName("SilhouetteFront");
+        mSihouetteGSRender = GLSLProgram.createProgram(root + "ShadingVS.vert", root + "SilhouetteGS.gemo", root + "SilhouettePS.frag", Macro.asMacros("RENDER_FACE", 0));
+        mSihouetteGSRender.setName("SilhouetteGS");
         mInstanceBuffer = new BufferGL();
         mInstanceBuffer.initlize(GLenum.GL_UNIFORM_BUFFER, Matrix4f.SIZE * 64 * 2, null, GLenum.GL_DYNAMIC_DRAW);
     }
@@ -72,7 +76,7 @@ final class ForwardRenderer extends Renderer{
             gl.glClearBufferfi(GLenum.GL_DEPTH_STENCIL, 0, 1.f, 0);
         }
         gl.glEnable(GLenum.GL_DEPTH_TEST);
-        renderFace(true);
+        renderFace(false);
 
         mShadingProg.enable();
         GLSLUtil.setMat4(mShadingProg, "gProj", scene.mProj);
@@ -274,7 +278,25 @@ final class ForwardRenderer extends Renderer{
             gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
             gl.glLineWidth(1.f);
         }else if(renderType == PickedRenderType.Silhouette){
+            gl.glEnable(GLenum.GL_DEPTH_TEST);
+            gl.glDepthFunc(GLenum.GL_LEQUAL);
+            gl.glDepthMask(false);
 
+            renderFace(true);
+
+            mSihouetteGSRender.enable();
+            GLSLUtil.setMat4(mSihouetteGSRender, "gProj", scene.mProj);
+            GLSLUtil.setMat4(mSihouetteGSRender, "gView", scene.mView);
+            GLSLUtil.setFloat3(mSihouetteGSRender, "gEyePos", scene.mEye);
+            GLSLUtil.setFloat3(mSihouetteGSRender, "gCameraForward", scene.mCameraForward);
+            GLSLUtil.setInt(mSihouetteGSRender, "gPickType", 0);
+            GLSLUtil.setFloat4(mSihouetteGSRender, "gColor", 1,1,1,1);  // white color
+
+            drawPickedMeshes(scene);
+            mSihouetteGSRender.printOnce();
+
+            gl.glDisable(GLenum.GL_CULL_FACE);
+            gl.glDepthMask(true);
         }
     }
 

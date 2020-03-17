@@ -13,6 +13,7 @@ import com.nvidia.developer.opengl.models.QuadricMesh;
 import com.nvidia.developer.opengl.models.QuadricSphere;
 import com.nvidia.developer.opengl.ui.NvUIText;
 
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
@@ -98,7 +99,7 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         getGLContext().setSwapInterval(0);
 //        mCulling = new DawnCulling();
 
-        mInput.pickedRenderType = PickedRenderType.Wireframe;
+        mInput.pickedRenderType = PickedRenderType.Silhouette;
     }
 
     @Override
@@ -233,7 +234,7 @@ public final class OcclusionCullingDemo extends NvSampleApp {
 
     private void buildBaseMesh(){
         QuadricBuilder builder = new QuadricBuilder();
-        builder.setXSteps(100).setYSteps(100);
+        builder.setXSteps(30).setYSteps(30);
         builder.setPostionLocation(0);
         builder.setNormalLocation(1);
         builder.setTexCoordLocation(2);
@@ -249,7 +250,7 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         model.mMaterial.mColor.set(0.7f, 0.8f, 0.6f, 1);
 
         Numeric.setRandomSeed(1000000);
-        for (int i = 0; i < 1000; i++){
+        for (int i = 0; i < 10; i++){
             float rnd = Numeric.random();
             MeshType type  = rnd < 0.5 ? MeshType.Cube : MeshType.Sphere;
             Mesh mesh = new Mesh(i);
@@ -266,4 +267,5 @@ public final class OcclusionCullingDemo extends NvSampleApp {
 
         mScene.mModels.add(model);
     }
+
 }

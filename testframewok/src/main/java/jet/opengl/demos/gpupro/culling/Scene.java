@@ -39,6 +39,7 @@ final class Scene {
     final Matrix4f mView = new Matrix4f();
     final Matrix4f mProj = new Matrix4f();
     final Vector3f mEye = new Vector3f();
+    final Vector3f mCameraForward = new Vector3f();
 
     final Matrix4f mPrevView = new Matrix4f();
 //    final Matrix4f mPrevProj = new Matrix4f();
@@ -102,7 +103,8 @@ final class Scene {
         mPrevView.load(mView);
 
         camera.getModelViewMat(mView);
-        Matrix4f.decompseRigidMatrix(mView, mEye, null, null);
+        Matrix4f.decompseRigidMatrix(mView, mEye, null, null, mCameraForward);
+        mCameraForward.scale(-1);
 
         mExpandMeshVisible.fill(0, mExpandMeshVisible.size(), true);
 
