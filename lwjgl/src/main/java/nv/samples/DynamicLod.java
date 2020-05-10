@@ -983,7 +983,7 @@ public final class DynamicLod extends NvSampleApp{
         final Vector4f  color=new Vector4f();
     };
 
-    static final class SceneData{
+    public static final class SceneData{
         static final int SIZE = Matrix4f.SIZE*3+8*Vector4f.SIZE;
 
         final Matrix4f  viewProjMatrix=new Matrix4f();
@@ -1000,12 +1000,12 @@ public final class DynamicLod extends NvSampleApp{
         float tessPixels;
         float particleSize;
 
-        SceneData(){
+        public SceneData(){
             for(int i=0;i<frustum.length;i++)
                 frustum[i]=new Vector4f();
         }
 
-        ByteBuffer store(ByteBuffer buf){
+        public ByteBuffer store(ByteBuffer buf){
             viewProjMatrix.store(buf);
             viewMatrix.store(buf);
             viewMatrixIT.store(buf);

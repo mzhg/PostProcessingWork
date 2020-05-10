@@ -3926,4 +3926,26 @@ public interface GLenum {
     
     /** Part of <code>GL_ARB_ES2_compatibility</code>, <code>GL_ES_VERSION_2_0</code>, <code>GL_VERSION_4_1</code> */
     int GL_SHADER_BINARY_FORMATS = 0x8DF8;
+
+    /** NV command list */
+    int
+	GL_TERMINATE_SEQUENCE_COMMAND_NV      = 0x0,
+	GL_NOP_COMMAND_NV                     = 0x1,
+	GL_DRAW_ELEMENTS_COMMAND_NV           = 0x2,
+	GL_DRAW_ARRAYS_COMMAND_NV             = 0x3,
+	GL_DRAW_ELEMENTS_STRIP_COMMAND_NV     = 0x4,
+	GL_DRAW_ARRAYS_STRIP_COMMAND_NV       = 0x5,
+	GL_DRAW_ELEMENTS_INSTANCED_COMMAND_NV = 0x6,
+	GL_DRAW_ARRAYS_INSTANCED_COMMAND_NV   = 0x7,
+	GL_ELEMENT_ADDRESS_COMMAND_NV         = 0x8,
+	GL_ATTRIBUTE_ADDRESS_COMMAND_NV       = 0x9,
+	GL_UNIFORM_ADDRESS_COMMAND_NV         = 0xA,
+	GL_BLEND_COLOR_COMMAND_NV             = 0xB,
+	GL_STENCIL_REF_COMMAND_NV             = 0xC,
+	GL_LINE_WIDTH_COMMAND_NV              = 0xD,
+	GL_POLYGON_OFFSET_COMMAND_NV          = 0xE,
+	GL_ALPHA_REF_COMMAND_NV               = 0xF,
+	GL_VIEWPORT_COMMAND_NV                = 0x10,
+	GL_SCISSOR_COMMAND_NV                 = 0x11,
+	GL_FRONT_FACE_COMMAND_NV              = 0x12;
 }
