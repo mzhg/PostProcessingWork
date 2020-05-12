@@ -25,12 +25,12 @@ final class ScanSystem {
 
     static class Buffer {
         int      buffer;
-        int      stride;
         int      offset;
         int      size;
 
         private GLFuncProvider gl;
 
+        Buffer(int buffer) { this(buffer, 0);}
         Buffer(int buffer, int sizei /*= 0*/)
       /*: buffer(buffer)
                 , offset(0)
@@ -39,30 +39,22 @@ final class ScanSystem {
             gl = GLFuncProviderFactory.getGLFuncProvider();
             this.buffer = buffer;
             offset = 0;
-            stride = 0;
-            if (sizei > 0) {
-                gl.glBindBuffer( GLenum.GL_COPY_READ_BUFFER, buffer );
-                /*if (sizeof( GLsizeiptr ) > 4)
-                    glGetBufferParameteri64v( GL_COPY_READ_BUFFER, GL_BUFFER_SIZE, (GLint64*)&size );
-                else*/
-                size = gl.glGetBufferParameteri( GLenum.GL_COPY_READ_BUFFER, GLenum.GL_BUFFER_SIZE );
-                gl.glBindBuffer( GLenum.GL_COPY_READ_BUFFER, 0 );
-            }
-            else {
-                size = sizei;
-            }
+            gl.glBindBuffer(GLenum.GL_COPY_READ_BUFFER, buffer);
+            size = gl.glGetBufferParameteri(GLenum.GL_COPY_READ_BUFFER, GLenum.GL_BUFFER_SIZE);
+            gl.glBindBuffer(GLenum.GL_COPY_READ_BUFFER, 0);
         }
 
         Buffer(){}
 
-        void BindBufferRange(int target, int index)  {
+        void BindBufferRange(int target, int index) {
             gl.glBindBufferRange(target, index, buffer, offset, size);
         }
-        void TexBuffer(int target, int internalformat)  {
-            gl.glTexBufferRange(target, internalformat, buffer, offset, size);
+        void BindBufferRange(int target, int index, int offseta, int sizea) {
+            gl.glBindBufferRange(target, index, buffer, offset+offseta, size+sizea);
         }
-        void ClearBufferSubData(int target, int internalformat, int format, int type, ByteBuffer data) {
-            gl.glClearNamedBufferSubData(buffer,internalformat,offset,size,format,type,data);
+
+        void GetNamedBufferSubData(ByteBuffer data){
+            GL45.glGetNamedBufferSubData(buffer,offset,/*size,*/data);
         }
 
     };
@@ -245,7 +237,7 @@ final class ScanSystem {
     }
 
 
-    private static final class Programs {
+    static final class Programs {
         GLSLProgram prefixsum;
         GLSLProgram offsets;
         GLSLProgram combine;

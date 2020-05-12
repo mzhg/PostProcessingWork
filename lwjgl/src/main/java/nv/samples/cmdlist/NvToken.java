@@ -8,6 +8,7 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.Numeric;
+import jet.opengl.postprocessing.util.StackByte;
 
 public final class NvToken {
     public static final int NVTOKEN_TYPES =  (GLenum.GL_FRONT_FACE_COMMAND_NV+1);
@@ -117,10 +118,10 @@ public final class NvToken {
         }
     }
 
-    public static void nvtokenDrawCommandsSW(int mode, String stream, int streamSize,
-    int[] offsets, int[] sizes,
-                               int count,
-                               StateSystem state){
+    public static void nvtokenDrawCommandsSW(int mode, StackByte stream, int streamSize,
+                                             int[] offsets, int[] sizes,
+                                             int count,
+                                             StateSystem state){
         /*const char* NV_RESTRICT tokens = (const char*)stream;
         GLenum type = GL_UNSIGNED_SHORT;
         for (GLuint i = 0; i < count; i++)
