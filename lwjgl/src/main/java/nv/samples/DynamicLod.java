@@ -984,21 +984,21 @@ public final class DynamicLod extends NvSampleApp{
     };
 
     public static final class SceneData{
-        static final int SIZE = Matrix4f.SIZE*3+8*Vector4f.SIZE;
+        public static final int SIZE = Matrix4f.SIZE*3+8*Vector4f.SIZE;
 
-        final Matrix4f  viewProjMatrix=new Matrix4f();
-        final Matrix4f  viewMatrix =new Matrix4f();
-        final Matrix4f  viewMatrixIT=new Matrix4f();
+        public final Matrix4f  viewProjMatrix=new Matrix4f();
+        public final Matrix4f  viewMatrix =new Matrix4f();
+        public final Matrix4f  viewMatrixIT=new Matrix4f();
 
-        final Vector2i viewport=new Vector2i();
-        final Vector2f viewpixelsize=new Vector2f();
+        public final Vector2i viewport=new Vector2i();
+        public final Vector2f viewpixelsize=new Vector2f();
 
-        final Vector4f[] frustum=new Vector4f[6];
+        public final Vector4f[] frustum=new Vector4f[6];
 
-        float farPixels;
-        float nearPixels;
-        float tessPixels;
-        float particleSize;
+        public float farPixels;
+        public float nearPixels;
+        public float tessPixels;
+        public float particleSize;
 
         public SceneData(){
             for(int i=0;i<frustum.length;i++)

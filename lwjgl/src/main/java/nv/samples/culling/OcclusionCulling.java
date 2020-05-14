@@ -4,23 +4,16 @@ import com.nvidia.developer.opengl.app.NvSampleApp;
 
 import org.lwjgl.opengl.ARBDebugOutput;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL31;
-import org.lwjgl.opengl.GL32;
-import org.lwjgl.opengl.GL33;
 import org.lwjgl.opengl.GL40;
-import org.lwjgl.opengl.GL41;
-import org.lwjgl.opengl.GL42;
 import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.opengl.NVCommandList;
 import org.lwjgl.opengl.NVUniformBufferUnifiedMemory;
-import org.lwjgl.opengl.NVVertexArrayRange;
-import org.lwjgl.opengl.NVVertexArrayRange2;
 import org.lwjgl.opengl.NVVertexBufferUnifiedMemory;
-import org.lwjgl.opengles.GLES30;
+import org.lwjgl.opengles.GLES;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -29,7 +22,10 @@ import java.util.List;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.StackByte;
@@ -836,7 +832,7 @@ public class OcclusionCulling extends NvSampleApp {
 
     boolean initProgram(){
         boolean validated = true;
-        m_progManager.m_filetype = nvh::ShaderFileManager::FILETYPE_GLSL;
+        /*m_progManager.m_filetype = nvh::ShaderFileManager::FILETYPE_GLSL;
         m_progManager.addDirectory( std::string("GLSL_" PROJECT_NAME));
         m_progManager.addDirectory( exePath() + std::string(PROJECT_RELDIRECTORY));
         //m_progManager.addDirectory( std::string(PROJECT_ABSDIRECTORY));
@@ -846,54 +842,74 @@ public class OcclusionCulling extends NvSampleApp {
 
         programs.draw_scene = m_progManager.createProgram(
                 nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,   "scene.vert.glsl"),
-        nvgl::ProgramManager::Definition(GL_FRAGMENT_SHADER, "scene.frag.glsl"));
+        nvgl::ProgramManager::Definition(GL_FRAGMENT_SHADER, "scene.frag.glsl"));*/
+        final String filepath = "nvidia/OcclusionCulling/shaders/";
+        programs.draw_scene = GLSLProgram.createProgram(filepath+"scene.vert.glsl", filepath + "scene.frag.glsl", null);
 
-        programs.object_raster = m_progManager.createProgram(
+        /*programs.object_raster = m_progManager.createProgram(
                 nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,   "cull-raster.vert.glsl"),
         nvgl::ProgramManager::Definition(GL_GEOMETRY_SHADER, "cull-raster.geo.glsl"),
-                nvgl::ProgramManager::Definition(GL_FRAGMENT_SHADER, "cull-raster.frag.glsl"));
+                nvgl::ProgramManager::Definition(GL_FRAGMENT_SHADER, "cull-raster.frag.glsl"));*/
+        programs.object_raster = GLSLProgram.createProgram(filepath+"cull-raster.vert.glsl", filepath+ "cull-raster.geo.glsl",filepath  + "scene.frag.glsl", null);
 
-        programs.object_frustum = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "cull-basic.vert.glsl"));
+        /*programs.object_frustum = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "cull-basic.vert.glsl"));*/
+        programs.object_frustum = GLSLProgram.createProgram(filepath+"cull-basic.vert.glsl", null, null);
 
-        programs.object_hiz = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "#define OCCLUSION\n", "cull-basic.vert.glsl"));
+        /*programs.object_hiz = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "#define OCCLUSION\n", "cull-basic.vert.glsl"));*/
+        programs.object_hiz = GLSLProgram.createProgram(filepath+"cull-basic.vert.glsl", null, new Macro[]{new Macro("OCCLUSION",1)});
 
-        programs.bit_regular = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "#define TEMPORAL 0\n", "cull-bitpack.vert.glsl"));
-        programs.bit_temporallast = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "#define TEMPORAL TEMPORAL_LAST\n", "cull-bitpack.vert.glsl"));
-        programs.bit_temporalnew = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "#define TEMPORAL TEMPORAL_NEW\n", "cull-bitpack.vert.glsl"));
+        /*programs.bit_regular = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "#define TEMPORAL 0\n", "cull-bitpack.vert.glsl"));*/
+        programs.bit_regular = GLSLProgram.createProgram(filepath+"cull-bitpack.vert.glsl", null, new Macro[]{new Macro("TEMPORAL",0)});
 
-        programs.indirect_unordered = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER, "cull-indirectunordered.vert.glsl"));
+        /*programs.bit_temporallast = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "#define TEMPORAL TEMPORAL_LAST\n", "cull-bitpack.vert.glsl"));*/
+        programs.bit_temporallast = GLSLProgram.createProgram(filepath+"cull-bitpack.vert.glsl", null, new Macro[]{new Macro("TEMPORAL","TEMPORAL_LAST")});
 
-        programs.depth_mips = m_progManager.createProgram(
+        /*programs.bit_temporalnew = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,  "#define TEMPORAL TEMPORAL_NEW\n", "cull-bitpack.vert.glsl"));*/
+        programs.bit_temporalnew = GLSLProgram.createProgram(filepath+"cull-bitpack.vert.glsl", null, new Macro[]{new Macro("TEMPORAL","TEMPORAL_NEW")});
+
+        /*programs.indirect_unordered = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER, "cull-indirectunordered.vert.glsl"));*/
+        programs.indirect_unordered = GLSLProgram.createProgram(filepath+"cull-indirectunordered.vert.glsl", null, null);
+
+        /*programs.depth_mips = m_progManager.createProgram(
                 nvgl::ProgramManager::Definition(GL_VERTEX_SHADER,   "cull-downsample.vert.glsl"),
-        nvgl::ProgramManager::Definition(GL_FRAGMENT_SHADER, "cull-downsample.frag.glsl"));
+        nvgl::ProgramManager::Definition(GL_FRAGMENT_SHADER, "cull-downsample.frag.glsl"));*/
+        programs.depth_mips = GLSLProgram.createProgram(filepath+"cull-downsample.vert.glsl", filepath+"cull-downsample.frag.glsl", null);
 
-        programs.token_sizes = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER, "cull-tokensizes.vert.glsl"));
-        programs.token_cmds = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER, "cull-tokencmds.vert.glsl"));
+        /*programs.token_sizes = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER, "cull-tokensizes.vert.glsl"));*/
+        programs.depth_mips = GLSLProgram.createProgram(filepath+"cull-tokensizes.vert.glsl", null, null);
 
-        programs.scan_prefixsum = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_COMPUTE_SHADER,  "#define TASK TASK_SUM\n", "scan.comp.glsl"));
-        programs.scan_offsets = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_COMPUTE_SHADER,  "#define TASK TASK_OFFSETS\n", "scan.comp.glsl"));
-        programs.scan_combine = m_progManager.createProgram(
-                nvgl::ProgramManager::Definition(GL_COMPUTE_SHADER,  "#define TASK TASK_COMBINE\n", "scan.comp.glsl"));
+        /*programs.token_cmds = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_VERTEX_SHADER, "cull-tokencmds.vert.glsl"));*/
+        programs.token_cmds = GLSLProgram.createProgram(filepath+"cull-tokencmds.vert.glsl", null, null);
 
-        validated = m_progManager.areProgramsValid();
+        /*programs.scan_prefixsum = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_COMPUTE_SHADER,  "#define TASK TASK_SUM\n", "scan.comp.glsl"));*/
+        programs.scan_prefixsum = GLSLProgram.createProgram(filepath+"scan.comp.glsl", new Macro[]{new Macro("TASK","TASK_SUM")});
+
+        /*programs.scan_offsets = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_COMPUTE_SHADER,  "#define TASK TASK_OFFSETS\n", "scan.comp.glsl"));*/
+        programs.scan_offsets = GLSLProgram.createProgram(filepath+"scan.comp.glsl", new Macro[]{new Macro("TASK","TASK_OFFSETS")});
+
+        /*programs.scan_combine = m_progManager.createProgram(
+                nvgl::ProgramManager::Definition(GL_COMPUTE_SHADER,  "#define TASK TASK_COMBINE\n", "scan.comp.glsl"));*/
+        programs.scan_combine = GLSLProgram.createProgram(filepath+"scan.comp.glsl", new Macro[]{new Macro("TASK","TASK_COMBINE")});
+
+//        validated = m_progManager.areProgramsValid();
 
         return validated;
     }
 
     boolean initFramebuffers(int width, int height){
-        nvgl::newTexture(textures.scene_color, GL_TEXTURE_2D);
-        glBindTexture (GL_TEXTURE_2D, textures.scene_color);
-        glTexStorage2D(GL_TEXTURE_2D, 1, fboFormat, width, height);
+        textures.scene_color = TextureUtils.createTexture2D(new Texture2DDesc(width, height, fboFormat), null);
+//        glBindTexture (GLenum.GL_TEXTURE_2D, textures.scene_color);
+//        glTexStorage2D(GLenum.GL_TEXTURE_2D, 1, fboFormat, width, height);
 
         int dim = width > height ? width : height;
         int levels = 0;
@@ -902,29 +918,37 @@ public class OcclusionCulling extends NvSampleApp {
             dim/=2;
         }
 
-        nvgl::newTexture(textures.scene_depthstencil, GL_TEXTURE_2D);
+        /*nvgl::newTexture(textures.scene_depthstencil, GL_TEXTURE_2D);
         glBindTexture (GLenum.GL_TEXTURE_2D, textures.scene_depthstencil);
         glTexStorage2D(GLenum.GL_TEXTURE_2D, levels, GL_DEPTH24_STENCIL8, width, height);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE, GL_NONE);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glBindTexture (GL_TEXTURE_2D, 0);
+        glTexParameteri(GLenum.GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);
+        glTexParameteri(GLenum.GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+        glTexParameteri(GLenum.GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE, GL_NONE);
+        glTexParameteri(GLenum.GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GLenum.GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture (GLenum.GL_TEXTURE_2D, 0);*/
 
-        nvgl::newFramebuffer(fbos.scene);
-        glBindFramebuffer(GLenum.GL_FRAMEBUFFER,     fbos.scene);
-        glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0,        GLenum.GL_TEXTURE_2D, textures.scene_color, 0);
-        glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, GLenum.GL_TEXTURE_2D, textures.scene_depthstencil, 0);
-        glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        Texture2DDesc depthDesc = new Texture2DDesc(width, height, GLenum.GL_DEPTH24_STENCIL8);
+        depthDesc.mipLevels = levels;
+        textures.scene_depthstencil = TextureUtils.createTexture2D(depthDesc, null);
+        textures.scene_depthstencil.setMagFilter(GLenum.GL_NEAREST);
+        textures.scene_depthstencil.setMinFilter(GLenum.GL_NEAREST_MIPMAP_NEAREST);
+        textures.scene_depthstencil.setWrapS(GLenum.GL_CLAMP_TO_EDGE);
+        textures.scene_depthstencil.setWrapT(GLenum.GL_CLAMP_TO_EDGE);
+
+        fbos_scene = gl.glGenFramebuffer();
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER,     fbos_scene);
+        gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0,        GLenum.GL_TEXTURE_2D, textures.scene_color.getTexture(), 0);
+        gl.glFramebufferTexture2D(GLenum.GL_FRAMEBUFFER, GLenum.GL_DEPTH_STENCIL_ATTACHMENT, GLenum.GL_TEXTURE_2D, textures.scene_depthstencil.getTexture(), 0);
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
 
         return true;
     }
 
     boolean initScene(){
         { // Scene UBO
-            nvgl::newBuffer(buffers.scene_ubo);
-            glNamedBufferData(buffers.scene_ubo, sizeof(SceneData) + sizeof(GLuint64), NULL, GL_DYNAMIC_DRAW);
+            buffers.scene_ubo = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_ubo, DynamicLod.SceneData.SIZE + /*sizeof(GLuint64)*/8, GLenum.GL_DYNAMIC_DRAW);
         }
 
         { // Scene Geometry
@@ -935,7 +959,7 @@ public class OcclusionCulling extends NvSampleApp {
 
             std::vector<Geometry>     geometries;
             for(int i = 0; i < 37; i++) {
-        const int resmul = 2;
+                const int resmul = 2;
                 mat4 identity;
                 identity.identity();
 

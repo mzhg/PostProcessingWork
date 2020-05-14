@@ -1,10 +1,13 @@
 package nv.samples.culling;
 
+import java.nio.ByteBuffer;
+
 import jet.opengl.postprocessing.buffer.BufferGL;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.util.CacheBuffer;
 
 /**
     This class wraps several operations to aid implementing scalable occlusion culling.
@@ -207,7 +210,9 @@ final class CullingSystem {
 
     void buildOutput( MethodType  method, Job job, View view ){
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, m_ubo.getBuffer());
-        gl.glBufferSubData(GLenum.GL_UNIFORM_BUFFER, 0, View.SIZE, &view);
+        ByteBuffer bytes = CacheBuffer.getCachedByteBuffer(View.SIZE);
+        view.store(bytes);  bytes.flip();
+        gl.glBufferSubData(GLenum.GL_UNIFORM_BUFFER, 0, bytes);
 
         switch(method){
             case METHOD_FRUSTUM:
