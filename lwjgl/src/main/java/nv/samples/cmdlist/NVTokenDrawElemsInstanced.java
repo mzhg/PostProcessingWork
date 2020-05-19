@@ -8,7 +8,7 @@ public class NVTokenDrawElemsInstanced {
 
     public final DrawElementsInstancedCommandNV   cmd = new DrawElementsInstancedCommandNV();
 
-    NVTokenDrawElemsInstanced() {
+    public NVTokenDrawElemsInstanced() {
         cmd.mode = GLenum.GL_TRIANGLES;
         cmd.baseInstance = 0;
         cmd.baseVertex = 0;
@@ -19,18 +19,18 @@ public class NVTokenDrawElemsInstanced {
         cmd.header  = NvToken.s_nvcmdlist_header[ID];
     }
 
-    void setMode(int primmode) {
+    public void setMode(int primmode) {
         cmd.mode = primmode;
     }
 
-    void setParams(int count, int firstIndex/*=0*/, int baseVertex/*=0*/)
+    public void setParams(int count, int firstIndex/*=0*/, int baseVertex/*=0*/)
     {
         cmd.count = count;
         cmd.firstIndex = firstIndex;
         cmd.baseVertex = baseVertex;
     }
 
-    void setInstances(int count, int baseInstance/*=0*/){
+    public void setInstances(int count, int baseInstance/*=0*/){
         cmd.baseInstance  = baseInstance;
         cmd.instanceCount = count;
     }

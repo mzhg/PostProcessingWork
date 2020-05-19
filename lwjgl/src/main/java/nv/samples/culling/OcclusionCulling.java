@@ -2,18 +2,19 @@ package nv.samples.culling;
 
 import com.nvidia.developer.opengl.app.NvSampleApp;
 
+import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.ARBDebugOutput;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL40;
 import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.opengl.NVCommandList;
+import org.lwjgl.opengl.NVShaderBufferLoad;
 import org.lwjgl.opengl.NVUniformBufferUnifiedMemory;
 import org.lwjgl.opengl.NVVertexBufferUnifiedMemory;
-import org.lwjgl.opengles.GLES;
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector4f;
 
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -28,9 +29,11 @@ import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackByte;
 import jet.opengl.postprocessing.util.StackInt;
 import nv.samples.DynamicLod;
+import nv.samples.cmdlist.NVTokenDrawElemsInstanced;
 import nv.samples.cmdlist.NvToken;
 import nv.samples.cmdlist.StateSystem;
 
@@ -41,6 +44,7 @@ public class OcclusionCulling extends NvSampleApp {
     private static final int VERTEX_MATRIXINDEX  = 3;
 
     private static final int UBO_SCENE = 0;
+    private static final int TEX_MATRICES = 0;
 
     private static final int SAMPLE_SIZE_WIDTH = (800);
     private static final int SAMPLE_SIZE_HEIGHT = (600);
@@ -97,8 +101,8 @@ public class OcclusionCulling extends NvSampleApp {
 
     private final StackInt m_sceneVisBits = new StackInt();
     private final List<DrawCmd> m_sceneCmds = new ArrayList<>();
-    private final List<DrawCmd> m_sceneMatrices = new ArrayList<>();
-    private final List<DrawCmd> m_sceneMatricesAnimated = new ArrayList<>();
+    private final List<Matrix4f> m_sceneMatrices = new ArrayList<>();
+    private final List<Matrix4f> m_sceneMatricesAnimated = new ArrayList<>();
 
     private int                    m_numTokens;
     private final StackByte        m_tokenStream = new StackByte();
@@ -184,14 +188,14 @@ public class OcclusionCulling extends NvSampleApp {
 
 
             initCullingJob(m_cullJobIndirect);
-            m_cullJobIndirect.m_program_indirect_compact = m_progManager.get( programs.indirect_unordered );
+            m_cullJobIndirect.m_program_indirect_compact = /*m_progManager.get*/( programs.indirect_unordered );
             m_cullJobIndirect.m_bufferObjectIndirects = new BufferValue(buffers.scene_indirect);
             m_cullJobIndirect.m_bufferIndirectCounter = new BufferValue(buffers.cull_counter);
             m_cullJobIndirect.m_bufferIndirectResult  = new BufferValue(buffers.cull_indirect);
 
             initCullingJob(m_cullJobToken);
-            m_cullJobToken.program_cmds   = m_progManager.get( programs.token_cmds );
-            m_cullJobToken.program_sizes  = m_progManager.get( programs.token_sizes );
+            m_cullJobToken.program_cmds   = /*m_progManager.get*/( programs.token_cmds );
+            m_cullJobToken.program_sizes  = /*m_progManager.get*/( programs.token_sizes );
             m_cullJobToken.numTokens      = m_numTokens;
 
             // if we had multiple stateobjects, we would be using multiple sequences
@@ -341,33 +345,56 @@ public class OcclusionCulling extends NvSampleApp {
 
 
             { // Update UBO
-                nvmath::mat4 projection = nvmath::perspective((45.f), float(width)/float(height), 0.1f, 100.0f);
+                /*nvmath::mat4 projection = nvmath::perspective((45.f), float(width)/float(height), 0.1f, 100.0f);
                 nvmath::mat4 view = m_control.m_viewMatrix;
 
                 m_sceneUbo.viewProjMatrix = projection * view;
                 m_sceneUbo.viewMatrix = view;
                 m_sceneUbo.viewMatrixIT = nvmath::transpose(nvmath::invert(view));
 
-                m_sceneUbo.viewPos = m_sceneUbo.viewMatrixIT.row(3);
-                m_sceneUbo.viewDir = -view.row(2);
+                m_sceneUbo.viewPos = m_sceneUbo.viewMatrixIT.row(3);  todo
+                m_sceneUbo.viewDir = -view.row(2);*/
 
-                gl.glBindBuffer(GL_UNIFORM_BUFFER, buffers.scene_ubo);
-                gl.glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SceneData), &m_sceneUbo);
+                Matrix4f.perspective(45.f, (float)width/height, 0.1f, 100.0f, m_sceneUbo.viewProjMatrix);
+                m_transformer.getModelViewMat(m_sceneUbo.viewMatrix);
+                Matrix4f.mul(m_sceneUbo.viewProjMatrix,m_sceneUbo.viewMatrix,m_sceneUbo.viewProjMatrix);
+                Matrix4f.getNormalMatrix(m_sceneUbo.viewMatrix,m_sceneUbo.viewMatrixIT);
+
+
+                gl.glBindBuffer(GLenum.GL_UNIFORM_BUFFER, buffers.scene_ubo);
+                ByteBuffer bytes = CacheBuffer.getCachedByteBuffer(DynamicLod.SceneData.SIZE);
+                m_sceneUbo.store(bytes);
+                bytes.flip();
+                gl.glBufferSubData(GLenum.GL_UNIFORM_BUFFER, 0, bytes);
             }
 
         }
 
         if (m_tweak.animate != 0 || m_tweak.animateOffset != m_tweakLast.animateOffset)
         {
-            mat4 rotator = nvmath::rotation_mat4_y( float(time)*0.1f * m_tweak.animate + m_tweak.animateOffset);
+//            mat4 rotator = nvmath::rotation_mat4_y( float(time)*0.1f * m_tweak.animate + m_tweak.animateOffset);
+            Matrix4f rotator = CacheBuffer.getCachedMatrix();
+            Matrix4f.rotate(time*0.1f * m_tweak.animate + m_tweak.animateOffset, 0, 1, 0, Matrix4f.IDENTITY, rotator);
 
             for (int i = 0; i < m_sceneMatrices.size()/2; i++){
-                mat4 changed = rotator * m_sceneMatrices[i*2 + 0];
-                m_sceneMatricesAnimated[i*2 + 0] = changed;
-                m_sceneMatricesAnimated[i*2 + 1] = nvmath::transpose(nvmath::invert(changed));
+//                Matrix4f changed = rotator * m_sceneMatrices.get(i*2 + 0);
+//                m_sceneMatricesAnimated[i*2 + 0] = changed;
+                Matrix4f changed =m_sceneMatrices.get(i*2 + 0);
+                Matrix4f destion = m_sceneMatricesAnimated.get(i*2 + 0);
+                Matrix4f.mul(changed, rotator, destion);
+
+//                m_sceneMatricesAnimated[i*2 + 1] = nvmath::transpose(nvmath::invert(changed));
+                Matrix4f animationNormal = m_sceneMatricesAnimated.get(i*2 + 1);
+                Matrix4f.getNormalMatrix(destion, animationNormal);
             }
 
-            GL45.glNamedBufferSubData(buffers.scene_matrices,0,sizeof(mat4)*m_sceneMatricesAnimated.size(), m_sceneMatricesAnimated.data() );
+            ByteBuffer bytes = CacheBuffer.getCachedByteBuffer(Matrix4f.SIZE * m_sceneMatricesAnimated.size());
+            CacheBuffer.put(bytes, m_sceneMatricesAnimated);
+            bytes.flip();
+
+//            GL45.glNamedBufferSubData(buffers.scene_matrices,0,sizeof(mat4)*m_sceneMatricesA nimated.size(), m_sceneMatricesAnimated.data());
+            GL45.glNamedBufferSubData(buffers.scene_matrices,0,bytes);
+            CacheBuffer.free(rotator);
         }
 
 
@@ -481,7 +508,7 @@ public class OcclusionCulling extends NvSampleApp {
 
         gl.glEnableVertexAttribArray(VERTEX_MATRIXINDEX);
 
-        gl.glUseProgram(m_progManager.get(programs.draw_scene));
+        gl.glUseProgram(programs.draw_scene.getProgram());
 
         // these bindings are replicated in the tokenbuffer as well
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, UBO_SCENE, buffers.scene_ubo);
@@ -492,7 +519,7 @@ public class OcclusionCulling extends NvSampleApp {
 
         if (!has_GL_ARB_bindless_texture){
             gl.glActiveTexture(GLenum.GL_TEXTURE0 + TEX_MATRICES);
-            gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER,textures.scene_matrices);
+            gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER,textures.scene_matrices.getTexture());
         }
 
         if (m_tweak.drawmode == DRAW_MULTIDRAWINDIRECT){
@@ -987,11 +1014,11 @@ public class OcclusionCulling extends NvSampleApp {
                 geometries.push_back(geom);
             }
 
-            nvgl::newBuffer(buffers.scene_ibo);
-            glNamedBufferData(buffers.scene_ibo, sceneMesh.getTriangleIndicesSize(), sceneMesh.m_indicesTriangles.data(), GL_STATIC_DRAW);
+            buffers.scene_ibo = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_ibo, sceneMesh.getTriangleIndicesSize(), sceneMesh.m_indicesTriangles.data(), GL_STATIC_DRAW);
 
-            nvgl::newBuffer(buffers.scene_vbo);
-            glNamedBufferData(buffers.scene_vbo, sceneMesh.getVerticesSize(), sceneMesh.m_vertices.data(), GL_STATIC_DRAW);
+            buffers.scene_vbo = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_vbo, sceneMesh.getVerticesSize(), sceneMesh.m_vertices.data(), GL_STATIC_DRAW);
 
 
             // Scene Objects
@@ -1016,7 +1043,7 @@ public class OcclusionCulling extends NvSampleApp {
                     scale = globalscale * 0.35f;
                     pos *=  globalscale * 0.5f;
                 }
-        else{
+                else{
                     scale = globalscale;
                     pos *=  globalscale;
                 }
@@ -1047,64 +1074,64 @@ public class OcclusionCulling extends NvSampleApp {
             m_sceneMatricesAnimated.resize( m_sceneMatrices.size() );
 
             m_sceneVisBits.clear();
-            m_sceneVisBits.resize( snapdiv(m_sceneCmds.size(),32), 0xFFFFFFFF );
+            m_sceneVisBits.resize( Numeric.divideAndRoundUp(m_sceneCmds.size(),32)/*, 0xFFFFFFFF*/ );
+            m_sceneVisBits.fill(0, m_sceneVisBits.size(), 0xFFFFFFFF);
 
-            nvgl::newBuffer(buffers.scene_indirect);
-            gl.glNamedBufferData(buffers.scene_indirect,sizeof(DrawCmd) * m_sceneCmds.size(), m_sceneCmds.data(), GL_STATIC_DRAW);
+            buffers.scene_indirect = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_indirect,sizeof(DrawCmd) * m_sceneCmds.size(), m_sceneCmds.data(), GLenum.GL_STATIC_DRAW);
 
-            nvgl::newBuffer(buffers.scene_matrices);
-            gl.glNamedBufferData(buffers.scene_matrices, sizeof(mat4) * m_sceneMatrices.size(), m_sceneMatrices.data(), GL_STATIC_DRAW);
+            buffers.scene_matrices = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_matrices, sizeof(mat4) * m_sceneMatrices.size(), m_sceneMatrices.data(), GLenum.GL_STATIC_DRAW);
             nvgl::newTexture(textures.scene_matrices, GL_TEXTURE_BUFFER);
             gl.glTextureBuffer(textures.scene_matrices, GL_RGBA32F, buffers.scene_matrices);
 
             if (has_GL_ARB_bindless_texture){
-                GLuint64 handle = glGetTextureHandleARB(textures.scene_matrices);
-                gl.glMakeTextureHandleResidentARB(handle);
-                gl.glNamedBufferSubData(buffers.scene_ubo, sizeof(SceneData), sizeof(GLuint64), &handle);
+                long handle = ARBBindlessTexture.glGetTextureHandleARB(textures.scene_matrices.getTexture());
+                ARBBindlessTexture.glMakeTextureHandleResidentARB(handle);
+                GL45.glNamedBufferSubData(buffers.scene_ubo, sizeof(SceneData), sizeof(GLuint64), &handle);
             }
 
-            nvgl::newBuffer(buffers.scene_bboxes);
-            gl.glNamedBufferData(buffers.scene_bboxes, sizeof(CullBbox) * bboxes.size(), bboxes.data(), GL_STATIC_DRAW);
+            buffers.scene_bboxes = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_bboxes, sizeof(CullBbox) * bboxes.size(), bboxes.data(), GLenum.GL_STATIC_DRAW);
 
-            nvgl::newBuffer(buffers.scene_matrixindices);
-            gl.glNamedBufferData(buffers.scene_matrixindices, sizeof(int) * matrixIndex.size(), matrixIndex.data(), GL_STATIC_DRAW);
+            buffers.scene_matrixindices = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_matrixindices, sizeof(int) * matrixIndex.size(), matrixIndex.data(), GLenum.GL_STATIC_DRAW);
 
             // for culling
-            nvgl::newBuffer(buffers.cull_indirect);
-            glNamedBufferData(buffers.cull_indirect, sizeof(DrawCmd) * m_sceneCmds.size(), NULL, GL_DYNAMIC_COPY);
+            buffers.cull_indirect = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_indirect, DrawCmd.SIZE * m_sceneCmds.size(), GLenum.GL_DYNAMIC_COPY);
 
-            nvgl::newBuffer(buffers.cull_counter);
-            glNamedBufferData(buffers.cull_counter, sizeof(int), NULL, GL_DYNAMIC_COPY);
+            buffers.cull_counter = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_counter, 4, GLenum.GL_DYNAMIC_COPY);
 
-            nvgl::newBuffer(buffers.cull_output);
-            glNamedBufferData(buffers.cull_output, snapdiv( m_sceneCmds.size(), 32) * 32 * sizeof(uint32_t), NULL, GL_DYNAMIC_COPY);
+            buffers.cull_output = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_output, Numeric.divideAndRoundUp( m_sceneCmds.size(), 32) * 32 * 4,  GLenum.GL_DYNAMIC_COPY);
 
-            nvgl::newBuffer(buffers.cull_bits);
-            glNamedBufferData(buffers.cull_bits, snapdiv( m_sceneCmds.size(), 32) * sizeof( uint32_t ), NULL, GL_DYNAMIC_COPY);
+            buffers.cull_bits = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_bits, Numeric.divideAndRoundUp( m_sceneCmds.size(), 32) * 4, GLenum.GL_DYNAMIC_COPY);
 
-            nvgl::newBuffer(buffers.cull_bitsLast);
-            glNamedBufferData(buffers.cull_bitsLast, snapdiv( m_sceneCmds.size(), 32) * sizeof( uint32_t ), NULL, GL_DYNAMIC_COPY);
+            buffers.cull_bitsLast = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_bitsLast, Numeric.divideAndRoundUp( m_sceneCmds.size(), 32) * 4, GLenum.GL_DYNAMIC_COPY);
 
             for (int i = 0; i < CYCLIC_FRAMES; i++) {
-                nvgl::newBuffer( buffers.cull_bitsReadback[i] );
-                glNamedBufferStorage( buffers.cull_bitsReadback[i], snapdiv( m_sceneCmds.size(), 32 ) * sizeof( uint32_t ), NULL, GL_MAP_PERSISTENT_BIT | GL_CLIENT_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_COHERENT_BIT );
+                buffers.cull_bitsReadback[i] = gl.glCreateBuffer();
+                GL45.glNamedBufferStorage( buffers.cull_bitsReadback[i], Numeric.divideAndRoundUp( m_sceneCmds.size(), 32 ) * 4, GLenum.GL_MAP_PERSISTENT_BIT | GLenum.GL_CLIENT_STORAGE_BIT | GLenum.GL_MAP_READ_BIT | GLenum.GL_MAP_COHERENT_BIT );
             }
 
             // for command list
-
             if (m_bindlessVboUbo)
             {
-                glGetNamedBufferParameterui64vNV(buffers.scene_ubo, GL_BUFFER_GPU_ADDRESS_NV, &addresses.scene_ubo);
-                glMakeNamedBufferResidentNV(buffers.scene_ubo, GL_READ_ONLY);
+                addresses.scene_ubo = NVShaderBufferLoad.glGetNamedBufferParameterui64NV(buffers.scene_ubo, NVShaderBufferLoad.GL_BUFFER_GPU_ADDRESS_NV);
+                NVShaderBufferLoad.glMakeNamedBufferResidentNV(buffers.scene_ubo, GLenum.GL_READ_ONLY);
 
-                glGetNamedBufferParameterui64vNV(buffers.scene_vbo, GL_BUFFER_GPU_ADDRESS_NV, &addresses.scene_vbo);
-                glMakeNamedBufferResidentNV(buffers.scene_vbo, GL_READ_ONLY);
+                addresses.scene_vbo = NVShaderBufferLoad.glGetNamedBufferParameterui64NV(buffers.scene_vbo, NVShaderBufferLoad.GL_BUFFER_GPU_ADDRESS_NV);
+                NVShaderBufferLoad.glMakeNamedBufferResidentNV(buffers.scene_vbo, GLenum.GL_READ_ONLY);
 
-                glGetNamedBufferParameterui64vNV(buffers.scene_ibo, GL_BUFFER_GPU_ADDRESS_NV, &addresses.scene_ibo);
-                glMakeNamedBufferResidentNV(buffers.scene_ibo, GL_READ_ONLY);
+                addresses.scene_ibo = NVShaderBufferLoad.glGetNamedBufferParameterui64NV(buffers.scene_ibo, NVShaderBufferLoad.GL_BUFFER_GPU_ADDRESS_NV);
+                NVShaderBufferLoad.glMakeNamedBufferResidentNV(buffers.scene_ibo, GLenum.GL_READ_ONLY);
 
-                glGetNamedBufferParameterui64vNV(buffers.scene_matrixindices, GL_BUFFER_GPU_ADDRESS_NV, &addresses.scene_matrixindices);
-                glMakeNamedBufferResidentNV(buffers.scene_matrixindices, GL_READ_ONLY);
+                addresses.scene_matrixindices = NVShaderBufferLoad.glGetNamedBufferParameterui64NV(buffers.scene_matrixindices, NVShaderBufferLoad.GL_BUFFER_GPU_ADDRESS_NV);
+                NVShaderBufferLoad.glMakeNamedBufferResidentNV(buffers.scene_matrixindices, GLenum.GL_READ_ONLY);
             }
 
             std::vector<int>          tokenObjects;
@@ -1156,17 +1183,17 @@ public class OcclusionCulling extends NvSampleApp {
                 tokenOffsets. push_back(num32bit(offset));
             }
 
-            for (size_t i = 0; i < m_sceneCmds.size(); i++){
-        const DrawCmd& cmd = m_sceneCmds[i];
+            for (int i = 0; i < m_sceneCmds.size(); i++){
+                DrawCmd cmd = m_sceneCmds[i];
 
                 // for commandlist token technique
-                NVTokenDrawElemsInstanced drawtoken;
+                NVTokenDrawElemsInstanced drawtoken = new NVTokenDrawElemsInstanced();
                 drawtoken.cmd.baseInstance  = cmd.baseInstance;
                 drawtoken.cmd.baseVertex    = cmd.baseVertex;
                 drawtoken.cmd.firstIndex    = cmd.firstIndex;
                 drawtoken.cmd.instanceCount = cmd.instanceCount;
                 drawtoken.cmd.count         = cmd.count;
-                drawtoken.cmd.mode          = GL_TRIANGLES;
+                drawtoken.cmd.mode          = GLenum.GL_TRIANGLES;
                 offset = nvtokenEnqueue(m_tokenStream,drawtoken);
 
                 // In this simple case we have one token per "object",
@@ -1188,53 +1215,53 @@ public class OcclusionCulling extends NvSampleApp {
 
             m_tokenStreamCulled = m_tokenStream;
 
-            nvgl::newBuffer(buffers.scene_token);
-            glNamedBufferData(buffers.scene_token, m_tokenStream.size(), m_tokenStream.data(), GL_STATIC_DRAW);
+            buffers.scene_token = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_token, m_tokenStream.size(), m_tokenStream.data(), GLenum.GL_STATIC_DRAW);
 
             // for command list culling
 
-            nvgl::newBuffer(buffers.scene_tokenSizes);
-            glNamedBufferData(buffers.scene_tokenSizes, tokenSizes.size() * sizeof(GLuint), tokenSizes.data(), GL_STATIC_DRAW);
+            buffers.scene_tokenSizes = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_tokenSizes, tokenSizes.size() * sizeof(GLuint), tokenSizes.data(), GLenum.GL_STATIC_DRAW);
 
-            nvgl::newBuffer(buffers.scene_tokenOffsets);
-            glNamedBufferData(buffers.scene_tokenOffsets, tokenOffsets.size() * sizeof(GLuint), tokenOffsets.data(), GL_STATIC_DRAW);
+            buffers.scene_tokenOffsets = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_tokenOffsets, tokenOffsets.size() * sizeof(GLuint), tokenOffsets.data(), GLenum.GL_STATIC_DRAW);
 
-            nvgl::newBuffer(buffers.scene_tokenObjects);
-            glNamedBufferData(buffers.scene_tokenObjects, tokenObjects.size() * sizeof(GLint), tokenObjects.data(), GL_STATIC_DRAW);
+            buffers.scene_tokenObjects = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.scene_tokenObjects, tokenObjects.size() * sizeof(GLint), tokenObjects.data(), GLenum.GL_STATIC_DRAW);
 
-            nvgl::newBuffer(buffers.cull_token);
-            glNamedBufferData(buffers.cull_token, m_tokenStream.size(), NULL, GL_DYNAMIC_COPY);
+            buffers.cull_token = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_token, m_tokenStream.size(), NULL, GLenum.GL_DYNAMIC_COPY);
 
-            nvgl::newBuffer(buffers.cull_tokenEmulation); // only for emulation
-            glNamedBufferData(buffers.cull_tokenEmulation, m_tokenStream.size(), NULL, GL_DYNAMIC_READ);
+            buffers.cull_tokenEmulation = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_tokenEmulation, m_tokenStream.size(), NULL, GLenum.GL_DYNAMIC_READ);
 
-            nvgl::newBuffer(buffers.cull_tokenSizes);
-            glNamedBufferData(buffers.cull_tokenSizes, tokenSizes.size() * sizeof(GLuint), NULL, GL_DYNAMIC_COPY);
+            buffers.cull_tokenSizes = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_tokenSizes, tokenSizes.size() * sizeof(GLuint), NULL, GLenum.GL_DYNAMIC_COPY);
 
-            nvgl::newBuffer(buffers.cull_tokenScan);
-            glNamedBufferData(buffers.cull_tokenScan, tokenSizes.size() * sizeof(GLuint), NULL, GL_DYNAMIC_COPY);
+            buffers.cull_tokenScan = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_tokenScan, tokenSizes.size() * sizeof(GLuint), NULL, GLenum.GL_DYNAMIC_COPY);
 
-            nvgl::newBuffer(buffers.cull_tokenScanOffsets);
-            glNamedBufferData(buffers.cull_tokenScanOffsets, ScanSystem::getOffsetSize(GLuint(tokenSizes.size())), NULL, GL_DYNAMIC_COPY);
+            buffers.cull_tokenScanOffsets = gl.glGenBuffer();
+            GL45.glNamedBufferData(buffers.cull_tokenScanOffsets, ScanSystem.getOffsetSize(GLuint(tokenSizes.size())), NULL, GLenum.GL_DYNAMIC_COPY);
         }
 
         return true;
     }
 
     void getCullPrograms( Programs cullprograms ){
-        cullprograms.bit_regular      = m_progManager.get( programs.bit_regular );
-        cullprograms.bit_temporallast = m_progManager.get( programs.bit_temporallast );
-        cullprograms.bit_temporalnew  = m_progManager.get( programs.bit_temporalnew );
-        cullprograms.depth_mips       = m_progManager.get( programs.depth_mips );
-        cullprograms.object_frustum   = m_progManager.get( programs.object_frustum );
-        cullprograms.object_hiz       = m_progManager.get( programs.object_hiz );
-        cullprograms.object_raster    = m_progManager.get( programs.object_raster );
+        cullprograms.bit_regular      = /*m_progManager.get*/( programs.bit_regular );
+        cullprograms.bit_temporallast = /*m_progManager.get*/( programs.bit_temporallast );
+        cullprograms.bit_temporalnew  = /*m_progManager.get*/( programs.bit_temporalnew );
+        cullprograms.depth_mips       = /*m_progManager.get*/( programs.depth_mips );
+        cullprograms.object_frustum   = /*m_progManager.get*/( programs.object_frustum );
+        cullprograms.object_hiz       = /*m_progManager.get*/( programs.object_hiz );
+        cullprograms.object_raster    = /*m_progManager.get*/( programs.object_raster );
     }
 
     void getScanPrograms( ScanSystem.Programs scanprograms ){
-        scanprograms.prefixsum  = m_progManager.get( programs.scan_prefixsum );
-        scanprograms.offsets    = m_progManager.get( programs.scan_offsets );
-        scanprograms.combine    = m_progManager.get( programs.scan_combine );
+        scanprograms.prefixsum  = /*m_progManager.get*/( programs.scan_prefixsum );
+        scanprograms.offsets    = /*m_progManager.get*/( programs.scan_offsets );
+        scanprograms.combine    = /*m_progManager.get*/( programs.scan_combine );
     }
 
     void systemChange(){
