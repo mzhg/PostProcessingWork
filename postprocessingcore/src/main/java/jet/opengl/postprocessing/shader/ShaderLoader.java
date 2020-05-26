@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -24,6 +25,17 @@ public class ShaderLoader {
 	static WeakReference<CharSequence> defaultHeader;
 	static final WeakHashMap<String, CharSequence> includeCaches = new WeakHashMap<String, CharSequence>();
 	static String renderer = null;
+
+	private static final HashSet<String> gIgoreFiles = new HashSet<>();
+	static {
+		gIgoreFiles.add("gtx/compatibility.hpp");
+		gIgoreFiles.add("../Utils/Framework.h");
+	}
+
+	static boolean isIgoreFile(String includeFile){
+		includeFile = includeFile.trim();
+		return gIgoreFiles.contains(includeFile);
+	}
 	
 	/** Initialize the ShaderLoader, this method should called on the OpenGL thread. */
 	private static void init(){
@@ -218,22 +230,26 @@ public class ShaderLoader {
 				int totalLength = 0;
 				for(String sif : subIncludesFiles){
 					IncludeFile subFile = IncludeFile.parse(sif, parentFile);
-					// Check file validation
-					String file_key = subFile.getKey();
-					IncludeFile tp = file;
-					while(tp != null){
-						if(file_key.equals(tp.key)){
-							throw new UnsupportedOperationException("Unsupport the mutual-included situation<" +tp.filepath + " : " + file.filepath + ">");
+					if(subFile != null){
+						// Check file validation
+						String file_key = subFile.getKey();
+						IncludeFile tp = file;
+						while(tp != null){
+							if(file_key.equals(tp.key)){
+								throw new UnsupportedOperationException("Unsupport the mutual-included situation<" +tp.filepath + " : " + file.filepath + ">");
+							}
+
+							tp = tp.parent;
 						}
-						
-						tp = tp.parent;
+
+						IncludeFile.makeRelation(subFile, file);
+
+						CharSequence seq = internalLoadShaderFile(subFile, processing, params);
+						totalLength += seq.length() - includeTags.get(i).length();
+						sequences[i++] = seq;
+					}else{
+						sequences[i++] = "";
 					}
-					
-					IncludeFile.makeRelation(subFile, file);
-					
-					CharSequence seq = internalLoadShaderFile(subFile, processing, params);
-					totalLength += seq.length() - includeTags.get(i).length();
-					sequences[i++] = seq;
 				}
 				
 				StringBuilder sb = (StringBuilder)string;

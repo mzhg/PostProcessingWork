@@ -56,6 +56,10 @@ final class IncludeFile {
 					throw new IncludeSynaxErrorException("Invalid include tag: " + includeTag);
 			}
 			includeTag = includeTag.substring(i1 + 1, i2);
+
+			if(ShaderLoader.isIgoreFile(includeTag)) {
+				return null;
+			}
 		}else if(i1 >= 0 && i2 == i1){  // only find one '"'
 			throw new IllegalArgumentException("Invalid includeTag: " + errorStr);
 		}

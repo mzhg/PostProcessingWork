@@ -11,6 +11,7 @@ import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
+import jet.opengl.postprocessing.shader.Macro;
 import jet.opengl.postprocessing.shader.ShaderProgram;
 import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
@@ -44,7 +45,7 @@ final class ShaderTest extends NvSampleApp{
     protected void initRendering() {
 //        GLSLProgram program = GLSLProgram.createProgram("E:\\workspace\\StudioProjects\\android_opengl(studio)\\app\\src\\main\\assets\\fight404\\ParticleUpdateCS.comp", null);
 //        testActivityUniform();
-
+        testDefualtVSShaders();
 
         int[] size = new int[1];
         final String root = "E:\\textures\\GameWork\\";
@@ -138,6 +139,33 @@ final class ShaderTest extends NvSampleApp{
         FileUtils.setIntenalFileLoader(old);
 
         return program;
+    }
+
+    private void testBreeveShaders(){
+        FileLoader old = FileUtils.g_IntenalFileLoader;
+        FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
+
+        Macro[] macros = {
+          new Macro("GW_OGL4", 1),
+        };
+        GLSLProgram prog = GLSLProgram.createProgram("E:\\workspace\\VSProjects\\Breeze\\Media\\Framework\\Shaders\\SkinningCS.comp", macros);
+        prog.printOnce();
+
+        FileUtils.setIntenalFileLoader(old);
+    }
+
+    private void testDefualtVSShaders(){
+        FileLoader old = FileUtils.g_IntenalFileLoader;
+        FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
+
+        Macro[] macros = {
+                new Macro("BINDLESS_TEXTURE_REQUIRED", 1),
+                new Macro("GW_OGL4", 1),
+        };
+        GLSLProgram prog = GLSLProgram.createProgram("E:\\workspace\\VSProjects\\Breeze\\Media\\Shading\\DefaultVS.vert", null, macros);
+        prog.printOnce();
+
+        FileUtils.setIntenalFileLoader(old);
     }
 
     private void testActivityUniform(){
