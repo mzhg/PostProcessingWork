@@ -4,16 +4,12 @@ import com.nvidia.developer.opengl.app.NvSampleApp;
 
 import org.lwjgl.opengl.ARBDebugOutput;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL40;
 import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GL45;
-import org.lwjgl.opengl.NVCommandList;
 import org.lwjgl.opengl.NVUniformBufferUnifiedMemory;
 import org.lwjgl.opengl.NVVertexBufferUnifiedMemory;
-import org.lwjgl.opengles.GLES;
 import org.lwjgl.util.vector.Vector4f;
 
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -34,13 +30,14 @@ import nv.samples.DynamicLod;
 import nv.samples.cmdlist.NvToken;
 import nv.samples.cmdlist.StateSystem;
 
-public class OcclusionCulling extends NvSampleApp {
+public class NvOcclusionCulling extends NvSampleApp {
     private static final int VERTEX_POS          = 0;
     private static final int VERTEX_NORMAL       = 1;
     private static final int VERTEX_COLOR        = 2;
     private static final int VERTEX_MATRIXINDEX  = 3;
 
     private static final int UBO_SCENE = 0;
+    private static final int TEX_MATRICES = 0;
 
     private static final int SAMPLE_SIZE_WIDTH = (800);
     private static final int SAMPLE_SIZE_HEIGHT = (600);
@@ -184,14 +181,14 @@ public class OcclusionCulling extends NvSampleApp {
 
 
             initCullingJob(m_cullJobIndirect);
-            m_cullJobIndirect.m_program_indirect_compact = m_progManager.get( programs.indirect_unordered );
+            m_cullJobIndirect.m_program_indirect_compact = /*m_progManager.get*/( programs.indirect_unordered );
             m_cullJobIndirect.m_bufferObjectIndirects = new BufferValue(buffers.scene_indirect);
             m_cullJobIndirect.m_bufferIndirectCounter = new BufferValue(buffers.cull_counter);
             m_cullJobIndirect.m_bufferIndirectResult  = new BufferValue(buffers.cull_indirect);
 
             initCullingJob(m_cullJobToken);
-            m_cullJobToken.program_cmds   = m_progManager.get( programs.token_cmds );
-            m_cullJobToken.program_sizes  = m_progManager.get( programs.token_sizes );
+            m_cullJobToken.program_cmds   = /*m_progManager.get*/( programs.token_cmds );
+            m_cullJobToken.program_sizes  = /*m_progManager.get*/( programs.token_sizes );
             m_cullJobToken.numTokens      = m_numTokens;
 
             // if we had multiple stateobjects, we would be using multiple sequences
@@ -340,8 +337,8 @@ public class OcclusionCulling extends NvSampleApp {
             gl.glEnable(GLenum.GL_DEPTH_TEST);
 
 
-            { // Update UBO
-                nvmath::mat4 projection = nvmath::perspective((45.f), float(width)/float(height), 0.1f, 100.0f);
+            { // Update UBO  todo
+                /*nvmath::mat4 projection = nvmath::perspective((45.f), float(width)/float(height), 0.1f, 100.0f);
                 nvmath::mat4 view = m_control.m_viewMatrix;
 
                 m_sceneUbo.viewProjMatrix = projection * view;
@@ -352,27 +349,27 @@ public class OcclusionCulling extends NvSampleApp {
                 m_sceneUbo.viewDir = -view.row(2);
 
                 gl.glBindBuffer(GL_UNIFORM_BUFFER, buffers.scene_ubo);
-                gl.glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SceneData), &m_sceneUbo);
+                gl.glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SceneData), &m_sceneUbo);*/
             }
 
         }
 
         if (m_tweak.animate != 0 || m_tweak.animateOffset != m_tweakLast.animateOffset)
         {
-            mat4 rotator = nvmath::rotation_mat4_y( float(time)*0.1f * m_tweak.animate + m_tweak.animateOffset);
+            /*mat4 rotator = nvmath::rotation_mat4_y( float(time)*0.1f * m_tweak.animate + m_tweak.animateOffset);
 
-            for (int i = 0; i < m_sceneMatrices.size()/2; i++){
+            for (int i = 0; i < m_sceneMatrices.size()/2; i++){  todo
                 mat4 changed = rotator * m_sceneMatrices[i*2 + 0];
                 m_sceneMatricesAnimated[i*2 + 0] = changed;
                 m_sceneMatricesAnimated[i*2 + 1] = nvmath::transpose(nvmath::invert(changed));
             }
 
-            GL45.glNamedBufferSubData(buffers.scene_matrices,0,sizeof(mat4)*m_sceneMatricesAnimated.size(), m_sceneMatricesAnimated.data() );
+            GL45.glNamedBufferSubData(buffers.scene_matrices,0,sizeof(mat4)*m_sceneMatricesAnimated.size(), m_sceneMatricesAnimated.data() );*/
         }
 
 
         if (m_tweak.culling && !m_tweak.freeze) {
-            m_cullJobReadback.m_hostVisBits = m_sceneVisBits.data();
+            m_cullJobReadback.m_hostVisBits = null; // todo m_sceneVisBits.data();
 
             // We change the output buffer for token emulation, as once the driver sees frequent readbacks on buffers
             // it moves the allocation to read-friendly memory. This would be bad for the native tokenbuffer.
@@ -481,7 +478,7 @@ public class OcclusionCulling extends NvSampleApp {
 
         gl.glEnableVertexAttribArray(VERTEX_MATRIXINDEX);
 
-        gl.glUseProgram(m_progManager.get(programs.draw_scene));
+        gl.glUseProgram(programs.draw_scene.getProgram());
 
         // these bindings are replicated in the tokenbuffer as well
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, UBO_SCENE, buffers.scene_ubo);
@@ -489,10 +486,9 @@ public class OcclusionCulling extends NvSampleApp {
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, buffers.scene_ibo);
         gl.glBindVertexBuffer(1,buffers.scene_matrixindices,0,/*sizeof(GLint)*/4);
 
-
         if (!has_GL_ARB_bindless_texture){
             gl.glActiveTexture(GLenum.GL_TEXTURE0 + TEX_MATRICES);
-            gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER,textures.scene_matrices);
+            gl.glBindTexture(GLenum.GL_TEXTURE_BUFFER,textures.scene_matrices.getTexture());
         }
 
         if (m_tweak.drawmode == DRAW_MULTIDRAWINDIRECT){
@@ -534,10 +530,10 @@ public class OcclusionCulling extends NvSampleApp {
 
                 StackByte stream = m_tweak.culling ? m_tokenStreamCulled : m_tokenStream;
 
-                NvToken.nvtokenDrawCommandsSW(GLenum.GL_TRIANGLES, stream.data(), stream.size(), &offset, &size, 1, state);
+//                NvToken.nvtokenDrawCommandsSW(GLenum.GL_TRIANGLES, stream.data(), stream.size(), &offset, &size, 1, state);  todo
             }
             else{
-                NVCommandList.glDrawCommandsNV(GLenum.GL_TRIANGLES, m_tweak.culling ? buffers.cull_token : buffers.scene_token, &offset, &size, 1);
+//                NVCommandList.glDrawCommandsNV(GLenum.GL_TRIANGLES, m_tweak.culling ? buffers.cull_token : buffers.scene_token, &offset, &size, 1);  todo
             }
 
             if (m_bindlessVboUbo){
@@ -553,7 +549,7 @@ public class OcclusionCulling extends NvSampleApp {
             {
                 if ((m_sceneVisBits.get(i / 32) & (1<< (i%32))) != 0 ){
 //                    gl.glDrawElementsIndirect(GLenum.GL_TRIANGLES, GLenum.GL_UNSIGNED_INT, m_sceneCmds[i] );
-                    GL40.glDrawElementsIndirect(GLenum.GL_TRIANGLES, GLenum.GL_UNSIGNED_INT, m_sceneCmds[i]);
+//                    GL40.glDrawElementsIndirect(GLenum.GL_TRIANGLES, GLenum.GL_UNSIGNED_INT, m_sceneCmds[i]);  todo
                     visible++;
                 }
             }
@@ -587,9 +583,9 @@ public class OcclusionCulling extends NvSampleApp {
         view.viewWidth         = getGLContext().width();
         view.viewHeight        = getGLContext().height();
         view.viewCullThreshold = m_tweak.minPixelSize;
-        memcpy(view.viewPos, m_sceneUbo.viewPos.get_value(), sizeof(view.viewPos));
+        /*memcpy(view.viewPos, m_sceneUbo.viewPos.get_value(), sizeof(view.viewPos));  todo
         memcpy(view.viewDir, m_sceneUbo.viewDir.get_value(), sizeof(view.viewDir));
-        memcpy(view.viewProjMatrix, m_sceneUbo.viewProjMatrix.get_value(), sizeof(view.viewProjMatrix));
+        memcpy(view.viewProjMatrix, m_sceneUbo.viewProjMatrix.get_value(), sizeof(view.viewProjMatrix));*/
 
         switch(m_tweak.method){
             case METHOD_FRUSTUM:
@@ -668,9 +664,9 @@ public class OcclusionCulling extends NvSampleApp {
         view.viewWidth         = getGLContext().width();
         view.viewHeight        = getGLContext().height();
         view.viewCullThreshold = m_tweak.minPixelSize;
-        memcpy(view.viewPos, m_sceneUbo.viewPos.get_value(), sizeof(view.viewPos));
+        /*memcpy(view.viewPos, m_sceneUbo.viewPos.get_value(), sizeof(view.viewPos));  todo
         memcpy(view.viewDir, m_sceneUbo.viewDir.get_value(), sizeof(view.viewDir));
-        memcpy(view.viewProjMatrix, m_sceneUbo.viewProjMatrix.get_value(), sizeof(view.viewProjMatrix));
+        memcpy(view.viewProjMatrix, m_sceneUbo.viewProjMatrix.get_value(), sizeof(view.viewProjMatrix));*/
 
         switch(m_tweak.method){
             case METHOD_FRUSTUM:
@@ -738,9 +734,9 @@ public class OcclusionCulling extends NvSampleApp {
         view.viewWidth         = getGLContext().width();
         view.viewHeight        = getGLContext().height();
         view.viewCullThreshold = m_tweak.minPixelSize;
-        memcpy(view.viewPos, m_sceneUbo.viewPos.get_value(), sizeof(view.viewPos));
+        /*memcpy(view.viewPos, m_sceneUbo.viewPos.get_value(), sizeof(view.viewPos));  todo
         memcpy(view.viewDir, m_sceneUbo.viewDir.get_value(), sizeof(view.viewDir));
-        memcpy(view.viewProjMatrix, m_sceneUbo.viewProjMatrix.get_value(), sizeof(view.viewProjMatrix));
+        memcpy(view.viewProjMatrix, m_sceneUbo.viewProjMatrix.get_value(), sizeof(view.viewProjMatrix));*/
 
         switch(m_tweak.method){
             case METHOD_FRUSTUM:
@@ -951,7 +947,7 @@ public class OcclusionCulling extends NvSampleApp {
             GL45.glNamedBufferData(buffers.scene_ubo, DynamicLod.SceneData.SIZE + /*sizeof(GLuint64)*/8, GLenum.GL_DYNAMIC_DRAW);
         }
 
-        { // Scene Geometry
+        /*{ // Scene Geometry  todo
             nvh::geometry::Mesh<Vertex>    sceneMesh;
 
             // we store all geometries in one big mesh, for sake of simplicity
@@ -1157,7 +1153,7 @@ public class OcclusionCulling extends NvSampleApp {
             }
 
             for (size_t i = 0; i < m_sceneCmds.size(); i++){
-        const DrawCmd& cmd = m_sceneCmds[i];
+                const DrawCmd& cmd = m_sceneCmds[i];
 
                 // for commandlist token technique
                 NVTokenDrawElemsInstanced drawtoken;
@@ -1216,25 +1212,25 @@ public class OcclusionCulling extends NvSampleApp {
 
             nvgl::newBuffer(buffers.cull_tokenScanOffsets);
             glNamedBufferData(buffers.cull_tokenScanOffsets, ScanSystem::getOffsetSize(GLuint(tokenSizes.size())), NULL, GL_DYNAMIC_COPY);
-        }
+        }*/
 
         return true;
     }
 
     void getCullPrograms( Programs cullprograms ){
-        cullprograms.bit_regular      = m_progManager.get( programs.bit_regular );
-        cullprograms.bit_temporallast = m_progManager.get( programs.bit_temporallast );
-        cullprograms.bit_temporalnew  = m_progManager.get( programs.bit_temporalnew );
-        cullprograms.depth_mips       = m_progManager.get( programs.depth_mips );
-        cullprograms.object_frustum   = m_progManager.get( programs.object_frustum );
-        cullprograms.object_hiz       = m_progManager.get( programs.object_hiz );
-        cullprograms.object_raster    = m_progManager.get( programs.object_raster );
+        cullprograms.bit_regular      = /*m_progManager.get*/( programs.bit_regular );
+        cullprograms.bit_temporallast = /*m_progManager.get*/( programs.bit_temporallast );
+        cullprograms.bit_temporalnew  = /*m_progManager.get*/( programs.bit_temporalnew );
+        cullprograms.depth_mips       = /*m_progManager.get*/( programs.depth_mips );
+        cullprograms.object_frustum   = /*m_progManager.get*/( programs.object_frustum );
+        cullprograms.object_hiz       = /*m_progManager.get*/( programs.object_hiz );
+        cullprograms.object_raster    = /*m_progManager.get*/( programs.object_raster );
     }
 
     void getScanPrograms( ScanSystem.Programs scanprograms ){
-        scanprograms.prefixsum  = m_progManager.get( programs.scan_prefixsum );
-        scanprograms.offsets    = m_progManager.get( programs.scan_offsets );
-        scanprograms.combine    = m_progManager.get( programs.scan_combine );
+        scanprograms.prefixsum  = /*m_progManager.get*/( programs.scan_prefixsum );
+        scanprograms.offsets    = /*m_progManager.get*/( programs.scan_offsets );
+        scanprograms.combine    = /*m_progManager.get*/( programs.scan_combine );
     }
 
     void systemChange(){

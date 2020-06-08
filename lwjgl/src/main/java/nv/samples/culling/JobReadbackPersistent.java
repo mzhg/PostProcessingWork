@@ -33,7 +33,7 @@ final class JobReadbackPersistent extends Job{
             GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();
 //            GLsizeiptr size = sizeof( int ) * minDivide( m_numObjects, 32 );
             int size = /*sizeof( int )*/4 * CullingSystem.minDivide( m_numObjects, 32 );
-            // as some samples read-back within same frame (not recommended) we use the flush here, normally one wouldn抰 use it
+            // as some samples read-back within same frame (not recommended) we use the flush here, normally one  use it
             gl.glClientWaitSync(m_fence, GLenum.GL_SYNC_FLUSH_COMMANDS_BIT, GLenum.GL_TIMEOUT_IGNORED);
             gl.glDeleteSync(m_fence);
             m_fence = 0;

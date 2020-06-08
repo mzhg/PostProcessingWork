@@ -6,11 +6,12 @@ import java.util.List;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
+import jet.opengl.postprocessing.shader.GLSLProgram;
 import nv.samples.cmdlist.NvToken;
 
 final class CullJobToken extends Job {
-    int      program_sizes;
-    int      program_cmds;
+    GLSLProgram      program_sizes;
+    GLSLProgram program_cmds;
 
     int                numTokens;
     final List<Sequence> sequences = new ArrayList<>();
@@ -35,7 +36,7 @@ final class CullJobToken extends Job {
         // First we compute sizes based on culling result
         // it generates an output stream where size[token] is either 0 or original size
         // depending on which object the token belonged to.
-        gl.glUseProgram(program_sizes);
+        gl.glUseProgram(program_sizes.getProgram());
 
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, tokenSizes.buffer);
         gl.glVertexAttribIPointer(0,1,GLenum.GL_UNSIGNED_INT,0,tokenSizes.offset);
@@ -59,11 +60,11 @@ final class CullJobToken extends Job {
         // now let the scan system compute the running offsets for the visible tokens
         // that way we get a compact token stream with the original ordering back
 
-        OcclusionCulling.s_scanSys.scanData(((numTokens+3)/4)*4,tokenOutSizes,tokenOutScan,tokenOutScanOffset);
+        NvOcclusionCulling.s_scanSys.scanData(((numTokens+3)/4)*4,tokenOutSizes,tokenOutScan,tokenOutScanOffset);
 
         // finally we build the actual culled tokenbuffer, using those offsets
 
-        gl.glUseProgram(program_cmds);
+        gl.glUseProgram(program_cmds.getProgram());
 
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, tokenOffsets.buffer);
         gl.glVertexAttribIPointer(0,1,GLenum.GL_UNSIGNED_INT,0,tokenOffsets.offset);
@@ -87,11 +88,11 @@ final class CullJobToken extends Job {
         for (int i = 0; i < sequences.size(); i++){
             Sequence sequence = sequences.get(i);
 
-            gl.glUniform1ui(gl.glGetUniformLocation(program_cmds,"startOffset"),sequence.offset);
-            gl.glUniform1i (gl.glGetUniformLocation(program_cmds,"startID"),    sequence.first);
-            gl.glUniform1ui(gl.glGetUniformLocation(program_cmds,"endOffset"),  sequence.endoffset);
-            gl.glUniform1i (gl.glGetUniformLocation(program_cmds,"endID"),      sequence.first + sequence.num - 1);
-            gl.glUniform1ui(gl.glGetUniformLocation(program_cmds,"terminateCmd"), NvToken.s_nvcmdlist_header[GLenum.GL_TERMINATE_SEQUENCE_COMMAND_NV]);
+            gl.glUniform1ui(gl.glGetUniformLocation(program_cmds.getProgram(),"startOffset"),sequence.offset);
+            gl.glUniform1i (gl.glGetUniformLocation(program_cmds.getProgram(),"startID"),    sequence.first);
+            gl.glUniform1ui(gl.glGetUniformLocation(program_cmds.getProgram(),"endOffset"),  sequence.endoffset);
+            gl.glUniform1i (gl.glGetUniformLocation(program_cmds.getProgram(),"endID"),      sequence.first + sequence.num - 1);
+            gl.glUniform1ui(gl.glGetUniformLocation(program_cmds.getProgram(),"terminateCmd"), NvToken.s_nvcmdlist_header[GLenum.GL_TERMINATE_SEQUENCE_COMMAND_NV]);
             gl.glDrawArrays(GLenum.GL_POINTS,sequence.first,sequence.num);
         }
 

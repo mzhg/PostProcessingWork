@@ -1,9 +1,16 @@
 #include "../../../shader_libs/ShadowWork/ShadowWork.glsl"
+#include "../../../shader_libs/ShadowWork/ShadowPercentageCloserFiltering.glsl"
 
 uniform int g_useTexture;
 uniform vec3 g_podiumCenterWorld;
 uniform vec3 g_lightPos;
 uniform bool g_useDiffuse;
+uniform vec4 PCSSParameters;
+
+uniform mat4 ScreenToShadowMatrix;
+// .x:DepthBias, .y:SlopeDepthBias, .z:ReceiverBias, .w: MaxSubjectZ - MinSubjectZ
+uniform vec4 ProjectionDepthBiasParameters;
+uniform vec2 InvViewpport = 1.0f/vec2(1280, 720);
 
 in vec4 worldPosition;
 in vec4 lightPosition;
@@ -61,6 +68,9 @@ vec4 shade(vec3 worldPos, vec3 normal)
 
 layout(location = 0) out vec4 OutColor;
 
+#define USE_PCSS 1
+#define SPOT_LIGHT_PCSS 0
+
 void main()
 {
 //    vec2 uv = lightPosition.xy / lightPosition.w;
@@ -68,28 +78,67 @@ void main()
 
     // Compute gradient using ddx/ddy before any branching
 //    vec2 dz_duv = depthGradient(uv, z);
+
+    FPCSSSamplerSettings Settings;
+    float shadow = 1;
+
+#if USE_PCSS
+    #if SPOT_LIGHT_PCSS
+    {
+        float CotanOuterCone = DeferredLightUniforms.SpotAngles.x * rsqrt(1. - DeferredLightUniforms.SpotAngles.x * DeferredLightUniforms.SpotAngles.x);
+        float WorldLightDistance = dot(DeferredLightUniforms.Direction, DeferredLightUniforms.Position - WorldPosition);
+        Settings.ProjectedSourceRadius = 0.5 * DeferredLightUniforms.SourceRadius * CotanOuterCone / WorldLightDistance;
+        Settings.TanLightSourceAngle = 0;
+    }
+    #else
+    {
+        Settings.ProjectedSourceRadius = 0;
+        Settings.TanLightSourceAngle = PCSSParameters.x;
+    }
+    #endif
+    Settings.ShadowDepthTexture = g_ShadowDepth;
+//    Settings.ShadowDepthTextureSampler = ShadowDepthTextureSampler;
+    ivec2 shadowMapSize = textureSize(g_ShadowTex, 0);
+    vec2 shadowTexelSize = 1.0f/vec2(shadowMapSize);
+
+    vec4 SVPos = gl_FragCoord;
+    vec2 ScreenUV = SVPos.xy * InvViewpport;
+    vec4 ScreenPosition = vec4(ScreenUV * 2 - 1, gl_FragCoord.z * 2 - 1, 1);
+
+    vec4 lightViewPos = g_lightView * vec4(worldPosition, 1);
+    vec4 lightProjPos = g_lightProj * lightViewPos;
+
+    vec3 ShadowPosition = (lightProjPos.xyz / lightProjPos.w) * 0.5 + 0.5;
+
+    float ShadowZ = ShadowPosition.z;
+    // Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
+    // We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
+    float LightSpacePixelDepthForOpaque = min(ShadowZ, 0.99999f);
+
+    float3 ScreenPositionDDX = ddx(ScreenPosition.xyz);
+    float3 ScreenPositionDDY = ddy(ScreenPosition.xyz);
+    float4 ShadowPositionDDX = mul(float4(ScreenPositionDDX, 0), ScreenToShadowMatrix);
+    float4 ShadowPositionDDY = mul(float4(ScreenPositionDDY, 0), ScreenToShadowMatrix);
+    #if SPOT_LIGHT_PCSS
+    // perspective correction for derivatives, could be good enough and way cheaper to just use ddx(ScreenPosition)
+    ShadowPositionDDX.xyz -= ShadowPosition.xyz * ShadowPositionDDX.w;
+    ShadowPositionDDY.xyz -= ShadowPosition.xyz * ShadowPositionDDY.w;
+    #endif
+
+    Settings.ShadowBufferSize = vec4(shadowMapSize, shadowTexelSize);
+    Settings.ShadowTileOffsetAndSize = vec4(0,0,1,1);
+    Settings.SceneDepth = LightSpacePixelDepthForOpaque;
+    Settings.TransitionScale = SoftTransitionScale.z;
+    Settings.MaxKernelSize = PCSSParameters.y;
+    Settings.SvPosition = SVPos.xy;
+    Settings.PQMPContext = PQMPContext;
+    Settings.DebugViewportUV = ScreenUV;
+
+    Shadow = DirectionalPCSS(Settings, ShadowPosition.xy, ShadowPositionDDX.xyz, ShadowPositionDDY.xyz);
+#else
     float shadow = CaculateShadows(worldPosition.xyz, g_ShadowMap, g_ShadowDepth);
+#endif
     OutColor = shade(worldPosition.xyz, normal) * shadow;
 
-    /*if (isBlack(color.rgb))
-    {
-        gl_FragColor = color;
-    }
-    else
-    {
-        // Eye-space z from the light's point of view
-        float zEye = -(g_lightView * worldPosition).z;
-        float shadow = 1.0f;
-        switch (g_shadowTechnique)
-        {
-            case 1:
-                shadow = pcssShadow(uv, z, dz_duv, zEye);
-                break;
 
-            case 2:
-                shadow = pcfShadow(uv, z, dz_duv, zEye);
-                break;
-        }
-        gl_FragColor = color * shadow;
-    }*/
 }
