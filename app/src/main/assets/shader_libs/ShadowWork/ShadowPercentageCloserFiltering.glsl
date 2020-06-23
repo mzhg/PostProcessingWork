@@ -52,7 +52,7 @@ uint2 SobolIndex(uint2 Base, int Index, int Bits = 10)
     uint2 Result = Base;
     for (int b = 0; b < 10 && b < Bits; ++b)
     {
-        Result ^= bool(Index & (1 << b)) ? SobolNumbers[b] : 0;
+        Result ^= bool(Index & (1 << b)) ? SobolNumbers[b] : uint2(0);
     }
     return Result;
 }
@@ -117,7 +117,7 @@ float2 PQMPAverage(float2 PQMP, float2 v)
 #define PCSS_MAX_DEPTH_BIAS 1
 
 // Idea of the experiment to turn on.
-#define PCSS_ANTI_ALIASING_METHOD 2
+#define PCSS_ANTI_ALIASING_METHOD 6
 
 // PCF experiment to solve translucent shadow artifacts.
 //  0: Dummy PCF.
@@ -141,7 +141,7 @@ float2 PQMPAverage(float2 PQMP, float2 v)
 
 struct FPCSSSamplerSettings
 {
-    sampler2D ShadowDepthTexture;
+//    sampler2D ShadowDepthTexture;
 //    SamplerState ShadowDepthTextureSampler;
 
 //XY - Pixel size of shadowmap
@@ -206,11 +206,14 @@ float PCSSDebugUVDir(float2 v)
 
     #endif //PCSS_DEBUG_UTILITITARIES
 
+#ifndef SPOT_LIGHT_PCSS
+#define SPOT_LIGHT_PCSS 0
+#endif
 
 // PCSS FILTER
 // -----------------------------------------------------------------------
 
-float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, float3 ShadowPositionDDX, float3 ShadowPositionDDY)
+float DirectionalPCSS(sampler2D ShadowDepthTexture, FPCSSSamplerSettings Settings, float2 ShadowPosition, float3 ShadowPositionDDX, float3 ShadowPositionDDY)
 {
     float3 DepthBiasPlaneNormal = cross(ShadowPositionDDX, ShadowPositionDDY);
     #if PCSS_MAX_DEPTH_BIAS
@@ -257,11 +260,13 @@ float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, floa
 
     float MinorAnisotropyFactor = clamp(MinorAnisotropy / SearchRadius, 1, 7);
     float MajorAnisotropyFactor = clamp(MajorAnisotropy / SearchRadius, 1, 7);
-    if (View.GeneralPurposeTweak < 1.5) {
+
+    float View_GeneralPurposeTweak = 2;
+    if (View_GeneralPurposeTweak < 1.5) {
         MajorAnisotropyFactor = 1;
         MinorAnisotropyFactor = 1;
     }
-    if (View.GeneralPurposeTweak < 2.5) {
+    if (View_GeneralPurposeTweak < 2.5) {
         MajorAnisotropyFactor = clamp(length(ShadowAnisotropicVector) / SearchRadius, 1, 7);
         MinorAnisotropyFactor = 1;
     }
@@ -290,7 +295,7 @@ float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, floa
         float2 SampleUVOffset = PCSSSample * SearchRadius;
         float2 SampleUV = ShadowPosition + SampleUVOffset * Settings.ShadowTileOffsetAndSize.zw;
 
-        float ShadowDepth = textureLod(Settings.ShadowDepthTexture, SampleUV, 0).r;
+        float ShadowDepth = textureLod(ShadowDepthTexture, SampleUV, 0).r;
         float ShadowDepthCompare = Settings.SceneDepth - ShadowDepth;
 
         float SampleDepthBias = max(dot(DepthBiasDotFactors, SampleUVOffset), 0);
@@ -440,7 +445,7 @@ float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, floa
         float2x2 ElepticalProjectionMatrix = GenerateDirectionalScale2x2Matrix(EllipseMajorAxis, EllipticalFactor);
 
         // Hacks the PCF's per pixel UV rotation matrix.
-        PCFUVMatrix = mul(ElepticalProjectionMatrix, PCFUVMatrix);
+        PCFUVMatrix = /*mul(ElepticalProjectionMatrix, PCFUVMatrix)*/  PCFUVMatrix * ElepticalProjectionMatrix;
 
     #if 0 // Final major axis analysis.
         if (Settings.DebugScreenUV.x > 0.5) return PCSSDebugUVDir(EllipseMajorAxis);
@@ -490,7 +495,7 @@ float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, floa
         float OriginalUVLength = length(PCFSample);
         float2 SampleUVOffset = mul(PCFUVMatrix, PCFSample) * FilterRadius;// *pow(OriginalUVLength, 0.9);
         float2 SampleUV = ShadowPosition + SampleUVOffset * Settings.ShadowTileOffsetAndSize.zw;
-        float SampleDepth = textureLod(Settings.ShadowDepthTexture, SampleUV, 0).r;
+        float SampleDepth = textureLod(ShadowDepthTexture, SampleUV, 0).r;
         float ShadowDepthCompare = Settings.SceneDepth - SampleDepth;
 
         float SampleDepthBias = length(SampleUVOffset) / TanLightSourceAngle;
@@ -514,7 +519,7 @@ float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, floa
         float2 PCFSample = UniformSampleDiskConcentricApprox(E);
         float2 SampleUVOffset = mul(PCFUVMatrix, PCFSample) * FilterRadius;
         float2 SampleUV = ShadowPosition + SampleUVOffset * Settings.ShadowTileOffsetAndSize.zw;
-        float SampleDepth = textureLod(Settings.ShadowDepthTexture, SampleUV, 0).r;
+        float SampleDepth = textureLod(ShadowDepthTexture, SampleUV, 0).r;
 
         float SampleDepthBias = max(dot(DepthBiasDotFactors, SampleUVOffset), 0);
 
@@ -523,9 +528,9 @@ float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, floa
 
     float Visibility = VisibleLightAccumulation / float(PCSS_SAMPLES);
 
-    #endif // PCSS_PCF_EXPERIMENT == 0
+#endif // PCSS_PCF_EXPERIMENT == 0
 
-    #if PCSS_ENABLE_POST_PCF_SHARPENING // Sharpen the PCF result.
+#if PCSS_ENABLE_POST_PCF_SHARPENING // Sharpen the PCF result.
     {
         // Average distance between samles in UV space.
         const float AverageSampleDistance = sqrt(1 / (float(PCSS_SAMPLES) * PI));
@@ -542,16 +547,16 @@ float DirectionalPCSS(FPCSSSamplerSettings Settings, float2 ShadowPosition, floa
         // Apply the sharpness onto the visibility.
         Visibility = saturate(FinalSharpenessFactor * (Visibility - 0.5) + 0.5);
 
-        #if 0
+    #if 0
         if (Settings.DebugScreenUV.x > 0.8) return SharpeningFade;
         if (Settings.DebugScreenUV.x > 0.5) return (SharpeningFactor - 1) * 0.25;
-        #endif
-    }
-        #endif //PCSS_ENABLE_POST_PCF_SHARPENING
-
-        #if PCSS_SHARE_PER_PIXEL_QUAD >= 2 // Share PCF computation.
-    Visibility = lerp(Visibility, PQMPAverage(Settings.PQMPContext, Visibility), DoPerQuad * 0.5);
     #endif
+    }
+#endif //PCSS_ENABLE_POST_PCF_SHARPENING
+
+#if PCSS_SHARE_PER_PIXEL_QUAD >= 2 // Share PCF computation.
+    Visibility = lerp(Visibility, PQMPAverage(Settings.PQMPContext, Visibility), DoPerQuad * 0.5);
+#endif
 
     return Visibility;
 }

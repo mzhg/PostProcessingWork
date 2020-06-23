@@ -5,6 +5,8 @@ uniform int g_useTexture;
 uniform vec3 g_podiumCenterWorld;
 uniform vec3 g_lightPos;
 uniform bool g_useDiffuse;
+
+// xy:  ; z: SoftTransitionScale
 uniform vec4 PCSSParameters;
 
 uniform mat4 ScreenToShadowMatrix;
@@ -96,16 +98,16 @@ void main()
         Settings.TanLightSourceAngle = PCSSParameters.x;
     }
     #endif
-    Settings.ShadowDepthTexture = g_ShadowDepth;
+//    Settings.ShadowDepthTexture = g_ShadowDepth;
 //    Settings.ShadowDepthTextureSampler = ShadowDepthTextureSampler;
-    ivec2 shadowMapSize = textureSize(g_ShadowTex, 0);
+    ivec2 shadowMapSize = textureSize(g_ShadowDepth, 0);
     vec2 shadowTexelSize = 1.0f/vec2(shadowMapSize);
 
     vec4 SVPos = gl_FragCoord;
     vec2 ScreenUV = SVPos.xy * InvViewpport;
     vec4 ScreenPosition = vec4(ScreenUV * 2 - 1, gl_FragCoord.z * 2 - 1, 1);
 
-    vec4 lightViewPos = g_lightView * vec4(worldPosition, 1);
+    vec4 lightViewPos = g_lightView * worldPosition;
     vec4 lightProjPos = g_lightProj * lightViewPos;
 
     vec3 ShadowPosition = (lightProjPos.xyz / lightProjPos.w) * 0.5 + 0.5;
@@ -128,15 +130,16 @@ void main()
     Settings.ShadowBufferSize = vec4(shadowMapSize, shadowTexelSize);
     Settings.ShadowTileOffsetAndSize = vec4(0,0,1,1);
     Settings.SceneDepth = LightSpacePixelDepthForOpaque;
-    Settings.TransitionScale = SoftTransitionScale.z;
+    Settings.TransitionScale = PCSSParameters.z;
     Settings.MaxKernelSize = PCSSParameters.y;
     Settings.SvPosition = SVPos.xy;
-    Settings.PQMPContext = PQMPContext;
+    Settings.PQMPContext = float2(0);
     Settings.DebugViewportUV = ScreenUV;
+    Settings.StateFrameIndexMod8 = 0;
 
-    Shadow = DirectionalPCSS(Settings, ShadowPosition.xy, ShadowPositionDDX.xyz, ShadowPositionDDY.xyz);
+    shadow = DirectionalPCSS(g_ShadowDepth, Settings, ShadowPosition.xy, ShadowPositionDDX.xyz, ShadowPositionDDY.xyz);
 #else
-    float shadow = CaculateShadows(worldPosition.xyz, g_ShadowMap, g_ShadowDepth);
+    shadow = CaculateShadows(worldPosition.xyz, g_ShadowMap, g_ShadowDepth);
 #endif
     OutColor = shade(worldPosition.xyz, normal) * shadow;
 

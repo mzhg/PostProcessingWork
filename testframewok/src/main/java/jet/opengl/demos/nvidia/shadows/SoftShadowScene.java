@@ -130,7 +130,7 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         m_ShadowConfig.checkCameraFrustumeVisible = false;
         m_ShadowConfig.lightNear = 0.1f;
         m_ShadowConfig.lightFar = 32.0f;
-        m_ShadowConfig.shadowMapFormat = GLenum.GL_DEPTH_COMPONENT16;
+        m_ShadowConfig.shadowMapFormat = GLenum.GL_DEPTH_COMPONENT32F;
         m_ShadowConfig.shadowMapSampleCount = 1;
         m_ShadowConfig.shadowMapSize = 1024;
         m_ShadowConfig.shadowMapPattern = ShadowMapGenerator.ShadowMapPattern.POISSON_100_100;
@@ -261,10 +261,10 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         m_SceneRenderProgram.setShadowUniforms(m_ShadowConfig, m_ShadowGen.getShadowMapParams());
 
         // GetLightSourceAngle returns the full angle.
-        float DirectionalLightAngle = 10;  // 10 degrees
+        float DirectionalLightAngle = 90;  // 10 degrees
         double TanLightSourceAngle = Math.tan(0.5 * Math.toRadians(DirectionalLightAngle));
 
-        float MaxKernelSize  = 7;
+        float MaxKernelSize  = 5;
 
         float SW = 2.0f * m_ShadowGen.getShadowCasterRadius();
         float SZ = m_ShadowGen.getShadowCasterDepthRange();
@@ -273,7 +273,8 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         {
             float PCSSParameterValuesX = (float) (TanLightSourceAngle * SZ / SW);
             float PCSSParameterValuesY = MaxKernelSize / shadowMap.getWidth();
-            GLSLUtil.setFloat4(m_SceneRenderProgram, "PCSSParameters", PCSSParameterValuesX,PCSSParameterValuesY,0,0);
+            float SoftTransitionScale = ComputeTransitionSize();
+            GLSLUtil.setFloat4(m_SceneRenderProgram, "PCSSParameters", PCSSParameterValuesX,PCSSParameterValuesY,SoftTransitionScale,0);
         }
 
         {
@@ -583,5 +584,54 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
             gl.glDisableVertexAttribArray(normalLocation);
         }
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+
+    private boolean IsWholeScenePointLightShadow() { return false;}
+    private boolean IsWholeSceneDirectionalShadow()  { return true;}
+
+    float ComputeTransitionSize()
+    {
+        boolean bPreShadow = false;
+        boolean bDirectionalLight = m_ShadowConfig.lightType == LightType.DIRECTIONAL;
+
+        float TransitionSize = 1.0f;
+        if (IsWholeScenePointLightShadow())
+        {
+            // todo: optimize
+//            TransitionSize = bDirectionalLight ? (1.0f / CVarShadowTransitionScale.GetValueOnRenderThread()) : (1.0f / CVarSpotLightShadowTransitionScale.GetValueOnRenderThread());
+            // * 2.0f to be compatible with the system we had before ShadowBias
+            TransitionSize *= 2.0f * /*LightSceneInfo->Proxy->GetUserShadowBias()*/ 0.5f;
+        }
+        else if (IsWholeSceneDirectionalShadow())
+        {
+//            check(CascadeSettings.ShadowSplitIndex >= 0);
+
+            // todo: remove GetShadowTransitionScale()
+            // make 1/ ShadowTransitionScale, SpotLightShadowTransitionScale
+
+            // the z range is adjusted to we need to adjust here as well
+            TransitionSize = /*CVarCSMShadowDepthBias.GetValueOnRenderThread()*/ 0.01f / m_ShadowGen.getShadowCasterDepthRange();
+
+            float WorldSpaceTexelScale = m_ShadowGen.getShadowCasterRadius() / m_ShadowGen.getShadowMap().getWidth();
+
+            TransitionSize *= WorldSpaceTexelScale;
+            TransitionSize *= /*LightSceneInfo->Proxy->GetUserShadowBias()*/ 0.7f;
+        }
+        else if (bPreShadow)
+        {
+            // Preshadows don't have self shadowing, so make sure the shadow starts as close to the caster as possible
+            TransitionSize = 0.0f;
+        }
+        else
+        {
+            // todo: optimize
+//            TransitionSize = bDirectionalLight ? (1.0f / CVarShadowTransitionScale.GetValueOnRenderThread()) : (1.0f / CVarSpotLightShadowTransitionScale.GetValueOnRenderThread());
+            // * 2.0f to be compatible with the system we had before ShadowBias
+ //           TransitionSize *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
+        }
+
+        // Make sure that shadow soft transition size is greater than zero so 1/TransitionSize shader parameter won't be INF.
+	    final float MinTransitionSize = 0.00001f;
+        return Math.max(TransitionSize, MinTransitionSize);
     }
 }

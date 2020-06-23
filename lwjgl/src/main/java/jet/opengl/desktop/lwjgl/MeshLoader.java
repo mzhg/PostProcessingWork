@@ -27,9 +27,27 @@ import jet.opengl.postprocessing.util.DebugTools;
  */
 
 public class MeshLoader {
+
+    static void testDDXY(){
+        final String FILE_PATH = "E:/textures/BufferNormal/";
+
+        System.out.println("frag_comp_DDX_result: ");
+        DebugTools.fileCompare(FILE_PATH + "fragDDX.txt",
+                FILE_PATH + "compDDX.txt",
+                FILE_PATH + "frag_comp_DDX_result.txt");
+        System.out.println();
+
+        System.out.println("frag_comp_DDY_result: ");
+        DebugTools.fileCompare(FILE_PATH + "fragDDY.txt",
+                FILE_PATH + "compDDY.txt",
+                FILE_PATH + "frag_comp_DDY_result.txt");
+        System.out.println();
+    }
+
     public static void main(String[] args) {
 //        loadLightningXMesh();
-        loadRainbow();
+//        loadRainbow();
+        testDDXY();
     }
 
     static void loadSSSMesh(){

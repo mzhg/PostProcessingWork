@@ -239,30 +239,7 @@ public class NvOcclusionCulling extends NvSampleApp {
         return validated;
     }
 
-    void processUI(float time){
-        /*int width = m_windowState.m_viewSize[0];  todo UI
-        int height = m_windowState.m_viewSize[1];
-
-        // Update imgui configuration
-        auto &imgui_io = ImGui::GetIO();
-        imgui_io.DeltaTime = static_cast<float>(time - m_uiTime);
-        imgui_io.DisplaySize = ImVec2(width, height);
-
-        m_uiTime = time;
-
-        ImGui::NewFrame();
-        ImGui::SetNextWindowSize(ImVec2(350, 0), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("NVIDIA " PROJECT_NAME, nullptr)) {
-            ImGui::Checkbox("culling", &m_tweak.culling);
-            ImGui::Checkbox("freeze result", &m_tweak.freeze);
-            ImGui::SliderFloat("min.pixelsize", &m_tweak.minPixelSize, 0.0f, 16.0f);
-            m_ui.enumCombobox(GUI_ALGORITHM, "algorithm", &m_tweak.method);
-            m_ui.enumCombobox(GUI_RESULT, "result", &m_tweak.result);
-            m_ui.enumCombobox(GUI_DRAW, "drawmode", &m_tweak.drawmode);
-            ImGui::SliderFloat("animate", &m_tweak.animate, 0.0f, 32.0f);
-        }
-        ImGui::End();*/
-    }
+    void processUI(float time){ }
 
     void think(float time){
 //        NV_PROFILE_GL_SECTION("Frame");
