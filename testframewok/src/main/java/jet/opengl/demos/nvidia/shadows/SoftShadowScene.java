@@ -73,6 +73,9 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
     private ShadowMapGenerator m_ShadowGen;
     private final Matrix4f m_ScreenToShadowMap = new Matrix4f();
 
+    private final BoundingBox m_groundBounds = new BoundingBox();
+    private int m_groundIndex;
+
     public SoftShadowScene(ShadowMapGenerator shadowGenerator){
         m_ShadowGen = shadowGenerator;
     }
@@ -122,22 +125,22 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         m_SceneRenderProgram = addAutoRelease(new SoftShadowSceneRenderProgram());
 
         GLCheck.checkError();
-        m_ShadowConfig.shadowMapFiltering = ShadowMapGenerator.ShadowMapFiltering.PCF;
+        m_ShadowConfig.shadowMapFiltering = ShadowMapGenerator.ShadowMapFiltering.PCSS;
         m_ShadowConfig.shadowType = ShadowMapGenerator.ShadowType.SHADOW_MAPPING;
         m_ShadowConfig.lightType = LightType.DIRECTIONAL;
         m_ShadowConfig.spotHalfAngle = 10;
         m_ShadowConfig.shadowMapSplitting = ShadowMapGenerator.ShadowMapSplitting.NONE;
         m_ShadowConfig.checkCameraFrustumeVisible = false;
         m_ShadowConfig.lightNear = 0.1f;
-        m_ShadowConfig.lightFar = 32.0f;
+        m_ShadowConfig.lightFar = 100.0f;
         m_ShadowConfig.shadowMapFormat = GLenum.GL_DEPTH_COMPONENT32F;
         m_ShadowConfig.shadowMapSampleCount = 1;
-        m_ShadowConfig.shadowMapSize = 1024;
+        m_ShadowConfig.shadowMapSize = 2048;
         m_ShadowConfig.shadowMapPattern = ShadowMapGenerator.ShadowMapPattern.POISSON_100_100;
 
         SamplerDesc desc = new SamplerDesc();
-        desc.minFilter = GLenum.GL_NEAREST;
-        desc.magFilter = GLenum.GL_NEAREST;
+        desc.minFilter = GLenum.GL_LINEAR;
+        desc.magFilter = GLenum.GL_LINEAR;
         desc.borderColor = 0xFFFFFFFF;  // white
         desc.wrapR = GLenum.GL_CLAMP_TO_BORDER;
         desc.wrapS = GLenum.GL_CLAMP_TO_BORDER;
@@ -261,10 +264,10 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         m_SceneRenderProgram.setShadowUniforms(m_ShadowConfig, m_ShadowGen.getShadowMapParams());
 
         // GetLightSourceAngle returns the full angle.
-        float DirectionalLightAngle = 90;  // 10 degrees
+        float DirectionalLightAngle = 0.5357f;  // 10 degrees
         double TanLightSourceAngle = Math.tan(0.5 * Math.toRadians(DirectionalLightAngle));
 
-        float MaxKernelSize  = 5;
+        float MaxKernelSize  = 10;
 
         float SW = 2.0f * m_ShadowGen.getShadowCasterRadius();
         float SZ = m_ShadowGen.getShadowCasterDepthRange();
@@ -272,7 +275,7 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
 //        FVector4 PCSSParameterValues = FVector4(TanLightSourceAngle * SZ / SW, MaxKernelSize / float(ShadowInfo->ResolutionX), 0, 0);
         {
             float PCSSParameterValuesX = (float) (TanLightSourceAngle * SZ / SW);
-            float PCSSParameterValuesY = MaxKernelSize / shadowMap.getWidth();
+            float PCSSParameterValuesY = MaxKernelSize / (float)shadowMap.getWidth();
             float SoftTransitionScale = ComputeTransitionSize();
             GLSLUtil.setFloat4(m_SceneRenderProgram, "PCSSParameters", PCSSParameterValuesX,PCSSParameterValuesY,SoftTransitionScale,0);
         }
@@ -283,12 +286,12 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
 
             ShadowMapParams shadowData = m_ShadowGen.getShadowMapParams();
             Matrix4f.mul(shadowData.m_LightViewProj, screenToWorld, m_ScreenToShadowMap);
-            screenToWorld.set(0.5f,0,0,0,
+            /*screenToWorld.set(0.5f,0,0,0,
                     0, 0.5f,0,0,
                     0,0,0.5f, 0,
                     0.5f, 0.5f, 0.5f, 1.0f);
 
-            Matrix4f.mul(screenToWorld, m_ScreenToShadowMap, m_ScreenToShadowMap);
+            Matrix4f.mul(screenToWorld, m_ScreenToShadowMap, m_ScreenToShadowMap);*/
 
             GLSLUtil.setMat4(m_SceneRenderProgram, "ScreenToShadowMatrix", m_ScreenToShadowMap);
         }
@@ -338,7 +341,11 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
 
     @Override
     public void addShadowCasterBoundingBox(int index, BoundingBox boundingBox) {
-        boundingBox.expandBy(m_meshInstances.get(index).getBounds());
+        if(index == m_groundIndex){
+            boundingBox.expandBy(m_groundBounds);
+        }else {
+            boundingBox.expandBy(m_meshInstances.get(index).getBounds());
+        }
     }
 
     @Override
@@ -392,6 +399,18 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         // Clear the VBO state
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        m_groundBounds.init();
+        m_groundBounds.expandBy(-radius, height,  radius);
+        m_groundBounds.expandBy(radius, height,  radius);
+        m_groundBounds.expandBy(radius, height, -radius);
+        m_groundBounds.expandBy(-radius, height, -radius);
+
+        m_groundBounds.expandBy(-radius, height + 0.01f,  radius);
+        m_groundBounds.expandBy(radius, height + 0.01f,  radius);
+        m_groundBounds.expandBy(radius, height + 0.01f, -radius);
+        m_groundBounds.expandBy(-radius, height + 0.01f, -radius);
+        m_groundIndex = m_meshInstances.size();
     }
 
     void createTextures()
@@ -610,7 +629,7 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
             // make 1/ ShadowTransitionScale, SpotLightShadowTransitionScale
 
             // the z range is adjusted to we need to adjust here as well
-            TransitionSize = /*CVarCSMShadowDepthBias.GetValueOnRenderThread()*/ 0.01f / m_ShadowGen.getShadowCasterDepthRange();
+            TransitionSize = /*CVarCSMShadowDepthBias.GetValueOnRenderThread()*/ 0.234f / m_ShadowGen.getShadowCasterDepthRange();
 
             float WorldSpaceTexelScale = m_ShadowGen.getShadowCasterRadius() / m_ShadowGen.getShadowMap().getWidth();
 

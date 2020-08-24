@@ -117,7 +117,7 @@ float2 PQMPAverage(float2 PQMP, float2 v)
 #define PCSS_MAX_DEPTH_BIAS 1
 
 // Idea of the experiment to turn on.
-#define PCSS_ANTI_ALIASING_METHOD 6
+#define PCSS_ANTI_ALIASING_METHOD 2
 
 // PCF experiment to solve translucent shadow artifacts.
 //  0: Dummy PCF.

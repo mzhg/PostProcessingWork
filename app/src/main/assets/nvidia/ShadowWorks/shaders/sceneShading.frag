@@ -5,6 +5,7 @@ uniform int g_useTexture;
 uniform vec3 g_podiumCenterWorld;
 uniform vec3 g_lightPos;
 uniform bool g_useDiffuse;
+uniform mat4 g_viewProj;
 
 // xy:  ; z: SoftTransitionScale
 uniform vec4 PCSSParameters;
@@ -104,8 +105,11 @@ void main()
     vec2 shadowTexelSize = 1.0f/vec2(shadowMapSize);
 
     vec4 SVPos = gl_FragCoord;
-    vec2 ScreenUV = SVPos.xy * InvViewpport;
-    vec4 ScreenPosition = vec4(ScreenUV * 2 - 1, gl_FragCoord.z * 2 - 1, 1);
+    vec2 ScreenUV = (SVPos.xy - 0.5) * InvViewpport;
+    vec4 ScreenPosition = vec4(ScreenUV, gl_FragCoord.z, 1);
+//    vec4 ScreenPosition = g_viewProj * worldPosition;
+//    ScreenPosition /= ScreenPosition.w;
+//    ScreenPosition.xyz = ScreenPosition.xyz * 0.5 + 0.5;
 
     vec4 lightViewPos = g_lightView * worldPosition;
     vec4 lightProjPos = g_lightProj * lightViewPos;
@@ -117,10 +121,21 @@ void main()
     // We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
     float LightSpacePixelDepthForOpaque = min(ShadowZ, 0.99999f);
 
-    float3 ScreenPositionDDX = ddx(ScreenPosition.xyz);
-    float3 ScreenPositionDDY = ddy(ScreenPosition.xyz);
+    vec3 ScreenPositionDDX = ddx(ScreenPosition.xyz);
+    vec3 ScreenPositionDDY = ddy(ScreenPosition.xyz);
+
+    ScreenPositionDDX = ScreenPositionDDX * 2 - 1;
+    ScreenPositionDDY = ScreenPositionDDY * 2 - 1;
+
     float4 ShadowPositionDDX = mul(float4(ScreenPositionDDX, 0), ScreenToShadowMatrix);
     float4 ShadowPositionDDY = mul(float4(ScreenPositionDDY, 0), ScreenToShadowMatrix);
+
+//    ShadowPositionDDX.xyz /= ShadowPositionDDX.w;
+//    ShadowPositionDDY.xyz /= ShadowPositionDDY.w;
+//
+//    ShadowPositionDDX.xyz = ShadowPositionDDX.xyz * 0.5 + 0.5;
+//    ShadowPositionDDY.xyz = ShadowPositionDDY.xyz * 0.5 + 0.5;
+
     #if SPOT_LIGHT_PCSS
     // perspective correction for derivatives, could be good enough and way cheaper to just use ddx(ScreenPosition)
     ShadowPositionDDX.xyz -= ShadowPosition.xyz * ShadowPositionDDX.w;

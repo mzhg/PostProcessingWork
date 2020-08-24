@@ -121,7 +121,7 @@ public class DemoApp {
 
 //        testParaboloidMatrix();
 //        testProjectionZ();  // 4:3 -->[33.962746, -157.41496, -69.76516, -69.55124], z/w = 1.0015378
-        testCamera();
+//        testCamera();
 //        NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
 //        run(new HBAODemo());
 //        run(new ASSAODemoDebug());
@@ -130,7 +130,7 @@ public class DemoApp {
 //        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
 //        run(new ShaderTest());
-//        run(new SoftShadowDemo());
+        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
@@ -158,7 +158,7 @@ public class DemoApp {
 //        run(new GeometryFXDemo());
 //        run(new TiledLighting11());
 //        run(new BindlessTextureSample());
-        run(new DervitiveComputShaderTest());
+//        run(new DervitiveComputShaderTest());
     }
 
     private static void testParaboloidMatrix(){
