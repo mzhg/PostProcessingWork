@@ -6,10 +6,6 @@ uniform mat3 luminance_from_radiance;
 
 uniform int scattering_order;
 
-layout(binding = 0) uniform sampler3D single_rayleigh_scattering_texture;
-layout(binding = 1) uniform sampler3D single_mie_scattering_texture;
-layout(binding = 2) uniform sampler3D multiple_scattering_texture;
-
 vec3 ComputeIndirectIrradiance( in AtmosphereParameters atmosphere, float r, float mu_s, int scattering_order)
 {
     assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
@@ -31,8 +27,7 @@ vec3 ComputeIndirectIrradiance( in AtmosphereParameters atmosphere, float r, flo
             vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
             float domega = (dtheta / rad) * (dphi / rad) * sin(theta) * sr;
             float nu = dot(omega, omega_s);
-            result += GetScattering(atmosphere, single_rayleigh_scattering_texture,
-            single_mie_scattering_texture, multiple_scattering_texture,
+            result += GetScattering(atmosphere,
             r, omega.z, mu_s, nu, false /* ray_r_theta_intersects_ground */,
             scattering_order) *
             omega.z * domega;
@@ -41,6 +36,7 @@ vec3 ComputeIndirectIrradiance( in AtmosphereParameters atmosphere, float r, flo
     return result;
 }
 
+const vec2 IRRADIANCE_TEXTURE_SIZE = vec2(IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT);
 vec3 ComputeIndirectIrradianceTexture( in AtmosphereParameters atmosphere, in vec2 frag_coord, int scattering_order)
 {
     float r;

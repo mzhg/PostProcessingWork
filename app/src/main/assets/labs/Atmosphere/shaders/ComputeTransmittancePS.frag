@@ -7,7 +7,7 @@ float ComputeOpticalLengthToTopAtmosphereBoundary(in AtmosphereParameters atmosp
     assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
     assert(mu >= -1.0 && mu <= 1.0);
     const int SAMPLE_COUNT = 500;
-    float dx = DistanceToTopAtmosphereBoundary(atmosphere, r, mu) / Number(SAMPLE_COUNT);
+    float dx = DistanceToTopAtmosphereBoundary(atmosphere, r, mu) / float(SAMPLE_COUNT);
     float result = 0.0;
     for (int i = 0; i <= SAMPLE_COUNT; ++i)
     {

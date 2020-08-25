@@ -12,6 +12,8 @@ const int SCATTERING_TEXTURE_NU_SIZE = 8;
 const int IRRADIANCE_TEXTURE_WIDTH = 64;
 const int IRRADIANCE_TEXTURE_HEIGHT = 16;
 
+#define COMBINED_SCATTERING_TEXTURES 1
+
 // The physical unit conversion
 const float m = 1.0;   // meters
 const float nm = 1.0;
@@ -76,6 +78,11 @@ struct AtmosphereParameters
     DensityProfile absorption_density;
     vec3 absorption_extinction;
     float padding;
+
+    vec3 SKY_SPECTRAL_RADIANCE_TO_LUMINANCE;
+    float p0;
+    vec3 SUN_SPECTRAL_RADIANCE_TO_LUMINANCE;
+    float p1;
 };
 
 layout(binding = 0) uniform CBuffer0
@@ -83,12 +90,31 @@ layout(binding = 0) uniform CBuffer0
     AtmosphereParameters ATMOSPHERE;
 };
 
+const int transmittance_unit = 0;
+const int single_rayleigh_scattering_unit = 1;
+const int single_mie_scattering_unit = 2;
+const int multiple_scattering_unit = 3;
+const int irradiance_unit = 4;
+const int scattering_density_unit = 5;
+
 layout(binding = 0) uniform sampler2D transmittance_texture;
 layout(binding = 1) uniform sampler3D single_rayleigh_scattering_texture;
 layout(binding = 2) uniform sampler3D single_mie_scattering_texture;
 layout(binding = 3) uniform sampler3D multiple_scattering_texture;
 layout(binding = 4) uniform sampler2D irradiance_texture;
 layout(binding = 5) uniform sampler3D scattering_density_texture;
+
+
+float RayleighPhaseFunction(float nu)
+{
+    float k = 3.0 / (16.0 * PI * sr);
+    return k * (1.0 + nu * nu);
+}
+float MiePhaseFunction(float g, float nu)
+{
+    float k = 3.0 / (8.0 * PI * sr) * (1.0 - g * g) / (2.0 + g * g);
+    return k * (1.0 + nu * nu) / pow(1.0 + g * g - 2.0 * g * nu, 1.5);
+}
 
 // Clamp the value into the range[-1,1]
 float ClampCosine(float mu)
@@ -144,6 +170,21 @@ float DistanceToTopAtmosphereBoundary(in AtmosphereParameters atmosphere, float 
     assert(mu >= -1.0 && mu <= 1.0);
     float discriminant = r * r * (mu * mu - 1.0) + atmosphere.top_radius * atmosphere.top_radius;
     return ClampDistance(-r * mu + SafeSqrt(discriminant));
+}
+
+float DistanceToBottomAtmosphereBoundary(in AtmosphereParameters atmosphere,  float r, float mu)
+{
+    assert(r >= atmosphere.bottom_radius);
+    assert(mu >= -1.0 && mu <= 1.0);
+    float discriminant = r * r * (mu * mu - 1.0) + atmosphere.bottom_radius * atmosphere.bottom_radius;
+    return ClampDistance(-r * mu - SafeSqrt(discriminant));
+}
+
+bool RayIntersectsGround(in AtmosphereParameters atmosphere, float r, float mu)
+{
+    assert(r >= atmosphere.bottom_radius);
+    assert(mu >= -1.0 && mu <= 1.0);
+    return mu < 0.0 && r * r * (mu * mu - 1.0) + atmosphere.bottom_radius * atmosphere.bottom_radius >= 0.0 * m2;
 }
 
 float GetLayerDensity(in DensityProfileLayer layer, float altitude)
@@ -237,6 +278,40 @@ out bool ray_r_mu_intersects_ground)
     mu * mu_s + sqrt((1.0 - mu * mu) * (1.0 - mu_s * mu_s)));
 }
 
+vec4 GetScatteringTextureUvwzFromRMuMuSNu(in AtmosphereParameters atmosphere, float r, float mu, float mu_s, float nu, bool ray_r_mu_intersects_ground)
+{
+    assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
+assert(mu >= -1.0 && mu <= 1.0);
+assert(mu_s >= -1.0 && mu_s <= 1.0);
+assert(nu >= -1.0 && nu <= 1.0);
+
+    float H = sqrt(atmosphere.top_radius * atmosphere.top_radius - atmosphere.bottom_radius * atmosphere.bottom_radius);
+    float rho = SafeSqrt(r * r - atmosphere.bottom_radius * atmosphere.bottom_radius);
+    float u_r = GetTextureCoordFromUnitRange(rho / H, SCATTERING_TEXTURE_R_SIZE);
+    float r_mu = r * mu;
+    float discriminant = r_mu * r_mu - r * r + atmosphere.bottom_radius * atmosphere.bottom_radius;
+    float u_mu;
+    if (ray_r_mu_intersects_ground) {
+        float d = -r_mu - SafeSqrt(discriminant);
+        float d_min = r - atmosphere.bottom_radius;
+        float d_max = rho;
+        u_mu = 0.5 - 0.5 * GetTextureCoordFromUnitRange(d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min), SCATTERING_TEXTURE_MU_SIZE / 2);
+    } else {
+        float d = -r_mu + SafeSqrt(discriminant + H * H);
+        float d_min = atmosphere.top_radius - r;
+        float d_max = rho + H;
+        u_mu = 0.5 + 0.5 * GetTextureCoordFromUnitRange((d - d_min) / (d_max - d_min), SCATTERING_TEXTURE_MU_SIZE / 2);
+    }
+    float d = DistanceToTopAtmosphereBoundary(atmosphere, atmosphere.bottom_radius, mu_s);
+    float d_min = atmosphere.top_radius - atmosphere.bottom_radius;
+    float d_max = H;
+    float a = (d - d_min) / (d_max - d_min);
+    float A = -2.0 * atmosphere.mu_s_min * atmosphere.bottom_radius / (d_max - d_min);
+    float u_mu_s = GetTextureCoordFromUnitRange(max(1.0 - a / A, 0.0) / (1.0 + a), SCATTERING_TEXTURE_MU_S_SIZE);
+    float u_nu = (nu + 1.0) / 2.0;
+    return vec4(u_nu, u_mu_s, u_mu, u_r);
+}
+
 vec3 GetScattering( in AtmosphereParameters atmosphere, sampler3D scattering_texture, float r, float mu, float mu_s, float nu, bool ray_r_mu_intersects_ground)
 {
     vec4 uvwz = GetScatteringTextureUvwzFromRMuMuSNu(atmosphere, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
@@ -245,12 +320,10 @@ vec3 GetScattering( in AtmosphereParameters atmosphere, sampler3D scattering_tex
     float lerp = tex_coord_x - tex_x;
     vec3 uvw0 = vec3((tex_x + uvwz.y) / float(SCATTERING_TEXTURE_NU_SIZE), uvwz.z, uvwz.w);
     vec3 uvw1 = vec3((tex_x + 1.0 + uvwz.y) / float(SCATTERING_TEXTURE_NU_SIZE), uvwz.z, uvwz.w);
-    return texture(scattering_texture, uvw0).rgb * (1.0 - lerp) + texture(scattering_texture, uvw1) * lerp.rgb;
+    return texture(scattering_texture, uvw0).rgb * (1.0 - lerp) + texture(scattering_texture, uvw1).rgb * lerp;
 }
 
-vec3 GetScattering( in AtmosphereParameters atmosphere, sampler3D single_rayleigh_scattering_texture,
-    sampler3D single_mie_scattering_texture,sampler3D multiple_scattering_texture,
-    float r, float mu, float mu_s, float nu, bool ray_r_mu_intersects_ground, int scattering_order)
+vec3 GetScattering( in AtmosphereParameters atmosphere, float r, float mu, float mu_s, float nu, bool ray_r_mu_intersects_ground, int scattering_order)
 {
     if (scattering_order == 1)
     {
@@ -263,4 +336,54 @@ vec3 GetScattering( in AtmosphereParameters atmosphere, sampler3D single_rayleig
     }
 }
 
+vec3 GetTransmittanceToTopAtmosphereBoundary(in AtmosphereParameters atmosphere, float r, float mu)
+{
+    assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
+    vec2 uv = GetTransmittanceTextureUvFromRMu(atmosphere, r, mu);
+    return vec3(texture(transmittance_texture, uv));
+}
 
+vec3 GetTransmittance( in AtmosphereParameters atmosphere, float r, float mu, float d, bool ray_r_mu_intersects_ground)
+{
+    assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
+    assert(mu >= -1.0 && mu <= 1.0);
+    assert(d >= 0.0);
+
+    float r_d = ClampRadius(atmosphere, sqrt(d * d + 2.0 * r * mu * d + r * r));
+    float mu_d = ClampCosine((r * mu + d) / r_d);
+    if (ray_r_mu_intersects_ground)
+    {
+        return min(GetTransmittanceToTopAtmosphereBoundary(atmosphere, r_d, -mu_d) /
+        GetTransmittanceToTopAtmosphereBoundary(atmosphere, r, -mu), vec3(1.0));
+    } else {
+        return min(GetTransmittanceToTopAtmosphereBoundary(atmosphere, r, mu) /
+        GetTransmittanceToTopAtmosphereBoundary(atmosphere, r_d, mu_d), vec3(1.0));
+    }
+}
+
+vec2 GetIrradianceTextureUvFromRMuS(in AtmosphereParameters atmosphere, float r, float mu_s)
+{
+    assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
+    assert(mu_s >= -1.0 && mu_s <= 1.0);
+    float x_r = (r - atmosphere.bottom_radius) / (atmosphere.top_radius - atmosphere.bottom_radius);
+    float x_mu_s = mu_s * 0.5 + 0.5;
+    return vec2(GetTextureCoordFromUnitRange(x_mu_s, IRRADIANCE_TEXTURE_WIDTH), GetTextureCoordFromUnitRange(x_r, IRRADIANCE_TEXTURE_HEIGHT));
+}
+
+float DistanceToNearestAtmosphereBoundary(in AtmosphereParameters atmosphere,  float r, float mu, bool ray_r_mu_intersects_ground)
+{
+    if (ray_r_mu_intersects_ground)
+    {
+        return DistanceToBottomAtmosphereBoundary(atmosphere, r, mu);
+    }
+    else
+    {
+        return DistanceToTopAtmosphereBoundary(atmosphere, r, mu);
+    }
+}
+
+vec3 GetIrradiance(in AtmosphereParameters atmosphere,  float r, float mu_s)
+{
+    vec2 uv = GetIrradianceTextureUvFromRMuS(atmosphere, r, mu_s);
+    return texture(irradiance_texture, uv).rgb;
+}

@@ -8,33 +8,6 @@ layout(location = 3) out vec3 single_mie_scattering;
 uniform mat3 luminance_from_radiance;
 uniform int layer;
 
-layout(binding = 0) uniform sampler2D transmittance_texture;
-
-vec3 GetTransmittanceToTopAtmosphereBoundary(in AtmosphereParameters atmosphere, Length r, Number mu)
-{
-    assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
-    vec2 uv = GetTransmittanceTextureUvFromRMu(atmosphere, r, mu);
-    return vec3(texture(transmittance_texture, uv));
-}
-
-vec3 GetTransmittance( in AtmosphereParameters atmosphere, float r, float mu, float d, bool ray_r_mu_intersects_ground)
-{
-    assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
-    assert(mu >= -1.0 && mu <= 1.0);
-    assert(d >= 0.0);
-
-    float r_d = ClampRadius(atmosphere, sqrt(d * d + 2.0 * r * mu * d + r * r));
-    float mu_d = ClampCosine((r * mu + d) / r_d);
-    if (ray_r_mu_intersects_ground)
-    {
-        return min(GetTransmittanceToTopAtmosphereBoundary(atmosphere, transmittance_texture, r_d, -mu_d) /
-        GetTransmittanceToTopAtmosphereBoundary(atmosphere, transmittance_texture, r, -mu), vec3(1.0));
-    } else {
-        return min(GetTransmittanceToTopAtmosphereBoundary(atmosphere, transmittance_texture, r, mu) /
-        GetTransmittanceToTopAtmosphereBoundary(atmosphere, transmittance_texture, r_d, mu_d), vec3(1.0));
-    }
-}
-
 vec3 GetTransmittanceToSun( in AtmosphereParameters atmosphere, float r, float mu_s)
 {
     float sin_theta_h = atmosphere.bottom_radius / r;

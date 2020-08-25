@@ -21,6 +21,7 @@ import java.util.Arrays;
 import jet.opengl.demos.gpupro.culling.OcclusionCullingDemo;
 import jet.opengl.demos.gpupro.culling.OrderIndependentTransparencyDemo;
 import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
+import jet.opengl.demos.labs.atmosphere.AtmosphereDemo;
 import jet.opengl.demos.labs.ogl.BindlessTextureSample;
 import jet.opengl.demos.labs.ogl.DervitiveComputShaderTest;
 import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
@@ -130,7 +131,7 @@ public class DemoApp {
 //        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
 //        run(new ShaderTest());
-        run(new SoftShadowDemo());
+//        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
@@ -159,6 +160,7 @@ public class DemoApp {
 //        run(new TiledLighting11());
 //        run(new BindlessTextureSample());
 //        run(new DervitiveComputShaderTest());
+        run(new AtmosphereDemo());
     }
 
     private static void testParaboloidMatrix(){

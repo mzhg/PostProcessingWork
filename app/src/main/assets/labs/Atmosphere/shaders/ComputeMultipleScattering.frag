@@ -23,7 +23,7 @@ vec3 ComputeMultipleScattering( in AtmosphereParameters atmosphere, float r, flo
         float mu_i = ClampCosine((r * mu + d_i) / r_i);
         float mu_s_i = ClampCosine((r * mu_s + d_i * nu) / r_i);
         vec3 rayleigh_mie_i = GetScattering( atmosphere, scattering_density_texture, r_i, mu_i, mu_s_i, nu, ray_r_mu_intersects_ground)
-        * GetTransmittance(atmosphere, transmittance_texture, r, mu, d_i, ray_r_mu_intersects_ground) * dx;
+        * GetTransmittance(atmosphere, r, mu, d_i, ray_r_mu_intersects_ground) * dx;
         float weight_i = (i == 0 || i == SAMPLE_COUNT) ? 0.5 : 1.0;
         rayleigh_mie_sum += rayleigh_mie_i * weight_i;
     }
@@ -38,7 +38,7 @@ vec3 ComputeMultipleScatteringTexture( in AtmosphereParameters atmosphere, in ve
     bool ray_r_mu_intersects_ground;
     GetRMuMuSNuFromScatteringTextureFragCoord(atmosphere, frag_coord, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
 
-    return ComputeMultipleScattering(atmosphere, transmittance_texture, scattering_density_texture, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
+    return ComputeMultipleScattering(atmosphere, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
 }
 
 void main()

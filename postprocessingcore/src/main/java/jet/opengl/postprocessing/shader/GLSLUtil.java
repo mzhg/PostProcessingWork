@@ -1119,6 +1119,12 @@ public final class GLSLUtil {
 			GLFuncProviderFactory.getGLFuncProvider().glUniformMatrix4fv(index, false, CacheBuffer.wrap(v));
 	}
 
+	public static void setMat3(GLSLProgram prog, String name, float[] v){
+		int index = prog.getUniformLocation(name, true);
+		if(index >=0)
+			GLFuncProviderFactory.getGLFuncProvider().glUniformMatrix3fv(index, false, CacheBuffer.wrap(v));
+	}
+
 	public static void setMat3(GLSLProgram prog, String name, Matrix3f v){
 		int index = prog.getUniformLocation(name, true);
 		if(index >=0)
