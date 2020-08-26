@@ -49,5 +49,5 @@ void main()
 {
     delta_irradiance = ComputeIndirectIrradianceTexture(ATMOSPHERE, gl_FragCoord.xy, scattering_order);
 
-    irradiance = luminance_from_radiance * delta_irradiance;
+    irradiance =  delta_irradiance * luminance_from_radiance;
 }

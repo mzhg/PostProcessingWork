@@ -16,12 +16,11 @@ import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.shader.GLSLProgram;
 import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.shader.Macro;
-import jet.opengl.postprocessing.util.CommonUtil;
 import jet.opengl.postprocessing.util.StackDouble;
 
 public class AtmosphereDemo extends NvSampleApp {
     private static final double kPi = 3.1415926;
-    private static final double kSunAngularRadius = 0.00935 / 2.0;
+    private static final double kSunAngularRadius = 0.00935 / 2.0 /*Math.toRadians(0.545)*/;
     private static final double kSunSolidAngle = kPi * kSunAngularRadius * kSunAngularRadius;
     private static final double kLengthUnitInMeters = 1000.0;
 
@@ -44,7 +43,7 @@ public class AtmosphereDemo extends NvSampleApp {
     boolean use_ozone_ = true;
     final boolean use_combined_textures_ = true;
     boolean use_half_precision_ = true;
-    Luminance use_luminance_ = Luminance.NONE;
+    Luminance use_luminance_ = Luminance.PRECOMPUTED;
     Luminance curr_lumi_mode = Luminance.PRECOMPUTED;
     boolean do_white_balance_ = false;
     boolean show_help_ = true;
@@ -79,7 +78,7 @@ public class AtmosphereDemo extends NvSampleApp {
 
     @Override
     public void initUI() {
-        mTweakBar.addValue("Sun Zenith Angle:", createControl("sun_zenith_angle_radians_"), 0.0f, (float)Math.PI/2);
+        mTweakBar.addValue("Sun Zenith Angle:", createControl("sun_zenith_angle_radians_"), 0.0f, (float)Math.PI/1.5f);
         mTweakBar.addValue("Sun Azimuth Angle:", createControl("sun_azimuth_angle_radians_"), 0.0f, (float)Math.PI* 2);
 
     }
@@ -231,27 +230,31 @@ optionally a help screen).
     @Override
     public void display() {
         if(program_ == null || use_luminance_ != curr_lumi_mode){
+            use_luminance_ = curr_lumi_mode;
+
             if(program_!=null)
                 program_.disable();
 
             List<Macro> macroList = new ArrayList<>(2);
-            if(curr_lumi_mode != Luminance.PRECOMPUTED){
-//                macroList.add(new Macro("RADIANCE_API_ENABLED", 1) );
+            if(curr_lumi_mode != Luminance.PRECOMPUTED)
+            {
+                macroList.add(new Macro("RADIANCE_API_ENABLED", 1) );
             }
             Macro[] macros= null;
             if(curr_lumi_mode != Luminance.NONE){
                 macroList.add(new Macro("USE_LUMINANCE", 1) );
-                macros = macroList.toArray(new Macro[macroList.size()]);
             }
 
-            use_luminance_ = curr_lumi_mode;
+            macros = macroList.toArray(new Macro[macroList.size()]);
             final String shaderPath = "labs/Atmosphere/shaders/";
             program_ = GLSLProgram.createProgram(shaderPath+"DemoVS.vert", shaderPath+"DemoPS.frag", macros);
         }
 
         program_.enable();
 
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
         gl.glViewport(0,0, getGLContext().width(), getGLContext().height());
+        gl.glClear(GLenum.GL_COLOR_BUFFER_BIT|GLenum.GL_DEPTH_BUFFER_BIT);
 
         m_transformer.getModelViewMat(mView);
 
@@ -291,6 +294,6 @@ optionally a help screen).
         if(width <= 0 || height <=0)
             return;
 
-        Matrix4f.perspective(60, (float)width/height, 0.1f, 1000.f, mProj);
+        Matrix4f.perspective(50, (float)width/height, 0.1f, 1000.f, mProj);
     }
 }

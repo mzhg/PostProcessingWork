@@ -20,23 +20,20 @@ float ComputeOpticalLengthToTopAtmosphereBoundary(in AtmosphereParameters atmosp
     return result;
 }
 
-vec3 ComputeTransmittanceToTopAtmosphereBoundary(in AtmosphereParameters atmosphere, float r, float mu) {
+vec3 ComputeTransmittanceToTopAtmosphereBoundary(in AtmosphereParameters atmosphere, float r, float mu)
+{
     assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
     assert(mu >= -1.0 && mu <= 1.0);
-    return exp(-(atmosphere.rayleigh_scattering *ComputeOpticalLengthToTopAtmosphereBoundary(
-    atmosphere, atmosphere.rayleigh_density, r, mu) +
-    atmosphere.mie_extinction *
-    ComputeOpticalLengthToTopAtmosphereBoundary(
-    atmosphere, atmosphere.mie_density, r, mu) +
-    atmosphere.absorption_extinction *
-    ComputeOpticalLengthToTopAtmosphereBoundary(
-    atmosphere, atmosphere.absorption_density, r, mu)));
+    return exp(-(
+    atmosphere.rayleigh_scattering *ComputeOpticalLengthToTopAtmosphereBoundary(atmosphere, atmosphere.rayleigh_density, r, mu) +
+    atmosphere.mie_extinction * ComputeOpticalLengthToTopAtmosphereBoundary(atmosphere, atmosphere.mie_density, r, mu) +
+    atmosphere.absorption_extinction * ComputeOpticalLengthToTopAtmosphereBoundary(atmosphere, atmosphere.absorption_density, r, mu)
+    ));
 }
 
 vec3 ComputeTransmittanceToTopAtmosphereBoundaryTexture(in AtmosphereParameters atmosphere, in vec2 frag_coord)
 {
-    const vec2 TRANSMITTANCE_TEXTURE_SIZE =
-    vec2(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT);
+    const vec2 TRANSMITTANCE_TEXTURE_SIZE = vec2(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT);
     float r;
     float mu;  // cos(viewZenthAngle)
 
@@ -47,6 +44,5 @@ vec3 ComputeTransmittanceToTopAtmosphereBoundaryTexture(in AtmosphereParameters 
 
 void main()
 {
-    transmittance = ComputeTransmittanceToTopAtmosphereBoundaryTexture(
-    ATMOSPHERE, gl_FragCoord.xy);
+    transmittance = ComputeTransmittanceToTopAtmosphereBoundaryTexture(ATMOSPHERE, gl_FragCoord.xy);
 }

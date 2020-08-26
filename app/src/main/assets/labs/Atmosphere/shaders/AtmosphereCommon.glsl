@@ -154,9 +154,17 @@ void GetRMuFromTransmittanceTextureUv(in AtmosphereParameters atmosphere, in vec
     assert(uv.y >= 0.0 && uv.y <= 1.0);
     float x_mu = GetUnitRangeFromTextureCoord(uv.x, TRANSMITTANCE_TEXTURE_WIDTH);
     float x_r = GetUnitRangeFromTextureCoord(uv.y, TRANSMITTANCE_TEXTURE_HEIGHT);
+
+    // Distance to top atmosphere boundary for a horizontal ray at ground level.
     float H = sqrt(atmosphere.top_radius * atmosphere.top_radius - atmosphere.bottom_radius * atmosphere.bottom_radius);
+
+    // Distance to the horizon, from which we can compute r:
     float rho = H * x_r;
     r = sqrt(rho * rho + atmosphere.bottom_radius * atmosphere.bottom_radius);
+
+    // Distance to the top atmosphere boundary for the ray (r,mu), and its minimum
+    // and maximum values over all mu - obtained for (r,1) and (r,mu_horizon) -
+    // from which we can recover mu:
     float d_min = atmosphere.top_radius - r;
     float d_max = rho + H;
     float d = d_min + x_mu * (d_max - d_min);
@@ -262,11 +270,7 @@ void GetRMuMuSNuFromScatteringTextureUvwz(in AtmosphereParameters atmosphere, in
 void GetRMuMuSNuFromScatteringTextureFragCoord(in AtmosphereParameters atmosphere, in vec3 frag_coord, out float r, out float mu, out float mu_s, out float nu,
 out bool ray_r_mu_intersects_ground)
 {
-    const vec4 SCATTERING_TEXTURE_SIZE = vec4(
-    SCATTERING_TEXTURE_NU_SIZE - 1,
-    SCATTERING_TEXTURE_MU_S_SIZE,
-    SCATTERING_TEXTURE_MU_SIZE,
-    SCATTERING_TEXTURE_R_SIZE);
+    const vec4 SCATTERING_TEXTURE_SIZE = vec4(SCATTERING_TEXTURE_NU_SIZE - 1, SCATTERING_TEXTURE_MU_S_SIZE, SCATTERING_TEXTURE_MU_SIZE, SCATTERING_TEXTURE_R_SIZE);
 
     float frag_coord_nu = floor(frag_coord.x / float(SCATTERING_TEXTURE_MU_S_SIZE));
     float frag_coord_mu_s = mod(frag_coord.x, float(SCATTERING_TEXTURE_MU_S_SIZE));

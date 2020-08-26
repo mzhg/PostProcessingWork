@@ -29,14 +29,13 @@
 
 package jet.opengl.demos.labs.atmosphere;
 
-import org.lwjgl.util.vector.ReadableVector3f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.List;
 
 import jet.opengl.postprocessing.buffer.BufferGL;
-import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLFuncProvider;
 import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 import jet.opengl.postprocessing.common.GLenum;
@@ -49,11 +48,15 @@ import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.Texture3D;
 import jet.opengl.postprocessing.texture.Texture3DDesc;
+import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureGL;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
+import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.StackDouble;
+
+import static jet.opengl.postprocessing.common.GLenum.GL_RGBA16F;
 
 /**<h2>atmosphere/model.h</h2>
 
@@ -198,7 +201,6 @@ final class Model implements Constant{
     private Texture3D optional_single_mie_scattering_texture_;
     private Texture2D irradiance_texture_;
 
-    private GLSLProgram atmosphere_shader_;
     private int full_screen_quad_vao_;
     private int linearSampler;
 
@@ -219,7 +221,9 @@ final class Model implements Constant{
     private StackDouble ground_albedo;
     private float length_unit_in_meters;
 
-    public BufferGL getAtmosphereBuffer(){ return atmosphereBuffer;}
+    private boolean use_hardwared_fbo = false;
+
+    static  boolean Debug = false;
 
     /**
      * Constructor for Atmosphere Model
@@ -316,7 +320,7 @@ final class Model implements Constant{
             boolean half_precision) {
         num_precomputed_wavelengths_ = num_precomputed_wavelengths;
         half_precision_ = (half_precision);
-        rgb_format_supported_ = true;
+        rgb_format_supported_ = false;
 
         this.wavelengths = wavelengths;
         this.solar_irradiance = solar_irradiance;
@@ -343,6 +347,9 @@ final class Model implements Constant{
                     SCATTERING_TEXTURE_DEPTH);
         }
         irradiance_texture_ = NewTexture2d(IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT);
+
+        atmosphereBuffer = new BufferGL();
+        atmosphereBuffer.initlize(GLenum.GL_UNIFORM_BUFFER, AtmosphereParameters.SIZE,null, GLenum.GL_DYNAMIC_DRAW);
 
         // Compute the values for the SKY_RADIANCE_TO_LUMINANCE constant. In theory
         // this should be 1 in precomputed illuminance mode (because the precomputed
@@ -383,6 +390,10 @@ final class Model implements Constant{
         parameters.SUN_SPECTRAL_RADIANCE_TO_LUMINANCE.x = (float)sun_rgb[0];
         parameters.SUN_SPECTRAL_RADIANCE_TO_LUMINANCE.y = (float)sun_rgb[1];
         parameters.SUN_SPECTRAL_RADIANCE_TO_LUMINANCE.z = (float)sun_rgb[2];
+
+        if(Debug){
+            loadDebugData();
+        }
     }
 
     void initParameters(float[] lambdas){
@@ -404,6 +415,19 @@ final class Model implements Constant{
 
     final void Init() {
         Init(4);
+    }
+
+    private void loadDebugData(){
+        final String root = "E:\\textures\\AtmosphereDemo\\";
+
+        ByteBuffer pixels =  DebugTools.loadBinary(root + "transmittance.dat");
+        transmittance_texture_ = NewTexture2d(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, pixels);
+
+        pixels =  DebugTools.loadBinary(root + "irradiance.dat");
+        irradiance_texture_ = NewTexture2d(IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, pixels);
+
+        pixels =  DebugTools.loadBinary(root + "inscattering.dat");
+        scattering_texture_ = NewTexture3d(SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH,pixels);
     }
 
     /**
@@ -461,6 +485,9 @@ want to store precomputed irradiance or illuminance values:
     void Init( int num_scattering_orders) {
         gl = GLFuncProviderFactory.getGLFuncProvider();
 
+        if(Debug)
+            return;
+
         // The precomputations require temporary textures, in particular to store the
         // contribution of one scattering order, which is needed to compute the next
         // order of scattering (the final precomputed textures store the sum of all
@@ -488,9 +515,6 @@ want to store precomputed irradiance or illuminance values:
         Texture3D delta_multiple_scattering_texture = delta_rayleigh_scattering_texture;
 
         full_screen_quad_vao_ = gl.glGenVertexArray();
-
-        atmosphereBuffer = new BufferGL();
-        atmosphereBuffer.initlize(GLenum.GL_UNIFORM_BUFFER, AtmosphereParameters.SIZE,null, GLenum.GL_DYNAMIC_DRAW);
 
         // The precomputations also require a temporary framebuffer object, created
         // here (and destroyed at the end of this method).
@@ -532,12 +556,10 @@ want to store precomputed irradiance or illuminance values:
             // transmittance for the 3 wavelengths used at the last iteration. But we
             // want the transmittance at kLambdaR, kLambdaG, kLambdaB instead, so we
             // must recompute it here for these 3 wavelengths:
-            /*std::string header = glsl_header_factory_({kLambdaR, kLambdaG, kLambdaB});  todo
+            /*std::string header = glsl_header_factory_({kLambdaR, kLambdaG, kLambdaB});
             Program compute_transmittance(
                     kVertexShader, header + kComputeTransmittanceShader);
-            glFramebufferTexture(
-                    GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, transmittance_texture_, 0);
-            glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
             glViewport(0, 0, TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT);
             compute_transmittance.Use();
             DrawQuad({}, full_screen_quad_vao_);*/
@@ -547,11 +569,19 @@ want to store precomputed irradiance or illuminance values:
             parameters.store(bytes);bytes.flip();
             atmosphereBuffer.update(0,  bytes);
 
+            gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, atmosphereBuffer.getBuffer());
+
             final String shaderPath = "labs/Atmosphere/shaders/";
             final String kVertexShader = "shader_libs/PostProcessingDefaultScreenSpaceVS.vert";
             GLSLProgram compute_transmittance = GLSLProgram.createProgram(kVertexShader, shaderPath+"ComputeTransmittancePS.frag", null);
+            fbo.bind();
+            if(use_hardwared_fbo){
+                gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, transmittance_texture_.getTexture(), 0);
+                drawBuffer(1);
+            }else{
+                fbo.setRenderTexture(transmittance_texture_, null);
+            }
 
-            fbo.setRenderTexture(transmittance_texture_, null);
             gl.glViewport(0, 0, TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT);
             compute_transmittance.enable();
 
@@ -569,16 +599,13 @@ want to store precomputed irradiance or illuminance values:
         glDeleteTextures(1, &delta_rayleigh_scattering_texture);
         glDeleteTextures(1, &delta_irradiance_texture);
         assert(glGetError() == 0);*/
-
+        gl.glBindFramebuffer(GLenum.GL_FRAMEBUFFER, 0);
+        gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0,0);
         fbo.dispose();
         delta_scattering_density_texture.dispose();
         delta_mie_scattering_texture.dispose();
         delta_rayleigh_scattering_texture.dispose();
         delta_irradiance_texture.dispose();
-    }
-
-    GLSLProgram shader() {
-        return atmosphere_shader_;
     }
 
     float coeff(double dlambda, double lambda, int component) {
@@ -696,12 +723,14 @@ blending separately enabled or disabled for each color attachment):
         }
 
         gl.glBindVertexArray(quad_vao);
-        gl.glDrawArrays(GLenum.GL_TRIANGLE_STRIP, 0, 4);
+        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
         gl.glBindVertexArray(0);
 
         for (int i = 0; i < enable_blend.length; ++i) {
             gl.glDisablei(GLenum.GL_BLEND, i);
         }
+
+        GLSLUtil.fenceSync();
     }
 
     private void Precompute(
@@ -750,37 +779,39 @@ blending separately enabled or disabled for each color attachment):
         atmosphereBuffer.update(0,  bytes);
 
         gl.glBindBufferBase(GLenum.GL_UNIFORM_BUFFER, 0, atmosphereBuffer.getBuffer());
-
-        // Compute the transmittance, and store it in transmittance_texture_.
-        /*glFramebufferTexture(
-                GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, transmittance_texture_, 0);
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);*/
         fbo.bind();
-        fbo.setRenderTexture(transmittance_texture_, null);
+
+        // 1. Compute the transmittance, and store it in transmittance_texture_.
+        if(use_hardwared_fbo){
+            gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, transmittance_texture_.getTexture(), 0);
+//            glDrawBuffer(GL_COLOR_ATTACHMENT0);
+            drawBuffer(1);
+        }else{
+            fbo.setRenderTexture(transmittance_texture_, null);
+        }
 
         gl.glViewport(0, 0, TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT);
         compute_transmittance.enable();
         GLSLUtil.assertUniformBuffer(compute_transmittance, "CBuffer0", 0, AtmosphereParameters.SIZE);
 
-//        DrawQuad({}, full_screen_quad_vao_);
-        gl.glBindVertexArray(full_screen_quad_vao_);
-        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
-        gl.glBindVertexArray(0);
+        DrawQuad(Numeric.EMPTY_BOOL, full_screen_quad_vao_);
 
         compute_transmittance.setName("Compute Transmittance");
         compute_transmittance.printOnce();
 
-        // Compute the direct irradiance, store it in delta_irradiance_texture and,
+        // 2. Compute the direct irradiance, store it in delta_irradiance_texture and,
         // depending on 'blend', either initialize irradiance_texture_ with zeros or
         // leave it unchanged (we don't want the direct irradiance in
         // irradiance_texture_, but only the irradiance from the sky).
-        /*glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                delta_irradiance_texture, 0);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
-                irradiance_texture_, 0);
-        glDrawBuffers(2, kDrawBuffers);*/
 
-        fbo.setRenderTextures(new TextureGL[]{delta_irradiance_texture, irradiance_texture_}, null);
+        if(use_hardwared_fbo) {
+            gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, delta_irradiance_texture.getTexture(), 0);
+            gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT1, irradiance_texture_.getTexture(), 0);
+//            gl.glDrawBuffers(2, kDrawBuffers);
+            drawBuffer(2);
+        }else{
+            fbo.setRenderTextures(new TextureGL[]{delta_irradiance_texture, irradiance_texture_}, null);
+        }
         gl.glViewport(0, 0, IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT);
         compute_direct_irradiance.enable();
 //        compute_direct_irradiance.BindTexture2d(
@@ -790,32 +821,32 @@ blending separately enabled or disabled for each color attachment):
         gl.glBindTextureUnit(transmittance_unit, transmittance_texture_.getTexture());
         gl.glBindSampler(transmittance_unit, linearSampler);
 
-        gl.glBindVertexArray(full_screen_quad_vao_);
-        gl.glDrawArrays(GLenum.GL_TRIANGLES, 0, 3);
-        gl.glBindVertexArray(0);
+        DrawQuad(new boolean[]{false, blend}, full_screen_quad_vao_);
 
         compute_direct_irradiance.setName("Compute Direct Irradiance");
         compute_direct_irradiance.printOnce();
 
 
-        // Compute the rayleigh and mie single scattering, store them in
+        //3, Compute the rayleigh and mie single scattering, store them in
         // delta_rayleigh_scattering_texture and delta_mie_scattering_texture, and
         // either store them or accumulate them in scattering_texture_ and
         // optional_single_mie_scattering_texture_.
-        /*glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                delta_rayleigh_scattering_texture, 0);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
-                delta_mie_scattering_texture, 0);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
-                scattering_texture_, 0);*/
-        if (optional_single_mie_scattering_texture_ != null) {
+        if(use_hardwared_fbo){
+            gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, delta_rayleigh_scattering_texture.getTexture(), 0);
+            gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT1, delta_mie_scattering_texture.getTexture(), 0);
+            gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT2, scattering_texture_.getTexture(), 0);
+            drawBuffer(3);
+        }else {
+
+            if (optional_single_mie_scattering_texture_ != null) {
             /*glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
                     optional_single_mie_scattering_texture_, 0);
             glDrawBuffers(4, kDrawBuffers);*/
-            fbo.setRenderTextures(new TextureGL[]{delta_rayleigh_scattering_texture, delta_mie_scattering_texture,scattering_texture_,optional_single_mie_scattering_texture_}, null);
-        } else {
+                fbo.setRenderTextures(new TextureGL[]{delta_rayleigh_scattering_texture, delta_mie_scattering_texture, scattering_texture_, optional_single_mie_scattering_texture_}, null);
+            } else {
 //            glDrawBuffers(3, kDrawBuffers);
-            fbo.setRenderTextures(new TextureGL[]{delta_rayleigh_scattering_texture, delta_mie_scattering_texture,scattering_texture_}, null);
+                fbo.setRenderTextures(new TextureGL[]{delta_rayleigh_scattering_texture, delta_mie_scattering_texture, scattering_texture_}, null);
+            }
         }
         gl.glViewport(0, 0, SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT);
         compute_single_scattering.enable();
@@ -840,20 +871,20 @@ blending separately enabled or disabled for each color attachment):
             }
         }
 
-        // Compute the 2nd, 3rd and 4th order of scattering, in sequence.
+        //4, Compute the 2nd, 3rd and 4th order of scattering, in sequence.
         for (int scattering_order = 2; scattering_order <= num_scattering_orders; ++scattering_order) {
             // Compute the scattering density, and store it in
             // delta_scattering_density_texture.
-            /*glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                    delta_scattering_density_texture, 0);
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, 0, 0);
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, 0, 0);
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, 0, 0);
-            glDrawBuffer(GL_COLOR_ATTACHMENT0);*/
-            fbo.setRenderTexture(delta_scattering_density_texture, null);
-            GLCheck.checkError();
+            if(use_hardwared_fbo){
+                gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0,delta_scattering_density_texture.getTexture(), 0);
+                gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT1, 0, 0);
+                gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT2, 0, 0);
+                gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT3, 0, 0);
+                drawBuffer(1);
+            }else {
+                fbo.setRenderTexture(delta_scattering_density_texture, null);
+            }
             gl.glViewport(0, 0, SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT);
-            GLCheck.checkError();
             compute_scattering_density.enable();
             /*compute_scattering_density.BindTexture2d(
                     "transmittance_texture", transmittance_texture_, 0);
@@ -884,12 +915,9 @@ blending separately enabled or disabled for each color attachment):
             gl.glBindSampler(irradiance_unit, linearSampler);
 
             GLSLUtil.setInt(compute_scattering_density, "scattering_order", scattering_order);
-            GLCheck.checkError();
             for (int layer = 0; layer < SCATTERING_TEXTURE_DEPTH; ++layer) {
                 GLSLUtil.setInt(compute_scattering_density, "layer", layer);
-                GLCheck.checkError();
                 DrawQuad(Numeric.EMPTY_BOOL, full_screen_quad_vao_);
-                GLCheck.checkError();
                 if(layer % 8 == 0){
                     compute_scattering_density.setName("Compute Scattering Density" + layer);
                     compute_scattering_density.printPrograminfo();
@@ -898,12 +926,14 @@ blending separately enabled or disabled for each color attachment):
 
             // Compute the indirect irradiance, store it in delta_irradiance_texture and
             // accumulate it in irradiance_texture_.
-            /*glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                    delta_irradiance_texture, 0);
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
-                    irradiance_texture_, 0);
-            glDrawBuffers(2, kDrawBuffers);*/
-            fbo.setRenderTextures(new TextureGL[]{delta_irradiance_texture, irradiance_texture_}, null);
+            if(use_hardwared_fbo){
+                gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, delta_irradiance_texture.getTexture(), 0);
+                gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT1, irradiance_texture_.getTexture(), 0);
+                drawBuffer(2);
+            }else{
+                fbo.setRenderTextures(new TextureGL[]{delta_irradiance_texture, irradiance_texture_}, null);
+            }
+
             gl.glViewport(0, 0, IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT);
             compute_indirect_irradiance.enable();
             /*compute_indirect_irradiance.BindMat3(
@@ -940,12 +970,14 @@ blending separately enabled or disabled for each color attachment):
             // Compute the multiple scattering, store it in
             // delta_multiple_scattering_texture, and accumulate it in
             // scattering_texture_.
-            /*glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                    delta_multiple_scattering_texture, 0);
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
-                    scattering_texture_, 0);
-            glDrawBuffers(2, kDrawBuffers);*/
-            fbo.setRenderTextures(new TextureGL[]{delta_multiple_scattering_texture, scattering_texture_}, null);
+            if(use_hardwared_fbo){
+                gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, delta_multiple_scattering_texture.getTexture(), 0);
+                gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT1, scattering_texture_.getTexture(), 0);
+                drawBuffer(2);
+            }else{
+                fbo.setRenderTextures(new TextureGL[]{delta_multiple_scattering_texture, scattering_texture_}, null);
+            }
+
             gl.glViewport(0, 0, SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT);
             compute_multiple_scattering.enable();
             /*compute_multiple_scattering.BindMat3(
@@ -975,25 +1007,59 @@ blending separately enabled or disabled for each color attachment):
             }
 
         }
-        /*glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, 0, 0);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, 0, 0);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, 0, 0);*/
+
+        if(use_hardwared_fbo){
+            gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT1, 0, 0);
+            gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT2, 0, 0);
+            gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT3, 0, 0);
+        }
 
         for(int i = 0; i < 6; i++){
             gl.glBindTextureUnit(i, 0);
             gl.glBindSampler(i, 0);
         }
+
+        compute_transmittance.dispose();
+        compute_direct_irradiance.dispose();
+        compute_single_scattering.dispose();
+        compute_scattering_density.dispose();
+        compute_indirect_irradiance.dispose();
+        compute_multiple_scattering.dispose();
+    }
+
+    private void drawBuffer(int count){
+        IntBuffer drawBuffers = CacheBuffer.getCachedIntBuffer(count);
+        for(int i = 0; i < count; i++)
+            drawBuffers.put(GLenum.GL_COLOR_ATTACHMENT0 + i);
+
+        drawBuffers.flip();
+
+        gl.glDrawBuffers(drawBuffers);
+    }
+
+    private Texture2D NewTexture2d(int width, int height, ByteBuffer pixels){
+        Texture2DDesc desc2D = new Texture2DDesc(width, height, GLenum.GL_RGBA32F);
+        TextureDataDesc data = new TextureDataDesc(GLenum.GL_RGBA, GLenum.GL_FLOAT, pixels);
+
+        return TextureUtils.createTexture2D(desc2D, data);
+    }
+
+    private Texture3D NewTexture3d(int width, int height, int depth, ByteBuffer pixels){
+        Texture3DDesc desc3D = new Texture3DDesc(width, height, depth, 1, GLenum.GL_RGB16F);
+        TextureDataDesc data = new TextureDataDesc(GLenum.GL_RGBA, GLenum.GL_HALF_FLOAT, pixels);
+
+        return TextureUtils.createTexture3D(desc3D, data);
     }
 
     private Texture2D NewTexture2d(int width, int height){
-        int format = rgb_format_supported_ ? (half_precision_?GLenum.GL_RGB16F:GLenum.GL_RGB16F):(half_precision_?GLenum.GL_RGBA32F:GLenum.GL_RGBA16F);
-
-        Texture2DDesc desc2D = new Texture2DDesc(width, height, format);
+ //       int format = rgb_format_supported_ ? (half_precision_?GLenum.GL_RGB16F:GLenum.GL_RGB32F):(half_precision_? GL_RGBA16F:GLenum.GL_RGBA32F);
+        int format =GLenum.GL_RGB32F;
+                Texture2DDesc desc2D = new Texture2DDesc(width, height, format);
         return TextureUtils.createTexture2D(desc2D, null);
     }
 
     private Texture3D NewTexture3d(int width, int height, int depth){
-        int format = rgb_format_supported_ ? (half_precision_?GLenum.GL_RGB16F:GLenum.GL_RGB16F):(half_precision_?GLenum.GL_RGBA32F:GLenum.GL_RGBA16F);
+        int format = rgb_format_supported_ ? (half_precision_?GLenum.GL_RGB16F:GLenum.GL_RGB32F):(half_precision_? GL_RGBA16F:GLenum.GL_RGBA32F);
 
         Texture3DDesc desc3D = new Texture3DDesc(width, height, depth, 1, format);
         return TextureUtils.createTexture3D(desc3D, null);
