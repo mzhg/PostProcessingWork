@@ -18,8 +18,6 @@ import jet.opengl.postprocessing.util.DebugTools;
 import jet.opengl.postprocessing.util.LogUtil;
 import jet.opengl.postprocessing.util.StringUtils;
 
-import static jet.opengl.postprocessing.shader.GLSLUtil.getShaderName;
-
 public class GLSLProgram implements OpenGLProgram{
 
 	protected int m_program;
@@ -219,7 +217,7 @@ public class GLSLProgram implements OpenGLProgram{
 			if (status == 0)
 			{
 				String infoLog = gl.glGetProgramInfoLog(object);
-				LogUtil.e(LogUtil.LogType.DEFAULT, String.format("Error compiling %s, %s:\n", debugName, getShaderName(target)));
+				LogUtil.e(LogUtil.LogType.DEFAULT, String.format("Error compiling %s, %s:\n", debugName, GLSLUtil.getShaderName(target)));
 				LogUtil.e(LogUtil.LogType.DEFAULT, String.format("Log: %s", infoLog));
 
 				gl.glDeleteProgram( object);
