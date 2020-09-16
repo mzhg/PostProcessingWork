@@ -6,10 +6,10 @@ import com.nvidia.developer.opengl.app.NvInputTransformer;
 import com.nvidia.developer.opengl.utils.ShadowmapGenerateProgram;
 
 import org.lwjgl.util.vector.Matrix4f;
-import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
+import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,13 +17,17 @@ import jet.opengl.demos.scene.BaseScene;
 import jet.opengl.postprocessing.common.GLCheck;
 import jet.opengl.postprocessing.common.GLenum;
 import jet.opengl.postprocessing.core.volumetricLighting.LightType;
+import jet.opengl.postprocessing.shader.GLSLUtil;
 import jet.opengl.postprocessing.texture.SamplerDesc;
 import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.Texture2DDesc;
+import jet.opengl.postprocessing.texture.TextureDataDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.BoundingBox;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.LogUtil;
+import jet.opengl.postprocessing.util.Numeric;
 import jet.opengl.postprocessing.util.NvImage;
 
 /**
@@ -53,6 +57,7 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
     private Texture2D m_GroundDiffuseTex;
     private Texture2D m_GroundNormalTex;
     private Texture2D m_RockDiffuseTex;
+    private Texture2D m_SobelTex;
     private SoftShadowSceneRenderProgram m_SceneRenderProgram;
 
     private boolean m_useTexture = true;
@@ -66,6 +71,10 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
     private int m_SamplerShadowTex;
 
     private ShadowMapGenerator m_ShadowGen;
+    private final Matrix4f m_ScreenToShadowMap = new Matrix4f();
+
+    private final BoundingBox m_groundBounds = new BoundingBox();
+    private int m_groundIndex;
 
     public SoftShadowScene(ShadowMapGenerator shadowGenerator){
         m_ShadowGen = shadowGenerator;
@@ -123,15 +132,15 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         m_ShadowConfig.shadowMapSplitting = ShadowMapGenerator.ShadowMapSplitting.NONE;
         m_ShadowConfig.checkCameraFrustumeVisible = false;
         m_ShadowConfig.lightNear = 0.1f;
-        m_ShadowConfig.lightFar = 32.0f;
-        m_ShadowConfig.shadowMapFormat = GLenum.GL_DEPTH_COMPONENT16;
+        m_ShadowConfig.lightFar = 100.0f;
+        m_ShadowConfig.shadowMapFormat = GLenum.GL_DEPTH_COMPONENT32F;
         m_ShadowConfig.shadowMapSampleCount = 1;
-        m_ShadowConfig.shadowMapSize = 1024;
+        m_ShadowConfig.shadowMapSize = 2048;
         m_ShadowConfig.shadowMapPattern = ShadowMapGenerator.ShadowMapPattern.POISSON_100_100;
 
         SamplerDesc desc = new SamplerDesc();
-        desc.minFilter = GLenum.GL_NEAREST;
-        desc.magFilter = GLenum.GL_NEAREST;
+        desc.minFilter = GLenum.GL_LINEAR;
+        desc.magFilter = GLenum.GL_LINEAR;
         desc.borderColor = 0xFFFFFFFF;  // white
         desc.wrapR = GLenum.GL_CLAMP_TO_BORDER;
         desc.wrapS = GLenum.GL_CLAMP_TO_BORDER;
@@ -197,77 +206,7 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         updateLightCamera(camera.getModelViewMat(NvCameraXformType.SECONDARY, m_tempMat0));
     }
 
-    private void updateLightCamera(Matrix4f view)
-    {
-        /*// Assuming that the bbox of mesh1 contains everything
-        Vector3f center = m_knightMesh.getWorldCenter();
-        Vector3f extents = m_knightMesh.getExtents();
-
-        Vector3f[] box = new Vector3f[2];
-//		        box[0] = center - extents;
-//		        box[1] = center + extents;
-        box[0] = Vector3f.sub(center, extents, box[0]);
-        box[1] = Vector3f.add(center, extents, box[1]);
-
-        Vector3f[] bbox = new Vector3f[2];
-        transformBoundingBox(box, view, bbox);
-
-        float frustumWidth = Math.max(Math.abs(bbox[0].x), Math.abs(bbox[1].x)) * 2.0f;
-        float frustumHeight = Math.max(Math.abs(bbox[0].y), Math.abs(bbox[1].y)) * 2.0f;
-        float zNear = -bbox[1].z;
-        float zFar = LIGHT_ZFAR;
-
-        System.out.println("zNear = " + zNear);
-        System.out.println("zFar = " + zFar);
-
-        Matrix4f proj = tmp_mat1;
-        Matrix4f.frustum(frustumWidth, frustumHeight, zNear, zFar, proj);
-//		        m_lightViewProj = proj * view;
-        Matrix4f.mul(proj, view, m_lightViewProj);
-
-        Matrix4f clip2Tex = tmp_mat1;
-        clip2Tex.setIdentity();
-
-//		        clip2Tex.set_scale(nv.vec3f(0.5f, 0.5f, 0.5f));
-//		        clip2Tex.set_translate(nv.vec3f(0.5f, 0.5f, 0.5f));
-        clip2Tex.m00 = clip2Tex.m11 = clip2Tex.m22 = 0.5f;
-        clip2Tex.m30 = clip2Tex.m31 = clip2Tex.m32 = 0.5f;
-
-//		        nv.matrix4f viewProjClip2Tex = clip2Tex * m_lightViewProj;
-        Matrix4f viewProjClip2Tex = Matrix4f.mul(clip2Tex, m_lightViewProj, clip2Tex);
-
-//		        nv.matrix4f inverseView = nv.inverse(view);
-        Matrix4f inverseView = Matrix4f.invert(view, tmp_mat2);
-        Vector3f lightCenterWorld = Matrix4f.transformVector(inverseView, Vector3f.ZERO, null);
-
-        if (m_shadowMapShader != null)
-        {
-            m_shadowMapShader.enable();
-            m_shadowMapShader.setViewProjMatrix(m_lightViewProj);
-            m_shadowMapShader.disable();
-        }
-
-        if (m_visTexShader != null)
-        {
-            m_visTexShader.enable();
-            m_visTexShader.setLightZNear(zNear);
-            m_visTexShader.setLightZFar(zFar);
-            m_visTexShader.disable();
-        }
-
-        if (m_pcssShader != null)
-        {
-            m_pcssShader.enable();
-            m_pcssShader.setLightViewMatrix(view);
-            m_pcssShader.setLightViewProjClip2TexMatrix(viewProjClip2Tex);
-            m_pcssShader.setLightZNear(zNear);
-            m_pcssShader.setLightZFar(zFar);
-            m_pcssShader.setLightPosition(lightCenterWorld);
-            m_pcssShader.disable();
-        }
-
-        updateLightSize(frustumWidth, frustumHeight);*/
-
+    private void updateLightCamera(Matrix4f view) {
         Matrix4f inverseView = Matrix4f.invert(view, view);
         Matrix4f.transformVector(inverseView, Vector3f.ZERO, m_ShadowConfig.lightPos);
         Vector3f.sub(Vector3f.ZERO, m_ShadowConfig.lightPos, m_ShadowConfig.lightDir);
@@ -312,6 +251,9 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         gl.glBindTexture(shadowMap.getTarget(), shadowMap.getTexture());
         gl.glBindSampler(4, m_SamplerShadowTex);
 
+        gl.glActiveTexture(GLenum.GL_TEXTURE6);
+        gl.glBindTexture(m_SobelTex.getTarget(), m_SobelTex.getTexture());
+
         gl.glActiveTexture(GLenum.GL_TEXTURE0);
         gl.glBindTexture(m_RockDiffuseTex.getTarget(), m_RockDiffuseTex.getTexture());
 
@@ -320,6 +262,40 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         m_SceneRenderProgram.setLightPos(m_ShadowConfig.lightPos);
         m_SceneRenderProgram.setPodiumCenterWorldPos(m_podiumMesh.getCenter());
         m_SceneRenderProgram.setShadowUniforms(m_ShadowConfig, m_ShadowGen.getShadowMapParams());
+
+        // GetLightSourceAngle returns the full angle.
+        float DirectionalLightAngle = 0.5357f;  // 10 degrees
+        double TanLightSourceAngle = Math.tan(0.5 * Math.toRadians(DirectionalLightAngle));
+
+        float MaxKernelSize  = 10;
+
+        float SW = 2.0f * m_ShadowGen.getShadowCasterRadius();
+        float SZ = m_ShadowGen.getShadowCasterDepthRange();
+
+//        FVector4 PCSSParameterValues = FVector4(TanLightSourceAngle * SZ / SW, MaxKernelSize / float(ShadowInfo->ResolutionX), 0, 0);
+        {
+            float PCSSParameterValuesX = (float) (TanLightSourceAngle * SZ / SW);
+            float PCSSParameterValuesY = MaxKernelSize / (float)shadowMap.getWidth();
+            float SoftTransitionScale = ComputeTransitionSize();
+            GLSLUtil.setFloat4(m_SceneRenderProgram, "PCSSParameters", PCSSParameterValuesX,PCSSParameterValuesY,SoftTransitionScale,0);
+        }
+
+        {
+            final Matrix4f screenToWorld = m_tempMat0;
+            Matrix4f.invert(mSceneData.getViewProjMatrix(), screenToWorld);
+
+            ShadowMapParams shadowData = m_ShadowGen.getShadowMapParams();
+            Matrix4f.mul(shadowData.m_LightViewProj, screenToWorld, m_ScreenToShadowMap);
+            /*screenToWorld.set(0.5f,0,0,0,
+                    0, 0.5f,0,0,
+                    0,0,0.5f, 0,
+                    0.5f, 0.5f, 0.5f, 1.0f);
+
+            Matrix4f.mul(screenToWorld, m_ScreenToShadowMap, m_ScreenToShadowMap);*/
+
+            GLSLUtil.setMat4(m_SceneRenderProgram, "ScreenToShadowMatrix", m_ScreenToShadowMap);
+        }
+
         drawMeshes(m_SceneRenderProgram);
 
         if(!m_printOnce){
@@ -365,7 +341,11 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
 
     @Override
     public void addShadowCasterBoundingBox(int index, BoundingBox boundingBox) {
-        boundingBox.expandBy(m_meshInstances.get(index).getBounds());
+        if(index == m_groundIndex){
+            boundingBox.expandBy(m_groundBounds);
+        }else {
+            boundingBox.expandBy(m_meshInstances.get(index).getBounds());
+        }
     }
 
     @Override
@@ -419,6 +399,18 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         // Clear the VBO state
         gl.glBindBuffer(GLenum.GL_ARRAY_BUFFER, 0);
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        m_groundBounds.init();
+        m_groundBounds.expandBy(-radius, height,  radius);
+        m_groundBounds.expandBy(radius, height,  radius);
+        m_groundBounds.expandBy(radius, height, -radius);
+        m_groundBounds.expandBy(-radius, height, -radius);
+
+        m_groundBounds.expandBy(-radius, height + 0.01f,  radius);
+        m_groundBounds.expandBy(radius, height + 0.01f,  radius);
+        m_groundBounds.expandBy(radius, height + 0.01f, -radius);
+        m_groundBounds.expandBy(-radius, height + 0.01f, -radius);
+        m_groundIndex = m_meshInstances.size();
     }
 
     void createTextures()
@@ -441,6 +433,67 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
         setTextureRepeatParams(m_RockDiffuseTex);
 
         gl.glBindTexture(m_GroundDiffuseTex.getTarget(), 0);
+
+        Texture2DDesc desc = new Texture2DDesc(32, 16, GLenum.GL_R16UI);
+        ShortBuffer destBuffer = CacheBuffer.getCachedShortBuffer(desc.width * desc.height);
+
+        for(int y = 0; y < 16; y++){
+            // 16x16 block stating at 0,0 = Sobol X,Y form bottom 4 bits of cell X,Y
+            for(int x = 0; x < 16; x++){
+                short v = ComputeGPUSpatialSeed(x,y,0);
+                destBuffer.put(v);
+            }
+
+            // 16x16 block starting at 16,0 = Sobol X,Y from 2nd 4 bits of cell X,Y
+            for(int x = 0; x < 16; x++){
+                short v = ComputeGPUSpatialSeed(x,y,1);
+                destBuffer.put(v);
+            }
+        }
+
+        destBuffer.flip();
+        TextureDataDesc initData = new TextureDataDesc();
+        initData.format = TextureUtils.measureFormat(desc.format);
+        initData.type = TextureUtils.measureDataType(desc.format);
+
+        m_SobelTex = TextureUtils.createTexture2D(desc, initData);
+    }
+
+    // static
+    private static short ComputeGPUSpatialSeed(int x, int y, int Index)
+    {
+        assert (x >= 0 && x < 16);
+        assert (y >= 0 && y < 16);
+
+        int Result = 0;
+        if (Index == 0)
+        {
+            Result  = (x & 0x001)!=0 ? 0xf68e : 0;
+            Result ^= (x & 0x002)!=0 ? 0x8e56 : 0;
+            Result ^= (x & 0x004)!=0 ? 0x1135 : 0;
+            Result ^= (x & 0x008)!=0 ? 0x220a : 0;
+            Result ^= (y & 0x001)!=0 ? 0x94c4 : 0;
+            Result ^= (y & 0x002)!=0 ? 0x4ac2 : 0;
+            Result ^= (y & 0x004)!=0 ? 0xfb57 : 0;
+            Result ^= (y & 0x008)!=0 ? 0x0454 : 0;
+        }
+        else if (Index == 1)
+        {
+            Result  = (x & 0x001)!=0 ? 0x4414 : 0;
+            Result ^= (x & 0x002)!=0 ? 0x8828 : 0;
+            Result ^= (x & 0x004)!=0 ? 0xe69e : 0;
+            Result ^= (x & 0x008)!=0 ? 0xae76 : 0;
+            Result ^= (y & 0x001)!=0 ? 0xa28a : 0;
+            Result ^= (y & 0x002)!=0 ? 0x265e : 0;
+            Result ^= (y & 0x004)!=0 ? 0xe69e : 0;
+            Result ^= (y & 0x008)!=0 ? 0xae76 : 0;
+        }
+        else
+        {
+            assert (false);
+        }
+
+        return (short)(Result & Numeric.MAX_USHORT);
     }
 
     private void setTextureRepeatParams(Texture2D tex){
@@ -550,5 +603,54 @@ final class SoftShadowScene extends BaseScene implements ShadowSceneController{
             gl.glDisableVertexAttribArray(normalLocation);
         }
         gl.glBindBuffer(GLenum.GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+
+    private boolean IsWholeScenePointLightShadow() { return false;}
+    private boolean IsWholeSceneDirectionalShadow()  { return true;}
+
+    float ComputeTransitionSize()
+    {
+        boolean bPreShadow = false;
+        boolean bDirectionalLight = m_ShadowConfig.lightType == LightType.DIRECTIONAL;
+
+        float TransitionSize = 1.0f;
+        if (IsWholeScenePointLightShadow())
+        {
+            // todo: optimize
+//            TransitionSize = bDirectionalLight ? (1.0f / CVarShadowTransitionScale.GetValueOnRenderThread()) : (1.0f / CVarSpotLightShadowTransitionScale.GetValueOnRenderThread());
+            // * 2.0f to be compatible with the system we had before ShadowBias
+            TransitionSize *= 2.0f * /*LightSceneInfo->Proxy->GetUserShadowBias()*/ 0.5f;
+        }
+        else if (IsWholeSceneDirectionalShadow())
+        {
+//            check(CascadeSettings.ShadowSplitIndex >= 0);
+
+            // todo: remove GetShadowTransitionScale()
+            // make 1/ ShadowTransitionScale, SpotLightShadowTransitionScale
+
+            // the z range is adjusted to we need to adjust here as well
+            TransitionSize = /*CVarCSMShadowDepthBias.GetValueOnRenderThread()*/ 0.234f / m_ShadowGen.getShadowCasterDepthRange();
+
+            float WorldSpaceTexelScale = m_ShadowGen.getShadowCasterRadius() / m_ShadowGen.getShadowMap().getWidth();
+
+            TransitionSize *= WorldSpaceTexelScale;
+            TransitionSize *= /*LightSceneInfo->Proxy->GetUserShadowBias()*/ 0.7f;
+        }
+        else if (bPreShadow)
+        {
+            // Preshadows don't have self shadowing, so make sure the shadow starts as close to the caster as possible
+            TransitionSize = 0.0f;
+        }
+        else
+        {
+            // todo: optimize
+//            TransitionSize = bDirectionalLight ? (1.0f / CVarShadowTransitionScale.GetValueOnRenderThread()) : (1.0f / CVarSpotLightShadowTransitionScale.GetValueOnRenderThread());
+            // * 2.0f to be compatible with the system we had before ShadowBias
+ //           TransitionSize *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
+        }
+
+        // Make sure that shadow soft transition size is greater than zero so 1/TransitionSize shader parameter won't be INF.
+	    final float MinTransitionSize = 0.00001f;
+        return Math.max(TransitionSize, MinTransitionSize);
     }
 }

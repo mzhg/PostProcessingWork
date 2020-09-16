@@ -69,6 +69,14 @@ import jet.opengl.postprocessing.util.LogUtil;
 //        onSceneRender(clearFBO);
     }
 
+    public float getShadowCasterRadius(){
+        return mCurrentShadowCasterBoudingBox.radius();
+    }
+
+    public float getShadowCasterDepthRange(){
+        return Math.abs(mCurrentShadowCasterBoudingBox._max.z -mCurrentShadowCasterBoudingBox._min.z);
+    }
+
     private void prepareShadowMap(){
         mOnlyClearShadowMap = false;
         mCascadeCount = 0;

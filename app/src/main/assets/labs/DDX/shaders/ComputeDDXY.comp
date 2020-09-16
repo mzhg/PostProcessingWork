@@ -1,0 +1,148 @@
+uniform sampler2D gLightsBuffer;
+layout(rgba32f, binding = 0) uniform image2D OutNormalDDX;
+layout(rgba32f, binding = 1) uniform image2D OutNormalDDY;
+
+layout(binding = 0) uniform sampler2D InputNormal;
+
+#define FBO_SIZE 512
+
+shared vec4 GroupValues[COMPUTE_SHADER_TILE_GROUP_DIM * COMPUTE_SHADER_TILE_GROUP_DIM];
+
+//--------------------------------------------------------------------------------------
+// Utility for writing to our flat MSAAed UAV
+void WriteSample(uvec2 coords, vec4 DDX, vec4 DDY)
+{
+    imageStore(OutNormalDDX, ivec2(coords), DDX);
+    imageStore(OutNormalDDY, ivec2(coords), DDY);
+}
+
+vec2 GatherValue(uvec2 CurrentLocation, in uvec2 Dimension, out ivec2 LeftOffset, out ivec2 RightOffset, out ivec2 BottomOffset, out ivec2 TopOffset)
+{
+    float FactorX = 2;
+    if(CurrentLocation.x == 0)
+    {
+        LeftOffset = ivec2(0);
+        RightOffset = ivec2(1, 0);
+        FactorX = 1;
+    }
+    else if(CurrentLocation.x == (Dimension.x-1))
+    {
+        LeftOffset = ivec2(-1, 0);
+        RightOffset = ivec2(0);
+        FactorX = 1;
+    }
+    else
+    {
+        LeftOffset = ivec2(-1, 0);
+        RightOffset = ivec2(1, 0);
+    }
+
+    float FactorY = 2;
+    if(CurrentLocation.y == 0)
+    {
+        BottomOffset = ivec2(0, 0);
+        TopOffset = ivec2(0, 1);
+        FactorY = 1;
+    }
+    else if(CurrentLocation.y == (Dimension.y-1))
+    {
+        BottomOffset = ivec2(0, -1);
+        TopOffset = ivec2(0, 0);
+        FactorY = 1;
+    }
+    else
+    {
+        BottomOffset = ivec2(0, -1);
+        TopOffset = ivec2(0, 1);
+    }
+
+    return vec2(FactorX, FactorY);
+}
+
+int GetGroupIndex(ivec2 Location)
+{
+    return Location.y * COMPUTE_SHADER_TILE_GROUP_DIM + Location.x;
+}
+
+layout(local_size_x = COMPUTE_SHADER_TILE_GROUP_DIM, local_size_y = COMPUTE_SHADER_TILE_GROUP_DIM, local_size_z = 1) in;
+void main()
+{
+    uvec3 groupId = gl_WorkGroupID;
+    uvec3 dispatchThreadId = gl_GlobalInvocationID;
+    uvec3 groupThreadId = gl_LocalInvocationID;
+
+    // NOTE: This is currently necessary rather than just using SV_GroupIndex to work
+    // around a compiler bug on Fermi.
+    uint groupIndex = groupThreadId.y * uint(COMPUTE_SHADER_TILE_GROUP_DIM) + groupThreadId.x;
+
+    vec4 NormalValue = texelFetch(InputNormal, ivec2(dispatchThreadId.xy), 0);
+#if 1
+    GroupValues[groupIndex] = NormalValue;
+
+    memoryBarrier();
+
+    ivec2 LeftOffset, RightOffset, BottomOffset, TopOffset;
+    vec2 Factor = GatherValue(groupThreadId.xy, uvec2(COMPUTE_SHADER_TILE_GROUP_DIM, COMPUTE_SHADER_TILE_GROUP_DIM), LeftOffset, RightOffset, BottomOffset, TopOffset);
+
+    int LeftIndex = GetGroupIndex(ivec2(groupThreadId.xy) + LeftOffset);
+    int RightIndex = GetGroupIndex(ivec2(groupThreadId.xy) + RightOffset);
+    int BottomIndex = GetGroupIndex(ivec2(groupThreadId.xy) + BottomOffset);
+    int TopIndex = GetGroupIndex(ivec2(groupThreadId.xy) + TopOffset);
+
+    vec4 NormalDDX = (GroupValues[RightIndex] - GroupValues[LeftIndex]) / Factor.x;
+    vec4 NormalDDY = (GroupValues[TopIndex] - GroupValues[BottomIndex]) / Factor.y;
+#else
+    // TODO Coarse
+//    bool isInBorder = dispatchThreadId.x == 0 || dispatchThreadId.x == (FBO_SIZE -1) || dispatchThreadId.y == 0 || dispatchThreadId.y == (FBO_SIZE-1);
+//    vec4 RightNValue = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(1, 0));
+//    vec4 TopNValue   = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(0, 1));
+
+    //    vec4 NormalDDX = isInBorder ? NormalValue : RightNValue - NormalValue;
+    //    vec4 NormalDDY = isInBorder ? NormalValue : RightNValue - NormalValue;
+
+    float FactorX = 2;
+    vec4 LeftValue, RightValue;
+    if(dispatchThreadId.x == 0)
+    {
+        LeftValue = NormalValue;
+        RightValue = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(1, 0));
+        FactorX = 1;
+    }
+    else if(dispatchThreadId.x == (FBO_SIZE-1))
+    {
+        LeftValue = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(-1, 0));
+        RightValue = NormalValue;
+        FactorX = 1;
+    }
+    else
+    {
+        LeftValue = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(-1, 0));
+        RightValue = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(1, 0));
+    }
+
+    float FactorY = 2;
+    vec4 BottomValue, TopValue;
+    if(dispatchThreadId.y == 0)
+    {
+        BottomValue = NormalValue;
+        TopValue = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(0, 1));
+        FactorY = 1;
+    }
+    else if(dispatchThreadId.y == (FBO_SIZE-1))
+    {
+        BottomValue = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(0, -1));
+        TopValue = NormalValue;
+        FactorY = 1;
+    }
+    else
+    {
+        BottomValue = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(0, -1));
+        TopValue = texelFetchOffset(InputNormal, ivec2(dispatchThreadId.xy), 0, ivec2(0, 1));
+    }
+
+    vec4 NormalDDX = (RightValue - LeftValue) / FactorX;
+    vec4 NormalDDY = (TopValue - BottomValue) / FactorY;
+#endif
+
+    WriteSample(dispatchThreadId.xy, NormalDDX, NormalDDY);
+}

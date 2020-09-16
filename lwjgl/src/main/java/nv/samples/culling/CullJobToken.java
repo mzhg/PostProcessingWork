@@ -10,8 +10,8 @@ import jet.opengl.postprocessing.shader.GLSLProgram;
 import nv.samples.cmdlist.NvToken;
 
 final class CullJobToken extends Job {
-    GLSLProgram program_sizes;
-    GLSLProgram      program_cmds;
+    GLSLProgram      program_sizes;
+    GLSLProgram program_cmds;
 
     int                numTokens;
     final List<Sequence> sequences = new ArrayList<>();
@@ -60,7 +60,7 @@ final class CullJobToken extends Job {
         // now let the scan system compute the running offsets for the visible tokens
         // that way we get a compact token stream with the original ordering back
 
-        OcclusionCulling.s_scanSys.scanData(((numTokens+3)/4)*4,tokenOutSizes,tokenOutScan,tokenOutScanOffset);
+        NvOcclusionCulling.s_scanSys.scanData(((numTokens+3)/4)*4,tokenOutSizes,tokenOutScan,tokenOutScanOffset);
 
         // finally we build the actual culled tokenbuffer, using those offsets
 

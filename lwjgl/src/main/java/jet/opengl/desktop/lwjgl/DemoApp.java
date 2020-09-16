@@ -21,7 +21,10 @@ import java.util.Arrays;
 import jet.opengl.demos.gpupro.culling.OcclusionCullingDemo;
 import jet.opengl.demos.gpupro.culling.OrderIndependentTransparencyDemo;
 import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
+import jet.opengl.demos.labs.atmosphere.AtmosphereDemo;
 import jet.opengl.demos.labs.ogl.BindlessTextureSample;
+import jet.opengl.demos.labs.ogl.DervitiveComputShaderTest;
+import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
 import jet.opengl.demos.nvidia.waves.crest.Wave_Animation_Test;
 import jet.opengl.demos.nvidia.waves.ocean.NvOceanDemo;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
@@ -119,7 +122,7 @@ public class DemoApp {
 
 //        testParaboloidMatrix();
 //        testProjectionZ();  // 4:3 -->[33.962746, -157.41496, -69.76516, -69.55124], z/w = 1.0015378
-        testCamera();
+//        testCamera();
 //        NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
 //        run(new HBAODemo());
 //        run(new ASSAODemoDebug());
@@ -127,7 +130,7 @@ public class DemoApp {
 //        testRectVertex();
 //        run(new OutdoorLightScatteringSample());
 //        run(new AVSMDemo());
-        run(new ShaderTest());
+//        run(new ShaderTest());
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
 //        run(new Flight404());
@@ -156,6 +159,8 @@ public class DemoApp {
 //        run(new GeometryFXDemo());
 //        run(new TiledLighting11());
 //        run(new BindlessTextureSample());
+//        run(new DervitiveComputShaderTest());
+        run(new AtmosphereDemo());
     }
 
     private static void testParaboloidMatrix(){
