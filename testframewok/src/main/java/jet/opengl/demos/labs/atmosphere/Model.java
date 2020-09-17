@@ -545,7 +545,7 @@ want to store precomputed irradiance or illuminance values:
                         coeff(dlambda, lambdas[0], 1), coeff(dlambda, lambdas[1], 1), coeff(dlambda, lambdas[2], 1),
                         coeff(dlambda, lambdas[0], 2), coeff(dlambda, lambdas[1], 2), coeff(dlambda, lambdas[2], 2)
                 };
-                Precompute(fbo, delta_irradiance_texture,
+                 Precompute(fbo, delta_irradiance_texture,
                         delta_rayleigh_scattering_texture, delta_mie_scattering_texture,
                         delta_scattering_density_texture, delta_multiple_scattering_texture,
                         lambdas, luminance_from_radiance, i > 0 /* blend */,

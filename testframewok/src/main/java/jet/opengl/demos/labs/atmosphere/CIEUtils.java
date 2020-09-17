@@ -1,7 +1,5 @@
 package jet.opengl.demos.labs.atmosphere;
 
-import org.lwjgl.util.vector.Vector3f;
-
 import jet.opengl.postprocessing.util.StackDouble;
 
 public class CIEUtils implements  Constant{

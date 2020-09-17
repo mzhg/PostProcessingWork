@@ -13,16 +13,16 @@ uniform float screenHeight;
 uniform float Time;
 
 // Halton Sequences
-uniform vec4 HaltonSequence;
+uniform vec2 HaltonSequence;
 //uniform vec4 HaltonSequence2;
 //uniform vec4 HaltonSequence3;
 //uniform vec4 HaltonSequence4;
 
-uniform sampler3D lowFrequencyTexture;
-uniform sampler3D highFrequencyTexture;
-uniform sampler2D WeatherTexture;
+layout(binding = 0) uniform sampler3D lowFrequencyTexture;
+layout(binding = 1) uniform sampler3D highFrequencyTexture;
+layout(binding = 2) uniform sampler2D WeatherTexture;
 
-uniform sampler2D CurlNoiseTexture;
+layout(binding = 3) uniform sampler2D CurlNoiseTexture;
 
 // Define Global variables used by all the program
 const float MPI = 3.14159265;

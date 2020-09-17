@@ -20,7 +20,7 @@ import jet.opengl.postprocessing.util.StackDouble;
 
 public class AtmosphereDemo extends NvSampleApp {
     private static final double kPi = 3.1415926;
-    private static final double kSunAngularRadius = 0.00935 / 2.0 /*Math.toRadians(0.545)*/;
+    private static final double kSunAngularRadius = 0.00935 /*Math.toRadians(0.545)*/;
     private static final double kSunSolidAngle = kPi * kSunAngularRadius * kSunAngularRadius;
     private static final double kLengthUnitInMeters = 1000.0;
 
@@ -43,8 +43,8 @@ public class AtmosphereDemo extends NvSampleApp {
     boolean use_ozone_ = true;
     final boolean use_combined_textures_ = true;
     boolean use_half_precision_ = true;
-    Luminance use_luminance_ = Luminance.PRECOMPUTED;
-    Luminance curr_lumi_mode = Luminance.PRECOMPUTED;
+    Luminance use_luminance_ = Luminance.NONE;
+    Luminance curr_lumi_mode = Luminance.NONE;
     boolean do_white_balance_ = false;
     boolean show_help_ = true;
 
@@ -80,13 +80,14 @@ public class AtmosphereDemo extends NvSampleApp {
     public void initUI() {
         mTweakBar.addValue("Sun Zenith Angle:", createControl("sun_zenith_angle_radians_"), 0.0f, (float)Math.PI/1.5f);
         mTweakBar.addValue("Sun Azimuth Angle:", createControl("sun_azimuth_angle_radians_"), 0.0f, (float)Math.PI* 2);
-
     }
 
     @Override
     protected void initRendering() {
         gl = GLFuncProviderFactory.getGLFuncProvider();
         InitModel();
+
+        getGLContext().setSwapInterval(0);
 
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
         m_transformer.setTranslation(0, -4, 0);
@@ -215,7 +216,7 @@ atmosphere:
                 (float) tan(kSunAngularRadius),
                 (float) cos(kSunAngularRadius));*/
 
-        earth_center.set(0,0, (float) (-kBottomRadius / kLengthUnitInMeters));
+        earth_center.set(0, (float) (-kBottomRadius / kLengthUnitInMeters), 0);
         sun_size.set((float) Math.tan(kSunAngularRadius), (float) Math.cos(kSunAngularRadius));
 
         // This sets 'view_from_clip', which only depends on the window size.

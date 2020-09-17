@@ -13,7 +13,7 @@ in vec3 view_ray;
 
 layout(location = 0) out vec4 color;
 
-const vec3 kSphereCenter = vec3(0.0, 0.0, 1000.0) / kLengthUnitInMeters;
+const vec3 kSphereCenter = vec3(0.0, 1000.0, .0) / kLengthUnitInMeters;
 const float kSphereRadius = 1000.0 / kLengthUnitInMeters;
 const vec3 kSphereAlbedo = vec3(0.8);
 const vec3 kGroundAlbedo = vec3(0.0, 0.0, 0.04);
@@ -145,6 +145,29 @@ void main()
     if (dot(view_direction, sun_direction) > sun_size.y)
     {
         radiance = radiance + transmittance * GetSolarRadiance();
+        float c1 = dot(view_direction, sun_direction); c1 = c1 * c1;
+        float c2 = sun_size.y * sun_size.y;
+
+        float centerToEdge = sqrt((1-c1)/c1 * c2/(1-c2));
+        centerToEdge = 1 - centerToEdge;
+
+        float mu = sqrt(1 - centerToEdge * centerToEdge);
+
+        // coefficient for RGB wavelength (680 ,550 ,440)
+        vec3 a0 = vec3 ( 0.34685 , 0.26073 , 0.15248) ;
+        vec3 a1 = vec3 ( 1.37539 , 1.27428 , 1.38517) ;
+        vec3 a2 = vec3 ( -2.04425 , -1.30352 , -1.49615) ;
+        vec3 a3 = vec3 ( 2.70493 , 1.47085 , 1.99886) ;
+        vec3 a4 = vec3 ( -1.94290 , -0.96618 , -1.48155) ;
+        vec3 a5 = vec3 ( 0.55999 , 0.26384 , 0.44119) ;
+
+        float mu2 = mu*mu;
+        float mu3 = mu2 *mu;
+        float mu4 = mu2 *mu2 ;
+        float mu5 = mu4 *mu;
+
+        vec3 factor = a0 + a1*mu + a2* mu2 + a3* mu3 + a4* mu4 + a5* mu5 ;
+        radiance *= factor ;
     }
     radiance = mix(radiance, ground_radiance, ground_alpha);
     radiance = mix(radiance, sphere_radiance, sphere_alpha);
@@ -153,3 +176,12 @@ void main()
 }
 
     #include "Atmosphere.glsl"
+
+in vec2 vTex;
+void _main()
+{
+    color = textureLod(single_rayleigh_scattering_texture, vec3(vTex, 0.9), 0.0);
+
+    color.rgb = pow(color.rgb, vec3(1.0/2.2));
+    color.a = 1;
+}

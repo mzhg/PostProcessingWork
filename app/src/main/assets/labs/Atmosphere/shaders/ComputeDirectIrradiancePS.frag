@@ -66,6 +66,7 @@ vec3 ComputeDirectIrradiance(in AtmosphereParameters atmosphere, float r, float 
 {
     assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
     assert(mu_s >= -1.0 && mu_s <= 1.0);
+
     float alpha_s = atmosphere.sun_angular_radius / rad;
     float average_cosine_factor = mu_s < -alpha_s ? 0.0 : (mu_s > alpha_s ? mu_s : (mu_s + alpha_s) * (mu_s + alpha_s) / (4.0 * alpha_s));
     return atmosphere.solar_irradiance * GetTransmittanceToTopAtmosphereBoundary(atmosphere, r, mu_s) * average_cosine_factor;

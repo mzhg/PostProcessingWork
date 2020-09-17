@@ -2,6 +2,8 @@
 uniform mat4 model_from_view;
 uniform mat4 view_from_clip;
 out vec3 view_ray;
+out vec2 vTex;
+
 void main()
 {
     int idx = gl_VertexID % 3;  // allows rendering multiple fullscreen triangles
@@ -10,4 +12,5 @@ void main()
 
     view_ray = (model_from_view * vec4((view_from_clip * vertex).xyz, 0.0)).xyz;
     gl_Position = vertex;
+    vTex = uv;
 }
