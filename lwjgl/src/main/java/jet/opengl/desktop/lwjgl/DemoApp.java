@@ -28,6 +28,7 @@ import jet.opengl.demos.labs.ogl.DervitiveComputShaderTest;
 import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
 import jet.opengl.demos.nvidia.waves.crest.Wave_Animation_Test;
 import jet.opengl.demos.nvidia.waves.ocean.NvOceanDemo;
+import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;

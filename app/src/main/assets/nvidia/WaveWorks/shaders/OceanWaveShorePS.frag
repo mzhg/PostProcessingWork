@@ -114,7 +114,7 @@ void main()
     float2 reflection_disturbance = float2(disturbance_eyespace.x,disturbance_eyespace.z)*0.06;
     float2 refraction_disturbance = float2(-disturbance_eyespace.x,disturbance_eyespace.y)*0.9*
         // fading out refraction disturbance at distance so refraction doesn't look noisy at distance
-        (100.0/(100+length(g_CameraPosition-water_vertex_positionWS)));
+        (10000.0/(10000.0+length(g_CameraPosition-water_vertex_positionWS)));
 
     // picking refraction depth at non-displaced point, need it to scale the refraction texture displacement amount according to water depth
     float refraction_depth = GetRefractionDepth(gl_FragCoord.xy*g_ScreenSizeInv);
@@ -132,9 +132,10 @@ void main()
     // getting refraction depth again, at displaced point now
     refraction_depth = GetRefractionDepth(gl_FragCoord.xy*g_ScreenSizeInv+refraction_disturbance);
     refraction_depth = g_ZFar*g_ZNear / (g_ZFar-refraction_depth*(g_ZFar-g_ZNear));
-    vertex_in_viewspace= mul(float4(In.positionWS.xyz,1),g_ModelViewMatrix);
+//    vertex_in_viewspace= mul(float4(In.positionWS.xyz,1),g_ModelViewMatrix);
     water_depth = max(water_depth,refraction_depth+vertex_in_viewspace.z);
     water_depth = max(0,water_depth);
+    water_depth = min(100, water_depth);
     float depth_damper = min(1,water_depth*3.0);
     float depth_damper_sss = min(1,water_depth*0.5);
 
@@ -204,7 +205,7 @@ void main()
     color = lerp(color, foam_diffuse_factor*float3(1.0,1.0,1.0),foam_intensity);
 
     // applying atmospheric fog to water surface
-    float fog_factor = min(1,exp(-length(g_CameraPosition-water_vertex_positionWS)*g_FogDensity));
+    float fog_factor = min(1,exp(-length(g_CameraPosition-water_vertex_positionWS) *g_FogDensity));
     color = lerp(color, CalculateFogColor(normalize(g_LightPosition),pixel_to_eye_vector).rgb, fresnel_factor*(1.0-fog_factor));
 
     // applying solid wireframe

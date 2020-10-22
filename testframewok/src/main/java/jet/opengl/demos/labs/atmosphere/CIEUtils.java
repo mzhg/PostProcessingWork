@@ -52,8 +52,7 @@ of the following two functions:
 
 /**
 <p>We can then implement a utility function to compute the "spectral radiance to
-luminance" conversion constants (see Section 14.3 in <a
-href="https://arxiv.org/pdf/1612.04336.pdf">A Qualitative and Quantitative
+luminance" conversion constants (see Section 14.3 in <a href="https://arxiv.org/pdf/1612.04336.pdf">A Qualitative and Quantitative
 Evaluation of 8 Clear Sky Models</a> for their definitions):
  The returned constants are in lumen.nm / watt.
 */
