@@ -75,14 +75,16 @@ class ReflectionViewGL {
     }
 
     int GetConservativeResourceDescriptorCount(ContextGL context){
-        int resource_descriptor_count = context.GetTileClassificationPass().bindings_count_
+        /*int resource_descriptor_count = context.GetTileClassificationPass().bindings_count_
                 + vk_context->GetIndirectArgsPass().bindings_count_
                 + vk_context->GetIntersectionPass().bindings_count_
                 + vk_context->GetSpatialDenoisingPass().bindings_count_
                 + vk_context->GetTemporalDenoisingPass().bindings_count_
                 + vk_context->GetEawDenoisingPass().bindings_count_;
         resource_descriptor_count *= 2; // double buffering descriptors
-        return resource_descriptor_count;
+        return resource_descriptor_count;*/
+
+        return 0;
     }
 
     /**
@@ -250,14 +252,15 @@ class ReflectionViewGL {
     void InitializeResourceDescriptorSets(Context& context, FfxSssrCreateReflectionViewInfo const& create_reflection_view_info);*/
 
     long GetTimestampQueryIndex(){
-        return timestamp_queries_index_ * kTimestampQuery_Count + static_cast<std::uint32_t>(timestamp_queries_[timestamp_queries_index_].size());
+//        return timestamp_queries_index_ * kTimestampQuery_Count + static_cast<std::uint32_t>(timestamp_queries_[timestamp_queries_index_].size());
+        return 0;
     }
 
     private final PassData pass_data = new PassData();
     void Resolve(ContextGL context, Matrix4f view, Matrix4f proj, FfxSssrResolveReflectionViewInfo resolve_reflection_view_info){
         // todo time query
 
-        BufferGL upload_buffer = context.GetUploadBuffer();
+        BufferGL upload_buffer = null; // context.GetUploadBuffer();
         /*if (!upload_buffer.AllocateBuffer(sizeof(PassData), pass_data))
         {
             throw reflection_error(context, FFX_SSSR_STATUS_OUT_OF_MEMORY, "Failed to allocate %u bytes of upload memory, consider increasing uploadBufferSize", sizeof(PassData));
@@ -274,7 +277,7 @@ class ReflectionViewGL {
         pass_data.view_.load(view);
         Matrix4f.invert(proj, pass_data.inv_projection_);
 
-        pass_data->prev_view_projection_ = prev_view_projection_;
+        /*pass_data->prev_view_projection_ = prev_view_projection_;
 
         pass_data->frame_index_ = context.GetFrameIndex();
 
@@ -436,7 +439,7 @@ class ReflectionViewGL {
         if ((flags_ & FFX_SSSR_CREATE_REFLECTION_VIEW_FLAG_ENABLE_PERFORMANCE_COUNTERS) != 0)
         {
             timestamp_queries_index_ = (timestamp_queries_index_ + 1u) % context.GetFrameCountBeforeReuse();
-        }
+        }*/
     }
 
     // The width of the reflection view (in texels).
@@ -474,7 +477,7 @@ class ReflectionViewGL {
     // The number of GPU ticks spent denoising.
     long denoising_elapsed_time_;
     // The array of timestamp that were queried.
-    std::vector<TimestampQueries> timestamp_queries_;
+ //   std::vector<TimestampQueries> timestamp_queries_;
     // The index of the active set of timestamp queries.
     long timestamp_queries_index_;
 
