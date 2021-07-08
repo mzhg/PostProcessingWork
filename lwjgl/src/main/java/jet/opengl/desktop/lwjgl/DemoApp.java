@@ -29,6 +29,7 @@ import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
 import jet.opengl.demos.nvidia.waves.crest.Wave_Animation_Test;
 import jet.opengl.demos.nvidia.waves.ocean.NvOceanDemo;
 import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
+import jet.opengl.demos.nvidia.waves.samples.ScreenWaveDemo;
 import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
@@ -162,7 +163,8 @@ public class DemoApp {
 //        run(new TiledLighting11());
 //        run(new BindlessTextureSample());
 //        run(new DervitiveComputShaderTest());
-        run(new AtmosphereDemo());
+//        run(new AtmosphereDemo());
+        run(new ScreenWaveDemo());
 //        run(new VolumetricClouds());
     }
 
