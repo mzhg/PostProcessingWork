@@ -20,6 +20,9 @@ public class PostProcessingParameters {
     float edgeThreshold2;
     float fishEyeFactor;
 
+    float grayScreenRectBorder;
+    Texture2D paper;
+
     float bloomThreshold;
     float exposureScale;
 
@@ -69,6 +72,7 @@ public class PostProcessingParameters {
     public float getEdgeThreshold() {return edgeThreshold;}
     public float getEdgeThreshold2() {return edgeThreshold2;}
     public float getFishEyeFactor()  { return fishEyeFactor;}
+    public float getRectBorder()  { return grayScreenRectBorder;}
 
     public float getBloomThreshold()	{ return bloomThreshold; }
     public float getExposureScale() { return exposureScale; }
@@ -82,6 +86,7 @@ public class PostProcessingParameters {
     public boolean isStartStreaker() {return startStreaker;}
 
     public Texture2D getLensMask() {return lensMask != null ? lensMask : postProcessing.getOrCreateLensMask();}
+    public Texture2D getPaper() {return paper;}
 
     public float getLightEffectAmout() {return blurAmout;}
     public float getLightEffectExpose() { return expose;}

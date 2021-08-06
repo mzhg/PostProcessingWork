@@ -19,6 +19,7 @@ import jet.opengl.postprocessing.core.dof.PostProcessingDOFGaussionEffect;
 import jet.opengl.postprocessing.core.eyeAdaption.PostProcessingEyeAdaptationEffect;
 import jet.opengl.postprocessing.core.fisheye.PostProcessingFishEyeEffect;
 import jet.opengl.postprocessing.core.fxaa.PostProcessingFXAAEffect;
+import jet.opengl.postprocessing.core.grayscreen.PostProcessingGrayScreenEffect;
 import jet.opengl.postprocessing.core.light.PostProcessingLightEffect;
 import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringFrameAttribs;
 import jet.opengl.postprocessing.core.outdoorLighting.OutdoorLightScatteringInitAttribs;
@@ -58,6 +59,7 @@ public class PostProcessing implements Disposeable{
     public static final String HBAO = "HBAO";
     public static final String VOLUMETRIC_LIGHTING = "VOLUMETRIC_LIGHTING";
     public static final String OUTDOOR_LIGHTING = "OUTDOOR_LIGHTING";
+    public static final String GRAY_SCREEN = "GRAY_SCREEN";
 
     private static final int NUM_TAG_CACHE = 32;
 
@@ -112,6 +114,7 @@ public class PostProcessing implements Disposeable{
         registerEffect(new PostProcessingHBAOEffect());
         registerEffect(new PostProcessingVolumetricLightingEffect());
         registerEffect(new PostProcessingOutdoorLightScatteringEffect());
+        registerEffect(new PostProcessingGrayScreenEffect());
     }
 
     public void registerEffect(PostProcessingEffect effect){
@@ -437,6 +440,14 @@ public class PostProcessing implements Disposeable{
         m_Parameters.fishEyeFactor = factor;
 
         PostProcessingEffect effect = m_RegisteredEffects.get(FISH_EYE);
+        m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
+    }
+
+    public void addGrayScreen(float rectBorder, Texture2D paper){
+        m_Parameters.grayScreenRectBorder = rectBorder;
+        m_Parameters.paper = paper;
+
+        PostProcessingEffect effect = m_RegisteredEffects.get(GRAY_SCREEN);
         m_CurrentEffects.add(obtain(effect.getEffectName(), effect.getPriority(), null, null));
     }
 

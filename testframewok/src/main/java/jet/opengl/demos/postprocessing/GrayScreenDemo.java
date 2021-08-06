@@ -22,7 +22,7 @@ import jet.opengl.postprocessing.texture.TextureUtils;
 /**
  * Created by mazhen'gui on 2017/5/8.
  */
-public class DOFBokehDemo extends NvSampleApp {
+public class GrayScreenDemo extends NvSampleApp {
     Ball200 sceneBall;
     FullscreenProgram fullscreenProgram;
     private VisualDepthTextureProgram m_visTexShader;
@@ -43,6 +43,9 @@ public class DOFBokehDemo extends NvSampleApp {
     private GLFuncProvider gl;
     private PostProcessing m_PostProcessing;
     private PostProcessingFrameAttribs m_frameAttribs;
+
+    private Texture2D m_paper;
+    private Texture2D m_sourceTex;
 
     @Override
     public void initUI() {
@@ -71,6 +74,16 @@ public class DOFBokehDemo extends NvSampleApp {
         sampler = SamplerUtils.getDefaultSampler();
         m_PostProcessing = new PostProcessing();
         m_frameAttribs = new PostProcessingFrameAttribs();
+
+        try {
+            m_paper = TextureUtils.createTexture2DFromFile("shader_libs/paper1.jpg", false);
+            m_paper.setWrapS(GLenum.GL_REPEAT);
+            m_paper.setWrapT(GLenum.GL_REPEAT);
+
+            m_sourceTex = TextureUtils.createTexture2DFromFile("shader_libs/paper1.jpg", false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -137,8 +150,9 @@ public class DOFBokehDemo extends NvSampleApp {
             m_frameAttribs.viewMat = sceneBall.getViewMat();
             m_frameAttribs.projMat = sceneBall.getProjMat();
 
-            m_PostProcessing.addDOFBokeh(m_focalDepth, m_focalRange, m_fStop);
-//            m_PostProcessing.addDOFGaussion(m_focalDepth, m_focalRange, nearTransitionRegion, farTransitionRegion, 1, true, true);
+//            m_PostProcessing.addDOFBokeh(m_focalDepth, m_focalRange, m_fStop);
+
+            m_PostProcessing.addGrayScreen(0.08f, m_paper);
             m_PostProcessing.performancePostProcessing(m_frameAttribs);
         }
 

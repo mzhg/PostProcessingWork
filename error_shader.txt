@@ -1,7 +1,4 @@
 #version 450
-#define GFSDK_WAVEWORKS_USE_TESSELLATION 1
-
-
 
 
 
@@ -159,916 +156,278 @@ uint4 f32tof16(in float4 value)
 #define SV_GroupIndex      gl_LocalInvocationIndex
 
 
-#define MAX_FFT_RESOLUTION 512
-#define WARP_WIDTH 8 
+#if GL_ES
 
-
-
-#if defined(GFSDK_WAVEWORKS_SM3) || defined(GFSDK_WAVEWORKS_GL)
-	#define GFSDK_WAVEWORKS_BEGIN_GEOM_VS_CBUFFER(Label)
-	#define GFSDK_WAVEWORKS_END_GEOM_VS_CBUFFER
+#if __VERSION__ < 300
+    #define texture(x, y) texture2D(x, y)
 #endif
 
-#if defined( GFSDK_WAVEWORKS_USE_TESSELLATION )
+#if __VERSION__  >= 300
+	#define ENABLE_VERTEX_ID 1
+	#define ENABLE_IN_OUT_FEATURE 1
+	#define LAYOUT_LOC(x)  layout(location = x)
+#else
+	#define LAYOUT_LOC(x)
+#endif
 
-
-
-
-
-    layout(binding = 2) uniform eyepos_buffer
+#if __VERSION__ == 300
+    vec4 textureGather(sampler2D tex, vec2 uv, int comp)
     {
-        float4 g_hsWorldEye;
-        float4 g_tessellationParams;
-    };
-#endif
-
-#if 0
-GFSDK_WAVEWORKS_BEGIN_GEOM_VS_CBUFFER(geom_buffer)
-GFSDK_WAVEWORKS_DECLARE_GEOM_VS_CONSTANT(float4x3, g_matLocalWorld, 0)
-GFSDK_WAVEWORKS_DECLARE_GEOM_VS_CONSTANT(float4, g_vsEyePos, 3)
-GFSDK_WAVEWORKS_DECLARE_GEOM_VS_CONSTANT(float4, g_MorphParam, 4)
-GFSDK_WAVEWORKS_END_GEOM_VS_CBUFFER
-#endif
-
-layout(binding = 3) uniform geom_buffer
-{
-   float4x4  g_matLocalWorld;
-   float4    g_vsEyePos;
-   float4    g_MorphParam;
-};
-
-
-
-#if !defined(GFSDK_WAVEWORKS_USE_TESSELLATION)
-float3 GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(float4 In_vPos)
-{
-	float2 vpos = In_vPos.xy;
-
-	
-	float geomorph_scale = 0.25f;
-
-	float2 geomorph_offset = float2(g_MorphParam.w,g_MorphParam.w);
-	float2 vpos_src = vpos;
-	float2 vpos_target = vpos_src;
-	float geomorph_amount = 0.f;
-
-	for(int geomorph_level = 0; geomorph_level != 4; ++geomorph_level) {
-
-		float2 intpart;
-		float2 rempart = modf(geomorph_scale*vpos_src.xy,intpart);
-
-		float2 mirror = float2(1.0f, 1.0f);
-
-		if(rempart.x >  0.5f)
-		{
-			rempart.x = 1.0f - rempart.x;
-			mirror.x = -mirror.x;
-		}
-		if(rempart.y >  0.5f)
-		{
-			rempart.y = 1.0f - rempart.y;
-			mirror.y = -mirror.y;
-		}
-
-
-		if(0.25f == rempart.x && 0.25f == rempart.y) vpos_target.xy = vpos_src.xy - geomorph_offset*mirror;
-		else if(0.25f == rempart.x) vpos_target.x = vpos_src.x + geomorph_offset.x*mirror.x;
-		else if(0.25f == rempart.y) vpos_target.y = vpos_src.y + geomorph_offset.y*mirror.y;
-
-		float3 eyevec = mul(float4(vpos_target,0.f,1.f), g_matLocalWorld).xyz - g_vsEyePos.xyz;
-		float d = length(eyevec);
-		float geomorph_target_level = log2(d * g_MorphParam.x) + 1.f;
-		geomorph_amount = saturate(2.0*(geomorph_target_level - float(geomorph_level)));
-		if(geomorph_amount < 1.f)
-		{
-			break;
-		}
-		else
-		{
-			vpos_src = vpos_target;
-			geomorph_scale *= 0.5f;
-			geomorph_offset *= -2.f;
-		}
-	}
-
-	vpos.xy = lerp(vpos_src, vpos_target, geomorph_amount);
-	return mul(float4(vpos,In_vPos.zw), g_matLocalWorld).xyz;
-}
-#endif
-
-
-#if defined(GFSDK_WAVEWORKS_USE_TESSELLATION)
-float3 GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(float4 In_vPos)
-{
-	float2 vpos = In_vPos.xy;
-	
-	float geomorph_scale = 0.5f;
-	float geomorph_offset = abs(g_MorphParam.w);
-	float2 vpos_src = vpos;
-	float2 vpos_target = vpos_src;
-	float geomorph_amount = 0.f;
-
-	
-	
-
-	for(int geomorph_level = 0; geomorph_level != 4; ++geomorph_level) {
-
-		float2 intpart;
-		float2 rempart = modf(geomorph_scale*vpos_src.xy,intpart);
-		if(0.5f == rempart.x)
-		{
-			vpos_target.x = vpos_src.x + geomorph_offset;
-		}
-
-		if(0.5f == rempart.y)
-		{
-			vpos_target.y = vpos_src.y + geomorph_offset;
-		}
-
-		float3 eyevec = mul(float4(vpos_target,0.f,1.f), g_matLocalWorld).xyz - g_vsEyePos.xyz;
-		float d = length(eyevec);
-		float geomorph_target_level = log2(d * g_MorphParam.x) + 1.f;
-		geomorph_amount = saturate(3.0*(geomorph_target_level - float(geomorph_level)));
-		if(geomorph_amount < 1.f) {
-			break;
-		} else {
-			vpos_src = vpos_target;
-			geomorph_scale *= 0.5f;
-			geomorph_offset *= 2.f;
-		}
-	}
-	vpos.xy = lerp(vpos_src, vpos_target, geomorph_amount);
-	return mul(float4(vpos,In_vPos.zw), g_matLocalWorld).xyz;
-}
-
-float GFSDK_WaveWorks_GetEdgeTessellationFactor(float4 vertex1, float4 vertex2)
-{
-	float3 edge_center = 0.5*(vertex1.xyz + vertex2.xyz);
-	float edge_length = length (vertex1.xyz - vertex2.xyz);
-	float edge_distance = length(g_hsWorldEye.xyz - edge_center.xyz);
-	return g_tessellationParams.x * edge_length / edge_distance;
-}
-
-float GFSDK_WaveWorks_GetVertexTargetTessellatedEdgeLength(float3 vertex)
-{
-	float vertex_distance = length(g_hsWorldEye.xyz - vertex.xyz);
-	return vertex_distance / g_tessellationParams.x;
-}
-
-#endif
-
-
-
-layout(binding=1) uniform attr_vs_buffer
-{
-    float3 g_WorldEye;
-    float  g_UseTextureArrays;
-    float4 g_UVScaleCascade0123;
-};
-
-layout(binding=0) uniform sampler2D g_samplerDisplacementMap0;
-layout(binding=1) uniform sampler2D g_samplerDisplacementMap1;
-layout(binding=2) uniform sampler2D g_samplerDisplacementMap2;
-layout(binding=3) uniform sampler2D g_samplerDisplacementMap3;
-layout(binding=0) uniform sampler2DArray g_samplerDisplacementMapTextureArray;
-
-layout(binding=4) uniform attr_ps_buffer
-{
-    float g_TexelLength_x2_PS;
-    float g_Cascade1Scale_PS;
-    float g_Cascade1TexelScale_PS;
-    float g_Cascade1UVOffset_PS;
-    float g_Cascade2Scale_PS;
-    float g_Cascade2TexelScale_PS;
-    float g_Cascade2UVOffset_PS;
-    float g_Cascade3Scale_PS;
-    float g_Cascade3TexelScale_PS;
-    float g_Cascade3UVOffset_PS;
-};
-
-layout(binding=4) uniform sampler2D g_samplerGradientMap0;
-layout(binding=5) uniform sampler2D g_samplerGradientMap1;
-layout(binding=6) uniform sampler2D g_samplerGradientMap2;
-layout(binding=7) uniform sampler2D g_samplerGradientMap3;
-layout(binding=1) uniform sampler2DArray g_samplerGradientMapTextureArray;
-
-struct GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT
-{
-    float4 tex_coord_cascade01			;
-    float4 tex_coord_cascade23			;
-    float4 blend_factor_cascade0123	;
-    float3 eye_vec						;
-};
-
-struct GFSDK_WAVEWORKS_VERTEX_OUTPUT
-{
-     GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT interp;
-    float3 pos_world;
-    float3 pos_world_undisplaced;
-    float3 world_displacement;
-};
-
-GFSDK_WAVEWORKS_VERTEX_OUTPUT GFSDK_WaveWorks_GetDisplacedVertex(float4 In_vPos)
-{
-	
-	float3 pos_world_undisplaced = GFSDK_WaveWorks_GetUndisplacedVertexWorldPosition(In_vPos);
-	float  distance = length(g_WorldEye - pos_world_undisplaced);
-
-	
-	float2 uv_world_cascade0 = pos_world_undisplaced.xy * g_UVScaleCascade0123.x;
-	float2 uv_world_cascade1 = pos_world_undisplaced.xy * g_UVScaleCascade0123.y;
-	float2 uv_world_cascade2 = pos_world_undisplaced.xy * g_UVScaleCascade0123.z;
-	float2 uv_world_cascade3 = pos_world_undisplaced.xy * g_UVScaleCascade0123.w;
-
-	
-	float4 blendfactors;
-	float4 cascade_spatial_size = 1.0/g_UVScaleCascade0123.xyzw;
-	blendfactors.x = 1.0;
-	blendfactors.yzw = saturate(0.25*(cascade_spatial_size.yzw*24.0-distance)/cascade_spatial_size.yzw);
-	blendfactors.yzw *= blendfactors.yzw;
-
-
-	
-	#if defined(GFSDK_WAVEWORKS_GL)
-		float3 displacement;
-		if(g_UseTextureArrays > 0)
-		{
-			displacement =  blendfactors.x * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade0, 0.0), 0).xyz;
-			displacement += blendfactors.y==0? float3(0,0,0) : blendfactors.y * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade1, 1.0), 0).xyz;
-			displacement += blendfactors.z==0? float3(0,0,0) : blendfactors.z * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade2, 2.0), 0).xyz;
-			displacement += blendfactors.w==0? float3(0,0,0) : blendfactors.w * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade3, 3.0), 0).xyz;
-		}
-		else
-		{
-			displacement =  blendfactors.x * SampleTex2Dlod(g_textureDisplacementMap0, g_samplerDisplacementMap0, uv_world_cascade0, 0).xyz;
-			displacement += blendfactors.y==0? float3(0,0,0) : blendfactors.y * SampleTex2Dlod(g_textureDisplacementMap1, g_samplerDisplacementMap1, uv_world_cascade1, 0).xyz;
-			displacement += blendfactors.z==0? float3(0,0,0) : blendfactors.z * SampleTex2Dlod(g_textureDisplacementMap2, g_samplerDisplacementMap2, uv_world_cascade2, 0).xyz;
-			displacement += blendfactors.w==0? float3(0,0,0) : blendfactors.w * SampleTex2Dlod(g_textureDisplacementMap3, g_samplerDisplacementMap3, uv_world_cascade3, 0).xyz;
-		}
-	#else
-		float3 displacement =  blendfactors.x * textureLod( g_samplerDisplacementMap0, uv_world_cascade0, 0).xyz;
-			   displacement += blendfactors.y==0? float3(0,0,0) : blendfactors.y * textureLod( g_samplerDisplacementMap1, uv_world_cascade1, 0).xyz;
-			   displacement += blendfactors.z==0? float3(0,0,0) : blendfactors.z * textureLod( g_samplerDisplacementMap2, uv_world_cascade2, 0).xyz;
-			   displacement += blendfactors.w==0? float3(0,0,0) : blendfactors.w * textureLod( g_samplerDisplacementMap3, uv_world_cascade3, 0).xyz;
-	#endif
-
-	float3 pos_world = pos_world_undisplaced + displacement;
-
-	
-	GFSDK_WAVEWORKS_VERTEX_OUTPUT Output;
-	Output.interp.eye_vec = g_WorldEye - pos_world;
-	Output.interp.tex_coord_cascade01.xy = uv_world_cascade0;
-	Output.interp.tex_coord_cascade01.zw = uv_world_cascade1;
-	Output.interp.tex_coord_cascade23.xy = uv_world_cascade2;
-	Output.interp.tex_coord_cascade23.zw = uv_world_cascade3;
-	Output.interp.blend_factor_cascade0123 = blendfactors;
-	Output.pos_world = pos_world;
-	Output.pos_world_undisplaced = pos_world_undisplaced;
-	Output.world_displacement = displacement;
-	return Output;
-}
-
-GFSDK_WAVEWORKS_VERTEX_OUTPUT GFSDK_WaveWorks_GetDisplacedVertexAfterTessellation(float4 In0, float4 In1, float4 In2, float3 BarycentricCoords)
-{
-	
-	float3 tessellated_ws_position =	In0.xyz * BarycentricCoords.x +
-											In1.xyz * BarycentricCoords.y +
-											In2.xyz * BarycentricCoords.z;
-	float3 pos_world_undisplaced = tessellated_ws_position;
-
-
-	
-	float4 blendfactors;
-	float distance = length(g_WorldEye - pos_world_undisplaced);
-	float4 cascade_spatial_size = 1.0/g_UVScaleCascade0123.xyzw;
-	blendfactors.x = 1.0;
-	blendfactors.yzw = saturate(0.25*(cascade_spatial_size.yzw*24.0-distance)/cascade_spatial_size.yzw);
-	blendfactors.yzw *= blendfactors.yzw;
-
-	
-	float2 uv_world_cascade0 = pos_world_undisplaced.xy * g_UVScaleCascade0123.x;
-	float2 uv_world_cascade1 = pos_world_undisplaced.xy * g_UVScaleCascade0123.y;
-	float2 uv_world_cascade2 = pos_world_undisplaced.xy * g_UVScaleCascade0123.z;
-	float2 uv_world_cascade3 = pos_world_undisplaced.xy * g_UVScaleCascade0123.w;
-
-	
-	#if defined(GFSDK_WAVEWORKS_GL)
-		float3 displacement;
-		if(g_UseTextureArrays > 0)
-		{
-			displacement =  blendfactors.x * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade0, 0.0), 0).xyz;
-			displacement += blendfactors.y==0? float3(0,0,0) : blendfactors.y * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade1, 1.0), 0).xyz;
-			displacement += blendfactors.z==0? float3(0,0,0) : blendfactors.z * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade2, 2.0), 0).xyz;
-			displacement += blendfactors.w==0? float3(0,0,0) : blendfactors.w * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade3, 3.0), 0).xyz;
-		}
-		else
-		{
-			displacement =  blendfactors.x * SampleTex2Dlod(g_textureDisplacementMap0, g_samplerDisplacementMap0, uv_world_cascade0, 0).xyz;
-			displacement += blendfactors.y==0? float3(0,0,0) : blendfactors.y * SampleTex2Dlod(g_textureDisplacementMap1, g_samplerDisplacementMap1, uv_world_cascade1, 0).xyz;
-			displacement += blendfactors.z==0? float3(0,0,0) : blendfactors.z * SampleTex2Dlod(g_textureDisplacementMap2, g_samplerDisplacementMap2, uv_world_cascade2, 0).xyz;
-			displacement += blendfactors.w==0? float3(0,0,0) : blendfactors.w * SampleTex2Dlod(g_textureDisplacementMap3, g_samplerDisplacementMap3, uv_world_cascade3, 0).xyz;
-		}
-	#else
-		float3 displacement =  blendfactors.x * textureLod( g_samplerDisplacementMap0, uv_world_cascade0, 0).xyz;
-			   displacement += blendfactors.y==0? float3(0,0,0) : blendfactors.y * textureLod( g_samplerDisplacementMap1, uv_world_cascade1, 0).xyz;
-			   displacement += blendfactors.z==0? float3(0,0,0) : blendfactors.z * textureLod( g_samplerDisplacementMap2, uv_world_cascade2, 0).xyz;
-			   displacement += blendfactors.w==0? float3(0,0,0) : blendfactors.w * textureLod( g_samplerDisplacementMap3, uv_world_cascade3, 0).xyz;
-	#endif
-
-	float3 pos_world = pos_world_undisplaced + displacement;
-
-	
-	GFSDK_WAVEWORKS_VERTEX_OUTPUT Output;
-	Output.interp.eye_vec = g_WorldEye - pos_world;
-	Output.interp.tex_coord_cascade01.xy = uv_world_cascade0;
-	Output.interp.tex_coord_cascade01.zw = uv_world_cascade1;
-	Output.interp.tex_coord_cascade23.xy = uv_world_cascade2;
-	Output.interp.tex_coord_cascade23.zw = uv_world_cascade3;
-	Output.interp.blend_factor_cascade0123 = blendfactors;
-	Output.pos_world = pos_world;
-	Output.pos_world_undisplaced = pos_world_undisplaced;
-	Output.world_displacement = displacement;
-	return Output;
-}
-
-GFSDK_WAVEWORKS_VERTEX_OUTPUT GFSDK_WaveWorks_GetDisplacedVertexAfterTessellationQuad(float4 In0, float4 In1, float4 In2, float4 In3, float2 UV)
-{
-	
-	float3 tessellated_ws_position =	In2.xyz*UV.x*UV.y +
-											In0.xyz*(1.0-UV.x)*UV.y +
-											In1.xyz*(1.0-UV.x)*(1.0-UV.y) +
-											In3.xyz*UV.x*(1.0-UV.y);
-	float3 pos_world_undisplaced = tessellated_ws_position;
-
-	
-	float4 blendfactors;
-	float distance = length(g_WorldEye - pos_world_undisplaced);
-	float4 cascade_spatial_size = 1.0/g_UVScaleCascade0123.xyzw;
-	blendfactors.x = 1.0;
-	blendfactors.yzw = saturate(0.25*(cascade_spatial_size.yzw*24.0-distance)/cascade_spatial_size.yzw);
-	blendfactors.yzw *= blendfactors.yzw;
-
-	
-	float2 uv_world_cascade0 = pos_world_undisplaced.xy * g_UVScaleCascade0123.x;
-	float2 uv_world_cascade1 = pos_world_undisplaced.xy * g_UVScaleCascade0123.y;
-	float2 uv_world_cascade2 = pos_world_undisplaced.xy * g_UVScaleCascade0123.z;
-	float2 uv_world_cascade3 = pos_world_undisplaced.xy * g_UVScaleCascade0123.w;
-
-	
-	#if defined(GFSDK_WAVEWORKS_GL)
-		float3 displacement;
-		if(g_UseTextureArrays > 0)
-		{
-			displacement =  blendfactors.x * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade0, 0.0), 0).xyz;
-			displacement += blendfactors.y==0? float3(0,0,0) : blendfactors.y * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade1, 1.0), 0).xyz;
-			displacement += blendfactors.z==0? float3(0,0,0) : blendfactors.z * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade2, 2.0), 0).xyz;
-			displacement += blendfactors.w==0? float3(0,0,0) : blendfactors.w * SampleTex2Dlod(g_textureArrayDisplacementMap, g_samplerDisplacementMapTextureArray, vec3(uv_world_cascade3, 3.0), 0).xyz;
-		}
-		else
-		{
-			displacement =  blendfactors.x * SampleTex2Dlod(g_textureDisplacementMap0, g_samplerDisplacementMap0, uv_world_cascade0, 0).xyz;
-			displacement += blendfactors.y==0? float3(0,0,0) : blendfactors.y * SampleTex2Dlod(g_textureDisplacementMap1, g_samplerDisplacementMap1, uv_world_cascade1, 0).xyz;
-			displacement += blendfactors.z==0? float3(0,0,0) : blendfactors.z * SampleTex2Dlod(g_textureDisplacementMap2, g_samplerDisplacementMap2, uv_world_cascade2, 0).xyz;
-			displacement += blendfactors.w==0? float3(0,0,0) : blendfactors.w * SampleTex2Dlod(g_textureDisplacementMap3, g_samplerDisplacementMap3, uv_world_cascade3, 0).xyz;
-		}
-	#else
-		float3 displacement =  blendfactors.x * textureLod( g_samplerDisplacementMap0, uv_world_cascade0, 0).xyz;
-			   displacement += blendfactors.y==0? float3(0,0,0) : blendfactors.y * textureLod( g_samplerDisplacementMap1, uv_world_cascade1, 0).xyz;
-			   displacement += blendfactors.z==0? float3(0,0,0) : blendfactors.z * textureLod( g_samplerDisplacementMap2, uv_world_cascade2, 0).xyz;
-			   displacement += blendfactors.w==0? float3(0,0,0) : blendfactors.w * textureLod( g_samplerDisplacementMap3, uv_world_cascade3, 0).xyz;
-	#endif
-
-	float3 pos_world = pos_world_undisplaced + displacement;
-
-	
-	GFSDK_WAVEWORKS_VERTEX_OUTPUT Output;
-	Output.interp.eye_vec = g_WorldEye - pos_world;
-	Output.interp.tex_coord_cascade01.xy = uv_world_cascade0;
-	Output.interp.tex_coord_cascade01.zw = uv_world_cascade1;
-	Output.interp.tex_coord_cascade23.xy = uv_world_cascade2;
-	Output.interp.tex_coord_cascade23.zw = uv_world_cascade3;
-	Output.interp.blend_factor_cascade0123 = blendfactors;
-	Output.pos_world = pos_world;
-	Output.pos_world_undisplaced = pos_world_undisplaced;
-	Output.world_displacement = displacement;
-	return Output;
-}
-
-struct GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES
-{
-	float3 normal;
-	float3 eye_dir;
-	float foam_surface_folding;
-	float foam_turbulent_energy;
-	float foam_wave_hats;
-};
-
-GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES GFSDK_WaveWorks_GetSurfaceAttributes(GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT In)
-{
-	
-	
-	float3 eye_dir = normalize(In.eye_vec);
-
-	
-
-	float4 grad_fold0;
-	float4 grad_fold1;
-	float4 grad_fold2;
-	float4 grad_fold3;
-
-	#if defined(GFSDK_WAVEWORKS_GL)
-		float3 displacement;
-		if(g_UseTextureArrays > 0)
-		{
-			grad_fold0 = SampleTex2D(g_textureArrayGradientMap, g_samplerGradientMapTextureArray, vec3(In.tex_coord_cascade01.xy, 0.0));
-			grad_fold1 = SampleTex2D(g_textureArrayGradientMap, g_samplerGradientMapTextureArray, vec3(In.tex_coord_cascade01.zw, 1.0));
-			grad_fold2 = SampleTex2D(g_textureArrayGradientMap, g_samplerGradientMapTextureArray, vec3(In.tex_coord_cascade23.xy, 2.0));
-			grad_fold3 = SampleTex2D(g_textureArrayGradientMap, g_samplerGradientMapTextureArray, vec3(In.tex_coord_cascade23.zw, 3.0));
-		}
-		else
-		{
-			grad_fold0 = SampleTex2D(g_textureGradientMap0, g_samplerGradientMap0, In.tex_coord_cascade01.xy);
-			grad_fold1 = SampleTex2D(g_textureGradientMap1, g_samplerGradientMap1, In.tex_coord_cascade01.zw);
-			grad_fold2 = SampleTex2D(g_textureGradientMap2, g_samplerGradientMap2, In.tex_coord_cascade23.xy);
-			grad_fold3 = SampleTex2D(g_textureGradientMap3, g_samplerGradientMap3, In.tex_coord_cascade23.zw);
-		}
-	#else
-
-		grad_fold0 = texture( g_samplerGradientMap0, In.tex_coord_cascade01.xy);
-		grad_fold1 = texture( g_samplerGradientMap1, In.tex_coord_cascade01.zw);
-		grad_fold2 = texture( g_samplerGradientMap2, In.tex_coord_cascade23.xy);
-		grad_fold3 = texture( g_samplerGradientMap3, In.tex_coord_cascade23.zw);
-	#endif
-
-	float2 grad;
-	grad.xy = grad_fold0.xy*In.blend_factor_cascade0123.x +
-				   grad_fold1.xy*In.blend_factor_cascade0123.y*g_Cascade1TexelScale_PS +
-				   grad_fold2.xy*In.blend_factor_cascade0123.z*g_Cascade2TexelScale_PS +
-				   grad_fold3.xy*In.blend_factor_cascade0123.w*g_Cascade3TexelScale_PS;
-
-	float c2c_scale = 0.25; 
-
-	float foam_turbulent_energy =
-					  
-					  100.0*grad_fold0.w *
-					  lerp(c2c_scale, grad_fold1.w, In.blend_factor_cascade0123.y)*
-					  lerp(c2c_scale, grad_fold2.w, In.blend_factor_cascade0123.z)*
-					  lerp(c2c_scale, grad_fold3.w, In.blend_factor_cascade0123.w);
-
-
-	float foam_surface_folding =
-						
-    				   max(-100,
-					  (1.0-grad_fold0.z) +
-					  (1.0-grad_fold1.z) +
-					  (1.0-grad_fold2.z) +
-					  (1.0-grad_fold3.z));
-
-	
-	float3 normal = normalize(float3(grad.xy, g_TexelLength_x2_PS));
-
-	float hats_c2c_scale = 0.5;		
-	float foam_wave_hats =
-      				   10.0*(-0.55 + 
-					  (1.0-grad_fold0.z) +
-					  hats_c2c_scale*(1.0-grad_fold1.z) +
-					  hats_c2c_scale*hats_c2c_scale*(1.0-grad_fold2.z) +
-					  hats_c2c_scale*hats_c2c_scale*hats_c2c_scale*(1.0-grad_fold3.z));
-
-
-	
-	GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES Output;
-	Output.normal = normal;
-	Output.eye_dir = eye_dir;
-	Output.foam_surface_folding = foam_surface_folding;
-	Output.foam_turbulent_energy = log(1.0 + foam_turbulent_energy);
-	Output.foam_wave_hats = foam_wave_hats;
-	return Output;
-}
-
-
-
-
-
-
-
-
-uniform float3      g_LightPosition;
-uniform float3      g_CameraPosition;
-uniform float4x4    g_ModelViewMatrix;
-uniform float4x4    g_ModelViewProjectionMatrix;
-uniform float4x4    g_LightModelViewProjectionMatrix;
-uniform float4x4    g_WorldToTopDownTextureMatrix;
-
-uniform float3      g_WaterTransmittance = {0.065,0.028,0.035}; 
-uniform float3      g_WaterScatterColor = {0.0,0.7,0.3};
-uniform float3      g_WaterSpecularColor = {1.1,0.8,0.5};
-uniform float       g_WaterScatterIntensity = 0.1;
-uniform float		g_WaterSpecularIntensity = 10.0f;
-
-uniform float3		g_FoamColor = {0.90f, 0.95f, 1.0f};
-uniform float3		g_FoamUnderwaterColor = {0.0,0.7,0.6};
-
-uniform float       g_WaterSpecularPower = 200.0;
-uniform float3      g_AtmosphereBrightColor = {1.1,0.9,0.6};
-uniform float3      g_AtmosphereDarkColor = {0.4,0.4,0.5};
-uniform float		g_FogDensity = 1.0f/1500.0f;
-
-uniform float4		g_WireframeColor = {1.0,1.0,1.0,1.0};
-
-uniform float2      g_WindDirection;
-
-uniform float2      g_ScreenSizeInv = {1.0/1280.0, 1.0/720.0};
-uniform float		g_ZNear;
-uniform float		g_ZFar;
-uniform float		g_Time;
-
-uniform float		g_GerstnerSteepness;
-uniform float		g_BaseGerstnerAmplitude;
-uniform float		g_BaseGerstnerWavelength;
-uniform float		g_BaseGerstnerSpeed;
-uniform float		g_BaseGerstnerParallelness;
-uniform int		    g_enableShoreEffects;
-
-uniform float		g_Wireframe;
-uniform float2		g_WinSize = {1280.0,720.0};
-
-
-
-
-
-layout(binding = 8) uniform sampler2D g_ReflectionTexture;
-layout(binding = 9) uniform sampler2D g_RefractionTexture;
-layout(binding = 10) uniform sampler2D g_RefractionDepthTextureResolved;
-layout(binding = 11) uniform sampler2D g_WaterNormalMapTexture;
-layout(binding = 12) uniform sampler2DShadow g_ShadowmapTexture;
-layout(binding = 13) uniform sampler2D g_FoamIntensityTexture;
-layout(binding = 14) uniform sampler2D g_FoamDiffuseTexture;
-layout(binding = 15) uniform sampler2D g_DataTexture;
-
-const float kTopDownDataPixelsPerMeter = 256.0f/700.0; 
-const float kMaxDepthBelowSea = 50.0f;
-const float kMaxDistance = 20.0f; 
-const float kNumWaves = 1.0; 
-									
-								    
-							        
-
-float3 ConvertToWorldPos(float3 pos)
-{
-    return float3(pos.xz, pos.y);
-}
-
-void GetGerstnerVertexAttributes(float3 posWS, out float2 sdfUVOut, out float3 offsetOut, out float gerstnerMultiplierOut)
-{
-	
-	float4 topDownPosition = mul( float4( posWS.xyz, 1), g_WorldToTopDownTextureMatrix );
-	float2 uv = topDownPosition.xy/topDownPosition.w * 0.5f + 0.5f;
-
-
-	
-	sdfUVOut = uv;
-	offsetOut = float3 (0.0,0.0,0.0);
-	gerstnerMultiplierOut = 0;
-
-	
-	const float4 tdData = textureLod(g_DataTexture, uv, 0 );  
-
-	
-	if((tdData.x >= kMaxDistance - 0.1))
-	{
-		return;
-	}
-
-	
-	float phaseShift = g_Time;
-	float sdfPhase = tdData.x*kMaxDistance/kTopDownDataPixelsPerMeter;
-	float distanceMultiplier =  saturate(1.0-tdData.x); 
-	float depthMultiplier = saturate((g_BaseGerstnerWavelength*0.5 + tdData.y)*0.5); 
-	gerstnerMultiplierOut = distanceMultiplier*depthMultiplier;
-
-	
-	float gerstnerWavelength = g_BaseGerstnerWavelength;
-	float gerstnerOmega = 2.0*3.141592 / g_BaseGerstnerWavelength; 
-	float gerstnerParallelness = g_BaseGerstnerParallelness; 
-	float gerstnerSpeed = g_BaseGerstnerSpeed; 
-	float gerstnerAmplitude = g_BaseGerstnerAmplitude;
-	float2 windDirection = g_WindDirection;
-
-	
-	for(float i = 0.0; i < kNumWaves; i+=1.0)
-	{
-		float windPhase = dot(windDirection, posWS.xz);
-		float gerstnerPhase = 2.0*3.141592*(lerp( sdfPhase, windPhase, gerstnerParallelness)/gerstnerWavelength);
-		float2 propagationDirection = normalize( lerp(-tdData.zw + windDirection * 0.000001f, g_WindDirection, gerstnerParallelness*gerstnerParallelness));
-		float gerstnerGroupSpeedPhase = 2.0*3.141592*(lerp( sdfPhase, windPhase, gerstnerParallelness*3.0)/gerstnerWavelength); 
-
-		float groupSpeedMultiplier = 0.5 + 0.5*cos((gerstnerGroupSpeedPhase + gerstnerOmega*gerstnerSpeed*phaseShift/2.0)/2.7); 
-		float worldSpacePosMultiplier = 0.75 + 0.25*sin(phaseShift*0.3 + 0.5*posWS.x/gerstnerWavelength)*sin(phaseShift*0.4 + 0.5*posWS.y/gerstnerWavelength); 
-		float depthMultiplier = saturate((gerstnerWavelength*0.5 + tdData.y)*0.5); 
-		float gerstnerMultiplier = distanceMultiplier*depthMultiplier*groupSpeedMultiplier*worldSpacePosMultiplier; 
-
-		float steepness = g_GerstnerSteepness;
-		float baseAmplitude = gerstnerMultiplier * gerstnerAmplitude; 
-		float breakerMultiplier = saturate((baseAmplitude*2.0*1.28 + tdData.y)/gerstnerAmplitude); 
-
-		
-		float s,c;
-		sincos(gerstnerPhase + gerstnerOmega*gerstnerSpeed*phaseShift, s, c);
-		float waveVerticalOffset = s * baseAmplitude;
-		offsetOut.y += waveVerticalOffset;
-		offsetOut.xz += c * propagationDirection * steepness * baseAmplitude; 
-		offsetOut.xz -= propagationDirection * s * baseAmplitude * breakerMultiplier * 2.0; 
-		float breakerPhase = gerstnerPhase + gerstnerOmega*gerstnerSpeed*phaseShift + 3.141592*0.05;
-		float fp = frac(breakerPhase/(3.141592*2.0));
-		offsetOut.xz -= 0.5*baseAmplitude*propagationDirection*breakerMultiplier*(saturate(fp*10.0) - saturate(-1.0 + fp*10.0)); 
-
-		
-		gerstnerWavelength *= 0.66;
-		gerstnerOmega /= 0.66;
-		gerstnerSpeed *= 0.66;
-		gerstnerAmplitude *= 0.66;
-		gerstnerParallelness *= 0.66;
-		windDirection.xy *= float2(-1.0,1.0)*windDirection.yx; 
-
-		offsetOut.y += baseAmplitude*1.2; 
-	}
-
-}
-
-void GetGerstnerSurfaceAttributes( float2 sdfUV, float2 posWS, out float3 normalOut, out float breakerOut, out float foamTrailOut)
-{
-	
-	normalOut = float3 (0.0,1.0,0.0);
-	foamTrailOut = 0.0;
-	breakerOut = 0.0;
-
-	
-	const float4 tdData = textureLod(g_DataTexture, sdfUV, 0 );  
-
-	
-	float phaseShift = g_Time;
-	float sdfPhase = tdData.x*kMaxDistance/kTopDownDataPixelsPerMeter;
-	float distanceMultiplier = saturate(1.0-tdData.x); 
-
-	
-	float gerstnerWavelength = g_BaseGerstnerWavelength;
-	float gerstnerOmega = 2.0*3.141592 / g_BaseGerstnerWavelength; 
-	float gerstnerParallelness = g_BaseGerstnerParallelness; 
-	float gerstnerSpeed = g_BaseGerstnerSpeed; 
-	float gerstnerAmplitude = g_BaseGerstnerAmplitude;
-	float2 windDirection = g_WindDirection;
-
-	
-	for(float i = 0.0; i < kNumWaves; i+=1.0)
-	{
-		float windPhase = dot(windDirection, posWS.xy);
-		float gerstnerPhase = 2.0*3.141592*(lerp( sdfPhase, windPhase, gerstnerParallelness)/gerstnerWavelength);
-		float2 propagationDirection = normalize( lerp(-tdData.zw + windDirection * 0.000001f, g_WindDirection, gerstnerParallelness*gerstnerParallelness));
-		float gerstnerGroupSpeedPhase = 2.0*3.141592*(lerp( sdfPhase, windPhase, gerstnerParallelness*3.0)/gerstnerWavelength); 
-
-		float groupSpeedMultiplier = 0.5 + 0.5*cos((gerstnerGroupSpeedPhase + gerstnerOmega*gerstnerSpeed*phaseShift/2.0)/2.7); 
-		float worldSpacePosMultiplier = 0.75 + 0.25*sin(phaseShift*0.3 + 0.5*posWS.x/gerstnerWavelength)*sin(phaseShift*0.4 + 0.5*posWS.y/gerstnerWavelength); 
-		float depthMultiplier = saturate((gerstnerWavelength*0.5 + tdData.y)*0.5); 
-		float gerstnerMultiplier = distanceMultiplier*depthMultiplier*groupSpeedMultiplier*worldSpacePosMultiplier; 
-
-		float steepness = g_GerstnerSteepness;
-		float baseAmplitude = gerstnerMultiplier * gerstnerAmplitude; 
-
-		
-		float s,c;
-		sincos(gerstnerPhase + gerstnerOmega*gerstnerSpeed*phaseShift, s, c);
-		normalOut.y -= gerstnerOmega*steepness*baseAmplitude*s;
-		normalOut.xz -= gerstnerOmega*baseAmplitude*c*propagationDirection;   
-
-		
-		float breakerMultiplier = saturate((baseAmplitude*2.0*1.28 + tdData.y)/gerstnerAmplitude); 
-
-		float foamTrailPhase = gerstnerPhase + gerstnerOmega*gerstnerSpeed*phaseShift + 3.141592*0.05; 
-		float fp = frac(foamTrailPhase/(3.141592*2.0));
-		foamTrailOut += gerstnerMultiplier*breakerMultiplier*(saturate(fp*10.0) - saturate(fp*1.1)); 
-		breakerOut += gerstnerMultiplier*breakerMultiplier*(saturate(fp*10.0) - saturate(-1.0 + fp*10.0)); 
-
-		
-		gerstnerWavelength *= 0.66;
-		gerstnerOmega /= 0.66;
-		gerstnerSpeed *= 0.66;
-		gerstnerAmplitude *= 0.66;
-		gerstnerParallelness *= 0.66;
-		windDirection.xy *= float2(-1.0,1.0)*windDirection.yx; 
-	}
-}
-
-
-layout(location=0) out vec4 Out_f4Color;
-
-in PS_INPUT
-{
-
-	GFSDK_WAVEWORKS_INTERPOLATED_VERTEX_OUTPUT NV_ocean_interp;
-	float3								displacementWS;
-	float3								positionWS;
-	float3								world_pos_undisplaced ;
-	float3								gerstner_displacement ;
-	float2								gerstner_sdfUV ;
-	float								gerstner_multiplier ;
-	noperspective float3				v_dist ;
-}In;
-
-float GetRefractionDepth(float2 position)
-{
-	return textureLod(g_RefractionDepthTextureResolved,position,0).r;  
-}
-
-
-float3 CalculateFogColor(float3 pixel_to_light_vector, float3 pixel_to_eye_vector)
-{
-	return lerp(g_AtmosphereDarkColor,g_AtmosphereBrightColor,0.5*dot(pixel_to_light_vector,-pixel_to_eye_vector)+0.5);
-}
-
-void main()
-{
-    float3 color;
-    float3 normal;
-    float fresnel_factor;
-    float specular_factor;
-    float scatter_factor;
-    float3 refraction_color;
-    float3 reflection_color;
-    float4 disturbance_eyespace;
-
-
-    float water_depth;
-
-
-    float3 water_vertex_positionWS = ConvertToWorldPos(In.positionWS.xyz);
-
-    float3 pixel_to_light_vector = normalize(g_LightPosition-water_vertex_positionWS);
-    float3 pixel_to_eye_vector = normalize(g_CameraPosition-water_vertex_positionWS);
-
-    GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surface_attributes = GFSDK_WaveWorks_GetSurfaceAttributes(In.NV_ocean_interp);
-
-    float3 gerstner_normal = float3(0.0,1.0,0.0);
-    float gerstner_breaker = 0;
-    float gerstner_foamtrail = 0;
-
-    if(g_enableShoreEffects > 0)
+        vec4 c0 = textureOffset(tex, uv, ivec2(0,1));
+        vec4 c1 = textureOffset(tex, uv, ivec2(1,1));
+        vec4 c2 = textureOffset(tex, uv, ivec2(1,0));
+        vec4 c3 = textureOffset(tex, uv, ivec2(0,0));
+
+        return vec4(c0[comp], c1[comp], c2[comp],c3[comp]);
+    }
+#elif __VERSION__ < 300
+
+    vec4 textureGather(sampler2D tex, vec2 uv, int comp)
     {
-        if(In.gerstner_multiplier > 0)
-        {
-            GetGerstnerSurfaceAttributes( In.gerstner_sdfUV, In.world_pos_undisplaced.xy, gerstner_normal, gerstner_breaker, gerstner_foamtrail);
-        }
-        surface_attributes.normal = lerp(float3(0,1,0),surface_attributes.normal.xzy, 1.0-0.9*In.gerstner_multiplier*In.gerstner_multiplier); 
-        surface_attributes.foam_turbulent_energy += gerstner_foamtrail*3.0;
-        surface_attributes.foam_wave_hats += gerstner_breaker*15.0;				
+        vec4 c3 = texture2D(tex, uv);
+        return vec4(c3[comp], c3[comp], c3[comp],c3[comp]);
+    }
+#endif
 
-        
-        normal = normalize(float3(surface_attributes.normal.xz*gerstner_normal.y + gerstner_normal.xz*surface_attributes.normal.y, surface_attributes.normal.y*gerstner_normal.y));
-        normal = normal.xzy;
+#else  
 
+
+ #define ENABLE_VERTEX_ID 1
+
+ #if __VERSION__ >= 130
+ #define ENABLE_IN_OUT_FEATURE 1
+ #endif
+
+ #if __VERSION__ >= 410
+    #define LAYOUT_LOC(x)  layout(location = x)
+ #else
+    #define LAYOUT_LOC(x)
+ #endif
+
+ #if __VERSION__ < 400
+     vec4 textureGather(sampler2D tex, vec2 uv, int comp)
+     {
+         vec4 c0 = textureOffset(tex, uv, ivec2(0,1));
+         vec4 c1 = textureOffset(tex, uv, ivec2(1,1));
+         vec4 c2 = textureOffset(tex, uv, ivec2(1,0));
+         vec4 c3 = textureOffset(tex, uv, ivec2(0,0));
+
+         return vec4(c0[comp], c1[comp], c2[comp],c3[comp]);
+     }
+ #endif
+
+#endif
+
+#ifndef ENABLE_VERTEX_ID
+#define ENABLE_VERTEX_ID 0
+#endif
+
+#ifndef ENABLE_IN_OUT_FEATURE
+#define ENABLE_IN_OUT_FEATURE 0
+#endif
+
+#ifndef ENABLE_POS_TRANSFORM
+#define ENABLE_POS_TRANSFORM 0
+#endif
+
+
+
+
+#if GL_ES
+precision highp float;
+#endif
+
+#if ENABLE_IN_OUT_FEATURE
+    in vec4 m_f4UVAndScreenPos;
+    LAYOUT_LOC(0) out vec4 Out_f4Color;
+#else
+    varying vec4 m_f4UVAndScreenPos;
+   #define Out_f4Color gl_FragColor
+#endif
+
+
+uniform sampler2D iChannel0;
+uniform sampler2D iPaper;
+
+
+uniform vec4 g_Uniforms;
+#define iResolution g_Uniforms.xy
+#define g_RectBorder      g_Uniforms.z
+#define g_Alpha           g_Uniforms.w   
+
+#define EPSILON 0.000011
+#define SAMPLES  5.0
+
+float DistToRect(vec2 uv)
+{
+    float prop = iResolution.y / iResolution.x;
+
+    float Xmin = g_RectBorder;
+    float Xmax = 1.0 - g_RectBorder;
+    float Ymin = g_RectBorder;
+    float Ymax = prop - Ymin;
+
+    float X = clamp(uv.x, Xmin, Xmax);
+    float Y = clamp(uv.y, Ymin, Ymax);
+
+
+
+    return distance(uv, vec2(X,Y));
+}
+
+
+float hash( vec2 p ){ return fract(sin(dot(p, vec2(41, 289)))*45758.5453); }
+
+float ConstractLinear(float color, float middleGray, float c)
+{
+    
+    return color + (color - middleGray) * c;
+}
+
+float ConstractLog(float color, float c)
+{
+    const float F = 1.0;
+    return c * log(color * F + 1.0) / F;
+}
+
+float ConstractPower(float color, float c, float gamma)
+{
+    float diff = color - 100.0 / 256.0;
+    return c * pow(abs(diff), gamma) * sign(diff) + 100.0 / 256.0;
+}
+
+void mainImage( out vec4 fragColor ){
+    
+    vec2 uv = m_f4UVAndScreenPos.xy;
+
+    
+    
+    
+    float decay = 0.97;
+    
+    float density = 0.02;
+    
+    float weight = 1.0f/SAMPLES;
+
+    float iGlobalTime = 10.0;
+    
+    vec3 l = vec3(0);
+
+    
+    
+    
+    
+    
+    
+    
+    vec2 tuv = uv - 0.5;
+
+    
+    
+    
+    vec2 dTuv = tuv*density * weight;
+
+    
+    
+    vec4 col = texture(iChannel0, uv.xy) * weight;
+
+    
+    
+    uv += dTuv*(hash(uv.xy + fract(iGlobalTime))*2. - 1.);
+
+    float totalWeight = 1.0 / SAMPLES;
+    
+    
+    
+    for(float i=0.; i < SAMPLES; i++){
+
+        uv -= dTuv;
+        col += texture(iChannel0, uv) * weight;
+        totalWeight += weight;
+
+        weight *= decay;
+    }
+
+    
+    
+    
+    col *= (1. - dot(tuv, tuv)*.75);
+    col /= totalWeight;
+
+    
+    fragColor = smoothstep(0., 1., col);
+    fragColor  = col;
+}
+
+#define USE_PAPER 1
+
+float overlaySingle(float s, float d)
+{
+    int di = int(d * 255.0);
+    int si = int(s * 255.0);
+
+    int t;
+    int dor;
+    if ( di < 128 )
+    {
+        t = di * si + 0x80;
+        dor = 2 * (((t >> 8) + t) >> 8);
     }
     else
     {
-        normal = surface_attributes.normal.xzy;
-
+        t = (255-di) * (255-si) + 0x80;
+        dor = 2 * (255 - ( ((t >> 8) + t) >> 8 ));
     }
 
-    float3 reflected_eye_to_pixel_vector=-pixel_to_eye_vector+2*dot(pixel_to_eye_vector,normal)*normal;
+    return float(dor) / 255.0;
+}
 
-    
-    float4 positionLS = mul(float4(water_vertex_positionWS,1),g_LightModelViewProjectionMatrix);
-    positionLS.xyz/=positionLS.w;
+vec3 overlay(vec4 src, vec4 dst)
+{
+    vec3 result;
+    result.r = overlaySingle(src.r, dst.r);
+    result.g = overlaySingle(src.g, dst.g);
+    result.b = overlaySingle(src.b, dst.b);
 
+    return mix(dst.rgb, result.rgb, g_Alpha);
+}
 
-    positionLS.xyz = 0.5 * positionLS.xyz + 0.5;
-    positionLS.z = min(0.99,positionLS.z);
-
-    
-    float shadow_factor = texture(g_ShadowmapTexture,float3(positionLS.xy,positionLS.z* 0.995f));  
-
-    
-    
-
-    
-    scatter_factor = g_WaterScatterIntensity*
-        
-        pow(max(0.0,dot(normalize(float3(pixel_to_light_vector.x,0.0,pixel_to_light_vector.z)),-pixel_to_eye_vector)),2.0)*
-        
-        shadow_factor*pow(max(0.0,1.0-dot(pixel_to_light_vector,normal)),2.0);
-
-    scatter_factor += g_WaterScatterIntensity*
-        
-        max(0,dot(pixel_to_eye_vector,normal));
-
-    
-    float r=(1.0 - 1.33)*(1.0 - 1.33)/((1.0 + 1.33)*(1.0 + 1.33));
-    fresnel_factor = r + (1.0-r)*pow(saturate(1.0 - dot(normal,pixel_to_eye_vector)),5.0);
-
-    
-    specular_factor=shadow_factor*pow(max(0,dot(pixel_to_light_vector,reflected_eye_to_pixel_vector)),g_WaterSpecularPower);
-
-    
-    disturbance_eyespace=mul(float4(normal.x,normal.z,0,0),g_ModelViewMatrix);
-
-    float2 reflection_disturbance = float2(disturbance_eyespace.x,disturbance_eyespace.z)*0.06;
-    float2 refraction_disturbance = float2(-disturbance_eyespace.x,disturbance_eyespace.y)*0.9*
-        
-        (1000.0/(1000+length(g_CameraPosition-water_vertex_positionWS)));
-
-    
-    float refraction_depth = GetRefractionDepth(gl_FragCoord.xy*g_ScreenSizeInv);
-    refraction_depth = g_ZFar*g_ZNear / (g_ZFar-refraction_depth*(g_ZFar-g_ZNear));
-    float4 vertex_in_viewspace = mul(float4(In.positionWS.xyz,1),g_ModelViewMatrix);
-    water_depth = refraction_depth+vertex_in_viewspace.z;
-
-    if(water_depth < 0)
+void main(void)
+{
+    if(USE_PAPER != 0)
     {
-        refraction_disturbance = float2(0);
+        vec4 src0 = texture(iChannel0, m_f4UVAndScreenPos.xy).rgb;
+
+        vec4 src1 = texture(iPaper, m_f4UVAndScreenPos.xy).rgb;
+
+        Out_f4Color.rgb = overlay(src0, src1);
+        Out_f4Color.a = 1;
     }
-    water_depth = max(0,water_depth);
-    refraction_disturbance *= min(1.0f,water_depth*0.03);
+    else
+    {
+        vec2 p = gl_FragCoord.xy / iResolution.x;
+        float dist = DistToRect(p);
 
-    
-    refraction_depth = GetRefractionDepth(gl_FragCoord.xy*g_ScreenSizeInv+refraction_disturbance);
-    refraction_depth = g_ZFar*g_ZNear / (g_ZFar-refraction_depth*(g_ZFar-g_ZNear));
-    vertex_in_viewspace= mul(float4(In.positionWS.xyz,1),g_ModelViewMatrix);
-    water_depth = max(water_depth,refraction_depth+vertex_in_viewspace.z);
-    water_depth = max(0,water_depth);
-    water_depth = min(100, water_depth)
-    float depth_damper = min(1,water_depth*3.0);
-    float depth_damper_sss = min(1,water_depth*0.5);
+        
+        float fade = smoothstep(0.,1., dist / g_RectBorder);
+        
 
-    
-    reflection_color = textureLod(g_ReflectionTexture,float2(gl_FragCoord.x*g_ScreenSizeInv.x,1.0-gl_FragCoord.y*g_ScreenSizeInv.y)+reflection_disturbance,0).rgb;
-    refraction_color = textureLod(g_RefractionTexture,gl_FragCoord.xy*g_ScreenSizeInv+refraction_disturbance,0).rgb;
+        
 
-    
-    fresnel_factor*=depth_damper;
+        vec4 backgroundColor;
+        mainImage(backgroundColor);
 
-    
-    fresnel_factor*= 1.0 - 1.0*saturate(-2.0*reflected_eye_to_pixel_vector.y);
+        
+        const vec3 ToGray = vec3(0.299, 0.587, 0.114);
 
-    
-    
-    refraction_color.r *= exp(-1.0*water_depth*2.0*g_WaterTransmittance.r);
-    refraction_color.g *= exp(-1.0*water_depth*2.0*g_WaterTransmittance.g);
-    refraction_color.b *= exp(-1.0*water_depth*2.0*g_WaterTransmittance.b);
+        float grayCol = dot(backgroundColor.rgb, ToGray);
+        
 
-    
-    refraction_color += scatter_factor*shadow_factor*g_WaterScatterColor*depth_damper_sss;
+        grayCol = ConstractPower(grayCol, 1.0, 1);
 
-    
-    refraction_color += g_FoamUnderwaterColor*saturate(surface_attributes.foam_turbulent_energy*0.2)*depth_damper_sss;
-
-    
-    color = lerp(refraction_color, reflection_color, fresnel_factor);
-    
-    color.rgb += specular_factor*g_WaterSpecularIntensity*g_WaterSpecularColor*shadow_factor*depth_damper;
-
-    
-
-    
-    float foam_intensity_map_lf = 1.0*texture(g_FoamIntensityTexture, In.world_pos_undisplaced.xy*0.04*float2(1,1)).x - 1.0;  
-
-    
-    float foam_intensity_map_hf = 1.0*texture(g_FoamIntensityTexture, In.world_pos_undisplaced.xy*0.15*float2(1,1)).x - 1.0;
-
-    
-    float foam_intensity_map_uhf = 1.0*texture(g_FoamIntensityTexture, In.world_pos_undisplaced.xy*0.3*float2(1,1)).x;
-
-    float foam_intensity;
-    foam_intensity = saturate(foam_intensity_map_hf + min(3.5,1.0*surface_attributes.foam_turbulent_energy-0.2));
-    foam_intensity += (foam_intensity_map_lf + min(1.5,1.0*surface_attributes.foam_turbulent_energy));
+        
+        Out_f4Color = vec4(mix(vec3(grayCol), vec3(0.0), fade), 1.0);
+    }
 
 
-    foam_intensity -= 0.1*saturate(-surface_attributes.foam_surface_folding);
-
-    foam_intensity = max(0,foam_intensity);
-
-    foam_intensity *= 1.0+0.8*saturate(surface_attributes.foam_surface_folding);
-
-    float foam_bubbles = texture(g_FoamDiffuseTexture, In.world_pos_undisplaced.xy*0.5).r;  
-    foam_bubbles = saturate(5.0*(foam_bubbles-0.8));
-
-    
-    foam_intensity += max(0,foam_intensity_map_uhf*2.0*surface_attributes.foam_wave_hats);
-
-    foam_intensity = pow(foam_intensity, 0.7);
-    foam_intensity = saturate(foam_intensity*foam_bubbles*1.0);
-
-    foam_intensity*=depth_damper;
-
-    
-    float foam_diffuse_factor = max(0,0.8+max(0,0.2*dot(pixel_to_light_vector,surface_attributes.normal)));
-
-    color = lerp(color, foam_diffuse_factor*float3(1.0,1.0,1.0),foam_intensity);
-
-    
-    float fog_factor = min(1,exp(-length(g_CameraPosition-water_vertex_positionWS) *g_FogDensity));
-    color = lerp(color, CalculateFogColor(normalize(g_LightPosition),pixel_to_eye_vector).rgb, fresnel_factor*(1.0-fog_factor));
-
-    
-    float d = min(In.v_dist.x,min(In.v_dist.y,In.v_dist.z));
-    float I = exp2(-2.0*d*d);
-    Out_f4Color = float4(color + g_Wireframe*I*0.5, 1.0);
 }

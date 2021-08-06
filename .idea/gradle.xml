@@ -3,22 +3,24 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
-        <option name="distributionType" value="LOCAL" />
+        <option name="distributionType" value="DEFAULT_WRAPPED" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="gradleHome" value="D:\Program Files\Android\Android Studio\gradle\gradle-2.14.1" />
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/android_impl" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/assimp" />
+            <option value="$PROJECT_DIR$/effects" />
             <option value="$PROJECT_DIR$/gl_math" />
             <option value="$PROJECT_DIR$/jogl" />
             <option value="$PROJECT_DIR$/jogl_impl" />
             <option value="$PROJECT_DIR$/lwigl_impl" />
             <option value="$PROJECT_DIR$/lwjgl" />
+            <option value="$PROJECT_DIR$/parsing" />
             <option value="$PROJECT_DIR$/particledynamic" />
             <option value="$PROJECT_DIR$/postprocessingcore" />
+            <option value="$PROJECT_DIR$/renderer" />
             <option value="$PROJECT_DIR$/testframewok" />
           </set>
         </option>

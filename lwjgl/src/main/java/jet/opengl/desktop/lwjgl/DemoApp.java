@@ -18,24 +18,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import jet.opengl.demos.gpupro.culling.OcclusionCullingDemo;
-import jet.opengl.demos.gpupro.culling.OrderIndependentTransparencyDemo;
-import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
-import jet.opengl.demos.labs.atmosphere.AtmosphereDemo;
-import jet.opengl.demos.labs.atmosphere.VolumetricClouds;
-import jet.opengl.demos.labs.ogl.BindlessTextureSample;
-import jet.opengl.demos.labs.ogl.DervitiveComputShaderTest;
-import jet.opengl.demos.nvidia.shadows.SoftShadowDemo;
-import jet.opengl.demos.nvidia.waves.crest.Wave_Animation_Test;
-import jet.opengl.demos.nvidia.waves.ocean.NvOceanDemo;
-import jet.opengl.demos.nvidia.waves.samples.SampleD3D11;
-import jet.opengl.demos.nvidia.waves.samples.ScreenWaveDemo;
-import jet.opengl.demos.nvidia.waves.samples.TestD3D11;
+import jet.opengl.demos.gpupro.noise.ShaderNoise;
+import jet.opengl.demos.postprocessing.DOFBokehDemo;
+import jet.opengl.demos.postprocessing.GrayScreenDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
-import jet.opengl.postprocessing.util.NvGfxAPIVersion;
-import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/4/12.
@@ -136,6 +124,7 @@ public class DemoApp {
 //        run(new ShaderTest());
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
+        run(new GrayScreenDemo());
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
 //        run(new TestD3D11());
@@ -164,7 +153,7 @@ public class DemoApp {
 //        run(new BindlessTextureSample());
 //        run(new DervitiveComputShaderTest());
 //        run(new AtmosphereDemo());
-        run(new ScreenWaveDemo());
+//        run(new ScreenWaveDemo());
 //        run(new VolumetricClouds());
     }
 

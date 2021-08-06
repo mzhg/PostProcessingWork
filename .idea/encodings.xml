@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding">
-    <file url="file://$PROJECT_DIR$/testframewok/src/main/java/com/nvidia/developer/opengl/utils/NvImage.java" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/testframewok/src/main/java/com/nvidia/developer/opengl/utils/SpUtils.java" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/testframewok/src/main/java/com/nvidia/developer/opengl/utils/VectorUtil.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/assets/gpupro/VoxelConeTracing/shaders/voxel_visualization.vert" charset="ISO-8859-1" />
+    <file url="file://$PROJECT_DIR$/app/src/main/assets/gpupro/VoxelConeTracing/shaders/world_position.frag" charset="ISO-8859-1" />
+    <file url="file://$PROJECT_DIR$/app/src/main/assets/gpupro/VoxelConeTracing/shaders/world_position.vert" charset="ISO-8859-1" />
+    <file url="file://$PROJECT_DIR$/testframewok/src/main/java/com/nvidia/developer/opengl/utils/NvImage.java" charset="UTF-8" />
   </component>
 </project>
