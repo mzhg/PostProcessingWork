@@ -36,6 +36,10 @@ public class DemoApp {
     }
 
     public static void run(NvAppBase app){
+        run(app, LwjglApp.DEFAULT_WIDTH, LwjglApp.DEFAULT_HEIGHT);
+    }
+
+    public static void run(NvAppBase app, int width, int height){
         NvEGLConfiguration config = new NvEGLConfiguration();
         app.configurationCallback(config);
 
@@ -50,6 +54,8 @@ public class DemoApp {
         glconfig.blueBits = config.blueBits;
         glconfig.debugContext = config.debugContext;
         glconfig.multiSamplers = config.multiSamplers;
+        baseApp.setWidth(width);
+        baseApp.setHeight(height);
         baseApp.setTile(app.getClass().getSimpleName());
         baseApp.registerGLEventListener(app);
         baseApp.registerGLFWListener(new InputAdapter(app, app, app));
@@ -124,7 +130,7 @@ public class DemoApp {
 //        run(new ShaderTest());
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
-        run(new GrayScreenDemo());
+        run(new GrayScreenDemo(), 1024, 720);
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
 //        run(new TestD3D11());

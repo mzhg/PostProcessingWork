@@ -27,8 +27,8 @@ import jet.opengl.postprocessing.common.GLFuncProviderFactory;
 
 public class LwjglApp implements NvGLAppContext{
 
-	private static final int DEFAULT_WIDTH = 1280;
-	private static final int DEFAULT_HEIGHT = 720;
+	public static final int DEFAULT_WIDTH = 1280;
+	public static final int DEFAULT_HEIGHT = 720;
 	
 //	private MultiWindowCallBacks callBacks = new MultiWindowCallBacks();
 	private List<GLFWListener> windowCallbacks = new ArrayList<GLFWListener>();

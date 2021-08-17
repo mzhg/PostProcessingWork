@@ -18,6 +18,9 @@ import jet.opengl.postprocessing.texture.SamplerUtils;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureUtils;
+import jet.opengl.postprocessing.util.FileLoader;
+import jet.opengl.postprocessing.util.FileUtils;
+import jet.opengl.postprocessing.util.NvImage;
 
 /**
  * Created by mazhen'gui on 2017/5/8.
@@ -80,7 +83,15 @@ public class GrayScreenDemo extends NvSampleApp {
             m_paper.setWrapS(GLenum.GL_REPEAT);
             m_paper.setWrapT(GLenum.GL_REPEAT);
 
-            m_sourceTex = TextureUtils.createTexture2DFromFile("shader_libs/paper1.jpg", false);
+            FileLoader old = FileUtils.g_IntenalFileLoader;
+            try {
+                FileUtils.setIntenalFileLoader(FileLoader.g_DefaultFileLoader);
+                m_sourceTex = TextureUtils.createTexture2DFromFile("E:\\workspace\\hg\\java\\lwjgl\\effect_datas\\scene.jpg", true);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }finally {
+                FileUtils.setIntenalFileLoader(old);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -141,7 +152,7 @@ public class GrayScreenDemo extends NvSampleApp {
             gl.glClear(GLenum.GL_COLOR_BUFFER_BIT);
 //            gl.glDisable(GLenum.GL_DEPTH_TEST);
             // Apply the DOF Bokeh and render result to scene_rt2
-            m_frameAttribs.sceneColorTexture = sceneBall.getSceneColor();
+            m_frameAttribs.sceneColorTexture = m_sourceTex; //  sceneBall.getSceneColor();
             m_frameAttribs.sceneDepthTexture = sceneBall.getSceneDepth();
             m_frameAttribs.cameraNear = sceneBall.getSceneNearPlane();
             m_frameAttribs.cameraFar =  sceneBall.getSceneFarPlane();

@@ -25,6 +25,6 @@ final class PostProcessingGrayScreenProgram extends GLSLProgram{
 
     public void setUniforms(float resolutionX, float resolutionY, float rectBorder){
         if(centerIndex >= 0)
-            gl.glUniform4f(centerIndex, resolutionX, resolutionY, rectBorder, 0.3f);
+            gl.glUniform4f(centerIndex, resolutionX, resolutionY, rectBorder, 0.15f);
     }
 }

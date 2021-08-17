@@ -366,16 +366,18 @@ float overlaySingle(float s, float d)
     int di = int(d * 255.0);
     int si = int(s * 255.0);
 
+    const int C = 128;
+
     int t;
     int dor;
-    if ( di < 128 )
+    if ( di < C )
     {
-        t = di * si + 0x80;
+        t = di * si + C;
         dor = 2 * (((t >> 8) + t) >> 8);
     }
     else
     {
-        t = (255-di) * (255-si) + 0x80;
+        t = (255-di) * (255-si) + C;
         dor = 2 * (255 - ( ((t >> 8) + t) >> 8 ));
     }
 
@@ -394,13 +396,16 @@ vec3 overlay(vec4 src, vec4 dst)
 
 void main(void)
 {
+    const vec3 ToGray = vec3(0.299, 0.587, 0.114);
+
     if(USE_PAPER != 0)
     {
-        vec4 src0 = texture(iChannel0, m_f4UVAndScreenPos.xy).rgb;
+        vec4 src0 = texture(iChannel0, m_f4UVAndScreenPos.xy);
 
-        vec4 src1 = texture(iPaper, m_f4UVAndScreenPos.xy).rgb;
+        vec4 src1 = texture(iPaper, m_f4UVAndScreenPos.xy);
 
-        Out_f4Color.rgb = overlay(src0, src1);
+        float src = dot(src1.rgb, ToGray);
+        Out_f4Color.rgb = overlay(vec3(src), src0);
         Out_f4Color.a = 1;
     }
     else
@@ -418,7 +423,6 @@ void main(void)
         mainImage(backgroundColor);
 
         
-        const vec3 ToGray = vec3(0.299, 0.587, 0.114);
 
         float grayCol = dot(backgroundColor.rgb, ToGray);
         
