@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 
 import jet.opengl.demos.gpupro.noise.ShaderNoise;
+import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
 import jet.opengl.demos.postprocessing.DOFBokehDemo;
 import jet.opengl.demos.postprocessing.GrayScreenDemo;
 import jet.opengl.postprocessing.util.FileLoader;
@@ -130,7 +131,7 @@ public class DemoApp {
 //        run(new ShaderTest());
 //        run(new SoftShadowDemo());
 //        run(new ShaderNoise());
-        run(new GrayScreenDemo(), 1024, 720);
+//        run(new GrayScreenDemo(), 1024, 720);
 //        run(new Flight404());
 //        run(new LightingVolumeDemo());
 //        run(new TestD3D11());
@@ -151,7 +152,7 @@ public class DemoApp {
 //        run(new AntiAliasingDemo());
 //        run(new HybridRendererDemo());
 //        run(new CloudSkyDemo());
-//        run(new VoxelConeTracingDemo());
+        run(new VoxelConeTracingDemo());
 //        run(new PerlinFire());
 //        run(new VolumetricFogDemo());
 //        run(new GeometryFXDemo());
