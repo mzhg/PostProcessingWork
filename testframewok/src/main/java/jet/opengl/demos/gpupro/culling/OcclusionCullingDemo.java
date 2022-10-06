@@ -81,7 +81,8 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         m_transformer.setTranslation(1,1,1);
         mPickRect.zero();
 //        mCulling = new HZBOcclusionTester();
-        mCulling = new HZBOcclusionUE4Profie();
+//        mCulling = new HZBOcclusionUE4Profie();
+        mCulling = new DawnCulling();
 
         try {
             mVisualTexture = new VisualDepthTextureProgram(false);
@@ -249,8 +250,10 @@ public final class OcclusionCullingDemo extends NvSampleApp {
         model.mMaterial = new Material();
         model.mMaterial.mColor.set(0.7f, 0.8f, 0.6f, 1);
 
+
+
         Numeric.setRandomSeed(1000000);
-        for (int i = 0; i < 10; i++){
+        for (int i = 0; i < 100; i++){
             float rnd = Numeric.random();
             MeshType type  = rnd < 0.5 ? MeshType.Cube : MeshType.Sphere;
             Mesh mesh = new Mesh(i);

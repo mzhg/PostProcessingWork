@@ -4,434 +4,284 @@
 
 
 
-#ifndef GL_ES
-
-
-#endif
-
-#define float2 vec2
-#define bool4 bvec4
-
-#define float3 vec3
-#define float4 vec4
-#define bool2 bvec2
-#define bool3 bvec3
-#define float2x2 mat2
-#define float3x3 mat3
-#define float4x4 mat4
-#define matrix   mat4
-#define float4x3 mat4x3
-
-#define half2 vec2
-#define half3 vec3
-#define half4 vec4
-
-#define uint2 uvec2
-#define uint3 uvec3
-#define uint4 uvec4
-
-#define int2 ivec2
-#define int3 ivec3
-#define int4 ivec4
-
-#define lerp(x,y,v) mix(x,y,v)
-#define rcp(x) 1.0/x
-#define saturate(x) clamp(x, 0.0, 1.0)
-#define frac(x) fract(x)
-#define rsqrt(x) inversesqrt(x)
-#define InterlockedOr(x, y) atomicOr(x, y)
-#define firstbithigh(x) findMSB(x)
-#define firstbitlow(x)  findLSB(x)
-#define atan2(y,x)  atan(y,x)
-#define reversebits(x) bitfieldReverse(x)
-#define countbits(x)   bitCount(x)
-#define asuint(x) floatBitsToUint(x)
-#define ddx(x)    dFdx(x)
-#define ddy(x)    dFdy(x)
 
 
 
-#define isfinite(x) !(isnan(x) || isinf(x))
-
-#ifndef GroupMemoryBarrierWithGroupSync
-#define GroupMemoryBarrierWithGroupSync barrier
-#endif
-#define groupshared shared
-
-#define GroupMemoryBarrier memoryBarrier
-
-vec4 mul(in vec4 v, in mat4 m )
-{
-	return m * v;
-}
-
-vec3 mul(in vec3 v, in mat3 m )
-{
-	return m * v;
-}
-
-vec4 mul(in mat4 m , in vec4 v)
-{
-	return m * v;
-}
-
-vec3 mul(in mat3 m , in vec3 v)
-{
-	return m * v;
-}
-
-vec2 mul(in mat2 m , in vec2 v)
-{
-	return m * v;
-}
-
-void sincos(float angle, out float _sin, out float _cos)
-{
-    _sin = sin(angle);
-    _cos = cos(angle);
-}
-
-void sincos(float2 angle, out float2 _sin, out float2 _cos)
-{
-    _sin = sin(angle);
-    _cos = cos(angle);
-}
-
-float asfloat(uint i)
-{
-    return uintBitsToFloat(i);
-}
-
-float asfloat(int i)
-{
-    return intBitsToFloat(i);
-}
-
-float f16tof32( in uint value)
-{
-    return unpackHalf2x16(value).x;
-}
-
-float2 f16tof32( in uint2 value)
-{
-    return float2(unpackHalf2x16(value.x).x, unpackHalf2x16(value.y).x);
-}
-
-float3 f16tof32( in uint3 value)
-{
-    return float3(unpackHalf2x16(value.x).x, unpackHalf2x16(value.y).x, unpackHalf2x16(value.z).x);
-}
-
-float4 f16tof32( in uint4 value)
-{
-    return float4(unpackHalf2x16(value.x).x, unpackHalf2x16(value.y).x, unpackHalf2x16(value.z).x, unpackHalf2x16(value.w).x);
-}
-
-uint f32tof16(in float value)
-{
-    return packHalf2x16(vec2(value, 0));
-}
-
-uint2 f32tof16(in vec2 value)
-{
-    return uint2(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)));
-}
-
-uint3 f32tof16(in float3 value)
-{
-    return uint3(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)), packHalf2x16(vec2(value.z, 0)));
-}
 
 
-uint4 f32tof16(in float4 value)
-{
-    return uint4(packHalf2x16(vec2(value.x, 0)), packHalf2x16(vec2(value.y, 0)), packHalf2x16(vec2(value.z, 0)), packHalf2x16(vec2(value.w, 0)));
-}
-
-#define SV_ThreadGroupSize gl_WorkGroupSize
-#define SV_NumThreadGroup  gl_NumWorkGroups
-#define SV_GroupID         gl_WorkGroupID
-#define SV_GroupThreadID   gl_LocalInvocationID
-#define SV_DispatchThreadID gl_GlobalInvocationID
-#define SV_GroupIndex      gl_LocalInvocationIndex
 
 
-#if GL_ES
 
-#if __VERSION__ < 300
-    #define texture(x, y) texture2D(x, y)
-#endif
 
-#if __VERSION__  >= 300
-	#define ENABLE_VERTEX_ID 1
-	#define ENABLE_IN_OUT_FEATURE 1
-	#define LAYOUT_LOC(x)  layout(location = x)
+
+
+
+const float Rg = 6360.0;
+const float Rt = 6420.0;
+const float RL = 6421.0;
+
+const int TRANSMITTANCE_W = 256;
+const int TRANSMITTANCE_H = 64;
+
+const int SKY_W = 64;
+const int SKY_H = 16;
+
+const int RES_R = 32;
+const int RES_MU = 128;
+const int RES_MU_S = 32;
+const int RES_NU = 8;
+
+
+const float AVERAGE_GROUND_REFLECTANCE = 0.1;
+
+
+const float HR = 8.0;
+const vec3 betaR = vec3(5.8e-3, 1.35e-2, 3.31e-2);
+
+
+
+const float HM = 1.2;
+const vec3 betaMSca = vec3(4e-3);
+const vec3 betaMEx = betaMSca / 0.9;
+const float mieG = 0.8;
+
+
+
+
+
+
+
+
+
+const int TRANSMITTANCE_INTEGRAL_SAMPLES = 500;
+const int INSCATTER_INTEGRAL_SAMPLES = 50;
+const int IRRADIANCE_INTEGRAL_SAMPLES = 32;
+const int INSCATTER_SPHERICAL_INTEGRAL_SAMPLES = 16;
+
+const float M_PI = 3.141592657;
+
+
+
+
+
+#define TRANSMITTANCE_NON_LINEAR
+#define INSCATTER_NON_LINEAR
+
+
+
+
+
+uniform sampler2D transmittanceSampler;
+
+vec2 getTransmittanceUV(float r, float mu) {
+    float uR, uMu;
+#ifdef TRANSMITTANCE_NON_LINEAR
+	uR = sqrt((r - Rg) / (Rt - Rg));
+	uMu = atan((mu + 0.15) / (1.0 + 0.15) * tan(1.5)) / 1.5;
 #else
-	#define LAYOUT_LOC(x)
+	uR = (r - Rg) / (Rt - Rg);
+	uMu = (mu + 0.15) / (1.0 + 0.15);
 #endif
+    return vec2(uMu, uR);
+}
 
-#if __VERSION__ == 300
-    vec4 textureGather(sampler2D tex, vec2 uv, int comp)
-    {
-        vec4 c0 = textureOffset(tex, uv, ivec2(0,1));
-        vec4 c1 = textureOffset(tex, uv, ivec2(1,1));
-        vec4 c2 = textureOffset(tex, uv, ivec2(1,0));
-        vec4 c3 = textureOffset(tex, uv, ivec2(0,0));
-
-        return vec4(c0[comp], c1[comp], c2[comp],c3[comp]);
-    }
-#elif __VERSION__ < 300
-
-    vec4 textureGather(sampler2D tex, vec2 uv, int comp)
-    {
-        vec4 c3 = texture2D(tex, uv);
-        return vec4(c3[comp], c3[comp], c3[comp],c3[comp]);
-    }
-#endif
-
-#else  
-
-
- #define ENABLE_VERTEX_ID 1
-
- #if __VERSION__ >= 130
- #define ENABLE_IN_OUT_FEATURE 1
- #endif
-
- #if __VERSION__ >= 410
-    #define LAYOUT_LOC(x)  layout(location = x)
- #else
-    #define LAYOUT_LOC(x)
- #endif
-
- #if __VERSION__ < 400
-     vec4 textureGather(sampler2D tex, vec2 uv, int comp)
-     {
-         vec4 c0 = textureOffset(tex, uv, ivec2(0,1));
-         vec4 c1 = textureOffset(tex, uv, ivec2(1,1));
-         vec4 c2 = textureOffset(tex, uv, ivec2(1,0));
-         vec4 c3 = textureOffset(tex, uv, ivec2(0,0));
-
-         return vec4(c0[comp], c1[comp], c2[comp],c3[comp]);
-     }
- #endif
-
-#endif
-
-#ifndef ENABLE_VERTEX_ID
-#define ENABLE_VERTEX_ID 0
-#endif
-
-#ifndef ENABLE_IN_OUT_FEATURE
-#define ENABLE_IN_OUT_FEATURE 0
-#endif
-
-#ifndef ENABLE_POS_TRANSFORM
-#define ENABLE_POS_TRANSFORM 0
-#endif
-
-
-
-
-#if GL_ES
-precision highp float;
-#endif
-
-#if ENABLE_IN_OUT_FEATURE
-    in vec4 m_f4UVAndScreenPos;
-    LAYOUT_LOC(0) out vec4 Out_f4Color;
+void getTransmittanceRMu(out float r, out float muS) {
+    r = gl_FragCoord.y / float(TRANSMITTANCE_H);
+    muS = gl_FragCoord.x / float(TRANSMITTANCE_W);
+#ifdef TRANSMITTANCE_NON_LINEAR
+    r = Rg + (r * r) * (Rt - Rg);
+    muS = -0.15 + tan(1.5 * muS) / tan(1.5) * (1.0 + 0.15);
 #else
-    varying vec4 m_f4UVAndScreenPos;
-   #define Out_f4Color gl_FragColor
+    r = Rg + r * (Rt - Rg);
+    muS = -0.15 + muS * (1.0 + 0.15);
 #endif
-
-
-uniform sampler2D iChannel0;
-uniform sampler2D iPaper;
-
-
-uniform vec4 g_Uniforms;
-#define iResolution g_Uniforms.xy
-#define g_RectBorder      g_Uniforms.z
-#define g_Alpha           g_Uniforms.w   
-
-#define EPSILON 0.000011
-#define SAMPLES  5.0
-
-float DistToRect(vec2 uv)
-{
-    float prop = iResolution.y / iResolution.x;
-
-    float Xmin = g_RectBorder;
-    float Xmax = 1.0 - g_RectBorder;
-    float Ymin = g_RectBorder;
-    float Ymax = prop - Ymin;
-
-    float X = clamp(uv.x, Xmin, Xmax);
-    float Y = clamp(uv.y, Ymin, Ymax);
-
-
-
-    return distance(uv, vec2(X,Y));
 }
 
-
-float hash( vec2 p ){ return fract(sin(dot(p, vec2(41, 289)))*45758.5453); }
-
-float ConstractLinear(float color, float middleGray, float c)
-{
-    
-    return color + (color - middleGray) * c;
+vec2 getIrradianceUV(float r, float muS) {
+    float uR = (r - Rg) / (Rt - Rg);
+    float uMuS = (muS + 0.2) / (1.0 + 0.2);
+    return vec2(uMuS, uR);
 }
 
-float ConstractLog(float color, float c)
-{
-    const float F = 1.0;
-    return c * log(color * F + 1.0) / F;
+void getIrradianceRMuS(out float r, out float muS) {
+    r = Rg + (gl_FragCoord.y - 0.5) / (float(SKY_H) - 1.0) * (Rt - Rg);
+    muS = -0.2 + (gl_FragCoord.x - 0.5) / (float(SKY_W) - 1.0) * (1.0 + 0.2);
 }
 
-float ConstractPower(float color, float c, float gamma)
+vec4 texture4D(sampler3D table, float r, float mu, float muS, float nu)
 {
-    float diff = color - 100.0 / 256.0;
-    return c * pow(abs(diff), gamma) * sign(diff) + 100.0 / 256.0;
+    float H = sqrt(Rt * Rt - Rg * Rg);
+    float rho = sqrt(r * r - Rg * Rg);
+#ifdef INSCATTER_NON_LINEAR
+    float rmu = r * mu;
+    float delta = rmu * rmu - r * r + Rg * Rg;
+    vec4 cst = rmu < 0.0 && delta > 0.0 ? vec4(1.0, 0.0, 0.0, 0.5 - 0.5 / float(RES_MU)) : vec4(-1.0, H * H, H, 0.5 + 0.5 / float(RES_MU));
+	float uR = 0.5 / float(RES_R) + rho / H * (1.0 - 1.0 / float(RES_R));
+    float uMu = cst.w + (rmu * cst.x + sqrt(delta + cst.y)) / (rho + cst.z) * (0.5 - 1.0 / float(RES_MU));
+    
+    
+    
+    float uMuS = 0.5 / float(RES_MU_S) + (atan(max(muS, -0.1975) * tan(1.26 * 1.1)) / 1.1 + (1.0 - 0.26)) * 0.5 * (1.0 - 1.0 / float(RES_MU_S));
+#else
+	float uR = 0.5 / float(RES_R) + rho / H * (1.0 - 1.0 / float(RES_R));
+    float uMu = 0.5 / float(RES_MU) + (mu + 1.0) / 2.0 * (1.0 - 1.0 / float(RES_MU));
+    float uMuS = 0.5 / float(RES_MU_S) + max(muS + 0.2, 0.0) / 1.2 * (1.0 - 1.0 / float(RES_MU_S));
+#endif
+    float lerp = (nu + 1.0) / 2.0 * (float(RES_NU) - 1.0);
+    float uNu = floor(lerp);
+    lerp = lerp - uNu;
+    return texture3D(table, vec3((uNu + uMuS) / float(RES_NU), uMu, uR)) * (1.0 - lerp) +
+           texture3D(table, vec3((uNu + uMuS + 1.0) / float(RES_NU), uMu, uR)) * lerp;
 }
 
-void mainImage( out vec4 fragColor ){
-    
-    vec2 uv = m_f4UVAndScreenPos.xy;
-
-    
-    
-    
-    float decay = 0.97;
-    
-    float density = 0.02;
-    
-    float weight = 1.0f/SAMPLES;
-
-    float iGlobalTime = 10.0;
-    
-    vec3 l = vec3(0);
-
-    
-    
-    
-    
-    
-    
-    
-    vec2 tuv = uv - 0.5;
-
-    
-    
-    
-    vec2 dTuv = tuv*density * weight;
-
-    
-    
-    vec4 col = texture(iChannel0, uv.xy) * weight;
-
-    
-    
-    uv += dTuv*(hash(uv.xy + fract(iGlobalTime))*2. - 1.);
-
-    float totalWeight = 1.0 / SAMPLES;
-    
-    
-    
-    for(float i=0.; i < SAMPLES; i++){
-
-        uv -= dTuv;
-        col += texture(iChannel0, uv) * weight;
-        totalWeight += weight;
-
-        weight *= decay;
+void getMuMuSNu(float r, vec4 dhdH, out float mu, out float muS, out float nu) {
+    float x = gl_FragCoord.x - 0.5;
+    float y = gl_FragCoord.y - 0.5;
+#ifdef INSCATTER_NON_LINEAR
+    if (y < float(RES_MU) / 2.0) {
+        float d = 1.0 - y / (float(RES_MU) / 2.0 - 1.0);
+        d = min(max(dhdH.z, d * dhdH.w), dhdH.w * 0.999);
+        mu = (Rg * Rg - r * r - d * d) / (2.0 * r * d);
+        mu = min(mu, -sqrt(1.0 - (Rg / r) * (Rg / r)) - 0.001);
+    } else {
+        float d = (y - float(RES_MU) / 2.0) / (float(RES_MU) / 2.0 - 1.0);
+        d = min(max(dhdH.x, d * dhdH.y), dhdH.y * 0.999);
+        mu = (Rt * Rt - r * r - d * d) / (2.0 * r * d);
     }
-
+    muS = mod(x, float(RES_MU_S)) / (float(RES_MU_S) - 1.0);
     
     
     
-    col *= (1. - dot(tuv, tuv)*.75);
-    col /= totalWeight;
-
-    
-    fragColor = smoothstep(0., 1., col);
-    fragColor  = col;
+    muS = tan((2.0 * muS - 1.0 + 0.26) * 1.1) / tan(1.26 * 1.1);
+    nu = -1.0 + floor(x / float(RES_MU_S)) / (float(RES_NU) - 1.0) * 2.0;
+#else
+    mu = -1.0 + 2.0 * y / (float(RES_MU) - 1.0);
+    muS = mod(x, float(RES_MU_S)) / (float(RES_MU_S) - 1.0);
+    muS = -0.2 + muS * 1.2;
+    nu = -1.0 + floor(x / float(RES_MU_S)) / (float(RES_NU) - 1.0) * 2.0;
+#endif
 }
 
-#define USE_PAPER 1
 
-float overlaySingle(float s, float d)
-{
-    int di = int(d * 255.0);
-    int si = int(s * 255.0);
 
-    const int C = 128;
 
-    int t;
-    int dor;
-    if ( di < C )
-    {
-        t = di * si + C;
-        dor = 2 * (((t >> 8) + t) >> 8);
+
+
+
+float limit(float r, float mu) {
+    float dout = -r * mu + sqrt(r * r * (mu * mu - 1.0) + RL * RL);
+    float delta2 = r * r * (mu * mu - 1.0) + Rg * Rg;
+    if (delta2 >= 0.0) {
+        float din = -r * mu - sqrt(delta2);
+        if (din >= 0.0) {
+            dout = min(dout, din);
+        }
     }
-    else
-    {
-        t = (255-di) * (255-si) + C;
-        dor = 2 * (255 - ( ((t >> 8) + t) >> 8 ));
-    }
-
-    return float(dor) / 255.0;
+    return dout;
 }
 
-vec3 overlay(vec4 src, vec4 dst)
-{
+
+
+vec3 transmittance(float r, float mu) {
+	vec2 uv = getTransmittanceUV(r, mu);
+    return texture2D(transmittanceSampler, uv).rgb;
+}
+
+
+
+vec3 transmittanceWithShadow(float r, float mu) {
+    return mu < -sqrt(1.0 - (Rg / r) * (Rg / r)) ? vec3(0.0) : transmittance(r, mu);
+}
+
+
+
+
+vec3 transmittance(float r, float mu, vec3 v, vec3 x0) {
     vec3 result;
-    result.r = overlaySingle(src.r, dst.r);
-    result.g = overlaySingle(src.g, dst.g);
-    result.b = overlaySingle(src.b, dst.b);
-
-    return mix(dst.rgb, result.rgb, g_Alpha);
+    float r1 = length(x0);
+    float mu1 = dot(x0, v) / r;
+    if (mu > 0.0) {
+        result = min(transmittance(r, mu) / transmittance(r1, mu1), 1.0);
+    } else {
+        result = min(transmittance(r1, -mu1) / transmittance(r, -mu), 1.0);
+    }
+    return result;
 }
 
-void main(void)
-{
-    const vec3 ToGray = vec3(0.299, 0.587, 0.114);
 
-    if(USE_PAPER != 0)
-    {
-        vec4 src0 = texture(iChannel0, m_f4UVAndScreenPos.xy);
 
-        vec4 src1 = texture(iPaper, m_f4UVAndScreenPos.xy);
 
-        float src = dot(src1.rgb, ToGray);
-        Out_f4Color.rgb = overlay(vec3(src), src0);
-        Out_f4Color.a = 1;
+float opticalDepth(float H, float r, float mu, float d) {
+    float a = sqrt((0.5/H)*r);
+    vec2 a01 = a*vec2(mu, mu + d / r);
+    vec2 a01s = sign(a01);
+    vec2 a01sq = a01*a01;
+    float x = a01s.y > a01s.x ? exp(a01sq.x) : 0.0;
+    vec2 y = a01s / (2.3193*abs(a01) + sqrt(1.52*a01sq + 4.0)) * vec2(1.0, exp(-d/H*(d/(2.0*r)+mu)));
+    return sqrt((6.2831*H)*r) * exp((Rg-r)/H) * (x + dot(y, vec2(1.0, -1.0)));
+}
+
+
+
+
+vec3 analyticTransmittance(float r, float mu, float d) {
+    return exp(- betaR * opticalDepth(HR, r, mu, d) - betaMEx * opticalDepth(HM, r, mu, d));
+}
+
+
+
+
+vec3 transmittance(float r, float mu, float d) {
+    vec3 result;
+    float r1 = sqrt(r * r + d * d + 2.0 * r * mu * d);
+    float mu1 = (r * mu + d) / r1;
+    if (mu > 0.0) {
+        result = min(transmittance(r, mu) / transmittance(r1, mu1), 1.0);
+    } else {
+        result = min(transmittance(r1, -mu1) / transmittance(r, -mu), 1.0);
     }
-    else
-    {
-        vec2 p = gl_FragCoord.xy / iResolution.x;
-        float dist = DistToRect(p);
+    return result;
+}
 
-        
-        float fade = smoothstep(0.,1., dist / g_RectBorder);
-        
+vec3 irradiance(sampler2D sampler, float r, float muS) {
+    vec2 uv = getIrradianceUV(r, muS);
+    return texture2D(sampler, uv).rgb;
+}
 
-        
 
-        vec4 backgroundColor;
-        mainImage(backgroundColor);
+float phaseFunctionR(float mu) {
+    return (3.0 / (16.0 * M_PI)) * (1.0 + mu * mu);
+}
 
-        
 
-        float grayCol = dot(backgroundColor.rgb, ToGray);
-        
+float phaseFunctionM(float mu) {
+	return 1.5 * 1.0 / (4.0 * M_PI) * (1.0 - mieG*mieG) * pow(1.0 + (mieG*mieG) - 2.0*mieG*mu, -3.0/2.0) * (1.0 + mu * mu) / (2.0 + mieG*mieG);
+}
 
-        grayCol = ConstractPower(grayCol, 1.0, 1);
 
-        
-        Out_f4Color = vec4(mix(vec3(grayCol), vec3(0.0), fade), 1.0);
+vec3 getMie(vec4 rayMie) { 
+	return rayMie.rgb * rayMie.w / max(rayMie.r, 1e-4) * (betaR.r / betaR);
+}
+
+
+float opticalDepth(float H, float r, float mu) {
+    float result = 0.0;
+    float dx = limit(r, mu) / float(TRANSMITTANCE_INTEGRAL_SAMPLES);
+    float xi = 0.0;
+    float yi = exp(-(r - Rg) / H);
+    for (int i = 1; i <= TRANSMITTANCE_INTEGRAL_SAMPLES; ++i) {
+        float xj = float(i) * dx;
+        float yj = exp(-(sqrt(r * r + xj * xj + 2.0 * xj * r * mu) - Rg) / H);
+        result += (yi + yj) / 2.0 * dx;
+        xi = xj;
+        yi = yj;
     }
+    return mu < -sqrt(1.0 - (Rg / r) * (Rg / r)) ? 1e9 : result;
+}
 
-
+void main() {
+    float r, muS;
+    getTransmittanceRMu(r, muS);
+    vec3 depth = betaR * opticalDepth(HR, r, muS) + betaMEx * opticalDepth(HM, r, muS);
+    gl_FragColor = vec4(exp(-depth), 0.0); 
 }

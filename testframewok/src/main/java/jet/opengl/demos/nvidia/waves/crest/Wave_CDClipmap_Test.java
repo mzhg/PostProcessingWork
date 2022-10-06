@@ -19,13 +19,14 @@ public class Wave_CDClipmap_Test extends NvSampleApp {
 
     private GLFuncProvider gl;
     protected void initRendering(){
+        mParams.uniformTiles = false;
         mCDClipmap = new Wave_CDClipmap();
         mCDClipmap.init(mParams);
 
         gl = GLFuncProviderFactory.getGLFuncProvider();
 
         m_transformer.setMotionMode(NvCameraMotionType.FIRST_PERSON);
-        m_transformer.setTranslation(0, -5.1f, 0.1f);
+        m_transformer.setTranslation(0.0f, -5.5f, -3.0f);
     }
 
     @Override

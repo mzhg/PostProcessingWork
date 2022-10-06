@@ -43,8 +43,8 @@ public class AtmosphereDemo extends NvSampleApp {
     boolean use_ozone_ = true;
     final boolean use_combined_textures_ = true;
     boolean use_half_precision_ = true;
-    Luminance use_luminance_ = Luminance.NONE;
-    Luminance curr_lumi_mode = Luminance.NONE;
+    Luminance use_luminance_ = Luminance.PRECOMPUTED;
+    Luminance curr_lumi_mode = Luminance.PRECOMPUTED;
     boolean do_white_balance_ = false;
     boolean show_help_ = true;
 

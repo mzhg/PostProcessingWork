@@ -924,7 +924,7 @@ blending separately enabled or disabled for each color attachment):
                 }
             }
 
-            // Compute the indirect irradiance, store it in delta_irradiance_texture and
+            //5, Compute the indirect irradiance, store it in delta_irradiance_texture and
             // accumulate it in irradiance_texture_.
             if(use_hardwared_fbo){
                 gl.glFramebufferTexture(GLenum.GL_FRAMEBUFFER, GLenum.GL_COLOR_ATTACHMENT0, delta_irradiance_texture.getTexture(), 0);
@@ -967,7 +967,7 @@ blending separately enabled or disabled for each color attachment):
             compute_indirect_irradiance.setName("Compute Indirect Irradiance");
             compute_indirect_irradiance.printOnce();
 
-            // Compute the multiple scattering, store it in
+            //6, Compute the multiple scattering, store it in
             // delta_multiple_scattering_texture, and accumulate it in
             // scattering_texture_.
             if(use_hardwared_fbo){

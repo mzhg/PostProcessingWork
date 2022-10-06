@@ -44,6 +44,8 @@ class Wave_Simulation_Common_Input implements Wave_LodData_Input{
          {
              shaderData._Weight = weight;
              transform.getMatrix(shaderData.unity_ObjectToWorld);
+             _material.AddBlend();
+             _material.setStateEnabled(false);
              _material.enable(shaderData);
 
              GLFuncProvider gl = GLFuncProviderFactory.getGLFuncProvider();

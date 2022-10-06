@@ -149,7 +149,7 @@ public class Technique extends GLSLProgram {
 
     Technique Translucent(){ return TranslucentBlendRGB();}
 
-    Technique AddBlend(){
+    public Technique AddBlend(){
         /*BlendState AddBlend
         {
             BlendEnable[0] = TRUE;

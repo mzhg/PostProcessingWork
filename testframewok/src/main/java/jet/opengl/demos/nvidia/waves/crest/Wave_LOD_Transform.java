@@ -87,7 +87,7 @@ final class Wave_LOD_Transform {
 
             // find snap period
             _renderData[lodIdx]._textureRes = lodDataResolution;
-            _renderData[lodIdx]._texelWidth = 2f * camOrthSize / _renderData[lodIdx]._textureRes;
+            _renderData[lodIdx]._texelWidth = 2f * camOrthSize / lodDataResolution;
 
             // snap so that shape texels are stationary
             _renderData[lodIdx]._posSnapped.x = eyePos.getX() - Numeric.fmod(eyePos.getX(), _renderData[lodIdx]._texelWidth);

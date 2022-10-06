@@ -34,7 +34,7 @@ void main()
         vec3 BoundsCenter = box.Center.xyz;
         vec3 BoundsExtent = box.Extent.xyz;
 
-#if 1
+#if 0
         if( BoundsExtent.w == 0 )
         {
             OutColor = 1.0;

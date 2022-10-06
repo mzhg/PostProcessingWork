@@ -1,7 +1,6 @@
 package jet.opengl.demos.nvidia.waves.crest;
 
 import jet.opengl.demos.nvidia.waves.ocean.TechniqueParams;
-import jet.opengl.postprocessing.util.CacheBuffer;
 
 final class Wave_Shading_Technique extends Wave_Simulation_Technique {
 

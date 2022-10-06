@@ -88,4 +88,9 @@ public class Transform {
 
         return mat;
     }
+
+    @Override
+    public String toString() {
+        return String.format("T{%f, %f, %f}, S{%f, %f, %f}, R{%f, %f, %f, %f}", x,y,z, scaleX, scaleY, scaleZ, rotX, rotY, rotZ, rotW);
+    }
 }

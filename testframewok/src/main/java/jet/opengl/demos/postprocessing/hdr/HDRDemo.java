@@ -19,9 +19,12 @@ import jet.opengl.postprocessing.core.PostProcessing;
 import jet.opengl.postprocessing.core.PostProcessingDownsampleProgram;
 import jet.opengl.postprocessing.core.PostProcessingFrameAttribs;
 import jet.opengl.postprocessing.texture.FramebufferGL;
+import jet.opengl.postprocessing.texture.RenderTargets;
 import jet.opengl.postprocessing.texture.Texture2D;
 import jet.opengl.postprocessing.texture.Texture2DDesc;
 import jet.opengl.postprocessing.texture.TextureAttachDesc;
+import jet.opengl.postprocessing.texture.TextureGL;
+import jet.opengl.postprocessing.texture.TextureUtils;
 import jet.opengl.postprocessing.util.CacheBuffer;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.LogUtil;
@@ -84,7 +87,7 @@ public class HDRDemo extends NvSampleApp {
     final int[] triangles_count = new int[3];
     private VertexBufferObject m_skybox;
 
-    FramebufferGL scene_buffer;
+    RenderTargets scene_buffer;
     Texture2D     scene_color;
     Texture2D     scene_depth;
 
@@ -196,6 +199,9 @@ public class HDRDemo extends NvSampleApp {
 
         m_PostProcessing = new PostProcessing();
         m_frameAttribs = new PostProcessingFrameAttribs();
+
+        scene_buffer = new RenderTargets();
+        scene_buffer.initlize();
     }
 
     @Override
@@ -203,6 +209,7 @@ public class HDRDemo extends NvSampleApp {
         m_transformer.setRotationVel(new Vector3f(0.0f, m_autoSpin ? (Numeric.PI *0.05f) : 0.0f, 0.0f));
         scene_buffer.bind();
 
+        scene_buffer.setRenderTextures(new TextureGL[]{scene_color, scene_depth}, null);
         //we only need to clear depth
         gl.glDisable(GLenum.GL_BLEND);
         gl.glClear(GLenum.GL_DEPTH_BUFFER_BIT);
@@ -333,15 +340,17 @@ public class HDRDemo extends NvSampleApp {
 
         if(scene_color !=null && scene_color.getWidth() == width && scene_color.getHeight() == height)
             return;
-        if(scene_buffer != null)
+        if(scene_color != null) {
             scene_color.dispose();
+            scene_depth.dispose();
+        }
 
-        scene_buffer = new FramebufferGL();
+
         int format = GLenum.GL_RGB16F;
         scene_buffer.bind();
-        scene_color = scene_buffer.addTexture2D(new Texture2DDesc(width, height, format), new TextureAttachDesc());
-        scene_depth = scene_buffer.addTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH_COMPONENT16), new TextureAttachDesc());
-        scene_buffer.unbind();
+        scene_color = TextureUtils.createTexture2D(new Texture2DDesc(width, height, format), null);
+        scene_depth = TextureUtils.createTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH_COMPONENT16), null); //scene_buffer.addTexture2D(new Texture2DDesc(width, height, GLenum.GL_DEPTH_COMPONENT16), new TextureAttachDesc());
+//        scene_buffer.unbind();
 
         gl.glViewport(0,0, width, height);
 

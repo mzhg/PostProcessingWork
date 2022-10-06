@@ -10,7 +10,7 @@ layout(binding = 0, r32ui) uniform uimage2D DepthTexture;
 
 float max4(vec4 v)
 {
-    return max(max(v.x,v.y), max(v.z,v.y));
+    return max(max(v.x,v.y), max(v.z,v.w));
 }
 
 uniform mat4 gPrevViewProjInv;

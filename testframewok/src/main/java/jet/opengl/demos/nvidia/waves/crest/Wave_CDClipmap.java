@@ -46,6 +46,9 @@ public class Wave_CDClipmap {
         m_LodTransform = new Wave_LOD_Transform(this);
         validParams();
         generateMesh();
+
+        String filename = "E:\\textures\\crest\\CDClipmapGL.txt";
+        printQuadNodeTransform(filename);
     }
 
     private void validParams(){
@@ -531,6 +534,7 @@ public class Wave_CDClipmap {
         getGloaltoWorldTransform(clipmapTransform);
     }
 
+    private boolean bPrint = true;
     public void debugDrawWave(Matrix4f cameraProj, Matrix4f cameraView){
         if(m_DebugProg == null){
             m_DebugProg = GLSLProgram.createProgram("nvidia/WaveWorks/shaders/DebugWave.vert","nvidia/WaveWorks/shaders/DebugWave.frag", null);
@@ -554,6 +558,7 @@ public class Wave_CDClipmap {
 
         getGloaltoWorldTransform(gloabl);
 
+        int nodeIdx = 0;
         for(CDClipmapNode node : m_QuadNodes){
             node.transform.getMatrix(local);
 //            local.load(node.debugMatrix);
@@ -567,11 +572,38 @@ public class Wave_CDClipmap {
 
             GLSLUtil.setMat4(m_DebugProg, "g_Local", world);
             m_Meshes[node.meshIndex].Draw();
+
+            if(bPrint) {
+                System.out.println("node: " + nodeIdx + " -----------------------------");
+                m_DebugProg.printPrograminfo();
+            }
+
+            nodeIdx++;
+
+            if(nodeIdx == 9 && bPrint){
+                System.out.println("node Mesh: " + node.meshIndex + " -----------------------------");
+            }
+
+//            if(nodeIdx > 8)
+//                break;
         }
+
+        bPrint = false;
 
         CacheBuffer.free(gloabl);
         CacheBuffer.free(local);
         gl.glPolygonMode(GLenum.GL_FRONT_AND_BACK, GLenum.GL_FILL);
+
+//        m_Params.followViewpoint = false;
     }
 
+    private void printQuadNodeTransform(String filename){
+        StringBuilder sb = new StringBuilder(1024);
+
+        for(CDClipmapNode node : m_QuadNodes){
+            sb.append(node.transform.toString()).append('\n');
+        }
+
+        DebugTools.saveText(sb, filename);
+    }
 }

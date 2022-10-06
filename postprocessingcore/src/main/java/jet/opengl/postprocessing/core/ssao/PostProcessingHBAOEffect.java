@@ -5,6 +5,7 @@ import jet.opengl.postprocessing.core.PostProcessingEffect;
 import jet.opengl.postprocessing.core.PostProcessingReconstructCameraZPass;
 import jet.opengl.postprocessing.core.PostProcessingRenderPass;
 import jet.opengl.postprocessing.texture.Texture2D;
+import jet.opengl.postprocessing.texture.TextureUtils;
 
 /**
  * Created by mazhen'gui on 2017-05-12 13:52:50.

@@ -18,10 +18,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import jet.opengl.demos.gpupro.noise.ShaderNoise;
-import jet.opengl.demos.gpupro.vct.VoxelConeTracingDemo;
-import jet.opengl.demos.postprocessing.DOFBokehDemo;
-import jet.opengl.demos.postprocessing.GrayScreenDemo;
+import jet.opengl.demos.gpupro.culling.OcclusionCullingDemo;
+import jet.opengl.demos.gpupro.ibl.IndirectLighting;
+import jet.opengl.demos.labs.atmosphere.AtmosphereDemo;
+import jet.opengl.demos.labs.atmosphere.AtmosphereOriginDemo;
+import jet.opengl.demos.labs.scattering.AtmosphereTest;
+import jet.opengl.demos.nvidia.fire.PerlinFire;
+import jet.opengl.demos.nvidia.shadows.ShadowMapGenerator;
+import jet.opengl.demos.nvidia.waves.crest.Wave_Animation_Test;
+import jet.opengl.demos.nvidia.waves.crest.Wave_CDClipmap_Test;
+import jet.opengl.demos.postprocessing.HBAODemo;
+import jet.opengl.demos.postprocessing.OutdoorLightScatteringSample;
+import jet.opengl.demos.postprocessing.hdr.HDRDemo;
 import jet.opengl.postprocessing.util.FileLoader;
 import jet.opengl.postprocessing.util.FileUtils;
 import jet.opengl.postprocessing.util.Numeric;
@@ -122,6 +130,7 @@ public class DemoApp {
 //        testProjectionZ();  // 4:3 -->[33.962746, -157.41496, -69.76516, -69.55124], z/w = 1.0015378
 //        testCamera();
 //        NvImage.setAPIVersion(NvGfxAPIVersion.GL4_4);
+//        run(new HDRDemo());
 //        run(new HBAODemo());
 //        run(new ASSAODemoDebug());
 //        run(SSAODemoDX11.newInstance());
@@ -143,7 +152,7 @@ public class DemoApp {
 //        run(new SampleD3D11());
 //        run(new IslandDemo());
 //        run(new Chapman());
-//        run(new AtmosphereTest());
+//        run(new AtmosphereOriginDemo());
 //        run(new FaceWorkDemo());
 //        run(new FaceWorkTest());
 //        run(new VolumetricLightingDemo());
@@ -152,16 +161,17 @@ public class DemoApp {
 //        run(new AntiAliasingDemo());
 //        run(new HybridRendererDemo());
 //        run(new CloudSkyDemo());
-        run(new VoxelConeTracingDemo());
+//        run(new VoxelConeTracingDemo());
 //        run(new PerlinFire());
 //        run(new VolumetricFogDemo());
 //        run(new GeometryFXDemo());
 //        run(new TiledLighting11());
 //        run(new BindlessTextureSample());
 //        run(new DervitiveComputShaderTest());
-//        run(new AtmosphereDemo());
+        run(new AtmosphereDemo());
 //        run(new ScreenWaveDemo());
 //        run(new VolumetricClouds());
+//        run(new IndirectLighting());
     }
 
     private static void testParaboloidMatrix(){

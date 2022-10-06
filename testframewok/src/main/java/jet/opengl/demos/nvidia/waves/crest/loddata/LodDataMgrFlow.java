@@ -1,6 +1,5 @@
 package jet.opengl.demos.nvidia.waves.crest.loddata;
 
-import java.awt.Color;
 import java.util.List;
 
 import jet.opengl.demos.nvidia.waves.crest.CommandBuffer;
